@@ -190,8 +190,7 @@ const makeTab = (
   dbId: number,
   catalog: string | null = null,
   schema: string | null = null,
-  closed: boolean = false,
-  backendId?: string,
+  { closed = false, backendId }: { closed?: boolean; backendId?: string } = {},
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
   const editorGetter = closed
@@ -213,15 +212,9 @@ const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
   if (queryEditor?.dbId !== undefined) {
     const { name, dbId, catalog, schema } = queryEditor;
-    return makeTab(
-      id,
-      name,
-      dbId,
-      catalog,
-      schema,
-      false,
-      resolveBackendId(queryEditor),
-    );
+    return makeTab(id, name, dbId, catalog, schema, {
+      backendId: resolveBackendId(queryEditor),
+    });
   }
   return undefined;
 };
@@ -268,8 +261,9 @@ function extractBaseData(action: QueryAction): {
     dbId ?? 0,
     catalog,
     schema,
-    false,
-    queryEditor ? resolveBackendId(queryEditor) : undefined,
+    {
+      backendId: queryEditor ? resolveBackendId(queryEditor) : undefined,
+    },
   );
 
   return {
@@ -493,8 +487,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema,
-        true, // closed
-        resolveBackendId(action.queryEditor),
+        { closed: true, backendId: resolveBackendId(action.queryEditor) },
       ),
     thisArgs,
   );
@@ -561,8 +554,7 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
-        false,
-        resolveBackendId(action.queryEditor),
+        { backendId: resolveBackendId(action.queryEditor) },
       ),
     thisArgs,
   );
@@ -633,8 +625,9 @@ const createTab: typeof sqlLabApi.createTab = async (
     newTab.dbId ?? 0,
     newTab.catalog,
     newTab.schema ?? undefined,
-    false,
-    resolveBackendId(newTab),
+    {
+      backendId: resolveBackendId(newTab),
+    },
   );
 };
 

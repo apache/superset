@@ -400,17 +400,23 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  test('renders a registered northPane view in place of the editor', async () => {
-    const { queryEditor } = mockedProps;
-    // The fixture has no tabViewId, so the component falls back to the id;
-    // mirror that here to derive the same persistence key.
-    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
-    localStorage.setItem(storageKey, 'test.northPane');
-    const disposable = views.registerView(
+  // The fixture has no tabViewId, so the component falls back to the id;
+  // mirror that here to derive the same per-tab persistence key.
+  const northPaneStorageKey = (queryEditorId: string) =>
+    `sqllab.northPaneView.${queryEditorId}`;
+
+  const registerTestNorthPaneView = () =>
+    views.registerView(
       { id: 'test.northPane', name: 'Test North Pane' },
       ViewLocations.sqllab.northPane,
       () => <div data-test="np-view">NorthPane content</div>,
     );
+
+  test('renders a registered northPane view in place of the editor', async () => {
+    const { queryEditor } = mockedProps;
+    const storageKey = northPaneStorageKey(queryEditor.id);
+    localStorage.setItem(storageKey, 'test.northPane');
+    const disposable = registerTestNorthPaneView();
 
     try {
       const { findByTestId, queryByTestId } = setup(mockedProps, store);
@@ -425,13 +431,8 @@ describe('SqlEditor', () => {
 
   test('opens the northPane view carried on the query editor and persists the per-tab key', async () => {
     const { queryEditor } = mockedProps;
-    // The fixture has no tabViewId, so the component falls back to the id.
-    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
-    const disposable = views.registerView(
-      { id: 'test.northPane', name: 'Test North Pane' },
-      ViewLocations.sqllab.northPane,
-      () => <div data-test="np-view">NorthPane content</div>,
-    );
+    const storageKey = northPaneStorageKey(queryEditor.id);
+    const disposable = registerTestNorthPaneView();
 
     try {
       // createTab({ northPaneViewId }) stamps the view onto the tab's own
@@ -456,12 +457,8 @@ describe('SqlEditor', () => {
 
   test('does not open a northPane view requested for a different tab', () => {
     const { queryEditor } = mockedProps;
-    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
-    const disposable = views.registerView(
-      { id: 'test.northPane', name: 'Test North Pane' },
-      ViewLocations.sqllab.northPane,
-      () => <div data-test="np-view">NorthPane content</div>,
-    );
+    const storageKey = northPaneStorageKey(queryEditor.id);
+    const disposable = registerTestNorthPaneView();
     // Another tab was created with the view; this one mounts as a plain tab
     // (as happens when a reload restores several tabs at once).
     const otherTabStore = createStore({
