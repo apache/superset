@@ -256,3 +256,109 @@ test('restoreFilter cancels the pending removal before the delay elapses', () =>
 
   jest.useRealTimers();
 });
+
+function useFilterOperationsWithStateManager(
+  filterIds: string[],
+  form: FormInstance<NativeFiltersForm>,
+) {
+  const filterState = useItemStateManager(filterIds, {});
+  const filterOperations = useFilterOperations({
+    form,
+    filterState,
+    filterIds,
+    filterConfigMap: {},
+    handleModifyItem: jest.fn(),
+    setActiveItem: jest.fn(),
+    setSaveAlertVisible: jest.fn(),
+  });
+  return { filterState, filterOperations };
+}
+
+test('removing a second filter does not cancel the first filter’s pending finalization', () => {
+  jest.useFakeTimers();
+  const form = {
+    getFieldValue: () => undefined,
+  } as unknown as FormInstance<NativeFiltersForm>;
+  const { result } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1', 'f2'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f2');
+  });
+  // f1's 5s delay elapses 4s after f2 was removed
+  act(() => {
+    jest.advanceTimersByTime(4000);
+  });
+  expect(result.current.filterState.removedItems.f1).toEqual({
+    isPending: false,
+  });
+  expect(result.current.filterState.removedItems.f2).toEqual(
+    expect.objectContaining({ isPending: true }),
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(result.current.filterState.removedItems.f2).toEqual({
+    isPending: false,
+  });
+
+  jest.useRealTimers();
+});
+
+test('resetState cancels pending removal timers so they cannot repopulate the cleared state', () => {
+  jest.useFakeTimers();
+  const form = {
+    getFieldValue: () => undefined,
+  } as unknown as FormInstance<NativeFiltersForm>;
+  const { result } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  act(() => {
+    result.current.filterState.resetState();
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
+
+  act(() => {
+    jest.advanceTimersByTime(5000);
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
+
+  jest.useRealTimers();
+});
+
+test('unmounting cancels pending removal timers', () => {
+  jest.useFakeTimers();
+  const form = {
+    getFieldValue: () => undefined,
+  } as unknown as FormInstance<NativeFiltersForm>;
+  const { result, unmount } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  const { timerId } = result.current.filterState.removedItems.f1 as {
+    timerId: number;
+  };
+  const clearTimeoutSpy = jest.spyOn(window, 'clearTimeout');
+
+  unmount();
+
+  expect(clearTimeoutSpy).toHaveBeenCalledWith(timerId);
+
+  clearTimeoutSpy.mockRestore();
+  jest.useRealTimers();
+});
