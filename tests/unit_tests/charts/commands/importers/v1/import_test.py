@@ -165,8 +165,10 @@ def test_filter_chart_annotations(session: Session) -> None:
     params = config["params"]
     annotation_layers = params["annotation_layers"]
 
-    assert len(annotation_layers) == 2
-    assert {al["annotationType"] for al in annotation_layers} == {"FORMULA", "EVENT"}
+    # Integer IDs come from bundles exported before UUIDs were written and
+    # point at rows of the source instance, so only the formula survives.
+    assert len(annotation_layers) == 1
+    assert all(al["annotationType"] == "FORMULA" for al in annotation_layers)
 
 
 def test_import_existing_chart_without_permission(

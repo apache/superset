@@ -30,10 +30,7 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.annotation_layer.importers.v1.utils import (
     import_annotation_layer,
 )
-from superset.commands.chart.importers.v1.utils import (
-    import_chart,
-    topological_sort_charts,
-)
+from superset.commands.chart.importers.v1.utils import import_charts
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -201,19 +198,15 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 config = update_chart_config_dataset(config, dataset_dict)
                 chart_configs.append(config)
 
-        # Topologically sort all charts for multi-level deps (A→B→C).
-        chart_configs = topological_sort_charts(chart_configs)
-
-        for config in chart_configs:
-            chart = import_chart(
-                config,
-                overwrite=overwrite_assets,
-                default_viewers=default_viewers,
-                annotation_layer_ids=annotation_layer_ids,
-                chart_ids=chart_ids,
-            )
+        # annotation source charts are imported before the charts using them
+        for config, chart in import_charts(
+            chart_configs,
+            overwrite=overwrite_assets,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+        ):
             charts.append(chart)
-            chart_ids[str(chart.uuid)] = chart.id
 
             # Handle tags using import_tag function
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):

@@ -21,9 +21,13 @@ from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
 from superset.commands.base import BaseCommand
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.chart.importers.v1.utils import import_charts
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
@@ -65,6 +69,7 @@ class ImportAssetsCommand(BaseCommand):
     """
 
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -149,24 +154,33 @@ class ImportAssetsCommand(BaseCommand):
         # rather than once per chart/dashboard (a membership query each).
         default_viewers = get_default_viewers_for_current_user()
 
-        # import charts
-        charts = []
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
         for file_name, config in configs.items():
-            if file_name.startswith("charts/"):
-                dataset_dict = dataset_info[config["dataset_uuid"]]
-                config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(
-                    config, overwrite=overwrite, default_viewers=default_viewers
-                )
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=overwrite)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        import_tag(
-                            config["tags"], contents, chart.id, "chart", db.session
-                        )
+        # import charts; annotation source charts go before the charts using them
+        chart_configs = [
+            update_chart_config_dataset(config, dataset_info[config["dataset_uuid"]])
+            for file_name, config in configs.items()
+            if file_name.startswith("charts/")
+        ]
+        charts = []
+        for config, chart in import_charts(
+            chart_configs,
+            overwrite=overwrite,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+        ):
+            charts.append(chart)
+
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # import dashboards
         for file_name, config in configs.items():

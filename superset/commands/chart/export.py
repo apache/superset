@@ -18,12 +18,11 @@
 
 import logging
 from collections.abc import Iterator
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
 
 from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
-from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.chart import ChartDAO
 from superset.commands.dataset.export import ExportDatasetsCommand
@@ -38,7 +37,10 @@ from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
-from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
+    get_annotation_layer_lists,
+)
 from superset.extensions import db, feature_flag_manager
 
 logger = logging.getLogger(__name__)
@@ -89,55 +91,72 @@ class ExportChartsCommand(ExportModelsCommand):
             payload["extra"] = extra_fields
 
         # Replace annotation layer/chart integer IDs with UUIDs for portability
-        if isinstance(payload.get("params"), dict):
-            ExportChartsCommand._replace_annotation_layer_uuids(
-                payload["params"].get("annotation_layers", [])
-            )
-
-        # Also replace annotation IDs with UUIDs in query_context
+        query_context = None
         if payload.get("query_context"):
             try:
                 query_context = json.loads(payload["query_context"])
-                for query in query_context.get("queries", []):
-                    ExportChartsCommand._replace_annotation_layer_uuids(
-                        query.get("annotation_layers", [])
-                    )
-                form_data = query_context.get("form_data", {})
-                ExportChartsCommand._replace_annotation_layer_uuids(
-                    form_data.get("annotation_layers", [])
-                )
-                payload["query_context"] = json.dumps(query_context)
             except json.JSONDecodeError:
                 logger.info(
                     "Unable to decode `query_context` field: %s",
                     payload["query_context"],
                 )
+        for annotation_layers in get_annotation_layer_lists(
+            payload.get("params"), query_context
+        ):
+            ExportChartsCommand._replace_annotation_layer_uuids(
+                model, annotation_layers
+            )
+        if query_context is not None:
+            payload["query_context"] = json.dumps(query_context)
 
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
     def _replace_annotation_layer_uuids(
-        annotation_layers: list[dict],  # type: ignore[type-arg]
+        model: Slice,
+        annotation_layers: list[dict[str, Any]],
     ) -> None:
-        """Replace integer IDs in annotation_layers with UUIDs for portability."""
+        """
+        Replace integer IDs in annotation_layers with UUIDs for portability.
+
+        References that cannot be resolved (the layer or chart was deleted, or
+        the source chart is not visible to the exporting user) are dropped from
+        the exported copy, so they cannot bind to unrelated rows on import.
+        """
+        resolved: list[dict[str, Any]] = []
         for layer in annotation_layers:
             source_type = layer.get("sourceType")
             value = layer.get("value")
-            if not isinstance(value, int):
-                continue
-            if source_type == "NATIVE":
+            if isinstance(value, int) and source_type == "NATIVE":
                 ann_layer = (
-                    db.session.query(AnnotationLayer).filter_by(id=value).first()
+                    db.session.query(AnnotationLayer).filter_by(id=value).one_or_none()
                 )
                 if not ann_layer:
-                    raise AnnotationLayerNotFoundError()
+                    logger.warning(
+                        "Chart %s references missing annotation layer %s; "
+                        "dropping it from the export",
+                        model.id,
+                        value,
+                    )
+                    continue
                 layer["value"] = str(ann_layer.uuid)
-            elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
+            elif (
+                isinstance(value, int)
+                and source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 ref_charts = ChartDAO.find_by_ids([value])
                 if not ref_charts:
-                    raise ChartNotFoundError()
+                    logger.warning(
+                        "Chart %s references annotation source chart %s, which is "
+                        "missing or not accessible; dropping it from the export",
+                        model.id,
+                        value,
+                    )
+                    continue
                 layer["value"] = str(ref_charts[0].uuid)
+            resolved.append(layer)
+        annotation_layers[:] = resolved
 
     _include_tags: bool = True  # Default to True
 
@@ -201,37 +220,57 @@ class ExportChartsCommand(ExportModelsCommand):
             )
 
     @staticmethod
+    def _annotation_reference_ids(model: Slice) -> tuple[set[int], set[int]]:
+        """
+        Return the ``(chart_ids, native_layer_ids)`` referenced as annotation
+        sources by ``model``'s params and query_context.
+        """
+        try:
+            model_params = json.loads(model.params or "{}")
+        except json.JSONDecodeError:
+            model_params = {}
+        try:
+            query_context = json.loads(model.query_context or "{}")
+        except json.JSONDecodeError:
+            query_context = {}
+
+        chart_ids: set[int] = set()
+        native_layer_ids: set[int] = set()
+        for annotation_layers in get_annotation_layer_lists(
+            model_params, query_context
+        ):
+            for layer in annotation_layers:
+                value = layer.get("value")
+                if not isinstance(value, int):
+                    continue
+                source_type = layer.get("sourceType")
+                if source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
+                    chart_ids.add(value)
+                elif source_type == "NATIVE":
+                    native_layer_ids.add(value)
+        return chart_ids, native_layer_ids
+
+    @staticmethod
     def _export_annotation_layers(
         model: Slice,
         seen: set[str],
         _chart_seen: set[int],
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        """Export annotation layers/charts referenced by ``model``'s params."""
-        try:
-            model_params = json.loads(model.params or "{}")
-        except json.JSONDecodeError:
-            model_params = {}
-        annotation_layers = model_params.get("annotation_layers", [])
-        if not annotation_layers:
-            return
+        """
+        Export annotation layers/charts referenced by ``model``'s params and
+        query_context. Unresolvable references are skipped, matching
+        ``_replace_annotation_layer_uuids``.
+        """
+        chart_annotation_ids, native_layer_ids = (
+            ExportChartsCommand._annotation_reference_ids(model)
+        )
 
         # Export charts referenced as annotation sources (table/line sourceType)
-        chart_annotation_ids = [
-            layer["value"]
-            for layer in annotation_layers
-            if layer.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-            and isinstance(layer.get("value"), int)
-        ]
         if chart_annotation_ids:
-            ref_charts = ChartDAO.find_by_ids(chart_annotation_ids)
-            found_ids = {c.id for c in ref_charts}
-            missing_ids = set(chart_annotation_ids) - found_ids
-            if missing_ids:
-                raise ChartNotFoundError()
             # Call _export directly (not .run()) to share seen/_chart_seen
             # across the recursion and prevent infinite loops on circular
             # references.
-            for ref_chart in ref_charts:
+            for ref_chart in ChartDAO.find_by_ids(sorted(chart_annotation_ids)):
                 yield from ExportChartsCommand._export(
                     ref_chart,
                     export_related=True,
@@ -240,11 +279,12 @@ class ExportChartsCommand(ExportModelsCommand):
                 )
 
         # Native annotation layers (sourceType == "NATIVE", value = layer ID)
-        native_layer_ids = [
-            layer["value"]
-            for layer in annotation_layers
-            if layer.get("sourceType") == "NATIVE"
-            and isinstance(layer.get("value"), int)
-        ]
         if native_layer_ids:
-            yield from ExportAnnotationLayersCommand(native_layer_ids).run()
+            existing_layer_ids = [
+                layer_id
+                for (layer_id,) in db.session.query(AnnotationLayer.id)
+                .filter(AnnotationLayer.id.in_(native_layer_ids))
+                .order_by(AnnotationLayer.id)
+            ]
+            if existing_layer_ids:
+                yield from ExportAnnotationLayersCommand(existing_layer_ids).run()

@@ -714,3 +714,37 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
         assert (
             db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).first() is None
         )
+
+    @patch("superset.security.manager.g")
+    def test_import_annotation_layer_command_gamma_existing_layer_unchanged(
+        self, mock_g: Any
+    ) -> None:
+        """Gamma reuses an existing layer without writing to it, even on overwrite."""
+        layer = AnnotationLayer(name=f"gamma-existing-{uuid4()}", descr="original")
+        db.session.add(layer)
+        db.session.commit()
+        layer_uuid = str(layer.uuid)
+        mock_g.user = security_manager.find_user("gamma")
+        contents = {
+            "metadata.yaml": yaml.safe_dump(_metadata_config()),
+            "annotation_layers/layer.yaml": yaml.safe_dump(
+                {
+                    "name": "gamma-renamed",
+                    "descr": "changed",
+                    "uuid": layer_uuid,
+                    "version": "1.0.0",
+                    "annotation": [],
+                }
+            ),
+        }
+        try:
+            ImportAnnotationLayersCommand(contents, overwrite=True).run()
+
+            db.session.expire_all()
+            reloaded = (
+                db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one()
+            )
+            assert reloaded.id == layer.id
+            assert reloaded.descr == "original"
+        finally:
+            _purge_layer_by_uuid(layer_uuid)

@@ -34,21 +34,23 @@ def import_annotation_layer(
 ) -> AnnotationLayer:
     """Upsert annotation layer config and return persisted layer.
 
-    If an existing layer is found and overwrite is False, return it unchanged.
+    An existing layer is returned unchanged unless ``overwrite`` is set and the
+    caller has ``can_write`` on Annotation; creating a layer requires
+    ``can_write``.
     """
     can_write = ignore_permissions or security_manager.can_access(
         "can_write", "Annotation"
     )
-    if not can_write:
-        raise ImportFailedError(
-            "Annotation layer import requires can_write permission on Annotation"
-        )
 
     existing = db.session.query(AnnotationLayer).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if not overwrite:
+        if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+    elif not can_write:
+        raise ImportFailedError(
+            "Annotation layer import requires can_write permission on Annotation"
+        )
 
     # remove version key before passing to import_from_dict
     config.pop("version", None)

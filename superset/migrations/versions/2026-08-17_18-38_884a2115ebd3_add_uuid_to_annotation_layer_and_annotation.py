@@ -26,11 +26,16 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
+from superset.migrations.shared.utils import (
+    add_columns,
+    assign_uuids,
+    drop_columns,
+    has_table,
+)
 
 # revision identifiers, used by Alembic.
 revision = "884a2115ebd3"
@@ -52,75 +57,44 @@ class Annotation(ImportMixin, Base):
     __tablename__ = "annotation"
 
 
-def _assign_missing_uuids(model: type[ImportMixin], session: sa.orm.Session) -> None:
-    """Backfill missing UUIDs with concrete values in a dialect-agnostic way."""
-    for obj in session.query(model).filter(model.uuid.is_(None)):
-        obj.uuid = uuid4()
-    session.commit()
+MODELS = (AnnotationLayer, Annotation)
+
+
+def _has_unique_constraint(table_name: str, constraint_name: str) -> bool:
+    inspector = sa.inspect(op.get_bind())
+    return any(
+        constraint["name"] == constraint_name
+        for constraint in inspector.get_unique_constraints(table_name)
+    )
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=op.get_bind())
 
-    try:
-        with op.batch_alter_table("annotation_layer") as batch_op:
-            batch_op.add_column(
-                sa.Column(
-                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4
-                )
-            )
-    except OperationalError:
-        pass
+    for model in MODELS:
+        table_name = model.__tablename__
+        if not has_table(table_name):
+            continue
+        add_columns(
+            table_name,
+            sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
+        )
+        if session.query(model).filter(model.uuid.is_(None)).count():
+            assign_uuids(model, session)
 
-    _assign_missing_uuids(AnnotationLayer, session)
-
-    try:
-        with op.batch_alter_table("annotation_layer") as batch_op:
-            batch_op.create_unique_constraint("uq_annotation_layer_uuid", ["uuid"])
-    except OperationalError:
-        pass
-
-    try:
-        with op.batch_alter_table("annotation") as batch_op:
-            batch_op.add_column(
-                sa.Column(
-                    "uuid", UUIDType(binary=True), primary_key=False, default=uuid4
-                )
-            )
-    except OperationalError:
-        pass
-
-    _assign_missing_uuids(Annotation, session)
-
-    try:
-        with op.batch_alter_table("annotation") as batch_op:
-            batch_op.create_unique_constraint("uq_annotation_uuid", ["uuid"])
-    except OperationalError:
-        pass
+        constraint_name = f"uq_{table_name}_uuid"
+        if not _has_unique_constraint(table_name, constraint_name):
+            with op.batch_alter_table(table_name) as batch_op:
+                batch_op.create_unique_constraint(constraint_name, ["uuid"])
 
 
 def downgrade() -> None:
-    try:
-        with op.batch_alter_table("annotation") as batch_op:
-            batch_op.drop_constraint("uq_annotation_uuid", type_="unique")
-    except OperationalError:
-        pass
-
-    try:
-        with op.batch_alter_table("annotation") as batch_op:
-            batch_op.drop_column("uuid")
-    except OperationalError:
-        pass
-
-    try:
-        with op.batch_alter_table("annotation_layer") as batch_op:
-            batch_op.drop_constraint("uq_annotation_layer_uuid", type_="unique")
-    except OperationalError:
-        pass
-
-    try:
-        with op.batch_alter_table("annotation_layer") as batch_op:
-            batch_op.drop_column("uuid")
-    except OperationalError:
-        pass
+    for model in reversed(MODELS):
+        table_name = model.__tablename__
+        if not has_table(table_name):
+            continue
+        constraint_name = f"uq_{table_name}_uuid"
+        if _has_unique_constraint(table_name, constraint_name):
+            with op.batch_alter_table(table_name) as batch_op:
+                batch_op.drop_constraint(constraint_name, type_="unique")
+        drop_columns(table_name, "uuid")
