@@ -1381,7 +1381,7 @@ def test_query_service_account_subject(
     user = mocker.MagicMock(email="admin@example.com")
     mocker.patch("superset.models.core.get_username", return_value="admin")
     mocker.patch(
-        "superset.db_engine_specs.gsheets.security_manager.find_user",
+        "superset.extensions.security_manager.find_user",
         return_value=user,
     )
     credentials = {"client_email": "service@example.com", "private_key": "KEY"}
