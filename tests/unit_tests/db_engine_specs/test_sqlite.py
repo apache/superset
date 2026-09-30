@@ -69,6 +69,8 @@ def test_convert_dttm_midnight(
     assert_convert_dttm(spec, target_type, expected_result, datetime(2019, 1, 2))
 
 
+@pytest.mark.parametrize("sqlalchemy_uri", ["sqlite://", "d1://account:token@db"])
+@pytest.mark.parametrize("time_grain", [None, TimeGrain.DAY])
 @pytest.mark.parametrize(
     "start,end,expected",
     [
@@ -85,6 +87,9 @@ def test_convert_dttm_midnight(
     ],
 )
 def test_time_filter_on_date_column(
+    app_context: None,
+    sqlalchemy_uri: str,
+    time_grain: Optional[str],
     start: datetime,
     end: datetime,
     expected: list[str],
@@ -92,8 +97,9 @@ def test_time_filter_on_date_column(
     """
     Test that a time filter on a DATE column stored as text returns the right days.
 
-    The bounds are built the way the time filter builds them. Each day counts as
-    its midnight, as it would in a comparison of dates.
+    The filter comes from ``get_time_filter``, as in a chart query. D1 is SQLite,
+    so both run on an in-memory SQLite database. Each day counts as its midnight,
+    as it would in a comparison of dates.
     """
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
@@ -102,13 +108,14 @@ def test_time_filter_on_date_column(
     table = SqlaTable(
         table_name="t",
         columns=[column],
-        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        database=Database(database_name="db", sqlalchemy_uri=sqlalchemy_uri),
     )
-    since = table.dttm_sql_literal(start, column)
-    until = table.dttm_sql_literal(end, column)
-    sql = f"SELECT day FROM t WHERE day >= {since} AND day < {until} ORDER BY day"  # noqa: S608
+    time_filter = table.get_time_filter(column, start, end, time_grain=time_grain)
+    assert time_filter is not None
 
     engine = create_engine("sqlite://")
+    where = time_filter.compile(engine, compile_kwargs={"literal_binds": True})
+    sql = f"SELECT day FROM t WHERE {where} ORDER BY day"  # noqa: S608
     with engine.connect() as connection:
         connection.execute(text("CREATE TABLE t (day DATE)"))
         connection.execute(

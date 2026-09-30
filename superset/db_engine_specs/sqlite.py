@@ -168,10 +168,11 @@ class SqliteEngineSpec(BaseEngineSpec):
         Write midnight as a bare date for DATE columns.
 
         SQLite has no date type, so a DATE column usually holds text such as
-        ``2026-09-20`` and is compared as text. ``'2026-09-20 00:00:00'`` sorts
-        after the day it starts, so a time filter on a DATE column would be one day
-        off. Any other time keeps its time part, which sorts between two days, as a
-        comparison of dates should.
+        ``2026-09-20``. ``'2026-09-20 00:00:00'`` sorts after that text, so a time
+        filter on a DATE column would be one day off. Any other time keeps its time
+        part, which sorts between two days, as a comparison of dates should. Values
+        that look like numbers, such as ``20260920`` or epoch seconds, are stored as
+        numbers, and SQLite sorts every number before any text.
         """
         sqla_type = cls.get_sqla_column_type(target_type)
         if isinstance(sqla_type, types.Date) and dttm.time() == time.min:

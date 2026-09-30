@@ -801,6 +801,9 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
 
 @pytest.fixture
 def table_dates(session: Session, database1: "Database") -> Iterator[None]:
+    """
+    A table with a DATE column holding 2026-09-19 to 2026-09-22.
+    """
     with database1.get_sqla_engine() as engine:
         with engine.begin() as conn:
             conn.execute(text("CREATE TABLE table_dates (day DATE)"))
@@ -820,14 +823,26 @@ def table_dates(session: Session, database1: "Database") -> Iterator[None]:
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+@pytest.mark.parametrize(
+    "start,end",
+    [
+        (datetime(2026, 9, 20), datetime(2026, 9, 22)),
+        (datetime(2026, 9, 20, 12), datetime(2026, 9, 22, 12)),
+    ],
+)
 def test_time_filter_on_date_column(
-    mocker: MockerFixture, app_context: None, table_dates: None
+    mocker: MockerFixture,
+    app_context: None,
+    table_dates: None,
+    start: datetime,
+    end: datetime,
 ) -> None:
     """
     Test that a time filter on a DATE column is applied.
 
     Shillelagh reads a date filter with ``date.fromisoformat``, so a bound with a
-    time part is dropped and every row comes back.
+    time part would be dropped and every row would come back. The filter comes
+    from ``get_time_filter``, as in a chart query.
     """
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
@@ -858,14 +873,15 @@ def test_time_filter_on_date_column(
         columns=[column],
         database=Database(database_name="meta", sqlalchemy_uri="superset://"),
     )
-    since = table.dttm_sql_literal(datetime(2026, 9, 20), column)
-    until = table.dttm_sql_literal(datetime(2026, 9, 22), column)
+    time_filter = table.get_time_filter(column, start, end)
+    assert time_filter is not None
+    where = time_filter.compile(engine, compile_kwargs={"literal_binds": True})
 
     with engine.connect() as conn:
         results = conn.execute(
             text(
                 'SELECT day FROM "database1.table_dates" '  # noqa: S608
-                f"WHERE day >= {since} AND day < {until} ORDER BY day"
+                f"WHERE {where} ORDER BY day"
             )
         )
         assert list(results) == [(date(2026, 9, 20),), (date(2026, 9, 21),)]
