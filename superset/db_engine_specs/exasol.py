@@ -139,6 +139,9 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         message = super()._extract_error_message(ex)
         # Strip SQL before looking for a verbose message field: SQL literals
         # can themselves contain text resembling a driver envelope.
+        # The (?m)^[ \t]* anchor strips only own-line SQL echoes: no Exasol
+        # driver emits same-line [SQL: ...]; SQLAlchemy joins with \n and
+        # PyExasol uses an own-line query => envelope.
         message = re.split(
             r"(?m)^[ \t]*(?:query[ \t]*=>|\[SQL:|\[parameters:)",
             message,
