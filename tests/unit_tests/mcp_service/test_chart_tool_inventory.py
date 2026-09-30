@@ -75,6 +75,25 @@ TOOL_BUDGETS = [
 ]
 
 
+def _request_key(name: str) -> str:
+    """Return the resource key required by a chart tool request."""
+    return "identifier" if name == "update_chart" else "dataset_id"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("generate_chart", "dataset_id"),
+        ("update_chart", "identifier"),
+        ("update_chart_preview", "dataset_id"),
+        ("generate_explore_link", "dataset_id"),
+    ],
+)
+def test_request_key(name: str, expected: str) -> None:
+    """Chart tool requests select the saved-chart or dataset resource key."""
+    assert _request_key(name) == expected
+
+
 def _references(node: Any) -> Iterator[str]:
     """Collect schema references, including discriminator mapping targets."""
     if isinstance(node, dict):
@@ -229,7 +248,7 @@ async def test_chart_tool_inventory_preserves_complete_schema(name: str) -> None
 
     validator = Draft202012Validator(schema)
     request: dict[str, Any] = {
-        "identifier" if name == "update_chart" else "dataset_id": 1,
+        _request_key(name): 1,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]},
     }
     validator.validate({"request": request})
@@ -325,7 +344,7 @@ async def test_compact_schema_keeps_server_side_validation(
         await controlled_tool.run(
             {
                 "request": {
-                    "identifier" if name == "update_chart" else "dataset_id": 1,
+                    _request_key(name): 1,
                     "config": {"chart_type": "table", "columns": [{"name": ""}]},
                 }
             }
