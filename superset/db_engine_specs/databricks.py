@@ -96,13 +96,18 @@ def monkeypatch_dialect() -> None:
     """
     Monkeypatch dialect to correctly escape single quotes for Databricks.
 
-    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
-    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
-    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+    This compatibility patch covers HiveDialect-based Databricks dialects from
+    sqlalchemy-databricks. The supported databricks-sqlalchemy dialect defines its
+    own colspecs and escaping; it is not a target of this patch.
 
-    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
-    we can't patch it without affecting other Hive-based dialects. The solution is to
-    introduce a dialect-aware string type so that the change applies only to Databricks.
+    A dialect-aware string type preserves ordinary Hive literal handling while
+    applying backslash escaping to Hive-based Databricks dialects.
+
+    PyHive's HiveDialect does not define ``colspecs``, so ``HiveDialect.colspecs`` is
+    SQLAlchemy's ``DefaultDialect.colspecs`` dict, shared by every dialect that does
+    not define its own. The patch therefore gives HiveDialect its own copy instead of
+    writing to the shared dict, which would change the string types of unrelated
+    dialects (and make ``sa.Enum`` fail to adapt on them).
     """
     try:
         from pyhive.sqlalchemy_hive import HiveDialect
@@ -118,7 +123,14 @@ def monkeypatch_dialect() -> None:
                     return DatabricksStringType().literal_processor(dialect)
                 return super().literal_processor(dialect)
 
-        HiveDialect.colspecs[types.String] = ContextAwareStringType
+        # Copy, never write to the shared parent dict. Enum is a String subclass;
+        # map it to itself so it is not adapted to the decorator, which cannot
+        # take Enum's arguments. Enum literals retain their own escaping.
+        HiveDialect.colspecs = {
+            **HiveDialect.colspecs,
+            types.String: ContextAwareStringType,
+            types.Enum: types.Enum,
+        }
 
     except ImportError:
         pass
