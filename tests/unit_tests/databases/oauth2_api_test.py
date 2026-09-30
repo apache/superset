@@ -23,7 +23,7 @@ import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
 from superset.exceptions import OAuth2Error
@@ -151,6 +151,8 @@ def test_oauth2_callback_redacts_exchange_exception_from_all_logs(
         "get_database",
         return_value=database,
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
     mocker.patch.object(event_logger, "log")
 
     with caplog.at_level(logging.DEBUG):
@@ -273,3 +275,31 @@ def test_oauth2_callback_metric_failure_preserves_oauth_error(
     ) in caplog.messages
     assert "metrics-payload-sentinel" not in caplog.text
     assert "metrics-payload-sentinel" not in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["provider_denied", "missing_state", "invalid_state", "anonymous"],
+)
+def test_oauth2_callback_rejects_bad_requests_with_4xx(
+    client: Any,
+    full_api_access: None,
+    case: str,
+) -> None:
+    """
+    None of these callback requests can ever succeed: the provider denied
+    consent, the state is missing/tampered, or there's no session (anonymous
+    request) to bind the callback to. They must be reported as client errors,
+    not crash the app.
+    """
+    query_strings = {
+        "provider_denied": {"error": "access_denied", "state": callback_state()},
+        "missing_state": {"code": "XXX"},
+        "invalid_state": {"code": "XXX", "state": "not-a-valid-jwt"},
+        "anonymous": {"code": "XXX", "state": callback_state()},
+    }
+
+    response = client.get("/api/v1/database/oauth2/", query_string=query_strings[case])
+
+    assert 400 <= response.status_code < 500
+    assert response.json["errors"][0]["message"]
