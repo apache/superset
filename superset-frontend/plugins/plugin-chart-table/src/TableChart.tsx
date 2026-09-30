@@ -1197,8 +1197,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
                 // String cells that read as numbers ("1.00") must compare
                 // numerically, or comparator rules like `= 1` never match.
-                // Text comparators are the exception: they match on the string
-                // itself, so parsing first would hide the value from them.
+                // Two kinds of rule are the exception, because both match on
+                // the string itself and parsing first would hide the value
+                // from them: a text comparator, and any rule whose target the
+                // control stored as text (a text column renders a text input,
+                // and Equal compares that target strictly).
                 if (
                   formatter.objectFormatting ===
                     ObjectFormattingEnum.CELL_BAR &&
@@ -1206,6 +1209,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     formatter.operator !== undefined &&
                     STRING_COMPARATORS.has(formatter.operator)
                   ) &&
+                  typeof formatter.targetValue !== 'string' &&
                   valueToFormat !== null &&
                   valueToFormat !== undefined
                 ) {

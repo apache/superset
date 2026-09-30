@@ -1154,6 +1154,21 @@ describe('plugin-chart-table', () => {
         expect(bars[1]).toBeNull();
       });
 
+      test('cell-bar rule with a string target value still matches the cell it was written for', () => {
+        const { bars } = renderCellBars(
+          cellBarProps({
+            values: ['1234', '5678'],
+            showCellBars: false,
+            // A String column renders a text input, so the target the control
+            // persists is a string, and Equal compares it strictly. Parsing the
+            // cell first would leave the rule unable to match its own cell.
+            rule: cellBarRule({ operator: Comparator.Equal, targetValue: '1234' }),
+          }),
+        );
+        expect(bars[0]).toBeTruthy();
+        expect(bars[1]).toBeNull();
+      });
+
       test('bar geometry stays inside the cell when a column mixes numbers and numeric strings', () => {
         const props = transformProps({
           ...testData.raw,

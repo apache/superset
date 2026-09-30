@@ -535,6 +535,7 @@ export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
             columnFormatting: config?.columnFormatting,
             objectFormatting: config?.objectFormatting,
             operator: config?.operator,
+            targetValue: config?.targetValue,
             getColorFromValue: getColorFunction(
               { ...colorFunctionConfig, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),

@@ -535,6 +535,9 @@ export type ColorFormatters = {
   // Carried so a consumer can tell whether the rule compares numerically or as
   // text before deciding how to hand the value to getColorFromValue.
   operator?: Comparator;
+  // A text column stores its target as a string, and Equal compares it
+  // strictly, so the consumer has to know which kind it is holding.
+  targetValue?: number | string;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;
