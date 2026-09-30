@@ -1069,11 +1069,20 @@ def pivot_table_v2(
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
     )
+    # "Metric" (the new result-aggregation control's default, meaning "use the
+    # metric's own definition, no second aggregation pass") isn't a key in
+    # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
+    # has no result-aggregation support yet (see #44625's follow-up scope).
+    # Treat it, and any other value this map doesn't recognize, the same way
+    # an absent field always has been: fall back to "Sum".
+    aggregate_function = form_data.get("aggregateFunction")
+    if aggregate_function not in pivot_v2_aggfunc_map:
+        aggregate_function = "Sum"
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
         "metrics": metrics,
-        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "aggfunc": aggregate_function,
         "transpose_pivot": bool(form_data.get("transposePivot")),
         "combine_metrics": bool(form_data.get("combineMetric")),
         "show_rows_total": bool(form_data.get("rowTotals")),

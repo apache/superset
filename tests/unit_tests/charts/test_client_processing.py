@@ -2090,6 +2090,34 @@ def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
     assert len(pivoted.index) == 2
 
 
+def test_pivot_table_v2_metric_default_does_not_raise_key_error():
+    """`aggregateFunction: "Metric"` (the result-aggregation control's
+    default, meaning "use the metric's own definition") is not a key in
+    pivot_v2_aggfunc_map -- this backend path has no result-aggregation
+    support yet. It must fall back to the same "Sum" behavior an absent
+    field always got, not KeyError.
+
+    Regression test: this frontend default reaching this function used to
+    raise ``KeyError('Metric')`` for any Actual Values pivot with rows or
+    columns, breaking every scheduled report/alert/CSV/Excel export of a
+    pivot_table_v2 chart.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Metric",
+    }
+    without_field = {k: v for k, v in form_data.items() if k != "aggregateFunction"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_default = pivot_table_v2(
+        grouping_sets_df(), without_field, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_default)
+
+
 @pytest.mark.parametrize(
     "mode,expected",
     [

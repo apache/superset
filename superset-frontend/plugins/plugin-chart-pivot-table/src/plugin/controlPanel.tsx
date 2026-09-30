@@ -34,6 +34,10 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
+import {
+  RESULT_AGGREGATIONS,
+  RESULT_AGGREGATION_LABELS,
+} from './resultAggregation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -173,7 +177,10 @@ const config: ControlPanelConfig = {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows total'),
+              // The displayed value may be a result aggregation (Median,
+              // Average, ...) rather than a plain total once `aggregateFunction`
+              // is set below, so "summary" rather than "total".
+              label: () => t('Show row summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display row level total'),
@@ -197,7 +204,7 @@ const config: ControlPanelConfig = {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns total'),
+              label: () => t('Show column summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display column level total'),
@@ -245,6 +252,34 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'aggregateFunction',
+            config: {
+              type: 'SelectControl',
+              label: () => t('Aggregation function'),
+              default: 'Metric',
+              clearable: false,
+              // Not a renderTrigger: switching in or out of a result
+              // aggregation changes whether the query uses GROUPING SETS at
+              // all (see buildQuery.ts), so it needs a real requery.
+              choices: [
+                ['Metric', t('Use metric definition')],
+                ...RESULT_AGGREGATIONS.map(
+                  name =>
+                    [name, RESULT_AGGREGATION_LABELS[name]] as [string, string],
+                ),
+              ],
+              description: t(
+                'Use each metric’s own definition for cells and ' +
+                  'summaries (the default since SIP-216), or aggregate a ' +
+                  'second time over the metric’s own grouped results — ' +
+                  'e.g. the median of a set of per-store averages. Query ' +
+                  'limits apply before a result aggregation runs.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'showValuesAs',
             config: {
               type: 'SelectControl',
@@ -266,6 +301,13 @@ const config: ControlPanelConfig = {
                   'subtotals are still computed correctly first; this only ' +
                   'changes how they are displayed.',
               ),
+              // A result aggregation (anything but "Use metric definition")
+              // has its own "... as Fraction of ..." choices built in, and
+              // takes over the cell/summary computation entirely -- this
+              // control's percent transform would otherwise be silently
+              // ignored rather than applied on top of it.
+              visibility: ({ controls }) =>
+                (controls?.aggregateFunction?.value ?? 'Metric') === 'Metric',
             },
           },
         ],
