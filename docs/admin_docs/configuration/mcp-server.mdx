@@ -1259,7 +1259,7 @@ Because this cap applies to any row-returning last statement, a non-query
 statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each
 statement reports `truncated: true` when a fetch cap omits rows from the
 executed SQL result, including engine memory caps such as `BQ_FETCH_MAX_MB`.
-Exactly-at-cap and smaller results report `false` unless an engine cap applies. This
+Exactly-at-cap and smaller results report `false` when no rows are omitted. This
 flag does not indicate rows excluded by a SQL LIMIT visible in `executed_sql`,
 and does not bound or count affected rows for a write with `RETURNING`. In
 `dry_run`, the SQL Server restriction remains unchanged because no results are

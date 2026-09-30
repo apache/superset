@@ -465,8 +465,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
             # First batch already covers the budget or the result set
             if rows_fetched < initial_batch_size or remaining_rows <= 0:
+                # A full sample can also be the entire result. Confirm an omitted
+                # row; a bounded cursor leaves its own EOF probe to the executor.
                 memory_limited = (
-                    remaining_rows <= 0 and rows_fetched == initial_batch_size
+                    remaining_rows <= 0
+                    and rows_fetched == initial_batch_size
+                    and bool(cursor.fetchmany(1))
                 )
                 if has_request_context():
                     g.bq_memory_limited = memory_limited

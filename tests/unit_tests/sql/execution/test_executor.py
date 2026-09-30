@@ -3459,7 +3459,50 @@ def test_execute_bigquery_memory_truncation_without_request(
         )
         assert statements[0].truncated is True
         assert statements[0].row_count == max(3, sample_size)
-    assert sum(call.args[0] for call in cursor.fetchmany.call_args_list) == 4
+    assert sum(call.args[0] for call in cursor.fetchmany.call_args_list) == max(
+        4, sample_size + 1
+    )
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("row_count", [999, 1000, 1001])
+@pytest.mark.parametrize("limit", [None, 1000])
+def test_execute_bigquery_exact_sample_truncation(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    row_count: int,
+    limit: int | None,
+) -> None:
+    """A full memory-limited sample is truncated only if another row exists."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mocker.patch.dict(current_app.config, {"BQ_FETCH_MAX_MB": 1, "SQL_MAX_ROW": None})
+    mock_database.db_engine_spec = BigQueryEngineSpec
+    mock_query.limit = limit
+    # The 1000-row initial sample exceeds 1 MB, even at the exact EOF boundary.
+    rows = [("x" * 2000,) for _ in range(row_count)]
+    remaining = iter(rows)
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+
+    results = execute_sql_with_cursor(
+        mock_database,
+        cursor,
+        ["SELECT n FROM t"],
+        mock_query,
+        execute_fn=MagicMock(),
+    )
+    result_set = results[0][1]
+    assert result_set is not None
+    assert result_set.size == min(row_count, 1000)
+    assert result_set.truncated is (row_count > 1000)
+    expected_calls = [mocker.call(1000)]
+    if row_count >= 1000:
+        expected_calls.append(mocker.call(1))
+    assert cursor.fetchmany.call_args_list == expected_calls
     cursor.fetchall.assert_not_called()
 
 
