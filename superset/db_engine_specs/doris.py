@@ -120,7 +120,10 @@ class DorisEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = (
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
-    encryption_parameters = {"ssl": "0"}
+    # mysqlclient receives URI query values as strings, and neither ``ssl=0`` nor
+    # ``ssl=1`` enables TLS. ``VERIFY_CA`` requires TLS with a trusted CA rather
+    # than falling back to cleartext, as ``REQUIRED`` can with MariaDB Connector/C.
+    encryption_parameters = {"ssl_mode": "VERIFY_CA"}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
@@ -290,10 +293,11 @@ class DorisEngineSpec(MySQLEngineSpec):
     ) -> str:
         uri = super().build_sqlalchemy_uri(parameters, encrypted_extra)
         # ``engine+default_driver`` would be ``pydoris+mysqldb``, which no
-        # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
+        # SQLAlchemy entry point provides. ``pydoris`` is registered, and keeps
+        # the URL backend equal to ``engine`` so the edit modal finds the form.
         return (
             make_url_safe(uri)
-            .set(drivername="doris")
+            .set(drivername=cls.engine)
             .render_as_string(hide_password=False)
         )
 

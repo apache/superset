@@ -344,10 +344,12 @@ def pydoris_dialects() -> Iterator[None]:
 
 @pytest.mark.parametrize("encryption", [False, True])
 @pytest.mark.usefixtures("pydoris_dialects")
-def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
+def test_build_sqlalchemy_uri_uses_the_pydoris_scheme(encryption: bool) -> None:
     """
     A URI built from the connection form must name a registered dialect:
-    ``pydoris+mysqldb`` (``engine+default_driver``) is not one, ``doris`` is.
+    ``pydoris+mysqldb`` (``engine+default_driver``) is not one, ``pydoris`` is.
+    Its backend must also equal ``engine``, which the edit modal matches against
+    to find the connection form of a saved database.
     """
     from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
 
@@ -367,7 +369,8 @@ def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
     uri = DorisEngineSpec.build_sqlalchemy_uri(parameters)
 
     url = make_url(uri)
-    assert url.drivername == "doris"
+    assert url.drivername == "pydoris"
+    assert url.get_backend_name() == DorisEngineSpec.engine
     # Resolving the dialect is what ``create_engine`` does first, and is the
     # step that fails for a scheme no entry point provides.
     assert url.get_dialect() is MySQLDialect_mysqldb
@@ -379,6 +382,11 @@ def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
         "internal.sales",
     )
     assert DorisEngineSpec.get_parameters_from_uri(uri)["encryption"] is encryption
+
+    # The SSL switch must reach mysqlclient as a mode that requires TLS.
+    _, connect_kwargs = MySQLDialect_mysqldb().create_connect_args(url)
+    assert "ssl" not in connect_kwargs
+    assert connect_kwargs.get("ssl_mode") == ("VERIFY_CA" if encryption else None)
 
 
 @pytest.mark.usefixtures("pydoris_dialects")
