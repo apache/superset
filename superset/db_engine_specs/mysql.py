@@ -26,6 +26,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
+import pandas as pd
 import sqlalchemy as sa
 from flask_babel import gettext as __
 from sqlalchemy import types
@@ -41,6 +42,7 @@ from sqlalchemy.dialects.mysql import (
     TINYINT,
     TINYTEXT,
 )
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.util import asbool
@@ -59,6 +61,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql.parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -737,3 +740,148 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             return False
 
         return True
+
+    @classmethod
+    def _requires_primary_key(cls, engine: Engine) -> bool:
+        """
+        Check whether the connected MySQL server rejects ``CREATE TABLE``
+        statements that do not declare a primary key
+        (``sql_require_primary_key = ON``, MySQL error 3750).
+
+        The variable was introduced in MySQL 8.0.13 and is absent from older
+        MySQL releases and from the MySQL-compatible engines that subclass
+        this spec (MariaDB, Doris, StarRocks, OceanBase), where querying it
+        errors out. Those servers do not enforce the requirement, so treat an
+        unreadable variable as "not required" rather than failing the upload.
+        """
+        try:
+            with engine.connect() as conn:
+                return bool(
+                    conn.exec_driver_sql(
+                        "SELECT @@session.sql_require_primary_key"
+                    ).scalar()
+                )
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Unable to read @@session.sql_require_primary_key; "
+                "assuming a primary key is not required",
+                exc_info=True,
+            )
+            return False
+
+    @classmethod
+    def df_to_sql(
+        cls,
+        database: Database,
+        table: Table,
+        df: pd.DataFrame,
+        to_sql_kwargs: dict[str, Any],
+    ) -> None:
+        """
+        Upload a DataFrame to MySQL.
+
+        When the target table is being created and the server requires a
+        primary key (``sql_require_primary_key = ON``), the plain
+        ``pandas.DataFrame.to_sql`` call used by the base implementation
+        generates a ``CREATE TABLE`` without one, which MySQL rejects with
+        error 3750. Since MySQL rejects the bare ``CREATE TABLE`` itself,
+        the primary key has to be declared as part of that first statement;
+        it cannot be added afterwards with an ``ALTER TABLE``.
+
+        :param database: The database to upload the data to
+        :param table: The table to upload the data to
+        :param df: The dataframe with data to be uploaded
+        :param to_sql_kwargs: The kwargs to be passed to
+            pandas.DataFrame.to_sql
+        """
+        with cls.get_engine(
+            database,
+            catalog=table.catalog,
+            schema=table.schema,
+        ) as engine:
+            creating_table = to_sql_kwargs.get("if_exists", "fail") != "append"
+            if creating_table and cls._requires_primary_key(engine):
+                index = to_sql_kwargs.get("index", True)
+                index_label = to_sql_kwargs.get("index_label")
+                # Column names are compared case-insensitively in MySQL, so
+                # an existing "ID" column collides with a lowercase "id" one
+                # even though Python sees them as different strings.
+                existing_columns = {col.lower() for col in df.columns}
+                index_name = index_label or df.index.name or "index"
+                # A column promoted to PRIMARY KEY must reject duplicate and
+                # NULL values and must not collide with an existing column;
+                # the DataFrame index has none of those guaranteed (a
+                # CSV/Excel upload can point the "Dataframe index" option at
+                # a column that repeats, is missing values, or shares a name
+                # with a real column), so only promote it when it actually
+                # qualifies. Otherwise fall back to the synthesized key
+                # below, and make sure the real index is not also written
+                # out as an extra column.
+                promote_index = (
+                    bool(index)
+                    and df.index.is_unique
+                    and not df.index.hasnans
+                    and index_name.lower() not in existing_columns
+                )
+                if promote_index:
+                    primary_key = index_name
+                else:
+                    if index:
+                        logger.warning(
+                            "Dropping the DataFrame index instead of "
+                            "promoting it to PRIMARY KEY: %s",
+                            f"its name {index_name!r} collides with an existing column"
+                            if index_name.lower() in existing_columns
+                            else "it is not unique or contains missing values",
+                        )
+                    df = df.copy()
+                    primary_key = "id"
+                    while primary_key.lower() in existing_columns:
+                        primary_key = f"_{primary_key}"
+                    df.insert(0, primary_key, range(1, len(df) + 1))
+
+                with pd.io.sql.SQLDatabase(engine, need_transaction=True) as pandas_db:
+                    pandas_table = pd.io.sql.SQLTable(
+                        table.table,
+                        pandas_db,
+                        frame=df,
+                        index=promote_index,
+                        if_exists=to_sql_kwargs.get("if_exists", "fail"),
+                        index_label=index_label,
+                        schema=table.schema,
+                        keys=[primary_key],
+                    )
+                    # pandas declares the key via a table-level
+                    # PrimaryKeyConstraint (never Column(primary_key=True)),
+                    # but SQLAlchemy's MySQL DDL compiler still treats a lone
+                    # integer primary-key column as AUTO_INCREMENT by
+                    # default. The values here are explicit (the promoted
+                    # index, or the 1..n range synthesized above), not
+                    # DB-generated, and pandas' default RangeIndex starts at
+                    # 0 -- inserting 0 into an AUTO_INCREMENT column asks
+                    # MySQL to generate a value instead of storing 0
+                    # literally, colliding with the row whose key is 1.
+                    pk_columns = list(pandas_table.table.primary_key.columns)
+                    if len(pk_columns) == 1:
+                        pk_columns[0].autoincrement = False
+                    # MySQL caps identifiers at 64 chars; pandas names the
+                    # constraint f"{table_name}_pk", which overflows for a
+                    # long table name. MySQL renames PRIMARY KEY constraints
+                    # to "PRIMARY" internally regardless of the name given in
+                    # DDL, so any short fixed name is safe here.
+                    pandas_table.table.primary_key.name = "pk"
+                    pandas_table.create()
+                    pandas_table.insert(
+                        chunksize=to_sql_kwargs.get("chunksize"),
+                        # matches the multi-row INSERT the base implementation
+                        # asks pandas for on dialects that support it
+                        method="multi"
+                        if (
+                            engine.dialect.supports_multivalues_insert
+                            or cls.supports_multivalues_insert
+                        )
+                        else None,
+                    )
+                return
+
+        super().df_to_sql(database, table, df, to_sql_kwargs)
