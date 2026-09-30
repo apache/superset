@@ -44,6 +44,10 @@ Tools are Python functions that AI agents can call to perform specific tasks. Th
 - Specialized report generation
 - Business-specific operations
 
+Sanitization notices are returned in tool response `warnings`. The internal
+`sanitization_warnings` request attribute is not advertised in input schemas;
+caller-supplied values are discarded rather than echoed in responses.
+
 ### MCP Prompts
 
 Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.

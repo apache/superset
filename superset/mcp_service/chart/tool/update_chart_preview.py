@@ -81,7 +81,7 @@ def _find_dataset(dataset_id: int | str) -> Any | None:
     from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
+        isinstance(dataset_id, str) and dataset_id.isdecimal()
     ):
         dataset = DatasetDAO.find_by_id(int(dataset_id))
     else:
@@ -264,7 +264,7 @@ def update_chart_preview(  # noqa: C901
             from superset.daos.dataset import DatasetDAO
 
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 dataset = DatasetDAO.find_by_id(int(request.dataset_id))
             else:

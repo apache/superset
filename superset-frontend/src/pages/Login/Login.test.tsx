@@ -212,6 +212,23 @@ test('should not render register button when AUTH_USER_REGISTRATION is disabled'
   expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
 });
 
+test('should not render register button for LDAP even when AUTH_USER_REGISTRATION is enabled', () => {
+  // LDAP deployments must enable AUTH_USER_REGISTRATION so FlaskAppBuilder
+  // provisions users on first login; that must not expose self-registration.
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 2,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: true,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.getByTestId('login-form')).toBeInTheDocument();
+  expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
+});
+
 // --- ensureAppRoot / SUPERSET_APP_ROOT tests ---
 
 test('should prefix OAuth provider URLs with application root', () => {
