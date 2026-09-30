@@ -169,7 +169,7 @@ test('getQuery builds form data from the current controls, not stale form_data',
 
   const sql = await explore.getQuery();
 
-  expect(sql).toBe('SELECT 1');
+  expect(sql).toEqual(['SELECT 1']);
   expect(mockRequestChartDataResolved).toHaveBeenCalledWith({
     formData: {
       datasource: '1__table',
@@ -212,8 +212,28 @@ test('getQuery throws a fallback message when no result comes back', async () =>
   mockRequestChartDataResolved.mockResolvedValue([]);
 
   await expect(explore.getQuery()).rejects.toThrow(
-    'Failed to retrieve the query',
+    'No query result was returned',
   );
+});
+
+test('getQuery returns one query string per query the chart runs', async () => {
+  activateExplore();
+  mockRequestChartDataResolved.mockResolvedValue([
+    { query: 'SELECT 1' },
+    { query: 'SELECT 2' },
+  ]);
+
+  await expect(explore.getQuery()).resolves.toEqual(['SELECT 1', 'SELECT 2']);
+});
+
+test('getQuery throws if any of the chart’s queries errored, even if others succeeded', async () => {
+  activateExplore();
+  mockRequestChartDataResolved.mockResolvedValue([
+    { query: 'SELECT 1' },
+    { error: 'boom' },
+  ]);
+
+  await expect(explore.getQuery()).rejects.toThrow('boom');
 });
 
 test('getChartData throws when Explore is not the active surface', async () => {
@@ -230,10 +250,12 @@ test('getChartData requests a full result and returns columns/rows', async () =>
 
   const data = await explore.getChartData();
 
-  expect(data).toEqual({
-    columns: ['region', 'sales'],
-    rows: [{ region: 'US', sales: 100 }],
-  });
+  expect(data).toEqual([
+    {
+      columns: ['region', 'sales'],
+      rows: [{ region: 'US', sales: 100 }],
+    },
+  ]);
   expect(mockRequestChartDataResolved).toHaveBeenCalledWith({
     formData: { datasource: '1__table', viz_type: 'echarts_timeseries_bar' },
     resultFormat: 'json',
@@ -264,12 +286,35 @@ test('getChartData defaults columns and rows to [] when the result omits them', 
   activateExplore();
   mockRequestChartDataResolved.mockResolvedValue([{}]);
 
-  expect(await explore.getChartData()).toEqual({ columns: [], rows: [] });
+  expect(await explore.getChartData()).toEqual([{ columns: [], rows: [] }]);
 });
 
 test('getChartData throws when the result has an error', async () => {
   activateExplore();
   mockRequestChartDataResolved.mockResolvedValue([{ error: 'boom' }]);
+
+  await expect(explore.getChartData()).rejects.toThrow('boom');
+});
+
+test('getChartData returns one result per query the chart runs', async () => {
+  activateExplore();
+  mockRequestChartDataResolved.mockResolvedValue([
+    { colnames: ['a'], data: [{ a: 1 }] },
+    { colnames: ['b'], data: [{ b: 2 }] },
+  ]);
+
+  await expect(explore.getChartData()).resolves.toEqual([
+    { columns: ['a'], rows: [{ a: 1 }] },
+    { columns: ['b'], rows: [{ b: 2 }] },
+  ]);
+});
+
+test('getChartData throws if any of the chart’s queries errored, even if others succeeded', async () => {
+  activateExplore();
+  mockRequestChartDataResolved.mockResolvedValue([
+    { colnames: ['a'], data: [] },
+    { error: 'boom' },
+  ]);
 
   await expect(explore.getChartData()).rejects.toThrow('boom');
 });

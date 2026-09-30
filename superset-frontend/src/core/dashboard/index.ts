@@ -25,6 +25,7 @@ import type {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { matchPath } from 'react-router-dom';
 import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
 import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { applySavedFilterChanges } from 'src/dashboard/actions/nativeFilters';
@@ -34,17 +35,39 @@ import {
   setChartFormData,
   triggerQuery,
 } from 'src/components/Chart/chartAction';
+import { invalidateChartFormDataCache } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { RoutePaths } from 'src/views/routePaths';
 import { store, RootState } from 'src/views/store';
 import { navigation } from '../navigation';
 
 const getState = () => store.getState() as RootState;
 
-// The Redux slices below are retained across an in-SPA navigation, so
-// checking them alone can't tell a still-active dashboard from a stale one
-// left over from before the user navigated to another page.
-const isDashboardActive = (): boolean => navigation.getPage() === 'dashboard';
+// The `:idOrSlug` the browser's current URL routes to, read directly off
+// `window.location` rather than from React Router context, matching how
+// `navigation`'s own page derivation works.
+const getRoutedIdOrSlug = (): string | undefined =>
+  matchPath<{ idOrSlug: string }>(window.location.pathname, {
+    path: RoutePaths.DASHBOARD,
+    exact: false,
+  })?.params.idOrSlug;
+
+// `dashboardInfo`/`dashboardLayout`/`nativeFilters`/`charts` are retained
+// across an in-SPA navigation, and even once the browser has routed to a new
+// dashboard, they keep the *previous* dashboard's data until that
+// dashboard's HYDRATE_DASHBOARD completes. Comparing the URL's `idOrSlug`
+// against `dashboardInfo`'s own id/slug — rather than trusting the page type
+// alone — closes this window: they only match again once hydration has
+// actually caught up, including for a same-surface dashboard-to-dashboard
+// navigation.
+const isDashboardActive = (): boolean => {
+  if (navigation.getPage() !== 'dashboard') return false;
+  const idOrSlug = getRoutedIdOrSlug();
+  if (idOrSlug == null) return false;
+  const { id, slug } = getState().dashboardInfo;
+  return id != null && (String(id) === idOrSlug || slug === idOrSlug);
+};
 
 const requireDashboardId = (): number => {
   const { id } = getState().dashboardInfo;
@@ -57,8 +80,23 @@ const requireDashboardId = (): number => {
 const getDashboardId: typeof dashboardApi.getDashboardId = () =>
   isDashboardActive() ? (getState().dashboardInfo.id ?? undefined) : undefined;
 
+// Every dashboardLayout reducer treats a node (and its `meta`/`children`/
+// `parents`) as immutable already — an update always replaces it with a new
+// object rather than mutating it in place — so freezing the copy below only
+// makes that existing contract explicit, without risking a reducer's own
+// future in-place update on a node returned from here.
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    Object.values(value as Record<string, unknown>).forEach(deepFreeze);
+  }
+  return value;
+}
+
 const getLayout: typeof dashboardApi.getLayout = () =>
-  isDashboardActive() ? { ...getState().dashboardLayout.present } : {};
+  isDashboardActive()
+    ? deepFreeze({ ...getState().dashboardLayout.present })
+    : {};
 
 const getActiveTabs: typeof dashboardApi.getActiveTabs = () =>
   isDashboardActive() ? [...(getState().dashboardState.activeTabs ?? [])] : [];
@@ -113,6 +151,12 @@ const updateFilters: typeof dashboardApi.updateFilters = async (
   updates: dashboardApi.FilterValueUpdate[],
 ) => {
   requireDashboardId();
+  const { filters: currentFilters } = getState().nativeFilters;
+  updates.forEach(({ filterId }) => {
+    if (!currentFilters[filterId]) {
+      throw new Error(`Filter "${filterId}" not found on this dashboard`);
+    }
+  });
   updates.forEach(({ filterId, extraFormData, filterState }) => {
     const dataMask: DataMask = {};
     if (extraFormData !== undefined) {
@@ -131,6 +175,7 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
 ) => {
   const dashboardId = requireDashboardId();
   const { filters: currentFilters } = getState().nativeFilters;
+  const { dataMask: currentDataMask } = getState();
 
   const modified = updates.map(
     ({ filterId, name, targets, defaultDataMask }) => {
@@ -168,7 +213,45 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
     response.result,
     currentFilters,
   );
+
+  // applySavedFilterChanges resets each modified filter's live extraFormData/
+  // filterState back to its default unless the filter is required or
+  // defaultToFirstItem (see updateDataMaskForFilterChanges), even for an
+  // update that never touched the filter's value (e.g. a rename). Restore
+  // whatever was live immediately before this save for any filter whose
+  // update didn't explicitly set a new one.
+  updates.forEach(({ filterId, defaultDataMask }) => {
+    if (defaultDataMask !== undefined) return;
+    const liveMask = currentDataMask[filterId];
+    if (!liveMask) return;
+    store.dispatch(
+      updateDataMask(filterId, {
+        extraFormData: liveMask.extraFormData,
+        filterState: liveMask.filterState,
+      }),
+    );
+  });
 };
+
+// TRIGGER_QUERY synchronously sets chartStatus to 'loading'; the mounted
+// Chart component then re-queries and re-renders it, landing on one of
+// these terminal statuses (see chartReducer.ts).
+const isTerminalChartStatus = (status: string | null | undefined): boolean =>
+  status === 'rendered' || status === 'failed' || status === 'stopped';
+
+const waitForChartRefresh = (chartId: number): Promise<void> =>
+  new Promise(resolve => {
+    if (isTerminalChartStatus(getState().charts[chartId]?.chartStatus)) {
+      resolve();
+      return;
+    }
+    const unsubscribe = store.subscribe(() => {
+      if (isTerminalChartStatus(getState().charts[chartId]?.chartStatus)) {
+        unsubscribe();
+        resolve();
+      }
+    });
+  });
 
 const refreshChart: typeof dashboardApi.refreshChart = async (
   chartId: number,
@@ -196,8 +279,14 @@ const refreshChart: typeof dashboardApi.refreshChart = async (
     },
   } as Parameters<typeof applyDefaultFormData>[0]) as QueryFormData;
 
+  // getFormDataWithExtraFilters's per-chart cache only invalidates on
+  // dataMask/nativeFilters/filters/color/customization changes, not on the
+  // chart's own form_data, so it must be evicted explicitly or the query
+  // triggered below can run with the previous configuration.
+  invalidateChartFormDataCache(chartId);
   store.dispatch(setChartFormData(formData, chartId));
   store.dispatch(triggerQuery(true, chartId));
+  await waitForChartRefresh(chartId);
 };
 
 export const dashboard: typeof dashboardApi = {

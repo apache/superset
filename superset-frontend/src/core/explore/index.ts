@@ -88,6 +88,24 @@ const setControlValues: typeof exploreApi.setControlValues = async (
   });
 };
 
+// A chart type like Mixed Timeseries can issue more than one query — one
+// entry below per query, in the same order Explore itself runs them.
+const getQueryResults = (
+  results: ChartDataResponseResult[] | undefined,
+): ChartDataResponseResult[] => {
+  if (!results || results.length === 0) {
+    throw new Error('No query result was returned');
+  }
+  // This API has no way to represent a partial failure (some queries
+  // succeeding, others not) in its all-strings/all-rows return shape, so
+  // any one query erroring fails the whole call.
+  const erroredResult = results.find(result => result.error);
+  if (erroredResult) {
+    throw new Error(erroredResult.error ?? 'Failed to run the query');
+  }
+  return results;
+};
+
 const getQuery: typeof exploreApi.getQuery = async () => {
   const formData = requireFormData();
   // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
@@ -99,11 +117,9 @@ const getQuery: typeof exploreApi.getQuery = async () => {
     resultType: 'query',
     ownState: getOwnState(getChartId()),
   });
-  const result = results?.[0] as ChartDataResponseResult | undefined;
-  if (!result || result.error) {
-    throw new Error(result?.error ?? 'Failed to retrieve the query');
-  }
-  return result.query;
+  return getQueryResults(results as ChartDataResponseResult[] | undefined).map(
+    result => result.query,
+  );
 };
 
 const getChartData: typeof exploreApi.getChartData = async () => {
@@ -117,14 +133,12 @@ const getChartData: typeof exploreApi.getChartData = async () => {
     resultType: 'full',
     ownState: getOwnState(getChartId()),
   });
-  const result = results?.[0] as ChartDataResponseResult | undefined;
-  if (!result || result.error) {
-    throw new Error(result?.error ?? 'Failed to export chart data');
-  }
-  return {
-    columns: result.colnames ?? [],
-    rows: (result.data ?? []) as Record<string, unknown>[],
-  };
+  return getQueryResults(results as ChartDataResponseResult[] | undefined).map(
+    result => ({
+      columns: result.colnames ?? [],
+      rows: (result.data ?? []) as Record<string, unknown>[],
+    }),
+  );
 };
 
 export const explore: typeof exploreApi = {

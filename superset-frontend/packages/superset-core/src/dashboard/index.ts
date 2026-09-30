@@ -70,6 +70,10 @@ export interface LayoutNode {
  * Gets the current dashboard's full layout tree — one entry per component
  * (row, column, chart holder, tab, markdown, etc.), keyed by node ID.
  *
+ * The returned map and every node (and its nested `meta`/`children`/
+ * `parents`) are frozen: mutating them has no effect on the dashboard —
+ * use {@link updateLayoutNode} to apply a change instead.
+ *
  * @returns A map of node ID to layout node.
  *
  * @example

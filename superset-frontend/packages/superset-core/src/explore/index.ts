@@ -98,20 +98,21 @@ export declare function setControlValues(
 ): Promise<void>;
 
 /**
- * Gets the SQL query that would run for the chart currently loaded in
+ * Gets the SQL query(ies) that would run for the chart currently loaded in
  * Explore, given its current control values. Does not require the chart to
  * have been run first, and does not affect the rendered chart.
  *
- * @returns The SQL query string.
- * @throws If Explore has no chart loaded, or the query could not be
- * generated.
+ * @returns One SQL query string per query the chart runs, in the same order
+ * Explore itself runs them — more than one for a chart type like Mixed
+ * Timeseries, which runs one query per chart layer.
+ * @throws If Explore has no chart loaded, or a query could not be generated.
  *
  * @example
  * ```typescript
- * const sql = await explore.getQuery();
+ * const [sql] = await explore.getQuery();
  * ```
  */
-export declare function getQuery(): Promise<string>;
+export declare function getQuery(): Promise<string[]>;
 
 /**
  * The tabular result of a chart's data query.
@@ -133,13 +134,15 @@ export interface ChartData {
  * its current control values. Does not require the chart to have been run
  * first, and does not affect the rendered chart.
  *
- * @returns The result columns and rows.
+ * @returns One result (columns/rows) per query the chart runs, in the same
+ * order Explore itself runs them — more than one for a chart type like
+ * Mixed Timeseries, which runs one query per chart layer.
  * @throws If Explore has no chart loaded, or the data could not be
  * retrieved.
  *
  * @example
  * ```typescript
- * const { columns, rows } = await explore.getChartData();
+ * const [{ columns, rows }] = await explore.getChartData();
  * ```
  */
-export declare function getChartData(): Promise<ChartData>;
+export declare function getChartData(): Promise<ChartData[]>;
