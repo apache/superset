@@ -1251,8 +1251,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // config does not wire up. As a `css` block the bar's geometry was
           // silently dropped under test, so bar presence was the only thing
           // any assertion could see — including for a bar that had no width.
+          // A background rule paints the cell itself, so the bar the global
+          // toggle would draw over that background is dropped. A CELL_BAR rule
+          // matching the same cell is a separate instruction and keeps its own
+          // geometry: clearing the flag for the background rule must not flatten
+          // a cell bar into the full-width band, which would make every matching
+          // value read as the same magnitude.
           const barHasGeometry =
-            !!valueRange && numericValue !== undefined && valueRangeFlag;
+            !!valueRange &&
+            numericValue !== undefined &&
+            (valueRangeFlag || !!backgroundColorCellBar);
           const cellBarStyles: CSSProperties = {
             position: 'absolute',
             height: '100%',

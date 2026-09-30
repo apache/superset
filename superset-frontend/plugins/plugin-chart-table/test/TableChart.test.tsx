@@ -1304,6 +1304,51 @@ describe('plugin-chart-table', () => {
         expect(barWidth(bars[0])).toBe(67);
       });
 
+      test('a matching background rule does not flatten a matching cell bar to full width', () => {
+        // A column can carry a background rule and a cell-bar rule that both
+        // match the same cell. The background rule is applied first, and it used
+        // to clear the flag that gates bar geometry, so the cell bar fell back to
+        // the 100%-width band and every matching value read as equal magnitude.
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['num'],
+              coltypes: [GenericDataType.Numeric],
+              data: [{ num: 0 }, { num: 4000 }, { num: 10000 }],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: false,
+            conditional_formatting: [
+              {
+                colorScheme: '#D9D9D9',
+                column: 'num',
+                operator: Comparator.GreaterThan,
+                targetValue: -1,
+                objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+              },
+              cellBarRule({ operator: Comparator.None }),
+            ],
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const bars = container.querySelectorAll('div.cell-bar');
+        expect(bars.length).toBe(3);
+        // Every cell matches the background rule, so the flag is cleared on
+        // every cell. The bar must still be scaled against the column range:
+        // 4000 of [0, 10000] is 40%, not the 100% the fallback band paints.
+        expect(barWidth(bars[0])).toBe(0);
+        expect(barWidth(bars[1])).toBe(40);
+        expect(barWidth(bars[2])).toBe(100);
+      });
+
       test('a non-finite value is not treated as a magnitude', () => {
         const props = transformProps({
           ...testData.raw,
