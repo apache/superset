@@ -182,8 +182,10 @@ def test_dataset_restores_complete_post_gap_snapshot(
     dataset.metrics.append(SqlMetric(metric_name="later", expression="SUM(3)"))
     dataset.table_name = "later"
     capture_session.commit()
+    dataset_uuid = dataset.uuid
+    assert dataset_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(dataset.uuid, target).run()
+        RestoreDatasetVersionCommand(dataset_uuid, target).run()
     capture_session.expire_all()
     assert dataset.table_name == "resumed snapshot"
     assert (
@@ -232,8 +234,10 @@ def test_dashboard_restores_complete_post_gap_membership(
     chart.slice_name = "later chart content"
     dashboard.dashboard_title = "later"
     capture_session.commit()
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDashboardVersionCommand(dashboard.uuid, target).run()
+        RestoreDashboardVersionCommand(dashboard_uuid, target).run()
     capture_session.expire_all()
     assert [c.id for c in dashboard.slices] == expected_ids
     assert chart.slice_name == "later chart content"
@@ -253,8 +257,10 @@ def test_restore_legitimately_removes_later_children(
     dataset.columns.append(TableColumn(column_name="later", type="INT"))
     dataset.metrics.append(SqlMetric(metric_name="later", expression="COUNT(*)"))
     capture_session.commit()
+    dataset_uuid = dataset.uuid
+    assert dataset_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(dataset.uuid, target).run()
+        RestoreDatasetVersionCommand(dataset_uuid, target).run()
     capture_session.expire_all()
     assert dataset.columns == []
     assert dataset.metrics == []
@@ -302,13 +308,15 @@ def test_resume_multiple_flushes_and_rollback(
     assert history_counts(capture_session) == before
     dataset.table_name = "later"
     capture_session.commit()
+    dataset_uuid = dataset.uuid
+    assert dataset_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(dataset.uuid, target).run()
+        RestoreDatasetVersionCommand(dataset_uuid, target).run()
     assert [(c.column_name, c.verbose_name) for c in dataset.columns] == [
         ("gap", "final label")
     ]
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(dataset.uuid, target_before_gap).run()
+        RestoreDatasetVersionCommand(dataset_uuid, target_before_gap).run()
     assert dataset.columns == []
 
 
@@ -412,8 +420,10 @@ def test_post_gap_reattach_across_flushes(
     capture_session.commit()
     capture_session.expire(dashboard, ["slices"])
     assert dashboard.slices == []
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDashboardVersionCommand(dashboard.uuid, target).run()
+        RestoreDashboardVersionCommand(dashboard_uuid, target).run()
     capture_session.expire(dashboard, ["slices"])
     assert dashboard.slices == [chart]
 
@@ -484,8 +494,10 @@ def test_commit_reconciles_native_detach_with_same_transaction_reattach(
     capture_session.commit()
     capture_session.expire(dashboard, ["slices"])
     assert dashboard.slices == []
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDashboardVersionCommand(dashboard.uuid, target).run()
+        RestoreDashboardVersionCommand(dashboard_uuid, target).run()
     capture_session.expire(dashboard, ["slices"])
     assert dashboard.slices == [chart]
 
@@ -604,9 +616,13 @@ def test_recycled_child_id_reconciles_across_parents_in_any_order(
     old_parent.table_name = "old parent later"
     new_parent.table_name = "new parent later"
     capture_session.commit()
+    old_parent_uuid = old_parent.uuid
+    new_parent_uuid = new_parent.uuid
+    assert old_parent_uuid is not None
+    assert new_parent_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(old_parent.uuid, old_target).run()
-        RestoreDatasetVersionCommand(new_parent.uuid, new_target).run()
+        RestoreDatasetVersionCommand(old_parent_uuid, old_target).run()
+        RestoreDatasetVersionCommand(new_parent_uuid, new_target).run()
     capture_session.expire_all()
     assert old_parent.table_name == "old parent resumed"
     assert names(old_parent) == []
@@ -712,13 +728,13 @@ def test_pre_recycle_restore_refuses_when_child_id_now_names_another_child(
     last_tx: int = capture_session.scalar(sa.select(sa.func.max(transaction.id)))
 
     excinfo: pytest.ExceptionInfo[RecycledChildIdentityError]
+    old_parent_uuid = scenario.old_parent.uuid
+    assert old_parent_uuid is not None
     with (
         patch.object(security_manager, "raise_for_editorship"),
         pytest.raises(RecycledChildIdentityError) as excinfo,
     ):
-        RestoreDatasetVersionCommand(
-            scenario.old_parent.uuid, scenario.pre_recycle_target
-        ).run()
+        RestoreDatasetVersionCommand(old_parent_uuid, scenario.pre_recycle_target).run()
     assert "left unchanged" in str(excinfo.value)
     capture_session.expire_all()
     assert scenario.old_parent.table_name == "old parent resumed"
@@ -748,10 +764,10 @@ def test_pre_recycle_restore_recreates_a_child_whose_id_is_no_longer_live(
     scenario.children(scenario.new_parent).clear()  # captured native delete
     capture_session.commit()
 
+    old_parent_uuid = scenario.old_parent.uuid
+    assert old_parent_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(
-            scenario.old_parent.uuid, scenario.pre_recycle_target
-        ).run()
+        RestoreDatasetVersionCommand(old_parent_uuid, scenario.pre_recycle_target).run()
     capture_session.expire_all()
     assert scenario.old_parent.table_name == "old parent"
     assert scenario.names(scenario.old_parent) == ["captured under old parent"]
@@ -781,10 +797,10 @@ def test_pre_recycle_restore_rewrites_a_same_parent_reborn_child(
     )
     assert scenario.names(scenario.old_parent) == ["reborn under old parent"]
 
+    old_parent_uuid = scenario.old_parent.uuid
+    assert old_parent_uuid is not None
     with patch.object(security_manager, "raise_for_editorship"):
-        RestoreDatasetVersionCommand(
-            scenario.old_parent.uuid, scenario.pre_recycle_target
-        ).run()
+        RestoreDatasetVersionCommand(old_parent_uuid, scenario.pre_recycle_target).run()
     capture_session.expire_all()
     assert scenario.old_parent.table_name == "old parent"
     assert scenario.names(scenario.old_parent) == ["captured under old parent"]
