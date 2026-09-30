@@ -205,10 +205,11 @@ def register(plugin: "ChartTypePlugin") -> None:
 def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
     """Return the registered plugin that owns a Superset-internal viz_type.
 
-    Ownership covers ``native_viz_types`` and ``additional_viz_types``. The
-    lookup ignores runtime enablement: a saved chart must be queried,
-    previewed and updated with its plugin's contract even when creating new
-    charts of that type is disabled.
+    Ownership covers ``native_viz_types`` and ``additional_viz_types``.
+    Native owners take priority over additional owners across all plugins;
+    insertion order breaks ties within each category. The lookup ignores runtime
+    enablement: a saved chart must be queried, previewed and updated with its
+    plugin's contract even when creating new charts of that type is disabled.
     """
     if not viz_type:
         return None
@@ -355,8 +356,7 @@ class _RegistryProxy:
 
     def all_plugins(self) -> list["ChartTypePlugin"]:
         """Return every registered plugin, enabled or not, in insertion order."""
-        _ensure_plugins_loaded()
-        return list(_REGISTRY.values())
+        return all_plugins()
 
 
 _PROXY = _RegistryProxy()

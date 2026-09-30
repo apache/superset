@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -450,22 +451,7 @@ def test_viz_type_change_never_inherits_controls() -> None:
 
 # Functions and modules that must dispatch through plugin hooks rather than
 # branching on a registered chart's viz_type or chart_type.
-_DISPATCHERS: dict[Any, tuple[str, ...]] = {
-    chart_helpers: (
-        "build_query_dicts_from_form_data",
-        "build_single_query_dict",
-        "resolve_metrics",
-        "resolve_metrics_and_groupby",
-    ),
-    query_result: ("normalize_chart_query_result",),
-    preview_utils: (
-        "generate_preview_from_form_data",
-        "_generate_ascii_preview_from_data",
-        "_generate_vega_lite_preview_from_data",
-    ),
-    compile_module: ("_compile_chart",),
-    chart_utils: ("merge_chart_form_data",),
-}
+_DISPATCHERS = (chart_helpers, query_result, preview_utils, compile_module, chart_utils)
 _DISPATCH_MODULES = (
     "superset/mcp_service/chart/tool/get_chart_preview.py",
     "superset/mcp_service/chart/tool/get_chart_data.py",
@@ -501,47 +487,368 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
                 else [classes]
             )
             found.extend(
-                f"line {node.lineno}: isinstance {element.id}"
+                ast.unparse(node)
                 for element in elements
                 if isinstance(element, ast.Name) and element.id.endswith("ChartConfig")
             )
             continue
-        if not isinstance(node, ast.Compare):
-            continue
-        expression = ast.unparse(node)
-        if "viz_type" not in expression and "chart_type" not in expression:
-            # e.g. datasource_type == "table" is not a chart-type branch.
-            continue
-        for operand in (node.left, *node.comparators):
-            literals: list[ast.AST] = [operand]
-            if isinstance(operand, (ast.Tuple, ast.List, ast.Set)):
-                literals = list(operand.elts)
-            for literal in literals:
-                if (
-                    isinstance(literal, ast.Constant)
-                    and isinstance(literal.value, str)
-                    and literal.value in names
-                ):
-                    found.append(f"line {node.lineno}: {literal.value!r}")
+        operands: list[ast.expr | None] = []
+        if isinstance(node, ast.Compare):
+            operands = [node.left, *node.comparators]
+        elif isinstance(node, ast.Dict):
+            operands = list(node.keys)
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get"
+        ):
+            # The key is dispatch; a default such as fd.get("viz_type", "table")
+            # is not. Inspecting structure also catches renamed locals.
+            operands = list(node.args[:1])
+        elif isinstance(node, ast.Subscript):
+            operands = [node.slice]
+        for operand in operands:
+            if operand is None:
+                continue
+            literals = (
+                operand.elts
+                if isinstance(operand, (ast.Tuple, ast.List, ast.Set))
+                else [operand]
+            )
+            if any(
+                isinstance(literal, ast.Constant)
+                and isinstance(literal.value, str)
+                and literal.value in names
+                for literal in literals
+            ):
+                found.append(ast.unparse(node))
+                break
     return found
+
+
+# Exact pre-existing expressions outside the lifecycle dispatchers: plugin-owned
+# implementation helpers, generic fallback renderers, presentation metadata and
+# preview-format selection ("table" also names a chart). Keep whole files scanned:
+# unlike a function allowlist, this multiset rejects added or duplicated branches.
+_LEGACY_TYPE_BRANCHES = (
+    (
+        "superset.mcp_service.chart.query_result: form_data.get('viz_type'"
+        ") != 'gauge_chart'"
+    ),
+    (
+        "superset.mcp_service.chart.preview_utils: {'bar': _generate_safe_"
+        "ascii_bar_chart, 'dist_bar': _generate_safe_ascii_bar_chart, 'col"
+        "umn': _generate_safe_ascii_bar_chart, 'line': _generate_safe_asci"
+        "i_line_chart, 'area': _generate_safe_ascii_line_chart, 'pie': _ge"
+        "nerate_safe_ascii_pie_chart}"
+    ),
+    (
+        "superset.mcp_service.chart.preview_utils: {'echarts_timeseries_li"
+        "ne': 'line', 'echarts_timeseries_bar': 'bar', 'echarts_area': 'ar"
+        "ea', 'echarts_timeseries_scatter': 'point', 'bar': 'bar', 'line':"
+        " 'line', 'area': 'area', 'scatter': 'point', 'pie': 'arc', 'bulle"
+        "t': 'bar', 'table': 'text'}"
+    ),
+    ("superset.mcp_service.chart.preview_utils: preview_format == 'table'"),
+    ("superset.mcp_service.chart.preview_utils: preview_format == 'table'"),
+    (
+        "superset.mcp_service.chart.preview_utils: {'bullet': {'metric': m"
+        "odel.metric_field, 'dimensions': model.dimensions, 'ranges': mode"
+        "l.ranges, 'range_labels': model.range_labels, 'markers': model.ma"
+        "rkers, 'marker_labels': model.marker_labels, 'marker_lines': mode"
+        "l.marker_lines, 'marker_line_labels': model.marker_line_labels, '"
+        "y_axis_format': model.y_axis_format, 'show_labels': model.show_la"
+        "bels, 'show_legend': model.show_legend}}"
+    ),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'echarts_area'"),
+    (
+        "superset.mcp_service.chart.chart_utils: {'table': {'sort_by': ('o"
+        "rder_by_cols', _table_sort_value), 'column_config': ('column_conf"
+        "ig', _table_column_config_value)}, 'xy': {'group_by': ('groupby',"
+        " _column_names), 'series_limit': ('series_limit', lambda value: v"
+        "alue), 'stacked': ('stack', lambda value: 'Stack' if value else N"
+        "one), 'orientation': ('orientation', lambda value: value), 'legen"
+        "d_orientation': ('legendOrientation', lambda value: value), 'x_ax"
+        "is_time_format': ('x_axis_time_format', lambda value: value), 'ti"
+        "me_grain': ('time_grain_sqla', lambda value: value)}, 'mixed_time"
+        "series': {'group_by': ('groupby', _column_names), 'group_by_secon"
+        "dary': ('groupby_b', _column_names), 'currency_format_secondary':"
+        " ('currency_format_secondary', _currency_form_value), 'time_grain"
+        "': ('time_grain_sqla', lambda value: value)}, 'waterfall': {'time"
+        "_grain': ('time_grain_sqla', lambda value: value)}, 'big_number':"
+        " {'subheader': ('subheader', lambda value: value), 'y_axis_format"
+        "': ('y_axis_format', lambda value: value), 'time_grain': ('time_g"
+        "rain_sqla', lambda value: value), 'compare_lag': ('compare_lag', "
+        "lambda value: value), 'time_format': ('time_format', lambda value"
+        ": value), 'aggregation': ('aggregation', lambda value: value)}, '"
+        "handlebars': {'style_template': ('styleTemplate', lambda value: v"
+        "alue), 'columns': ('all_columns', _column_names), 'groupby': ('gr"
+        "oupby', _column_names), 'metrics': ('metrics', _column_names)}, '"
+        "pivot_table': {'date_format': ('date_format', lambda value: value"
+        ")}, 'interactive_pivot': {'time_grain': ('time_grain_sqla', lambd"
+        "a value: value), 'series_limit': ('series_limit', lambda value: v"
+        "alue), 'date_format': ('date_format', lambda value: value), 'colu"
+        "mn_sort': ('colOrder', lambda value: value)}}"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: {'table': 'table chart', "
+        "'ag-grid-table': 'interactive table chart'}"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type')"
+        " != 'gantt_chart'"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: {'xy': (('x_axis', 'x_axi"
+        "s_title', 'x_axis_format', None), ('y_axis', 'y_axis_title', 'y_a"
+        "xis_format', 'logAxis')), 'mixed_timeseries': (('x_axis', 'xAxisT"
+        "itle', 'x_axis_time_format', None), ('y_axis', 'yAxisTitle', 'y_a"
+        "xis_format', 'logAxis'), ('y_axis_secondary', 'yAxisTitleSecondar"
+        "y', 'y_axis_format_secondary', 'logAxisSecondary'))}"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: config.chart_type == 'int"
+        "eractive_pivot'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'big_number'"),
+    (
+        "superset.mcp_service.chart.chart_utils: viz_type in ['table', 'pi"
+        "vot_table_v2', 'ag-grid-table', 'ag-grid-pivot-table']"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: viz_type in ['echarts_tim"
+        "eseries_line', 'echarts_timeseries_bar']"
+    ),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    (
+        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line"
+        "': 'Shows trends and changes over time', 'echarts_timeseries_bar'"
+        ": 'Compares values across categories or time periods', 'table': '"
+        "Displays detailed data in tabular format', 'ag-grid-table': 'Inte"
+        "ractive table with advanced features like column resizing, sortin"
+        "g, filtering, and server-side pagination', 'pie': 'Shows proporti"
+        "onal relationships within a dataset', 'echarts_area': 'Emphasizes"
+        " cumulative totals and part-to-whole relationships', 'pivot_table"
+        "_v2': 'Cross-tabulates data with rows, columns, and aggregated me"
+        "trics for multi-dimensional analysis', 'ag-grid-pivot-table': 'In"
+        "teractively cross-tabulates data with AG Grid row groups, pivot c"
+        "olumns, value aggregation, and side-panel reconfiguration', 'mixe"
+        "d_timeseries': 'Combines two different chart types on the same ti"
+        "me axis for comparing related metrics with different scales', 'ha"
+        "ndlebars': 'Renders data using a custom Handlebars HTML template "
+        "for fully flexible layouts like KPI cards, leaderboards, and repo"
+        "rts', 'big_number': 'Displays a key metric with a trendline showi"
+        "ng how the value changes over time', 'big_number_total': 'Highlig"
+        "hts a single key metric value as a prominent number'}"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: viz_type in ['echarts_tim"
+        "eseries_line', 'echarts_timeseries_bar']"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: previous_form_data.get('v"
+        "iz_type') != 'gantt_chart'"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_ty"
+        "pe') != 'gantt_chart'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)"),
+    (
+        "superset.mcp_service.chart.chart_utils: existing.get('viz_type') "
+        "== 'treemap_v2'"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: existing_form_data.get('v"
+        "iz_type') != 'bullet'"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_ty"
+        "pe') != 'bullet'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: config.chart_type == 'waterfall'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: config.chart_type == 'xy'"),
+    (
+        "superset.mcp_service.chart.chart_utils: isinstance(update_config,"
+        " BulletChartConfig)"
+    ),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    (
+        "superset/mcp_service/chart/tool/get_chart_preview.py {'url': URLP"
+        "reviewStrategy, 'ascii': ASCIIPreviewStrategy, 'table': TablePrev"
+        "iewStrategy, 'vega_lite': VegaLitePreviewStrategy}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_preview.py {'line': ['e"
+        "charts_timeseries_line', 'echarts_timeseries', 'echarts_timeserie"
+        "s_smooth', 'echarts_timeseries_step', 'line'], 'bar': ['echarts_t"
+        "imeseries_bar', 'echarts_timeseries_column', 'bar', 'column', 'wa"
+        "terfall'], 'area': ['echarts_area', 'area'], 'scatter': ['echarts"
+        "_timeseries_scatter', 'scatter'], 'pie': ['pie'], 'big_number': ["
+        "'big_number', 'big_number_total'], 'histogram': ['histogram', 'hi"
+        "stogram_v2'], 'box_plot': ['box_plot'], 'heatmap': ['heatmap', 'h"
+        "eatmap_v2', 'cal_heatmap'], 'funnel': ['funnel'], 'mixed': ['mixe"
+        "d_timeseries'], 'table': ['table']}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_times"
+        "eries_line': 'line', 'echarts_timeseries_smooth': 'line', 'echart"
+        "s_timeseries_step': 'line', 'echarts_timeseries': 'line', 'echart"
+        "s_timeseries_bar': 'bar', 'echarts_area': 'area', 'echarts_timese"
+        "ries_scatter': 'scatter', 'mixed_timeseries': 'line', 'table': 't"
+        "able', 'pie': 'pie', 'big_number': 'kpi', 'big_number_total': 'kp"
+        "i', 'pop_kpi': 'kpi', 'dist_bar': 'bar', 'line': 'line', 'area': "
+        "'area', 'scatter': 'scatter', 'bubble': 'bubble', 'bubble_v2': 'b"
+        "ubble', 'bullet': 'bullet', 'treemap_v2': 'treemap', 'sunburst_v2"
+        "': 'treemap', 'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'f"
+        "unnel': 'funnel', 'histogram': 'histogram', 'histogram_v2': 'hist"
+        "ogram', 'box_plot': 'box_plot', 'world_map': 'map', 'pivot_table_"
+        "v2': 'table', 'ag-grid-pivot-table': 'table', 'waterfall': 'water"
+        "fall', 'gantt_chart': 'gantt'}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
+        "'line', 'multi-line chart': 'line', 'area chart': 'area', 'bar ch"
+        "art': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble',"
+        " 'bullet chart': 'bullet', 'pie chart': 'pie', 'treemap': 'treema"
+        "p', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge chart"
+        "': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
+    ),
+)
 
 
 def test_dispatchers_do_not_branch_on_registered_chart_types() -> None:
     """Chart-specific behavior lives in plugin hooks, not shared dispatchers."""
     names = _registered_names()
     violations: list[str] = []
-    for module, functions in _DISPATCHERS.items():
-        for name in functions:
-            source = inspect.getsource(getattr(module, name))
-            tree = ast.parse(inspect.cleandoc("\n" + source))
-            violations.extend(
-                f"{module.__name__}.{name} {hit}"
-                for hit in _branches_on_registered_type(tree, names)
-            )
+    for module in _DISPATCHERS:
+        tree = ast.parse(inspect.getsource(module))
+        violations.extend(
+            f"{module.__name__}: {hit}"
+            for hit in _branches_on_registered_type(tree, names)
+        )
     root = Path(chart_helpers.__file__).resolve().parents[3]
     for relative in _DISPATCH_MODULES:
         tree = ast.parse((root / relative).read_text())
         violations.extend(
             f"{relative} {hit}" for hit in _branches_on_registered_type(tree, names)
         )
-    assert not violations, "\n".join(violations)
+    unexpected = Counter(violations) - Counter(_LEGACY_TYPE_BRANCHES)
+    stale = Counter(_LEGACY_TYPE_BRANCHES) - Counter(violations)
+    assert not unexpected, "\n".join(unexpected)
+    assert not stale, "Remove obsolete baseline entries: " + "\n".join(stale)
+
+
+@pytest.mark.parametrize("chart_type", ["gauge", "treemap_v2"])
+@pytest.mark.parametrize(
+    "value", [None, "invalid", [1], {"limit": 1}, float("inf"), -1, 0, 1, "3", 100]
+)
+def test_compile_row_limit_handles_persisted_values(
+    chart_type: str, value: Any
+) -> None:
+    """Malformed saved limits fall back while valid small limits are preserved."""
+    plugin = get_registry().get(chart_type)
+    assert plugin is not None
+    expected = 1 if value == 1 else 3 if value == "3" else 10
+    assert plugin.compile_row_limit({"row_limit": value}) == expected
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_waterfall_query(groupby: str | list[str]) -> None:
+    """Saved params bypass ChartConfig and must preserve full column names."""
+    plugin = get_registry().get("waterfall")
+    assert plugin is not None
+    queries = plugin.build_query_dicts(
+        {"x_axis": "month", "groupby": groupby, "metric": "revenue"},
+        viz_type="waterfall",
+        engine="sqlite",
+        row_limit=10,
+        order_desc=False,
+    )
+    assert queries is not None
+    assert queries[0]["columns"][0]["sqlExpression"] == "month"
+    assert queries[0]["columns"][1:] == ["stage"]
+    assert queries[0]["orderby"] == [["month", True], ["stage", True]]
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_funnel_preview(groupby: str | list[str]) -> None:
+    """Scalar saved groupby binds the complete funnel stage name."""
+    funnel = preview_utils.generate_funnel_vega_lite_preview(
+        [{"stage": "Qualified", "revenue": 5}],
+        {"groupby": groupby, "metric": "revenue"},
+    )
+    assert isinstance(funnel, VegaLitePreview)
+    assert funnel.specification["encoding"]["y"]["field"] == "stage"
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_histogram_preview(groupby: str | list[str]) -> None:
+    """Scalar saved groupby is excluded from bins and retained as the series."""
+    histogram = preview_utils.generate_histogram_vega_lite_preview(
+        [{"stage": "Qualified", "0-10": 5}], {"groupby": groupby}
+    )
+    assert histogram.specification["data"]["values"] == [
+        {"bin": "0-10", "value": 5, "series": "Qualified"}
+    ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'vt = fd.get("viz_type"); result = vt == "waterfall"',
+        'result = alias in ("waterfall", "other")',
+        'handlers = {"waterfall": handler}',
+        'result = handlers.get("waterfall")',
+        'result = handlers["waterfall"]',
+        (
+            'def previously_unlisted_helper(fd):\n    vt = fd.get("viz_type")\n    '
+            'return vt == "waterfall"'
+        ),
+    ],
+)
+def test_dispatch_guard_detects_structural_branches(source: str) -> None:
+    """Aliases, keyed dispatch and unlisted helpers cannot evade the guard."""
+    assert _branches_on_registered_type(ast.parse(source), {"waterfall"})
+
+
+def test_dispatch_guard_ignores_get_default() -> None:
+    """A default chart name does not select chart-specific behavior."""
+    assert not _branches_on_registered_type(
+        ast.parse('fd.get("viz_type", "table")'), {"table"}
+    )
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_boolean_compile_limit_uses_fallback(value: bool) -> None:
+    """Booleans are malformed persisted limits, not one-row samples."""
+    from superset.mcp_service.chart.plugin import capped_compile_row_limit
+
+    assert capped_compile_row_limit({"row_limit": value}) == 10
+
+
+@pytest.mark.parametrize("nullable", [False, True])
+def test_compact_schema_annotations_are_isolated(nullable: bool) -> None:
+    """Mutating one annotation cannot corrupt other chart tool schemas."""
+    from superset.mcp_service.chart.schemas import (
+        CHART_CONFIG_REFERENCE_SCHEMA,
+        chart_config_reference_schema,
+    )
+
+    first = chart_config_reference_schema(nullable=nullable)
+    second = chart_config_reference_schema(nullable=nullable)
+    assert first.json_schema == second.json_schema
+    assert first.json_schema is not None
+    schema = first.json_schema["anyOf"][0] if nullable else first.json_schema
+    schema["properties"]["chart_type"]["enum"].append("mutation")
+    assert first.json_schema != second.json_schema
+    assert (
+        "mutation"
+        not in CHART_CONFIG_REFERENCE_SCHEMA["properties"]["chart_type"]["enum"]
+    )

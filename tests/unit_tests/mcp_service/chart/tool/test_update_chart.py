@@ -28,6 +28,7 @@ import pytest
 from fastmcp import Client
 from pydantic import ValidationError
 
+from superset.common.query_object import QueryObject
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
@@ -3219,7 +3220,7 @@ def test_gauge_update_compile_keeps_finite_groups(
         schema=None,
         columns=[],
         metrics=[
-            Mock(metric_name="saved_sla", expression="AVG(score)", description=None)
+            Mock(metric_name="saved_sla", expression="SUM(value)", description="")
         ],
         database=Mock(database_name="examples"),
     )
@@ -3239,12 +3240,18 @@ def test_gauge_update_compile_keeps_finite_groups(
     assert isinstance(form_data, dict)
     with (
         patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        patch(
             "superset.mcp_service.chart.compile.DatasetValidator.validate_against_dataset",
             return_value=(True, None),
         ),
         patch(
             "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=Mock(form_data={}, queries=[]),
+            return_value=SimpleNamespace(
+                form_data={}, queries=[QueryObject(metrics=["saved_sla"], columns=[])]
+            ),
         ) as build,
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"

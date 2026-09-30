@@ -412,7 +412,9 @@ def _build_replacement_form_data(
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
-    config_plugin = get_registry().get(parsed_config.chart_type)
+    config_plugin = get_registry().get(
+        parsed_config.chart_type, include_disabled=include_disabled
+    )
     if replacement_dataset_id is not None and not (
         config_plugin is not None and config_plugin.strict_dataset_rebind
     ):
