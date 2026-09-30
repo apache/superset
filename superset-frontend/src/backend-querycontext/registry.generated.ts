@@ -22,30 +22,31 @@ import bq3 from '../../plugins/plugin-chart-echarts/src/BoxPlot/buildQuery';
 import bq4 from '../../plugins/plugin-chart-echarts/src/Bubble/buildQuery';
 import bq5 from '../../plugins/plugin-chart-echarts/src/Bullet/buildQuery';
 import bq6 from '../../plugins/plugin-chart-echarts/src/Butterfly/buildQuery';
-import bq7 from '../../plugins/plugin-chart-cartodiagram/src/plugin/buildQuery';
-import bq8 from '../../plugins/plugin-chart-chord/src/buildQuery';
-import bq9 from '../../plugins/plugin-chart-echarts/src/Timeseries/buildQuery';
-import bq10 from '../../plugins/plugin-chart-echarts/src/Funnel/buildQuery';
-import bq11 from '../../plugins/plugin-chart-echarts/src/Gantt/buildQuery';
-import bq12 from '../../plugins/plugin-chart-echarts/src/Gauge/buildQuery';
-import bq13 from '../../plugins/plugin-chart-echarts/src/Graph/buildQuery';
-import bq14 from '../../plugins/plugin-chart-handlebars/src/plugin/buildQuery';
-import bq15 from '../../plugins/plugin-chart-echarts/src/Heatmap/buildQuery';
-import bq16 from '../../plugins/plugin-chart-echarts/src/Histogram/buildQuery';
-import bq17 from '../../plugins/plugin-chart-echarts/src/MixedTimeseries/buildQuery';
-import bq18 from '../../plugins/plugin-chart-echarts/src/Pie/buildQuery';
-import bq19 from '../../plugins/plugin-chart-pivot-table/src/plugin/buildQuery';
-import bq20 from '../../plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/buildQuery';
-import bq21 from '../../plugins/plugin-chart-echarts/src/Radar/buildQuery';
-import bq22 from '../../plugins/plugin-chart-echarts/src/Rose/buildQuery';
-import bq23 from '../../plugins/plugin-chart-echarts/src/Sankey/buildQuery';
-import bq24 from '../../plugins/plugin-chart-echarts/src/Sunburst/buildQuery';
-import bq25 from '../../plugins/plugin-chart-table/src/buildQuery';
-import bq26 from '../../plugins/plugin-chart-echarts/src/TimePivot/buildQuery';
-import bq27 from '../../plugins/plugin-chart-echarts/src/Tree/buildQuery';
-import bq28 from '../../plugins/plugin-chart-echarts/src/Treemap/buildQuery';
-import bq29 from '../../plugins/plugin-chart-echarts/src/Waterfall/buildQuery';
-import bq30 from '../../plugins/plugin-chart-word-cloud/src/plugin/buildQuery';
+import bq7 from '../../plugins/plugin-chart-echarts/src/Candlestick/buildQuery';
+import bq8 from '../../plugins/plugin-chart-cartodiagram/src/plugin/buildQuery';
+import bq9 from '../../plugins/plugin-chart-chord/src/buildQuery';
+import bq10 from '../../plugins/plugin-chart-echarts/src/Timeseries/buildQuery';
+import bq11 from '../../plugins/plugin-chart-echarts/src/Funnel/buildQuery';
+import bq12 from '../../plugins/plugin-chart-echarts/src/Gantt/buildQuery';
+import bq13 from '../../plugins/plugin-chart-echarts/src/Gauge/buildQuery';
+import bq14 from '../../plugins/plugin-chart-echarts/src/Graph/buildQuery';
+import bq15 from '../../plugins/plugin-chart-handlebars/src/plugin/buildQuery';
+import bq16 from '../../plugins/plugin-chart-echarts/src/Heatmap/buildQuery';
+import bq17 from '../../plugins/plugin-chart-echarts/src/Histogram/buildQuery';
+import bq18 from '../../plugins/plugin-chart-echarts/src/MixedTimeseries/buildQuery';
+import bq19 from '../../plugins/plugin-chart-echarts/src/Pie/buildQuery';
+import bq20 from '../../plugins/plugin-chart-pivot-table/src/plugin/buildQuery';
+import bq21 from '../../plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/buildQuery';
+import bq22 from '../../plugins/plugin-chart-echarts/src/Radar/buildQuery';
+import bq23 from '../../plugins/plugin-chart-echarts/src/Rose/buildQuery';
+import bq24 from '../../plugins/plugin-chart-echarts/src/Sankey/buildQuery';
+import bq25 from '../../plugins/plugin-chart-echarts/src/Sunburst/buildQuery';
+import bq26 from '../../plugins/plugin-chart-table/src/buildQuery';
+import bq27 from '../../plugins/plugin-chart-echarts/src/TimePivot/buildQuery';
+import bq28 from '../../plugins/plugin-chart-echarts/src/Tree/buildQuery';
+import bq29 from '../../plugins/plugin-chart-echarts/src/Treemap/buildQuery';
+import bq30 from '../../plugins/plugin-chart-echarts/src/Waterfall/buildQuery';
+import bq31 from '../../plugins/plugin-chart-word-cloud/src/plugin/buildQuery';
 
 export const REGISTRY: Record<string, (fd: any) => any> = {
   'ag-grid-table': bq0 as (fd: any) => any,
@@ -55,36 +56,37 @@ export const REGISTRY: Record<string, (fd: any) => any> = {
   bubble_v2: bq4 as (fd: any) => any,
   bullet: bq5 as (fd: any) => any,
   butterfly: bq6 as (fd: any) => any,
-  cartodiagram: bq7 as (fd: any) => any,
-  chord: bq8 as (fd: any) => any,
-  echarts_area: bq9 as (fd: any) => any,
-  echarts_timeseries: bq9 as (fd: any) => any,
-  echarts_timeseries_bar: bq9 as (fd: any) => any,
-  echarts_timeseries_line: bq9 as (fd: any) => any,
-  echarts_timeseries_scatter: bq9 as (fd: any) => any,
-  echarts_timeseries_smooth: bq9 as (fd: any) => any,
-  echarts_timeseries_step: bq9 as (fd: any) => any,
-  funnel: bq10 as (fd: any) => any,
-  gantt_chart: bq11 as (fd: any) => any,
-  gauge_chart: bq12 as (fd: any) => any,
-  graph_chart: bq13 as (fd: any) => any,
-  handlebars: bq14 as (fd: any) => any,
-  heatmap_v2: bq15 as (fd: any) => any,
-  histogram_v2: bq16 as (fd: any) => any,
-  mixed_timeseries: bq17 as (fd: any) => any,
-  pie: bq18 as (fd: any) => any,
-  pivot_table_v2: bq19 as (fd: any) => any,
-  pop_kpi: bq20 as (fd: any) => any,
-  radar: bq21 as (fd: any) => any,
-  rose: bq22 as (fd: any) => any,
-  sankey_v2: bq23 as (fd: any) => any,
-  sunburst_v2: bq24 as (fd: any) => any,
-  table: bq25 as (fd: any) => any,
-  time_pivot: bq26 as (fd: any) => any,
-  tree_chart: bq27 as (fd: any) => any,
-  treemap_v2: bq28 as (fd: any) => any,
-  waterfall: bq29 as (fd: any) => any,
-  word_cloud: bq30 as (fd: any) => any,
+  candlestick: bq7 as (fd: any) => any,
+  cartodiagram: bq8 as (fd: any) => any,
+  chord: bq9 as (fd: any) => any,
+  echarts_area: bq10 as (fd: any) => any,
+  echarts_timeseries: bq10 as (fd: any) => any,
+  echarts_timeseries_bar: bq10 as (fd: any) => any,
+  echarts_timeseries_line: bq10 as (fd: any) => any,
+  echarts_timeseries_scatter: bq10 as (fd: any) => any,
+  echarts_timeseries_smooth: bq10 as (fd: any) => any,
+  echarts_timeseries_step: bq10 as (fd: any) => any,
+  funnel: bq11 as (fd: any) => any,
+  gantt_chart: bq12 as (fd: any) => any,
+  gauge_chart: bq13 as (fd: any) => any,
+  graph_chart: bq14 as (fd: any) => any,
+  handlebars: bq15 as (fd: any) => any,
+  heatmap_v2: bq16 as (fd: any) => any,
+  histogram_v2: bq17 as (fd: any) => any,
+  mixed_timeseries: bq18 as (fd: any) => any,
+  pie: bq19 as (fd: any) => any,
+  pivot_table_v2: bq20 as (fd: any) => any,
+  pop_kpi: bq21 as (fd: any) => any,
+  radar: bq22 as (fd: any) => any,
+  rose: bq23 as (fd: any) => any,
+  sankey_v2: bq24 as (fd: any) => any,
+  sunburst_v2: bq25 as (fd: any) => any,
+  table: bq26 as (fd: any) => any,
+  time_pivot: bq27 as (fd: any) => any,
+  tree_chart: bq28 as (fd: any) => any,
+  treemap_v2: bq29 as (fd: any) => any,
+  waterfall: bq30 as (fd: any) => any,
+  word_cloud: bq31 as (fd: any) => any,
 };
 
 export const VIZ_TYPES: string[] = Object.keys(REGISTRY);
