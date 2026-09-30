@@ -477,6 +477,7 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
         ("SHORT", "SmallInteger", "NUMERIC"),
         ("HALF_FLOAT", "Float", "NUMERIC"),
         ("SCALED_FLOAT", "Float", "NUMERIC"),
+        ("SCALED_FLOAT(100)", "Float", "NUMERIC"),
         ("UNSIGNED_LONG", "BigInteger", "NUMERIC"),
         ("DOUBLE", None, "NUMERIC"),
         ("FLOAT", None, "NUMERIC"),

@@ -40,20 +40,21 @@ logger = logging.getLogger()
 
 # Elasticsearch/OpenSearch field types that the default column type mappings
 # do not recognize. DOUBLE, FLOAT, INTEGER, LONG, BOOLEAN and DATETIME are
-# already covered by the defaults.
+# already covered by the defaults. Like the defaults, the patterns anchor only
+# at the start, so a parameterized name such as SCALED_FLOAT(100) still matches.
 FIELD_TYPE_MAPPINGS = (
     (
-        re.compile(r"^(byte|short)$", re.IGNORECASE),
+        re.compile(r"^(byte|short)", re.IGNORECASE),
         types.SmallInteger(),
         GenericDataType.NUMERIC,
     ),
     (
-        re.compile(r"^(half_float|scaled_float)$", re.IGNORECASE),
+        re.compile(r"^(half_float|scaled_float)", re.IGNORECASE),
         types.Float(),
         GenericDataType.NUMERIC,
     ),
     (
-        re.compile(r"^unsigned_long$", re.IGNORECASE),
+        re.compile(r"^unsigned_long", re.IGNORECASE),
         types.BigInteger(),
         GenericDataType.NUMERIC,
     ),
