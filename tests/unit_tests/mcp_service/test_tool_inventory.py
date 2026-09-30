@@ -34,7 +34,6 @@ from superset.utils import json
 # explicit delivery budgets, well below the sizes produced by reference inlining.
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 2_900,
     "create_dataset": 1_800,
     "create_theme": 1_100,
     "create_virtual_dataset": 3_700,
@@ -55,7 +54,6 @@ TOOL_BUDGETS = {
     "get_chart_type_schema": 900,
     "get_compatible_dimensions": 1_500,
     "get_compatible_metrics": 1_500,
-    "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
     "get_dashboard_info": 3_100,
     "get_dashboard_layout": 1_600,
