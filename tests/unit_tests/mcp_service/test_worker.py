@@ -324,7 +324,7 @@ async def test_implicit_cursor_cancellation(app: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
-    """A failed query cannot hand its metadata session to the next worker call."""
+    """Error handling keeps its session; the next worker call gets a new one."""
     from sqlalchemy_continuum import versioning_manager
 
     from superset.mcp_service.worker import run_in_worker, WorkerPool
@@ -337,23 +337,18 @@ async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
     threads = []
 
     async def failed() -> None:
-        """The real Session is invalidated before error handling continues."""
+        """The tool handles the warehouse error with its own, intact Session."""
         session = db.session()
         sessions.append(session)
         threads.append(threading.get_ident())
         session.execute(text("SELECT 1"))
-        # Continuum's rollback listener inspects other tracked connections.
-        # Keep one present to reproduce failure during Session.invalidate().
-        with (
-            db.engine.connect() as other_connection,
-            patch.dict(versioning_manager.units_of_work, {other_connection: Mock()}),
-            patch.object(session, "invalidate", wraps=session.invalidate) as invalidate,
-        ):
-            with pytest.raises(RuntimeError, match="warehouse failed"):
-                with cancellable_cursor(database, Mock()):
-                    raise RuntimeError("warehouse failed")
-            invalidate.assert_called_once()
-            assert db.session.execute(text("SELECT 1")).scalar() == 1
+        with pytest.raises(RuntimeError, match="warehouse failed"):
+            with cancellable_cursor(database, Mock()):
+                raise RuntimeError("warehouse failed")
+        assert db.session() is session
+        assert session.is_active
+        assert session.execute(text("SELECT 1")).scalar() == 1
+        raise RuntimeError("tool failed")
 
     async def healthy() -> None:
         """The same executor thread must receive an entirely new Session."""
@@ -367,8 +362,13 @@ async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
             patch(
                 "superset.tasks.query_cancel.capture_cancel_query_id", return_value=None
             ),
+            # Continuum's rollback listener inspects other tracked connections;
+            # the worker's teardown rollback must tolerate one being present.
+            db.engine.connect() as other_connection,
+            patch.dict(versioning_manager.units_of_work, {other_connection: Mock()}),
         ):
-            await run_in_worker(failed, (), {}, 2)
+            with pytest.raises(RuntimeError, match="tool failed"):
+                await run_in_worker(failed, (), {}, 2)
             await run_in_worker(healthy, (), {}, 2)
         assert threads[0] == threads[1]
         assert sessions[0] is not sessions[1]

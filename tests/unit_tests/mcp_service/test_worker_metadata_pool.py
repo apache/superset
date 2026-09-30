@@ -17,12 +17,13 @@
 """Tool workers and the transport loop share the metadata connection pool."""
 
 import asyncio
+import sqlite3
 import threading
 import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch, PropertyMock
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from fastmcp import Client, Context, FastMCP
@@ -35,6 +36,7 @@ from superset.extensions import db
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.server import build_middleware_list
 from superset.mcp_service.session_scope import install_mcp_session_scoping
+from superset.utils import json
 
 WORKERS = 2
 # The smallest pool that admits WORKERS tool calls: one connection per tool
@@ -537,3 +539,97 @@ async def test_error_hook_does_not_require_metadata_user_reload(
             assert not observations
         assert g.user is user
         assert db.session() is parent_session
+
+
+def _add_sqlite_warehouse(engine: Engine) -> int:
+    """Store a SQLite warehouse row in the bounded metadata database."""
+    from superset.models.core import Database
+
+    Database.metadata.create_all(engine)
+    with engine.begin() as connection:
+        # A Core insert skips the security manager's permission listeners.
+        return connection.execute(
+            Database.__table__.insert().values(
+                database_name="warehouse", sqlalchemy_uri="sqlite://"
+            )
+        ).inserted_primary_key[0]
+
+
+def _describe(database: Any) -> tuple[str, str, str] | Exception:
+    """Read a loaded Database the way error handling and audit logging do."""
+    try:
+        return database.database_name, database.backend, database.db_engine_spec.engine
+    except Exception as ex:  # noqa: BLE001
+        return ex
+
+
+@pytest.mark.asyncio
+async def test_warehouse_error_reaches_caller_unchanged(
+    metadata_engine: Engine,
+) -> None:
+    """An ordinary SQL mistake keeps its type and its caller's ORM rows usable.
+
+    ``Database.get_sqla_engine`` wraps the warehouse I/O in ``check_for_oauth2``,
+    whose handler reads the ``Database`` while the error unwinds. Discarding
+    the metadata session at that point replaced the error with
+    ``DetachedInstanceError``.
+    """
+    from superset.mcp_service.worker import run_in_worker
+    from superset.models.core import Database
+
+    _add_sqlite_warehouse(metadata_engine)
+    observed: list[tuple[str, str, str] | Exception] = []
+
+    async def query() -> None:
+        """Query a missing warehouse table through the real chart-data path."""
+        database = db.session.query(Database).one()
+        try:
+            database.get_df("SELECT * FROM table_that_does_not_exist")
+        except Exception:
+            observed.append(_describe(database))
+            raise
+
+    # get_df runs on a raw DBAPI cursor, so the driver's own error is expected.
+    with pytest.raises(
+        sqlite3.OperationalError, match="no such table: table_that_does_not_exist"
+    ):
+        await run_in_worker(query, (), {}, 5)
+    assert observed == [("warehouse", "sqlite", "sqlite")]
+    assert metadata_engine.pool.checkedout() == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_sql_reports_missing_table_as_query_error(
+    app: Any, metadata_engine: Engine
+) -> None:
+    """The real tool returns the warehouse message; no system error is raised."""
+    from superset.mcp_service.sql_lab.tool.execute_sql import execute_sql
+
+    database_id = _add_sqlite_warehouse(metadata_engine)
+    hook = MagicMock()
+    mcp = FastMCP("execute_sql regression", middleware=build_middleware_list())
+    mcp.tool(execute_sql, name="execute_sql")
+    with (
+        patch("superset.mcp_service.auth._setup_user_context", return_value=None),
+        patch(
+            "superset.mcp_service.middleware.get_user_from_request", return_value=None
+        ),
+        patch("superset.security_manager.raise_for_access"),
+        patch.dict(app.config, {"MCP_ERROR_HOOK": hook}),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "execute_sql",
+                {
+                    "request": {
+                        "database_id": database_id,
+                        "sql": "SELECT * FROM no_such_table",
+                    }
+                },
+            )
+
+    response = json.loads(result.content[0].text)
+    assert result.is_error is False
+    assert response["success"] is False
+    assert response["error"] == "sqlite error: no such table: no_such_table"
+    hook.assert_not_called()

@@ -565,22 +565,13 @@ def warehouse_cursor(
     cancellation.register()
     deadline_token = check_deadline.set(call.check)
     execute_token = after_execute.set(cancellation.refresh)
+    # A failed or abandoned call keeps its metadata session until the tool has
+    # handled the error: engine wrappers such as check_for_oauth2 read ORM rows
+    # while it unwinds. _worker_context then rolls it back and removes it.
     try:
         call.check()
         yield
         call.check()
-    except BaseException:
-        # Do not let error conversion, audit logging or cleanup reuse a metadata
-        # connection held across failed/abandoned warehouse I/O.
-        from superset import db
-
-        # Rollback listeners (including version history) may inspect the live
-        # connection. Finish the transaction before invalidation makes that
-        # inspection fail with PendingRollbackError.
-        db.session.rollback()  # pylint: disable=consider-using-transaction
-        db.session().invalidate()
-        db.session.remove()
-        raise
     finally:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)

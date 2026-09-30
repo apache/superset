@@ -154,7 +154,7 @@ def _after_cursor_execute(
 
 @event.listens_for(Engine, "handle_error")
 def _handle_error(context: Any) -> None:
-    """Release cancellation registration and invalidate failed metadata state."""
+    """Release the failed statement's cancellation registration."""
     execution = context.execution_context
     if manager := getattr(execution, "_superset_cancellation_scope", None):
         execution._superset_cancellation_scope = None
