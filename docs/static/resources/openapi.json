@@ -4870,6 +4870,36 @@
         },
         "type": "object"
       },
+      "DatabaseRelatedDataset": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseRelatedDatasets": {
+        "properties": {
+          "count": {
+            "description": "Dataset count",
+            "type": "integer"
+          },
+          "result": {
+            "description": "A list of datasets",
+            "items": {
+              "$ref": "#/components/schemas/DatabaseRelatedDataset"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseRelatedObjectsResponse": {
         "properties": {
           "charts": {
@@ -4877,6 +4907,9 @@
           },
           "dashboards": {
             "$ref": "#/components/schemas/DatabaseRelatedDashboards"
+          },
+          "datasets": {
+            "$ref": "#/components/schemas/DatabaseRelatedDatasets"
           }
         },
         "type": "object"
