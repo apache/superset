@@ -116,7 +116,12 @@ function transform(
   overrides: Record<string, unknown>,
   verboseMap = {},
   data = rows,
-) {
+): {
+  series: Series[];
+  seriesNames: string[];
+  axisOrder: string[];
+  stackedTotals: string[];
+} {
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsTimeseriesFormData,
     EchartsTimeseriesChartProps
@@ -247,6 +252,52 @@ test('leaves the query order alone when the sort field is not in the data', () =
     xAxisSortAsc: false,
   });
   expect(axisOrder).toEqual(['Action', 'Puzzle', 'Sports']);
+});
+
+test('sorts the axis by the sole displayed metric when truncate_metric drops its label', () => {
+  // With a single displayed metric and `truncate_metric` on, the backend
+  // pivots columns straight to the dimension values (`PS4`/`XOne`) with no
+  // `count, ` prefix, so `label_map` never marks them as belonging to
+  // `count`. Selecting the displayed metric itself as the sort target must
+  // still sum those columns rather than leaving the axis in query order.
+  const valueRows = rows.map(({ genre, PS4, XOne }) => ({ genre, PS4, XOne }));
+  const { axisOrder } = transform(
+    {
+      x_axis_sort: 'count',
+      xAxisSort: 'count',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+      timeseries_limit_metric: undefined,
+    },
+    {},
+    valueRows,
+  );
+  // PS4 + XOne totals: Action 50, Puzzle 10, Sports 50.
+  expect(axisOrder).toEqual(['Action', 'Sports', 'Puzzle']);
+});
+
+test('permutes percentage-threshold labels along with the sorted rows', () => {
+  // Action/Puzzle/Sports stacked totals (PS4 + XOne) are 50/10/50, so a 50%
+  // threshold requires 25/5/25 respectively. Sorting by SUM(na_sales) desc
+  // reorders the axis to Puzzle, Action, Sports (see the sort-only-metric
+  // test above); each row's threshold must travel with it rather than
+  // staying keyed to its pre-sort position.
+  const { series } = transform({
+    x_axis_sort: 'SUM(na_sales)',
+    xAxisSort: 'SUM(na_sales)',
+    x_axis_sort_asc: false,
+    xAxisSortAsc: false,
+    onlyTotal: false,
+    percentageThreshold: 50,
+  });
+  const xOneSeries = series.find(({ name }) => name === 'XOne')!;
+  const labels = xOneSeries.data.map((value, dataIndex) =>
+    xOneSeries.label.formatter({ value, dataIndex, seriesIndex: 0 }),
+  );
+  // XOne values in sorted order: Puzzle 5, Action 20, Sports 10. Only
+  // Puzzle's own value (5) clears its own threshold (5); Action's (20) and
+  // Sports' (10) both fall short of theirs (25 each).
+  expect(labels).toEqual(['5', '', '']);
 });
 
 test('sorts the axis by the sort-only metric with a time comparison', () => {
