@@ -96,13 +96,18 @@ def monkeypatch_dialect() -> None:
     """
     Monkeypatch dialect to correctly escape single quotes for Databricks.
 
-    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
-    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
-    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+    This compatibility patch covers HiveDialect-based Databricks dialects from
+    sqlalchemy-databricks. The supported databricks-sqlalchemy dialect defines its
+    own colspecs and escaping; it is not a target of this patch.
 
-    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
-    we can't patch it without affecting other Hive-based dialects. The solution is to
-    introduce a dialect-aware string type so that the change applies only to Databricks.
+    A dialect-aware string type preserves ordinary Hive literal handling while
+    applying backslash escaping to Hive-based Databricks dialects.
+
+    PyHive's HiveDialect does not define ``colspecs``, so ``HiveDialect.colspecs`` is
+    SQLAlchemy's ``DefaultDialect.colspecs`` dict, shared by every dialect that does
+    not define its own. The patch therefore gives HiveDialect its own copy instead of
+    writing to the shared dict, which would change the string types of unrelated
+    dialects (and make ``sa.Enum`` fail to adapt on them).
     """
     try:
         from pyhive.sqlalchemy_hive import HiveDialect
@@ -118,7 +123,14 @@ def monkeypatch_dialect() -> None:
                     return DatabricksStringType().literal_processor(dialect)
                 return super().literal_processor(dialect)
 
-        HiveDialect.colspecs[types.String] = ContextAwareStringType
+        # Copy, never write to the shared parent dict. Enum is a String subclass;
+        # map it to itself so it is not adapted to the decorator, which cannot
+        # take Enum's arguments. Enum literals retain their own escaping.
+        HiveDialect.colspecs = {
+            **HiveDialect.colspecs,
+            types.String: ContextAwareStringType,
+            types.Enum: types.Enum,
+        }
 
     except ImportError:
         pass
@@ -321,6 +333,41 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         return f"https://{host}/oidc/v1/{path}"
 
     @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: Any,
+    ) -> Any:
+        """
+        Derive missing OAuth2 endpoints from the workspace host.
+
+        ``authorization_request_uri`` and ``token_request_uri`` are required by
+        ``OAuth2ClientConfigSchema``; without them the database's OAuth2 was
+        disabled (``is_oauth2_enabled`` returned False) and every connection
+        failed with a ValidationError. Each missing or empty endpoint becomes
+        ``https://<workspace-host>/oidc/v1/{authorize,token}``; explicit values
+        win. A connection without a host raises ``OAuth2Error``. A non-dict
+        value is returned unchanged for ``OAuth2ClientConfigSchema`` to reject.
+        """
+        endpoints = {
+            "authorization_request_uri": "authorize",
+            "token_request_uri": "token",
+        }
+        if not isinstance(client_info, dict):
+            # Leave malformed values to ``OAuth2ClientConfigSchema`` to reject.
+            return client_info
+        missing = [key for key in endpoints if not client_info.get(key)]
+        if not missing:
+            return client_info
+        return {
+            **client_info,
+            **{
+                key: cls._workspace_oauth2_endpoint(database, endpoints[key])
+                for key in missing
+            },
+        }
+
+    @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Identify driver errors that should trigger the OAuth2 dance.
@@ -360,12 +407,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             if database := db.session.get(Database, database_id):
                 config = cast(
                     "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
-                            database, "authorize"
-                        )
-                    },
+                    cls.resolve_oauth2_client_info(database, dict(config)),
                 )
 
         return super().get_oauth2_authorization_uri(config, state, code_verifier)
@@ -805,6 +847,31 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
     )
 
+    metadata = {
+        "description": (
+            "Legacy Databricks connector using the databricks-dbapi driver."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "connection_string": (
+            "databricks+connector://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "access_token": "Personal access token",
+            "host": "Server hostname",
+            "port": "Port (default 443)",
+            "database_name": "Database name",
+            "http_path": "HTTP path from cluster settings",
+        },
+    }
+
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with legacy databricks-dbapi connections.
@@ -959,6 +1026,29 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
     default_driver = "pyodbc"
 
+    metadata = {
+        "description": ("Databricks SQL Endpoint connectivity via the pyodbc driver."),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pyodbc"],
+        "connection_string": (
+            "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "access_token": "Personal access token",
+            "host": "Server hostname",
+            "port": "Port (default 443)",
+            "database": "Database name",
+            "http_path": "HTTP path from SQL endpoint settings",
+        },
+    }
+
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with ODBC connections to SQL Endpoints.
@@ -977,6 +1067,31 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     engine = "databricks"
     drivers = {"pyhive": "Hive driver for Interactive Cluster"}
     default_driver = "pyhive"
+
+    metadata = {
+        "description": (
+            "Databricks Interactive Cluster connectivity via the PyHive connector."
+        ),
+        "logo": "databricks.png",
+        "homepage_url": "https://www.databricks.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pyhive"],
+        "connection_string": (
+            "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
+        ),
+        "default_port": 443,
+        "parameters": {
+            "access_token": "Personal access token",
+            "host": "Server hostname",
+            "port": "Port (default 443)",
+            "database": "Database name",
+            "http_path": "HTTP path from cluster settings",
+        },
+    }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
     # consolidates all Databricks connection methods. This spec exists for

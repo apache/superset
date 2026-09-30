@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 13:48+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -126,8 +126,8 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
@@ -1485,6 +1485,9 @@ msgid "Affected Charts"
 msgstr ""
 
 msgid "Affected Dashboards"
+msgstr ""
+
+msgid "Affected Datasets"
 msgstr ""
 
 msgid "Affected semantic views"
@@ -4272,6 +4275,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr ""
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 
@@ -5220,6 +5229,11 @@ msgid "Delete group"
 msgstr ""
 
 msgid "Delete item"
+msgstr ""
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -11977,6 +11991,9 @@ msgstr ""
 msgid "Schema cache timeout"
 msgstr ""
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr ""
 
@@ -14657,6 +14674,10 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14711,6 +14732,10 @@ msgstr ""
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
+msgstr ""
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
 msgstr ""
 
 #, python-format
@@ -15169,6 +15194,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no "
+"e-mail address."
 msgstr ""
 
 msgid ""
@@ -16006,6 +16036,9 @@ msgid "Tuesday"
 msgstr ""
 
 msgid "Tukey"
+msgstr ""
+
+msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
 msgid "Type"
@@ -16897,6 +16930,10 @@ msgstr ""
 msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
+msgstr ""
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
 #, python-format
@@ -17971,6 +18008,12 @@ msgstr ""
 
 msgid "by using"
 msgstr ""
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr ""
