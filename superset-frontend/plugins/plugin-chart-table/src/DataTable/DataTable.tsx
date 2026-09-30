@@ -297,8 +297,6 @@ export default typedMemo(function DataTable<D extends object>({
       autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
       autoResetPage: !isEqual(columnNames, previousColumnNames),
-      autoResetColumnOrder:
-        resetColumnOrder || !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
