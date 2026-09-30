@@ -579,7 +579,11 @@ _LEGACY_TYPE_BRANCHES = (
         "trends and changes over time', 'echarts_timeseries_bar': 'Compares values "
         "across categories or time periods', 'table': 'Displays detailed data in "
         "tabular format', 'ag-grid-table': 'Interactive table with advanced features "
-        "like column resizing, sorting, filtering, and server-side pagination', 'pie': "
+        "like column resizing, sorting, filtering, and server-side pagination', "
+        "'country_map': 'Colors regional boundaries by an aggregated metric', "
+        "'world_map': 'Colors countries by a metric with optional metric-sized "
+        "bubbles', 'deck_scatter': 'Plots numeric latitude/longitude locations "
+        "with optional sized points', 'pie': "
         "'Shows proportional relationships within a dataset', 'echarts_area': "
         "'Emphasizes cumulative totals and part-to-whole relationships', "
         "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and aggregated "
@@ -635,7 +639,8 @@ _LEGACY_TYPE_BRANCHES = (
         "'bubble_v2': 'bubble', 'treemap_v2': 'treemap', 'sunburst_v2': 'treemap', "
         "'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'funnel': 'funnel', "
         "'histogram': 'histogram', 'histogram_v2': 'histogram', 'box_plot': "
-        "'box_plot', 'world_map': 'map', 'pivot_table_v2': 'table', "
+        "'box_plot', 'world_map': 'world_map', 'country_map': 'country_map', "
+        "'deck_scatter': 'deck_scatter', 'pivot_table_v2': 'table', "
         "'ag-grid-pivot-table': 'table', 'waterfall': 'waterfall', 'gantt_chart': "
         "'gantt'}"
     ),
@@ -644,7 +649,9 @@ _LEGACY_TYPE_BRANCHES = (
         "'multi-line chart': 'line', 'area chart': 'area', 'bar chart': 'bar', "
         "'scatter plot': 'scatter', 'bubble chart': 'bubble', 'pie chart': 'pie', "
         "'treemap': 'treemap', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
-        "chart': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
+        "chart': 'gauge', 'histogram': 'histogram', 'table': 'table', "
+        "'geographic points': 'deck_scatter', 'country map': 'country_map', "
+        "'world map': 'world_map'}"
     ),
 )
 

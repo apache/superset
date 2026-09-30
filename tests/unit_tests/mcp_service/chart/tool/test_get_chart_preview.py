@@ -1847,9 +1847,9 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
         (
             "bubble_v2",
             {"entity": "name", "x": "x_metric", "y": "y_metric", "size": "size"},
-            False,
+            True,
         ),
-        ("gauge_chart", {"metric": "count"}, False),
+        ("gauge_chart", {"metric": "count"}, True),
         ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
         (
             "gantt_chart",

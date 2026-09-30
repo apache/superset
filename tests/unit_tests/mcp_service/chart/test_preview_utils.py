@@ -435,9 +435,9 @@ def test_vega_preview_y_axis_fallback_accepts_decimal() -> None:
         (
             "bubble_v2",
             {"entity": "name", "x": "x_metric", "y": "y_metric", "size": "size"},
-            False,
+            True,
         ),
-        ("gauge_chart", {"metric": "count"}, False),
+        ("gauge_chart", {"metric": "count"}, True),
         ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
         (
             "gantt_chart",
