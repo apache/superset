@@ -260,13 +260,14 @@ test('restoreFilter cancels the pending removal before the delay elapses', () =>
 
 function renderFilterOperations(
   filters: Record<string, { filterType: string; dependencies?: string[] }>,
+  removedItems: Record<string, unknown> = {},
 ) {
   const params: FilterOperationsParams = {
     form: {
       getFieldValue: () => filters,
     } as unknown as FilterOperationsParams['form'],
     filterState: {
-      removedItems: {},
+      removedItems,
     } as unknown as FilterOperationsParams['filterState'],
     filterIds: Object.keys(filters),
     filterConfigMap: {},
@@ -300,4 +301,20 @@ test('buildDependencyMap keeps a parent id whose filter type still supports depe
   const dependencyMap = result.current.buildDependencyMap();
 
   expect(dependencyMap.get('child')).toEqual(['parent']);
+});
+
+test('buildDependencyMap drops a parent id that is pending removal', () => {
+  // "parent" is queued for removal but the form still lists it as
+  // "child"'s dependency until the pending delete is confirmed or undone.
+  const result = renderFilterOperations(
+    {
+      parent: { filterType: 'filter_select' },
+      child: { filterType: 'filter_select', dependencies: ['parent'] },
+    },
+    { parent: { isPending: true } },
+  );
+
+  const dependencyMap = result.current.buildDependencyMap();
+
+  expect(dependencyMap.get('child')).toEqual([]);
 });
