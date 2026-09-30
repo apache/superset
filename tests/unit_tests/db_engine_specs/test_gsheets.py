@@ -17,18 +17,24 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
+# ``GSheetsEngineSpec`` is imported inside each test on purpose: its module
+# binds ``superset.db`` and ``superset.security_manager`` at import time, so it
+# has to load after the app fixture has initialized them.
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
+import sqlalchemy
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
 from shillelagh.exceptions import UnauthenticatedError
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2TokenRefreshError, SupersetException
@@ -574,6 +580,7 @@ def test_impersonate_user_username(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     database = mocker.MagicMock()
+    database.get_encrypted_extra.return_value = {}
     database.get_impersonation_email.return_value = "alice@example.org"
     url = make_url("gsheets://")
 
@@ -633,6 +640,7 @@ def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     database = mocker.MagicMock()
+    database.get_encrypted_extra.return_value = {}
 
     assert GSheetsEngineSpec.impersonate_user(
         database,
@@ -640,7 +648,78 @@ def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
         user_token="access-token",  # noqa: S106
         url=make_url("gsheets://"),
         engine_kwargs={},
-    ) == (make_url("gsheets://?access_token=access-token"), {})
+    ) == (
+        make_url("gsheets://"),
+        {
+            "connect_args": {
+                "adapter_kwargs": {"gsheetsapi": {"access_token": "access-token"}}
+            }
+        },
+    )
+
+
+def test_impersonate_user_access_token_with_catalog(mocker: MockerFixture) -> None:
+    """
+    Test that the access token reaches the adapter when a catalog is configured.
+
+    The catalog is stored in ``connect_args``, which SQLAlchemy merges shallowly
+    over the dialect arguments built from the URL.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database: MagicMock = mocker.MagicMock(encrypted_extra=None)
+    database.get_encrypted_extra.return_value = {}
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=0"}
+    url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
+        database,
+        username=None,
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={"catalog": catalog},
+    )
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
+
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
+    connect = mocker.patch.object(engine.dialect, "connect")
+    engine.pool._creator()
+
+    adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+    assert adapter_kwargs["access_token"] == "access-token"  # noqa: S105
+    assert adapter_kwargs["catalog"] == catalog
+
+
+def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> None:
+    """
+    Test that ``subject`` and the access token both reach the adapter alongside a
+    catalog.
+
+    The catalog puts its own ``adapter_kwargs`` in ``connect_args``, which
+    SQLAlchemy merges shallowly over the URL-derived ones, so anything left only
+    on the URL would be dropped.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database: MagicMock = mocker.MagicMock(encrypted_extra=None)
+    database.get_impersonation_email.return_value = "alice@example.org"
+    database.get_encrypted_extra.return_value = {}
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=0"}
+    url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
+        database,
+        username="alice",
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={"catalog": catalog},
+    )
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
+
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
+    connect = mocker.patch.object(engine.dialect, "connect")
+    engine.pool._creator()
+
+    adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+    assert adapter_kwargs["access_token"] == "access-token"  # noqa: S105
+    assert adapter_kwargs["subject"] == "alice@example.org"
+    assert adapter_kwargs["catalog"] == catalog
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
@@ -1193,3 +1272,80 @@ def test_convert_dttm(
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)
+
+
+def _service_account_adapter_kwargs(
+    mocker: MockerFixture,
+    encrypted_extra: dict[str, Any],
+    email: str | None = "alice@example.org",
+) -> tuple[URL, dict[str, Any]]:
+    """What reaches shillelagh for a secure-extra service account, impersonating."""
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database: MagicMock = mocker.MagicMock(encrypted_extra=json.dumps(encrypted_extra))
+    database.get_impersonation_email.return_value = email
+    database.get_encrypted_extra.return_value = encrypted_extra
+    url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
+        database,
+        username="alice",
+        user_token=None,
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    )
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
+
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
+    connect = mocker.patch.object(engine.dialect, "connect")
+    engine.pool._creator()
+    return url, connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+
+
+def test_impersonate_user_service_account_without_delegation(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Without the opt-in, a secure-extra service account is not asked to impersonate
+    the user, and no ``subject`` is left on the URL to suggest otherwise.
+    """
+    service_account = {"type": "service_account", "client_email": "sa@example.org"}
+    url, adapter_kwargs = _service_account_adapter_kwargs(
+        mocker, {"service_account_info": service_account}
+    )
+
+    assert "subject" not in url.query
+    assert adapter_kwargs.get("subject") is None
+    assert adapter_kwargs["service_account_info"] == service_account
+
+
+def test_impersonate_user_service_account_with_delegation(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With ``domain_wide_delegation`` the user reaches shillelagh as the subject,
+    instead of being dropped by the shallow ``connect_args`` merge.
+    """
+    service_account = {"type": "service_account", "client_email": "sa@example.org"}
+    url, adapter_kwargs = _service_account_adapter_kwargs(
+        mocker,
+        {"service_account_info": service_account, "domain_wide_delegation": True},
+    )
+
+    assert adapter_kwargs["subject"] == "alice@example.org"
+    assert adapter_kwargs["service_account_info"] == service_account
+    assert "domain_wide_delegation" not in adapter_kwargs
+    assert "subject" not in url.query
+
+
+def test_impersonate_user_service_account_delegation_needs_an_email(
+    mocker: MockerFixture,
+) -> None:
+    """A delegated connection never falls back to the service account's access."""
+    with pytest.raises(SupersetException, match="no e-mail"):
+        _service_account_adapter_kwargs(
+            mocker,
+            {
+                "service_account_info": {"type": "service_account"},
+                "domain_wide_delegation": True,
+            },
+            email=None,
+        )
