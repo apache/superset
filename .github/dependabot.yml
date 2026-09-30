@@ -16,9 +16,6 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    # Hack to allow multiple configs for the same ecosystem/directory combination
-    # See https://github.com/dependabot/dependabot-core/issues/1778#issuecomment-1988140219
-    target-branch: master
     ignore:
       # TODO: remove below entries once the application supports React >= 19.0.0
       - dependency-name: "react"
@@ -110,6 +107,13 @@ updates:
       fontsource:
         patterns:
           - "@fontsource/*"
+      docusaurus:
+        patterns:
+          - "@docusaurus/*"
+      docusaurus-openapi:
+        patterns:
+          - "docusaurus-plugin-openapi-docs"
+          - "docusaurus-theme-openapi-docs"
       monorepo-dependencies:
         group-by: dependency-name
         patterns:
@@ -157,56 +161,6 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/docs/"
-    schedule:
-      interval: "daily"
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      storybook:
-        patterns:
-          - "@storybook/*"
-          - "storybook"
-      docusaurus:
-        patterns:
-          - "@docusaurus/*"
-      docusaurus-openapi:
-        patterns:
-          - "docusaurus-plugin-openapi-docs"
-          - "docusaurus-theme-openapi-docs"
-      fontsource:
-        patterns:
-          - "@fontsource/*"
-      emotion:
-        patterns:
-          - "@emotion/*"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-websocket/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      oxc:
-        patterns:
-          - "oxfmt"
-          - "oxlint"
-          - "oxlint-tsgolint"
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:
       interval: "daily"
@@ -218,24 +172,6 @@ updates:
         applies-to: "security-updates"
         patterns: ["*"]
     open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-embedded-sdk/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      babel:
-        patterns:
-          - "@babel/*"
     versioning-strategy: increase
     cooldown:
       default-days: 7
