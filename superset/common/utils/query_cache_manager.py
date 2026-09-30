@@ -188,6 +188,8 @@ class QueryCacheManager:
             # A cache backend outage (e.g. Redis connection/timeout errors)
             # should not surface as an error to the caller: treat it the
             # same as a cache miss and fall through to querying live data.
+            # A metadata-DB backed cache repairs its own session before
+            # raising, so nothing is needed here.
             logger.warning("Error reading cache: %s", error_msg_from_exception(ex))
             cache_value = None
 

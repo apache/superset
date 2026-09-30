@@ -256,7 +256,9 @@ export default function Login() {
                   >
                     {t('Sign in')}
                   </Button>
-                  {authRegistration && (
+                  {/* LDAP deployments enable AUTH_USER_REGISTRATION for
+                  first-login provisioning, not for self-registration. */}
+                  {authRegistration && authType === AuthType.AuthDB && (
                     <Button
                       block
                       type="default"
