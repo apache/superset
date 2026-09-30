@@ -812,6 +812,36 @@ test('adds a subgroup in the add popover before Apply', async () => {
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 
+test('does not offer a parent draft column to a nested subgroup', async () => {
+  render(
+    <HeaderGroupsControl {...baseProps} value={[]} onChange={jest.fn()} />,
+  );
+
+  await userEvent.click(screen.getByText('Add group'));
+  await userEvent.type(screen.getByLabelText('Group name'), 'Sales');
+  await selectOption('SUM(sales)', 'Group columns');
+  await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
+
+  const childEditor = screen
+    .getByText('Subgroup 1.1')
+    .closest('[data-test="header-group-editor"]') as HTMLElement;
+  await userEvent.click(
+    within(childEditor).getByRole('combobox', { name: 'Group columns' }),
+  );
+
+  await waitFor(() => {
+    const dropdown = Array.from(
+      document.querySelectorAll('.ant-select-dropdown'),
+    )
+      .find(node => !node.classList.contains('ant-select-dropdown-hidden'))
+      ?.querySelector('.ant-select-dropdown-list') as HTMLElement | undefined;
+    expect(dropdown).toBeTruthy();
+    expect(within(dropdown!).queryByText('SUM(sales)')).not.toBeInTheDocument();
+    expect(within(dropdown!).getByText('AVG(sales)')).toBeInTheDocument();
+    expect(within(dropdown!).getByText('SUM(cost)')).toBeInTheDocument();
+  });
+});
+
 test('does not create time comparison groups from the control', () => {
   const onChange = jest.fn();
   render(

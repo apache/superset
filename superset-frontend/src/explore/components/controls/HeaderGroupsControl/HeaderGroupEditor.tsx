@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Button, Input, Popover, Select } from '@superset-ui/core/components';
@@ -31,6 +31,7 @@ import {
 } from './types';
 import {
   canSaveHeaderGroup,
+  collectUsedHeaderGroupColumns,
   createHeaderGroup,
   normalizeSelectedColumns,
   moveHeaderGroupAt,
@@ -451,6 +452,14 @@ export default function HeaderGroupEditor({
   const isAddMode = mode === 'add';
   const currentGroup = draft;
   const canCollapseRoot = (currentGroup.children ?? []).length > 0;
+  const editorUsedColumns = useMemo(
+    () =>
+      new Set([
+        ...usedColumns,
+        ...collectUsedHeaderGroupColumns([draft], columnOptions),
+      ]),
+    [columnOptions, draft, usedColumns],
+  );
 
   const toDraftPath = (nextPath: number[]) =>
     isAddMode ? nextPath : [0, ...nextPath.slice(path.length)];
@@ -541,7 +550,7 @@ export default function HeaderGroupEditor({
           group={currentGroup}
           path={isAddMode ? [0] : path}
           columnOptions={columnOptions}
-          usedColumns={usedColumns}
+          usedColumns={editorUsedColumns}
           onChange={handleChange}
           onAddChild={handleAddChild}
           onRemove={handleRemove}
