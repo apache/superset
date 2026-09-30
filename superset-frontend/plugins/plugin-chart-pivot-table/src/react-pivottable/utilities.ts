@@ -20,7 +20,10 @@
 import PropTypes from 'prop-types';
 import { t } from '@apache-superset/core/translation';
 
-import { getResultAggregation } from '../plugin/resultAggregation';
+import {
+  getResultAggregation,
+  isFractionResultAggregation,
+} from '../plugin/resultAggregation';
 
 type SortFunction = (
   a: string | number | null,
@@ -1287,11 +1290,34 @@ class PivotData {
           )(vals)
         : cellValue(this.props.defaultFormatter as Formatter)(vals));
     // Percentage display always uses a fixed percent format -- a per-metric
-    // custom formatter (currency, decimals, etc.) doesn't apply to a ratio.
-    // A result aggregation supplies its own formatting (and, for the " as
-    // Fraction of " choices, its own percentage) via `resultFactory` above.
+    // custom formatter (currency, decimals, etc.) doesn't apply to a ratio,
+    // so the " as Fraction of " result aggregations (like `fractionType`)
+    // keep the unformatted default. The other result aggregations (Median,
+    // Sum, ...) re-aggregate a metric's own values and should keep that
+    // metric's configured formatter -- reuse `this.aggregator` (already the
+    // correct, mixed-metric-aware reducer for the active mode) and swap only
+    // its `format`, rather than building a second, differently-reduced
+    // aggregator from `cellValue` that would drop the result aggregation
+    // entirely for any custom-formatted metric.
+    const buildCustomFormattedAggregator = (
+      formatter: Formatter,
+    ): ((...args: unknown[]) => Aggregator) => {
+      if (!resultFactory) {
+        return cellValue(formatter)(vals);
+      }
+      if (isFractionResultAggregation(resultAggregation)) {
+        // Fraction result aggregations always render their own percentage;
+        // a per-metric custom formatter doesn't apply, the same as
+        // `fractionType` above -- keep the default, unformatted reducer.
+        return (...args: unknown[]): Aggregator => this.aggregator(...args);
+      }
+      return (...args: unknown[]): Aggregator => ({
+        ...this.aggregator(...args),
+        format: fmtNonString(formatter),
+      });
+    };
     this.formattedAggregators =
-      !fractionType && !resultFactory && this.props.customFormatters
+      !fractionType && this.props.customFormatters
         ? Object.entries(
             this.props.customFormatters as Record<
               string,
@@ -1307,7 +1333,9 @@ class PivotData {
             ) => {
               acc[key] = {};
               Object.entries(columnFormatter).forEach(([column, formatter]) => {
-                acc[key][column] = cellValue(formatter as Formatter)(vals);
+                acc[key][column] = buildCustomFormattedAggregator(
+                  formatter as Formatter,
+                );
               });
               return acc;
             },
@@ -1463,6 +1491,24 @@ class PivotData {
     const colKey = cols.map(key =>
       String(key in record ? record[key] : 'null'),
     );
+    // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
+    // depth === length is the leaf; anything between is a subtotal, included
+    // only when that axis's subtotals are enabled. Computed before the
+    // metric-scope block below so `rowGroupMetricTotals`/`colGroupMetricTotals`
+    // can be recorded at every depth a subtotal denominator might need, not
+    // just the leaf.
+    const rowDepths = [
+      0,
+      ...rows
+        .map((_, i) => i + 1)
+        .filter(depth => depth === rows.length || this.subtotals.rowEnabled),
+    ];
+    const colDepths = [
+      0,
+      ...cols
+        .map((_, i) => i + 1)
+        .filter(depth => depth === cols.length || this.subtotals.colEnabled),
+    ];
     // A per-metric total (see `rowMetricTotals`/`colMetricTotals`), needed by
     // "... as Fraction of ..." result aggregations independently of whether
     // the corresponding subtotal is enabled, and of where the Metric
@@ -1482,12 +1528,22 @@ class PivotData {
         // Row+metric scope: this record's own row, just this metric, across
         // every column that shares it -- the 'row' fraction type's
         // denominator when Metric sits on columns. Independent of
-        // `subtotals.colEnabled`, unlike the depth-gated tree.
-        const flatRk = flatKey(rowKey);
-        this.rowGroupMetricTotals[flatRk] ??= Object.create(null);
-        this.rowGroupMetricTotals[flatRk][metricValue] ??=
-          this.getFormattedAggregator(record)(this, rowKey, [metricValue]);
-        this.rowGroupMetricTotals[flatRk][metricValue].push(record);
+        // `subtotals.colEnabled`, unlike the depth-gated tree. Recorded at
+        // every enabled row depth (not just the leaf) so a row subtotal's
+        // own (shorter) prefix key finds a denominator too, instead of only
+        // the full leaf-level row ever getting an entry.
+        rowDepths.forEach(ri => {
+          const rowPrefix = rowKey.slice(0, ri);
+          const flatRk = flatKey(rowPrefix);
+          this.rowGroupMetricTotals[flatRk] ??= Object.create(null);
+          this.rowGroupMetricTotals[flatRk][metricValue] ??=
+            this.getFormattedAggregator(record)(
+              this,
+              rowPrefix,
+              [metricValue],
+            );
+          this.rowGroupMetricTotals[flatRk][metricValue].push(record);
+        });
       }
       const rowMetricIndex = rows.indexOf(metricDim);
       if (rowMetricIndex !== -1) {
@@ -1498,29 +1554,22 @@ class PivotData {
         this.rowMetricTotals[metricValue].push(record);
 
         // Col+metric scope: the mirror of the above for the 'col' fraction
-        // type when Metric sits on rows instead.
-        const flatCk = flatKey(colKey);
-        this.colGroupMetricTotals[flatCk] ??= Object.create(null);
-        this.colGroupMetricTotals[flatCk][metricValue] ??=
-          this.getFormattedAggregator(record)(this, [metricValue], colKey);
-        this.colGroupMetricTotals[flatCk][metricValue].push(record);
+        // type when Metric sits on rows instead, recorded at every enabled
+        // column depth for the same subtotal-prefix reason.
+        colDepths.forEach(ci => {
+          const colPrefix = colKey.slice(0, ci);
+          const flatCk = flatKey(colPrefix);
+          this.colGroupMetricTotals[flatCk] ??= Object.create(null);
+          this.colGroupMetricTotals[flatCk][metricValue] ??=
+            this.getFormattedAggregator(record)(
+              this,
+              [metricValue],
+              colPrefix,
+            );
+          this.colGroupMetricTotals[flatCk][metricValue].push(record);
+        });
       }
     }
-    // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
-    // depth === length is the leaf; anything between is a subtotal, included
-    // only when that axis's subtotals are enabled.
-    const rowDepths = [
-      0,
-      ...rows
-        .map((_, i) => i + 1)
-        .filter(depth => depth === rows.length || this.subtotals.rowEnabled),
-    ];
-    const colDepths = [
-      0,
-      ...cols
-        .map((_, i) => i + 1)
-        .filter(depth => depth === cols.length || this.subtotals.colEnabled),
-    ];
     rowDepths.forEach(ri =>
       colDepths.forEach(ci => {
         if (ri === 0 && ci === 0) {

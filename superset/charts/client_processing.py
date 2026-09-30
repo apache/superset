@@ -1066,8 +1066,19 @@ def pivot_table_v2(
     # totals.
     df, rollup_levels = split_grouping_sets_levels(df)
     show_values_as = form_data.get("showValuesAs")
+    # A result aggregation (anything but the default "Metric") takes over the
+    # cell/summary computation on the frontend and hides this control in
+    # Explore (see `aggregateFunction`'s `visibility` in controlPanel.tsx and
+    # `resultFactory ?? fractionType` in utilities.ts, where the result
+    # aggregation always wins) -- ignore a stale persisted `showValuesAs`
+    # the same way once a result aggregation is active, rather than applying
+    # a percent transform the live chart no longer shows.
+    aggregate_function_raw = form_data.get("aggregateFunction")
     percent_mode = (
-        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
+        show_values_as
+        if show_values_as in SHOW_VALUES_AS_PERCENT_MODES
+        and aggregate_function_raw in (None, "Metric")
+        else None
     )
     # "Metric" (the new result-aggregation control's default, meaning "use the
     # metric's own definition, no second aggregation pass") isn't a key in
@@ -1075,7 +1086,7 @@ def pivot_table_v2(
     # has no result-aggregation support yet (see #44625's follow-up scope).
     # Treat it, and any other value this map doesn't recognize, the same way
     # an absent field always has been: fall back to "Sum".
-    aggregate_function = form_data.get("aggregateFunction")
+    aggregate_function = aggregate_function_raw
     if aggregate_function not in pivot_v2_aggfunc_map:
         aggregate_function = "Sum"
     pivot_options: dict[str, Any] = {

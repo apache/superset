@@ -222,6 +222,56 @@ test('result aggregation blanks a shared total slot that would mix two different
   expect(pivotData.getAggregator([], []).value()).toBeNull();
 });
 
+test('a non-fraction result aggregation keeps the metric\'s own custom formatter', () => {
+  // Median re-aggregates SUM(sales)'s own per-store values; disabling every
+  // custom formatter whenever any result aggregation was active (instead of
+  // only the " as Fraction of " ones, which render their own percentage)
+  // used to fall back on a differently-reduced `cellValue` passthrough here,
+  // silently dropping both the currency formatting and the median itself.
+  const leaves: PivotRecord[] = [
+    { Metric: 'SUM(sales)', store: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'SUM(sales)', store: 'B', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const currencyFormatter = jest.fn((x: unknown) => `$${x}`);
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Median',
+    customFormatters: { Metric: { 'SUM(sales)': currencyFormatter } },
+  });
+
+  const agg = pivotData.getAggregator([], ['SUM(sales)']);
+  expect(agg.value()).toBe(20);
+  expect(agg.format(agg.value())).toBe('$20');
+  expect(currencyFormatter).toHaveBeenCalledWith(20);
+});
+
+test('"... as Fraction of ..." keeps its own percentage even when a custom formatter is configured', () => {
+  // The fraction result aggregations render their own ratio, the same as
+  // the legacy `showValuesAs` percent modes -- a per-metric custom
+  // formatter must not leak in and reformat that ratio as e.g. currency.
+  const leaves: PivotRecord[] = [
+    { Metric: 'SUM(sales)', store: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'SUM(sales)', store: 'B', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const currencyFormatter = jest.fn((x: unknown) => `$${x}`);
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['store'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+    customFormatters: { Metric: { 'SUM(sales)': currencyFormatter } },
+  });
+
+  const agg = pivotData.getAggregator(['A'], ['SUM(sales)']);
+  expect(agg.value()).toBeCloseTo(10 / 40, 5);
+  expect(agg.format(agg.value())).not.toMatch(/^\$/);
+  expect(currencyFormatter).not.toHaveBeenCalled();
+});
+
 test('"... as Fraction of ..." divides by the metric\'s own total even when column subtotals are off', () => {
   // cols: [Metric, category], column subtotals off (the default here) --
   // the per-metric denominator ("Metric" alone, collapsing "category") is
@@ -397,6 +447,50 @@ test('"... as Fraction of Columns" finds a col+metric denominator when row subto
   ).toBeCloseTo(10 / 30, 5);
   expect(
     pivotData.getAggregator(['SUM(sales)', 'B'], ['North']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
+test('"... as Fraction of Rows" finds a row-subtotal denominator, not just a leaf row\'s', () => {
+  // rows: [region, store], row subtotals on, column subtotals off (the
+  // default). A region subtotal's own row key (['North']) is a *prefix* of
+  // the full leaf rowKey (['North', 'A'] / ['North', 'B']) --
+  // rowGroupMetricTotals used to record an entry only for the full leaf key,
+  // so a region subtotal's denominator lookup found nothing and rendered
+  // blank instead of the region's own row-fraction.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      store: 'A',
+      Metric: 'SUM(sales)',
+      category: 'X',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      store: 'B',
+      Metric: 'SUM(sales)',
+      category: 'Y',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['region', 'store'],
+      cols: ['Metric', 'category'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Rows',
+    },
+    { rowEnabled: true },
+  );
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'X']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'Y']).value(),
   ).toBeCloseTo(20 / 30, 5);
 });
 

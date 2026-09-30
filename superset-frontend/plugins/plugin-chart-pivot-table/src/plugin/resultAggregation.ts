@@ -66,6 +66,28 @@ export function getResultAggregation(
   return RESULT_AGGREGATIONS.find(name => name === value);
 }
 
+const FRACTION_RESULT_AGGREGATIONS = new Set<ResultAggregation>([
+  'Sum as Fraction of Total',
+  'Sum as Fraction of Rows',
+  'Sum as Fraction of Columns',
+  'Count as Fraction of Total',
+  'Count as Fraction of Rows',
+  'Count as Fraction of Columns',
+]);
+
+/**
+ * True for the six "... as Fraction of ..." choices, which compute their own
+ * ratio and always render as a percentage -- a per-metric custom formatter
+ * (currency, decimals, etc.) doesn't apply to a ratio, unlike the other
+ * `RESULT_AGGREGATIONS` (Median, Sum, ...), which re-aggregate a metric's own
+ * values and should keep that metric's configured format.
+ */
+export function isFractionResultAggregation(
+  value: ResultAggregation | undefined,
+): boolean {
+  return value !== undefined && FRACTION_RESULT_AGGREGATIONS.has(value);
+}
+
 /**
  * Display label for each `RESULT_AGGREGATIONS` choice. `RESULT_AGGREGATIONS`
  * values double as lookup keys (into `aggregators` in utilities.ts and as the
