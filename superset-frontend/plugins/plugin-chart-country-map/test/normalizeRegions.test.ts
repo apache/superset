@@ -107,10 +107,13 @@ test('compact boundary identifiers match the actual GeoJSON assets', () => {
   }
 });
 
-test('bundled duplicate UK names require codes without cross-transform leakage', () => {
-  expect(() =>
+test('bundled UK names resolve without cross-transform leakage', () => {
+  expect(
     normalizeRegions([{ region: 'Halton' }], 'region', 'uk', 'name'),
-  ).toThrow('Ambiguous');
+  ).toEqual([{ region: 'GB-HAL' }]);
+  expect(
+    normalizeRegions([{ region: 'Wirral' }], 'region', 'uk', 'name'),
+  ).toEqual([{ region: 'GB-WRL' }]);
   expect(
     normalizeRegions([{ region: 'GB-HAL' }], 'region', 'uk', 'iso_3166_2'),
   ).toEqual([{ region: 'GB-HAL' }]);

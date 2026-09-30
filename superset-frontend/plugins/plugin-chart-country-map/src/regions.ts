@@ -318,7 +318,7 @@ const regions: Record<string, [string, string][]> = {
     ['GB-WNM', 'Royal Borough of Windsor and Maidenhead'],
     ['GB-WOK', 'Wokingham'],
     ['GB-WOR', 'Worcestershire'],
-    ['GB-WRL', 'Halton'],
+    ['GB-WRL', 'Wirral'],
     ['GB-WRT', 'Warrington'],
     ['GB-WRX', 'Wrexham'],
     ['GB-WSM', 'Westminster'],

@@ -322,7 +322,7 @@ REGIONS: dict[str, list[tuple[str, str]]] = {
         ("GB-WNM", "Royal Borough of Windsor and Maidenhead"),
         ("GB-WOK", "Wokingham"),
         ("GB-WOR", "Worcestershire"),
-        ("GB-WRL", "Halton"),
+        ("GB-WRL", "Wirral"),
         ("GB-WRT", "Warrington"),
         ("GB-WRX", "Wrexham"),
         ("GB-WSM", "Westminster"),

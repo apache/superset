@@ -1037,12 +1037,22 @@ def test_world_country_aliases_are_cached_by_format() -> None:
     assert ("US", "USA") not in _world_country_entries("cca3")
 
 
-def test_ambiguous_bundled_uk_name_requires_a_code() -> None:
-    """Do not guess which bundled Halton geometry a name refers to."""
-    with pytest.raises(ValueError, match="ambiguous"):
-        resolve_region("Halton", "uk", "name")
+def test_bundled_uk_halton_and_wirral_names_are_distinct() -> None:
+    """GB-HAL is Halton and GB-WRL is Wirral, so both names resolve uniquely."""
+    assert resolve_region("Halton", "uk", "name") == "GB-HAL"
+    assert resolve_region("Wirral", "uk", "name") == "GB-WRL"
     assert resolve_region("GB-HAL", "uk", "iso_3166_2") == "GB-HAL"
     assert resolve_region("WRL", "uk", "abbreviation") == "GB-WRL"
+
+
+def test_bundled_region_names_are_unique_after_folding() -> None:
+    """Every bundled region name must resolve, so none may share a folded key."""
+    from superset.utils.geographic import geographic_key
+
+    for country, entries in REGIONS.items():
+        keys = [geographic_key(name) for _, name in entries]
+        duplicates = {key for key in keys if keys.count(key) > 1}
+        assert not duplicates, f"{country}: {sorted(duplicates)}"
 
 
 @pytest.mark.asyncio
