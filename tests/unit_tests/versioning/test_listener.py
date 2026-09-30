@@ -17,15 +17,73 @@
 """Tests for version-change listener transaction lifecycle behavior."""
 
 from collections.abc import Iterator
+from contextvars import Context
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
+from flask import has_app_context
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy_continuum.unit_of_work import UnitOfWork
 
 from superset.versioning.changes import listener
 from superset.versioning.diff import ChangeRecord
+from superset.versioning.unit_of_work import CaptureUnitOfWork
+
+
+def test_shared_connection_capture_decision_survives_helper_session() -> None:
+    """A helper flush cannot discard operations captured by the host session."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=True
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_called_once_with(host)
+    after.assert_called_once_with(helper)
+    assert len(unit.pending_statements) == 1
+    unit.reset()
+    assert unit._capture_allowed is None
+
+
+def test_shared_connection_denial_cannot_be_reenabled_by_helper_session() -> None:
+    """A helper flush cannot turn a denied transaction into captured history."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=False
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_not_called()
+    after.assert_not_called()
+    assert unit.pending_statements == []
 
 
 @pytest.mark.parametrize(
@@ -140,6 +198,30 @@ def lifecycle_session() -> Iterator[Session]:
     finally:
         session.close()
         engine.dispose()
+
+
+def test_unrelated_session_flush_without_app_context_skips_capture(
+    lifecycle_session: Session,
+) -> None:
+    """A broker session must not depend on a Flask application context."""
+    from sqlalchemy_continuum import versioning_manager
+
+    unit_of_work: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+
+    def before_flush(
+        session: Session, _flush_context: object, _instances: object
+    ) -> None:
+        unit_of_work.process_before_flush(session)
+
+    sa.event.listen(lifecycle_session, "before_flush", before_flush)
+
+    def commit_without_app_context() -> None:
+        assert not has_app_context()
+        lifecycle_session.add(LifecycleRow(value="broker queue"))
+        lifecycle_session.commit()
+
+    Context().run(commit_without_app_context)
+    assert lifecycle_session.scalar(sa.select(LifecycleRow.value)) == "broker queue"
 
 
 def test_before_commit_can_force_final_flush_without_reentry(
@@ -483,6 +565,9 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
         "_persist_buffered_records",
         lambda session, tx, buf: persisted.append((tx, dict(buf))),
     )
+    reconciliation: MagicMock = mocker.patch.object(
+        listener, "reconcile_parent_snapshots"
+    )
     # A retained pre-flush state for one versioned entity -> non-empty buffer.
     lifecycle_session.info[listener._INITIAL_STATES_KEY] = {
         ("chart", 7): (object(), {"slice_name": "initial"})
@@ -493,6 +578,7 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
 
     # The real path ran: records reached persistence for tx 42.
     assert persisted == [(42, {("chart", 7): [record]})]
+    reconciliation.assert_called_once_with(lifecycle_session, 42)
     calls: list[Any] = [
         call
         for call in manager.instance.timing.call_args_list

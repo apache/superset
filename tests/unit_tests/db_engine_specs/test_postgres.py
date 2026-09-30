@@ -499,12 +499,22 @@ def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
     assert _compile(expr) == "event_timestamp"
 
 
-def test_get_timestamp_expr_epoch_string_column_not_cast() -> None:
+@pytest.mark.parametrize(
+    "pdf,col_expr",
+    [
+        ("epoch_s", "event_timestamp"),
+        ("epoch_ms", "(event_timestamp/1000)"),
+        ("epoch_us", "((event_timestamp/1000)/1000)"),
+    ],
+)
+def test_get_timestamp_expr_epoch_string_column_not_cast(
+    pdf: str, col_expr: str
+) -> None:
     """DB Eng Specs (postgres): timestamp casts are not added to epoch expressions."""
     col = column("event_timestamp", type_=types.String())
-    expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
+    expr = spec.get_timestamp_expr(col, pdf, "P1D")
     assert _compile(expr) == (
-        "DATE_TRUNC('day', (timestamp 'epoch' + event_timestamp * interval '1 second'))"
+        f"DATE_TRUNC('day', (timestamp 'epoch' + {col_expr} * interval '1 second'))"
     )
 
 

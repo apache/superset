@@ -2114,6 +2114,61 @@ def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
     assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
 
 
+def test_pivot_table_v2_actual_values_uses_database_rollups():
+    """Actual Values subtotals come from the DB rollups, not leaf reductions.
+
+    Regression test for #44625: in the default (Actual Values) mode the
+    report/export path re-reduced the already-aggregated leaf cells, so an
+    Average metric's totals were a mean of means instead of the
+    database-computed rollups SIP-216 (#41184) added.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    total = f"{_('Total')} (Average)"
+
+    # the database rollups, not the mean of the leaf cells (20 / 15 / 15)
+    assert pivoted.loc[("UK",), (total, "")] == 21
+    assert pivoted.loc[("US",), (total, "")] == 11
+    assert pivoted.loc[(total,), ("AVG(num)", "boy")] == 18
+    assert pivoted.loc[(total,), (total, "")] == 19
+    # ...while the leaf cells themselves are untouched
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == 20
+    assert pivoted.loc[("US",), ("AVG(num)", "boy")] == 10
+
+
+def test_pivot_table_v2_actual_values_falls_back_without_rollups():
+    """Without GROUPING SETS levels the old leaf-derived totals remain."""
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "AVG(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    total = f"{_('Total')} (Average)"
+
+    # no database rollup to consult: the pandas reduction is kept
+    assert pivoted.loc[(total,), ("AVG(num)", "boy")] == 15
+
+
 def _axis_has_total(axis) -> bool:
     return any(
         total_label() in (label if isinstance(label, tuple) else (label,))

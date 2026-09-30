@@ -43,6 +43,7 @@ from uuid import UUID
 import sqlalchemy as sa
 from flask import Response
 from flask_appbuilder import Model
+from sqlalchemy.orm import scoped_session, Session
 
 from superset.daos.version import VersionDAO
 from superset.extensions import db, security_manager
@@ -81,13 +82,32 @@ class EntityVersionInfo:
 
 
 def _capture_enabled() -> bool:
-    # Delegates to the shared gate so the read helpers and the restore
-    # command can't disagree about what "capture is on" means.
+    """Consult the shared capture gate with the request's session.
+
+    Delegates to the shared gate so the read helpers and the restore command
+    can't disagree about what "capture is on" means. The session is passed
+    explicitly, matching the restore command, so it is visible at the call
+    site that the host predicate sees the request session on reads (ETag and
+    version info) as well as at the save.
+    """
     from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
         capture_enabled,
     )
 
-    return capture_enabled()
+    return capture_enabled(_request_session())
+
+
+def _request_session() -> Session:
+    """The request's ``Session`` object, not the ``scoped_session`` proxy.
+
+    ``db.session`` is a ``scoped_session`` that resolves to one ``Session``
+    per app context; the ORM listeners and ``CaptureUnitOfWork`` receive that
+    ``Session``, so the predicate gets the same object. A plain ``Session``
+    bound in the proxy's place (unit-test doubles do this) is already that
+    object and is returned as-is.
+    """
+    session: scoped_session | Session = db.session
+    return session() if isinstance(session, scoped_session) else session
 
 
 def current_entity_version_info(
@@ -485,7 +505,10 @@ def restore_version_endpoint(
     # pylint: disable=import-outside-toplevel
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
-    from superset.versioning.restore import PrunedChildHistoryError
+    from superset.versioning.restore import (
+        PrunedChildHistoryError,
+        RecycledChildIdentityError,
+    )
 
     try:
         result = command_cls(entity_uuid, version_uuid).run()
@@ -493,9 +516,10 @@ def restore_version_endpoint(
         return api.response_404()
     except command_cls.forbidden_exc:
         return api.response_403()
-    except PrunedChildHistoryError as ex:
-        # Fail-closed refusal (sc-120012): needed child history was
-        # pruned by retention; the entity was left unchanged. The
+    except (PrunedChildHistoryError, RecycledChildIdentityError) as ex:
+        # Fail-closed refusals: needed child history was pruned by
+        # retention (sc-120012), or a snapshot child id belongs to a
+        # different live child; the entity was left unchanged. The
         # exception's message is user-facing. Passes through the
         # command's @transaction untouched (on_error re-raises
         # non-SQLAlchemy exceptions as-is).
