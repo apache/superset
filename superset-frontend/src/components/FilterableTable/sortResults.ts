@@ -23,7 +23,6 @@ type CellValue = string | number | null;
 // nesting quantified groups, which could backtrack catastrophically.
 const DIGITS = /^\d*$/;
 const EXPONENT = /^[+-]?\d+$/;
-const NUMERIC_MANTISSA = /^(?:\d+|\d*\.\d+)$/;
 
 /** Split `text` at its first `e`/`E`; `null` when the exponent is malformed. */
 function splitExponent(text: string): [string, string | undefined] | null {
@@ -60,49 +59,98 @@ export function decimalParts(value: Exclude<CellValue, null>) {
   };
 }
 
-/** Whether the grid treats a string as a JavaScript number literal. */
-export function isNumericText(value: string): boolean {
-  if (value === 'NaN') return true;
-  const unsigned = value[0] === '-' ? value.slice(1) : value;
-  if (unsigned === 'Infinity') return true;
-  const parts = splitExponent(unsigned);
-  return parts !== null && NUMERIC_MANTISSA.test(parts[0]);
+// Values sort by type first, so mixed columns stay transitive: numbers (exact
+// decimal strings and infinities included) before text, and NaN after both.
+const NUMERIC_RANK = 0;
+const TEXT_RANK = 1;
+const NAN_RANK = 2;
+
+type SortKey =
+  | {
+      rank: typeof NUMERIC_RANK;
+      // -1 or 1 for an infinity, 0 for a finite value.
+      infinity: number;
+      sign: number;
+      digits: string;
+      order: bigint;
+    }
+  | { rank: typeof TEXT_RANK; text: string }
+  | { rank: typeof NAN_RANK };
+
+function toSortKey(value: Exclude<CellValue, null>): SortKey {
+  if (typeof value === 'number' ? Number.isNaN(value) : value === 'NaN') {
+    return { rank: NAN_RANK };
+  }
+  if (value === Infinity || value === 'Infinity') {
+    return {
+      rank: NUMERIC_RANK,
+      infinity: 1,
+      sign: 1,
+      digits: '',
+      order: BigInt(0),
+    };
+  }
+  if (value === -Infinity || value === '-Infinity') {
+    return {
+      rank: NUMERIC_RANK,
+      infinity: -1,
+      sign: -1,
+      digits: '',
+      order: BigInt(0),
+    };
+  }
+  const parts = decimalParts(value);
+  return parts
+    ? { rank: NUMERIC_RANK, infinity: 0, ...parts }
+    : { rank: TEXT_RANK, text: String(value) };
+}
+
+// Parsing dominates the cost of sorting decimal strings, and a sort compares
+// each cell O(log n) times, so keys are cached per value. The cache is cleared
+// whenever it outgrows a large result set to keep memory bounded.
+const SORT_KEY_CACHE_LIMIT = 250_000;
+const sortKeyCache = new Map<Exclude<CellValue, null>, SortKey>();
+
+function sortKey(value: Exclude<CellValue, null>): SortKey {
+  let key = sortKeyCache.get(value);
+  if (key === undefined) {
+    if (sortKeyCache.size >= SORT_KEY_CACHE_LIMIT) sortKeyCache.clear();
+    key = toSortKey(value);
+    sortKeyCache.set(value, key);
+  }
+  return key;
+}
+
+function compareKeys(a: SortKey, b: SortKey): number {
+  if (a.rank !== b.rank) return a.rank < b.rank ? -1 : 1;
+  if (a.rank === TEXT_RANK && b.rank === TEXT_RANK) {
+    return a.text === b.text ? 0 : a.text < b.text ? -1 : 1;
+  }
+  if (a.rank !== NUMERIC_RANK || b.rank !== NUMERIC_RANK) return 0;
+  if (a.infinity !== b.infinity) return a.infinity < b.infinity ? -1 : 1;
+  if (a.infinity !== 0) return 0;
+  if (a.sign !== b.sign) return a.sign < b.sign ? -1 : 1;
+  if (a.sign === 0) return 0;
+  if (a.order !== b.order) return (a.order < b.order ? -1 : 1) * a.sign;
+  const width = Math.max(a.digits.length, b.digits.length);
+  const left = a.digits.padEnd(width, '0');
+  const right = b.digits.padEnd(width, '0');
+  return left === right ? 0 : (left < right ? -1 : 1) * a.sign;
 }
 
 export function sortResults(valueA: CellValue, valueB: CellValue): number {
+  // Plain JavaScript numbers need no parsing; their order agrees with the
+  // exact decimal order of their shortest representations.
+  if (
+    typeof valueA === 'number' &&
+    typeof valueB === 'number' &&
+    !Number.isNaN(valueA) &&
+    !Number.isNaN(valueB)
+  ) {
+    return valueA === valueB ? 0 : valueA < valueB ? -1 : 1;
+  }
   if (valueA === valueB) return 0;
   if (valueA === null) return 1;
   if (valueB === null) return -1;
-
-  const a = decimalParts(valueA);
-  const b = decimalParts(valueB);
-  if (a && b) {
-    if (a.sign !== b.sign) return a.sign < b.sign ? -1 : 1;
-    if (a.sign === 0) return 0;
-    if (a.order !== b.order) return (a.order < b.order ? -1 : 1) * a.sign;
-    const width = Math.max(a.digits.length, b.digits.length);
-    const left = a.digits.padEnd(width, '0');
-    const right = b.digits.padEnd(width, '0');
-    return left === right ? 0 : (left < right ? -1 : 1) * a.sign;
-  }
-
-  // Retain the table's existing numeric-string, text and infinity behavior.
-  const numberOrText = (value: Exclude<CellValue, null>) =>
-    typeof value === 'string' && isNumericText(value) ? Number(value) : value;
-  const left = numberOrText(valueA);
-  const right = numberOrText(valueB);
-  if (
-    typeof left === 'number' &&
-    typeof right === 'number' &&
-    !Number.isNaN(left) &&
-    !Number.isNaN(right)
-  ) {
-    return left === right ? 0 : left < right ? -1 : 1;
-  }
-  // Comparing a number against text (or against NaN) with `<` yields false both
-  // ways round, which makes the comparator intransitive and leaves the grid's
-  // sort order dependent on the input order. Compare those as text instead.
-  const leftText = String(left);
-  const rightText = String(right);
-  return leftText === rightText ? 0 : leftText < rightText ? -1 : 1;
+  return compareKeys(sortKey(valueA), sortKey(valueB));
 }

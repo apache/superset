@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { decimalParts, isNumericText, sortResults } from './sortResults';
+import { decimalParts, sortResults } from './sortResults';
 
 test.each([
   ['2', '10', -1],
@@ -70,10 +70,113 @@ test('sorts a mixed text and number column transitively', () => {
   expect(descending).toEqual(ascending);
 });
 
-// Reference regexes the linear parsers must agree with.
+test.each([
+  [[9, '5x', 10]],
+  [[10, 9, '5x']],
+  [['5x', 10, 9]],
+  [['9', '5x', '10']],
+  [['10', '9', '5x']],
+  [['5x', '10', '9']],
+])('sorts numbers before text whatever the input order: %p', column => {
+  const sorted = [...column].sort(sortResults).map(String);
+  expect(sorted).toEqual(['9', '10', '5x']);
+});
+
+test('orders numbers, then text, then NaN, then nulls', () => {
+  const column = [
+    'NaN',
+    null,
+    'apple',
+    3,
+    NaN,
+    '2.5',
+    'Infinity',
+    '-Infinity',
+    -Infinity,
+    '10',
+  ];
+  expect([...column].sort(sortResults)).toEqual([
+    '-Infinity',
+    -Infinity,
+    '2.5',
+    3,
+    '10',
+    'Infinity',
+    'apple',
+    'NaN',
+    NaN,
+    null,
+  ]);
+});
+
+test('is a consistent total order over mixed values', () => {
+  const values = [
+    null,
+    NaN,
+    'NaN',
+    -Infinity,
+    '-Infinity',
+    Infinity,
+    'Infinity',
+    -1.5,
+    '-1.50',
+    0,
+    -0,
+    '0.000',
+    '1E-18',
+    0.1,
+    '0.1',
+    9,
+    '10',
+    1e21,
+    '1E+21',
+    '',
+    '5x',
+    'apple',
+    '2024-01-01',
+  ];
+  const sign = (n: number) => Math.sign(n) || 0;
+  values.forEach(a => {
+    expect(sortResults(a, a)).toBe(0);
+    values.forEach(b => {
+      const ab = sign(sortResults(a, b));
+      expect(sign(sortResults(b, a))).toBe(-ab || 0);
+      values.forEach(c => {
+        const bc = sign(sortResults(b, c));
+        if (ab <= 0 && bc <= 0) {
+          expect(sign(sortResults(a, c))).toBeLessThanOrEqual(0);
+        }
+      });
+    });
+  });
+});
+
+test.each([
+  [1, 2, -1],
+  [2, 1, 1],
+  [-0, 0, 0],
+  [-Infinity, -1e308, -1],
+  [Infinity, 1e308, 1],
+  [9007199254740993, 9007199254740992, 0],
+  [0.1 + 0.2, 0.3, 1],
+] as const)('compares plain numbers %p vs %p directly', (a, b, expected) => {
+  expect(sortResults(a, b)).toBe(expected);
+});
+
+test.each([
+  [0.1, '0.1'],
+  [1e21, '1E+21'],
+  [1e-7, '0.0000001'],
+  [-2.5, '-2.50'],
+  [Infinity, 'Infinity'],
+])('orders number %p and its exact string %p equally', (number, text) => {
+  expect(sortResults(number, text)).toBe(0);
+  expect(sortResults(text, number)).toBe(0);
+});
+
+// Reference regex the linear parser must agree with.
 const REFERENCE_DECIMAL =
   /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/;
-const REFERENCE_NUMERIC = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 function strings(alphabet: string[], maxLength: number): string[] {
   const all = [''];
@@ -85,7 +188,7 @@ function strings(alphabet: string[], maxLength: number): string[] {
   return all;
 }
 
-test('linear parsers accept exactly what the reference regexes match', () => {
+test('linear parser accepts exactly what the reference regex matches', () => {
   const alphabet = ['0', '7', '.', 'e', 'E', '+', '-', 'x', 'NaN', 'Infinity'];
   const mismatches: string[] = [];
   const inputs = strings(alphabet, 5);
@@ -96,9 +199,6 @@ test('linear parsers accept exactly what the reference regexes match', () => {
   inputs.forEach(text => {
     if ((decimalParts(text) !== null) !== REFERENCE_DECIMAL.test(text)) {
       mismatches.push(`decimal: ${text}`);
-    }
-    if (isNumericText(text) !== REFERENCE_NUMERIC.test(text)) {
-      mismatches.push(`numeric: ${text}`);
     }
   });
   expect(mismatches).toEqual([]);
@@ -113,6 +213,5 @@ test('rejects long adversarial near-miss inputs', () => {
   ];
   inputs.forEach(text => {
     expect(decimalParts(text)).toBeNull();
-    expect(isNumericText(text)).toBe(false);
   });
 });
