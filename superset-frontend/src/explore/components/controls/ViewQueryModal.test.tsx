@@ -19,6 +19,7 @@
 
 import { screen, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
 import * as chartAction from 'src/components/Chart/chartAction';
 import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
 import ViewQueryModal from './ViewQueryModal';
@@ -77,6 +78,7 @@ test('renders Alert component when query result contains validation error', asyn
   // Assert Alert component is rendered with error message
   expect(screen.getByRole('alert')).toBeInTheDocument();
   expect(screen.getByText('Missing temporal column')).toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: 'Stats' })).not.toBeInTheDocument();
 });
 
 test('renders both Alert and SQL query when parsing error occurs', async () => {
@@ -215,5 +217,185 @@ test('falls back to empty ownState when prop is omitted', async () => {
       formData: mockFormData,
       ownState: {},
     }),
+  );
+});
+
+test('shows cached response statistics in the query inspector', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [
+    { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+    { data: [{ rowcount: 2 }], is_cached: false },
+    { data: { total: 3 }, is_cached: false },
+  ];
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      chartUpdateStartTime={1000}
+      chartUpdateEndTime={1250}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries3Returned rows3Cached queries1',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Chart load time250 ms',
+  );
+  expect(screen.getByText('Chart load time')).toHaveAttribute(
+    'title',
+    'Time from chart update start until rendering completes; this is not query execution time.',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    `Response size${new Blob([
+      JSON.stringify(queriesResponse),
+    ]).size.toLocaleString()} bytes`,
+  );
+});
+
+test('clamps negative chart update duration to zero', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={[]}
+      chartUpdateStartTime={1250}
+      chartUpdateEndTime={1000}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Chart load time0 ms',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries0Returned rows0Cached queries0Response size2 bytes',
+  );
+});
+
+test('only exposes the raw response when explicitly enabled', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [{ data: [{ country: 'KR' }] }];
+
+  const { rerender } = render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+    />,
+    { useRedux: true },
+  );
+
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      showResponse
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+
+  expect(screen.getByRole('tabpanel')).toHaveTextContent('"country": "KR"');
+});
+
+test('memoizes stats and formats JSON only when the Response tab is open', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [{ data: [{ country: 'KR' }] }];
+  const stringifySpy = jest.spyOn(JSON, 'stringify');
+
+  const { rerender } = render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+    />,
+    { useRedux: true },
+  );
+
+  const responseStringifyCalls = () =>
+    stringifySpy.mock.calls.filter(([value]) => value === queriesResponse);
+  const compactCallCount = responseStringifyCalls().length;
+  expect(compactCallCount).toBeGreaterThan(0);
+  expect(stringifySpy).not.toHaveBeenCalledWith(queriesResponse, null, 2);
+
+  rerender(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      showResponse
+    />,
+  );
+  expect(responseStringifyCalls()).toHaveLength(compactCallCount);
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(responseStringifyCalls()).toHaveLength(compactCallCount);
+  expect(stringifySpy).not.toHaveBeenCalledWith(queriesResponse, null, 2);
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+  expect(stringifySpy).toHaveBeenCalledWith(queriesResponse, null, 2);
+});
+
+test('uses a copyable plain-text view for large responses', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [{ data: [{ value: 'x'.repeat(110_000) }] }];
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      showResponse
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+
+  expect(screen.getByTestId('query-inspector-response-plain').textContent).toBe(
+    JSON.stringify(queriesResponse, null, 2),
+  );
+  expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+});
+
+test('shows empty response and unavailable chart load time states', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={null}
+      showResponse
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+  expect(screen.getByRole('tabpanel')).toHaveTextContent(
+    'No response data is available yet.',
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries0Returned rows0Cached queries0Response sizeNot availableChart load timeNot available',
   );
 });
