@@ -85,6 +85,7 @@ export default function transformProps(chartProps: ChartProps) {
           secondaryMetric,
           countryFieldtype,
           strict: formData.mcpGeographic,
+          showBubbles: Boolean(showBubbles),
         })
       : rawData;
 

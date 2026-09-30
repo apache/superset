@@ -108,7 +108,28 @@ test.each([
         secondaryMetric: 'population',
         countryFieldtype: 'cca2',
         strict: true,
+        showBubbles: true,
       }),
+    ).toThrow();
+  },
+);
+
+test.each([-1, null, Number.NaN, 'n/a'])(
+  'typed world maps without bubbles ignore an unused secondary metric %s',
+  population => {
+    const options = {
+      entity: 'country',
+      metric: 'sales',
+      secondaryMetric: 'population',
+      countryFieldtype: 'cca2',
+      strict: true,
+    };
+    const row = { country: 'US', sales: 10, population };
+    expect(
+      transformData([row], { ...options, showBubbles: false })[0],
+    ).toMatchObject({ country: 'USA', m1: 10 });
+    expect(() =>
+      transformData([row], { ...options, showBubbles: true }),
     ).toThrow();
   },
 );

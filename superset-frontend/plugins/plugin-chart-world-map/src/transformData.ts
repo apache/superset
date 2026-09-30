@@ -44,6 +44,7 @@ export default function transformData(
     secondaryMetric?: unknown;
     countryFieldtype?: string;
     strict?: boolean;
+    showBubbles?: boolean;
   },
 ): WorldMapDataRow[] {
   const entityLabel = getColumnLabel(options.entity ?? '');
@@ -53,10 +54,10 @@ export default function transformData(
     : undefined;
   const fieldtype = options.countryFieldtype;
 
-  const metricLabels = [
-    metricLabel,
-    ...(secondaryLabel ? [secondaryLabel] : []),
-  ];
+  // The secondary metric only sizes bubbles, so an unused secondary metric
+  // kept with bubbles off does not gate the choropleth.
+  const sizeLabel = options.showBubbles ? secondaryLabel : undefined;
+  const metricLabels = [metricLabel, ...(sizeLabel ? [sizeLabel] : [])];
   const seen = new Set<string>();
   return records.map(record => {
     const row: WorldMapDataRow = {
@@ -90,7 +91,7 @@ export default function transformData(
           );
         }
       }
-      const size = secondaryLabel ? record[secondaryLabel] : undefined;
+      const size = sizeLabel ? record[sizeLabel] : undefined;
       if (typeof size === 'number' && size < 0) {
         throw new Error(t('Bubble-size metric must be nonnegative'));
       }

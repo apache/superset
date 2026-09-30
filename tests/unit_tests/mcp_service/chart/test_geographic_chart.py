@@ -40,7 +40,10 @@ from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
 )
-from superset.mcp_service.chart.query_result import normalize_chart_query_result
+from superset.mcp_service.chart.query_result import (
+    metric_result_label,
+    normalize_chart_query_result,
+)
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ChartError,
@@ -264,6 +267,87 @@ def test_world_bubble_metrics_deduplicate_by_label(same: bool) -> None:
     ):
         query = build_query_dicts_from_form_data(form, 3, "table")[0]
     assert len(query["metrics"]) == (1 if same else 2)
+
+
+def _size_metric_case(kind: str) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """Return form data, a valid result and the size metric's result label."""
+    if kind == "world_map":
+        config = CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["world_map"][0],
+                "show_bubbles": True,
+                "secondary_metric": {"name": "population", "aggregate": "SUM"},
+            }
+        )
+    else:
+        config = CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["deck_scatter"][0],
+                "radius_metric": {"name": "orders", "aggregate": "COUNT"},
+            }
+        )
+    form = map_config_to_form_data(config)
+    label = (
+        metric_result_label(form["secondary_metric"])
+        if kind == "world_map"
+        else metric_result_label(form["point_radius_fixed"]["value"])
+    )
+    assert label is not None
+    result = result_for(kind)
+    result["queries"][0]["data"][0][label] = 5
+    return form, result, label
+
+
+@pytest.mark.parametrize("kind", ["world_map", "deck_scatter"])
+@pytest.mark.parametrize("value", [-1, -0.5, Decimal("-0.001")])
+def test_negative_size_metric_is_rejected(kind: str, value: object) -> None:
+    """Bubble and point radius metrics size marks, so they must be nonnegative."""
+    form, result, label = _size_metric_case(kind)
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+    result["queries"][0]["data"][0][label] = value
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert failure.error_type == "InvalidGeographicResult"
+    assert "size metrics must be nonnegative" in failure.error
+
+
+@pytest.mark.parametrize("kind", ["world_map", "deck_scatter"])
+def test_zero_size_metric_is_accepted(kind: str) -> None:
+    """Zero is a valid, if invisible, mark size."""
+    form, result, label = _size_metric_case(kind)
+    result["queries"][0]["data"][0][label] = 0
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_negative_color_metric_is_accepted_with_bubbles() -> None:
+    """Only the bubble metric is size-constrained; the color metric may be < 0."""
+    form, result, _ = _size_metric_case("world_map")
+    result["queries"][0]["data"][0][metric_result_label(form["metric"])] = -10
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+@pytest.mark.parametrize("value", [-1, None, float("nan"), "n/a"])
+def test_world_map_unused_secondary_metric_does_not_gate_choropleth(
+    value: object,
+) -> None:
+    """A secondary metric kept with show_bubbles=False is not rendered, so its
+    values cannot fail the color choropleth."""
+    form, result, label = _size_metric_case("world_map")
+    form = {**form, "show_bubbles": False}
+    result["queries"][0]["data"][0][label] = value
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+    form["show_bubbles"] = True
+    assert isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_bubbles_without_secondary_metric_is_rejected() -> None:
+    """Bubbles still require the size metric at result validation."""
+    form = {**form_for("world_map"), "show_bubbles": True}
+    form.pop("secondary_metric", None)
+    failure = normalize_chart_query_result(result_for("world_map"), form)
+    assert isinstance(failure, ChartError)
+    assert "show_bubbles requires secondary_metric" in failure.error
 
 
 @pytest.mark.parametrize("kind", KINDS)

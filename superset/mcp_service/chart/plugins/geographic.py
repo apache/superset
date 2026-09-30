@@ -426,18 +426,26 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         return metrics, [entity] if entity else []
 
     def result_metrics(self, form_data: Mapping[str, Any]) -> list[Any]:
+        """Require the color metric, plus the bubble metric when bubbles show.
+
+        A secondary metric kept alongside ``show_bubbles=False`` is not
+        rendered, so its values do not gate the choropleth.
+        """
         metrics = [form_data.get("metric")]
+        if not form_data.get("show_bubbles"):
+            return metrics
         secondary = form_data.get("secondary_metric")
-        if form_data.get("show_bubbles") and secondary is None:
+        if secondary is None:
             raise ValueError("show_bubbles requires secondary_metric")
-        if secondary is not None:
-            metrics.append(secondary)
+        metrics.append(secondary)
         return metrics
 
     def size_metric_labels(
         self, form_data: Mapping[str, Any], labels: list[str]
     ) -> set[str]:
-        """Bubble sizes come from the secondary metric."""
+        """Bubble sizes come from the secondary metric when bubbles show."""
+        if not form_data.get("show_bubbles"):
+            return set()
         secondary = metric_result_label(form_data.get("secondary_metric"))
         return {secondary} if secondary is not None else set()
 
