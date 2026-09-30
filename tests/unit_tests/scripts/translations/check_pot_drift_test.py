@@ -25,6 +25,7 @@ import importlib.util
 import io
 import shlex
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -44,19 +45,24 @@ check_pot_drift = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(check_pot_drift)
 
 
+_HEADER = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+
+
 def _pot(*msgids: str) -> str:
-    header = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
     entries = "\n".join(f'msgid "{msgid}"\nmsgstr ""\n' for msgid in msgids)
-    return header + entries
+    return _HEADER + entries
 
 
-def _fake_extract(fresh_msgids: tuple[str, ...]):
+def _fake_extract_text(pot_text: str) -> Callable[..., MagicMock]:
     def run(args: list[str], **_kwargs: object) -> MagicMock:
-        output_path = Path(args[args.index("-o") + 1])
-        output_path.write_text(_pot(*fresh_msgids), encoding="utf-8")
+        Path(args[args.index("-o") + 1]).write_text(pot_text, encoding="utf-8")
         return MagicMock(returncode=0)
 
     return run
+
+
+def _fake_extract(fresh_msgids: tuple[str, ...]) -> Callable[..., MagicMock]:
+    return _fake_extract_text(_pot(*fresh_msgids))
 
 
 def test_diff_reports_missing_and_stale(tmp_path: Path) -> None:
@@ -149,17 +155,6 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     assert "babel_update.sh" in out
 
 
-_HEADER = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
-
-
-def _fake_extract_text(pot_text: str):
-    def run(args: list[str], **_kwargs: object) -> MagicMock:
-        Path(args[args.index("-o") + 1]).write_text(pot_text, encoding="utf-8")
-        return MagicMock(returncode=0)
-
-    return run
-
-
 def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
     committed = tmp_path / "messages.pot"
     committed.write_text(_HEADER + committed_text, encoding="utf-8")
@@ -175,6 +170,7 @@ def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[
 
 
 def test_diff_reports_a_reworded_i18n_comment(tmp_path: Path) -> None:
+    """Rewording an ``i18n:`` comment is drift even when the msgid is unchanged."""
     changed = _context_drift(
         tmp_path,
         '#. i18n: a URL identifier\nmsgid "Slug"\nmsgstr ""\n',
@@ -185,6 +181,7 @@ def test_diff_reports_a_reworded_i18n_comment(tmp_path: Path) -> None:
 
 
 def test_diff_reports_an_added_and_a_removed_i18n_comment(tmp_path: Path) -> None:
+    """A comment that appears in source, or disappears from it, is drift."""
     changed = _context_drift(
         tmp_path,
         'msgid "Host"\nmsgstr ""\n\n#. i18n: old context\nmsgid "Slug"\nmsgstr ""\n',
@@ -195,6 +192,7 @@ def test_diff_reports_an_added_and_a_removed_i18n_comment(tmp_path: Path) -> Non
 
 
 def test_diff_ignores_rewrapping_an_i18n_comment(tmp_path: Path) -> None:
+    """Comments compare word by word, so a different line wrap is not drift."""
     changed = _context_drift(
         tmp_path,
         "#. i18n: the database engine behind a connection,\n"
@@ -206,8 +204,11 @@ def test_diff_ignores_rewrapping_an_i18n_comment(tmp_path: Path) -> None:
 
 
 def test_diff_ignores_the_stamped_do_not_translate_marker(tmp_path: Path) -> None:
-    # babel_update.sh stamps the marker after extraction, so the committed
-    # template carries it and a fresh extraction never does.
+    """The ``do-not-translate`` marker is excluded from the comparison.
+
+    babel_update.sh stamps the marker after extraction, so the committed
+    template carries it and a fresh extraction never does.
+    """
     changed = _context_drift(
         tmp_path,
         '#. do-not-translate\nmsgid "XLSX"\nmsgstr ""\n\n'
@@ -218,6 +219,7 @@ def test_diff_ignores_the_stamped_do_not_translate_marker(tmp_path: Path) -> Non
 
 
 def test_stamped_comments_match_apply_do_not_translate_marker() -> None:
+    """``STAMPED_COMMENTS`` stays in step with the marker the stamping script writes."""
     path = _SCRIPT_PATH.parent / "apply_do_not_translate.py"
     spec = importlib.util.spec_from_file_location("apply_do_not_translate", path)
     assert spec is not None
@@ -230,6 +232,7 @@ def test_stamped_comments_match_apply_do_not_translate_marker() -> None:
 def test_main_exits_one_and_lists_changed_i18n_comments(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """``main`` fails on comment drift alone and lists the strings with ``~``."""
     with patch.object(
         check_pot_drift,
         "diff",
