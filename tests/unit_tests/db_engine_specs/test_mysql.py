@@ -742,6 +742,87 @@ def test_pymysql_hostname_check_conflict_fails_closed() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "client_info,expected_mode",
+    [("3.3.17", "VERIFY_CA"), ("8.4.6", "REQUIRED")],
+)
+@pytest.mark.parametrize("source", ["uri", "connect_args"])
+def test_saved_required_mode_is_a_tls_request(
+    source: str, client_info: str, expected_mode: str
+) -> None:
+    """A bare ssl_mode=REQUIRED is enforced without also needing ssl=1."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url("mysql://localhost/db")
+    args: dict[str, Any] = {}
+    if source == "uri":
+        uri = uri.update_query_dict({"ssl_mode": "REQUIRED"})
+    else:
+        args = {"ssl_mode": "REQUIRED"}
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = client_info
+        _, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
+    assert connect_args["ssl_mode"] == expected_mode
+
+
+@pytest.mark.parametrize("mode", ["DISABLED", "PREFERRED"])
+def test_non_required_mode_is_not_a_tls_request(mode: str) -> None:
+    """Modes that do not require TLS are left to the driver without a request."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"mysql://localhost/db?ssl_mode={mode}")
+    url, args = MySQLEngineSpec.adjust_engine_params(uri, {})
+    assert url == uri
+    assert "ssl_mode" not in args
+
+
+def test_require_mysql_tls_uses_explicit_driver() -> None:
+    """Compatible dialects select options by driver, not by URL backend."""
+    from superset.db_engine_specs.mysql import require_mysql_tls
+
+    uri = make_url("doris://localhost/db?ssl=1")
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = "3.3.17"
+        url, args = require_mysql_tls(uri, {}, driver="mysqldb")
+    assert url.drivername == "doris"
+    assert "ssl" not in url.query
+    assert args["ssl_mode"] == "VERIFY_CA"
+
+
+@pytest.mark.parametrize("source", ["uri", "connect_args"])
+def test_mysqlclient_ssl_request_rejects_ssl_disabled(source: str) -> None:
+    """ssl_disabled=True cannot cancel a mysqlclient SSL request."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url("mysql://localhost/db?ssl=1")
+    args: dict[str, Any] = {}
+    if source == "uri":
+        uri = uri.update_query_dict({"ssl_disabled": "true"})
+    else:
+        args = {"ssl_disabled": True}
+    with pytest.raises(ValueError, match="conflicts with ssl_disabled"):
+        MySQLEngineSpec.adjust_engine_params(uri, args)
+
+
+@pytest.mark.parametrize("value", ["false", "0", False])
+def test_mysqlclient_ssl_request_drops_false_ssl_disabled(value: str | bool) -> None:
+    """A false ssl_disabled is dropped; REQUIRED is upgraded for MariaDB clients."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url("mysql://localhost/db?ssl_mode=REQUIRED")
+    if isinstance(value, str):
+        uri = uri.update_query_dict({"ssl_disabled": value})
+        args: dict[str, Any] = {}
+    else:
+        args = {"ssl_disabled": value}
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = "3.3.17"
+        url, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
+    assert "ssl_disabled" not in url.query
+    assert "ssl_disabled" not in connect_args
+    assert connect_args["ssl_mode"] == "VERIFY_CA"
+
+
 def test_pymysql_old_version_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     """PyMySQL before 1.2 must not reach its silent cleartext fallback."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
@@ -806,9 +887,7 @@ def test_ssl_request_rejects_invalid_ssl_value(value: Any) -> None:
         )
 
 
-@pytest.mark.parametrize(
-    "driver", ["mysql+cymysql", "mysql+mariadbconnector", "mysql+aiomysql"]
-)
+@pytest.mark.parametrize("driver", ["mysql+cymysql", "mysql+aiomysql"])
 def test_ssl_request_unsupported_driver_fails_closed(driver: str) -> None:
     """Drivers without known fail-closed TLS options must not receive ssl=1."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
