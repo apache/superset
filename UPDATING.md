@@ -24,7 +24,34 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Semantic-view Table charts omit recognized dormant time grains from frontend-generated aggregate queries when no temporal axis is present. The saved grain and Time Grain control visibility are unchanged. Direct API payloads and saved chart-data GET requests that bypass frontend rebuilding retain strict validation; some old stored query contexts can therefore still fail. Deploy updated frontend assets with this change.
+### Semantic-view Table charts without a temporal axis
+
+Semantic-view Table charts omit recognized dormant time grains from
+frontend-generated aggregate queries when no temporal axis is present. The saved
+grain and Time Grain control visibility are unchanged. Direct API payloads and
+saved chart-data GET requests that bypass frontend rebuilding retain strict
+validation; some old stored query contexts can therefore still fail. Deploy
+updated frontend assets with this change.
+
+### Empty MCP chart previews
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews. Clients
+should handle empty specifications rather than relying on that error.
+
+### MCP chart tools advertise a compact chart config schema
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` no longer inline every chart type's JSON Schema in
+their tool input schemas. Their `config` parameter is advertised as an object
+whose `chart_type` is one of the supported chart types. The fields and
+examples for each chart type come from `get_chart_type_schema(chart_type)`,
+which returns the same per-type schema as before.
+
+Server-side validation is unchanged: requests are still validated against the
+complete chart configuration model and invalid fields are rejected with the
+same errors. MCP clients that built chart configs only from the tool input
+schema should call `get_chart_type_schema` first.
 
 ### DynamoDB timestamp string format
 
@@ -49,12 +76,26 @@ format. Use a consistent timezone and precision for stored strings and bounds.
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
 
+### Doris SSL requests require TLS
+
+The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and
+`ssl=1` URLs also require TLS and follow the mysqlclient rules below: `REQUIRED`
+is kept with Oracle libmysqlclient 5.7/8.x/9.x and upgraded to `VERIFY_CA` with
+MariaDB Connector/C or an unrecognized client, which can otherwise fall back to
+cleartext. Supply the trusted `ssl_ca` (or `connect_args.ssl.ca`) and a
+certificate valid for the connection hostname. Conflicting advanced settings
+fail closed. This shares MySQL's TLS normalization without changing Doris
+catalog/schema handling.
+
 ### MySQL SSL requests require TLS
 
-The SSL toggle (or ssl=1 in the URI) requires TLS. With mysqlclient, Oracle
-libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB Connector/C and
-unrecognized client versions use VERIFY_CA to prevent cleartext fallback.
-Explicit VERIFY_CA and VERIFY_IDENTITY are retained.
+The SSL toggle (or ssl=1 in the URI) requires TLS, and so does a saved
+ssl_mode of REQUIRED, VERIFY_CA or VERIFY_IDENTITY without ssl=1. With
+mysqlclient, Oracle libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB
+Connector/C and unrecognized client versions use VERIFY_CA to prevent cleartext
+fallback. Explicit VERIFY_CA and VERIFY_IDENTITY are retained. Contradictory
+options such as ssl_mode=DISABLED or ssl_disabled=True fail rather than
+cancelling the SSL request.
 
 Existing saved connections with the toggle on are affected at upgrade, without a
 feature flag. Verification can fail for self-signed/default server certificates
@@ -88,8 +129,11 @@ native ssl dictionary). Superset passes those settings through without enforcing
 TLS; ensure the chosen driver configuration does not silently fall back to
 cleartext.
 
-Connections using the separate MariaDB engine (mariadb:// URIs) and other
-MySQL-compatible engines keep their existing SSL handling.
+Connections using the separate MariaDB engine (mariadb:// URIs and its drivers)
+get the same handling. With MariaDB Connector/Python
+(mariadb+mariadbconnector://), the toggle keeps ssl=True and enables
+ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
+StarRocks keep their existing SSL handling.
 
 ### Version history retention setting
 
