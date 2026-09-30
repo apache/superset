@@ -2020,13 +2020,14 @@ function foldName(value: string): string {
 
 const exactNames = new Map(countries.map(country => [country.name, country]));
 const foldedNames = new Map<string, CountryInfo[]>();
-const lookups: Record<CountryFieldType, Map<string, CountryInfo>> = {
-  name: new Map(),
+// Names resolve through exactNames/foldedNames; codes match case-insensitively.
+type CountryCodeField = Exclude<CountryFieldType, 'name'>;
+const lookups: Record<CountryCodeField, Map<string, CountryInfo>> = {
   cca2: new Map(),
   cca3: new Map(),
   cioc: new Map(),
 };
-(Object.keys(lookups) as CountryFieldType[]).forEach(field => {
+(Object.keys(lookups) as CountryCodeField[]).forEach(field => {
   countries.forEach(country => {
     lookups[field].set(country[field].toLowerCase(), country);
   });
@@ -2048,5 +2049,5 @@ export function getCountry(
     const matches = foldedNames.get(foldName(symbol));
     return matches?.length === 1 ? matches[0] : undefined;
   }
-  return lookups[field as CountryFieldType]?.get(symbol.toLowerCase());
+  return lookups[field as CountryCodeField]?.get(symbol.toLowerCase());
 }

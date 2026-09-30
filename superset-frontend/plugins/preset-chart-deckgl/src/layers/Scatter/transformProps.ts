@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { processSpatialData, DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
@@ -36,6 +37,48 @@ interface ScatterPoint {
   metric?: number;
   extraProps?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * Keep only typed geographic points that can be drawn: numeric, in-range
+ * latitude/longitude and, for a metric radius, a finite nonnegative radius.
+ *
+ * The MCP data and export contract rejects such rows outright; the render
+ * layer skips them so one sparse row does not blank the whole map, and logs
+ * how many points were skipped so the loss is diagnosable.
+ */
+export function filterDrawableGeographicPoints(
+  records: DataRecord[],
+  spatial: DeckScatterFormData['spatial'],
+  radiusMetricLabel?: string,
+): DataRecord[] {
+  const coordinateColumns = [
+    [spatial?.latCol, 90],
+    [spatial?.lonCol, 180],
+  ] as const;
+  const drawable = records.filter(record => {
+    const validCoordinates = coordinateColumns.every(([column, bound]) => {
+      const value = column ? record[column] : undefined;
+      return isFiniteNumber(value) && Math.abs(value) <= bound;
+    });
+    if (!validCoordinates || !radiusMetricLabel) {
+      return validCoordinates;
+    }
+    const radius = record[radiusMetricLabel];
+    return isFiniteNumber(radius) && radius >= 0;
+  });
+  const skipped = records.length - drawable.length;
+  if (skipped > 0) {
+    logging.warn(
+      `Skipped ${skipped} of ${records.length} geographic points with ` +
+        'missing or out-of-range coordinates or radius',
+    );
+  }
+  return drawable;
 }
 
 function processScatterData(
@@ -115,31 +158,8 @@ export default function transformProps(chartProps: ChartProps) {
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
 
-  const coordinateBounds = [
-    [spatial?.latCol, 90],
-    [spatial?.lonCol, 180],
-  ] as const;
   const displayRecords = formData.mcp_geographic
-    ? records.filter(record => {
-        const validCoordinates = coordinateBounds.every(([column, bound]) => {
-          const value = column ? record[column] : undefined;
-          return (
-            typeof value === 'number' &&
-            Number.isFinite(value) &&
-            Math.abs(value) <= bound
-          );
-        });
-        const radius = radiusMetricLabel
-          ? record[radiusMetricLabel]
-          : undefined;
-        return (
-          validCoordinates &&
-          (!radiusMetricLabel ||
-            (typeof radius === 'number' &&
-              Number.isFinite(radius) &&
-              radius >= 0))
-        );
-      })
+    ? filterDrawableGeographicPoints(records, spatial, radiusMetricLabel)
     : records;
   const features = processScatterData(
     displayRecords,

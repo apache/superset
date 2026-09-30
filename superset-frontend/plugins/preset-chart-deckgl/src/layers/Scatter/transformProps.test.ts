@@ -18,7 +18,10 @@
  */
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { logging } from '@apache-superset/core/utils';
+import transformProps, {
+  filterDrawableGeographicPoints,
+} from './transformProps';
 
 interface ScatterFeature {
   position: [number, number];
@@ -359,3 +362,52 @@ test.each([undefined, null, 'missing', '10', Number.NaN, Infinity, -1])(
     expect(data).toEqual(original);
   },
 );
+
+test('typed geographic points log how many points were skipped', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            { LATITUDE: 91, LONGITUDE: -122.4, population: 1 },
+            { LATITUDE: 37.8, LONGITUDE: -122.4, population: null },
+            { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+          ],
+        },
+      ],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Skipped 2 of 3 geographic points'),
+    );
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('filterDrawableGeographicPoints keeps valid points without logging', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const records = [
+      { LATITUDE: 90, LONGITUDE: -180 },
+      { LATITUDE: -90, LONGITUDE: 180 },
+    ];
+    expect(
+      filterDrawableGeographicPoints(records, {
+        type: 'latlong',
+        latCol: 'LATITUDE',
+        lonCol: 'LONGITUDE',
+      }),
+    ).toEqual(records);
+    expect(warn).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
+});

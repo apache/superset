@@ -1288,12 +1288,14 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   not the entire ISO registry. Japanese abbreviation values are numeric
   **strings**, such as `13`. Names are exact-first, then case/diacritic-insensitive
   only when the result is unique. No fuzzy matching or geocoding is performed.
-  Duplicate geometry names (for example, `Halton` in the UK boundary set)
-  require an unambiguous abbreviation or ISO code instead of a name.
+  A name that folds onto more than one boundary is rejected as ambiguous and
+  needs an abbreviation or ISO code instead.
 - **World map:** set `country_format` to `name`, `cca2`, `cca3`, or `cioc`,
   plus `entity` and `metric`. Choropleth color uses `metric`. For bubbles set
   `show_bubbles: true` and supply `secondary_metric` for size (it may be the
-  same metric). Superset's bundled world-country dictionary defines coverage.
+  same metric). A `secondary_metric` kept with `show_bubbles: false` is not
+  rendered, so its values are not validated. Superset's bundled
+  world-country dictionary defines coverage.
 - **Geographic points:** set `chart_type: "deck_scatter"`,
   `latitude: {"name": "latitude"}`, and `longitude: {"name": "longitude"}`.
   Numeric coordinates must be within ±90 and ±180 respectively. Optional
@@ -1311,9 +1313,11 @@ query groups resolving to one boundary also fail: normalize source values
 before aggregation rather than incorrectly adding averages or distinct counts.
 When rendering in Explore, country maps with an explicit region format omit
 rows with missing, NULL, non-numeric, or non-finite metrics, leaving those
-regions blank. Region identifiers are still validated for every row.
+regions blank. Region identifiers are still validated for every row, and blank
+regions still cross-filter and drill on their original source value.
 Typed geographic point maps omit rows with invalid coordinates or missing,
-non-numeric, non-finite, or negative radius metrics rather than failing the chart.
+non-numeric, non-finite, or negative radius metrics rather than failing the
+chart, and log a browser-console warning with the number of skipped points.
 This display behavior does not relax MCP generation's result validation.
 Source values remain intact for data/export and country-map cross-filtering.
 Database `NUMERIC`/Decimal query coordinates and metrics are supported when
