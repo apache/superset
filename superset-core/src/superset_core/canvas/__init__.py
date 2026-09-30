@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    canvas,
-    core,
-    dynamic_plugins,
-    purge_audit_log,
-    sql_lab,
-    user_attributes,
+
+"""Dashboard canvas contracts for widget providers."""
+
+from superset_core.canvas.base import (
+    CanvasLayoutRules,
+    GridPlacement,
+    WidgetResolver,
 )
+
+__all__ = ["CanvasLayoutRules", "GridPlacement", "WidgetResolver"]

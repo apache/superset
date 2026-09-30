@@ -14,11 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    canvas,
-    core,
-    dynamic_plugins,
-    purge_audit_log,
-    sql_lab,
-    user_attributes,
-)
+from collections.abc import Iterator
+
+import pytest
+
+from tests.unit_tests.canvas.fixtures import canvas_rules, FakeResolver
+
+
+@pytest.fixture
+def widgets() -> Iterator[FakeResolver]:
+    """Register the test widget types and resolver with the canvas registry."""
+    from superset.canvas.definition import registry
+
+    resolver = FakeResolver(hidden={"chart-secret"})
+    previous_resolver = registry.get_widget_resolver()
+    test_rules = list(canvas_rules())
+    for rules in test_rules:
+        registry.layout_rules.register(rules)
+    registry.set_widget_resolver(resolver)
+    yield resolver
+    registry.set_widget_resolver(previous_resolver)
+    for rules in test_rules:
+        registry.layout_rules.unregister(rules.widget_type)

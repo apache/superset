@@ -14,11 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    canvas,
-    core,
-    dynamic_plugins,
-    purge_audit_log,
-    sql_lab,
-    user_attributes,
-)
+"""Canvas: an AI-first dashboard whose widgets are placed on a canvas."""

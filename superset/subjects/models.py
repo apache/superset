@@ -220,3 +220,41 @@ theme_editors = Table(
     ),
     UniqueConstraint("subject_id", "theme_id"),
 )
+
+canvas_editors = Table(
+    "canvas_editors",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "canvas_id",
+        Integer,
+        ForeignKey("canvases.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "canvas_id"),
+)
+
+canvas_viewers = Table(
+    "canvas_viewers",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "subject_id",
+        Integer,
+        ForeignKey("subjects.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "canvas_id",
+        Integer,
+        ForeignKey("canvases.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    UniqueConstraint("subject_id", "canvas_id"),
+)
