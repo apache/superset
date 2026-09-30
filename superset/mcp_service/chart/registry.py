@@ -197,21 +197,22 @@ def register(plugin: "ChartTypePlugin") -> None:
 def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
     """Return the registered plugin that owns a Superset-internal viz_type.
 
-    Ownership covers ``native_viz_types`` and ``additional_viz_types``. The
-    lookup ignores runtime enablement: a saved chart must be queried,
-    previewed and updated with its plugin's contract even when creating new
-    charts of that type is disabled.
+    Ownership covers ``native_viz_types`` and ``additional_viz_types``.
+    Native owners take priority over additional owners across all plugins;
+    insertion order breaks ties within each category. The lookup ignores runtime
+    enablement: a saved chart must be queried, previewed and updated with its
+    plugin's contract even when creating new charts of that type is disabled.
     """
     if not viz_type:
         return None
     _ensure_plugins_loaded()
+    additional_owner: ChartTypePlugin | None = None
     for plugin in list(_REGISTRY.values()):
         if viz_type in plugin.native_viz_types:
             return plugin
-    for plugin in list(_REGISTRY.values()):
-        if viz_type in getattr(plugin, "additional_viz_types", ()):
-            return plugin
-    return None
+        if additional_owner is None and viz_type in plugin.additional_viz_types:
+            additional_owner = plugin
+    return additional_owner
 
 
 def get(chart_type: str, *, include_disabled: bool = False) -> "ChartTypePlugin | None":
@@ -301,7 +302,7 @@ class _RegistryProxy:
     def get(
         self, chart_type: str, *, include_disabled: bool = False
     ) -> "ChartTypePlugin | None":
-        """Look up a chart type, optionally retaining disabled update contracts."""
+        """Look up a chart type; saved-chart updates may include disabled plugins."""
         return get(chart_type, include_disabled=include_disabled)
 
     def all_types(self) -> list[str]:
@@ -320,6 +321,7 @@ class _RegistryProxy:
         return plugin_for_viz_type(viz_type)
 
     def all_plugins(self) -> list["ChartTypePlugin"]:
+        """Return every registered plugin, enabled or not, in insertion order."""
         return all_plugins()
 
 

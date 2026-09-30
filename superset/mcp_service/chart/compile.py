@@ -134,16 +134,9 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
-            error_code = (
-                plugin.invalid_result_error_code
-                if plugin
-                else BaseChartPlugin.invalid_result_error_code
-            )
-            message = (
-                plugin.invalid_result_message
-                if plugin
-                else BaseChartPlugin.invalid_result_message
-            )
+            result_contract = plugin or BaseChartPlugin
+            error_code = result_contract.invalid_result_error_code
+            message = result_contract.invalid_result_message
             return CompileResult(
                 success=False,
                 error=result.error,

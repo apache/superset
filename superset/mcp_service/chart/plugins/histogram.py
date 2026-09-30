@@ -30,6 +30,7 @@ from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ColumnRef,
+    DEFAULT_HISTOGRAM_BINS,
     HistogramChartConfig,
     VegaLitePreview,
 )
@@ -239,12 +240,16 @@ class HistogramChartPlugin(BaseChartPlugin):
             row_limit=row_limit,
             order_desc=order_desc,
         )
-        if column := column_result_label(form_data.get("column")):
+        if (
+            form_data.get("column")
+            and columns
+            and (column := column_result_label(columns[-1]))
+        ):
             # Mirror histogramOperator so rows are the binned chart output.
             try:
-                bins = int(float(form_data.get("bins", 5)))
+                bins = int(float(form_data.get("bins", DEFAULT_HISTOGRAM_BINS)))
             except (TypeError, ValueError, OverflowError):
-                bins = 5
+                bins = DEFAULT_HISTOGRAM_BINS
             groupby = [
                 label
                 for value in columns[:-1]

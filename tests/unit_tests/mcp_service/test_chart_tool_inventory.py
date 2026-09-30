@@ -208,8 +208,8 @@ async def test_chart_tool_schema_is_independent_of_chart_type_count(
 
 def test_budget_is_independent_of_chart_type_count() -> None:
     """Adding a chart type grows only the excluded enum, never the budgeted bytes."""
-    text = '{"enum":' + CHART_TYPE_ENUM + "}"
-    grown = CHART_TYPE_ENUM[:-1] + ',"another_registered_chart_type"]'
+    text: str = '{"enum":' + CHART_TYPE_ENUM + "}"
+    grown: str = CHART_TYPE_ENUM[:-1] + ',"another_registered_chart_type"]'
     assert budgeted_bytes(text) == len(b'{"enum":}')
     # A different enum is not excluded, so inlined per-type schemas still count.
     assert budgeted_bytes('{"enum":' + grown + "}") > len(b'{"enum":}')

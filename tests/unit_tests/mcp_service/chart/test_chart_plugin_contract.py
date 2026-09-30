@@ -731,3 +731,32 @@ def test_dispatch_guard_ignores_get_default() -> None:
     assert not _branches_on_registered_type(
         ast.parse('fd.get("viz_type", "table")'), {"table"}
     )
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_boolean_compile_limit_uses_fallback(value: bool) -> None:
+    """Booleans are malformed persisted limits, not one-row samples."""
+    from superset.mcp_service.chart.plugin import capped_compile_row_limit
+
+    assert capped_compile_row_limit({"row_limit": value}) == 10
+
+
+@pytest.mark.parametrize("nullable", [False, True])
+def test_compact_schema_annotations_are_isolated(nullable: bool) -> None:
+    """Mutating one annotation cannot corrupt other chart tool schemas."""
+    from superset.mcp_service.chart.schemas import (
+        CHART_CONFIG_REFERENCE_SCHEMA,
+        chart_config_reference_schema,
+    )
+
+    first = chart_config_reference_schema(nullable=nullable)
+    second = chart_config_reference_schema(nullable=nullable)
+    assert first.json_schema == second.json_schema
+    assert first.json_schema is not None
+    schema = first.json_schema["anyOf"][0] if nullable else first.json_schema
+    schema["properties"]["chart_type"]["enum"].append("mutation")
+    assert first.json_schema != second.json_schema
+    assert (
+        "mutation"
+        not in CHART_CONFIG_REFERENCE_SCHEMA["properties"]["chart_type"]["enum"]
+    )

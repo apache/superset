@@ -185,7 +185,9 @@ def _append_table_columns(
     # empty. Route each kind by is_metric instead, to keep an aggregate chart
     # aggregate no matter which mix of columns is appended.
     metric_patch = (
-        map_config_to_form_data(TableChartConfig(columns=metric_columns))
+        map_config_to_form_data(
+            TableChartConfig(columns=metric_columns), include_disabled=True
+        )
         if metric_columns
         else {}
     )
@@ -595,6 +597,11 @@ def _validate_update_against_dataset(
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(
             message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    except ValueError as ex:
+        return _validation_error_response(
+            message="Chart configuration is invalid",
             details=str(ex),
         )
     if merged_config is not None:

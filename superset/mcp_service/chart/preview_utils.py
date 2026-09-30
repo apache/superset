@@ -42,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.utils.core import get_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -1301,7 +1302,6 @@ def generate_funnel_vega_lite_preview(
 ) -> VegaLitePreview | ChartError:
     """Render funnel stages as horizontal value bars, preserving query order."""
     from superset.mcp_service.chart.chart_helpers import normalize_groupby
-    from superset.utils.core import get_column_name
 
     groupby = normalize_groupby(form_data)
     metric = metric_result_label(form_data.get("metric"))
@@ -1342,7 +1342,6 @@ def generate_histogram_vega_lite_preview(
 ) -> VegaLitePreview:
     """Render histogram operator output without re-binning its counts."""
     from superset.mcp_service.chart.chart_helpers import normalize_groupby
-    from superset.utils.core import get_column_name
 
     groupby = [get_column_name(column) for column in normalize_groupby(form_data)]
     bins = [column for column in data[0] if column not in groupby] if data else []

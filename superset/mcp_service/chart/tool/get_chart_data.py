@@ -1067,6 +1067,9 @@ async def execute_chart_data(  # noqa: C901
             # instead of a generic DataError.
             raise
         except QueryObjectValidationError as ex:
+            logger.warning(
+                "Chart data validation failed for chart %s: %s", chart_id, ex
+            )
             return ChartError(error=str(ex), error_type="ValidationError")
         except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
@@ -1323,6 +1326,7 @@ async def _query_from_form_data(  # noqa: C901
         # DataError.
         raise
     except QueryObjectValidationError as ex:
+        logger.warning("Unsaved chart data validation failed: %s", ex)
         return ChartError(error=str(ex), error_type="ValidationError")
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
