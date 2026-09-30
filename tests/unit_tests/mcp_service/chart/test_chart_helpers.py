@@ -1456,3 +1456,75 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     # and otherwise falls back to its own metric.
     assert secondary["orderby"] == (secondary_orderby or [["sum_sales", False]])
     assert form_data["orderby"] == [["count", True]]
+
+
+def test_resolve_deck_gl_columns_ignores_cross_filter_column():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "cross_filter_column": "region",
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert "region" not in cols
+
+
+def test_build_query_dicts_deck_scatter_always_filters_spatial_nulls(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "filter_nulls": False,
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    null_filters = [
+        f for f in queries[0].get("filters", []) if f.get("op") == "IS NOT NULL"
+    ]
+    # Scatter's frontend builder always adds spatial null filters; unlike
+    # GeoJSON and Polygon, it has no filter_nulls control.
+    assert null_filters == [
+        {"col": "lon", "op": "IS NOT NULL", "val": None},
+        {"col": "lat", "op": "IS NOT NULL", "val": None},
+    ]
+
+
+def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch):
+    # deck_path fixture also has size='100' — scalar must not become a metric.
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_path",
+        "line_column": "path_col",
+        "size": "100",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
+    # GeoJSON's frontend builder preserves base extras but disables time series.
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "granularity_sqla": "ts",
+        "time_grain_sqla": "P1D",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["is_timeseries"] is False
+    assert queries[0]["extras"]["time_grain_sqla"] == "P1D"

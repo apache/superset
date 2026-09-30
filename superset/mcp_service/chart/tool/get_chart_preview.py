@@ -561,11 +561,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
                 )
-            if not chart_data:
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
-                )
 
             if (
                 fallback := fallback_vega_lite_preview(chart_data, form_data)

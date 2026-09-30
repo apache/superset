@@ -129,7 +129,7 @@ TOOL_BUDGETS = {
     "restore_dashboard": 1_000,
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
-    "update_chart": 4_100,
+    "update_chart": 4_300,
     "update_chart_preview": 2_000,
     "update_dashboard": 4_100,
     "update_dataset": 2_300,

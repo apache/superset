@@ -2849,6 +2849,7 @@ def test_append_metrics_retains_disabled_table_contract(
 def test_plugin_value_error_returns_validation_response() -> None:
     """Non-Gantt plugins share the documented ValueError validation contract."""
     plugin = Mock()
+    plugin.normalize_saved_form_data.return_value = None
     plugin.validate_merged_form_data.side_effect = ValueError("Invalid role")
     chart = Mock(datasource=Mock(id=1))
     with patch.object(update_chart_module, "plugin_for_viz_type", return_value=plugin):

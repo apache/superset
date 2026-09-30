@@ -195,6 +195,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
+        from superset.common.form_data_query_context import normalize_time_column
         from superset.mcp_service.chart.chart_helpers import (
             build_single_query_dict,
             normalize_groupby,
@@ -210,5 +211,5 @@ class WaterfallChartPlugin(BaseChartPlugin):
         query = build_single_query_dict(
             form_data, columns, resolve_shared_metrics(form_data), row_limit=row_limit
         )
-        query["orderby"] = [(column, True) for column in columns]
-        return [query]
+        query["orderby"] = [[column, True] for column in columns]
+        return [normalize_time_column(form_data, query)]

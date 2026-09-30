@@ -929,9 +929,17 @@ def resolve_gantt_query_fields(  # noqa: C901
     category = require_column(form_data.get("y_axis"), "y_axis")
 
     raw_series = form_data.get("series")
-    series_columns = (
-        [require_column(raw_series, "series")] if raw_series is not None else []
-    )
+    if isinstance(raw_series, list):
+        if len(raw_series) > 50:
+            raise ValueError("Gantt series must contain at most 50 entries")
+        series_columns = [
+            require_column(column, f"series[{index}]")
+            for index, column in enumerate(raw_series)
+        ]
+    else:
+        series_columns = (
+            [require_column(raw_series, "series")] if raw_series is not None else []
+        )
 
     raw_tooltip_columns = form_data.get("tooltip_columns") or []
     raw_tooltip_metrics = form_data.get("tooltip_metrics") or []

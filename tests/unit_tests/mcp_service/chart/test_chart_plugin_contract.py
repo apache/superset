@@ -534,30 +534,40 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
 # unlike a function allowlist, this multiset rejects added or duplicated branches.
 _LEGACY_TYPE_BRANCHES = (
     (
-        "superset.mcp_service.chart.query_result: form_data.get('viz_type') != "
-        "'gauge_chart'"
+        "superset.mcp_service.chart.query_result: form_data.get('viz_type') "
+        "!= 'gauge_chart'"
     ),
     (
         "superset.mcp_service.chart.preview_utils: {'bar': "
-        "_generate_safe_ascii_bar_chart, 'dist_bar': _generate_safe_ascii_bar_chart, "
-        "'column': _generate_safe_ascii_bar_chart, 'line': "
-        "_generate_safe_ascii_line_chart, 'area': _generate_safe_ascii_line_chart, "
-        "'pie': _generate_safe_ascii_pie_chart}"
+        "_generate_safe_ascii_bar_chart, 'dist_bar': "
+        "_generate_safe_ascii_bar_chart, 'column': "
+        "_generate_safe_ascii_bar_chart, 'line': "
+        "_generate_safe_ascii_line_chart, 'area': "
+        "_generate_safe_ascii_line_chart, 'pie': "
+        "_generate_safe_ascii_pie_chart}"
     ),
     (
-        "superset.mcp_service.chart.preview_utils: {'echarts_timeseries_line': 'line', "
-        "'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
-        "'echarts_timeseries_scatter': 'point', 'bar': 'bar', 'line': 'line', 'area': "
-        "'area', 'scatter': 'point', 'pie': 'arc', 'table': 'text'}"
+        "superset.mcp_service.chart.preview_utils: "
+        "{'echarts_timeseries_line': 'line', 'echarts_timeseries_bar': 'bar',"
+        " 'echarts_area': 'area', 'echarts_timeseries_scatter': 'point', "
+        "'bar': 'bar', 'line': 'line', 'area': 'area', 'scatter': 'point', "
+        "'pie': 'arc', 'table': 'text'}"
     ),
     "superset.mcp_service.chart.preview_utils: preview_format == 'table'",
+    (
+        "superset.mcp_service.chart.chart_utils: {'gantt_chart': "
+        "_GANTT_DATASET_ROLE_KEYS, 'gantt': _GANTT_DATASET_ROLE_KEYS, "
+        "'country_map': frozenset({'entity', 'metric', 'series_columns'}), "
+        "'world_map': frozenset({'entity', 'metric', 'secondary_metric', "
+        "'series_columns'})}"
+    ),
     (
         "superset.mcp_service.chart.chart_utils: {'table': 'table chart', "
         "'ag-grid-table': 'interactive table chart'}"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') !="
+        " 'gantt_chart'"
     ),
     "superset.mcp_service.chart.chart_utils: viz_type == 'big_number'",
     (
@@ -568,39 +578,48 @@ _LEGACY_TYPE_BRANCHES = (
         "superset.mcp_service.chart.chart_utils: viz_type in "
         "['echarts_timeseries_line', 'echarts_timeseries_bar']"
     ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, SunburstChartConfig)"),
     (
-        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line': 'Shows "
-        "trends and changes over time', 'echarts_timeseries_bar': 'Compares values "
-        "across categories or time periods', 'table': 'Displays detailed data in "
-        "tabular format', 'ag-grid-table': 'Interactive table with advanced features "
-        "like column resizing, sorting, filtering, and server-side pagination', 'pie': "
-        "'Shows proportional relationships within a dataset', 'echarts_area': "
+        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line': "
+        "'Shows trends and changes over time', 'echarts_timeseries_bar': "
+        "'Compares values across categories or time periods', 'table': "
+        "'Displays detailed data in tabular format', 'ag-grid-table': "
+        "'Interactive table with advanced features like column resizing, "
+        "sorting, filtering, and server-side pagination', 'pie': 'Shows "
+        "proportional relationships within a dataset', 'echarts_area': "
         "'Emphasizes cumulative totals and part-to-whole relationships', "
-        "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and aggregated "
-        "metrics for multi-dimensional analysis', 'ag-grid-pivot-table': "
-        "'Interactively cross-tabulates data with AG Grid row groups, pivot columns, "
-        "value aggregation, and side-panel reconfiguration', 'mixed_timeseries': "
-        "'Combines two different chart types on the same time axis for comparing "
-        "related metrics with different scales', 'handlebars': 'Renders data using a "
-        "custom Handlebars HTML template for fully flexible layouts like KPI cards, "
-        "leaderboards, and reports', 'big_number': 'Displays a key metric with a "
-        "trendline showing how the value changes over time', 'big_number_total': "
-        "'Highlights a single key metric value as a prominent number'}"
+        "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and "
+        "aggregated metrics for multi-dimensional analysis', "
+        "'ag-grid-pivot-table': 'Interactively cross-tabulates data with AG "
+        "Grid row groups, pivot columns, value aggregation, and side-panel "
+        "reconfiguration', 'mixed_timeseries': 'Combines two different chart "
+        "types on the same time axis for comparing related metrics with "
+        "different scales', 'handlebars': 'Renders data using a custom "
+        "Handlebars HTML template for fully flexible layouts like KPI cards, "
+        "leaderboards, and reports', 'big_number': 'Displays a key metric "
+        "with a trendline showing how the value changes over time', "
+        "'big_number_total': 'Highlights a single key metric value as a "
+        "prominent number', 'sunburst_v2': 'Shows hierarchical part-to-whole "
+        "relationships, with each ring adding a deeper categorical level'}"
     ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, SunburstChartConfig)"),
     (
         "superset.mcp_service.chart.chart_utils: viz_type in "
         "['echarts_timeseries_line', 'echarts_timeseries_bar']"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: previous_form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: "
+        "previous_form_data.get('viz_type') != 'gantt_chart'"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: "
+        "new_form_data.get('viz_type') != 'gantt_chart'"
     ),
-    "superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)",
-    "superset.mcp_service.chart.chart_utils: existing.get('viz_type') == 'treemap_v2'",
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)"),
+    (
+        "superset.mcp_service.chart.chart_utils: existing.get('viz_type') == "
+        "'treemap_v2'"
+    ),
     (
         "superset/mcp_service/chart/tool/get_chart_preview.py {'url': "
         "URLPreviewStrategy, 'ascii': ASCIIPreviewStrategy, 'table': "
@@ -609,35 +628,38 @@ _LEGACY_TYPE_BRANCHES = (
     (
         "superset/mcp_service/chart/tool/get_chart_preview.py {'line': "
         "['echarts_timeseries_line', 'echarts_timeseries', "
-        "'echarts_timeseries_smooth', 'echarts_timeseries_step', 'line'], 'bar': "
-        "['echarts_timeseries_bar', 'echarts_timeseries_column', 'bar', 'column', "
-        "'waterfall'], 'area': ['echarts_area', 'area'], 'scatter': "
-        "['echarts_timeseries_scatter', 'scatter'], 'pie': ['pie'], 'big_number': "
-        "['big_number', 'big_number_total'], 'histogram': ['histogram', "
-        "'histogram_v2'], 'box_plot': ['box_plot'], 'heatmap': ['heatmap', "
-        "'heatmap_v2', 'cal_heatmap'], 'funnel': ['funnel'], 'mixed': "
+        "'echarts_timeseries_smooth', 'echarts_timeseries_step', 'line'], "
+        "'bar': ['echarts_timeseries_bar', 'echarts_timeseries_column', "
+        "'bar', 'column', 'waterfall'], 'area': ['echarts_area', 'area'], "
+        "'scatter': ['echarts_timeseries_scatter', 'scatter'], 'pie': "
+        "['pie'], 'big_number': ['big_number', 'big_number_total'], "
+        "'histogram': ['histogram', 'histogram_v2'], 'box_plot': "
+        "['box_plot'], 'heatmap': ['heatmap', 'heatmap_v2', 'cal_heatmap'], "
+        "'funnel': ['funnel'], 'gauge': ['gauge_chart'], 'mixed': "
         "['mixed_timeseries'], 'table': ['table']}"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_timeseries_line': "
-        "'line', 'echarts_timeseries_smooth': 'line', 'echarts_timeseries_step': "
-        "'line', 'echarts_timeseries': 'line', 'echarts_timeseries_bar': 'bar', "
-        "'echarts_area': 'area', 'echarts_timeseries_scatter': 'scatter', "
-        "'mixed_timeseries': 'line', 'table': 'table', 'pie': 'pie', 'big_number': "
-        "'kpi', 'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
-        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': 'bubble', "
-        "'bubble_v2': 'bubble', 'treemap_v2': 'treemap', 'sunburst_v2': 'treemap', "
-        "'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'funnel': 'funnel', "
-        "'histogram': 'histogram', 'histogram_v2': 'histogram', 'box_plot': "
-        "'box_plot', 'world_map': 'map', 'pivot_table_v2': 'table', "
-        "'ag-grid-pivot-table': 'table', 'waterfall': 'waterfall', 'gantt_chart': "
-        "'gantt'}"
+        "superset/mcp_service/chart/tool/get_chart_data.py "
+        "{'echarts_timeseries_line': 'line', 'echarts_timeseries_smooth': "
+        "'line', 'echarts_timeseries_step': 'line', 'echarts_timeseries': "
+        "'line', 'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
+        "'echarts_timeseries_scatter': 'scatter', 'mixed_timeseries': 'line',"
+        " 'table': 'table', 'pie': 'pie', 'big_number': 'kpi', "
+        "'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
+        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': "
+        "'bubble', 'bubble_v2': 'bubble', 'treemap_v2': 'treemap', "
+        "'sunburst_v2': 'sunburst', 'heatmap_v2': 'heatmap', 'gauge_chart': "
+        "'gauge', 'funnel': 'funnel', 'histogram': 'histogram', "
+        "'histogram_v2': 'histogram', 'box_plot': 'box_plot', 'world_map': "
+        "'map', 'pivot_table_v2': 'table', 'ag-grid-pivot-table': 'table', "
+        "'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': 'line', "
-        "'multi-line chart': 'line', 'area chart': 'area', 'bar chart': 'bar', "
-        "'scatter plot': 'scatter', 'bubble chart': 'bubble', 'pie chart': 'pie', "
-        "'treemap': 'treemap', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
+        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
+        "'line', 'multi-line chart': 'line', 'area chart': 'area', 'bar "
+        "chart': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble', "
+        "'pie chart': 'pie', 'treemap': 'treemap', 'sunburst chart': "
+        "'sunburst', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
         "chart': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
     ),
 )
@@ -692,8 +714,13 @@ def test_saved_scalar_groupby_waterfall_query(groupby: str | list[str]) -> None:
         order_desc=False,
     )
     assert queries is not None
-    assert queries[0]["columns"] == ["month", "stage"]
-    assert queries[0]["orderby"] == [("month", True), ("stage", True)]
+    from superset.utils.core import get_column_name
+
+    assert [get_column_name(column) for column in queries[0]["columns"]] == [
+        "month",
+        "stage",
+    ]
+    assert queries[0]["orderby"] == [["month", True], ["stage", True]]
 
 
 @pytest.mark.parametrize("groupby", ["stage", ["stage"]])
