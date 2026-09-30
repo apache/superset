@@ -39,10 +39,12 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
   capTickMarks,
   getTemporalTickValues,
+  measureTextWidth,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -130,6 +132,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -1104,6 +1111,12 @@ describe('formatSeriesName', () => {
   });
 });
 
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
+});
+
 describe('getLegendProps', () => {
   test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
@@ -1120,7 +1133,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1136,11 +1149,30 @@ describe('getLegendProps', () => {
     ).toEqual({
       show: true,
       top: 0,
-      right: 55,
+      right: 90,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
+  });
+
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
+    const { right } = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      true,
+    );
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
@@ -2126,4 +2158,55 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
     midAreaSize,
   );
+});
+
+describe('measureTextWidth caching', () => {
+  // jsdom does not implement canvas measurement, so stub document.createElement
+  // to hand back a fake 2d context whose measureText call count/args we can
+  // assert on -- that's the only way to observe a cache hit vs. a recompute.
+  let measureText: jest.Mock;
+  let createElementSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    measureText = jest.fn((text: string) => ({ width: text.length * 7 }));
+    createElementSpy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation(
+        () => ({ getContext: () => ({ font: '', measureText }) }) as never,
+      );
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
+  });
+
+  test('caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit', () => {
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // A different theme is a different cache key, so it does remeasure.
+    measureTextWidth('Category A', { ...theme, fontSizeSM: 20 });
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+
+  test('evicts the least-recently-used entry once the cache is full', () => {
+    // Fill the cache (2000 entries) then measure one more distinct label --
+    // whichever key gets evicted must be remeasured on its next lookup.
+    for (let i = 0; i < 2000; i += 1) {
+      measureTextWidth(`label-${i}`, theme);
+    }
+    measureText.mockClear();
+
+    measureTextWidth('one-too-many', theme);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // The oldest entry (label-0) was evicted to make room, so it recomputes.
+    measureTextWidth('label-0', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+
+    // A more recently used entry is still cached.
+    measureTextWidth('label-1999', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
 });

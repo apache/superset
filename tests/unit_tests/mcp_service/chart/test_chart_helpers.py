@@ -1214,11 +1214,13 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
             [
                 {
                     "columns": ["event_time", "region"],
+                    "series_columns": ["region"],
                     "metrics": ["count"],
                     "filters": [],
                 },
                 {
                     "columns": ["event_time", "product"],
+                    "series_columns": ["product"],
                     "metrics": ["sum_sales"],
                     "filters": [],
                 },
@@ -1312,12 +1314,14 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
 
     assert primary == {
         "columns": ["event_time", "region"],
+        "series_columns": ["region"],
         "metrics": ["count"],
         "orderby": [["count", True]],
         "filters": [],
     }
     expected_secondary: dict[str, object] = {
         "columns": ["event_time", "product"],
+        "series_columns": ["product"],
         "metrics": ["sum_sales"],
         "filters": [],
     }
