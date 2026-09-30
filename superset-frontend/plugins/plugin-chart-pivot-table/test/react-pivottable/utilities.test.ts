@@ -196,6 +196,32 @@ test('result aggregation reduces the grand summary from every original leaf reco
   expect(pivotData.getAggregator([], []).value()).toBeCloseTo(43.33, 2);
 });
 
+test('result aggregation never reduces a true leaf cell, only subtotals and the grand total', () => {
+  // A leaf holding one already-aggregated SUM(sales)=100 record must keep
+  // rendering that database value -- not fold the single-item set through
+  // the chosen reducer (e.g. "Count" turning it into 1).
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Count',
+    },
+    { rowEnabled: true },
+  );
+
+  // Leaf cells: each keeps its own original value, unreduced.
+  expect(pivotData.getAggregator(['North', 'A'], []).value()).toBe(10);
+  expect(pivotData.getAggregator(['North', 'B'], []).value()).toBe(20);
+  expect(pivotData.getAggregator(['South', 'C'], []).value()).toBe(100);
+  // North subtotal and the grand total are genuine rollups, so they still
+  // reduce via the selected result aggregation (Count of the contributing
+  // leaves).
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(2);
+  expect(pivotData.getAggregator([], []).value()).toBe(3);
+});
+
 test('result aggregation blanks a shared total slot that would mix two different metrics', () => {
   const mixedMetricLeaves: PivotRecord[] = [
     {

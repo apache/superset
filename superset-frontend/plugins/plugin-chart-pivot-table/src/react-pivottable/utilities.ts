@@ -1182,6 +1182,11 @@ Data Model class
 class PivotData {
   props: Record<string, unknown>;
   aggregator: (...args: unknown[]) => Aggregator;
+  // A true leaf cell (see `processResultRecord`) always holds one metric's
+  // own DB-computed value -- unlike `aggregator`, this never becomes a
+  // result-aggregation reducer, so a leaf record renders verbatim instead of
+  // being folded through e.g. "Count" into 1.
+  leafAggregator: (...args: unknown[]) => Aggregator;
   formattedAggregators:
     | Record<string, Record<string, (...args: unknown[]) => Aggregator>>
     | false;
@@ -1280,15 +1285,20 @@ class PivotData {
     // themselves to read 100%. This needs no new query and no per-metric
     // aggregator-override control (that control is gone, see SIP.md); it's a
     // pure display transform over values that are already DB-correct.
-    this.aggregator =
-      resultFactory ??
-      (fractionType
-        ? aggregatorTemplates.fractionOf(
-            cellValue(),
-            fractionType,
-            usFmtPct,
-          )(vals)
-        : cellValue(this.props.defaultFormatter as Formatter)(vals));
+    const plainAggregator = fractionType
+      ? aggregatorTemplates.fractionOf(
+          cellValue(),
+          fractionType,
+          usFmtPct,
+        )(vals)
+      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    this.aggregator = resultFactory ?? plainAggregator;
+    // A result aggregation reduces the *rollup* scopes (subtotals, row/col
+    // totals, the grand total) over a metric's own leaf-level results -- it
+    // never reduces the leaf cells themselves (see resultAggregation.ts), so
+    // `leafAggregator` stays this plain, DB-verbatim aggregator even when
+    // `this.aggregator` above is a reducer.
+    this.leafAggregator = plainAggregator;
     // Percentage display always uses a fixed percent format -- a per-metric
     // custom formatter (currency, decimals, etc.) doesn't apply to a ratio,
     // so the " as Fraction of " result aggregations (like `fractionType`)
@@ -1379,6 +1389,37 @@ class PivotData {
       return this.aggregator;
     }
     return fmtAggs[groupName][String(groupValue)] || this.aggregator;
+  }
+
+  /**
+   * Leaf-cell counterpart to `getFormattedAggregator`, for the true leaf
+   * scope in `processResultRecord` (both axes at full depth): resolves the
+   * same `customFormatters` match, but against `leafAggregator`/a verbatim
+   * `cellValue`, never `this.aggregator`'s result-aggregation reducer.
+   */
+  getLeafAggregator(record: PivotRecord, totalsKeys?: string[]) {
+    const customFormatters = this.props.customFormatters as
+      | Record<string, Record<string, Formatter>>
+      | undefined;
+    if (!customFormatters) {
+      return this.leafAggregator;
+    }
+    const [groupName, groupValue] =
+      Object.entries(record).find(
+        ([name, value]) =>
+          customFormatters[name] && customFormatters[name][String(value)],
+      ) || [];
+    if (
+      !groupName ||
+      !groupValue ||
+      (totalsKeys && !totalsKeys.includes(String(groupValue)))
+    ) {
+      return this.leafAggregator;
+    }
+    const formatter = customFormatters[groupName][String(groupValue)];
+    return formatter
+      ? cellValue(formatter)(this.props.vals as string[])
+      : this.leafAggregator;
   }
 
   arrSort(attrs: string[], partialOnTop: boolean | undefined, reverse = false) {
@@ -1587,9 +1628,21 @@ class PivotData {
           target = this.tree[rk];
           key = ck;
         }
-        target[key] ??= this.getFormattedAggregator(
-          record,
-          ci === 0 ? r : ri === 0 ? c : undefined,
+        // Both axes at full depth: a true leaf, which always receives
+        // exactly one record and must keep that record's own DB-computed
+        // value, never a result-aggregation reducer applied to a one-item
+        // set (see `leafAggregator`/`getLeafAggregator`).
+        const isLeafScope = ri === rows.length && ci === cols.length;
+        target[key] ??= (
+          isLeafScope
+            ? this.getLeafAggregator(
+                record,
+                ci === 0 ? r : ri === 0 ? c : undefined,
+              )
+            : this.getFormattedAggregator(
+                record,
+                ci === 0 ? r : ri === 0 ? c : undefined,
+              )
         )(this, r, c);
         target[key].push(record);
         target[key].isRowSubtotal = ri > 0 && ri < rows.length;
