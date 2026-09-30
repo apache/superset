@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQLite time filters on `DATE` columns
+
+On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`
+column writes its bounds as a date, such as `'2026-09-20'`, and no longer uses
+the column's **Datetime format** (`python_date_format`) or the database's
+`python_date_format_by_column_name`. This fixes ranges that started and ended
+one day late on `DATE` columns holding `YYYY-MM-DD` text. A `DATE` column that
+holds values in another format, such as `20260920`, `09/20/2026` or epoch
+seconds, is no longer filtered correctly. Columns declared as `INTEGER` are not
+affected.
+
 ### DynamoDB timestamp string format
 
 DynamoDB time-filter bounds use ISO 8601 with a `T` separator, preserving
