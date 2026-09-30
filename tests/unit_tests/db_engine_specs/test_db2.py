@@ -95,11 +95,15 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     database = mocker.MagicMock()
+
     # Stand-in for the DB2 dialect: unquoted names are stored upper case and
     # reflected lower case; other names are stored as reflected.
-    database.get_dialect.return_value.denormalize_name.side_effect = lambda name: (
-        name.upper() if name.islower() and name.isidentifier() else name
-    )
+    def denormalize_name(name: str) -> str:
+        """Restore the catalog case of an unquoted DB2 identifier."""
+        return name.upper() if name.islower() and name.isidentifier() else name
+
+    database.get_dialect.return_value.requires_name_normalize = True
+    database.get_dialect.return_value.denormalize_name.side_effect = denormalize_name
 
     assert Db2EngineSpec.get_prequeries(database) == []
     assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [
@@ -111,6 +115,20 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     assert Db2EngineSpec.get_prequeries(database, schema='evil"; SELECT 1--') == [
         'set current_schema "evil""; SELECT 1--"'
     ]
+
+
+def test_get_prequeries_without_name_normalization(mocker: MockerFixture) -> None:
+    """Preserve schema names when the dialect does not request normalization."""
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+
+    database = mocker.MagicMock()
+    dialect = database.get_dialect.return_value
+    dialect.requires_name_normalize = False
+
+    assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [
+        'set current_schema "my_schema"'
+    ]
+    dialect.denormalize_name.assert_not_called()
 
 
 @pytest.mark.parametrize(

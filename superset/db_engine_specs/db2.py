@@ -157,6 +157,6 @@ class Db2EngineSpec(BaseEngineSpec):
         # names are normalized to lower case. Quoting that name as-is would
         # select a different, usually non-existent, schema, so convert it back
         # to the name stored in the catalog first.
-        name = database.get_dialect().denormalize_name(schema)
+        name = cls.denormalize_name(database.get_dialect(), schema)
         escaped = name.replace('"', '""')
         return [f'set current_schema "{escaped}"']
