@@ -176,7 +176,7 @@ scheduled table in the warehouse so each chart query is a cheap lookup.
 - Server-side screenshot jobs (alerts, scheduled reports, thumbnails)
   render the dashboard in a headless Chromium browser driven by Playwright, which
   intentionally bypasses row virtualization so the rendered artifact
-  includes every chart, not just the ones above the fold. User-triggered
+  includes every chart on the active tab, not just the ones above the fold. User-triggered
   "download as image/PDF" is different: it captures whatever's currently
   rendered in the user's own browser, so it's still subject to
   virtualization like any other page view. Metadata/YAML dashboard export
