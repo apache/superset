@@ -48,6 +48,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   groupData,
+  measureTextInkWidth,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -217,19 +218,11 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   let maxCategoryLabelWidth = 0;
 
   // The category labels are drawn via the markLine `label` below, so its font
-  // must match the one used here to measure available space, or the reserved
-  // grid area can end up narrower than the rendered text.
+  // must match the one measureTextInkWidth measures with (the theme's
+  // fontSizeSM / fontFamily), or the reserved grid area can end up narrower
+  // than the rendered text.
   const categoryLabelFontSize = theme.fontSizeSM;
   const categoryLabelFontFamily = theme.fontFamily;
-
-  let measureContext: CanvasRenderingContext2D | null = null;
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
-    measureContext = canvas.getContext('2d');
-    if (measureContext) {
-      measureContext.font = `${categoryLabelFontSize}px ${categoryLabelFontFamily}`;
-    }
-  }
 
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
@@ -242,23 +235,12 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     });
 
     if (name) {
-      // Prefer the rendered glyphs' actual ink extent over the advance
-      // width: some glyphs (e.g. italics, descenders) paint past the
-      // advance width, which previously left labels clipped by a few
-      // pixels. Fall back to an approximate width (~0.62 of the font size
-      // per character) when canvas is unavailable (e.g. SSR).
-      let labelWidth: number;
-      if (measureContext) {
-        const metrics = measureContext.measureText(name);
-        const inkWidth =
-          (metrics.actualBoundingBoxLeft ?? 0) +
-          (metrics.actualBoundingBoxRight ?? 0);
-        labelWidth = Math.max(metrics.width, inkWidth);
-      } else {
-        labelWidth = name.length * categoryLabelFontSize * 0.62;
-      }
-
-      maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
+      // Reserve the rendered glyphs' ink extent rather than only the advance
+      // width, which previously left labels clipped by a few pixels.
+      maxCategoryLabelWidth = Math.max(
+        maxCategoryLabelWidth,
+        measureTextInkWidth(name, theme),
+      );
     }
 
     borderLines.push({ yAxis: seriesCount - sum });
