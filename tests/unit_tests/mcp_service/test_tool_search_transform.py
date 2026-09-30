@@ -1403,3 +1403,149 @@ def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
         if name in visible and ranked[:1] != [name]
     }
     assert not_first == {}
+
+
+@pytest.fixture
+def regex_transform() -> RegexSearchTransform:
+    """Build the production transform with the default search result budget."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {
+            "strategy": "regex",
+            "max_results": 5,
+            "always_visible": ["health_check"],
+        },
+    )
+    return server.add_transform.call_args[0][0]
+
+
+@pytest.mark.parametrize("description_size", [1, 10000])
+@pytest.mark.parametrize(
+    "query, expected_count",
+    [("generate_chart", 5), (" GENERATE_chart ", 5), ("generate  chart", 1)],
+)
+def test_regex_promotes_exact_name(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    description_size: int,
+    query: str,
+    expected_count: int,
+) -> None:
+    """Exact names survive sibling-description matches beyond the result limit."""
+    exact = crowded_catalog[-1]
+    exact.description = "Create charts with configurable visualization options. " * (
+        description_size
+    )
+    baseline = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, "generate_chart")
+    )
+    assert exact not in baseline
+
+    results = asyncio.run(regex_transform._search(crowded_catalog, query))
+
+    assert results[0] is exact
+    assert len(results) == expected_count
+    assert len({tool.name for tool in results}) == expected_count
+
+
+@pytest.mark.parametrize(
+    "query", ["charts", "create charts", "generate", "no_match", "[", "generate.*chart"]
+)
+def test_regex_non_exact_ordering_unchanged(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """Non-exact searches preserve upstream regex ordering and result count."""
+    expected = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(regex_transform._search(crowded_catalog, query)) == expected
+
+
+@pytest.mark.parametrize("exclusion", ["permission", "catalog", "pinned"])
+def test_regex_exact_name_respects_visibility(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    exclusion: str,
+) -> None:
+    """Promotion cannot recover RBAC-denied, catalog-hidden, or pinned tools."""
+    exact = crowded_catalog[-1]
+    # Warm the same transform for a caller who could previously see this tool.
+    assert asyncio.run(regex_transform._search(crowded_catalog, exact.name))[0] is exact
+    catalog = crowded_catalog
+    if exclusion == "catalog":
+        catalog = crowded_catalog[:-1]
+    elif exclusion == "pinned":
+        regex_transform._always_visible.add(exact.name)
+    else:
+        setattr(exact.fn, CLASS_PERMISSION_ATTR, "Chart")
+        setattr(exact.fn, METHOD_PERMISSION_ATTR, "write")
+
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+    with (
+        app.app_context(),
+        patch.object(
+            regex_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+        ),
+        patch(
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
+        ) as security_manager,
+    ):
+        g.user = SimpleNamespace(username="viewer")
+        security_manager.can_access.return_value = False
+        search_tool = regex_transform._make_search_tool()
+        results = asyncio.run(search_tool.fn(query=exact.name, ctx=None))
+
+    assert exact.name not in [tool["name"] for tool in results]
+    assert len(results) == 5
+    if exclusion == "permission":
+        security_manager.can_access.assert_called_with("can_write", "Chart")
+
+
+def test_regex_always_visible_tools_stay_pinned(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+) -> None:
+    """Pinned tools remain listed and do not consume the search result budget."""
+    health = Tool.from_function(lambda: None, name="health_check")
+    catalog = [health, *crowded_catalog]
+    listed = asyncio.run(regex_transform.transform_tools(catalog))
+    assert {tool.name for tool in listed} == {
+        "health_check",
+        "search_tools",
+        "call_tool",
+    }
+    with patch.object(
+        regex_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+    ):
+        results = asyncio.run(
+            regex_transform._make_search_tool().fn(query="generate_chart", ctx=None)
+        )
+    assert results[0]["name"] == "generate_chart"
+    assert len(results) == 5
+    assert "health_check" not in [tool["name"] for tool in results]
+
+
+@pytest.mark.parametrize("max_results", [1, 3, 5, 20])
+def test_regex_exact_name_is_not_duplicated(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    max_results: int,
+) -> None:
+    """Promotion deduplicates an upstream exact match and respects the limit."""
+    exact = crowded_catalog[-1]
+    catalog = [exact, *crowded_catalog[:-1]]
+    regex_transform._max_results = max_results
+    baseline = asyncio.run(
+        RegexSearchTransform(max_results=max_results)._search(catalog, exact.name)
+    )
+    assert baseline[0] is exact
+
+    results = asyncio.run(regex_transform._search(catalog, exact.name))
+
+    assert results == baseline
+    assert len(results) == min(max_results, len(catalog))
+    assert len({tool.name for tool in results}) == len(results)
