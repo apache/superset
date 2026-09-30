@@ -203,12 +203,31 @@ def test_header_accepts_missing_padding() -> None:
         encode(scope_payload({"11": ["not", "an", "object"]})),
         encode(scope_payload({"11": {"filters": {"col": "x"}}})),
         encode({"version": 1, "dashboard_id": 7, "chart_filters": []}),
+        encode(scope_payload({"11": {"filters": False}})),
+        encode(scope_payload({"11": {"adhoc_filters": 0}})),
+        encode(scope_payload({"11": {"adhoc_filters": ""}})),
+        encode(scope_payload({"11": {"time_range": 123}})),
+        encode(scope_payload({"11": {"time_range": ["Last week"]}})),
+        encode(scope_payload({"11": {"granularity_sqla": {"col": "ds"}}})),
+        encode(scope_payload({"11": {"time_column": 5}})),
+        encode(scope_payload({"11": {"relative_start": False}})),
     ],
 )
 def test_malformed_header_is_refused(value: str) -> None:
     """A garbled scope never degrades to "no scope"."""
     with pytest.raises(MCPDashboardScopeError, match="malformed"):
         decode_dashboard_scope(value)
+
+
+def test_null_filter_values_read_as_absent() -> None:
+    scope = decode_dashboard_scope(
+        encode(
+            scope_payload(
+                {"11": {"filters": None, "adhoc_filters": None, "time_range": None}}
+            )
+        )
+    )
+    assert not scope.has_constraints
 
 
 def test_oversized_payload_is_refused_without_inflating_it() -> None:

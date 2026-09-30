@@ -268,9 +268,14 @@ def _parse_chart_filters(raw_filters: Any) -> dict[int, Mapping[str, Any]]:
             raise _malformed(f"chart id {key!r} is not a positive integer")
         if not isinstance(extra_form_data, dict):
             raise _malformed(f"filters for chart {chart_id} must be an object")
+        # Checked by type, not truthiness: a falsy non-list such as ``false``
+        # must not read as "no filters" and silently widen answers.
         for list_key in ("filters", "adhoc_filters"):
-            if not isinstance(extra_form_data.get(list_key) or [], list):
+            if not isinstance(extra_form_data.get(list_key, []), (list, type(None))):
                 raise _malformed(f"{list_key} for chart {chart_id} must be a list")
+        for str_key in sorted(ROW_OVERRIDE_KEYS):
+            if not isinstance(extra_form_data.get(str_key), (str, type(None))):
+                raise _malformed(f"{str_key} for chart {chart_id} must be a string")
         chart_filters[chart_id] = extra_form_data
     return chart_filters
 
