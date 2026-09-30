@@ -34,6 +34,7 @@ if (SERVICE_ACCOUNT_KEY.client_email) {
 }
 
 const DATETIME = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+const CUSTOM_PLUGIN_ID_PREFIXES = ['theme-colors', 'icons', 'i18n-strings'];
 
 /**
  * Turn an oxlint diagnostic code into the canonical rule id used by the metrics
@@ -64,15 +65,15 @@ function parseRuleId(code) {
 
   const [, namespace, rule] = match;
   if (namespace === 'eslint') {
-    return rule;
+    return { parsed: rule, pluginId: namespace };
   }
 
   // `eslint-plugin-unicorn(...)` is the same rule as `unicorn/...`
   const plugin = namespace.replace(/^eslint-plugin-/, '');
-  return `${plugin}/${rule}`;
+  return { parsed: `${plugin}/${rule}`, pluginId: plugin };
 }
 
-function parseOxlintResult(results) {
+function parseOxlintResult(results, ruleIdPrefixes) {
   // Process OXC JSON output
   const metricsByRule = {};
   const occurrencesData = [];
@@ -80,7 +81,7 @@ function parseOxlintResult(results) {
   // OXC JSON format has diagnostics array
   if (results.diagnostics && Array.isArray(results.diagnostics)) {
     results.diagnostics.forEach(diagnostic => {
-      const ruleId = parseRuleId(diagnostic.code);
+      const { parsed: ruleId, pluginId } = parseRuleId(diagnostic.code);
 
       const file = diagnostic.filename || 'unknown';
       const line = diagnostic.labels?.[0]?.span?.line || 0;
@@ -89,16 +90,21 @@ function parseOxlintResult(results) {
 
       const ruleData = metricsByRule[ruleId] || { count: 0 };
       ruleData.count += 1;
-      metricsByRule[ruleId] = ruleData;
 
-      occurrencesData.push({
-        rule: ruleId,
-        message,
-        file,
-        line,
-        column,
-        ts: DATETIME,
-      });
+      if (
+        !ruleIdPrefixes ||
+        (ruleIdPrefixes && ruleIdPrefixes.includes(pluginId))
+      ) {
+        metricsByRule[ruleId] = ruleData;
+        occurrencesData.push({
+          rule: ruleId,
+          message,
+          file,
+          line,
+          column,
+          ts: DATETIME,
+        });
+      }
     });
   }
 
@@ -197,6 +203,8 @@ async function runOxlintAndProcess() {
     }
 
     // Parse Oxlint output for custom rules
+    // We only want to persist custom rule violations and discard any built-in rule violations that are
+    // not yet toggled off in oxlint.custom-lint-rules.mts
     const oxlintCustomRuleResults = JSON.parse(oxlintCustomRuleOutput);
     console.log(
       `OXC found ${oxlintCustomRuleResults.diagnostics?.length || 0} issues across ${oxlintCustomRuleResults.number_of_files} files for custom rules`,
@@ -204,7 +212,7 @@ async function runOxlintAndProcess() {
     const {
       metricsByRule: metricsByCustomRule,
       occurrencesData: customRuleOccurrencesData,
-    } = parseOxlintResult(oxlintCustomRuleResults);
+    } = parseOxlintResult(oxlintCustomRuleResults, CUSTOM_PLUGIN_ID_PREFIXES);
 
     const mergedMetricsByRule = { ...metricsByRule, ...metricsByCustomRule };
     const mergedOccurrencesData = [
@@ -276,4 +284,4 @@ async function runOxlintAndProcess() {
   }
 }
 
-export { parseRuleId, runOxlintAndProcess };
+export { parseRuleId, parseOxlintResult, runOxlintAndProcess };
