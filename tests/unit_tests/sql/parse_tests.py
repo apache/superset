@@ -6781,6 +6781,19 @@ def _compact_sql(statement: SQLStatement) -> str:
             id="unqualified-reference",
         ),
         pytest.param(
+            "SELECT x, (SELECT COUNT(*) FROM b WHERE v > 0) AS n "
+            "FROM (SELECT * FROM a)",
+            "SELECT x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(v > 0)) AS n FROM (SELECT * FROM a WHERE a.r = 1)",
+            id="unqualified-reference-beside-unaliased-derived-table",
+        ),
+        pytest.param(
+            "SELECT * FROM (SELECT * FROM a) WHERE k IN (SELECT k FROM b)",
+            "SELECT * FROM (SELECT * FROM a WHERE a.r = 1) WHERE k IN "
+            "(SELECT k FROM b WHERE b.r = 1 AND b.g = 1)",
+            id="in-subquery-beside-unaliased-derived-table",
+        ),
+        pytest.param(
             "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid "
             "AND b.k IN (SELECT k FROM a)) AS n FROM a",
             "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid "
