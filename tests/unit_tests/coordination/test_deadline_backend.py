@@ -125,3 +125,24 @@ def test_async_host_caller_requires_a_synchronous_worker() -> None:
     with patch("redis.asyncio.Redis") as client:
         asyncio.run(unsupported())
         client.assert_not_called()
+
+
+def test_call_deadline_does_not_mutate_or_extend_the_backend_budget() -> None:
+    async def slow(*args: object, **kwargs: object) -> None:
+        await asyncio.sleep(2)
+
+    started: float = time.monotonic()
+    backend: DeadlineRedisBackend = DeadlineRedisBackend(
+        {"CACHE_TYPE": "RedisCache"}, deadline=started + 0.2
+    )
+    short: DeadlineRedisBackend = backend.with_deadline(started + 0.03)
+    with patch("redis.asyncio.Redis.execute_command", slow):
+        with pytest.raises(RedisTimeoutError):
+            short.get("owned-key")
+        assert time.monotonic() - started < 0.15
+        # An attempted extension stays within the original transport ceiling.
+        with pytest.raises(RedisTimeoutError):
+            backend.with_deadline(started + 5).get("owned-key")
+    assert time.monotonic() - started < 0.4
+    with pytest.raises(ValueError, match="finite"):
+        backend.with_deadline(float("nan"))

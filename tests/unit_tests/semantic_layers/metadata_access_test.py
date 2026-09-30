@@ -120,11 +120,12 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
     app: Flask, monkeypatch: pytest.MonkeyPatch, warm: bool
 ) -> None:
     """Document the pre-enablement gap; PR3 must invert this acquisition oracle."""
-    import time
-
     from superset.common.query_context_factory import QueryContextFactory
     from superset.semantic_layers.metadata import ScopedMetadataStore
-    from superset.semantic_layers.metadata_binding import request_metadata_budget
+    from superset.semantic_layers.metadata_binding import (
+        operation_deadline,
+        request_metadata_budget,
+    )
     from tests.unit_tests.semantic_layers.metadata_contract_test import (
         OptedInLayer,
         SnapshotView,
@@ -133,12 +134,7 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
 
     view: SemanticView = view_for(ResultView("unused", 17))
     backend: MemoryBackend = MemoryBackend()
-    store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, "fixture", deadline=time.monotonic() + 5
-    )
     provider: OptedInLayer = OptedInLayer()
-    if warm:
-        store.read(lambda deadline: '["orders"]')
     sm: MagicMock = MagicMock(spec=SupersetSecurityManager)
     sm.can_access_schema.return_value = False
     sm.can_access.return_value = False
@@ -153,6 +149,7 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
     monkeypatch.setitem(app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", None)
     monkeypatch.setitem(registry, "cache-test", OptedInLayer)
     execute: Mock
+    resolve_store: Mock
     with (
         app.test_request_context(),
         patch("superset.is_feature_enabled", return_value=True),
@@ -162,8 +159,7 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
         ),
         patch(
             "superset.semantic_layers.metadata_binding.connection_store",
-            return_value=store,
-        ),
+        ) as resolve_store,
         patch.object(OptedInLayer, "from_configuration", return_value=provider),
         patch(
             "superset.common.query_context_factory.DatasourceDAO.get_datasource",
@@ -173,6 +169,13 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
         patch.object(SnapshotView, "get_table") as execute,
     ):
         request_metadata_budget()
+        store_deadline: float = operation_deadline()
+        store: ScopedMetadataStore = ScopedMetadataStore(
+            backend, "fixture", deadline=store_deadline
+        )
+        if warm:
+            store.read(lambda deadline: '["orders"]', deadline=store_deadline)
+        resolve_store.return_value = store
         context: QueryContext = QueryContextFactory().create(
             datasource={"id": 11, "type": "semantic_view"},
             queries=[{"metrics": ["orders"], "row_limit": 10}],

@@ -76,17 +76,18 @@ def redis_scope(redis_config: dict[str, Any]) -> Iterator[str]:
 def _reader(
     config: dict[str, Any], scope: str, commands: Queue[bool], results: Queue[str]
 ) -> None:
+    store_deadline: float = time.monotonic() + 30
     store: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(config, deadline=time.monotonic() + 30),
         scope,
-        deadline=time.monotonic() + 30,
+        deadline=store_deadline,
     )
 
     def forbidden(deadline: float) -> str:
         raise AssertionError("warm reader fetched upstream")
 
     while commands.get(timeout=10):
-        results.put(store.read(forbidden).cache_token)
+        results.put(store.read(forbidden, deadline=store_deadline).cache_token)
 
 
 def _paused_writer(
@@ -97,8 +98,9 @@ def _paused_writer(
     results: Queue[str],
 ) -> None:
     deadline: float = time.monotonic() + 30
+    store_deadline: float = deadline
     store: ScopedMetadataStore = ScopedMetadataStore(
-        DeadlineRedisBackend(config, deadline=deadline), scope, deadline=deadline
+        DeadlineRedisBackend(config, deadline=deadline), scope, deadline=store_deadline
     )
 
     def fetch(budget: float) -> str:
@@ -107,7 +109,7 @@ def _paused_writer(
         return '["old"]'
 
     try:
-        store.refresh(fetch)
+        store.refresh(fetch, deadline=store_deadline)
         results.put("published")
     except MetadataRefreshError as error:
         results.put(error.category)
@@ -120,9 +122,10 @@ def test_two_processes_alternate_100_reads_of_one_observation(
     backend: DeadlineRedisBackend = DeadlineRedisBackend(
         redis_config, deadline=deadline
     )
+    acquisition_deadline_1: float = deadline
     snapshot: CatalogSnapshot = ScopedMetadataStore(
-        backend, redis_scope, deadline=deadline
-    ).read(lambda budget: '["orders"]')
+        backend, redis_scope, deadline=acquisition_deadline_1
+    ).read(lambda budget: '["orders"]', deadline=acquisition_deadline_1)
     context: SpawnContext = cast(SpawnContext, multiprocessing.get_context("spawn"))
     commands: list[Queue[bool]] = [context.Queue(), context.Queue()]
     results: Queue[str] = context.Queue()
@@ -165,15 +168,18 @@ def test_real_invalidation_fences_a_paused_process(
     )
     process.start()
     deadline: float = time.monotonic() + 30
+    store_deadline: float = deadline
     store: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(redis_config, deadline=deadline),
         redis_scope,
-        deadline=deadline,
+        deadline=store_deadline,
     )
     try:
         assert started.wait(10)
         store.invalidate_catalog()
-        current: CatalogSnapshot = store.read(lambda budget: '["new"]')
+        current: CatalogSnapshot = store.read(
+            lambda budget: '["new"]', deadline=store_deadline
+        )
         release.set()
         assert results.get(timeout=10) == "configuration_changed"
         assert store.peek() == current
@@ -193,21 +199,27 @@ def test_real_atomic_ttl_generation_and_namespace_isolation(
     backend: DeadlineRedisBackend = DeadlineRedisBackend(
         redis_config, deadline=deadline
     )
+    store_deadline: float = deadline
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, redis_scope, deadline=deadline
+        backend, redis_scope, deadline=store_deadline
     )
-    first: CatalogSnapshot = store.read(lambda budget: '["orders"]')
+    first: CatalogSnapshot = store.read(
+        lambda budget: '["orders"]', deadline=store_deadline
+    )
     before: CacheEntryInfo = store.inspect_catalog()
     generation: str = store.compatibility_generation()
     store.invalidate_compatibility()
     assert store.compatibility_generation() != generation
     assert store.peek() == first
+    other_deadline: float = deadline
     other: ScopedMetadataStore = ScopedMetadataStore(
-        backend, redis_scope + "-tenant-b", deadline=deadline
+        backend, redis_scope + "-tenant-b", deadline=other_deadline
     )
     assert other.peek() is None
     assert other.peek_compatibility_generation() is None
-    second: CatalogSnapshot = store.refresh(lambda budget: '["orders"]').snapshot
+    second: CatalogSnapshot = store.refresh(
+        lambda budget: '["orders"]', deadline=store_deadline
+    ).snapshot
     after: CacheEntryInfo = store.inspect_catalog()
     assert first.payload == second.payload
     assert first.cache_token != second.cache_token
@@ -229,20 +241,22 @@ def test_real_cold_reader_waits_then_recovers_from_owner_outcome(
     waiting: ThreadEvent = ThreadEvent()
     release: ThreadEvent = ThreadEvent()
     deadline: float = time.monotonic() + 5
+    owner_deadline: float = deadline
     owner: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(redis_config, deadline=deadline),
         redis_scope,
-        deadline=deadline,
+        deadline=owner_deadline,
     )
 
     def wait(seconds: float) -> None:
         waiting.set()
         time.sleep(seconds)
 
+    follower_deadline: float = deadline
     follower: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(redis_config, deadline=deadline),
         redis_scope,
-        deadline=deadline,
+        deadline=follower_deadline,
         wait=wait,
     )
 
@@ -255,10 +269,12 @@ def test_real_cold_reader_waits_then_recovers_from_owner_outcome(
 
     executor: ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first: Future[CatalogSnapshot] = executor.submit(owner.read, fetch)
+        first: Future[CatalogSnapshot] = executor.submit(
+            owner.read, fetch, deadline=owner_deadline
+        )
         assert started.wait(2)
         second: Future[CatalogSnapshot] = executor.submit(
-            follower.read, lambda budget: '["recovered"]'
+            follower.read, lambda budget: '["recovered"]', deadline=follower_deadline
         )
         try:
             assert waiting.wait(2)
@@ -279,11 +295,13 @@ def test_actual_blocked_redis_io_is_cancelled_by_the_shared_deadline(
 
     started: float = time.monotonic()
     backend: DeadlineRedisBackend = DeadlineRedisBackend(
-        redis_config, deadline=started + 0.1
+        redis_config, deadline=started + 5
     )
+    short: DeadlineRedisBackend = backend.with_deadline(started + 0.1)
     with pytest.raises(RedisTimeoutError):
-        backend.execute("BLPOP", "semantic-metadata:{" + redis_scope + "}:empty", 3)
+        short.execute("BLPOP", "semantic-metadata:{" + redis_scope + "}:empty", 3)
     assert time.monotonic() - started < 0.5
+    assert backend.get("semantic-metadata:{" + redis_scope + "}:empty") is None
 
 
 def test_real_cache_inspection_observes_coherent_creation_and_ttl(
@@ -352,10 +370,11 @@ def test_actual_deadline_exhaustion_does_not_pin_following_readers(
     redis_config: dict[str, Any], redis_scope: str, budget: float
 ) -> None:
     deadline: float = time.monotonic() + budget
+    owner_deadline: float = deadline
     owner: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(redis_config, deadline=deadline),
         redis_scope,
-        deadline=deadline,
+        deadline=owner_deadline,
     )
 
     def exhaust(remaining_deadline: float) -> str:
@@ -363,15 +382,18 @@ def test_actual_deadline_exhaustion_does_not_pin_following_readers(
         return "[]"
 
     with pytest.raises(MetadataRefreshError, match="deadline"):
-        owner.refresh(exhaust)
+        owner.refresh(exhaust, deadline=owner_deadline)
     started: float = time.monotonic()
+    follower_deadline: float = started + 2
     follower: ScopedMetadataStore = ScopedMetadataStore(
         DeadlineRedisBackend(redis_config, deadline=started + 2),
         redis_scope,
-        deadline=started + 2,
+        deadline=follower_deadline,
     )
     assert (
-        follower.read(lambda remaining_deadline: '["recovered"]').payload
+        follower.read(
+            lambda remaining_deadline: '["recovered"]', deadline=follower_deadline
+        ).payload
         == '["recovered"]'
     )
     assert time.monotonic() - started < 0.5

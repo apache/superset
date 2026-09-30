@@ -40,10 +40,11 @@ from tests.unit_tests.semantic_layers.metadata_store_test import catalog, Memory
 
 def test_compatibility_clear_retires_old_fill_without_catalog_work(app: Flask) -> None:
     backend: MemoryBackend = MemoryBackend()
+    store_deadline: float = time.monotonic() + 5
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, "scope", deadline=time.monotonic() + 5
+        backend, "scope", deadline=store_deadline
     )
-    snapshot: CatalogSnapshot = store.read(catalog)
+    snapshot: CatalogSnapshot = store.read(catalog, deadline=store_deadline)
     view: SemanticView = view_for(ResultView(snapshot.cache_token, 17))
     with (
         app.test_request_context(),
@@ -63,7 +64,7 @@ def test_compatibility_clear_retires_old_fill_without_catalog_work(app: Flask) -
         new: CompatibilityIdentity | None = compatibility_identity(view, ["orders"], [])
         assert new is not None
         assert old.key != new.key
-        assert store.read(catalog) == snapshot
+        assert store.read(catalog, deadline=store_deadline) == snapshot
         assert old.source_observed_at == snapshot.observed_at
         # A late fill keeps the key captured before clear; it cannot change new.key.
         repeated: CompatibilityIdentity | None = compatibility_identity(
@@ -77,8 +78,9 @@ def test_inspection_of_missing_catalog_does_not_fill_or_create_generation(
     app: Flask,
 ) -> None:
     backend: MemoryBackend = MemoryBackend()
+    store_deadline: float = time.monotonic() + 5
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, "scope", deadline=time.monotonic() + 5
+        backend, "scope", deadline=store_deadline
     )
     view: SemanticView = view_for(ResultView("unused", 17))
     with (
@@ -103,10 +105,11 @@ def test_inspection_reuses_current_identity_without_creating_a_generation(
     app: Flask,
 ) -> None:
     backend: MemoryBackend = MemoryBackend()
+    store_deadline: float = time.monotonic() + 5
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, "scope", deadline=time.monotonic() + 5
+        backend, "scope", deadline=store_deadline
     )
-    snapshot: CatalogSnapshot = store.read(catalog)
+    snapshot: CatalogSnapshot = store.read(catalog, deadline=store_deadline)
     view: SemanticView = view_for(ResultView(snapshot.cache_token, 17))
     with (
         app.test_request_context(),
@@ -143,10 +146,11 @@ def test_actual_compatible_endpoint_uses_snapshot_and_generation_identity(
     from tests.unit_tests.semantic_layers.metadata_identity_test import RefreshLayer
 
     backend: MemoryBackend = MemoryBackend()
+    store_deadline: float = time.monotonic() + 5
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, "scope", deadline=time.monotonic() + 5
+        backend, "scope", deadline=store_deadline
     )
-    snapshot: CatalogSnapshot = store.read(catalog)
+    snapshot: CatalogSnapshot = store.read(catalog, deadline=store_deadline)
     provider: ResultView = ResultView(snapshot.cache_token, 17)
     view: SemanticView = view_for(provider)
     cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
@@ -200,7 +204,9 @@ def test_actual_compatible_endpoint_uses_snapshot_and_generation_identity(
         assert result == {"compatible_metrics": ["new"], "compatible_dimensions": []}
         assert endpoint(api, "semantic_view", 11)[1]["result"] == result
         expected[:] = ["newer"]
-        provider.token = store.refresh(catalog).snapshot.cache_token
+        provider.token = store.refresh(
+            catalog, deadline=store_deadline
+        ).snapshot.cache_token
         assert endpoint(api, "semantic_view", 11)[1]["result"][
             "compatible_metrics"
         ] == ["newer"]

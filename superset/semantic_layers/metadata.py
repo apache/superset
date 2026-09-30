@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     class PublicationBackend(Protocol):
         """The shared coordinator operations used by semantic metadata."""
 
+        def with_deadline(self, deadline: float) -> PublicationBackend: ...
         def get(self, name: str) -> bytes | None: ...
         def set(
             self,
@@ -209,7 +210,34 @@ class ScopedMetadataStore:
             raise MetadataRefreshError("unavailable") from None
         return stored.snapshot if stored is not None else None
 
-    def read(self, fetch: CatalogLoader) -> CatalogSnapshot:
+    def _for_deadline(self, deadline: float) -> ScopedMetadataStore:
+        """Narrow one call without mutating the operation or another call's budget."""
+        if not math.isfinite(deadline) or deadline > self._deadline:
+            raise MetadataRefreshError("deadline")
+        if deadline <= self._clock():
+            raise MetadataRefreshError("deadline")
+        scoped: ScopedMetadataStore = ScopedMetadataStore(
+            self._backend.with_deadline(deadline),
+            self._scope,
+            deadline=deadline,
+            before_publish=self._before_publish,
+            clock=self._clock,
+            wait=self._wait,
+        )
+        scoped._observations = self._observations
+        return scoped
+
+    def read(self, fetch: CatalogLoader, *, deadline: float) -> CatalogSnapshot:
+        """Honor the explicit caller budget, including cache hits and transport."""
+        return self._for_deadline(deadline)._read(fetch)
+
+    def refresh(
+        self, fetch: CatalogLoader, *, deadline: float
+    ) -> MetadataRefreshResult:
+        """Publish within the caller budget, which cannot extend the host operation."""
+        return self._for_deadline(deadline)._refresh(fetch)
+
+    def _read(self, fetch: CatalogLoader) -> CatalogSnapshot:
         """Wait for an owner or acquire once using the same remaining request budget."""
         try:
             while True:
@@ -240,7 +268,7 @@ class ScopedMetadataStore:
             self._remaining()
             raise MetadataRefreshError("unavailable") from None
 
-    def refresh(self, fetch: CatalogLoader) -> MetadataRefreshResult:
+    def _refresh(self, fetch: CatalogLoader) -> MetadataRefreshResult:
         """Publish a new observation, or report explicit contention without retry."""
         self._remaining()
         attempt: str = uuid4().hex

@@ -39,9 +39,10 @@ instance. If support is declared but the instance is absent, an enabled host mus
 reject the configuration rather than silently using legacy cache keys.
 
 The host authorizes and resolves the stored connection before constructing the
-provider. It calls `adapter.bind(store)` once, before discovery. Rebinding raises
+provider. It calls `adapter.bind(store, deadline=deadline)` once, before discovery. Rebinding raises
 `MetadataRefreshError("configuration")`; an unbound refresh raises
-`MetadataRefreshError("unsupported")`.
+`MetadataRefreshError("unsupported")`. Invalid or exhausted bind deadlines raise
+`MetadataRefreshError("deadline")` before binding and leave the adapter unbound.
 
 Full and custom views use the bound store. The adapter's instance
 `get_runtime_schema(runtime_data=None)` returns the existing schema shape using
@@ -63,13 +64,18 @@ must not opt in until its scope can satisfy that requirement.
 | `CatalogLoader` | `Callable[[float], str]` | Acquisition within a host-supplied absolute monotonic deadline returning provider-validated canonical JSON; valid empty data is allowed |
 | `CatalogSnapshot` | `payload: str`, `cache_token: str`, `observed_at: str` | Immutable observation and its captured scope-qualified identity |
 | `MetadataRefreshResult` | `status: Literal["changed", "unchanged"]`, `snapshot: CatalogSnapshot` | Confirmed publication, not just completed acquisition |
-| `MetadataSnapshotStore.read` | `(fetch: CatalogLoader) -> CatalogSnapshot` | Valid observation or bounded coordinated acquisition |
-| `MetadataSnapshotStore.refresh` | `(fetch: CatalogLoader) -> MetadataRefreshResult` | Bypass a hit and confirm a fresh publication |
+| `MetadataSnapshotStore.read` | `(fetch: CatalogLoader, *, deadline: float) -> CatalogSnapshot` | Valid observation or bounded coordinated acquisition |
+| `MetadataRefreshAdapter.bind` | `(store: MetadataSnapshotStore, *, deadline: float) -> None` | Bind once and capture the host operation's discovery deadline |
+| `MetadataRefreshAdapter.refresh` | `(*, deadline: float) -> MetadataRefreshResult` | Pass the caller's budget to the bound store |
+| `MetadataSnapshotStore.refresh` | `(fetch: CatalogLoader, *, deadline: float) -> MetadataRefreshResult` | Bypass a hit and confirm a fresh publication |
 
 The provider validates and interprets its payload. The host owns scope, expiry,
 authorization and publication. These records do not validate vendor JSON or
 implement coordination. `observed_at` is a UTC RFC3339 source-observation time,
-not entry creation, expiry or an ordering authority.
+not entry creation, expiry or an ordering authority. `CatalogSnapshot` rejects
+non-string fields and empty tokens/timestamps with fixed messages that do not echo
+input. Timestamp syntax remains the producer's responsibility; this SDK record
+does not parse RFC3339 or validate canonical JSON.
 
 Every successful publication gets a new nonempty opaque `cache_token`, including
 unchanged discovery. Cache hits retain the captured token. Equal discovery data
@@ -94,14 +100,32 @@ exception cause chains. Providers translating sensitive vendor errors should use
 `raise MetadataRefreshError("upstream") from None`. HTTP status codes and
 localized text belong to the host.
 
-The host passes `fetch(deadline)` one finite absolute deadline measured with
-`time.monotonic()` in the calling process. It establishes that deadline before
-waiting or acquisition and retains it through publication. The provider checks
+The host establishes one finite absolute `float` deadline using
+`time.monotonic()` in the calling process before waiting or acquisition. It passes
+that value explicitly to `adapter.bind(store, deadline=deadline)`,
+`adapter.refresh(deadline=deadline)`,
+`store.read(fetch, deadline=deadline)` and `store.refresh(fetch, deadline=deadline)`.
+The adapter forwards it to the store, and the store passes it to `fetch(deadline)`
+unchanged. Multiple calls within the same operation share this deadline through
+publication; neither the store nor nested acquisition may mint a new budget.
+Implementations reject NaN, either infinity and exhausted deadlines with
+`MetadataRefreshError("deadline")` before I/O, including cache reads. The protocol
+signatures do not execute these checks on behalf of implementations.
+The provider checks
 the remaining time before each upstream operation and uses the tighter of that
 budget and its own transport limit. Exhaustion raises
 `MetadataRefreshError("deadline")` before further I/O; nested calls must not restart
 the budget. Checking only after an unbounded request is insufficient. Actual
 transport and publication budget enforcement require host/provider tests.
+
+The existing layer/view and runtime-schema discovery signatures stay compatible.
+Ordinary `from_configuration(configuration)` construction remains deadline-free.
+The host hands the operation's deadline to `bind`; the adapter captures it for
+full/custom-view and runtime-schema discovery, passing it unchanged to store
+reads. A new operation requires a fresh provider/adapter instance and a new bind,
+not rebinding or renewing an existing instance's discovery budget. The explicit
+store/refresh parameters remain required. The example exercises normal provider
+construction followed by this bind-time handoff.
 
 This value is neither a duration nor a UTC timestamp. Do not serialize it across
 processes, use it as cache expiry, or use it to order publications. A deadline
@@ -137,7 +161,7 @@ vendor-cache clearing are not promised.
 
 `tests/unit_tests/semantic_layers/metadata_contract_test.py` contains a minimal legacy
 provider and an opted-in in-memory example. It checks captured observations,
-duplicate-label/raw-ID preservation, immutable records, error categories and
+duplicate-label/raw-ID preservation, immutable records, field validation, explicit shared deadlines, error categories and
 imports without host dependencies in a fresh isolated subprocess. The test file
 is collected by the standard unit-test CI lane. The sequential example does not establish
 multiworker or backend correctness.

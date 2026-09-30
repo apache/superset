@@ -48,7 +48,7 @@ def test_catalog_inspection_does_not_fetch_or_renew() -> None:
     )
     assert store.inspect_catalog().state == "missing"
     assert backend.entries == {}
-    store.read(catalog)
+    store.read(catalog, deadline=130)
     original: dict[str, tuple[bytes, float | None]] = dict(backend.entries)
     first: CacheEntryInfo = store.inspect_catalog()
     clock.advance(2)

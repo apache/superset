@@ -72,6 +72,14 @@ class DeadlineRedisBackend:
         self._config: dict[str, Any] = dict(config)
         self._deadline: float = deadline
 
+    def with_deadline(self, deadline: float) -> DeadlineRedisBackend:
+        """Create a private call budget without extending the operation ceiling."""
+        if not math.isfinite(deadline):
+            raise ValueError("Metadata deadline must be finite")
+        return DeadlineRedisBackend(
+            self._config, deadline=min(self._deadline, deadline)
+        )
+
     async def _command(self, *args: str | int) -> Any:
         remaining: float = self._deadline - time.monotonic()
         if remaining <= 0:

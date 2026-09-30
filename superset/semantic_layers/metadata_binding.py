@@ -197,7 +197,7 @@ def layer_implementation(layer: SemanticLayer) -> LayerABC[Any, ViewABC]:
         ].from_configuration(json.loads(layer.configuration))
         if implementation.metadata_refresh is None:
             raise MetadataRefreshError("configuration")
-        implementation.metadata_refresh.bind(store)
+        implementation.metadata_refresh.bind(store, deadline=state.deadline)
         state.layers[scope] = implementation
     return state.layers[scope]
 

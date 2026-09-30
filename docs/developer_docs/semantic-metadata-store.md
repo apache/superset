@@ -72,7 +72,13 @@ HTTP requests establish the absolute monotonic deadline before authentication
 hooks. Celery tasks establish it before task execution; eager/nested work shares
 the active operation. Other synchronous host callers must enter
 `metadata_operation()` before access checks. A later store call never replenishes
-the budget; explicit worker budgets are capped at 30 seconds. Access to an
+the budget; explicit worker budgets are capped at 30 seconds. The host passes
+that deadline explicitly to `adapter.bind(store, deadline=...)`. The adapter
+passes it to `store.read(fetch, deadline=...)` for discovery and to
+`store.refresh(fetch, deadline=...)` for an explicit refresh. An earlier caller
+deadline narrows both store work and Redis transport; a deadline beyond the
+operation ceiling is rejected. A call never mutates the operation or another
+call's budget. Invalid/exhausted call deadlines fail before even cache-hit I/O. Access to an
 already-captured layer or view remains valid after that budget expires, so a
 long-running chart query does not lose its observation. Further metadata I/O
 still fails at the original deadline. Provider instances and views are scoped to that operation, so reusing

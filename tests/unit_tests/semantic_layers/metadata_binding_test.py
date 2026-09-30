@@ -24,7 +24,11 @@ from uuid import uuid4
 
 import pytest
 from flask import Flask
-from superset_core.semantic_layers.metadata import CatalogSnapshot, MetadataRefreshError
+from superset_core.semantic_layers.metadata import (
+    CatalogSnapshot,
+    MetadataRefreshAdapter,
+    MetadataRefreshError,
+)
 from superset_core.semantic_layers.view import SemanticView as ViewABC
 
 from superset.semantic_layers.metadata import ScopedMetadataStore
@@ -40,6 +44,7 @@ from superset.semantic_layers.metadata_binding import (
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from tests.unit_tests.semantic_layers.metadata_contract_test import (
+    MemoryAdapter,
     OptedInLayer,
 )
 from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
@@ -147,12 +152,18 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
     ):
         session.return_value.__enter__.return_value.get.return_value = layer
         with metadata_operation():
+            bound_adapter: MetadataRefreshAdapter | None = layer_implementation(
+                layer
+            ).metadata_refresh
+            assert isinstance(bound_adapter, MemoryAdapter)
+            assert bound_adapter.deadline == operation_deadline()
             first: ViewABC = view_implementation(view)
             assert view_implementation(view) is first
             assert layer_implementation(layer) is layer_implementation(layer)
+            store_deadline: float = operation_deadline()
             store: ScopedMetadataStore = connection_store(layer)
             changed: CatalogSnapshot = store.refresh(
-                lambda deadline: '["new_metric"]'
+                lambda deadline: '["new_metric"]', deadline=store_deadline
             ).snapshot
             assert view_implementation(view) is first
             assert first.metadata_cache_token != changed.cache_token
@@ -201,6 +212,7 @@ def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
         session.return_value.__enter__.return_value.get.return_value = (
             None if change == "removed" else fresh
         )
+        store_deadline: float = operation_deadline()
         store: ScopedMetadataStore = connection_store(layer)
 
         def fetch(deadline: float) -> str:
@@ -211,7 +223,7 @@ def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
             return "[]"
 
         with pytest.raises(MetadataRefreshError, match="configuration_changed"):
-            store.refresh(fetch)
+            store.refresh(fetch, deadline=store_deadline)
         assert store.peek() is None
 
 
@@ -357,8 +369,11 @@ def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
             metadata_operation(),
         ):
             database.session.get_bind.return_value = engine
+            store_deadline: float = operation_deadline()
             store: ScopedMetadataStore = connection_store(layer)
-            old: CatalogSnapshot = store.read(lambda deadline: "[]")
+            old: CatalogSnapshot = store.read(
+                lambda deadline: "[]", deadline=store_deadline
+            )
 
             def fetch(deadline: float) -> str:
                 writer: Connection
@@ -371,7 +386,7 @@ def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
                 return '["new"]'
 
             with pytest.raises(MetadataRefreshError, match="configuration_changed"):
-                store.refresh(fetch)
+                store.refresh(fetch, deadline=store_deadline)
             assert store.peek() == old
     finally:
         engine.dispose()
