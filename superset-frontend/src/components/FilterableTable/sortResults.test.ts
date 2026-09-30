@@ -215,3 +215,23 @@ test('rejects long adversarial near-miss inputs', () => {
     expect(decimalParts(text)).toBeNull();
   });
 });
+
+test('reuses sort keys only within the same result set', () => {
+  const rows = [{ value: '1.25' }, { value: '2.50' }];
+  const parse = jest.spyOn(global, 'BigInt');
+  try {
+    expect(sortResults('1.25', '2.50', rows)).toBe(-1);
+    const calls = parse.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    expect(sortResults('2.50', '1.25', rows)).toBe(1);
+    expect(parse).toHaveBeenCalledTimes(calls);
+
+    expect(sortResults('1.25', '2.50', [...rows])).toBe(-1);
+    expect(parse).toHaveBeenCalledTimes(calls * 2);
+    expect(sortResults('1.25', '2.50')).toBe(-1);
+    expect(sortResults('1.25', '2.50')).toBe(-1);
+    expect(parse).toHaveBeenCalledTimes(calls * 4);
+  } finally {
+    parse.mockRestore();
+  }
+});

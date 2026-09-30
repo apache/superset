@@ -68,7 +68,8 @@ export const FilterableTable = ({
         label: key,
         fieldName: key,
         headerName: key,
-        comparator: sortResults,
+        comparator: (a: CellDataType, b: CellDataType) =>
+          sortResults(a, b, data),
         render: ({ value, colDef }: { value: CellDataType; colDef: ColDef }) =>
           renderResultCell({
             cellData: value,
@@ -77,7 +78,7 @@ export const FilterableTable = ({
             getCellContent,
           }),
       })),
-    [orderedColumnKeys, allowHTML, getCellContent],
+    [orderedColumnKeys, allowHTML, getCellContent, data],
   );
 
   const keywordFilter = useCallback(

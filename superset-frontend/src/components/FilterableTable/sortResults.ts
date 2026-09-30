@@ -106,12 +106,24 @@ function toSortKey(value: Exclude<CellValue, null>): SortKey {
 }
 
 // Parsing dominates the cost of sorting decimal strings, and a sort compares
-// each cell O(log n) times, so keys are cached per value. The cache is cleared
-// whenever it outgrows a large result set to keep memory bounded.
+// each cell O(log n) times. Weak row-array keys let cached values be collected
+// with their result set instead of retaining them for the life of the page.
 const SORT_KEY_CACHE_LIMIT = 250_000;
-const sortKeyCache = new Map<Exclude<CellValue, null>, SortKey>();
+const sortKeyCaches = new WeakMap<
+  readonly unknown[],
+  Map<Exclude<CellValue, null>, SortKey>
+>();
 
-function sortKey(value: Exclude<CellValue, null>): SortKey {
+function sortKey(
+  value: Exclude<CellValue, null>,
+  rows?: readonly unknown[],
+): SortKey {
+  if (!rows) return toSortKey(value);
+  let sortKeyCache = sortKeyCaches.get(rows);
+  if (!sortKeyCache) {
+    sortKeyCache = new Map();
+    sortKeyCaches.set(rows, sortKeyCache);
+  }
   let key = sortKeyCache.get(value);
   if (key === undefined) {
     if (sortKeyCache.size >= SORT_KEY_CACHE_LIMIT) sortKeyCache.clear();
@@ -138,7 +150,11 @@ function compareKeys(a: SortKey, b: SortKey): number {
   return left === right ? 0 : (left < right ? -1 : 1) * a.sign;
 }
 
-export function sortResults(valueA: CellValue, valueB: CellValue): number {
+export function sortResults(
+  valueA: CellValue,
+  valueB: CellValue,
+  rows?: readonly unknown[],
+): number {
   // Plain JavaScript numbers need no parsing; their order agrees with the
   // exact decimal order of their shortest representations.
   if (
@@ -152,5 +168,5 @@ export function sortResults(valueA: CellValue, valueB: CellValue): number {
   if (valueA === valueB) return 0;
   if (valueA === null) return 1;
   if (valueB === null) return -1;
-  return compareKeys(sortKey(valueA), sortKey(valueB));
+  return compareKeys(sortKey(valueA, rows), sortKey(valueB, rows));
 }
