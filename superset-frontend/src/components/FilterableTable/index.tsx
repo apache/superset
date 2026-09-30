@@ -61,6 +61,11 @@ export const FilterableTable = ({
     return values.some(v => v.includes(lowerCaseText));
   };
 
+  const comparator = useCallback(
+    (a: CellDataType, b: CellDataType) => sortResults(a, b, data),
+    [data],
+  );
+
   const columns = useMemo(
     () =>
       orderedColumnKeys.map(key => ({
@@ -68,8 +73,7 @@ export const FilterableTable = ({
         label: key,
         fieldName: key,
         headerName: key,
-        comparator: (a: CellDataType, b: CellDataType) =>
-          sortResults(a, b, data),
+        comparator,
         render: ({ value, colDef }: { value: CellDataType; colDef: ColDef }) =>
           renderResultCell({
             cellData: value,
@@ -78,7 +82,7 @@ export const FilterableTable = ({
             getCellContent,
           }),
       })),
-    [orderedColumnKeys, allowHTML, getCellContent, data],
+    [orderedColumnKeys, allowHTML, getCellContent, comparator],
   );
 
   const keywordFilter = useCallback(

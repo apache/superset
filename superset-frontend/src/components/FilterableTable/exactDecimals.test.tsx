@@ -24,6 +24,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { FilterableTable } from '.';
+import { getCachedSortKey } from './sortResults';
 
 test('displays and sorts exact decimal strings without rounding', async () => {
   setupAGGridModules();
@@ -54,4 +55,38 @@ test('displays and sorts exact decimal strings without rounding', async () => {
   expect(values()).toEqual(ascending);
   await userEvent.click(header!);
   expect(values()).toEqual([...ascending].reverse());
+});
+
+test('uses the new rows array for sort-key caching when data changes', async () => {
+  setupAGGridModules();
+  const orderedColumnKeys = ['amount'];
+  const data = [{ amount: '10.50' }, { amount: '2.00' }];
+  const { rerender } = render(
+    <FilterableTable
+      orderedColumnKeys={orderedColumnKeys}
+      data={data}
+      height={500}
+    />,
+  );
+  const header = within(screen.getByRole('grid'))
+    .getByText('amount')
+    .closest('[role=button]');
+  expect(header).not.toBeNull();
+  await userEvent.click(header!);
+  expect(getCachedSortKey('10.50', data)).toBeDefined();
+
+  const nextData = [{ amount: '20.50' }, { amount: '3.00' }];
+  rerender(
+    <FilterableTable
+      orderedColumnKeys={orderedColumnKeys}
+      data={nextData}
+      height={500}
+    />,
+  );
+  expect(
+    Array.from(
+      document.querySelectorAll('[role="gridcell"][col-id="amount"]'),
+    ).map(cell => cell.textContent),
+  ).toEqual(['3.00', '20.50']);
+  expect(getCachedSortKey('20.50', nextData)).toBeDefined();
 });
