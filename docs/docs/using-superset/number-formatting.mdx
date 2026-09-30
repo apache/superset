@@ -97,7 +97,8 @@ SQL Lab displays database `DECIMAL` and `NUMERIC` results as exact fixed-point
 text, including trailing zeros and never in scientific notation. Its JSON
 responses use strings so a browser does not round values such as
 `12345678901234567890.123456789012345678`. Sorting remains numeric and
-compares all digits; CSV exports retain those digits too. Extensions overriding
+compares all digits; CSV exports, including streaming exports, retain those
+digits and use fixed-point notation for finite decimals too. Extensions overriding
 `sqleditor.extension.resultTable` replace the built-in table in SQL Lab results
 and table previews. They receive decimal strings but not the built-in comparator,
 so they must implement their own exact-decimal sorting. Chart and dataset

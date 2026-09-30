@@ -192,6 +192,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # (float, decimal.Decimal, numpy numeric types, ...). Booleans are
             # technically a numeric type in Python but should never be rewritten
             # as numbers in CSV output.
+            elif isinstance(value, Decimal) and value.is_finite():
+                decimal_value = format(value, "f")
+                if active_decimal_separator is not None:
+                    decimal_value = decimal_value.replace(".", active_decimal_separator)
+                formatted.append(decimal_value)
             elif isinstance(value, bool):
                 formatted.append(value)
             elif active_decimal_separator is not None and isinstance(

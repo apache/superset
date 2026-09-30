@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any, cast, TypedDict
 
 import pandas as pd
@@ -139,6 +140,12 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.catalog,
                 self._query.schema,
             )[:limit]
+
+        # Preserve exact decimals without scientific notation in CSV output.
+        for name, column in df.items():
+            for label, value in column.items():
+                if isinstance(value, Decimal) and value.is_finite():
+                    df.at[label, name] = format(value, "f")
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
         csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])

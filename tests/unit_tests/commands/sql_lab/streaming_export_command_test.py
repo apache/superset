@@ -16,6 +16,8 @@
 # under the License.
 """Unit tests for SQL Lab Streaming CSV Export Command."""
 
+import csv
+import io
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
@@ -910,3 +912,47 @@ def test_streaming_export_preserves_impersonated_user_context(
     list(csv_generator_callable())
 
     assert seen_usernames == ["alice"]
+
+
+@pytest.mark.parametrize("decimal_separator", [None, ".", ","])
+def test_streaming_csv_preserves_fixed_point_decimals(
+    decimal_separator: str | None,
+) -> None:
+    """Streaming CSV retains decimal digits and honors the decimal separator."""
+    command = StreamingSqlResultExportCommand("client_id")
+    result = MagicMock()
+    result.fetchmany.side_effect = [
+        [(Decimal("0E-18"), Decimal("-1E-7"), Decimal("1E+30"), Decimal("12.3400"))],
+        [],
+    ]
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=";")
+
+    chunks = list(
+        command._process_rows(result, writer, buffer, None, decimal_separator)
+    )
+
+    expected = "0.000000000000000000;-0.0000001;1000000000000000000000000000000;12.3400"
+    if decimal_separator == ",":
+        expected = expected.replace(".", ",")
+    assert "".join(chunk[0] for chunk in chunks) == expected + "\r\n"
+
+
+def test_streaming_decimal_formatting_leaves_other_values_unchanged() -> None:
+    """Non-finite decimals and non-decimal values retain their representations."""
+    command = StreamingSqlResultExportCommand("client_id")
+    values = (
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        1,
+        1e-7,
+        None,
+        True,
+    )
+
+    formatted = command._format_row_values(values, None)
+
+    assert all(
+        actual is original for actual, original in zip(formatted, values, strict=True)
+    )
