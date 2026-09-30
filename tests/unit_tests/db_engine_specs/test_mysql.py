@@ -538,8 +538,8 @@ def test_ssl_request_requires_tls(driver: str, source: str) -> None:
         uri = uri.update_query_dict({"ssl": "1"})
     else:
         args = {"ssl": True}
-    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
-    options = dict(url.query, **result)
+    url, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
+    options = dict(url.query, **connect_args)
     assert options["ssl_mode"] == "VERIFY_CA"
     assert "ssl" not in options
 
@@ -614,6 +614,7 @@ def test_ssl_request_upgrades_required_mode() -> None:
 
 
 def test_pymysql_hostname_verification_survives() -> None:
+    """A URL ssl_check_hostname becomes PyMySQL's ssl_verify_identity."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     url, args = MySQLEngineSpec.adjust_engine_params(
@@ -625,6 +626,7 @@ def test_pymysql_hostname_verification_survives() -> None:
 
 @pytest.mark.parametrize("option", ["ssl_capath", "ssl_cipher"])
 def test_pymysql_unsupported_ssl_options_fail_closed(option: str) -> None:
+    """SSL options PyMySQL cannot honor are rejected instead of ignored."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     with pytest.raises(ValueError, match="Unsupported PyMySQL SSL option"):
@@ -647,14 +649,15 @@ def test_ssl_request_drops_non_disabling_ssl_disabled(
         args: dict[str, Any] = {}
     else:
         args = {"ssl_disabled": value}
-    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    url, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
     assert "ssl_disabled" not in url.query
-    assert "ssl_disabled" not in result
-    assert result["ssl_verify_cert"] is True
+    assert "ssl_disabled" not in connect_args
+    assert connect_args["ssl_verify_cert"] is True
 
 
 @pytest.mark.parametrize("value", ["true", "1"])
 def test_ssl_request_rejects_url_ssl_disabled(value: str) -> None:
+    """A truthy URL ssl_disabled conflicts with the SSL request."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     with pytest.raises(ValueError, match="conflicts with ssl_disabled"):
@@ -723,8 +726,8 @@ def test_saved_required_mode_is_a_tls_request(source: str) -> None:
         uri = uri.update_query_dict({"ssl_mode": "REQUIRED"})
     else:
         args = {"ssl_mode": "REQUIRED"}
-    _, result = MySQLEngineSpec.adjust_engine_params(uri, args)
-    assert result["ssl_mode"] == "VERIFY_CA"
+    _, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
+    assert connect_args["ssl_mode"] == "VERIFY_CA"
 
 
 @pytest.mark.parametrize("mode", ["DISABLED", "PREFERRED"])
@@ -766,6 +769,7 @@ def test_mysqlclient_ssl_request_rejects_ssl_disabled(source: str) -> None:
 
 @pytest.mark.parametrize("value", ["false", "0", False])
 def test_mysqlclient_ssl_request_drops_false_ssl_disabled(value: str | bool) -> None:
+    """A false ssl_disabled is dropped while REQUIRED is upgraded to VERIFY_CA."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     uri = make_url("mysql://localhost/db?ssl_mode=REQUIRED")
@@ -774,7 +778,7 @@ def test_mysqlclient_ssl_request_drops_false_ssl_disabled(value: str | bool) -> 
         args: dict[str, Any] = {}
     else:
         args = {"ssl_disabled": value}
-    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    url, connect_args = MySQLEngineSpec.adjust_engine_params(uri, args)
     assert "ssl_disabled" not in url.query
-    assert "ssl_disabled" not in result
-    assert result["ssl_mode"] == "VERIFY_CA"
+    assert "ssl_disabled" not in connect_args
+    assert connect_args["ssl_mode"] == "VERIFY_CA"

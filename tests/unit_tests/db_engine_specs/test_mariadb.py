@@ -68,6 +68,7 @@ def test_mariadb_tls_request_uses_verification(source: str) -> None:
 
 @pytest.mark.parametrize("options", [{"ssl_mode": "DISABLED"}, {"ssl_mode": None}])
 def test_mariadb_tls_request_cannot_be_cancelled(options: dict[str, Any]) -> None:
+    """An ssl_mode that disables or clears TLS conflicts with the SSL request."""
     with pytest.raises(ValueError, match="conflicts with ssl_mode"):
         MariaDBEngineSpec.adjust_engine_params(
             make_url("mariadb://localhost/db?ssl=1"), options
@@ -75,6 +76,7 @@ def test_mariadb_tls_request_cannot_be_cancelled(options: dict[str, Any]) -> Non
 
 
 def test_mariadb_pymysql_tls_request_requires_verification() -> None:
+    """PyMySQL MariaDB SSL requests verify the certificate and keep the CA."""
     url, args = MariaDBEngineSpec.adjust_engine_params(
         make_url("mariadb+pymysql://localhost/db?ssl=1&ssl_ca=/ca.pem"), {}
     )
@@ -100,6 +102,7 @@ def test_mariadb_connector_tls_request_requires_verification() -> None:
 
 
 def test_unrequested_mariadb_connection_unchanged() -> None:
+    """Without an SSL request the URI and connect_args are returned untouched."""
     uri = make_url("mariadb://localhost/db")
     url, args = MariaDBEngineSpec.adjust_engine_params(uri, {})
     assert url == uri

@@ -298,6 +298,7 @@ def test_get_catalog_names(
 def test_get_column_spec_extra_types(
     native_type: str, generic_type: GenericDataType
 ) -> None:
+    """Doris-only and MySQL-protocol result types map to a generic type."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     spec = DorisEngineSpec.get_column_spec(native_type)
@@ -306,9 +307,11 @@ def test_get_column_spec_extra_types(
 
 
 def test_quarter_time_grain_avoids_interval_quarter() -> None:
+    """The quarter grain avoids ``INTERVAL n QUARTER``, which Doris rejects."""
+    from superset.constants import TimeGrain
     from superset.db_engine_specs.doris import DorisEngineSpec
 
-    expression = DorisEngineSpec.get_time_grain_expressions()["P3M"]
+    expression = DorisEngineSpec._time_grain_expressions[TimeGrain.QUARTER]
     assert expression == (
         "MAKEDATE(YEAR({col}), 1) + INTERVAL (QUARTER({col}) - 1) * 3 MONTH"
     )
