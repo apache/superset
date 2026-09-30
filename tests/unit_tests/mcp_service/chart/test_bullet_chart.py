@@ -966,8 +966,7 @@ def test_bullet_result_validation_accepts_null_and_numeric_strings() -> None:
 @pytest.mark.parametrize(
     ("presentation", "message"),
     [
-        ({"ranges": "10,nope"}, r"ranges\[1\].*not numeric"),
-        ({"markers": "NaN"}, r"markers\[0\].*NaN or infinite"),
+        ({"markers": "Infinity"}, r"markers\[0\].*NaN or infinite"),
     ],
 )
 def test_bullet_result_validation_rejects_malformed_presentation(
@@ -1113,7 +1112,7 @@ def test_bullet_compile_returns_malformed_output_for_bad_rows(
     assert result.error_obj.error_type == expected_type
 
 
-def test_bullet_shared_query_builder_matches_frontend_build_query() -> None:
+def test_bullet_query_builder_forwards_configured_roles_sort_and_limit() -> None:
     metric = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
@@ -3784,3 +3783,68 @@ def test_bullet_deferred_sort_resolves_saved_dimension_before_metric_alias() -> 
     assert mapped["orderby"] == [["Revenue", False], [mapped["metric"], False]]
     with pytest.raises(ValueError, match="duplicate outputs"):
         map_bullet_config(config)
+
+
+@pytest.mark.parametrize("control", ["ranges", "markers", "marker_lines"])
+@pytest.mark.parametrize("value", ["10, nope, , NaN,20", "nope, NaN"])
+def test_saved_bullet_numeric_controls_drop_non_numeric_tokens(
+    control: str, value: str
+) -> None:
+    """Native previews and unrelated updates retain Explore's lenient tokens."""
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "groupby": [],
+        control: value,
+        "show_legend": True,
+    }
+    expected = [10.0, 20.0] if value.startswith("10") else []
+    model = resolve_bullet_render_model([{"SavedRevenue": 5}], form_data)
+    assert getattr(model, control) == (
+        expected or [0.0, 5.5] if control == "ranges" else expected
+    )
+    native = BulletChartConfig.model_validate(form_data)
+    assert getattr(native, control) == expected
+    with pytest.raises(ValidationError):
+        BulletChartConfig.model_validate(
+            {"metric": _simple_metric(), control: ["nope"]}
+        )
+    config = BulletChartConfig(
+        metric={"name": "SavedRevenue", "saved_metric": True}, show_legend=False
+    )
+    chart = SimpleNamespace(
+        id=1,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(form_data),
+    )
+    request = UpdateChartRequest(identifier=1, config=config)
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=None,
+    ):
+        payload = _build_update_payload(request, chart, config)
+    assert isinstance(payload, dict)
+    merged = __import__("json").loads(payload["params"])
+    validated = validate_merged_bullet_form_data(merged, config)
+    assert validated is not None
+    assert getattr(validated, control) == expected
+    assert merged[control] == value
+
+
+def test_bullet_schema_error_hint_does_not_require_matching_label_counts() -> None:
+    """General validation guidance must not contradict per-index label fallback."""
+    from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
+
+    hint = BulletChartPlugin().schema_error_hint()
+    assert hint is not None
+    assert hint.details is not None
+    assert "must align" not in hint.details
+    assert "optional" in hint.details.lower()
+    BulletChartConfig(
+        metric=_simple_metric(),
+        ranges=[10, 20],
+        range_labels=["Low"],
+        markers=[12],
+        marker_labels=["Plan", "Ignored"],
+    )

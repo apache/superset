@@ -1426,6 +1426,9 @@ def _excel_scalar(value: Any) -> Any:
         return ""
     if type(value) is UUID:
         return UUID.__str__(value)
+    if type(value) is float and not math.isfinite(value):
+        # XLSX has no non-finite numbers; use the same text as CSV exports.
+        return str(value)
     if type(value) is list or type(value) is dict:
         return str(value)
     return value
@@ -1440,15 +1443,6 @@ def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -
                 column=col_idx,
                 value=_excel_scalar(row.get(col, "")),
             )
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, float) and not math.isfinite(value):
-                # XLSX has no non-finite numbers; preserve them as CSV-style text.
-                value = str(value)
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            ws.cell(row=row_idx, column=col_idx, value=value)
 
 
 def _try_xlsxwriter_fallback(

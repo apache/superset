@@ -1174,6 +1174,17 @@ empty marker labels use the formatted numeric value. Extra labels have no value
 to annotate and are ignored. These rules also apply to saved-chart previews and
 updates; omitted label controls preserve the saved state.
 
+Saved native `ranges`, `markers`, and `marker_lines` controls ignore empty,
+non-numeric, and NaN tokens, matching Explore. If no numeric range remains, the
+preview uses the default band up to 110% of the largest measure. Unrelated
+updates preserve these saved controls. Newly authored typed lists must contain
+finite numbers; infinite native values and oversized controls remain errors.
+
+On same-dataset chart updates, `filters: []` clears both user filters and the
+generated dashboard-time binding. `temporal_column: null` clears only that
+generated binding, preserving user filters. Omitting those controls preserves
+the saved binding.
+
 ### Chart query result limits
 
 MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`

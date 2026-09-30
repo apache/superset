@@ -306,7 +306,8 @@ class BulletChartPlugin(BaseChartPlugin):
             message="Bullet chart configuration validation failed",
             details=(
                 "Bullet requires one numeric metric and optional unique physical "
-                "dimensions. Threshold/marker labels must align with their values."
+                "dimensions. Threshold/marker labels are optional; missing marker "
+                "labels fall back to formatted values."
             ),
             suggestions=[
                 "Use metric with aggregate, saved_metric, or sql_expression + label",

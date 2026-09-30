@@ -543,25 +543,6 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        names = [col["name"] for col in dataset_context.available_columns]
-        names.extend(metric["name"] for metric in dataset_context.available_metrics)
-        if column_name in names:
-            return column_name
-
-        candidates = [
-            name for name in names if name.casefold() == column_name.casefold()
-        ]
-        if len(candidates) == 1:
-            return candidates[0]
-        if len(candidates) > 1:
-            raise AmbiguousDatasetReferenceError(
-                column_name,
-                candidates,
-                "column or metric",
-            )
-
-        # Return original if not found (validation should catch this case)
-        return column_name
         resolved_column = resolve_dataset_reference(
             column_name,
             (col["name"] for col in dataset_context.available_columns),
@@ -591,21 +572,6 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
-        names = [metric["name"] for metric in dataset_context.available_metrics]
-        if metric_name in names:
-            return metric_name
-        candidates = [
-            name for name in names if name.casefold() == metric_name.casefold()
-        ]
-        if len(candidates) == 1:
-            return candidates[0]
-        if len(candidates) > 1:
-            raise AmbiguousDatasetReferenceError(
-                metric_name,
-                candidates,
-                "metric",
-            )
-        return metric_name
         return (
             resolve_dataset_reference(
                 metric_name,

@@ -835,13 +835,13 @@ def resolve_bullet_render_model(  # noqa: C901
             copied_rows = [{metric_field: 0.0}]
             measures = [0.0]
 
-    ranges = _strict_bullet_numeric_tokens(dict.get(form_data, "ranges"), "ranges")
+    ranges = _bullet_numeric_control_tokens(dict.get(form_data, "ranges"), "ranges")
     if not ranges:
         # Match Bullet/transformProps.ts: the largest measure drives one
         # qualitative band whose upper threshold is 110% of that measure.
         ranges = [0.0, max(measures, default=0.0) * 1.1]
-    markers = _strict_bullet_numeric_tokens(dict.get(form_data, "markers"), "markers")
-    marker_lines = _strict_bullet_numeric_tokens(
+    markers = _bullet_numeric_control_tokens(dict.get(form_data, "markers"), "markers")
+    marker_lines = _bullet_numeric_control_tokens(
         dict.get(form_data, "marker_lines"), "marker lines"
     )
     all_numbers = [*measures, *ranges, *markers, *marker_lines]
@@ -1109,8 +1109,8 @@ def _bullet_numeric_tokens(value: Any) -> list[float]:
     return result
 
 
-def _strict_bullet_numeric_tokens(value: Any, role: str) -> list[float]:  # noqa: C901
-    """Parse all native presentation values or reject the malformed control."""
+def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noqa: C901
+    """Drop non-numeric native tokens like Explore, retaining safety bounds."""
     value = _safe_enum_backing(value)
     if value is None or (type(value) is str and value == ""):
         return []
@@ -1143,8 +1143,13 @@ def _strict_bullet_numeric_tokens(value: Any, role: str) -> list[float]:  # noqa
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
         try:
             number = float(token)
-        except (TypeError, ValueError, OverflowError) as ex:
+        except ValueError:
+            # Native controls tolerate stray text and incomplete input.
+            continue
+        except (TypeError, OverflowError) as ex:
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric") from ex
+        if math.isnan(number):
+            continue
         if not math.isfinite(number):
             raise BulletOutputError(f"Bullet {role}[{index}] is NaN or infinite")
         numbers.append(number)

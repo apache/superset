@@ -2890,9 +2890,11 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
 @pytest.mark.parametrize("saved", [True, False])
+@pytest.mark.parametrize("stray_tokens", [False, True])
 async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
     format_: str,
     saved: bool,
+    stray_tokens: bool,
 ) -> None:
     from contextlib import nullcontext
 
@@ -2920,6 +2922,9 @@ async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
         "show_labels": True,
         "y_axis_format": ".1f",
     }
+    if stray_tokens:
+        for control in ("ranges", "markers", "marker_lines"):
+            form_data[control] = f"{form_data[control]},nope,NaN,"
     chart = SimpleNamespace(
         id=121,
         slice_name="Number boundaries",

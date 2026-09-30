@@ -1033,6 +1033,8 @@ def _merge_shared_form_data(
     ):
         if config_field in fields_set and getattr(config, config_field, None) == []:
             merged.pop(form_data_field, None)
+            if form_data_field == "adhoc_filters":
+                merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     return merged
 
 
@@ -1410,6 +1412,7 @@ def _bind_dashboard_time_range_filter(  # noqa: C901
     if _clears_temporal_subject(config, explicit_fields):
         # An explicit null clears the generated subject; unlike omission it must
         # not silently fall back to the dataset's main datetime column.
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = None
         return
 
     if temporal_column := getattr(config, "temporal_column", None):

@@ -6185,3 +6185,38 @@ async def test_malformed_gantt_query_returns_validation_error(
     assert isinstance(result, ChartError)
     assert result.error_type == "ValidationError"
     assert message in result.error
+
+
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+def test_excel_scalar_projection_survives_workbook_serialization(engine: str) -> None:
+    """Both writers preserve supported representations without a second write."""
+    import base64
+    import io
+
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    identifier = UUID("12345678-1234-5678-1234-567812345678")
+    row = {
+        "uuid": identifier,
+        "nan": float("nan"),
+        "positive_infinity": float("inf"),
+        "negative_infinity": float("-inf"),
+        "null": None,
+        "list": [1, 2],
+        "dict": {"a": 1},
+        "number": 3.5,
+    }
+    writer = getattr(module, f"_create_excel_with_{engine}")
+    encoded = writer(SimpleNamespace(slice_name="Scalar export"), [row], list(row))
+    workbook = load_workbook(io.BytesIO(base64.b64decode(encoded)))
+    assert list(workbook.active.values)[1] == (
+        str(identifier),
+        "nan",
+        "inf",
+        "-inf",
+        None,
+        "[1, 2]",
+        "{'a': 1}",
+        3.5,
+    )

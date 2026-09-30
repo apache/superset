@@ -3012,8 +3012,19 @@ class BulletChartConfig(BaseChartConfig):
             # Avoid relying on AliasChoices precedence or JSON key order.
             data.pop("groupby")
         if data.get("viz_type") == "bullet":
+            from superset.mcp_service.chart.preview_utils import (
+                _bullet_numeric_control_tokens,
+            )
+
             data.setdefault("chart_type", "bullet")
             data.pop("viz_type", None)
+            # Saved Explore controls are lenient; newly authored typed lists
+            # still undergo the strict List[float] validation below.
+            for control in ("ranges", "markers", "marker_lines"):
+                if control in data:
+                    data[control] = _bullet_numeric_control_tokens(
+                        data[control], control
+                    )
         for key in (
             "annotation_layers",
             "dashboards",

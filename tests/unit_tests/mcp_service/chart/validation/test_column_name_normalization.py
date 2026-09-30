@@ -1250,3 +1250,17 @@ class TestNormalizePivotTableColumnRefs:
         assert normalized.rows[1].name == "DISTANCE"
         assert normalized.metrics[0].name == "DEPARTURE_DELAY"
         assert normalized.metrics[1].name == "ARRIVAL_DELAY"
+
+
+@pytest.mark.parametrize("reference", ["revenue", "REVENUE", "Revenue"])
+def test_physical_column_precedes_case_distinct_saved_metric(reference: str) -> None:
+    """Metrics are a fallback namespace, not extra physical-column candidates."""
+    context = DatasetContext(
+        id=1,
+        table_name="sales",
+        database_name="main",
+        available_columns=[{"name": "Revenue", "type": "NUMERIC"}],
+        available_metrics=[{"name": "REVENUE", "expression": "SUM(Revenue)"}],
+    )
+    assert DatasetValidator.get_canonical_column_name(reference, context) == "Revenue"
+    assert DatasetValidator.get_canonical_metric_name(reference, context) == "REVENUE"
