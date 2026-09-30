@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Empty MCP chart previews
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews. Clients
+should handle empty specifications rather than relying on that error.
+
+### MCP chart tools advertise a compact chart config schema
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` no longer inline every chart type's JSON Schema in
+their tool input schemas. Their `config` parameter is advertised as an object
+whose `chart_type` is one of the supported chart types. The fields and
+examples for each chart type come from `get_chart_type_schema(chart_type)`,
+which returns the same per-type schema as before.
+
+Server-side validation is unchanged: requests are still validated against the
+complete chart configuration model and invalid fields are rejected with the
+same errors. MCP clients that built chart configs only from the tool input
+schema should call `get_chart_type_schema` first.
+
 ### DynamoDB timestamp string format
 
 DynamoDB time-filter bounds use ISO 8601 with a `T` separator, preserving
