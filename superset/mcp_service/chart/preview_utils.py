@@ -1650,6 +1650,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
         return plugin_preview
+    if (fallback := fallback_vega_lite_preview(data, form_data)) is not None:
+        return fallback
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {
