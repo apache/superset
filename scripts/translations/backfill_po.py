@@ -222,6 +222,35 @@ def _is_do_not_translate(entry: polib.POEntry) -> bool:
     )
 
 
+_I18N_COMMENT_TAG = "i18n:"
+# The extracted comment apply_do_not_translate.py stamps after extraction.
+_DO_NOT_TRANSLATE_MARKER = "do-not-translate"
+
+
+def _developer_note(entry: polib.POEntry) -> str | None:
+    """Return the ``i18n:`` translator comment on ``entry``, if any.
+
+    Developers tag a comment in source with ``i18n:`` to say which sense of an
+    ambiguous term is meant; ``babel_update.sh`` extracts it into every catalog
+    as an extracted comment (``#. i18n: ...``), which polib joins across wrapped
+    lines with newlines. Other extracted comments, such as the
+    ``do-not-translate`` marker, are not part of the note.
+    """
+    note: list[str] = []
+    in_note = False
+    for line in (entry.comment or "").splitlines():
+        text = line.strip()
+        if text.startswith(_I18N_COMMENT_TAG):
+            note.append(text[len(_I18N_COMMENT_TAG) :])
+            in_note = True
+        elif in_note and text and text != _DO_NOT_TRANSLATE_MARKER:
+            note.append(text)
+        else:
+            in_note = False
+    joined = " ".join(" ".join(note).split())
+    return joined or None
+
+
 def _context_langs(
     item: dict[str, Any], index: dict[str, Any], target_lang: str
 ) -> list[str]:
@@ -262,6 +291,9 @@ def _render_item(
     if item.get("msgid_plural"):
         plural_json = json.dumps(item["msgid_plural"], ensure_ascii=False)
         lines.append(f"English plural: {plural_json}")
+    if item.get("developer_note"):
+        note_json = json.dumps(item["developer_note"], ensure_ascii=False)
+        lines.append(f"Developer note: {note_json}")
     key = item["index_key"]
     if key in index and reference_langs_sorted:
         for lang in reference_langs_sorted:
@@ -323,6 +355,18 @@ def build_prompt(
         " visualization UI context.",
         "",
     ]
+
+    if any(item.get("developer_note") for item in batch):
+        lines.extend(
+            [
+                "Some strings carry a Developer note, written by the Superset"
+                " developers, saying which meaning is intended. A Developer note"
+                " is authoritative: when it disagrees with the reference"
+                " translations, follow the note, because a reference translation"
+                " can itself have the wrong sense.",
+                "",
+            ]
+        )
 
     if reference_langs_sorted:
         lines.append(
@@ -454,6 +498,11 @@ def _translate_single_plaintext(
     ]
     if item.get("msgid_plural"):
         lines.append(f"English plural: {item['msgid_plural']}")
+    if item.get("developer_note"):
+        lines.append(
+            f"Developer note (authoritative on the intended meaning): "
+            f"{item['developer_note']}"
+        )
     refs = index.get(item["index_key"], {})
     ref_lines = [
         f"{_lang_name(lang)}: {val}"
@@ -594,6 +643,8 @@ def _build_batch_items(
                 "index_key": entry.msgid,
                 "is_plural": False,
             }
+        if note := _developer_note(entry):
+            item["developer_note"] = note
         item["context_langs"] = _context_langs(item, index, lang)
         item["context_count"] = len(item["context_langs"])
         items.append(item)

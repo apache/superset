@@ -364,6 +364,12 @@ string are not published to translators. Write the comment for someone who
 cannot see the code: say what the term refers to, and where a translation would
 plausibly go wrong.
 
+The comment also reaches machine translation: `scripts/translations/backfill_po.py`
+sends it to the model as a developer note that takes precedence over other
+languages' translations. After changing a comment, re-run `babel_update.sh`:
+CI's template drift check fails when a string's `i18n:` comment in source no
+longer matches `messages.pot`.
+
 Per-string context disambiguates one entry. It does not enforce consistency
 across entries — one term used for two concepts across a catalog is a
 catalog-wide problem and needs a per-language terminology decision instead.

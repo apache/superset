@@ -68,7 +68,7 @@ def test_diff_reports_missing_and_stale(tmp_path: Path) -> None:
         "run",
         side_effect=_fake_extract(("Kept", "New in source")),
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == {"New in source"}
     assert stale == {"Removed from source"}
@@ -81,7 +81,7 @@ def test_diff_is_empty_when_in_sync(tmp_path: Path) -> None:
     with patch.object(
         check_pot_drift.subprocess, "run", side_effect=_fake_extract(("A", "B"))
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == set()
     assert stale == set()
@@ -102,7 +102,7 @@ def test_diff_ignores_line_wrapping(tmp_path: Path) -> None:
         "run",
         side_effect=_fake_extract(("A long wrapped string",)),
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == set()
     assert stale == set()
@@ -118,14 +118,16 @@ def test_diff_reports_a_whitespace_only_reword(tmp_path: Path) -> None:
     with patch.object(
         check_pot_drift.subprocess, "run", side_effect=_fake_extract(("Save chart",))
     ):
-        missing, stale = check_pot_drift.diff(committed)
+        missing, stale, _ = check_pot_drift.diff(committed)
 
     assert missing == {"Save chart"}
     assert stale == {"Save  chart"}
 
 
 def test_main_exits_zero_when_in_sync(capsys: pytest.CaptureFixture[str]) -> None:
-    with patch.object(check_pot_drift, "diff", return_value=(set(), set())):
+    with patch.object(
+        check_pot_drift, "diff", return_value=check_pot_drift.Drift(set(), set(), set())
+    ):
         assert check_pot_drift.main() == 0
 
     assert "matches a fresh extraction" in capsys.readouterr().out
@@ -135,7 +137,9 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     with patch.object(
-        check_pot_drift, "diff", return_value=({"Missing one"}, {"Stale one"})
+        check_pot_drift,
+        "diff",
+        return_value=check_pot_drift.Drift({"Missing one"}, {"Stale one"}, set()),
     ):
         assert check_pot_drift.main() == 1
 
@@ -143,6 +147,99 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     assert "'Missing one'" in out
     assert "'Stale one'" in out
     assert "babel_update.sh" in out
+
+
+_HEADER = 'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+
+
+def _fake_extract_text(pot_text: str):
+    def run(args: list[str], **_kwargs: object) -> MagicMock:
+        Path(args[args.index("-o") + 1]).write_text(pot_text, encoding="utf-8")
+        return MagicMock(returncode=0)
+
+    return run
+
+
+def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
+    committed = tmp_path / "messages.pot"
+    committed.write_text(_HEADER + committed_text, encoding="utf-8")
+    with patch.object(
+        check_pot_drift.subprocess,
+        "run",
+        side_effect=_fake_extract_text(_HEADER + fresh_text),
+    ):
+        result = check_pot_drift.diff(committed)
+    assert result.missing == set()
+    assert result.stale == set()
+    return result.context_changed
+
+
+def test_diff_reports_a_reworded_i18n_comment(tmp_path: Path) -> None:
+    changed = _context_drift(
+        tmp_path,
+        '#. i18n: a URL identifier\nmsgid "Slug"\nmsgstr ""\n',
+        "#. i18n: the short identifier in a URL, not the animal\n"
+        'msgid "Slug"\nmsgstr ""\n',
+    )
+    assert changed == {"Slug"}
+
+
+def test_diff_reports_an_added_and_a_removed_i18n_comment(tmp_path: Path) -> None:
+    changed = _context_drift(
+        tmp_path,
+        'msgid "Host"\nmsgstr ""\n\n#. i18n: old context\nmsgid "Slug"\nmsgstr ""\n',
+        '#. i18n: the database server\nmsgid "Host"\nmsgstr ""\n\n'
+        'msgid "Slug"\nmsgstr ""\n',
+    )
+    assert changed == {"Host", "Slug"}
+
+
+def test_diff_ignores_rewrapping_an_i18n_comment(tmp_path: Path) -> None:
+    changed = _context_drift(
+        tmp_path,
+        "#. i18n: the database engine behind a connection,\n"
+        '#. not a server tier\nmsgid "Backend"\nmsgstr ""\n',
+        "#. i18n: the database engine behind a connection, not a server tier\n"
+        'msgid "Backend"\nmsgstr ""\n',
+    )
+    assert changed == set()
+
+
+def test_diff_ignores_the_stamped_do_not_translate_marker(tmp_path: Path) -> None:
+    # babel_update.sh stamps the marker after extraction, so the committed
+    # template carries it and a fresh extraction never does.
+    changed = _context_drift(
+        tmp_path,
+        '#. do-not-translate\nmsgid "XLSX"\nmsgstr ""\n\n'
+        '#. i18n: kept\n#. do-not-translate\nmsgid "SQL"\nmsgstr ""\n',
+        'msgid "XLSX"\nmsgstr ""\n\n#. i18n: kept\nmsgid "SQL"\nmsgstr ""\n',
+    )
+    assert changed == set()
+
+
+def test_stamped_comments_match_apply_do_not_translate_marker() -> None:
+    path = _SCRIPT_PATH.parent / "apply_do_not_translate.py"
+    spec = importlib.util.spec_from_file_location("apply_do_not_translate", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert {module.MARKER} == check_pot_drift.STAMPED_COMMENTS
+
+
+def test_main_exits_one_and_lists_changed_i18n_comments(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with patch.object(
+        check_pot_drift,
+        "diff",
+        return_value=check_pot_drift.Drift(set(), set(), {"Slug"}),
+    ):
+        assert check_pot_drift.main() == 1
+
+    out = capsys.readouterr().out
+    assert "1 string(s) have changed i18n: comments" in out
+    assert "  ~ 'Slug'" in out
 
 
 class _FakeArchiveProcess:
@@ -235,9 +332,13 @@ def test_committed_template_matches_a_fresh_extraction() -> None:
     bug this module fixes: RED before the template is regenerated, GREEN
     after.
     """
-    missing, stale = check_pot_drift.diff()
+    missing, stale, context_changed = check_pot_drift.diff()
     assert not missing, f"{len(missing)} string(s) in source missing from messages.pot"
     assert not stale, f"{len(stale)} string(s) in messages.pot no longer in source"
+    assert not context_changed, (
+        f"{len(context_changed)} string(s) in messages.pot carry out-of-date i18n: "
+        f"comments: {sorted(context_changed, key=str)}"
+    )
 
 
 def test_extract_flags_match_babel_update_sh() -> None:

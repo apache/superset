@@ -552,3 +552,121 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     assert written.find("bolt").msgstr == ""
     assert written.find("Keep me literal").msgstr == ""
     assert written.find("Save dashboard").msgstr == "T:Save dashboard"
+
+
+# --- i18n: developer notes -------------------------------------------------
+
+_BACKEND_NOTE = (
+    "the database engine behind a connection (PostgreSQL, MySQL), "
+    "not a server tier or a driver"
+)
+
+
+@pytest.mark.parametrize(
+    ("comment", "expected"),
+    [
+        ("i18n: a URL identifier, not the animal", "a URL identifier, not the animal"),
+        (
+            "i18n: the database engine behind a connection (PostgreSQL, MySQL),\n"
+            "not a server tier or a driver",
+            _BACKEND_NOTE,
+        ),
+        ("i18n: a URL identifier\ndo-not-translate", "a URL identifier"),
+        ("do-not-translate\ni18n: a URL identifier", "a URL identifier"),
+        # A note may say "do not translate" in prose; only the exact stamped
+        # marker line ends it.
+        (
+            "i18n: the product name,\ndo not translate it",
+            "the product name, do not translate it",
+        ),
+        ("i18n: first note\ni18n: second note", "first note second note"),
+        ("do-not-translate", None),
+        ("", None),
+    ],
+)
+def test_developer_note_reads_the_i18n_comment(
+    comment: str, expected: str | None
+) -> None:
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert backfill_po._developer_note(entry) == expected
+
+
+def test_developer_note_reads_the_committed_catalogs() -> None:
+    """Every catalog carries the four notes exactly as the template states them."""
+    translations = _SCRIPT_PATH.parents[2] / "superset" / "translations"
+    template = polib.pofile(str(translations / "messages.pot"))
+    expected = {
+        entry.msgid: backfill_po._developer_note(entry)
+        for entry in template
+        if backfill_po._developer_note(entry)
+    }
+    assert expected["Backend"] == _BACKEND_NOTE
+    assert len(expected) == 4
+
+    catalogs = sorted(translations.glob("*/LC_MESSAGES/messages.po"))
+    assert catalogs
+    for path in catalogs:
+        catalog = polib.pofile(str(path))
+        found = {
+            msgid: backfill_po._developer_note(catalog.find(msgid))
+            for msgid in expected
+        }
+        assert found == expected, path
+
+
+def test_build_batch_items_carries_the_note_only_when_present() -> None:
+    noted = polib.POEntry(msgid="Slug", msgstr="", comment="i18n: a URL identifier")
+    plain = polib.POEntry(msgid="Save", msgstr="")
+    items = backfill_po._build_batch_items([noted, plain], index={}, lang="de")
+    assert items[0]["developer_note"] == "a URL identifier"
+    assert "developer_note" not in items[1]
+
+
+def test_build_prompt_puts_the_note_above_reference_translations() -> None:
+    batch = [
+        {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"},
+        {"msgid": "Save", "index_key": "Save"},
+    ]
+    index = {"Slug": {"fr": "Slug", "de": "Kopfzeile"}}
+    prompt = backfill_po.build_prompt("es", batch, index)
+
+    assert 'Developer note: "a URL identifier"' in prompt
+    assert prompt.count("Developer note:") == 1
+    assert "follow the note" in prompt
+    # The note is rendered with its own entry, before that entry's references.
+    entry = prompt.split("--- [0]")[1].split("--- [1]")[0]
+    assert entry.index("Developer note:") < entry.index("German:")
+
+
+def test_build_prompt_is_unchanged_without_notes() -> None:
+    batch = [{"msgid": "Save", "index_key": "Save"}]
+    prompt = backfill_po.build_prompt("es", batch, index={})
+    assert "Developer note" not in prompt
+
+
+def test_single_plaintext_fallback_sends_the_note(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: dict[str, str] = {}
+
+    def fake_run(args: list[str], **kwargs: object) -> object:
+        sent["prompt"] = str(kwargs["input"])
+
+        class Result:
+            returncode = 0
+            stdout = "Identificador"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(backfill_po.shutil, "which", lambda _name: "/usr/bin/claude")
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    item = {"msgid": "Slug", "index_key": "Slug", "developer_note": "a URL identifier"}
+
+    result = backfill_po._translate_single_plaintext("model", "es", item, index={})
+
+    assert result == "Identificador"
+    assert (
+        "Developer note (authoritative on the intended meaning): a URL identifier"
+        in sent["prompt"]
+    )
