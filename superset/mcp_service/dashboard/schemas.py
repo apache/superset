@@ -80,6 +80,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -749,7 +750,7 @@ class GenerateDashboardRequest(BaseModel):
             "dashboard's css field."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -915,7 +916,7 @@ class UpdateDashboardRequest(BaseModel):
             "the ``filter_bar_orientation`` json_metadata key."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1410,7 +1411,7 @@ class DuplicateDashboardRequest(BaseModel):
             "source."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "

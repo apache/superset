@@ -22,6 +22,7 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
+import inspect
 import logging
 import os
 import re
@@ -301,9 +302,14 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
 
 
 def _truncate_description(text: str, max_length: int) -> str:
-    """Keep whole paragraphs, or sentences in single-paragraph prose, within budget."""
+    """Keep whole paragraphs, or sentences in single-paragraph prose, within budget.
+
+    Clean docstring indentation before applying the budget so the cut point
+    is consistent across Python versions that store docstrings differently.
+    """
     if max_length <= 0:
         return ""
+    text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
     # Do not leave a heading or a numbered/bulleted workflow partly advertised.

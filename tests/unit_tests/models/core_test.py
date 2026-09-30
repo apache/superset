@@ -23,6 +23,7 @@ import numpy
 import pandas as pd
 import pytest
 from flask import current_app
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
@@ -40,7 +41,11 @@ from sqlalchemy.sql import Select
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
@@ -216,6 +221,12 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
             TableColumn(python_date_format="epoch_ms"),
             Database(),
             "1672536225000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_us"),
+            Database(),
+            "1672536225000000",
         ),
         (
             datetime(2023, 1, 1, 1, 23, 45, 600000),
@@ -844,6 +855,78 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
 
 
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_uses_email_prefix(mocker: MockerFixture) -> None:
+    """
+    Test that the impersonated username is the local part of the user's email.
+
+    The login and the email prefix commonly differ, so the lookup result is
+    used rather than the login it was resolved from.
+    """
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice.doe"
+    assert database.get_impersonation_email() == "alice.doe@example.org"
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_without_email(mocker: MockerFixture) -> None:
+    """
+    Test that a user with no email on record falls back to the login.
+
+    This matches how the connection would be made with the flag off, rather
+    than impersonating nobody.
+    """
+    user = mocker.MagicMock()
+    user.email = None
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    assert database.get_impersonation_email() is None
+
+
+def test_get_impersonation_username_without_flag(mocker: MockerFixture) -> None:
+    """
+    Test that the login is used verbatim when the flag is off.
+
+    No lookup should happen at all: it would be a metadata-DB read on the query
+    path whose result is then discarded.
+    """
+    find_user = mocker.patch("superset.models.core.find_user_for_impersonation")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    find_user.assert_not_called()
+
+
 def test_get_sqla_engine_registers_prequery_event_listener(
     app_context: None,
     mocker: MockerFixture,
@@ -1166,6 +1249,92 @@ def test_get_oauth2_config(app_context: None) -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "explicit",
+    [
+        {},
+        {"authorization_request_uri": "", "token_request_uri": ""},
+        {"authorization_request_uri": "https://idp.example/authorize"},
+        {"token_request_uri": "https://idp.example/token"},
+    ],
+)
+def test_get_oauth2_config_databricks_derives_missing_endpoints(
+    app_context: None, explicit: dict[str, str]
+) -> None:
+    """
+    Databricks OAuth2 endpoints omitted from ``oauth2_client_info`` are derived
+    from the workspace host instead of failing validation (which disabled
+    OAuth2 for the database); explicit values win.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "my_client_id",
+                    "secret": "my_client_secret",
+                    "scope": "sql offline_access",
+                    **explicit,
+                }
+            }
+        ),
+    )
+
+    config = database.get_oauth2_config()
+
+    assert database.is_oauth2_enabled()
+    assert config is not None
+    assert config["authorization_request_uri"] == (
+        explicit.get("authorization_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/authorize"
+    )
+    assert config["token_request_uri"] == (
+        explicit.get("token_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/token"
+    )
+
+
+def test_get_oauth2_config_databricks_without_host_raises(app_context: None) -> None:
+    """
+    Without a host there is nothing to derive from: a clear error, not a
+    silently disabled OAuth2.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="databricks://token:@/?http_path=/sql/1.0/warehouses/abc",
+        encrypted_extra=json.dumps(
+            {"oauth2_client_info": {"id": "a", "secret": "b", "scope": "sql"}}
+        ),
+    )
+
+    with pytest.raises(OAuth2Error):
+        database.get_oauth2_config()
+
+
+def test_get_oauth2_config_databricks_malformed_client_info(
+    app_context: None,
+) -> None:
+    """
+    A malformed ``oauth2_client_info`` is rejected by the schema, not by the
+    endpoint resolver failing on it.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": "not-a-dict"}),
+    )
+
+    with pytest.raises(ValidationError):
+        database.get_oauth2_config()
+
+
 def test_get_oauth2_config_token_request_type_from_db_engine_specs(
     mocker: MockerFixture, app_context: None
 ) -> None:
@@ -1245,6 +1414,21 @@ def test_get_oauth2_config_redirect_uri_from_config(
 
     assert config is not None
     assert config["redirect_uri"] == custom_redirect_uri
+
+
+def test_get_oauth2_config_malformed_encrypted_extra(app_context: None) -> None:
+    """
+    Test that malformed JSON in ``encrypted_extra`` raises a Superset exception
+    instead of leaking the raw ``JSONDecodeError``.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        database.get_oauth2_config()
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
