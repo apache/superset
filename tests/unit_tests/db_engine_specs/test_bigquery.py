@@ -888,10 +888,21 @@ def test_fetch_data_does_not_discard_sample_after_error(
         "get_dbapi_exception_mapping",
         return_value={OSError: SupersetDBAPIConnectionError},
     )
-    row = ("x" * (600_000 if failure_stage == "probe" else 300_000),)
+    # Two ~600 KB rows exceed 1 MiB (EOF probe); ~300 KB rows leave room
+    # for a second batch after the two-row sample.
+    probe_cell_bytes = 600_000
+    second_batch_cell_bytes = 300_000
+    cell_bytes = (
+        probe_cell_bytes if failure_stage == "probe" else second_batch_cell_bytes
+    )
+    row = ("x" * cell_bytes,)
     cursor = mock.MagicMock()
     cursor.description = [("n", "STRING", None, None, None, None, None)]
-    cursor.fetchmany.side_effect = [[row, row], OSError("read failed"), [row]]
+    cursor.fetchmany.side_effect = (
+        [[row, row]]
+        if failure_stage == "estimate"
+        else [[row, row], OSError("read failed")]
+    )
     cursor.fetchall.return_value = [row]
     if failure_stage == "estimate":
         mocker.patch(
