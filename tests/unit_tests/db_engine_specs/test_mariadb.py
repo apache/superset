@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.engine.url import make_url
@@ -40,9 +41,15 @@ def test_mariadb_inherits_extended_aggregations() -> None:
     assert MariaDBEngineSpec.get_extended_aggregation_func("MEDIAN") is None
 
 
+@pytest.mark.parametrize(
+    "client_info,expected_mode",
+    [("3.3.17", "VERIFY_CA"), ("8.4.6", "REQUIRED")],
+)
 @pytest.mark.parametrize("source", ["toggle", "ssl=1", "ssl_mode=REQUIRED"])
-def test_mariadb_tls_request_uses_verification(source: str) -> None:
-    """MariaDB URIs get the same verified TLS as MySQL under mysqlclient."""
+def test_mariadb_tls_request_uses_verification(
+    source: str, client_info: str, expected_mode: str
+) -> None:
+    """MariaDB URIs get the same fail-closed TLS as MySQL under mysqlclient."""
     if source == "toggle":
         uri = make_url(
             MariaDBEngineSpec.build_sqlalchemy_uri(
@@ -59,9 +66,11 @@ def test_mariadb_tls_request_uses_verification(source: str) -> None:
     else:
         uri = make_url(f"mariadb://user@localhost/db?{source}")
     assert uri.get_backend_name() == "mariadb"
-    url, args = MariaDBEngineSpec.adjust_engine_params(uri, {}, schema="other")
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = client_info
+        url, args = MariaDBEngineSpec.adjust_engine_params(uri, {}, schema="other")
     options = dict(url.query, **args)
-    assert options["ssl_mode"] == "VERIFY_CA"
+    assert options["ssl_mode"] == expected_mode
     assert "ssl" not in options
     assert url.database == "other"
 

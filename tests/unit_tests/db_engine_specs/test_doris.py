@@ -16,7 +16,7 @@
 # under the License.
 
 from typing import Any, Optional
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -404,9 +404,13 @@ def test_build_sqlalchemy_uri() -> None:
     assert round_trip["query"] == {}
 
 
+@pytest.mark.parametrize("client_info", ["3.3.17", "8.4.6"])
 @pytest.mark.parametrize("source", ["toggle", "ssl=1", "ssl_mode=REQUIRED"])
-def test_doris_tls_request_uses_verification(source: str) -> None:
-    """Toggle, scalar SSL and legacy REQUIRED requests use verified TLS."""
+def test_doris_tls_request_uses_verification(source: str, client_info: str) -> None:
+    """
+    The toggle always verifies. Scalar SSL and legacy REQUIRED requests keep
+    REQUIRED only with an Oracle client, which does not fall back to cleartext.
+    """
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     if source == "toggle":
@@ -423,10 +427,14 @@ def test_doris_tls_request_uses_verification(source: str) -> None:
         )
     else:
         uri = make_url(f"doris://root@localhost/internal.db?{source}")
-    url, args = DorisEngineSpec.adjust_engine_params(
-        uri, {}, catalog="external", schema="other"
-    )
-    assert args.get("ssl_mode", url.query.get("ssl_mode")) == "VERIFY_CA"
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = client_info
+        url, args = DorisEngineSpec.adjust_engine_params(
+            uri, {}, catalog="external", schema="other"
+        )
+    oracle_required = source != "toggle" and client_info == "8.4.6"
+    expected_mode = "REQUIRED" if oracle_required else "VERIFY_CA"
+    assert args.get("ssl_mode", url.query.get("ssl_mode")) == expected_mode
     assert url.drivername == "doris"
     assert url.database == "external.other"
 
@@ -491,6 +499,9 @@ def test_doris_tls_preserves_uri_query(mode: str) -> None:
         f"doris://root@localhost/internal.db?ssl_mode={mode}"
         "&charset=utf8mb4&ssl_ca=%2Fca.pem&option=first&option=second"
     )
-    url, args = DorisEngineSpec.adjust_engine_params(uri, {})
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        # MariaDB Connector/C, which needs REQUIRED upgraded to VERIFY_CA.
+        module.return_value.get_client_info.return_value = "3.3.17"
+        url, args = DorisEngineSpec.adjust_engine_params(uri, {})
     assert url == uri
     assert args["ssl_mode"] == ("VERIFY_CA" if mode == "REQUIRED" else mode)

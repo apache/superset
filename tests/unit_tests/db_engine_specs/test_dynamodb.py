@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import pytest
@@ -29,8 +29,8 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("text", "'2019-01-02 03:04:05'"),
-        ("dateTime", "'2019-01-02 03:04:05'"),
+        ("text", "'2019-01-02T03:04:05.678900'"),
+        ("dateTime", "'2019-01-02T03:04:05.678900'"),
         ("unknowntype", None),
     ],
 )
@@ -44,6 +44,36 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_convert_dttm_bounds_compare_with_iso_8601_strings() -> None:
+    from superset.db_engine_specs.dynamodb import (
+        DynamoDBEngineSpec as spec,  # noqa: N813
+    )
+
+    low_literal = spec.convert_dttm("text", datetime(2019, 1, 2, 4, 0, 0))
+    high_literal = spec.convert_dttm("text", datetime(2019, 1, 2, 6, 0, 0))
+    assert low_literal is not None
+    assert high_literal is not None
+    low, high = low_literal.strip("'"), high_literal.strip("'")
+    stored = ["2019-01-02T03:30:00", "2019-01-02T04:15:00", "2019-01-02T06:00:00"]
+    assert [value for value in stored if low <= value < high] == ["2019-01-02T04:15:00"]
+
+
+def test_convert_dttm_keeps_fractional_seconds() -> None:
+    from superset.db_engine_specs.dynamodb import (
+        DynamoDBEngineSpec as spec,  # noqa: N813
+    )
+
+    low_literal = spec.convert_dttm("text", datetime(2019, 1, 2, 4, 0, 0, 500000))
+    assert low_literal == "'2019-01-02T04:00:00.500000'"
+    low = low_literal.strip("'")
+    stored = [
+        "2019-01-02T04:00:00",
+        "2019-01-02T04:00:00.123",
+        "2019-01-02T04:00:00.750",
+    ]
+    assert [value for value in stored if value >= low] == ["2019-01-02T04:00:00.750"]
 
 
 @pytest.mark.parametrize(
@@ -82,3 +112,15 @@ def test_orders_by_expression_not_alias() -> None:
     )
 
     assert spec.allows_alias_in_orderby is False
+
+
+def test_convert_dttm_preserves_timezone_offset() -> None:
+    """Aware bounds retain their explicit timezone offset."""
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert (
+        DynamoDBEngineSpec.convert_dttm(
+            "text", datetime(2019, 1, 2, 4, tzinfo=timezone.utc)
+        )
+        == "'2019-01-02T04:00:00+00:00'"
+    )
