@@ -145,6 +145,22 @@ test('defaults the editor to edit mode when mode is omitted', async () => {
   ).not.toBeInTheDocument();
 });
 
+test('opens an editor without a saved group', async () => {
+  render(
+    <HeaderGroupEditor
+      path={[0]}
+      columnOptions={columnOptions}
+      usedColumns={new Set()}
+      onChange={jest.fn()}
+    >
+      <button type="button">Open editor</button>
+    </HeaderGroupEditor>,
+  );
+
+  await userEvent.click(screen.getByText('Open editor'));
+  expect(screen.getByLabelText('Group name')).toBeInTheDocument();
+});
+
 test('opens the add popover immediately without creating a group', async () => {
   const onChange = jest.fn();
   render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);

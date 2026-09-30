@@ -406,6 +406,13 @@ test('normalizeColumnConfigKeys prefers an existing stored Main entry over a loc
   });
 });
 
+test('normalizeColumnConfigKeys returns an empty object without saved config', () => {
+  expect(
+    normalizeColumnConfigKeys(undefined, comparisonRevenueColumns),
+  ).toEqual({});
+  expect(normalizeColumnConfigKeys(null, comparisonRevenueColumns)).toEqual({});
+});
+
 test('expandGroupColumnKey skips ambiguous localized Main keys', () => {
   expect(
     expandGroupColumnKey('Main revenue', [
