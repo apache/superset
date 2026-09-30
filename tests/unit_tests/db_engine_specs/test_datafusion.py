@@ -27,8 +27,10 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
     "target_type,expected_result",
     [
         ("Date", "DATE '2019-01-02'"),
+        ("DATE", "DATE '2019-01-02'"),
         ("DateTime", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
         ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("TIMESTAMP", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
         ("UnknownType", None),
     ],
 )

@@ -26,8 +26,7 @@ from superset.db_engine_specs.base import DatabaseCategory
 
 
 def _date_bin(interval: str) -> str:
-    # DataFusion rejects multiplying an interval by a Float64 (FLOOR(...)), so
-    # sub-hour buckets use its native DATE_BIN with the Unix epoch as origin.
+    """Bucket from the Unix epoch without unsupported interval/Float64 arithmetic."""
     return f"DATE_BIN(INTERVAL '{interval}', {{col}}, TIMESTAMP '1970-01-01 00:00:00')"
 
 
@@ -92,9 +91,7 @@ class DataFusionEngineSpec(BaseEngineSpec):
 
         # DataFusion's to_timestamp()/to_date() take chrono format strings, not
         # Oracle/PostgreSQL ones, so render ANSI typed literals instead.
-        if isinstance(sqla_type, types.Date) and not isinstance(
-            sqla_type, types.DateTime
-        ):
+        if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
         if isinstance(sqla_type, types.DateTime):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
