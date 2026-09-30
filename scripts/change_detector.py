@@ -61,6 +61,7 @@ PATTERNS = {
         r"^Dockerfile$",
         r"^docker.*",
         r"^\.github/workflows/docker\.yml$",
+        r"^\.grype\.yaml$",
     ],
     "docs": [
         r"^docs/",
