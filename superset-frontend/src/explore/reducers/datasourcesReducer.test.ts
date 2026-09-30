@@ -37,7 +37,7 @@ const makeDataset = (overrides: Partial<Dataset> = {}): Dataset =>
     datasource_name: 'test datasource',
     description: null,
     ...overrides,
-  }) as unknown as Dataset;
+  }) as Dataset;
 
 const setDatasourceAction = (datasource: Dataset): DatasourcesAction => ({
   type: SET_DATASOURCE,
