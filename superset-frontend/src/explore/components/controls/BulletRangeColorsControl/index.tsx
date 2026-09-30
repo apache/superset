@@ -17,26 +17,17 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { tokenizeToNumericArray } from '@superset-ui/plugin-chart-echarts';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import type { ColorPickerValue } from '../ColorPickerControl';
+import {
+  RangeRow,
+  RangeLabel,
+  replaceColorAtIndex,
+} from '../shared/RangeColorRow';
 import { BulletRangeColorsControlProps } from './types';
-
-const RangeRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
-`;
-
-const RangeLabel = styled.span`
-  min-width: 90px;
-  color: ${({ theme }) => theme.colorTextSecondary};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-`;
 
 /**
  * Per-range color editor for the Bullet chart. Row *count* is driven by the
@@ -61,13 +52,11 @@ export default function BulletRangeColorsControl({
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
     if (typeof color !== 'string') return;
-    const next = rangeValues.map((_, i) => (i === index ? color : colorAt(i)));
-    onChange?.(next);
+    onChange?.(replaceColorAtIndex(rangeValues.length, index, color, colorAt));
   };
 
   const handleReset = (index: number) => {
-    const next = rangeValues.map((_, i) => (i === index ? '' : colorAt(i)));
-    onChange?.(next);
+    onChange?.(replaceColorAtIndex(rangeValues.length, index, '', colorAt));
   };
 
   return (

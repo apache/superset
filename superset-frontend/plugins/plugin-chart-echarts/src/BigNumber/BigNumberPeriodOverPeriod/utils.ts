@@ -161,7 +161,19 @@ export const getComparisonColorTokens = (
   // An 8-digit hex (alpha-enabled picker) already carries its own alpha
   // channel; strip it before appending the tint suffix below so the
   // background stays a valid 8-digit hex instead of stacking a second one.
-  const opaqueColor = /^#[0-9a-f]{8}$/i.test(resolvedColor)
+  const isEightDigitHex = /^#[0-9a-f]{8}$/i.test(resolvedColor);
+  const isSixDigitHex = /^#[0-9a-f]{6}$/i.test(resolvedColor);
+  // Non-hex theme tokens (e.g. an antd token resolving to an `rgba(...)`
+  // string) can't take a hex alpha suffix without producing invalid CSS, so
+  // pass those through unchanged rather than tinting them.
+  if (!isEightDigitHex && !isSixDigitHex) {
+    return {
+      text: resolvedColor,
+      background: resolvedColor,
+      strongText: resolvedColor,
+    };
+  }
+  const opaqueColor = isEightDigitHex
     ? resolvedColor.slice(0, 7)
     : resolvedColor;
   return {
