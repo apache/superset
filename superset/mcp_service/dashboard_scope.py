@@ -66,6 +66,8 @@ from superset.utils import json
 if TYPE_CHECKING:
     import inspect
 
+    from superset.models.slice import Slice
+
 logger = logging.getLogger(__name__)
 
 HEADER_NAME = "X-Superset-Dashboard-Scope"
@@ -159,7 +161,9 @@ class DashboardScope:
 
 @dataclass(frozen=True)
 class DashboardConstraints:
-    """Dashboard-wide constraints for queries not tied to one dashboard chart.
+    """Constraints for queries not tied to one dashboard chart.
+
+    Derived from the queried dataset's charts, or all charts for other datasets.
 
     ``clauses`` are ``{"col", "op", "val"}`` dicts AND-ed into the query.
     ``time_range`` is the dashboard time window; ``time_column`` names the
@@ -559,19 +563,47 @@ def _validate_clause(clause: dict[str, Any]) -> None:
             )
 
 
-def dashboard_constraints(scope: DashboardScope) -> DashboardConstraints:
+def _dataset_chart_filters(
+    scope: DashboardScope, dataset_ids: set[int]
+) -> Mapping[int, Mapping[str, Any]]:
+    """Select filters for charts on these datasets, or all charts if none match."""
+    chart_ids = {
+        chart.id
+        for chart in _dashboard_slices(scope)
+        if chart.datasource_type == "table" and chart.datasource_id in dataset_ids
+    }
+    if not chart_ids:
+        return scope.chart_filters
+    return {
+        chart_id: efd
+        for chart_id, efd in scope.chart_filters.items()
+        if chart_id in chart_ids
+    }
+
+
+def dashboard_constraints(
+    scope: DashboardScope, *, dataset_ids: set[int] | None = None
+) -> DashboardConstraints:
     """Collapse the per-chart filters into one dashboard-wide constraint set.
 
     Every chart that filters a column must filter it identically; otherwise
     the dashboard shows that column filtered differently in different places
     and there is no single dataset-level answer, so the call is refused.
     Cross-filters stay consistent: the emitting chart simply has no clause.
+    When datasets back dashboard charts, only those charts contribute filters;
+    otherwise all charts contribute, including for datasets outside the dashboard.
     """
+    chart_filters = (
+        scope.chart_filters
+        if dataset_ids is None
+        else _dataset_chart_filters(scope, dataset_ids)
+    )
+
     by_column: dict[str, tuple[str, ...]] = {}
     clauses: dict[str, dict[str, Any]] = {}
     windows: set[tuple[str, str | None]] = set()
 
-    for chart_id, efd in sorted(scope.chart_filters.items()):
+    for chart_id, efd in sorted(chart_filters.items()):
         if efd.get("relative_start") or efd.get("relative_end"):
             raise MCPDashboardScopeError(
                 f"chart {chart_id} uses a relative time anchor that can only be "
@@ -712,6 +744,25 @@ def _with_fields(request: Any, **updates: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
+def _dashboard_slices(scope: DashboardScope) -> list[Slice]:
+    """Resolve the accessible scoped dashboard's charts, or refuse."""
+    from superset.commands.dashboard.exceptions import (
+        DashboardAccessDeniedError,
+        DashboardNotFoundError,
+    )
+    from superset.daos.dashboard import DashboardDAO
+
+    try:
+        dashboard = DashboardDAO.get_by_id_or_slug(str(scope.dashboard_id))
+    except (DashboardNotFoundError, DashboardAccessDeniedError) as ex:
+        raise MCPDashboardScopeError(
+            f"the scoped dashboard {scope.dashboard_id} was not "
+            "found or is not accessible, so its filters cannot be resolved.",
+            _ASK_USER,
+        ) from ex
+    return list(dashboard.slices or [])
+
+
 class _ChartResolver:
     """Resolve charts against the scoped dashboard, once per call."""
 
@@ -721,22 +772,9 @@ class _ChartResolver:
 
     def dashboard_chart_ids(self) -> set[int]:
         if self._dashboard_chart_ids is None:
-            from superset.commands.dashboard.exceptions import (
-                DashboardAccessDeniedError,
-                DashboardNotFoundError,
-            )
-            from superset.daos.dashboard import DashboardDAO
-
-            try:
-                dashboard = DashboardDAO.get_by_id_or_slug(str(self.scope.dashboard_id))
-            except (DashboardNotFoundError, DashboardAccessDeniedError) as ex:
-                raise MCPDashboardScopeError(
-                    f"the scoped dashboard {self.scope.dashboard_id} was not "
-                    "found or is not accessible, so its filters cannot be "
-                    "resolved.",
-                    _ASK_USER,
-                ) from ex
-            self._dashboard_chart_ids = {slc.id for slc in dashboard.slices or []}
+            self._dashboard_chart_ids = {
+                slc.id for slc in _dashboard_slices(self.scope)
+            }
         return self._dashboard_chart_ids
 
     def chart_scope(self, chart_id: int) -> Mapping[str, Any] | None:
@@ -928,13 +966,13 @@ def _rewrite_query_dataset(request: Any, scope: DashboardScope) -> Any:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.dataset.dataset_utils import resolve_dataset
 
-    constraints = dashboard_constraints(scope)
-    if constraints.is_empty:
-        return request
     dataset = resolve_dataset(
         _field(request, "dataset_id"), [subqueryload(SqlaTable.columns)]
     )
     if dataset is None:
+        return request
+    constraints = dashboard_constraints(scope, dataset_ids={dataset.id})
+    if constraints.is_empty:
         return request
     return _rewrite_dataset_request(request, constraints, dataset, _query_filter)
 
@@ -945,9 +983,6 @@ def _rewrite_get_table(request: Any, scope: DashboardScope) -> Any:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.dataset import DatasetDAO
 
-    constraints = dashboard_constraints(scope)
-    if constraints.is_empty:
-        return request
     dataset_id = _field(request, "dataset_id")
     if dataset_id is None:
         if _field(request, "view_id") is None:
@@ -960,6 +995,9 @@ def _rewrite_get_table(request: Any, scope: DashboardScope) -> Any:
         dataset_id, query_options=[subqueryload(SqlaTable.columns)]
     )
     if dataset is None:
+        return request
+    constraints = dashboard_constraints(scope, dataset_ids={dataset.id})
+    if constraints.is_empty:
         return request
     return _rewrite_dataset_request(request, constraints, dataset, _table_filter)
 
@@ -1018,10 +1056,7 @@ def _as_clause(query_filter: Any) -> dict[str, Any]:
 def _rewrite_execute_sql(request: Any, scope: DashboardScope) -> Any:
     from superset.mcp_service.dashboard_scope_sql import scope_execute_sql_request
 
-    constraints = dashboard_constraints(scope)
-    if constraints.is_empty:
-        return request
-    return scope_execute_sql_request(request, constraints)
+    return scope_execute_sql_request(request, scope)
 
 
 # ---------------------------------------------------------------------------

@@ -34,6 +34,7 @@ from sqlalchemy.orm.session import Session
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard_scope import (
     DashboardConstraints,
+    DashboardScope,
     MCPDashboardScopeError,
     REFUSAL_PREFIX,
 )
@@ -43,6 +44,7 @@ from superset.mcp_service.dashboard_scope_sql import (
 )
 from superset.mcp_service.sql_lab.schemas import ExecuteSqlRequest
 from tests.unit_tests.mcp_service.test_dashboard_scope import (
+    dashboard,
     encode,
     scope_header,
     scope_payload,
@@ -192,6 +194,127 @@ def test_values_are_rendered_as_literals(
     assert run(warehouse, scoped(database, "SELECT COUNT(*) FROM orders", hostile)) == [
         (0,)
     ]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '{{ "\\x27" }}) OR (1=1) OR (\'\' = {{ "\\x27" }}',
+        "{% set value = 'A' %}A",
+        "{# filter #}A",
+    ],
+)
+@pytest.mark.parametrize("operator", ["IN", "==", "LIKE"])
+def test_template_syntax_in_filter_values_is_refused(
+    database: Any, value: str, operator: str
+) -> None:
+    """Filter literals must not become templates in the SQL executor."""
+    constraints = DashboardConstraints(
+        (
+            {
+                "col": "client",
+                "op": operator,
+                "val": [value] if operator == "IN" else value,
+            },
+        ),
+        None,
+        None,
+    )
+    request = ExecuteSqlRequest(
+        database_id=database.id, sql="SELECT SUM(amount) FROM orders"
+    )
+    with (
+        patch("superset.security_manager.raise_for_access"),
+        pytest.raises(MCPDashboardScopeError, match="template syntax") as excinfo,
+    ):
+        scope_execute_sql_request(request, constraints)
+    assert str(excinfo.value).startswith(REFUSAL_PREFIX)
+
+
+def test_template_syntax_in_rendered_predicates_is_refused(database: Any) -> None:
+    """Column quoting does not hide template syntax from subsequent rendering."""
+    with (
+        patch(
+            "superset.mcp_service.dashboard_scope_sql._filter_clause",
+            return_value=sa.literal_column('"{{ column }}" = 1'),
+        ),
+        pytest.raises(MCPDashboardScopeError, match="template syntax"),
+    ):
+        scoped(database, "SELECT SUM(amount) FROM orders")
+
+
+def test_template_syntax_in_final_sql_is_refused(database: Any) -> None:
+    """Check the final formatted statement as well as each predicate."""
+    from superset.sql.parse import SQLScript
+
+    with (
+        patch.object(SQLScript, "format", return_value="SELECT '{{ value }}'"),
+        pytest.raises(MCPDashboardScopeError, match="template syntax"),
+    ):
+        scoped(database, "SELECT SUM(amount) FROM orders")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT SUM(amount) FROM orders",
+        "SELECT SUM(o.amount) FROM orders o JOIN refunds r ON o.client = r.client",
+    ],
+)
+def test_sql_respects_filters_scoped_away_from_a_dataset(
+    database: Any, warehouse: sa.engine.Engine, sql: str
+) -> None:
+    """Only refunds is filtered; orders retains all clients in its table read."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+
+    datasets = {d.table_name: d.id for d in db.session.query(SqlaTable).all()}
+    scope = DashboardScope(7, {11: {"filters": [CLIENT_A]}})
+    with dashboard(
+        [11, 12], chart_datasets={11: datasets["refunds"], 12: datasets["orders"]}
+    ):
+        rewritten = scope_sql(
+            database, sql, catalog=None, schema="main", constraints=scope
+        )
+    expected = [(1330,)] if "JOIN" not in sql else [(30,)]
+    assert run(warehouse, rewritten) == expected
+
+
+def test_sql_constraints_are_resolved_per_table(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """Each dataset gets its own chart filters, not another dataset's values."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+
+    datasets = {d.table_name: d.id for d in db.session.query(SqlaTable).all()}
+    scope = DashboardScope(
+        7,
+        {
+            11: {"filters": [CLIENT_A]},
+            12: {"filters": [{"col": "client", "op": "IN", "val": ["B"]}]},
+        },
+    )
+    sql = (
+        "SELECT SUM(amount) FROM (SELECT amount FROM orders "
+        "UNION ALL SELECT amount FROM refunds) t"
+    )
+    with dashboard(
+        [11, 12], chart_datasets={11: datasets["orders"], 12: datasets["refunds"]}
+    ):
+        rewritten = scope_sql(
+            database, sql, catalog=None, schema="main", constraints=scope
+        )
+    assert run(warehouse, rewritten) == [(80,)]
+
+
+def test_missing_time_range_is_explicitly_refused(database: Any) -> None:
+    """A missing range fails closed even with Python assertions disabled."""
+    from superset.mcp_service.dashboard_scope_sql import _time_clause
+    from superset.sql.parse import Table
+
+    with pytest.raises(MCPDashboardScopeError, match="time range is missing"):
+        _time_clause([], Table("orders"), ONLY_A)
 
 
 def test_null_aware_in_list_matches_the_dataset_path(
@@ -406,6 +529,7 @@ async def test_execute_sql_runs_only_the_scoped_statement(
     payload = scope_payload({"11": {"filters": [CLIENT_A]}})
     with (
         scope_header(encode(payload)),
+        dashboard([11]),
         patch(
             "superset.mcp_service.auth.get_user_from_request",
             return_value=Mock(id=1, username="admin"),

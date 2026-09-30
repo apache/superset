@@ -149,12 +149,16 @@ While a scope with active filters is present:
   cross-filters) cannot be changed. Charts that are not on the scoped
   dashboard, and unsaved chart state (`form_data_key`), are refused.
 - `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
+  filters from dashboard charts backed by the queried dataset, respecting
+  native-filter chart scoping. Datasets outside the dashboard use the combined
   dashboard-wide filters. A model-supplied time range is intersected with the
-  dashboard's. `execute_sql` replaces every table read with a filtered
-  sub-query, the same way row-level security is applied, and refuses SQL whose
-  tables are not registered datasets that have every filtered column, as well
+  applicable dashboard time range. `execute_sql` replaces each filtered table
+  read with a sub-query, the same way row-level security is applied, and refuses
+  SQL whose tables are not registered datasets that have every filtered column, as well
   as SQL that could read tables it cannot see: opaque statements, functions
-  the SQL parser does not model, and table functions.
+  the SQL parser does not model, and table functions. For `execute_sql`, template
+  syntax in SQL or dashboard filter values is refused rather than rendered after
+  scoping.
 - Writes that change what charts or datasets query (adding a chart to a
   dashboard, saving a chart, defining a virtual dataset, editing a dataset or
   metric, restoring a chart or dataset) are refused while the scope is

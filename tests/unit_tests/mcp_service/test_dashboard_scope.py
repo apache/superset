@@ -101,9 +101,22 @@ def scope_header(*values: str) -> Iterator[None]:
 
 
 @contextmanager
-def dashboard(chart_ids: list[int], dashboard_id: int = DASHBOARD_ID) -> Iterator[Any]:
+def dashboard(
+    chart_ids: list[int],
+    dashboard_id: int = DASHBOARD_ID,
+    chart_datasets: dict[int, int] | None = None,
+) -> Iterator[Any]:
+    """Resolve a dashboard with each chart's dataset identity."""
     board = SimpleNamespace(
-        id=dashboard_id, slices=[SimpleNamespace(id=chart_id) for chart_id in chart_ids]
+        id=dashboard_id,
+        slices=[
+            SimpleNamespace(
+                id=chart_id,
+                datasource_id=(chart_datasets or {}).get(chart_id, 3),
+                datasource_type="table",
+            )
+            for chart_id in chart_ids
+        ],
     )
     with patch(
         "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug", return_value=board
@@ -760,6 +773,7 @@ def test_query_dataset_receives_the_dashboard_constraints() -> None:
     )
     with (
         scope_header(encode(CHART_SCOPE)),
+        dashboard([11]),
         patch(
             "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
             return_value=_dataset(),
@@ -775,6 +789,7 @@ def test_get_table_receives_the_dashboard_constraints() -> None:
     request = GetTableRequest(dataset_id=3, metrics=["count"])
     with (
         scope_header(encode(CHART_SCOPE)),
+        dashboard([11]),
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
     ):
         rewritten = _rewrite("get_table", request)
@@ -783,6 +798,42 @@ def test_get_table_receives_the_dashboard_constraints() -> None:
     ]
     assert rewritten.time_range == "Last week"
     assert rewritten.time_column == "ds"
+
+
+@pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+def test_dataset_queries_ignore_filters_scoped_to_other_datasets(
+    tool_name: str,
+) -> None:
+    """Native filters excluded from a dataset's charts do not narrow its query."""
+    request = (
+        QueryDatasetRequest(dataset_id=3, metrics=["count"])
+        if tool_name == "query_dataset"
+        else GetTableRequest(dataset_id=3, metrics=["count"])
+    )
+    with (
+        scope_header(encode(CHART_SCOPE)),
+        dashboard([11, 12], chart_datasets={11: 4, 12: 3}),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=_dataset(),
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
+    ):
+        assert _rewrite(tool_name, request) is request
+
+
+def test_dataset_constraints_only_merge_matching_charts() -> None:
+    """Different filters on another dataset do not make this dataset ambiguous."""
+    scope = make_scope({11: {"filters": [CLIENT_A]}, 12: {"filters": [CLIENT_B]}})
+    with dashboard([11, 12], chart_datasets={11: 3, 12: 4}):
+        assert dashboard_constraints(scope, dataset_ids={3}).clauses == (CLIENT_A,)
+
+
+def test_datasets_outside_dashboard_keep_dashboard_wide_constraints() -> None:
+    """Unrelated datasets still require the dashboard-wide filters."""
+    scope = make_scope({11: {"filters": [CLIENT_A]}})
+    with dashboard([11], chart_datasets={11: 4}):
+        assert dashboard_constraints(scope, dataset_ids={3}).clauses == (CLIENT_A,)
 
 
 def test_get_table_semantic_views_are_refused() -> None:
@@ -804,9 +855,10 @@ def test_execute_sql_receives_the_dashboard_constraints() -> None:
         ) as rewrite,
     ):
         assert _rewrite("execute_sql", request) is scoped
-    constraints = rewrite.call_args.args[1]
-    assert constraints.clauses == (CLIENT_A,)
-    assert constraints.time_range == "Last week"
+    scope = rewrite.call_args.args[1]
+    assert scope.chart_filters == {
+        11: {"filters": [CLIENT_A], "time_range": "Last week"}
+    }
 
 
 @pytest.mark.parametrize(
@@ -942,6 +994,7 @@ async def test_query_dataset_builds_the_scoped_query(
     dataset = _dataset()
     with (
         scope_header(encode(CHART_SCOPE)),
+        dashboard([11]),
         patch(
             "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
             return_value=dataset,

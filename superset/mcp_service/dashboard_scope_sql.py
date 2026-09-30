@@ -17,10 +17,11 @@
 
 """Apply dashboard filter scope to raw SQL for ``execute_sql``.
 
-Every table the statement reads is replaced, in place, by a filtered
-sub-query — the same AST rewrite row-level security uses — so the filter lands
+Filtered table reads are replaced, in place, by sub-queries — the same AST
+rewrite row-level security uses — so the filter lands
 on the table read itself rather than on the statement's output, and aggregates
-are computed over the filtered rows only.
+are computed over the filtered rows only. Reads from datasets whose dashboard
+charts have no applicable active filters are left unchanged.
 
 Predicates are built from the registered dataset for each table, with the
 dataset's own column quoting, value coercion and time-filter rendering, so a
@@ -41,7 +42,9 @@ from collections.abc import Iterable
 from typing import Any, TYPE_CHECKING
 
 from superset.mcp_service.dashboard_scope import (
+    dashboard_constraints,
     DashboardConstraints,
+    DashboardScope,
     MCPDashboardScopeError,
 )
 
@@ -92,7 +95,9 @@ _SQL_GUIDANCE = (
 )
 
 
-def scope_execute_sql_request(request: Any, constraints: DashboardConstraints) -> Any:
+def scope_execute_sql_request(
+    request: Any, constraints: DashboardConstraints | DashboardScope
+) -> Any:
     """Return ``request`` with its SQL constrained by the dashboard filters."""
     from jinja2.exceptions import TemplateError
 
@@ -155,11 +160,12 @@ def scope_sql(
     *,
     catalog: str | None,
     schema: str | None,
-    constraints: DashboardConstraints,
+    constraints: DashboardConstraints | DashboardScope,
 ) -> str:
     """Rewrite ``sql`` so every table read is filtered by ``constraints``."""
     from superset.sql.parse import RLSMethod
 
+    _check_template_markers(sql)
     script, catalog, schema = _parse_script(database, sql, catalog, schema)
     method = database.db_engine_spec.get_rls_method()
     if method != RLSMethod.AS_SUBQUERY:
@@ -184,6 +190,9 @@ def scope_sql(
             table: _table_predicates(database, statement, table, constraints)
             for table in tables
         }
+        if not any(predicates.values()):
+            # All reads back dashboard charts that have no active filters.
+            continue
         try:
             applied = statement.apply_rls(catalog, schema, predicates, method)
         except Exception as ex:  # noqa: BLE001 - never run SQL the rewrite rejected
@@ -200,7 +209,18 @@ def scope_sql(
                 "this SQL reads.",
                 _SQL_GUIDANCE,
             )
-    return script.format()
+    rewritten = script.format()
+    _check_template_markers(rewritten)
+    return rewritten
+
+
+def _check_template_markers(sql: str) -> None:
+    """Refuse template syntax that the SQL executor would render after scoping."""
+    if _TEMPLATE_MARKERS.search(sql):
+        raise MCPDashboardScopeError(
+            "template syntax cannot be used in SQL or dashboard filter values.",
+            "Use plain filter values and SQL without Jinja templates.",
+        )
 
 
 def _parse_script(
@@ -288,7 +308,7 @@ def _table_predicates(
     database: Database,
     statement: SQLStatement,
     table: Table,
-    constraints: DashboardConstraints,
+    constraints: DashboardConstraints | DashboardScope,
 ) -> list[Any]:
     datasets = _physical_datasets(database, table)
     if not datasets:
@@ -298,6 +318,10 @@ def _table_predicates(
             _SQL_GUIDANCE,
         )
 
+    if isinstance(constraints, DashboardScope):
+        constraints = dashboard_constraints(
+            constraints, dataset_ids={dataset.id for dataset in datasets}
+        )
     expressions = []
     for clause in constraints.clauses:
         dataset, column = _physical_column(datasets, clause["col"], table)
@@ -318,11 +342,11 @@ def _table_predicates(
 def _physical_datasets(database: Database, table: Table) -> list[SqlaTable]:
     """Registered physical datasets naming ``table``, matched as RLS matches."""
     from superset.sql.parse import folds_unquoted_object_names
-    from superset.utils.rls import _find_datasets
+    from superset.utils.rls import find_datasets
 
     return [
         dataset
-        for dataset in _find_datasets(
+        for dataset in find_datasets(
             table,
             database,
             database.get_default_catalog(),
@@ -360,6 +384,10 @@ def _filter_clause(
 
     from superset.utils.core import FilterOperator, GenericDataType
 
+    values = clause["val"] if isinstance(clause["val"], list) else [clause["val"]]
+    for value in values:
+        if isinstance(value, str):
+            _check_template_markers(value)
     op = FilterOperator(clause["op"])
     db_engine_spec = dataset.db_engine_spec
     column_spec = db_engine_spec.get_column_spec(native_type=column.type)
@@ -433,7 +461,12 @@ def _time_clause(
         get_since_until_from_time_range,
     )
 
-    assert constraints.time_range is not None
+    if constraints.time_range is None:
+        raise MCPDashboardScopeError(
+            "the dashboard time range is missing.",
+            _SQL_GUIDANCE,
+        )
+    _check_template_markers(constraints.time_range)
     name = constraints.time_column
     for dataset in datasets:
         candidate = name or dataset.main_dttm_col
@@ -479,6 +512,7 @@ def _parse(statement: SQLStatement, database: Database, clause: Any) -> Any:
                 compile_kwargs={"literal_binds": True},
             )
         )
+        _check_template_markers(rendered)
         return statement.parse_predicate(rendered)
     except (SQLAlchemyError, SupersetParseError, NotImplementedError) as ex:
         raise MCPDashboardScopeError(
