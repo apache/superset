@@ -139,6 +139,28 @@ def test_distributed_lock_kv_happy_path() -> None:
             assert _get_lock(MAIN_KEY, session) is None
 
 
+def test_distributed_lock_kv_expiry_is_naive_local() -> None:
+    """The KV lock's expires_on must be naive local time, matching the naive
+    datetime.now() that is_expired()/delete_expired_entries compare against; a
+    tz-aware UTC value mis-expires the lock on any non-UTC server."""
+    from unittest.mock import patch as _patch
+
+    with (
+        _patch(BACKEND_DEFINED, return_value=False),
+        _patch(
+            "superset.commands.distributed_lock.acquire.KeyValueDAO.delete_expired_entries"
+        ),
+        _patch(
+            "superset.commands.distributed_lock.acquire.KeyValueDAO.create_entry"
+        ) as mock_create,
+    ):
+        with DistributedLock("ns", a=1, b=2):
+            pass
+
+    _, kwargs = mock_create.call_args
+    assert kwargs["expires_on"].tzinfo is None
+
+
 def test_distributed_lock_kv_expired() -> None:
     """
     Test expiration of the distributed lock via KV backend.

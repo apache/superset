@@ -19,7 +19,7 @@ import logging
 from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, ClassVar, Optional
+from typing import Any, Callable, cast, ClassVar, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, redirect, request, Response, url_for
@@ -123,7 +123,7 @@ from superset.subjects.filters import (
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -146,6 +146,7 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.filters import (
     BaseFilterRelatedUsers,
@@ -693,9 +694,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new chart.
         ---
         post:
@@ -737,6 +742,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
+            # The id only exists once the command has run, so the event
+            # logger cannot derive it from the route.
+            add_extra_log_payload(slice_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
@@ -1420,8 +1428,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         with ZipFile(buf, "w") as bundle:
             try:
                 for file_name, file_content in ExportChartsCommand(requested_ids).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except ChartNotFoundError:
                 return self.response_404()
             except SemanticReferenceError as ex:
@@ -1768,6 +1777,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -1816,6 +1826,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -1870,6 +1881,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
@@ -1951,6 +1963,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

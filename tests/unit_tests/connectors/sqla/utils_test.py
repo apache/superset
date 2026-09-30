@@ -20,6 +20,7 @@ from contextlib import closing
 from pathlib import Path
 
 import pytest
+from jinja2 import UndefinedError
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.utils import (
@@ -27,7 +28,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
-from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
 from superset.models.core import Database
 
 
@@ -393,6 +398,26 @@ def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         get_virtual_table_metadata(dataset)
     assert str(excinfo.value) == "Only single queries supported"
+
+
+def test_get_virtual_table_metadata_render_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: a virtual dataset SQL template like
+    ``SELECT {{ nonexistent_var + 1 }}`` raises a raw ``jinja2.UndefinedError``
+    from the Jinja *render* step (not the parse step), which the
+    ``except SupersetSyntaxErrorException`` branch alone doesn't catch. Must
+    be softened to ``SupersetVirtualTableParseException`` like the sibling
+    parse-time UndefinedError case.
+    """
+    dataset = mocker.MagicMock(template_params_dict={})
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    with pytest.raises(SupersetVirtualTableParseException):
+        get_virtual_table_metadata(dataset)
 
 
 def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None:

@@ -76,7 +76,8 @@ class ExportChartsCommand(ExportModelsCommand):
 
         payload["version"] = EXPORT_VERSION
         if model.datasource_type == "semantic_view":
-            payload["datasource_ref"] = export_view_reference(model.semantic_view)
+            if model.semantic_view:
+                payload["datasource_ref"] = export_view_reference(model.semantic_view)
         elif model.table:
             payload["dataset_uuid"] = str(model.table.uuid)
 

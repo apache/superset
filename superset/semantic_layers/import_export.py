@@ -97,7 +97,7 @@ def export_dashboard_references(metadata: dict[str, Any]) -> None:
     targets: list[dict[str, Any]] = []
     ids: set[int] = set()
     for target in dashboard_targets(metadata):
-        source_type: str | None = target.get("datasourceType")
+        source_type: Any = target.get("datasourceType")
         if source_type is None:
             source_type = "table"
         if source_type == "table":
@@ -106,7 +106,7 @@ def export_dashboard_references(metadata: dict[str, Any]) -> None:
             raise SemanticReferenceError("Unsupported dashboard datasource type.")
         raw_id: Any = target.get("datasetId")
         if isinstance(raw_id, bool) or not (
-            isinstance(raw_id, int) or (isinstance(raw_id, str) and raw_id.isdigit())
+            isinstance(raw_id, int) or (isinstance(raw_id, str) and raw_id.isdecimal())
         ):
             raise SemanticReferenceError(
                 "Semantic dashboard target requires a datasetId."
@@ -115,7 +115,6 @@ def export_dashboard_references(metadata: dict[str, Any]) -> None:
         targets.append(target)
     if not targets:
         return
-    _check_enabled()
     views: dict[int, SemanticView] = {
         view.id: view
         for view in db.session.query(SemanticView)
@@ -135,10 +134,14 @@ def export_dashboard_references(metadata: dict[str, Any]) -> None:
         .all()
     }
     references: dict[int, dict[str, str]] = {
-        id_: export_view_reference(views.get(id_)) for id_ in ids
+        id_: export_view_reference(view) for id_, view in views.items()
     }
     for target in targets:
-        target["datasourceRef"] = references[int(target["datasetId"])].copy()
+        reference: dict[str, str] | None = references.get(int(target["datasetId"]))
+        if reference is not None:
+            target["datasourceRef"] = reference.copy()
+        else:
+            target.pop("datasourceRef", None)
         target.pop("datasetId", None)
         target.pop("datasetUuid", None)
 

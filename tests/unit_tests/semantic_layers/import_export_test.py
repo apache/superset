@@ -289,7 +289,7 @@ def test_table_only_bundle_does_not_need_semantic_feature(
     )
 
 
-@pytest.mark.parametrize("dataset_id", [None, True, False, "", "invalid", 1.5])
+@pytest.mark.parametrize("dataset_id", [None, True, False, "", "invalid", "²", 1.5])
 def test_export_rejects_invalid_semantic_target_id_before_lookup(
     app_context: None, monkeypatch: pytest.MonkeyPatch, dataset_id: Any
 ) -> None:
@@ -676,7 +676,7 @@ def test_public_command_preserves_clear_dependency_error(
     assert session.query(Slice).count() == 0
 
 
-@pytest.mark.parametrize("failure", ["missing", "denied", "disabled", "provider"])
+@pytest.mark.parametrize("failure", ["denied", "disabled", "provider"])
 @pytest.mark.parametrize("kind", ["chart", "dashboard"])
 def test_export_rejects_unavailable_dependencies(
     view: SemanticView, monkeypatch: pytest.MonkeyPatch, failure: str, kind: str
@@ -692,10 +692,7 @@ def test_export_rejects_unavailable_dependencies(
         params="{}",
         semantic_view=view,
     )
-    if failure == "missing":
-        chart.semantic_view = None
-        refs.db.session.query.return_value.filter.return_value.all.return_value = []
-    elif failure == "denied":
+    if failure == "denied":
         monkeypatch.setattr(security_manager, "can_access", lambda *args: False)
     elif failure == "disabled":
         monkeypatch.setattr(
@@ -737,6 +734,8 @@ def test_export_api_preserves_dependency_error_under_safe(
     """Keep FAB's exception wrapper: unknown errors would otherwise become500."""
     module: ModuleType = importlib.import_module(module_name)
     api: Any = getattr(module, api_name)()
+    if api_name == "DashboardRestApi":
+        monkeypatch.setattr(module, "get_user_id", lambda: 1)
 
     def failed_content() -> str:
         """Model lazy archive serialization failing on a dependency."""
@@ -843,3 +842,74 @@ def test_public_import_parses_semantic_yaml_and_commits_chart(
     assert chart.datasource_type == "semantic_view"
     assert chart.table is None
     assert chart.semantic_view.uuid == UUID(VIEW_UUID)
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+@pytest.mark.parametrize(
+    "control", ["native_filter_configuration", "chart_customization_config"]
+)
+def test_orphaned_dashboard_target_does_not_abort_mixed_export(
+    view: SemanticView, monkeypatch: pytest.MonkeyPatch, enabled: bool, control: str
+) -> None:
+    """Archive unrelated dashboards without making orphan targets importable."""
+    from superset.commands.dashboard import export as dashboard_export
+
+    refs.db.session.query.return_value.filter.return_value.all.return_value = []
+    monkeypatch.setattr(
+        refs.feature_flag_manager,
+        "is_feature_enabled",
+        lambda flag: enabled and flag == "SEMANTIC_LAYERS",
+    )
+    table: SqlaTable = SqlaTable(id=81, uuid=UUID(VIEW_UUID), table_name="unrelated")
+    source: Dashboard = Dashboard(
+        id=17,
+        uuid=UUID(CHART_UUID),
+        dashboard_title="orphan target",
+        slices=[],
+        json_metadata=json.dumps(
+            {
+                control: [
+                    {
+                        "targets": [
+                            {"datasetId": 81, "datasourceType": "semantic_view"},
+                            {"datasetId": 81, "datasourceType": "table"},
+                        ]
+                    }
+                ]
+            }
+        ),
+    )
+    plain: Dashboard = Dashboard(
+        id=18,
+        uuid=UUID("d80091a6-c364-4cee-b2fa-479c67e46bcb"),
+        dashboard_title="ordinary",
+        slices=[],
+        json_metadata="{}",
+    )
+    monkeypatch.setattr(
+        dashboard_export.DashboardDAO, "find_by_ids", lambda ids: [source, plain]
+    )
+    monkeypatch.setattr(
+        dashboard_export.DatasetDAO, "find_by_ids", lambda ids: [table] if ids else []
+    )
+    monkeypatch.setattr(
+        dashboard_export.ExportChartsCommand, "run", lambda *args, **kwargs: iter(())
+    )
+    dataset_export: Mock = Mock()
+    dataset_export.return_value.run.return_value = iter(())
+    monkeypatch.setattr(dashboard_export, "ExportDatasetsCommand", dataset_export)
+    outputs: dict[str, Any] = {
+        path: yaml.safe_load(content())
+        for path, content in dashboard_export.ExportDashboardsCommand([17, 18]).run()
+    }
+    assert "metadata.yaml" in outputs
+    assert dashboard_export.ExportDashboardsCommand._file_name(plain) in outputs
+    exported: dict[str, Any] = outputs[
+        dashboard_export.ExportDashboardsCommand._file_name(source)
+    ]
+    targets: list[dict[str, Any]] = exported["metadata"][control][0]["targets"]
+    assert targets[0] == {"datasourceType": "semantic_view"}
+    assert targets[1]["datasetUuid"] == VIEW_UUID
+    dataset_export.assert_called_once_with([81])
+    with pytest.raises(refs.SemanticReferenceError, match="requires datasourceRef"):
+        refs.resolve_bundle_references({"dashboards/orphan.yaml": exported})

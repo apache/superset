@@ -71,7 +71,7 @@ x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # dev (default, live-reload); also `superset` (batteries-included) or `lean` (minimal)
   cache_from:
-    - apache/superset-cache:3.11.14-slim-trixie
+    - apache/superset-cache:3.11-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}

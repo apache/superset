@@ -230,6 +230,8 @@ class SupersetResultSet:
                 ValueError,
                 TypeError,  # this is super hackey,
                 # https://issues.apache.org/jira/browse/ARROW-7855
+                # Integers outside int64, e.g. BIGINT UNSIGNED above 2**63 - 1.
+                OverflowError,
             ):
                 # Check if original data has nested types (lists/dicts)
                 # before stringifying, since stringification removes

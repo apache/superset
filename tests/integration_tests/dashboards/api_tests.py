@@ -17,13 +17,17 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from io import BytesIO
-from time import sleep
-from unittest.mock import ANY, patch
+from time import sleep, time as now_epoch
+from unittest.mock import ANY, MagicMock, patch
 from zipfile import is_zipfile, ZipFile
 from werkzeug.test import TestResponse
+
+from flask import current_app
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -31,17 +35,21 @@ import pytest
 import rison
 import yaml
 
+from flask import g
 from freezegun import freeze_time
 from sqlalchemy import and_
 from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.email import ERROR_UNBOUNDED
+from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import (
     AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
     ReleaseDistributedLockFailedException,
 )
+from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -1659,6 +1667,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model is None
+        log = self.get_latest_log("DashboardRestApi.delete")
+        assert log.dashboard_id == dashboard_id
 
     def test_delete_bulk_dashboards(self):
         """
@@ -1686,6 +1696,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         for dashboard_id in dashboard_ids:
             model = db.session.query(Dashboard).get(dashboard_id)
             assert model is None
+        # a single integer column cannot hold every id, so the full list is
+        # recorded in the JSON payload instead
+        log = self.get_latest_log("DashboardRestApi.bulk_delete")
+        assert log.dashboard_id is None
+        assert json.loads(log.json)["dashboard_ids"] == dashboard_ids
 
     def test_delete_bulk_embedded_dashboards(self):
         """
@@ -1963,6 +1978,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         # uuid should be returned in the response
         assert "uuid" in data
         assert str(model.uuid) == str(data["uuid"])
+        log = self.get_latest_log("DashboardRestApi.post")
+        assert log.dashboard_id == model.id
         db.session.delete(model)
         db.session.commit()
 
@@ -2326,6 +2343,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model.dashboard_title == self.dashboard_data["dashboard_title"]
         assert model.slug == self.dashboard_data["slug"]
@@ -2445,6 +2464,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_filters")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
@@ -2618,6 +2639,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_chart_customizations")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         chart_customization_config = json.loads(json_metadata)[
@@ -3709,19 +3732,67 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] > 0
 
-    def test_export_xlsx_501_when_bucket_unset(self):
-        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+    def test_export_xlsx_400_for_empty_dashboard_without_storage(self):
+        """Dashboard API: with no storage configured the request is still validated
+        before an export runs, so a dashboard with no charts is rejected rather
+        than streaming an empty workbook."""
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
+        dashboard = self.insert_dashboard("xlsx-sync-empty", None, [admin.id])
         self.login(ADMIN_USERNAME)
         try:
             rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
-            assert rv.status_code == 501
+            assert rv.status_code == 400
         finally:
             db.session.delete(dashboard)
             db.session.commit()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports"}})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_bucket_without_backend_downloads_directly(
+        self, mock_build, mock_task
+    ):
+        """Dashboard API: a bucket with no storage backend cannot upload (there
+        is no implicit S3 default), so the export is served as a direct
+        download instead of being queued."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+        assert rv.status_code == 200
+        mock_build.assert_called_once()
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config(
+        {
+            "EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()},
+            "CELERY_CONFIG": None,
+        }
+    )
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_without_celery_downloads_directly(self, mock_build, mock_task):
+        """Dashboard API: with Celery disabled there is no broker to queue on,
+        so a configured storage still falls back to a direct download."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+        assert rv.status_code == 200
+        mock_build.assert_called_once()
+        mock_task.apply_async.assert_not_called()
+
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
@@ -3730,7 +3801,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 404
         mock_task.apply_async.assert_not_called()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
@@ -3746,7 +3817,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_enqueues_task(self, mock_task, mock_acquire):
@@ -3767,9 +3838,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["task_id"] == job_id
         assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+        # The acquisition token is threaded into the task so its release is an
+        # ownership-checked compare-and-delete, not a blind delete.
+        assert kwargs["kwargs"]["lock_token"] == mock_acquire.return_value.token
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_202_when_export_already_in_progress(
@@ -3788,7 +3862,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert "already in progress" in rv.data.decode("utf-8")
         mock_task.apply_async.assert_not_called()
 
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_inaccessible_dashboard(self, mock_task):
         """Dashboard API: export_xlsx returns 404 for a dashboard the user can't see."""
@@ -3806,7 +3880,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.export_dashboard_excel")
     @patch("superset.dashboards.api.security_manager.raise_for_access")
@@ -3837,7 +3911,218 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_admitted_without_email(self, mock_task, mock_acquire):
+        """Dashboard API: a session with no email address (what an
+        embedded/guest session looks like from this check's perspective) is
+        admitted (202), not rejected -- the requesting user no longer needs an
+        email on file, since the frontend can poll
+        export_xlsx_status/<job_id>/ for the download link instead of relying
+        on a notification email."""
+        admin_user = security_manager.find_user(username=ADMIN_USERNAME)
+        slice_ = db.session.query(Slice).first()
+        # Clone Admin (so the login password is valid), then blank the email
+        # to match what an embedded/guest session looks like to this check.
+        with self.temporary_user(admin_user, login=True) as user:
+            user.email = ""
+            db.session.commit()
+            dashboard = self.insert_dashboard(
+                "xlsx-no-email", None, [user.id], slices=[slice_], published=True
+            )
+            try:
+                rv = self.client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                )
+                assert rv.status_code == 202
+                mock_task.apply_async.assert_called_once()
+            finally:
+                db.session.delete(dashboard)
+                db.session.commit()
+
+    def test_download_xlsx_streams_without_login(self):
+        """Dashboard API: download_xlsx requires no login (the unguessable
+        job_id is the credential; the dashboard access check already ran when
+        the export was requested) and streams the file through Superset with
+        the configured storage backend instead of redirecting to a signed
+        storage URL."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        mock_storage.download.return_value = (14, iter([b"PK-part1-", b"part2"]))
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.data == b"PK-part1-part2"
+        assert rv.headers["Content-Length"] == "14"
+        assert "spreadsheetml" in rv.headers["Content-Type"]
+        assert f'filename="{job_id}.xlsx"' in rv.headers["Content-Disposition"]
+        mock_storage.download.assert_called_once_with(
+            "exports", "dashboard-exports/1/job.xlsx"
+        )
+
+    def test_download_xlsx_410_when_object_gone_from_storage(self):
+        """Dashboard API: a link whose object was removed from the bucket
+        (e.g. lifecycle expiry) answers a clean 410, not a broken stream."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        mock_storage.download.side_effect = FileNotFoundError("gone")
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 410
+
+    def test_download_xlsx_501_when_backend_unset(self):
+        """Dashboard API: a valid download link cannot be resolved without a
+        configured storage backend (there is no implicit S3 default), so the
+        route reports 501 rather than crashing."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 501
+
+    def test_download_xlsx_410_for_unknown_key(self):
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{uuid.uuid4()}/")
+        assert rv.status_code == 410
+
+    def test_download_xlsx_410_for_expired_key(self):
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() - timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 410
+
+    def test_download_xlsx_410_for_errored_job(self):
+        from superset.dashboards.excel_export.download_link import (
+            mark_export_failed,
+        )
+
+        job_id = uuid.uuid4()
+        mark_export_failed(job_id, "boom", datetime.now() + timedelta(hours=1))
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 410
+
+    def test_export_xlsx_status_pending_for_unknown_job(self):
+        """Dashboard API: polling an unknown/still-running job_id reports
+        pending, not 404 -- the frontend can't distinguish "not started yet"
+        from "still running" from the API's perspective."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{uuid.uuid4()}/")
+        assert rv.status_code == 200
+        assert rv.json == {"status": "pending"}
+
+    def test_export_xlsx_status_ready_includes_download_url(self):
+        """Dashboard API: once ready, status includes a download_url built
+        from the same job_id, not a separately-tracked identifier."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="unittest.mock.MagicMock",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        # A configured backend matching the link's (MagicMock's dotted path is
+        # exactly "unittest.mock.MagicMock"): status reports ready only when the
+        # download endpoint could actually serve it.
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": MagicMock()}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+
+        assert rv.status_code == 200
+        assert rv.json["status"] == "ready"
+        assert str(job_id) in rv.json["download_url"]
+        # Origin-relative: the browser resolves it against its own host, so
+        # APPLICATION_ROOT deployments and unset webdriver bases both work.
+        assert rv.json["download_url"].startswith("/")
+
+    def test_export_xlsx_status_error_includes_message(self):
+        """Dashboard API: a failed job's status is distinguishable from
+        pending, with a message a polling guest session can show."""
+        from superset.dashboards.excel_export.download_link import (
+            mark_export_failed,
+        )
+
+        job_id = uuid.uuid4()
+        mark_export_failed(job_id, "boom", datetime.now() + timedelta(hours=1))
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+
+        assert rv.status_code == 200
+        assert rv.json == {"status": "error", "message": "boom"}
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=False,
+    )
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
         """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
@@ -3853,7 +4138,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_task.apply_async.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @with_feature_flags(
         ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
         ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
@@ -3875,6 +4160,685 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_task.apply_async.assert_called_once()
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["kwargs"]["mode"] == "images"
+
+    # Direct download without export storage
+
+    @staticmethod
+    def _write_stub_workbook(path, *args, **kwargs):
+        """Stand in for the shared workbook builder, writing a real .xlsx."""
+        from superset.utils.excel_streaming import StreamingXlsxWriter
+
+        writer = StreamingXlsxWriter(path)
+        writer.add_sheet("10 - Chart", ["a"], [[1]])
+        writer.close()
+        return {}
+
+    @staticmethod
+    def _export_temp_files():
+        """Temp files the export path creates, so a leak can be detected."""
+        import glob
+        import os
+        import tempfile
+
+        return glob.glob(os.path.join(tempfile.gettempdir(), "dash-export-*"))
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_200_streams_workbook_without_storage(
+        self, mock_build, mock_task
+    ):
+        """Dashboard API: with no storage configured the workbook is built inline
+        and returned as the response, instead of the request dead-ending."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        assert rv.mimetype == (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        assert "attachment" in rv.headers["Content-Disposition"]
+        assert ".xlsx" in rv.headers["Content-Disposition"]
+        # Cached like a download from export storage: never.
+        assert "no-store" in rv.headers["Cache-Control"]
+        # XLSX files are ZIP archives.
+        assert rv.data.startswith(b"PK")
+        assert is_zipfile(BytesIO(rv.data))
+        # Direct downloads do not queue a task.
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_names_an_untitled_dashboard(self, mock_build):
+        """Dashboard API: a dashboard is allowed to have no title, so the direct
+        download names it the way the queued path does instead of failing on the
+        missing title once the workbook is already built."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        title = dashboard.dashboard_title
+        dashboard.dashboard_title = None
+        db.session.commit()
+
+        try:
+            rv = self.client.post(
+                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                json={"active_data_mask": {}},
+                buffered=True,
+            )
+
+            assert rv.status_code == 200
+            assert f"Dashboard_{dashboard.id}" in rv.headers["Content-Disposition"]
+        finally:
+            dashboard.dashboard_title = title
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_builds_with_the_same_inputs_as_the_task(self, mock_build):
+        """Dashboard API: the synchronous path hands the shared builder the same
+        dashboard, filter state and mode the Celery task would, so both paths
+        produce the same workbook."""
+        mock_build.side_effect = self._write_stub_workbook
+        data_mask = {"NATIVE_FILTER-abc": {"extraFormData": {"time_range": "No"}}}
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": data_mask},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        args, _ = mock_build.call_args
+        path, built_dashboard, active_data_mask, _job_id, mode, user = args
+        assert path.endswith(".xlsx")
+        assert built_dashboard.id == dashboard.id
+        assert active_data_mask == data_mask
+        assert mode == "data"
+        assert user.username == ADMIN_USERNAME
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_refused_when_over_the_row_budget(
+        self, mock_plan, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: an export too large to serve inline is refused up front
+        with a message naming the fix, rather than being started and timing out."""
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts={}, requested_rows=250_000, max_rows=100_000
+        )
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 400
+        message = rv.json["message"]
+        # End users see this message, so it names who can fix it, not a config key.
+        assert "administrator" in message
+        assert "EXPORT_STORAGE" not in message
+        # A budget refusal releases the lock without querying charts.
+        mock_plan.assert_called_once()
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_refused_when_only_unbounded_charts_remain(
+        self, mock_plan, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: when every chart that could run was left out for having
+        no known row bound, the download would hold only the summary sheet while
+        the UI reported success. It is refused instead, pointing at the queued
+        path that can run those charts."""
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts={20: None},
+            requested_rows=0,
+            max_rows=100_000,
+            skipped={10: ERROR_UNBOUNDED},
+        )
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 400
+        message = rv.json["message"]
+        assert "background exports" in message
+        assert "EXPORT_STORAGE" not in message
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_releases_the_lock_when_planning_fails(
+        self, mock_plan, mock_acquire, mock_release
+    ):
+        """Dashboard API: a context-builder failure while planning must not keep
+        the user locked out until the lock's TTL expires."""
+        mock_plan.side_effect = RuntimeError("builder failed")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_runs_the_contexts_the_budget_measured(
+        self, mock_plan, mock_build
+    ):
+        """Dashboard API: the export runs the query contexts the row budget was
+        measured against. Resolving them a second time would risk vouching for one
+        set of queries and running another, since a deployment's context builder
+        need not be deterministic. Charts the plan left out reach the builder
+        too, so the workbook lists them instead of running them."""
+        measured = {10: {"queries": [{"row_limit": 5}]}, 20: None}
+        skipped = {30: ERROR_UNBOUNDED}
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts=measured,
+            requested_rows=5,
+            max_rows=100_000,
+            skipped=skipped,
+        )
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        assert mock_build.call_args.kwargs["query_contexts"] is measured
+        assert mock_build.call_args.kwargs["skipped_charts"] is skipped
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_images_refused_without_storage(self, mock_build, mock_acquire):
+        """Dashboard API: image export renders every chart through the headless
+        webdriver, which no row budget bounds and no request should wait on, so it
+        is refused rather than served inline -- even with the webdriver enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+
+        assert rv.status_code == 400
+        message = rv.json["message"]
+        assert "administrator" in message
+        assert "EXPORT_STORAGE" not in message
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_releases_the_lock_on_success(
+        self, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: the in-flight lock the synchronous path takes is released
+        once the response is ready, so the next export is not locked out."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+
+        assert rv.status_code == 200
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+        # Releasing on this acquisition's token keeps an export that outlived the
+        # lock's TTL from deleting the lock of whoever acquired next.
+        _, kwargs = mock_release.call_args
+        assert kwargs["token"] == mock_acquire.return_value.token
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_releases_the_lock_when_building_fails(
+        self, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: a failure while building must not leave the user locked
+        out of their own dashboard until the lock's TTL expires."""
+        mock_build.side_effect = RuntimeError("boom")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_deletes_the_temp_file_on_success(self, mock_build):
+        """Dashboard API: the temp workbook is deleted when the response closes."""
+        mock_build.side_effect = self._write_stub_workbook
+        before = self._export_temp_files()
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 200
+        assert len(set(self._export_temp_files()) - set(before)) == 1
+        rv.close()
+        assert self._export_temp_files() == before
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_deletes_the_temp_file_when_building_fails(
+        self, mock_build
+    ):
+        """Dashboard API: a half-written workbook is cleaned up too, so a failing
+        export does not fill the web server's disk."""
+        mock_build.side_effect = RuntimeError("boom")
+        before = self._export_temp_files()
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        assert self._export_temp_files() == before
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_rejected_when_export_already_in_progress(
+        self, mock_plan, mock_build, mock_acquire
+    ):
+        """Dashboard API: the synchronous path honors the same per-user+dashboard
+        lock as the queued one, so one user cannot run two exports at once."""
+        mock_acquire.return_value.run.side_effect = LockAlreadyHeldException("held")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 202
+        assert "already in progress" in rv.data.decode("utf-8")
+        mock_plan.assert_not_called()
+        mock_build.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_serves_guest_sessions(self, mock_build):
+        """Dashboard API: an embedded guest, who has no email to be notified at,
+        gets the direct download, built under the guest user so its token's
+        RLS rules apply."""
+        mock_build.side_effect = self._write_stub_workbook
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        public_role = security_manager.get_public_role()
+        export_permission = security_manager.find_permission_view_menu(
+            "can_export", "Dashboard"
+        )
+        assert public_role is not None
+        assert export_permission is not None
+        permission_added = export_permission not in public_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(public_role, export_permission)
+
+        try:
+            token = security_manager.create_guest_access_token(
+                {"username": "xlsx_guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                [],
+            )
+
+            with self.client as client:
+                rv = client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                    headers={
+                        current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode(
+                            "utf-8"
+                        )
+                        if isinstance(token, bytes)
+                        else token
+                    },
+                )
+                assert isinstance(g.user, GuestUser)
+
+            assert rv.status_code == 200
+            mock_build.assert_called_once()
+            assert isinstance(mock_build.call_args.args[5], GuestUser)
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(public_role, export_permission)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_refuses_revoked_guest_token(self, mock_build):
+        """Dashboard API: a guest token revoked for its embedded dashboard never
+        runs a direct download as that guest. The request-time guest loader
+        applies the same revocation check the queued task re-runs, so both
+        paths agree. The request falls back to the anonymous principal, whose
+        outcome depends on the Public role (the guest role in this config), so
+        the test pins the identity rather than a status code."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        public_role = security_manager.get_public_role()
+        export_permission = security_manager.find_permission_view_menu(
+            "can_export", "Dashboard"
+        )
+        assert public_role is not None
+        assert export_permission is not None
+        permission_added = export_permission not in public_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(public_role, export_permission)
+
+        try:
+            token = security_manager.create_guest_access_token(
+                {"username": "xlsx_guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                [],
+            )
+            # Cut off every token issued before a point after this one's iat.
+            embedded.guest_token_revoked_before = int(now_epoch()) + 60
+            db.session.commit()
+
+            with self.client as client:
+                client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                    headers={
+                        current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode(
+                            "utf-8"
+                        )
+                        if isinstance(token, bytes)
+                        else token
+                    },
+                )
+                assert not isinstance(g.user, GuestUser)
+
+            assert not any(
+                isinstance(call.args[5], GuestUser)
+                for call in mock_build.call_args_list
+            )
+        finally:
+            embedded.guest_token_revoked_before = None
+            db.session.commit()
+            if permission_added:
+                security_manager.del_permission_role(public_role, export_permission)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.get_user_id")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_images_403_without_user_id(self, mock_task, mock_user_id):
+        """Dashboard API: ``mode=images`` is rejected for guest and anonymous
+        sessions (no user id, same predicate the UI hides the option on); the
+        webdriver cannot render without a real user identity."""
+        mock_user_id.return_value = None
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+        assert rv.status_code == 403
+        mock_task.apply_async.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.g")
+    @patch("superset.dashboards.api.get_user_id")
+    def test_export_xlsx_guest_enqueues_with_token_and_no_user_id(
+        self, mock_user_id, mock_g, mock_task, mock_acquire
+    ):
+        """Dashboard API: a guest-token request enqueues the task with
+        ``user_id=None`` plus the token payload, and takes a token-derived lock
+        slot (not 0) -- the API-to-worker handoff the guest fix depends on."""
+        token = {"user": {}, "resources": [], "rls_rules": []}
+        mock_user_id.return_value = None
+        mock_g.user.guest_token = token
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+        assert rv.status_code == 202
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["kwargs"]["user_id"] is None
+        assert kwargs["kwargs"]["guest_token"] == token
+        from superset.tasks.export_dashboard_excel import guest_lock_slot
+
+        (_, lock_params), _ = mock_acquire.call_args
+        assert lock_params == {
+            "user_id": guest_lock_slot(token),
+            "dashboard_id": dashboard.id,
+        }
+        assert lock_params["user_id"] != 0
+
+    def test_export_xlsx_status_running(self):
+        """Dashboard API: a job a worker has started reports ``running``,
+        distinguishable from a queued job's ``pending``."""
+        from superset.dashboards.excel_export.download_link import (
+            mark_export_running,
+        )
+
+        job_id = uuid.uuid4()
+        # No explicit commit: the status write must commit itself, or polling
+        # web pods never see what the worker wrote mid-task.
+        mark_export_running(job_id, datetime.now() + timedelta(hours=1))
+        db.session.remove()
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+
+        assert rv.status_code == 200
+        assert rv.json == {"status": "running"}
+
+    def test_export_xlsx_status_reports_error_when_backend_unset(self):
+        """Status must not report ready when the backend was cleared after
+        upload: download_xlsx would 501, so the frontend must not claim the
+        file is downloading."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="superset.utils.s3.S3ExportStorage",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": None}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.json["status"] == "error"
+
+    def test_export_xlsx_status_reports_error_when_backend_changed(self):
+        """Dashboard API: status never reports ready for a link the download
+        endpoint will refuse after a storage-backend migration."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="superset.utils.s3.S3ExportStorage",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": MagicMock()}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.json["status"] == "error"
+
+    def test_download_xlsx_410_when_storage_backend_changed(self):
+        """Dashboard API: a link uploaded by one storage backend is not signed
+        by a different one (the URL would point at the wrong provider); the
+        link expires cleanly instead."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="superset.utils.s3.S3ExportStorage",
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 410
+        mock_storage.download.assert_not_called()
+
+    def test_download_xlsx_redirects_for_legacy_record_without_backend(self):
+        """Dashboard API: link records written before the backend was tracked
+        still resolve, streamed by the configured backend."""
+        from superset.dashboards.excel_export.download_link import (
+            _sweep_and_upsert,
+            STATUS_READY,
+        )
+
+        job_id = uuid.uuid4()
+        _sweep_and_upsert(
+            job_id,
+            {
+                "status": STATUS_READY,
+                "bucket": "exports",
+                "key": "dashboard-exports/1/job.xlsx",
+            },
+            datetime.now() + timedelta(hours=1),
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        mock_storage.download.return_value = (9, iter([b"PK-legacy"]))
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": mock_storage}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.data == b"PK-legacy"
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
@@ -4004,6 +4968,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"result": {"id": ANY, "last_modified_time": ANY}}
+        log = self.get_latest_log("DashboardRestApi.copy_dash")
+        assert log.dashboard_id == pk
 
         dash = (
             db.session.query(Dashboard)
@@ -4434,8 +5400,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
             cache_key
         )
-        mock_store_cache_payload.side_effect = (
-            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        mock_store_cache_payload.side_effect = lambda cache_key, payload: (
+            payloads.__setitem__(cache_key, payload)
         )
 
         def publish(_request_key, cache_key, _scope, _previous_cache_key):
@@ -4659,8 +5625,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
             cache_key
         )
-        mock_store_cache_payload.side_effect = (
-            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        mock_store_cache_payload.side_effect = lambda cache_key, payload: (
+            payloads.__setitem__(cache_key, payload)
         )
 
         def publish(_request_key, cache_key, _scope, previous_cache_key):
@@ -5821,6 +6787,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard.id}/colors"
         rv = self.client.put(uri, json=colors)
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_colors")
+        assert log.dashboard_id == dashboard.id
 
         updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
         updated_label_colors = json.loads(updated_dashboard.json_metadata).get(

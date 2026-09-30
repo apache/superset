@@ -128,6 +128,16 @@ table with the same numeric ID. Ordinary table bundles retain `dataset_uuid`.
 Older Superset readers that do not support semantic references cannot import these
 semantic bundles.
 
+Older dashboard bundles whose semantic filter targets lack `datasourceRef` are
+rejected rather than binding their local IDs to unrelated tables. Re-export those
+dashboards with a version that supports typed references. If a chart or dashboard
+filter target references a deleted semantic view, export omits that reference so
+other assets in the archive can still be exported. Repair the orphaned datasource
+before exporting it for import elsewhere. Checks for inaccessible, disabled, and
+unregistered existing semantic dependencies remain enforced, including in full
+asset exports. Disabling `SEMANTIC_LAYERS` or removing a provider registration
+therefore still blocks exports containing references to existing semantic views.
+
 This is **reference restoration, not semantic-layer provisioning**. Bundles do not
 include semantic-layer/view configuration or credentials, and importing does not
 create provider connections or views, or contact providers. Provision the matching

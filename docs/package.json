@@ -61,8 +61,8 @@
     "@storybook/addon-docs": "^10.6.0",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.16.2",
-    "antd": "^6.6.4",
-    "baseline-browser-mapping": "^2.11.23",
+    "antd": "^6.6.5",
+    "baseline-browser-mapping": "^2.11.25",
     "caniuse-lite": "^1.0.30001810",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
@@ -78,7 +78,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.3.0",
     "storybook": "^10.6.0",
-    "swagger-ui-react": "^5.32.15",
+    "swagger-ui-react": "^5.33.0",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
@@ -87,11 +87,11 @@
     "@docusaurus/module-type-aliases": "^3.10.2",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
-    "oxfmt": "^0.67.0",
-    "oxlint": "^1.82.0",
-    "oxlint-tsgolint": "^7.0.2001",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "typescript": "7.0.2",
-    "webpack": "^5.111.0"
+    "webpack": "^5.111.1"
   },
   "browserslist": {
     "production": [
@@ -116,6 +116,7 @@
     "serialize-javascript": "7.0.5",
     "d3-color": "3.1.0",
     "ws": "^8.21.0",
+    "qs": "6.16.0",
     "docusaurus-plugin-openapi-docs/**/js-yaml": "^4.3.0"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
