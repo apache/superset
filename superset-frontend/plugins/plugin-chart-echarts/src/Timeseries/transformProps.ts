@@ -527,9 +527,32 @@ export default function transformProps(
       return SortSeriesType.Name;
     }
     const dataColumns = new Set(Object.keys(rebasedData[0] ?? {}));
+    // `truncate_metric` drops the metric label from its own pivoted columns
+    // when it is the sole displayed metric (see the comment on
+    // `pivotedColumnsOf`), so that lookup finds nothing when a chart's only
+    // metric is also the chosen sort target. With a single displayed metric,
+    // every remaining series column is that metric's own pivoted value, so
+    // fall back to summing them directly.
+    const soleValueMetricLabel = isMultiSeries
+      ? ensureIsArray(metrics).length === 1
+        ? getMetricLabel(ensureIsArray(metrics)[0])
+        : undefined
+      : undefined;
+    const isSoleValueMetricSort =
+      isDefined(soleValueMetricLabel) &&
+      (verboseMap[soleValueMetricLabel!] ?? soleValueMetricLabel) ===
+        (verboseMap[xAxisSort] ?? xAxisSort);
+    const truncatedMetricColumns =
+      isSoleValueMetricSort && !pivotedColumnsOf(xAxisSort).length
+        ? Object.keys(rebasedData[0] ?? {}).filter(
+            column =>
+              column !== xAxisLabel && !extraMetricLabels.includes(column),
+          )
+        : [];
     const sumOfColumns = [
       verboseMap[xAxisSort] ?? xAxisSort,
       ...pivotedColumnsOf(xAxisSort),
+      ...truncatedMetricColumns,
     ].filter(column => dataColumns.has(column));
     return sumOfColumns.length ? { sumOfColumns } : undefined;
   };
@@ -615,6 +638,17 @@ export default function transformProps(
       xAxisType,
     },
   );
+  // thresholdValues was computed from the pre-sort row order above; once
+  // xAxisSortSeries reorders the rows (sortedTotalValues carries that same
+  // permutation), a percentage-threshold label would otherwise be checked
+  // against another category's stacked total. Rederive it from the already
+  // correctly-permuted totals instead of re-sorting a second array in
+  // lockstep.
+  const sortedThresholdValues = isDefined(xAxisSortSeries)
+    ? sortedTotalValues.map(
+        total => ((percentageThreshold || 0) / 100) * (total ?? 0),
+      )
+    : thresholdValues;
 
   // Dot size by metric (scatter): the size metric's series are excluded from
   // rendering and instead provide per-point values that scale each marker's
@@ -1052,7 +1086,7 @@ export default function transformProps(
             : sortedTotalValues,
         showValueIndexes,
         stackGroup: seriesStackIds[seriesIdx],
-        thresholdValues,
+        thresholdValues: sortedThresholdValues,
         richTooltip,
         sliceId,
         isHorizontal,
