@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -238,6 +238,31 @@ class MissingUserContextException(SupersetException):
 
 class QueryObjectValidationError(SupersetException):
     status = 400
+
+
+class SemanticResultCompletenessError(QueryObjectValidationError):
+    """Reject incomplete or unverifiable semantic results with safe guidance."""
+
+    def __init__(self, reason: Literal["incomplete", "unverified"]) -> None:
+        self.reason: Literal["incomplete", "unverified"] = reason
+        # Keep fixed guidance aligned with frontend middleware/asyncQueryError.ts.
+        message: str
+        if reason == "incomplete":
+            message = _(
+                "The semantic layer returned only part of this query result. "
+                "Narrow the time range or selected dimensions, or request a "
+                "smaller explicit row limit, then retry. "
+                "Result pagination is not supported yet."
+            )
+        elif reason == "unverified":
+            message = _(
+                "The semantic layer could not verify that this query result "
+                "is complete. Retry the query; if it continues, ask an "
+                "administrator to check the semantic-layer connection."
+            )
+        else:
+            raise ValueError("Unknown completeness reason")
+        super().__init__(message)
 
 
 class AdvancedDataTypeResponseError(SupersetException):

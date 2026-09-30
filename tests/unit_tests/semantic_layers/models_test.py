@@ -36,6 +36,7 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
     get_column_type,
@@ -418,8 +419,13 @@ def test_semantic_view_get_query_str() -> None:
 
 def test_semantic_view_get_extra_cache_keys() -> None:
     """Test SemanticView get_extra_cache_keys method."""
-    view = SemanticView()
-    result = view.get_extra_cache_keys({})
+    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict(
+        "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
+    ):
+        result: list[Any] = view.get_extra_cache_keys({})
     assert result == []
 
 
@@ -2402,3 +2408,58 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
+def test_result_generation_reads_class_without_provider_construction(
+    version: str | None,
+) -> None:
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        assert view.result_cache_version == version
+        assert view.get_extra_cache_keys({}) == (
+            [] if version is None else [("semantic-result-version", "fixture", version)]
+        )
+    provider.assert_not_called()
+
+
+@pytest.mark.parametrize("version", ["", " ", True, 1])
+def test_invalid_result_generation_fails_configuration(version: Any) -> None:
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        with pytest.raises(
+            QueryObjectValidationError, match="Invalid semantic result cache version"
+        ):
+            assert view.result_cache_version is None
+
+
+def test_completeness_failure_does_not_retry_unfiltered_values(
+    mock_implementation: MagicMock,
+) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "incomplete"
+    )
+    mock_implementation.get_values.side_effect = [error, _values_result(["Books"])]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            view.values_for_column("category", search="oo")
+    assert mock_implementation.get_values.call_count == 1
+
+
+def test_unregistered_provider_cannot_use_guarded_result_cache() -> None:
+    """An absent provider declaration cannot downgrade to legacy cache identity."""
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {}, clear=True):
+        with pytest.raises(QueryObjectValidationError, match="unavailable"):
+            view.get_extra_cache_keys({})

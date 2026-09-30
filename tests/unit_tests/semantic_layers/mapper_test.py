@@ -4140,3 +4140,31 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+def test_required_comparison_completeness_failure_rejects_main_result(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """A complete main query cannot hide an incomplete required comparison."""
+    from superset.exceptions import SemanticResultCompletenessError
+
+    main: SemanticResult = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="fixture")],
+        results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[main, SemanticResultCompletenessError("incomplete")]
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+    with pytest.raises(SemanticResultCompletenessError):
+        get_results(query)
+    assert mock_datasource.implementation.get_table.call_count == 2
