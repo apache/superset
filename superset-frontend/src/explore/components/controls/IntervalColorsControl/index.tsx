@@ -17,25 +17,16 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import type { ColorPickerValue } from '../ColorPickerControl';
+import {
+  RangeRow as IntervalRow,
+  RangeLabel as BoundLabel,
+  replaceColorAtIndex,
+} from '../shared/RangeColorRow';
 import { IntervalColorsControlProps } from './types';
-
-const IntervalRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
-`;
-
-const BoundLabel = styled.span`
-  min-width: 90px;
-  color: ${({ theme }) => theme.colorTextSecondary};
-  font-size: ${({ theme }) => theme.fontSizeSM}px;
-`;
 
 const parseBounds = (intervals?: string): number[] =>
   (intervals ?? '')
@@ -110,8 +101,7 @@ export default function IntervalColorsControl({
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
     if (typeof color !== 'string') return;
-    const next = bounds.map((_, i) => (i === index ? color : colorAt(i)));
-    onChange?.(next);
+    onChange?.(replaceColorAtIndex(bounds.length, index, color, colorAt));
   };
 
   return (
