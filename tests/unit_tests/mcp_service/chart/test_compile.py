@@ -766,3 +766,29 @@ def test_aggregation_ambiguity_returns_validation_errors() -> None:
     )
     assert len(errors) == 1
     assert errors[0].error_code == "AMBIGUOUS_DATASET_REFERENCE"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
+    mock_factory, mock_cmd_cls
+):
+    """Gantt query building raises QueryObjectValidationError, which is not a
+    CommandException; compile must still return CHART_COMPILE_FAILED."""
+    form_data = {
+        "viz_type": "gantt_chart",
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "y_axis": "task",
+        "tooltip_columns": [f"column_{index}" for index in range(51)],
+    }
+
+    result = _compile_chart(form_data, 1)
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.tier == "compile"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert "tooltip_columns must contain at most 50 entries" in (result.error or "")
+    mock_cmd_cls.assert_not_called()

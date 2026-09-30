@@ -490,8 +490,17 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            # Every plugin-owned preview (including those that render an
-            # empty result) is shared with the unsaved-chart preview path.
+            # Only plugins that declare an empty result renderable (Gantt)
+            # bypass the explicit no-data response.
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            allows_empty = plugin is not None and plugin.allows_empty_result
+            if isinstance(chart_data, list) and not chart_data and not allows_empty:
+                return ChartError(
+                    error="No data available for Vega-Lite visualization",
+                    error_type="NoDataError",
+                )
+            # Every plugin-owned preview is shared with the unsaved-chart
+            # preview path.
             if (
                 plugin_preview := self._create_plugin_preview(chart_data, form_data)
             ) is not None:
@@ -500,11 +509,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 return ChartError(
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
-                )
-            if not chart_data:
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
                 )
             if (
                 fallback := fallback_vega_lite_preview(chart_data, form_data)
