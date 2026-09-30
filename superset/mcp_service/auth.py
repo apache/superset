@@ -1337,6 +1337,10 @@ def mcp_auth_hook(  # noqa: C901
         result = inner_wrapper(*args, **kwargs)
         return await result if is_async else result
 
+    from superset.mcp_service.worker import METADATA_ONLY_TOOLS
+
+    metadata_only = tool_name in METADATA_ONLY_TOOLS
+
     @functools.wraps(tool_func)
     async def worker_wrapper(*args: Any, **kwargs: Any) -> Any:
         from superset.mcp_service.worker import run_in_worker
@@ -1353,7 +1357,9 @@ def mcp_auth_hook(  # noqa: C901
                 seconds = get_flask_app().config.get("SQLLAB_TIMEOUT", 30)
         # Bind ctx once on the transport loop, including positional callers.
         bound.arguments.update(_inject_ctx(dict(bound.arguments)))
-        return await run_in_worker(invoke, (), dict(bound.arguments), seconds)
+        return await run_in_worker(
+            invoke, (), dict(bound.arguments), seconds, metadata_only
+        )
 
     wrapper = worker_wrapper
 

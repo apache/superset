@@ -27,6 +27,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from fastmcp import Client, Context, FastMCP
+from fastmcp.exceptions import ToolError
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
@@ -633,3 +634,145 @@ async def test_execute_sql_reports_missing_table_as_query_error(
     assert response["success"] is False
     assert response["error"] == "sqlite error: no such table: no_such_table"
     hook.assert_not_called()
+
+
+@pytest.mark.parametrize(("configured", "expected"), [(None, 16), (3, 3), (0, 0)])
+def test_metadata_only_tools_have_their_own_bound(
+    app: Any, configured: int | None, expected: int
+) -> None:
+    """The metadata-only bound does not depend on warehouse reservations."""
+    from superset.mcp_service.worker import metadata_tool_worker_count
+
+    with patch.dict(app.config, {"MCP_METADATA_TOOL_WORKERS": configured}):
+        assert metadata_tool_worker_count(app) == expected
+    with (
+        patch.dict(app.config, {"MCP_METADATA_TOOL_WORKERS": -1}),
+        pytest.raises(ValueError, match="must not be negative"),
+    ):
+        metadata_tool_worker_count(app)
+
+
+def test_metadata_only_tools_are_registered_tools() -> None:
+    """A renamed tool must not silently fall out of (or into) the fast bound."""
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.worker import METADATA_ONLY_TOOLS
+
+    tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
+    assert METADATA_ONLY_TOOLS <= set(tools)
+    assert "execute_sql" not in METADATA_ONLY_TOOLS
+    assert all(
+        tools[name].annotations is not None and tools[name].annotations.readOnlyHint
+        for name in METADATA_ONLY_TOOLS
+    )
+
+
+METADATA_CALLS = 12
+
+
+@pytest.mark.asyncio
+async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
+    metadata_engine: Engine,
+) -> None:
+    """Slow warehouse calls fill their bound; listing tools keep succeeding.
+
+    Each warehouse call holds a metadata connection across its (blocked)
+    warehouse I/O, as a real query does. Metadata-only calls share what is
+    left of the pool for their short queries.
+    """
+    from superset.mcp_service.worker import WorkerPool
+
+    pool = WorkerPool(WORKERS, METADATA_CALLS)
+    holding = threading.Barrier(WORKERS + 1)
+    release = threading.Event()
+
+    def slow_query() -> str:
+        """Keep a metadata transaction open while the warehouse is busy."""
+        db.session.execute(text("SELECT 1"))
+        holding.wait(timeout=5)
+        release.wait(timeout=5)
+        return "slow"
+
+    def list_charts() -> int:
+        """Answer from the metadata database alone."""
+        return db.session.execute(text("SELECT 1")).scalar()
+
+    mcp = FastMCP("admission regression")
+    with (
+        patch("superset.mcp_service.auth._setup_user_context", return_value=None),
+        patch("superset.mcp_service.worker._get_pool", return_value=pool),
+    ):
+        mcp.tool(mcp_auth_hook(slow_query, tool_name="slow_query"))
+        mcp.tool(mcp_auth_hook(list_charts, tool_name="list_charts"))
+        async with Client(mcp) as client:
+            slow = [
+                asyncio.create_task(client.call_tool("slow_query", {}))
+                for _ in range(WORKERS)
+            ]
+            try:
+                await asyncio.to_thread(holding.wait, 5)
+                with pytest.raises(ToolError, match="server busy"):
+                    await client.call_tool("slow_query", {})
+                listed = await asyncio.gather(
+                    *(
+                        client.call_tool("list_charts", {})
+                        for _ in range(METADATA_CALLS)
+                    )
+                )
+            finally:
+                release.set()
+            assert [result.data for result in await asyncio.gather(*slow)] == [
+                "slow"
+            ] * WORKERS
+
+    assert [result.data for result in listed] == [1] * METADATA_CALLS
+    assert metadata_engine.pool.checkedout() == 0
+    pool.executor.shutdown()
+    pool.cancellations.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_metadata_only_call_takes_warehouse_slot_before_warehouse_io(
+    metadata_engine: Engine,
+) -> None:
+    """A misclassified tool cannot hold metadata connections past the bound."""
+    from superset.mcp_service.worker import run_in_worker, WorkerPool
+    from superset.models.core import Database
+
+    database_id = _add_sqlite_warehouse(metadata_engine)
+    pool = WorkerPool(1, 2)
+    entered = threading.Event()
+    release = threading.Event()
+
+    async def warehouse_call() -> None:
+        """Occupy the only warehouse slot."""
+        entered.set()
+        release.wait(5)
+
+    async def misclassified() -> list[Any]:
+        """Reach the warehouse from a call admitted as metadata-only."""
+        database = db.session.get(Database, database_id)
+        with database.get_sqla_engine() as engine:
+            with engine.connect() as connection:
+                return connection.execute(text("SELECT 1")).all()
+
+    try:
+        with patch("superset.mcp_service.worker._get_pool", return_value=pool):
+            blocked = asyncio.create_task(run_in_worker(warehouse_call, (), {}, 5))
+            await asyncio.to_thread(entered.wait, 5)
+            with pytest.raises(ToolError, match="server busy"):
+                await run_in_worker(misclassified, (), {}, 5, metadata_only=True)
+            release.set()
+            await blocked
+            # With a warehouse slot free, the same call is admitted and upgraded.
+            assert await run_in_worker(
+                misclassified, (), {}, 5, metadata_only=True
+            ) == [(1,)]
+        # Every slot, including the upgrade, is returned.
+        assert pool.slots.acquire(blocking=False)
+        assert pool.metadata_slots is not None
+        assert pool.metadata_slots.acquire(blocking=False)
+        assert pool.metadata_slots.acquire(blocking=False)
+    finally:
+        release.set()
+        pool.executor.shutdown()
+        pool.cancellations.shutdown()

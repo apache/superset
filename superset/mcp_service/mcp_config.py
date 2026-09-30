@@ -77,6 +77,14 @@ MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
 # None admits up to 16 calls within that cap.
 MCP_TOOL_WORKERS: int | None = None
 
+# Maximum admitted calls of metadata-only tools (list_*, get_*_info, ...; see
+# METADATA_ONLY_TOOLS in superset/mcp_service/worker.py) per process, on top
+# of MCP_TOOL_WORKERS. They never hold a metadata connection across warehouse
+# I/O, so they keep answering while slow queries fill MCP_TOOL_WORKERS. One
+# that reaches a warehouse must also take an MCP_TOOL_WORKERS slot. 0 admits
+# them under MCP_TOOL_WORKERS instead. None admits up to 16.
+MCP_METADATA_TOOL_WORKERS: int | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 

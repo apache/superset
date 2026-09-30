@@ -66,6 +66,17 @@ explicit `MCP_TOOL_WORKERS` is reduced to the cap with a startup warning, and
 a pool with fewer than 3 connections is rejected at startup. The server never
 waits for a metadata connection on its event loop.
 
+Tools that only read Superset's metadata database (the `list_*` and
+`get_*_info` tools, `get_schema`, `get_instance_info`, `health_check`, and
+similar) are admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`
+(default 16). They hold a metadata connection only for their own short
+queries, so they keep answering while slow warehouse queries fill
+`MCP_TOOL_WORKERS`; they wait briefly for a connection on a worker thread. A
+metadata-only tool that does reach a warehouse must first take a
+`MCP_TOOL_WORKERS` slot, and reports **MCP server busy** if none is free.
+Setting `MCP_METADATA_TOOL_WORKERS = 0` admits every tool under
+`MCP_TOOL_WORKERS`.
+
 Tool-list and search permission checks, success/error audit writes, response-size
 audits, and error hooks run in metadata threads with independent Flask contexts
 and scoped sessions. These sessions are cleaned up when the operation finishes,
@@ -81,7 +92,8 @@ Cancellation connections run independently of the expired tool deadline, includi
 connection prequeries such as PostgreSQL schema selection.
 Drivers without cancellation support can
 continue running after the caller receives the timeout; the worker retains its
-slot and owns session cleanup until it finishes. A stuck cancellation also
+slot and owns session cleanup until it finishes, while metadata-only tools keep
+their own bound. A stuck cancellation also
 retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.

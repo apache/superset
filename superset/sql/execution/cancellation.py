@@ -54,6 +54,9 @@ def cancellable_cursor(
             yield
 
 
+before_warehouse_access: ContextVar[Callable[[], None] | None] = ContextVar(
+    "warehouse_before_access", default=None
+)
 check_deadline: ContextVar[Callable[[], None] | None] = ContextVar(
     "warehouse_check_deadline", default=None
 )
@@ -88,6 +91,7 @@ def without_execution_hooks() -> Iterator[None]:
     cancellation recursively.
     """
     cursor_token = cursor_scope.set(None)
+    access_token = before_warehouse_access.set(None)
     deadline_token = check_deadline.set(None)
     execute_token = after_execute.set(None)
     engine_token = _engine_scope.set(None)
@@ -97,6 +101,7 @@ def without_execution_hooks() -> Iterator[None]:
         _engine_scope.reset(engine_token)
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)
+        before_warehouse_access.reset(access_token)
         cursor_scope.reset(cursor_token)
 
 
@@ -112,6 +117,9 @@ def cancellable_engine(
     if cursor_scope.get() is None:
         yield
         return
+    if admit := before_warehouse_access.get():
+        # Before any connection is opened, including prequeries on connect.
+        admit()
     token = _engine_scope.set((database, engine, catalog, schema))
     try:
         yield

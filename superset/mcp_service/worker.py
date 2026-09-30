@@ -66,30 +66,95 @@ class WorkerDeadlineExceeded(BaseException):
     """Stop abandoned work without being swallowed by tool error handlers."""
 
 
+BUSY_MESSAGE = "MCP server busy: all tool workers are occupied. Retry later."
+
+# Tools that only read Superset's metadata database. They are admitted under a
+# separate, larger bound so they keep answering while slow warehouse queries
+# hold every warehouse slot. Anything that can reach a warehouse, a semantic
+# layer or a screenshot service stays in the warehouse bound. A listed tool
+# that does reach a warehouse must still take a warehouse slot first (see
+# WorkerCall.admit_warehouse), so a wrong entry cannot overdraw the pool.
+METADATA_ONLY_TOOLS = frozenset(
+    {
+        "find_users",
+        "get_annotation_layer_info",
+        "get_chart_info",
+        "get_chart_type_schema",
+        "get_dashboard_info",
+        "get_database_info",
+        "get_dataset_info",
+        "get_instance_info",
+        "get_layer_annotation_info",
+        "get_query_info",
+        "get_report_info",
+        "get_rls_filter_info",
+        "get_role_info",
+        "get_saved_query_info",
+        "get_schema",
+        "get_tag_info",
+        "get_task_info",
+        "get_theme_info",
+        "get_user_info",
+        "health_check",
+        "list_annotation_layers",
+        "list_charts",
+        "list_dashboards",
+        "list_databases",
+        "list_datasets",
+        "list_layer_annotations",
+        "list_queries",
+        "list_reports",
+        "list_rls_filters",
+        "list_roles",
+        "list_saved_queries",
+        "list_tags",
+        "list_tasks",
+        "list_themes",
+        "list_users",
+    }
+)
+
+
 class WorkerPool:
     """Bound submissions, including abandoned work; never queue behind a query."""
 
-    def __init__(self, size: int) -> None:
+    def __init__(self, size: int, metadata_size: int = 0) -> None:
         if size < 1:
             raise ValueError("MCP_TOOL_WORKERS must be positive")
+        if metadata_size < 0:
+            raise ValueError("MCP_METADATA_TOOL_WORKERS must not be negative")
         self.slots = threading.BoundedSemaphore(size)
-        self.executor = ThreadPoolExecutor(size, thread_name_prefix="mcp-tool")
+        self.metadata_slots = (
+            threading.BoundedSemaphore(metadata_size) if metadata_size else None
+        )
+        self.executor = ThreadPoolExecutor(
+            size + metadata_size, thread_name_prefix="mcp-tool"
+        )
         # Cancellation must not wait behind the warehouse work it is cancelling.
+        # Only calls holding a warehouse slot register cancellation.
         self.cancel_slots = threading.BoundedSemaphore(size)
         self.cancellations = ThreadPoolExecutor(size, thread_name_prefix="mcp-cancel")
 
+    def admission(self, metadata_only: bool) -> threading.BoundedSemaphore:
+        """Choose the bound a call is admitted under."""
+        if metadata_only and self.metadata_slots is not None:
+            return self.metadata_slots
+        return self.slots
+
     def submit(
-        self, fn: Callable[[], Any], finished: Callable[[], None]
+        self,
+        fn: Callable[[], Any],
+        finished: Callable[[], None],
+        slots: threading.BoundedSemaphore | None = None,
     ) -> Future[Any]:
         """Admit immediately or report overload without retaining a queued call."""
-        if not self.slots.acquire(blocking=False):
-            raise ToolError(
-                "MCP server busy: all tool workers are occupied. Retry later."
-            )
+        slots = self.slots if slots is None else slots
+        if not slots.acquire(blocking=False):
+            raise ToolError(BUSY_MESSAGE)
         try:
             future = self.executor.submit(fn)
         except BaseException:
-            self.slots.release()
+            slots.release()
             raise
         future.add_done_callback(lambda _: finished())
         return future
@@ -114,6 +179,7 @@ class WorkerPool:
 
 
 DEFAULT_TOOL_WORKERS = 16
+DEFAULT_METADATA_TOOL_WORKERS = 16
 
 
 def _metadata_pool_capacity(app: Flask) -> int | None:
@@ -168,22 +234,52 @@ def tool_worker_count(app: Flask) -> int:
     return configured
 
 
+def metadata_tool_worker_count(app: Flask) -> int:
+    """Admit metadata-only calls independently of warehouse capacity.
+
+    They hold a metadata connection only for their own short metadata queries,
+    never across warehouse I/O, so they cannot keep the connections reserved
+    for warehouse calls and their cancellation from cycling. They only wait
+    briefly for a connection, on a worker thread rather than the event loop.
+    """
+    configured = app.config.get("MCP_METADATA_TOOL_WORKERS")
+    count = DEFAULT_METADATA_TOOL_WORKERS if configured is None else configured
+    if count < 0:
+        raise ValueError("MCP_METADATA_TOOL_WORKERS must not be negative")
+    return count
+
+
 def _get_pool(app: Flask) -> WorkerPool:
     """Lazily create a pool for this application, without import-time threads."""
     with _pools_lock:
         if app not in _pools:
             size = tool_worker_count(app)
-            logger.info("MCP tool calls admitted concurrently: %s", size)
-            _pools[app] = WorkerPool(size)
+            metadata_size = metadata_tool_worker_count(app)
+            logger.info(
+                "MCP tool calls admitted concurrently: %s warehouse-capable, "
+                "%s metadata-only",
+                size,
+                metadata_size,
+            )
+            _pools[app] = WorkerPool(size, metadata_size)
         return _pools[app]
 
 
 class WorkerCall:
     """Thread-safe deadline and cancellation registration for one tool call."""
 
-    def __init__(self, app: Flask, pool: WorkerPool, seconds: float) -> None:
+    def __init__(
+        self,
+        app: Flask,
+        pool: WorkerPool,
+        seconds: float,
+        metadata_only: bool = False,
+    ) -> None:
         self.app = app
         self.pool = pool
+        self.admitted = pool.admission(metadata_only)
+        # Slots to release once query and cancellation I/O have both ended.
+        self.held = [self.admitted]
         self.loop = asyncio.get_running_loop()
         self.seconds = seconds
         self.deadline = time.monotonic() + seconds
@@ -214,6 +310,20 @@ class WorkerCall:
                 self.pending -= 1
             return self.cancel_dispatched
 
+    def admit_warehouse(self) -> None:
+        """Hold a warehouse slot before any warehouse I/O can start.
+
+        A call admitted as metadata-only must not hold a metadata connection
+        across warehouse I/O outside the warehouse bound. Waiting for a slot
+        while holding that connection would do exactly that, so fail fast.
+        """
+        with self.lock:
+            if self.pool.slots in self.held:
+                return
+            if not self.pool.slots.acquire(blocking=False):
+                raise ToolError(BUSY_MESSAGE)
+            self.held.append(self.pool.slots)
+
     def finished(self) -> None:
         """Retain admission until both query and cancellation I/O have ended.
 
@@ -223,7 +333,8 @@ class WorkerCall:
         with self.lock:
             self.pending -= 1
             if self.pending == 0:
-                self.pool.slots.release()
+                for slots in self.held:
+                    slots.release()
 
     def abandon(self) -> None:
         """Signal abandonment and dispatch cancellation without blocking asyncio."""
@@ -360,8 +471,13 @@ async def run_in_worker(
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
     seconds: float,
+    metadata_only: bool = False,
 ) -> Any:
-    """Run a complete tool lifecycle in a bounded, independently owned worker."""
+    """Run a complete tool lifecycle in a bounded, independently owned worker.
+
+    ``metadata_only`` admits the call under the metadata-only bound; it still
+    takes a warehouse slot if it reaches a warehouse.
+    """
     if active := _active_call.get():
         # Composed tools share the outer deadline and worker/session ownership.
         # A nested auth hook can inject the original transport Context again.
@@ -382,7 +498,7 @@ async def run_in_worker(
 
         app = get_flask_app()
     pool = _get_pool(app)
-    call = WorkerCall(app, pool, seconds)
+    call = WorkerCall(app, pool, seconds, metadata_only)
     loop = asyncio.get_running_loop()
     worker_kwargs = dict(kwargs)
     if "ctx" in worker_kwargs:
@@ -412,10 +528,14 @@ async def run_in_worker(
         from contextlib import nullcontext
 
         from superset import db, security_manager
-        from superset.sql.execution.cancellation import cursor_scope
+        from superset.sql.execution.cancellation import (
+            before_warehouse_access,
+            cursor_scope,
+        )
 
         _active_call.set(call)
         cursor_scope.set(warehouse_cursor)
+        before_warehouse_access.set(call.admit_warehouse)
         with _worker_context(app):
             vars(g._get_current_object()).update(globals_snapshot)
             with request_copy if request_copy is not None else nullcontext():
@@ -428,7 +548,7 @@ async def run_in_worker(
                 call.check()
                 return result
 
-    future = pool.submit(lambda: context.run(execute), call.finished)
+    future = pool.submit(lambda: context.run(execute), call.finished, call.admitted)
     wrapped = asyncio.wrap_future(future)
     try:
         # Shield the future: cancellation must not release its pool slot early.
@@ -558,6 +678,7 @@ def warehouse_cursor(
     from superset.sql.execution.cancellation import after_execute, check_deadline
 
     call.check()
+    call.admit_warehouse()
     cancellation = QueryCancellation(call, database, cursor, catalog, schema)
     with call.lock:
         call.cancel_dispatched = False
