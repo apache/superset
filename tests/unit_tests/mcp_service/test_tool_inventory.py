@@ -36,10 +36,13 @@ TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 2_900,
     "create_dataset": 1_800,
+    "create_dataset_metric": 2_800,
     "create_theme": 1_100,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
+    "delete_dataset": 1_100,
+    "delete_dataset_metric": 1_300,
     "duplicate_dashboard": 1_900,
     "execute_sql": 2_100,
     "find_users": 1_500,
@@ -48,6 +51,7 @@ TOOL_BUDGETS = {
     "generate_dashboard": 3_400,
     "generate_explore_link": 50_000,
     "get_annotation_layer_info": 1_000,
+    "get_catalog": 1_600,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
     "get_chart_preview": 3_400,
@@ -78,11 +82,12 @@ TOOL_BUDGETS = {
     "list_annotation_layers": 2_700,
     # Include the deleted_state edit/restore audience and under-enumeration
     # caveats from #44128: 5,149 and 4,626 bytes, plus the headroom above.
+    # list_datasets states the same caveats for trashed datasets: 4,949 bytes.
     # Keep the complete-schema parity test below alongside these size limits.
     "list_charts": 5_300,
     "list_dashboards": 4_800,
     "list_databases": 3_500,
-    "list_datasets": 4_600,
+    "list_datasets": 5_100,
     "list_layer_annotations": 2_900,
     "list_metrics": 1_900,
     "list_queries": 3_000,
@@ -103,10 +108,12 @@ TOOL_BUDGETS = {
     "remove_chart_from_dashboard": 1_300,
     "restore_chart": 1_100,
     "restore_dashboard": 1_000,
+    "restore_dataset": 1_100,
     "save_sql_query": 1_600,
     "update_chart": 55_000,
     "update_chart_preview": 55_000,
     "update_dashboard": 4_100,
+    "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
 }
 

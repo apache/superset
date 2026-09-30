@@ -26,6 +26,8 @@ import logging
 import math
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
+from decimal import Decimal
+from numbers import Real
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
@@ -1257,6 +1259,33 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | None:
+    """Pick the y-axis column for a Vega-Lite preview.
+
+    Prefers the first chart metric with a numeric or null result value.
+    Falls back to a numeric column only when no metric label matches.
+    Booleans are never treated as numeric.
+    """
+    matched_metric = False
+    for metric in metrics:
+        label = metric_result_label(metric)
+        if label is not None and label in row:
+            matched_metric = True
+            value = row[label]
+            if value is None or (
+                isinstance(value, (Real, Decimal)) and not isinstance(value, bool)
+            ):
+                return label
+
+    if matched_metric:
+        return None
+
+    for col, value in row.items():
+        if isinstance(value, (Real, Decimal)) and not isinstance(value, bool):
+            return col
+    return None
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
@@ -1325,20 +1354,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Handle Y-axis (metrics)
     if metrics and data:
-        # Find the first metric column in the data
-        metric_col = None
-        for col in data[0].keys():
-            # Check if this is a metric column (usually has aggregation in name)
-            if any(
-                agg in str(col).upper()
-                for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
-            ):
-                metric_col = col
-                break
-            # Or check if it's numeric
-            elif isinstance(data[0].get(col), (int, float)):
-                metric_col = col
-                break
+        metric_col = _resolve_y_metric_column(data[0], metrics)
 
         if metric_col:
             encoding["y"] = {

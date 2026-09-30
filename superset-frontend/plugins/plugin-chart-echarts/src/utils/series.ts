@@ -71,7 +71,12 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+// Keyed on every distinct legend label and (since Gantt's category names
+// share this cache too) every distinct category name ever measured, so an
+// unbounded cache could grow with high-cardinality data over a long session.
+// Cap it and evict the least-recently-used entry once full.
+const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
+const TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
   | string
@@ -97,10 +102,14 @@ function getLegendLabel(item: LegendDataItem): string {
   return String(item.name);
 }
 
-function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+export function measureTextWidth(text: string, theme: SupersetTheme): number {
   const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
-  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  const cachedWidth = TEXT_WIDTH_CACHE.get(cacheKey);
   if (cachedWidth !== undefined) {
+    // Re-insert so the Map's iteration order (used for LRU eviction below)
+    // reflects recency, not just insertion order.
+    TEXT_WIDTH_CACHE.delete(cacheKey);
+    TEXT_WIDTH_CACHE.set(cacheKey, cachedWidth);
     return cachedWidth;
   }
 
@@ -115,7 +124,13 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     }
   }
 
-  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
+    const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
+    if (oldestKey !== undefined) {
+      TEXT_WIDTH_CACHE.delete(oldestKey);
+    }
+  }
+  TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
 }
 
@@ -140,7 +155,7 @@ function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
     label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
-      measureLegendTextWidth(label, theme),
+      measureTextWidth(label, theme),
   );
 }
 
@@ -228,8 +243,7 @@ function getLongestLegendLabelWidth(
   theme: SupersetTheme,
 ): number {
   return labels.reduce(
-    (maxWidth, label) =>
-      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+    (maxWidth, label) => Math.max(maxWidth, measureTextWidth(label, theme)),
     0,
   );
 }
@@ -435,6 +449,26 @@ export function extractDataTotalValues(
   };
 }
 
+const DEFAULT_STACK_GROUP = '__default__';
+
+/**
+ * Computes, per stack group, which series index is the "topmost" (i.e. the
+ * series that should display the value label) for each data point.
+ *
+ * When a stackDimension splits bars into separate ECharts stack groups the
+ * computation must be done independently per group, otherwise only the
+ * globally-last series is flagged and all other groups miss their label.
+ *
+ * @param series      The raw series array (parallel to the rendered series).
+ * @param opts.stack           Whether stacking is active.
+ * @param opts.onlyTotal       Whether to show only the stack total.
+ * @param opts.isHorizontal    Whether the chart is horizontal.
+ * @param opts.legendState     Active legend state (hidden series are skipped).
+ * @param opts.seriesStackIds  Optional per-series stack-group key (parallel to
+ *                             `series`). Defaults to a single shared group.
+ * @returns A `Record<stackGroupKey, number[]>` where each inner array maps
+ *          `dataIndex → seriesIndex` of the topmost series in that group.
+ */
 export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
@@ -442,35 +476,43 @@ export function extractShowValueIndexes(
     onlyTotal?: boolean;
     isHorizontal?: boolean;
     legendState?: LegendState;
+    seriesStackIds?: string[];
   },
-): number[] {
-  const showValueIndexes: number[] = [];
-  const { legendState, stack, isHorizontal, onlyTotal } = opts;
-  if (stack) {
-    series.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (entry.id && legendState && !legendState[entry.id]) {
-          return;
-        }
-        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
+): Record<string, number[]> {
+  const result: Record<string, number[]> = Object.create(null);
+  const { legendState, stack, isHorizontal, onlyTotal, seriesStackIds } = opts;
+  if (!stack) {
+    return result;
+  }
+
+  series.forEach((entry, seriesIndex) => {
+    const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
+    if (!Object.prototype.hasOwnProperty.call(result, stackGroup)) {
+      result[stackGroup] = [];
+    }
+    const showValueIndexes = result[stackGroup];
+
+    const { data = [] } = entry;
+    (data as [any, number][]).forEach((datum, dataIndex) => {
+      if (entry.id && legendState && !legendState[entry.id]) {
+        return;
+      }
+      const numericValue = datum[isHorizontal ? 0 : 1];
+      if (!onlyTotal && numericValue !== null) {
+        showValueIndexes[dataIndex] = seriesIndex;
+      }
+      if (onlyTotal) {
+        if (numericValue > 0) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (onlyTotal) {
-          if (datum[isHorizontal ? 0 : 1] > 0) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
-          if (
-            !showValueIndexes[dataIndex] &&
-            datum[isHorizontal ? 0 : 1] !== null
-          ) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
+        if (!showValueIndexes[dataIndex] && numericValue !== null) {
+          showValueIndexes[dataIndex] = seriesIndex;
         }
-      });
+      }
     });
-  }
-  return showValueIndexes;
+  });
+
+  return result;
 }
 
 export function sortAndFilterSeries(
@@ -794,6 +836,21 @@ export function extractGroupbyLabel({
     .join(', ');
 }
 
+/**
+ * ECharts `scrollDataIndex` is the legend entry index of the first visible
+ * item. Dashboard state keeps the last scroll position across re-renders, so
+ * clamp it when the legend has fewer entries after a data refresh.
+ */
+export function getLegendScrollDataIndex(
+  legendIndex: number | undefined,
+  legendItemCount: number,
+): number {
+  if (legendItemCount <= 0) {
+    return 0;
+  }
+  return Math.min(Math.max(legendIndex ?? 0, 0), legendItemCount - 1);
+}
+
 export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
@@ -803,7 +860,8 @@ export function getLegendProps(
   legendState?: LegendState,
   padding?: LegendPaddingType,
 ): LegendComponentOption {
-  const legend: LegendComponentOption = {
+  // `animation` is read by ECharts but missing from its legend option type
+  const legend: LegendComponentOption & { animation?: boolean } = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
@@ -811,6 +869,15 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    ...(type === LegendType.Scroll
+      ? {
+          // A scrolling legend is rebuilt from its first page on every re-render
+          // and then animated back to `scrollDataIndex`, which reads as the legend
+          // sliding away and returning. Turning the animation off makes it render
+          // on the right page to begin with.
+          animation: false,
+        }
+      : {}),
     selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
@@ -1091,12 +1158,22 @@ export function capTickMarks(
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
  * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
  * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
- * thins from) uses the same capped set on a non-zoomable axis, so a label
- * surviving hideOverlap thinning always lands on a real tick and gridline
- * rather than a capped-away bucket. On a zoomable axis the full set is used
- * instead — zooming lets the user reach any bucket, but customValues never
- * recomputes on dataZoom, so a capped set there would freeze the visible
- * labels to the pre-zoom subset.
+ * thins from) uses the same capped set on a non-zoomable, non-"All" axis, so
+ * a label surviving hideOverlap thinning always lands on a real tick and
+ * gridline rather than a capped-away bucket.
+ *
+ * On a zoomable axis, axisLabel uses the full set instead — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * axisTick deliberately stays capped in that case; hideOverlap keeps thinning
+ * the (uncapped) labels dynamically, so gridlines don't need to track them
+ * 1:1, and a full weekly gridline set on a long zoomable range is its own
+ * source of clutter.
+ *
+ * When the user picks "All" (interval === 0), the tradeoff is different:
+ * every label is meant to be shown, so a label landing on a capped-away tick
+ * with no matching gridline would defeat the point. axisTick uncaps to match
+ * axisLabel in that case, on both zoomable and non-zoomable axes.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
@@ -1114,18 +1191,33 @@ export function getTemporalAxisTickConfig(
   const cappedTickValues = temporalTickValues
     ? capTickMarks(temporalTickValues)
     : undefined;
-  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  // When the user picks "All" (interval === 0), they want every label shown.
+  // Disable hideOverlap so ECharts never drops a label, and pin customValues
+  // to the full tick set so each label lands on a real gridline.
+  const showAllLabels = xAxisLabelInterval === 0;
+  // On a zoomable axis the full set is already used; for "All" we also bypass
+  // the cap so every tick gets a label rather than the 60-mark subset.
+  const labelCustomValues =
+    zoomable || showAllLabels ? temporalTickValues : cappedTickValues;
+  const tickCustomValues = showAllLabels
+    ? temporalTickValues
+    : cappedTickValues;
+
   return {
     axisLabel: {
       // Pinned ticks label every bucket, which does crowd, so thinning
-      // always wins there.
+      // wins there unless the user asked for every label.
       hideOverlap:
-        !!temporalTickValues ||
-        (showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+        !showAllLabels &&
+        (!!temporalTickValues ||
+          (showMaxLabel
+            ? false
+            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0))),
       formatter,
       rotate: xAxisLabelRotation,
+      // ECharts only honors axisLabel.interval on category axes. A time axis
+      // ignores it, so the "All" setting relies on showAllLabels disabling
+      // hideOverlap above rather than on interval: 0 here.
       interval: xAxisLabelInterval,
       // Force the boundary labels so the first and last dates stay visible:
       // hideOverlap can hide the last label, and a min date that falls
@@ -1146,7 +1238,7 @@ export function getTemporalAxisTickConfig(
         }),
       ...(labelCustomValues && { customValues: labelCustomValues }),
     },
-    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+    ...(tickCustomValues && { axisTick: { customValues: tickCustomValues } }),
   };
 }
 
