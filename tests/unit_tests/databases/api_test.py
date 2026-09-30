@@ -28,6 +28,7 @@ from uuid import UUID
 import pytest
 import yaml
 from flask import current_app
+from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -120,6 +121,98 @@ def test_post_with_uuid(
 
     database = session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+@pytest.mark.parametrize("engine", ["bigquery", "gsheets"])
+@pytest.mark.parametrize("credential_type", ["oauth2", "service_account"])
+def test_write_response_masks_encrypted_extra(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    method: str,
+    engine: str,
+    credential_type: str,
+) -> None:
+    """Mask write responses without changing stored or round-tripped credentials."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    # Keep the real commands and persistence, but avoid external connections and
+    # permission synchronization, which require a live database and user.
+    mocker.patch("superset.commands.database.create.TestConnectionDatabaseCommand.run")
+    mocker.patch("superset.commands.database.create.add_permissions")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value=engine)
+
+    if credential_type == "oauth2":
+        credential_key = "oauth2_client_info"
+        sensitive_field = "secret"
+        credentials = {
+            "id": "test-client",
+            "secret": "test-client-secret",
+            "scope": "test-scope",
+            "authorization_request_uri": "https://example.com/authorize",
+            "token_request_uri": "https://example.com/token",
+        }
+    else:
+        credential_key = (
+            "credentials_info" if engine == "bigquery" else "service_account_info"
+        )
+        sensitive_field = "private_key"
+        credentials = {
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key": "test-private-key",
+        }
+    encrypted_extra = {credential_key: credentials}
+    payload = {
+        "database_name": "test_database",
+        "sqlalchemy_uri": f"{engine}://",
+        "masked_encrypted_extra": json.dumps(encrypted_extra),
+    }
+    url = "/api/v1/database/"
+    if method == "PUT":
+        database = Database(
+            database_name="test_database",
+            sqlalchemy_uri=f"{engine}://",
+            encrypted_extra="{}",
+        )
+        session.add(database)
+        session.commit()
+        url += str(database.id)
+
+    response = client.open(url, method=method, json=payload)
+    assert response.status_code == (201 if method == "POST" else 200)
+    database_id = response.json["id"]
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
+
+    masked_extra = response.json["result"]["masked_encrypted_extra"]
+    assert json.loads(masked_extra) == {
+        credential_key: {**credentials, sensitive_field: "XXXXXXXXXX"}
+    }
+    assert credentials[sensitive_field] not in response.get_data(as_text=True)
+
+    # Saving the masked response must preserve the original secret.
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={"masked_encrypted_extra": masked_extra},
+    )
+    assert response.status_code == 200
+    assert json.loads(response.json["result"]["masked_encrypted_extra"]) == json.loads(
+        masked_extra
+    )
+    session.expire_all()
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
 
 
 def test_password_mask(
@@ -1007,14 +1100,14 @@ def test_oauth2_error(
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json == {
         "errors": [
             {
-                "message": "Something went wrong while doing OAuth2",
+                "message": "The OAuth2 provider denied the request",
                 "error_type": "OAUTH2_REDIRECT_ERROR",
-                "level": "error",
-                "extra": {"error": "Something bad hapened"},
+                "level": "warning",
+                "extra": None,
             }
         ]
     }
