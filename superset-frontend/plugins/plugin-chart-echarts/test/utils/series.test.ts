@@ -41,6 +41,7 @@ import {
   getLegendProps,
   getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
+  getGrainBarMaxWidth,
   getMinAndMaxFromBounds,
   capTickMarks,
   getTemporalTickValues,
@@ -56,7 +57,12 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING, StackControlsValue } from '../../src/constants';
+import {
+  NULL_STRING,
+  ONE_DAY_MS,
+  StackControlsValue,
+  TIMEGRAIN_TO_TIMESTAMP,
+} from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -1933,6 +1939,94 @@ describe('getTemporalTickValues', () => {
         TimeGranularity.WEEK,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('getGrainBarMaxWidth', () => {
+  const xAxisCol = '__timestamp';
+  const plotLengthPx = 600;
+
+  test('returns undefined for a non-time axis', () => {
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Category,
+        TimeGranularity.HOUR,
+        [[{ [xAxisCol]: 0 }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined when there is no resolved time grain', () => {
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Time,
+        undefined,
+        [[{ [xAxisCol]: 0 }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('computes the same grain-aware width whether the x column is numbers, Dates or ISO strings', () => {
+    // Regression: getGrainBarMaxWidth delegates to getXAxisDomain, which used
+    // to only recognize `typeof === 'number'`. A Date- or ISO-string-valued
+    // temporal column found no domain bounds and this returned undefined,
+    // silently falling back to the flat 100px sparse-bar cap instead of the
+    // grain-aware one.
+    const hour = TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.HOUR];
+    const t0 = Date.UTC(2024, 0, 1, 0);
+    const t1 = Date.UTC(2024, 0, 1, 3);
+    const expected = (hour / (t1 - t0)) * plotLengthPx;
+
+    const numeric = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [[{ [xAxisCol]: t0 }, { [xAxisCol]: t1 }]],
+      xAxisCol,
+      plotLengthPx,
+    );
+    const dates = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [[{ [xAxisCol]: new Date(t0) }, { [xAxisCol]: new Date(t1) }]],
+      xAxisCol,
+      plotLengthPx,
+    );
+    const isoStrings = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [
+        [
+          { [xAxisCol]: '2024-01-01T00:00:00.000Z' },
+          { [xAxisCol]: '2024-01-01T03:00:00.000Z' },
+        ],
+      ],
+      xAxisCol,
+      plotLengthPx,
+    );
+
+    expect(numeric).toBeCloseTo(expected);
+    expect(dates).toBeCloseTo(expected);
+    expect(isoStrings).toBeCloseTo(expected);
+  });
+
+  test('falls back to the 2-day degenerate-domain span for a single distinct Date value', () => {
+    const hour = TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.HOUR];
+    const t0 = new Date(Date.UTC(2024, 0, 1));
+    const expected = (hour / (2 * ONE_DAY_MS)) * plotLengthPx;
+
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Time,
+        TimeGranularity.HOUR,
+        [[{ [xAxisCol]: t0 }, { [xAxisCol]: new Date(t0.getTime()) }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeCloseTo(expected);
   });
 });
 

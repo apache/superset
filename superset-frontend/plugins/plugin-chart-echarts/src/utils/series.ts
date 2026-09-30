@@ -55,7 +55,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
-import { getXAxisDomain } from './formatters';
+import { coerceTemporalMs, getXAxisDomain } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -1059,23 +1059,6 @@ export function getAxisType(
   return AxisType.Category;
 }
 
-// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
-// zone-less strings as local time — mismatch would offset the pinned tick.
-const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
-
-function parseTemporalString(value: string): number {
-  const dateOnly = DATE_ONLY_RE.exec(value);
-  if (dateOnly) {
-    const [, year, month, day] = dateOnly;
-    return new Date(
-      Number(year),
-      Number(month || 1) - 1,
-      Number(day || 1),
-    ).getTime();
-  }
-  return new Date(value).getTime();
-}
-
 /**
  * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
  * choose.
@@ -1100,14 +1083,7 @@ export function getTemporalTickValues(
   }
   const values = new Set<number>();
   data.forEach(row => {
-    const value = row[xAxisLabel];
-    const timestamp =
-      // eslint-disable-next-line no-nested-ternary
-      value instanceof Date
-        ? value.getTime()
-        : typeof value === 'string'
-          ? parseTemporalString(value)
-          : Number(value ?? NaN);
+    const timestamp = coerceTemporalMs(row[xAxisLabel]);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);
     }
