@@ -24,9 +24,9 @@ assists people when migrating to a new version.
 
 ## Next
 
-### Table server pagination for semantic views
+### Table and AG Grid server pagination for semantic views
 
-Table charts backed by semantic views require the optional `ROW_OFFSET`
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
 capability to enable Server pagination. Missing capability metadata disables
 the control with an explanation; SQL datasets are unchanged. Saved pagination
 settings are not rewritten. Users can explicitly turn off an unsupported

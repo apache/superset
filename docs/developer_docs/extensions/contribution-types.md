@@ -344,8 +344,9 @@ consistency across pages. Providers remain responsible for validating query
 shapes and must honor offsets or return a clear error, never silently repeat
 the first page.
 
-The Table chart reads this capability from `semantic_view_features`. For a
-semantic view with missing, empty, or unknown-only capabilities, **Server
+The Table and AG Grid Table charts read this capability from
+`semantic_view_features`. For a semantic view with missing, empty, or
+unknown-only capabilities, **Server
 pagination** remains visible but disabled with an explanation. Ordinary SQL
 datasets keep their existing controls. Existing saved settings are preserved:
 an unsupported query continues to return the provider's actionable error until

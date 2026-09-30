@@ -39,6 +39,7 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -59,20 +60,6 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-
-function isServerPaginationUnsupported({
-  datasource,
-  form_data,
-}: ControlPanelState): boolean {
-  const isSemanticView =
-    datasource?.type === 'semantic_view' ||
-    (!datasource && form_data.datasource?.endsWith('__semantic_view'));
-  const features =
-    datasource && 'semantic_view_features' in datasource
-      ? datasource.semantic_view_features
-      : undefined;
-  return Boolean(isSemanticView && !features?.includes('ROW_OFFSET'));
-}
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;

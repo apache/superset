@@ -46,6 +46,20 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
   return null;
 };
 
+const getPaginationControl = (name: string): ControlConfig => {
+  for (const section of config.controlPanelSections) {
+    if (!section) continue;
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (isCustomControlItem(control) && control.name === name) {
+          return control.config;
+        }
+      }
+    }
+  }
+  throw new Error(`Missing pagination control: ${name}`);
+};
+
 const findMetricsMapStateToProps = ():
   | ControlConfig['mapStateToProps']
   | null => {
@@ -304,4 +318,58 @@ test('metrics control includes non-filterable columns', () => {
       expect.objectContaining({ column_name: 'non_filterable_col' }),
     ]),
   );
+});
+
+test.each([
+  ['semantic_view', undefined, true],
+  ['semantic_view', [], true],
+  ['semantic_view', ['UNKNOWN'], true],
+  ['semantic_view', ['ROW_OFFSET'], false],
+  ['table', undefined, false],
+])(
+  'AG Grid pagination gate: %s with %s disables=%s',
+  (type, features, disabled) => {
+    const panel = getPaginationControl('server_pagination');
+    const length = getPaginationControl('server_page_length');
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: { type, semantic_view_features: features } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: `1__${type}`,
+        server_pagination: true,
+      },
+      controls: {
+        ...base.controls,
+        server_pagination: { type: 'CheckboxControl', value: true },
+      },
+    };
+
+    expect(panel.shouldMapStateToProps?.(state, state)).toBe(true);
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+    expect(
+      length.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({ disabled });
+    expect(state.controls.server_pagination.value).toBe(true);
+  },
+);
+
+test('AG Grid fails closed while semantic datasource metadata loads', () => {
+  const panel = getPaginationControl('server_pagination');
+  const base = createMockExplore(undefined);
+  const state: ControlPanelState = {
+    ...base,
+    datasource: null,
+    form_data: { ...base.form_data, datasource: '1__semantic_view' },
+  };
+  expect(
+    panel.mapStateToProps?.(state, state.controls.server_pagination),
+  ).toMatchObject({ disabled: true });
 });
