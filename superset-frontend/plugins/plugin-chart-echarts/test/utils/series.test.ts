@@ -39,10 +39,12 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
   capTickMarks,
   getTemporalTickValues,
+  measureTextWidth,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -130,6 +132,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -307,7 +314,7 @@ test('sortRows by max ascending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       true,
     ),
   ).toEqual([
@@ -323,7 +330,7 @@ test('sortRows by max descending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       false,
     ),
   ).toEqual([
@@ -907,7 +914,9 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: false, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1],
+    });
   });
 
   test('should handle the negative numbers for total only', () => {
@@ -965,7 +974,93 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: true, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1],
+    });
+  });
+
+  test('should track topmost series independently per stack group (stackDimension)', () => {
+    // Simulates 2 stack groups: 'groupA' (series indices 0, 1) and 'groupB' (series index 2).
+    // With onlyTotal, each group's topmost positive series should be flagged independently.
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'A-cat1',
+            name: 'A-cat1',
+            data: [
+              ['Jan', 10],
+              ['Feb', 5],
+            ],
+          },
+          {
+            id: 'A-cat2',
+            name: 'A-cat2',
+            data: [
+              ['Jan', 20],
+              ['Feb', 15],
+            ],
+          },
+          {
+            id: 'B-cat1',
+            name: 'B-cat1',
+            data: [
+              ['Jan', 30],
+              ['Feb', 25],
+            ],
+          },
+        ],
+        {
+          stack: true,
+          onlyTotal: true,
+          isHorizontal: false,
+          seriesStackIds: ['groupA', 'groupA', 'groupB'],
+        },
+      ),
+    ).toEqual({
+      groupA: [1, 1], // series index 1 is top of groupA for both data points
+      groupB: [2, 2], // series index 2 is top of groupB for both data points
+    });
+  });
+
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
+    const result = extractShowValueIndexes(
+      [
+        {
+          id: 'proto-series',
+          name: 'proto-series',
+          data: [
+            ['Jan', 10],
+            ['Feb', 20],
+          ],
+        },
+        {
+          id: 'ctor-series',
+          name: 'ctor-series',
+          data: [
+            ['Jan', 30],
+            ['Feb', 40],
+          ],
+        },
+      ],
+      {
+        stack: true,
+        onlyTotal: true,
+        isHorizontal: false,
+        seriesStackIds: ['__proto__', 'constructor'],
+      },
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(
+      true,
+    );
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(
+      true,
+    );
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
+      [0, 0],
+    );
+    expect(result['constructor']).toEqual([1, 1]);
   });
 });
 
@@ -1016,6 +1111,12 @@ describe('formatSeriesName', () => {
   });
 });
 
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
+});
+
 describe('getLegendProps', () => {
   test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
@@ -1032,7 +1133,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1048,11 +1149,30 @@ describe('getLegendProps', () => {
     ).toEqual({
       show: true,
       top: 0,
-      right: 55,
+      right: 90,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
+  });
+
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
+    const { right } = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      true,
+    );
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
@@ -2038,4 +2158,55 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
     midAreaSize,
   );
+});
+
+describe('measureTextWidth caching', () => {
+  // jsdom does not implement canvas measurement, so stub document.createElement
+  // to hand back a fake 2d context whose measureText call count/args we can
+  // assert on -- that's the only way to observe a cache hit vs. a recompute.
+  let measureText: jest.Mock;
+  let createElementSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    measureText = jest.fn((text: string) => ({ width: text.length * 7 }));
+    createElementSpy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation(
+        () => ({ getContext: () => ({ font: '', measureText }) }) as never,
+      );
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
+  });
+
+  test('caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit', () => {
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // A different theme is a different cache key, so it does remeasure.
+    measureTextWidth('Category A', { ...theme, fontSizeSM: 20 });
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+
+  test('evicts the least-recently-used entry once the cache is full', () => {
+    // Fill the cache (2000 entries) then measure one more distinct label --
+    // whichever key gets evicted must be remeasured on its next lookup.
+    for (let i = 0; i < 2000; i += 1) {
+      measureTextWidth(`label-${i}`, theme);
+    }
+    measureText.mockClear();
+
+    measureTextWidth('one-too-many', theme);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // The oldest entry (label-0) was evicted to make room, so it recomputes.
+    measureTextWidth('label-0', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+
+    // A more recently used entry is still cached.
+    measureTextWidth('label-1999', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
 });

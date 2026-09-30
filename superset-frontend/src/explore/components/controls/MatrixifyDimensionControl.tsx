@@ -376,6 +376,14 @@ export default function MatrixifyDimensionControl(
         </div>
       )}
 
+      {value?.dimension && selectionMode === 'all' && suggestionsDisabled && (
+        <span>
+          {t(
+            'Values cannot be refreshed in All mode for this semantic view. Saved values are preserved. Switch to Members to enter values manually.',
+          )}
+        </span>
+      )}
+
       {value?.dimension && selectionMode === 'topn' && topNError && (
         <div css={theme => ({ color: theme.colorError })}>
           {t('Error: %s', topNError)}

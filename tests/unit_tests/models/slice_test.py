@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 import uuid
 from unittest.mock import MagicMock, patch, PropertyMock
 
@@ -22,7 +23,7 @@ import pytest
 from flask import current_app
 from parameterized import parameterized
 
-from superset.models.slice import id_or_uuid_filter, Slice
+from superset.models.slice import id_or_uuid_filter, set_related_perm, Slice
 
 
 class TestSlice:
@@ -80,6 +81,10 @@ class TestSlice:
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
             ("integer_id", 123),
+            # str.isdigit() is True for "²" (superscript 2) but int()
+            # rejects it; must not raise and must fall through to the uuid
+            # branch instead of the int(id_or_uuid) branch.
+            ("non_decimal_digit", "²"),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):
@@ -206,6 +211,30 @@ class TestSlice:
         assert 'title="orders"' in html
         assert 'href="/semantic_view/abc/"' in html
 
+    @parameterized.expand(
+        [
+            ("json_string", '"foo"'),
+            ("json_array", "[1, 2]"),
+            ("json_integer", "42"),
+            ("json_null", "null"),
+        ]
+    )
+    def test_form_data_falls_back_for_non_dict_params(self, test_name, params_value):
+        """form_data must not raise when params is valid JSON but not a dict."""
+        slc = Slice()
+        slc.id = 7
+        slc.viz_type = "table"
+        slc.datasource_id = 3
+        slc.datasource_type = "table"
+        slc.params = params_value
+
+        result = slc.form_data
+
+        assert isinstance(result, dict)
+        assert result["slice_id"] == 7
+        assert result["viz_type"] == "table"
+        assert result["datasource"] == "3__table"
+
     def test_icons_escapes_datasource_html(self):
         """icons must HTML-escape the datasource name and edit URL."""
         slc = Slice()
@@ -284,3 +313,80 @@ def test_thumbnail_url_works_outside_request_context(app_context: None) -> None:
         url = slc.thumbnail_url
 
     assert url == "/api/v1/chart/42/thumbnail/abc123/"
+
+
+def test_set_related_perm_unknown_datasource_type_fails_closed_and_warns(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """sc-119782: an unknown ``datasource_type`` must not KeyError inside the
+    before_insert/before_update listener and abort the flush. It fails closed —
+    a chart that started with a valid perm (e.g. once a ``table``) and is
+    updated to an unknown type has its denormalized perm columns cleared, so it
+    loses access rather than resolving under the stale perm — and logs a
+    warning."""
+    target: Slice = Slice(
+        slice_name="unknown-type chart",
+        datasource_id=3,
+        # ``druid`` is used precisely because it is no longer a registered
+        # DatasourceDAO source, so the lookup resolves to None.
+        datasource_type="druid",
+    )
+    # Simulate an existing chart whose perms were denormalized from a real
+    # datasource before its type was mutated to an unknown value.
+    target.perm = "[db].[table](id:1)"
+    target.catalog_perm = "[db].[catalog]"
+    target.schema_perm = "[db].[schema]"
+
+    with caplog.at_level(logging.WARNING, logger="superset.models.slice"):
+        # Pre-fix this raised KeyError on ``DatasourceDAO.sources[...]``.
+        set_related_perm(MagicMock(), MagicMock(), target)
+
+    # Fail closed: the stale perms are cleared, not carried forward.
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+    assert "unknown datasource_type" in caplog.text
+    assert "druid" in caplog.text
+
+
+def test_set_related_perm_unknown_type_without_datasource_id_fails_closed() -> None:
+    """The datasource-type lookup runs before the ``datasource_id`` guard, so an
+    unknown-type slice with no ``datasource_id`` still fails closed — its perm
+    columns are cleared — rather than raising KeyError."""
+    target: Slice = Slice(slice_name="orphan chart", datasource_type="druid")
+    # Pre-set the perms so the assertion proves the clearing branch ran, not
+    # that they were merely never set.
+    target.perm = "[db].[table](id:1)"
+    target.catalog_perm = "[db].[catalog]"
+    target.schema_perm = "[db].[schema]"
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+def test_set_related_perm_known_type_denormalizes_perms_from_datasource() -> None:
+    """A known ``datasource_type`` still copies the datasource's perm columns
+    onto the chart — the common path must keep working after the ``.get()``
+    guard."""
+    target: Slice = Slice(
+        slice_name="table chart",
+        datasource_id=5,
+        datasource_type="table",
+    )
+    ds: MagicMock = MagicMock()
+    ds.perm = "[db].[table](id:5)"
+    ds.catalog_perm = "[db].[catalog]"
+    ds.schema_perm = "[db].[schema]"
+
+    mock_db: MagicMock
+    with patch("superset.models.slice.db") as mock_db:
+        query: MagicMock = mock_db.session.query.return_value
+        query.filter_by.return_value.first.return_value = ds
+        set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm == "[db].[table](id:5)"
+    assert target.catalog_perm == "[db].[catalog]"
+    assert target.schema_perm == "[db].[schema]"

@@ -80,6 +80,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -117,6 +118,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
 from superset.utils.json import loads as json_loads
@@ -206,8 +208,12 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller owns (admins see all); requires the "
-                "SOFT_DELETE feature flag to have produced trashed rows."
+                "dashboards the caller can edit (the same audience that can "
+                "restore them, not merely the ones they own; admins see "
+                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
+                "role-derived editorship, so some restorable dashboards may "
+                "be under-enumerated. Requires the SOFT_DELETE feature flag "
+                "to have produced trashed rows."
             ),
         ),
     ]
@@ -460,7 +466,7 @@ class DashboardInfo(BaseModel):
         description=(
             "Charts on this dashboard. May be capped below chart_count "
             "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
-            "response would exceed the token budget. "
+            "response would exceed the size budget. "
             "Compare len(charts) to chart_count to detect this. For "
             "dashboards with more charts than the cap, call list_charts "
             "with filters=[{'col': 'dashboards', 'opr': 'eq', "
@@ -717,7 +723,7 @@ class GenerateDashboardRequest(BaseModel):
             "dashboard's css field."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -883,7 +889,7 @@ class UpdateDashboardRequest(BaseModel):
             "the ``filter_bar_orientation`` json_metadata key."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1378,7 +1384,7 @@ class DuplicateDashboardRequest(BaseModel):
             "source."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -2907,11 +2913,11 @@ class DashboardChartQueryData(BaseModel):
 
     query_index: int = Field(..., description="Zero-based query position")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by this query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by this query")
+    total_rows: OptionalRowCount = Field(
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
@@ -2926,11 +2932,11 @@ class DashboardChartData(BaseModel):
     chart_name: str = Field(..., description="Chart name")
     chart_type: str = Field(..., description="Chart viz type")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by the query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by the query")
+    total_rows: OptionalRowCount = Field(
         None,
         description=(
             "Total rows available when known; null when the fetch was capped with "

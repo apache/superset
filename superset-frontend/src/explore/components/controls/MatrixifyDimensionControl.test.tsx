@@ -19,6 +19,7 @@
 import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import MatrixifyDimensionControl, {
   MatrixifyDimensionControlValue,
 } from './MatrixifyDimensionControl';
@@ -609,6 +610,78 @@ test.each(['a_to_z', 'z_to_a'] as const)(
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText('Suggestions are unavailable. Enter values manually.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Values cannot be refreshed in All mode for this semantic view. Saved values are preserved. Switch to Members to enter values manually.',
+      ),
+    ).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  },
+);
+
+test('available suggestions do not allow manual member values', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { result: ['USA', 'Canada'] },
+    });
+    const onChange = jest.fn();
+    render(
+      <MatrixifyDimensionControl
+        {...defaultProps}
+        onChange={onChange}
+        value={{ dimension: 'country', values: ['USA'] }}
+        selectionMode="members"
+      />,
+    );
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith({
+        dimension: 'country',
+        values: ['USA'],
+        totalValueCount: 2,
+      }),
+    );
+    onChange.mockClear();
+    const input = screen.getByRole('combobox', {
+      name: 'Select dimension values',
+    });
+    await userEvent.type(input, 'not-a-suggestion');
+    await act(async () => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(screen.queryByTitle('not-a-suggestion')).not.toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(onChange).not.toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test.each(['a_to_z', 'z_to_a'] as const)(
+  'fresh all-mode selections explain unavailable suggestions with %s sort',
+  async allSortBy => {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+    });
+    const onChange = jest.fn();
+    render(
+      <MatrixifyDimensionControl
+        {...defaultProps}
+        onChange={onChange}
+        value={{ dimension: 'country', values: [] }}
+        selectionMode="all"
+        allSortBy={allSortBy}
+      />,
+    );
+    expect(
+      await screen.findByText(
+        'Values cannot be refreshed in All mode for this semantic view. Saved values are preserved. Switch to Members to enter values manually.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Select dimension values' }),
     ).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
   },
