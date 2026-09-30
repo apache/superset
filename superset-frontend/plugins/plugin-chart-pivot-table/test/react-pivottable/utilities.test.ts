@@ -320,6 +320,86 @@ test('"... as Fraction of Rows" stays scoped per metric, not just per row, when 
   expect(pivotData.getAggregator(['US'], ['cost']).value()).toBeCloseTo(1, 5);
 });
 
+test('"... as Fraction of Rows" finds a row+metric denominator when column subtotals are off', () => {
+  // cols: [Metric, category], column subtotals off (the default here) -- a
+  // (row, metric) tree node only exists at that depth when column subtotals
+  // are on, so the denominator has to come from a scope tracked
+  // independently of subtotal visibility, the same way the 'total' case
+  // already relies on rowMetricTotals/colMetricTotals for the same reason.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'A']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'B']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
+test('"... as Fraction of Columns" finds a col+metric denominator when row subtotals are off, instead of throwing', () => {
+  // Same shape as the row-fraction case above, transposed: Metric now sits
+  // on rows: [Metric, category], row subtotals off (the default). Before
+  // the row/colGroupMetricTotals fallback existed, substituting the metric
+  // into the collapsed row axis produced a rowKey that was never created in
+  // the depth-gated tree (row subtotals off), and getAggregator indexed
+  // into it unguarded -- this threw instead of just returning blank.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['Metric', 'category'],
+    cols: ['region'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Columns',
+  });
+
+  expect(() =>
+    pivotData.getAggregator(['SUM(sales)', 'A'], ['North']).value(),
+  ).not.toThrow();
+  expect(
+    pivotData.getAggregator(['SUM(sales)', 'A'], ['North']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['SUM(sales)', 'B'], ['North']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
 test('per-metric totals survive a metric literally named "constructor"', () => {
   // rowMetricTotals/colMetricTotals are indexed by the metric's own display
   // name; a metric named "constructor" or "__proto__" must not collide with

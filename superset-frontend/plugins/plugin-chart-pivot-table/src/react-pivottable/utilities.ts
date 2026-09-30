@@ -56,6 +56,11 @@ interface SubtotalOptions {
   colPartialOnTop?: boolean;
 }
 
+// Given an array of attribute values, convert to a key that
+// can be used in objects.
+const flatKey = (attrVals: string[]): string =>
+  attrVals.join(String.fromCharCode(0));
+
 const addSeparators = function (
   nStr: string,
   thousandsSep: string,
@@ -915,35 +920,50 @@ const baseAggregatorTemplates = {
             // much as 'total': a row-fraction denominator still needs to
             // stay within one metric, not sum across the metrics sharing
             // that row.
+            let metricSubstituted: 'row' | 'col' | undefined;
             if (this.metricAxis) {
               if (this.metricAxis.axis === 'col' && selCol.length === 0) {
                 selCol = [this.metricAxis.value];
+                metricSubstituted = 'col';
               } else if (
                 this.metricAxis.axis === 'row' &&
                 selRow.length === 0
               ) {
                 selRow = [this.metricAxis.value];
+                metricSubstituted = 'row';
               }
             }
             let denominatorAggregator: any = data.getAggregator(selRow, selCol);
-            // Result aggregation (see `rowMetricTotals`/`colMetricTotals` on
-            // PivotData) tracks a per-metric grand total independently of
-            // visible subtotals, so it's a fallback for exactly the case the
-            // depth-gated tree can't answer: a dataset-wide ('total')
-            // metric-scoped denominator with column/row subtotals off, where
-            // no tree leaf for `[]`/metric ever gets created. There's no
-            // equivalent precomputed fallback for a row/col-scoped total, so
-            // this only applies to `type === 'total'`; metric-definition mode
-            // (`showValuesAs`) never populates these maps regardless.
+            // The depth-gated tree only has a node at the substituted
+            // position above when the corresponding axis's subtotals happen
+            // to be on -- e.g. `type: 'row'` with Metric on columns needs a
+            // (row, metric) tree node that only exists if column subtotals
+            // are enabled. `rowGroupMetricTotals`/`colGroupMetricTotals` (see
+            // PivotData) track exactly that scope independently of subtotal
+            // visibility, so they're the fallback for 'row'/'col'.
+            // `rowMetricTotals`/`colMetricTotals` are the dataset-wide
+            // equivalent, for 'total'. Metric-definition mode
+            // (`showValuesAs`) never populates any of these maps regardless.
             if (
               (!denominatorAggregator || !denominatorAggregator.inner) &&
-              type === 'total' &&
               this.metricAxis
             ) {
-              denominatorAggregator =
-                this.metricAxis.axis === 'col'
-                  ? data.colMetricTotals[this.metricAxis.value]
-                  : data.rowMetricTotals[this.metricAxis.value];
+              if (type === 'total') {
+                denominatorAggregator =
+                  this.metricAxis.axis === 'col'
+                    ? data.colMetricTotals[this.metricAxis.value]
+                    : data.rowMetricTotals[this.metricAxis.value];
+              } else if (metricSubstituted === 'col') {
+                denominatorAggregator =
+                  data.rowGroupMetricTotals[flatKey(selRow)]?.[
+                    this.metricAxis.value
+                  ];
+              } else if (metricSubstituted === 'row') {
+                denominatorAggregator =
+                  data.colGroupMetricTotals[flatKey(selCol)]?.[
+                    this.metricAxis.value
+                  ];
+              }
             }
             if (!denominatorAggregator || !denominatorAggregator.inner) {
               return null;
@@ -1152,11 +1172,6 @@ const derivers = {
   },
 };
 
-// Given an array of attribute values, convert to a key that
-// can be used in objects.
-const flatKey = (attrVals: string[]): string =>
-  attrVals.join(String.fromCharCode(0));
-
 /*
 Data Model class
 */
@@ -1180,6 +1195,14 @@ class PivotData {
   // metrics, whether or not the corresponding subtotal is actually rendered.
   rowMetricTotals: Record<string, Aggregator>;
   colMetricTotals: Record<string, Aggregator>;
+  // Same idea as `rowMetricTotals`/`colMetricTotals`, but scoped to one
+  // specific row/column group as well as the metric, for the 'row'/'col'
+  // (not 'total') fraction types: a row-fraction denominator with Metric on
+  // columns needs "this row, this metric, every column sharing it" -- a
+  // scope the depth-gated tree only has when column subtotals happen to be
+  // on. Keyed by the row's/column's own flat key, then by metric value.
+  rowGroupMetricTotals: Record<string, Record<string, Aggregator>>;
+  colGroupMetricTotals: Record<string, Record<string, Aggregator>>;
   allTotal: Aggregator;
   subtotals: SubtotalOptions;
   sorted: boolean;
@@ -1301,6 +1324,8 @@ class PivotData {
     // collide with Object.prototype instead of indexing a fresh aggregator.
     this.rowMetricTotals = Object.create(null);
     this.colMetricTotals = Object.create(null);
+    this.rowGroupMetricTotals = Object.create(null);
+    this.colGroupMetricTotals = Object.create(null);
     this.allTotal = this.aggregator(this, [], []);
     this.subtotals = subtotals;
     this.sorted = false;
@@ -1453,6 +1478,16 @@ class PivotData {
           record,
         )(this, [], [metricValue]);
         this.colMetricTotals[metricValue].push(record);
+
+        // Row+metric scope: this record's own row, just this metric, across
+        // every column that shares it -- the 'row' fraction type's
+        // denominator when Metric sits on columns. Independent of
+        // `subtotals.colEnabled`, unlike the depth-gated tree.
+        const flatRk = flatKey(rowKey);
+        this.rowGroupMetricTotals[flatRk] ??= Object.create(null);
+        this.rowGroupMetricTotals[flatRk][metricValue] ??=
+          this.getFormattedAggregator(record)(this, rowKey, [metricValue]);
+        this.rowGroupMetricTotals[flatRk][metricValue].push(record);
       }
       const rowMetricIndex = rows.indexOf(metricDim);
       if (rowMetricIndex !== -1) {
@@ -1461,6 +1496,14 @@ class PivotData {
           record,
         )(this, [metricValue], []);
         this.rowMetricTotals[metricValue].push(record);
+
+        // Col+metric scope: the mirror of the above for the 'col' fraction
+        // type when Metric sits on rows instead.
+        const flatCk = flatKey(colKey);
+        this.colGroupMetricTotals[flatCk] ??= Object.create(null);
+        this.colGroupMetricTotals[flatCk][metricValue] ??=
+          this.getFormattedAggregator(record)(this, [metricValue], colKey);
+        this.colGroupMetricTotals[flatCk][metricValue].push(record);
       }
     }
     // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
@@ -1641,7 +1684,13 @@ class PivotData {
     } else if (colKey.length === 0) {
       agg = this.rowTotals[flatRowKey];
     } else {
-      agg = this.tree[flatRowKey][flatColKey];
+      // `flatRowKey` isn't guaranteed to be a populated tree row: a caller
+      // (e.g. `fractionOf`'s per-metric denominator lookup) can construct a
+      // row/column key that was never created, most commonly when the
+      // corresponding axis's subtotals are off. Optional-chain rather than
+      // indexing straight into `this.tree[flatRowKey]` so a sparse lookup
+      // falls through to the "not found" stub below instead of throwing.
+      agg = this.tree[flatRowKey]?.[flatColKey];
     }
     return (
       agg || {
