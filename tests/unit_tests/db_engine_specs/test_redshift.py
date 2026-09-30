@@ -195,6 +195,20 @@ def test_get_default_catalog() -> None:
     )
     assert RedshiftEngineSpec.get_default_catalog(database) == "dev"
 
+    # IAM connections pass the database in connect_args instead of the URL
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+redshift_connector://",
+        extra='{"engine_params": {"connect_args": {"iam": true, "database": "dev"}}}',
+    )
+    assert RedshiftEngineSpec.get_default_catalog(database) == "dev"
+
+    database = Database(
+        database_name="redshift",
+        sqlalchemy_uri="redshift+redshift_connector://",
+    )
+    assert RedshiftEngineSpec.get_default_catalog(database) is None
+
 
 def test_get_catalog_names(mocker: MockerFixture) -> None:
     """
@@ -210,11 +224,12 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
         sqlalchemy_uri="redshift+psycopg2://user:password@host:5439/dev",
     )
     inspector = mocker.MagicMock()
-    inspector.bind.execute.return_value = [("dev",), ("prod",), ("shared_db",)]
+    execute = inspector.engine.connect().__enter__().execute
+    execute.return_value = [("dev",), ("prod",), ("shared_db",)]
 
     assert RedshiftEngineSpec.get_catalog_names(database, inspector) == {
         "dev",
         "prod",
         "shared_db",
     }
-    assert "svv_redshift_databases" in str(inspector.bind.execute.call_args.args[0])
+    assert "svv_redshift_databases" in str(execute.call_args.args[0])

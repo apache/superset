@@ -285,8 +285,17 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     def get_default_catalog(cls, database: Database) -> str | None:
         """
         Return the default catalog for a given database.
+
+        IAM connections may leave the URL database empty and pass it in
+        ``connect_args`` instead.
         """
-        return database.url_object.database
+        if database.url_object.database:
+            return database.url_object.database
+
+        connect_args = (
+            database.get_extra().get("engine_params", {}).get("connect_args", {})
+        )
+        return connect_args.get("database")
 
     @classmethod
     def get_catalog_names(
@@ -300,12 +309,13 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         In Redshift, a catalog is called a "database". SVV_REDSHIFT_DATABASES
         also lists databases created from datashares, which pg_database does not.
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                sa.text("SELECT database_name FROM svv_redshift_databases")
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    sa.text("SELECT database_name FROM svv_redshift_databases")
+                )
+            }
 
     @classmethod
     def normalize_table_name_for_upload(
