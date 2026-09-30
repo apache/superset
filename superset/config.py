@@ -422,6 +422,26 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
 RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
+# Where a dataset's partition filter mapping is persisted: "extra" keeps it as
+# one key in ``tables.extra``, "columns" reads and writes four real columns.
+#
+# The feature ships on "extra" so it needs no schema change, and the migration
+# that adds the columns flips this, backfills, and swaps the model's properties
+# for the columns in one revision. Setting "columns" before that migration has
+# run raises, rather than silently reading four columns that are not there.
+PARTITION_MAPPING_STORE = "extra"
+
+# How long an evaluated partition value transform stays cached. The probe is a
+# synchronous round trip on the chart-query path, so the hit rate is what keeps
+# it off the hot path: day-aligned ranges ("Last month") hit constantly,
+# second-granularity relative ranges ("Last 24 hours") essentially never.
+PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
+
+# Per-user, per-dataset budget for the partition mapping preview endpoint, which
+# fires a real warehouse query from a text input in the dataset editor. Counted
+# in a fixed 60-second window; set to 0 to disable.
+PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT = 30
+
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
@@ -741,6 +761,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
+    # Configure and validate a mapping from a dataset's business column onto its
+    # physical partition column, so engines that require an explicit partition
+    # predicate can prune. For now this only stores and validates the mapping;
+    # no query consumer emits the mirrored predicate yet.
+    # @lifecycle: development
+    "PARTITION_FILTER_MAPPING": False,
     # Expand nested types in Presto into extra columns/arrays. Experimental,
     # doesn't work with all nested types.
     # @lifecycle: development

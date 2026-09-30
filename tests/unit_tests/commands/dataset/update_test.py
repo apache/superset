@@ -36,6 +36,11 @@ from superset.commands.dataset.update import (
     UpdateDatasetCommand,
     validate_folders,
 )
+from superset.connectors.sqla.partition_mapping_storage import (
+    ColumnTransform,
+    extra_with_partition_mapping,
+    StoredPartitionMapping,
+)
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -95,6 +100,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.extra = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -140,6 +146,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.extra = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -203,6 +210,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.extra = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -259,6 +267,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.extra = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -308,6 +317,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     mock_dataset.table_name = "allowed_table"
     mock_dataset.sql = None  # physical dataset
     mock_dataset.editors = []
+    mock_dataset.extra = None
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -501,6 +511,7 @@ def test_update_dataset_rejects_malicious_expression(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.extra = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -550,6 +561,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.extra = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -591,6 +603,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.extra = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -1352,6 +1365,7 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.extra = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -1366,3 +1380,130 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
         and "fetch_values_predicate" in (exc.field_name or "")
         for exc in excinfo.value._exceptions
     )
+
+
+def _mapping_command(
+    mocker: MockerFixture,
+    transform: str | None,
+    *,
+    properties: dict[str, Any] | None = None,
+) -> UpdateDatasetCommand:
+    """
+    A command whose stored dataset maps `event_time` onto `dt_epoch`.
+
+    The mapping is set up as stored state -- an `extra` blob -- rather than as
+    mocked attributes, because the command reads it back through the store. That
+    is the point: validation runs against exactly the mapping the DAO will
+    persist, so a mock of the model's properties would be testing nothing.
+    """
+    mapped_column = mocker.MagicMock()
+    mapped_column.column_name = "event_time"
+    partition_column = mocker.MagicMock()
+    partition_column.column_name = "dt_epoch"
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database.backend = "sqlite"
+    mock_dataset.catalog = None
+    mock_dataset.schema = "main"
+    mock_dataset.columns = [mapped_column, partition_column]
+    mock_dataset.main_dttm_col = "event_time"
+    mock_dataset.extra = extra_with_partition_mapping(
+        None,
+        StoredPartitionMapping(
+            partition_column="dt_epoch",
+            column_transforms=(
+                {"event_time": ColumnTransform(transform)} if transform else {}
+            ),
+        ),
+    )
+
+    command = UpdateDatasetCommand(1, properties or {})
+    command._model = mock_dataset
+    return command
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unparseable_transform_does_not_block_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unparseable transform is a Tier-2 issue: the mapping saves and stays
+    inactive. `validate_stored_expression` rejects anything it cannot parse, so
+    running it here would turn that into a blocking error and cost the owner the
+    rest of their edits.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
+    mocker: MockerFixture,
+) -> None:
+    """The parser gate that governs every other stored expression still runs."""
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_called_once()
+    assert ":value" not in gate.call_args.args[-1]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
+    """
+    Skipping the gate for unparseable transforms is not a hole for templating:
+    Jinja is a blocking issue of its own, reported before the gate is reached.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp({{ current_user_id() }})")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_self_mapping_is_rejected_while_the_feature_is_on(
+    mocker: MockerFixture,
+) -> None:
+    """A column cannot stand in for itself: that is a Tier-1 blocking issue."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_no_mapping_validation_runs_while_the_feature_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With the flag off nothing mirrors, so a stored mapping can never be
+    consumed. Rejecting the save over it would hand the owner a validation
+    error they have no way to act on -- and every path that reads a mapping is
+    gated the same way.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()

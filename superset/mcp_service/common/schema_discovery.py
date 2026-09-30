@@ -365,6 +365,25 @@ DATASET_SORTABLE_COLUMNS = [
 # UUID search separately and converts it to an exact ``uuid`` filter.
 DATASET_SEARCH_COLUMNS = ["table_name", "description", "schema", "sql"]
 DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    # Partition filter mapping. Listed here rather than in
+    # `_COLUMN_DESCRIPTIONS` because `get_columns_from_model` walks
+    # `mapper.columns`, and these are read-only properties over the mapping
+    # store, not columns -- a description there would never be reached.
+    "partition_column": ColumnMetadata(
+        name="partition_column",
+        description="Physical column the engine partitions on",
+        type="str",
+        is_default=False,
+    ),
+    "partition_mapped_column": ColumnMetadata(
+        name="partition_mapped_column",
+        description=(
+            "Column whose filters are mirrored onto the partition column; "
+            "defaults to the main datetime column"
+        ),
+        type="str",
+        is_default=False,
+    ),
     "database_name": ColumnMetadata(
         name="database_name",
         description="Database connection name",

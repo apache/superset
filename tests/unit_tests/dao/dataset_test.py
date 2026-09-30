@@ -24,9 +24,11 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy.orm.session import Session
 
+from superset.connectors.sqla.partition_mapping_storage import set_partition_mapping
 from superset.daos.base import BaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.sql.parse import Table
+from superset.utils import json
 
 
 def test_validate_update_uniqueness(session: Session) -> None:
@@ -423,3 +425,198 @@ def test_override_columns_rename_flushes_delete_before_insert(
     db.session.flush()
     cols = db.session.query(TableColumn).filter_by(table_id=table.id).all()
     assert [c.column_name for c in cols] == ["new"]
+
+
+def _mapped_table(session: Session, name: str) -> Any:
+    """A saved dataset with two columns and a live partition mapping."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name=name, schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    db.session.add_all([database, table])
+    db.session.flush()
+    set_partition_mapping(
+        table,
+        partition_column="dt_epoch",
+        mapped_column="event_time",
+        value_transform="unix_timestamp(:value)",
+        is_monotonic=True,
+    )
+    db.session.flush()
+    return table
+
+
+def test_a_sync_that_drops_the_partition_column_clears_the_mapping(
+    session: Session,
+) -> None:
+    """The upsert path deletes every column the payload omits — including, when
+    a metadata sync drops it, the dataset's partition column. The mapping has to
+    be cleared with it, exactly as on the ``override_columns=true`` path."""
+    from superset import db
+
+    table = _mapped_table(session, "pm_t")
+    event_time_id = next(c.id for c in table.columns if c.column_name == "event_time")
+
+    # The payload keeps only "event_time", so "dt_epoch" is deleted.
+    DatasetDAO.update(
+        table,
+        {"columns": [{"id": event_time_id, "column_name": "event_time"}]},
+    )
+    db.session.flush()
+
+    assert table.partition_column is None
+    assert table.partition_mapped_column is None
+
+
+def test_a_sync_that_keeps_both_columns_leaves_the_mapping_alone(
+    session: Session,
+) -> None:
+    from superset import db
+
+    table = _mapped_table(session, "pm_t2")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"id": ids["event_time"], "verbose_name": "Event time"},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column == "event_time"
+    assert table.columns[0].partition_value_transform == "unix_timestamp(:value)"
+
+
+def test_a_typed_field_beats_a_stale_extra_in_the_same_payload(
+    session: Session,
+) -> None:
+    """
+    The regression the DAO's extract-then-apply funnel exists to prevent.
+
+    The dataset editor GETs a dataset, holds `extra` as an opaque string, and
+    PUTs it back verbatim alongside the typed `partition_column` field. Under the
+    extra-JSON store those are the same bytes, so a `setattr` loop that happens
+    to apply `extra` last silently discards the typed field -- and which order
+    that is depends on marshmallow's field ordering, not on anything visible
+    here.
+    """
+    from superset import db
+
+    table = _mapped_table(session, "pm_t3")
+    stale_extra = json.dumps({"timezone": "Europe/Berlin"})
+
+    DatasetDAO.update(
+        table,
+        {"partition_column": "dt_epoch", "extra": stale_extra},
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    # The payload's other `extra` keys survive too; the funnel patches, it does
+    # not replace.
+    assert json.loads(table.extra)["timezone"] == "Europe/Berlin"
+
+
+def test_a_mapping_written_through_extra_alone_lands(session: Session) -> None:
+    """
+    The second door: an owner typing into the editor's free-text Extra box.
+
+    No typed field in the payload at all, so the funnel has no patch to apply and
+    must leave what `extra` carried intact.
+    """
+    from superset import db
+
+    table = _mapped_table(session, "pm_t4")
+
+    DatasetDAO.update(
+        table,
+        {
+            "extra": json.dumps(
+                {
+                    "partition_filter_mapping": {
+                        "partition_column": "dt_epoch",
+                        "mapped_column": "event_time",
+                    }
+                }
+            )
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column == "event_time"
+
+
+def test_an_absent_field_leaves_the_mapping_unchanged(session: Session) -> None:
+    """ "Absent" must mean "unchanged", never "cleared"."""
+    from superset import db
+
+    table = _mapped_table(session, "pm_t5")
+
+    DatasetDAO.update(table, {"description": "unrelated edit"})
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column == "event_time"
+    assert table.columns[0].partition_transform_is_monotonic is True
+
+
+def test_a_partial_column_payload_keeps_the_monotonic_flag(session: Session) -> None:
+    """
+    A column payload that names only `id` and one unrelated field must not clear
+    a flag it never mentioned. This is why `DatasetColumnsPutSchema` refuses a
+    `load_default` for it and why the patch carries present keys only.
+    """
+    from superset import db
+
+    table = _mapped_table(session, "pm_t6")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"id": ids["event_time"], "verbose_name": "Event time"},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    event_time = next(c for c in table.columns if c.column_name == "event_time")
+    assert event_time.partition_value_transform == "unix_timestamp(:value)"
+    assert event_time.partition_transform_is_monotonic is True
+
+
+def test_the_mapping_attributes_are_read_only(session: Session) -> None:
+    """
+    Assignment has to raise rather than vanish.
+
+    Under the extra-JSON store a setter's write is lost the moment `extra` is
+    assigned afterwards, with no exception and no log. Read-only properties turn
+    that silent loss into an immediate error, so this is the guard against
+    someone reintroducing setters later.
+    """
+    table = _mapped_table(session, "pm_t7")
+    column = table.columns[0]
+
+    for target, attribute in (
+        (table, "partition_column"),
+        (table, "partition_mapped_column"),
+        (column, "partition_value_transform"),
+        (column, "partition_transform_is_monotonic"),
+    ):
+        with pytest.raises(AttributeError):
+            setattr(target, attribute, "x")

@@ -32,6 +32,12 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.connectors.sqla.partition_mapping_storage import (
+    clear_dangling,
+    extract_partition_mapping_patch,
+    partition_mapping_store,
+    PartitionMappingPatch,
+)
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
@@ -441,10 +447,25 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     db.session.delete(metric)
             attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
+        # The partition mapping comes out of `attributes` before anything is
+        # applied and goes back in after everything is. The dataset editor's PUT
+        # carries both the typed `partition_column` field and a verbatim copy of
+        # `extra`, and under the extra-JSON store those are the same bytes -- so
+        # whichever `setattr` ran last would win, and which one that is depends
+        # on marshmallow's field ordering. Extracting and re-applying makes the
+        # order a property of this method instead of an accident.
+        #
+        # Stripping is load-bearing beyond ordering: `_upsert_columns` does
+        # `TableColumn(**properties)` with no whitelist, and the model's mapping
+        # attributes are read-only properties, so an unstripped
+        # `partition_value_transform` in a column payload is an AttributeError.
+        mapping_patch = extract_partition_mapping_patch(item, attributes)
+        surviving_column_names: set[str] | None = None
+
         if item and attributes:
             force_update: bool = False
             if "columns" in attributes:
-                cls.update_columns(
+                surviving_column_names = cls.update_columns(
                     item,
                     attributes.pop("columns"),
                     override_columns=bool(attributes.get("override_columns")),
@@ -462,7 +483,56 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if force_update:
                 attributes["changed_on"] = datetime.now()
 
-        return super().update(item, attributes)
+        # `BaseDAO.update` returns `db.session.merge(item)` for a detached item,
+        # so the mapping is written onto whatever came back rather than onto what
+        # went in.
+        updated = super().update(item, attributes)
+
+        if mapping_patch is not None or surviving_column_names is not None:
+            cls.save_partition_mapping(updated, mapping_patch, surviving_column_names)
+        return updated
+
+    @classmethod
+    def create(
+        cls,
+        item: SqlaTable | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> SqlaTable:
+        """
+        Creates a Dataset model on the metadata DB.
+
+        Overridden only to route a partition mapping in the payload through the
+        same funnel `update` uses; see the comment there.
+        """
+        mapping_patch = extract_partition_mapping_patch(item, attributes)
+        created = super().create(item, attributes)
+        if mapping_patch is not None:
+            cls.save_partition_mapping(created, mapping_patch, None)
+        return created
+
+    @classmethod
+    def save_partition_mapping(
+        cls,
+        model: SqlaTable,
+        patch: PartitionMappingPatch | None,
+        surviving_column_names: set[str] | None,
+    ) -> None:
+        """
+        The one place a partition filter mapping is written.
+
+        Loads the stored mapping *after* the payload's own `extra` has been
+        applied, so a mapping that arrived through the raw `extra` string is the
+        base the typed fields patch on top of. That gives the two doors into this
+        setting -- the typed API fields and the editor's free-text Extra box --
+        one merge rule instead of two.
+        """
+        store = partition_mapping_store()
+        mapping = store.load(model)
+        if patch is not None:
+            mapping = patch.apply_to(mapping)
+        if surviving_column_names is not None:
+            mapping = clear_dangling(mapping, surviving_column_names)
+        store.save(model, mapping)
 
     @classmethod
     def _validate_column_date_formats(
@@ -479,7 +549,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @classmethod
     def _override_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
         """Replace columns by natural key (``column_name``) — update in place
         rather than delete-and-reinsert.
 
@@ -501,6 +571,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         columns are preserved. Charts that reference columns by their
         ``id`` continue to work across a metadata refresh — previously
         such references would be invalidated.
+
+        Returns the names of the columns that survive the write.
         """
         existing_by_name = {c.column_name: c for c in model.columns}
         incoming_by_name = {p["column_name"]: p for p in property_columns}
@@ -512,7 +584,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # the old-named row is deleted in the same flush — INSERTs flush
         # before DELETEs, so that collides on the PK / UNIQUE(table_id,
         # column_name) constraints. ``table_id`` is pinned to *model*.
-        protected_keys = ("id", "table_id")
+        # `partition_*` are read-only properties over the mapping store, not
+        # columns, so letting one through would raise on assignment. The DAO's
+        # funnel strips them before this point; this is the backstop for a caller
+        # that reaches `_override_columns` another way.
+        protected_keys = (
+            "id",
+            "table_id",
+            "partition_value_transform",
+            "partition_transform_is_monotonic",
+        )
 
         # Update columns present in both: in-place setattr.
         for name, col in existing_by_name.items():
@@ -546,10 +627,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 }
                 db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
 
+        return set(incoming_by_name)
+
     @classmethod
     def _upsert_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
+        """
+        Create/update the columns in the payload and delete the rest.
+
+        Returns the names of the columns that survive the write.
+        """
         columns_by_id = {column.id: column for column in model.columns}
         property_columns_by_id = {
             properties["id"]: properties
@@ -557,19 +645,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if "id" in properties
         }
 
+        surviving_column_names: set[str] = set()
+
         for properties in property_columns:
             if "id" not in properties:
                 db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+                surviving_column_names.add(properties["column_name"])
 
         for properties in property_columns_by_id.values():
             col = columns_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(col, key, value)
+            # A partial update may omit ``column_name``, in which case the
+            # column keeps the name it already had.
+            surviving_column_names.add(col.column_name)
 
         ids_to_keep = property_columns_by_id.keys()
         for col in model.columns:
             if col.id not in ids_to_keep:
                 db.session.delete(col)
+
+        return surviving_column_names
 
     @classmethod
     def update_columns(
@@ -577,7 +673,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         model: SqlaTable,
         property_columns: list[dict[str, Any]],
         override_columns: bool = False,
-    ) -> None:
+    ) -> set[str]:
         """
         Creates/updates and/or deletes a list of columns, based on a
         list of Dict.
@@ -589,12 +685,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
+
+        Returns the names of the columns that survive the write, which
+        `save_partition_mapping` needs in order to drop a mapping whose column
+        this call just removed.
         """
         cls._validate_column_date_formats(property_columns)
         if override_columns:
-            cls._override_columns(model, property_columns)
-        else:
-            cls._upsert_columns(model, property_columns)
+            return cls._override_columns(model, property_columns)
+        return cls._upsert_columns(model, property_columns)
 
     @classmethod
     def update_metrics(

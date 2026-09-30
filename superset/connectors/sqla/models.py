@@ -60,6 +60,7 @@ from sqlalchemy.orm import (
     relationship,
     RelationshipProperty,
 )
+from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, quoted_name, table
@@ -71,6 +72,15 @@ from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
+from superset.connectors.sqla.partition_mapping import (
+    is_transform_active,
+    resolve_partition_mapping,
+)
+from superset.connectors.sqla.partition_mapping_storage import (
+    ColumnTransform,
+    load_partition_mapping,
+    partition_mapping_store,
+)
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -1146,6 +1156,57 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     def __repr__(self) -> str:
         return str(self.column_name)
 
+    # Partition filter mapping (§ PARTITION_FILTER_MAPPING). The transform is a
+    # SQL expression containing a `:value` placeholder; filters on this column
+    # are mirrored onto the dataset's `partition_column` as
+    # `partition_column <op> <transform evaluated at :value>`.
+    #
+    # Read-only properties rather than columns, because the mapping is persisted
+    # by `PARTITION_MAPPING_STORE` -- today one key in the dataset's `extra`,
+    # four real columns after the migration that adds them. They carry the
+    # post-migration column names on purpose: that migration deletes these
+    # properties, declares the columns, and nothing else in the tree moves.
+    #
+    # No setters. Under the extra-JSON store the mapping and `extra` are the same
+    # bytes, so a setter's write is lost without trace whenever `extra` is
+    # assigned afterwards -- and which of the two runs last depends on
+    # marshmallow's field ordering. Writes go through
+    # `partition_mapping_storage.set_partition_mapping`, or the DAO's funnel on
+    # the API path. This is also why they can't be in `export_fields`: `extra`
+    # already is, and already carries them.
+    @property
+    def partition_value_transform(self) -> str | None:
+        return self._partition_transform().value_transform
+
+    @property
+    def partition_transform_is_monotonic(self) -> bool:
+        return self._partition_transform().is_monotonic
+
+    def _partition_transform(self) -> ColumnTransform:
+        """
+        The transform declared on this column, or an empty one.
+
+        Scoped to this column rather than to the dataset so the pre- and
+        post-migration shapes are identical: each column reports what its own
+        row would say, and a column with no transform reports none even while
+        another column on the same dataset has one.
+
+        Degrades to "not declared" when the parent dataset is unreachable -- a
+        column built but not yet attached (`DatasetDAO._override_columns`
+        constructs `TableColumn(table_id=...)` without the relationship), or one
+        detached from its session. That is the safe direction: mirroring stops
+        rather than starting wrongly. It costs no SQL on the normal path, since
+        the many-to-one loader resolves `self.table` out of the identity map and
+        every caller reached this column through its parent.
+        """
+        try:
+            table = self.table
+        except DetachedInstanceError:
+            return ColumnTransform()
+        if table is None:
+            return ColumnTransform()
+        return load_partition_mapping(table).transform_for(self.column_name)
+
     @property
     def is_boolean(self) -> bool:
         """
@@ -1416,6 +1477,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "type_generic",
             "verbose_name",
             "warning_markdown",
+            "partition_value_transform",
+            "partition_transform_is_monotonic",
         )
 
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
@@ -1924,7 +1987,83 @@ class SqlaTable(
             data_["extra"] = self.extra
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
+            data_["partition_column"] = self.partition_column
+            data_["partition_mapped_column"] = self.partition_mapped_column
+            data_["partition_filter_mapping"] = self.partition_filter_mapping_summary
         return data_
+
+    # Partition filter mapping (§ PARTITION_FILTER_MAPPING). Read-only
+    # properties over `PARTITION_MAPPING_STORE` rather than columns, for the
+    # reasons spelled out on `TableColumn.partition_value_transform` and in
+    # `superset.connectors.sqla.partition_mapping_storage`. Writes go through
+    # `set_partition_mapping`, or `DatasetDAO`'s funnel on the API path.
+    @property
+    def partition_column(self) -> str | None:
+        """Physical column the engine partitions on."""
+        return load_partition_mapping(self).partition_column
+
+    @property
+    def partition_mapped_column(self) -> str | None:
+        """
+        Explicit override for the column whose filters are mirrored.
+
+        ``None`` means "follow ``main_dttm_col``", so re-pointing the default
+        datetime column moves the mapping with it.
+        """
+        return load_partition_mapping(self).mapped_column
+
+    def update_from_object(self, obj: dict[str, Any]) -> None:
+        """
+        Sync from the legacy datasource editor's payload, mapping intact.
+
+        `super()` writes `obj.get(attr)` for every name in
+        `update_from_object_fields`, and `extra` is one of them -- so a payload
+        that omits it writes NULL and takes the partition mapping (and the
+        dataset's certification) down with it. Re-applying afterwards preserves
+        the mapping when the payload is silent about `extra`, and leaves an
+        `extra` that *does* carry one exactly as sent.
+        """
+        mapping = load_partition_mapping(self)
+        super().update_from_object(obj)
+        if "extra" not in obj and not mapping.is_empty:
+            partition_mapping_store().save(self, mapping)
+
+    @property
+    def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
+        """
+        Self-contained summary of the mapping for the Explore indicator.
+
+        Deliberately not a lookup into `columns`: `data_for_slices` prunes
+        columns no chart references, and the partition column is typically
+        referenced by none of them, so anything reading it out of
+        `datasource.columns` would work in Explore and break on dashboards.
+
+        `active` is the save path's own verdict rather than an approximation of
+        it. A transform that fails validation -- one missing `:value`, one that
+        does not parse -- is saved inactive on purpose, so a cheaper signal here
+        would advertise a mapping that never mirrors a filter. The parse this
+        costs is memoized on `(transform, engine)` in `is_transform_active`, and
+        datasets without a partition column never reach it.
+        """
+        if not self.partition_column:
+            return None
+
+        columns_by_name = {column.column_name: column for column in self.columns}
+        mapped_column_name = self.partition_mapped_column or self.main_dttm_col
+        mapped_column = columns_by_name.get(mapped_column_name or "")
+        active = bool(
+            self.partition_column in columns_by_name
+            and mapped_column is not None
+            and mapped_column_name != self.partition_column
+            and is_transform_active(
+                mapped_column.partition_value_transform, self.database.backend
+            )
+        )
+        return {
+            "partition_column": self.partition_column,
+            "mapped_column": mapped_column_name,
+            "active": active,
+        }
 
     @property
     def extra_dict(self) -> dict[str, Any]:
@@ -2637,6 +2776,27 @@ class SqlaTable(
             )
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
+
+        # An active partition filter mapping changes the SQL a cached result came
+        # from, so it has to participate in the key or a mapping fix leaves stale
+        # pruned results behind. Only appended when the mapping is actually
+        # active, so keys don't churn for the entire installed base over a
+        # feature nobody has enabled.
+        #
+        # Note `PARTITION_FILTER_MAPPING` must be configured as a static boolean.
+        # `FEATURE_FLAGS` also accepts per-request callables, and a flag that
+        # resolves per user or per tenant would let a flag-off user read a cache
+        # entry written from pruned SQL by a flag-on user.
+        if mapping := resolve_partition_mapping(self):
+            extra_cache_keys.append(
+                (
+                    "partition_filter_mapping",
+                    mapping.partition_column,
+                    mapping.mapped_column,
+                    mapping.value_transform,
+                    mapping.is_monotonic,
+                )
+            )
 
         return list(set(extra_cache_keys))
 

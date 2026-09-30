@@ -378,6 +378,12 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "main_dttm_col",
     "granularity_sqla",
     "time_grain_sqla",
+    # Physical column names, same as `columns` above: the partition column is
+    # part of the table's storage layout, which a caller who cannot access the
+    # dataset has no business learning.
+    "partition_column",
+    "partition_mapped_column",
+    "partition_filter_mapping",
 )
 
 

@@ -183,6 +183,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
+      partition_column: datasource.partition_column ?? null,
+      partition_mapped_column: datasource.partition_mapped_column ?? null,
       offset: datasource.offset,
       default_endpoint: datasource.default_endpoint,
       cache_timeout:
@@ -231,6 +233,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           is_active: column.is_active,
           is_dttm: column.is_dttm,
           python_date_format: column.python_date_format || null,
+          partition_value_transform: column.partition_value_transform || null,
+          partition_transform_is_monotonic: Boolean(
+            column.partition_transform_is_monotonic,
+          ),
           uuid: column.uuid,
           extra: buildExtraJsonObject(column),
         }),

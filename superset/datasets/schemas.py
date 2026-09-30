@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any
+from typing import Any, NoReturn
 from uuid import UUID
 
 from dateutil.parser import isoparse
@@ -31,6 +31,11 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
+from superset.connectors.sqla.partition_mapping_storage import (
+    EXTRA_KEY as PARTITION_MAPPING_EXTRA_KEY,
+    MAX_COLUMN_NAME_LENGTH,
+    MAX_TRANSFORM_LENGTH,
+)
 from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
@@ -79,6 +84,92 @@ def validate_python_date_format(dt_format: str) -> bool:
     return True
 
 
+def validate_dataset_extra(value: str | None) -> None:
+    """
+    Structural check on the ``partition_filter_mapping`` key inside ``extra``.
+
+    That key only, and only structurally. ``extra`` is a free-text JSON box in
+    the dataset editor, so the partition mapping has a second door into storage
+    that bypasses the typed fields below -- and a value of the wrong type there is
+    read as "not configured" and silently ignored, which is the failure mode an
+    owner has no way to diagnose. This turns it into an error message.
+
+    Undecodable JSON passes through. ``extra`` has never been validated on this
+    endpoint, so a deployment may already hold a value that is not JSON at all;
+    rejecting it now would fail an owner's next save over a field they did not
+    touch. Nothing else in ``extra`` is checked either -- ``certification``,
+    ``warning_markdown``, ``timezone`` and unknown keys are all legitimate.
+
+    Semantics are not checked here: whether the partition column exists, whether
+    the transform parses, and whether it calls a non-deterministic function all
+    depend on the dataset's columns and its engine, which a schema cannot see.
+    `UpdateDatasetCommand._validate_partition_mapping` merges this value with the
+    typed fields and answers all three.
+    """
+    if not value:
+        return
+    try:
+        decoded = json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return
+    if not isinstance(decoded, dict) or PARTITION_MAPPING_EXTRA_KEY not in decoded:
+        return
+
+    blob = decoded[PARTITION_MAPPING_EXTRA_KEY]
+    if not isinstance(blob, dict):
+        _reject("%(key)s in extra must be an object.", key=PARTITION_MAPPING_EXTRA_KEY)
+
+    for key, limit in (
+        ("partition_column", MAX_COLUMN_NAME_LENGTH),
+        ("mapped_column", MAX_COLUMN_NAME_LENGTH),
+    ):
+        _reject_unless_string(blob.get(key), key, limit)
+
+    _validate_column_transforms(blob.get("column_transforms"))
+
+
+def _validate_column_transforms(transforms: Any) -> None:
+    if transforms is None:
+        return
+    if not isinstance(transforms, dict):
+        _reject("column_transforms in extra must be an object.")
+    for column_name, entry in transforms.items():
+        if not isinstance(entry, dict):
+            _reject(
+                "column_transforms.%(name)s in extra must be an object.",
+                name=column_name,
+            )
+        _reject_unless_string(
+            entry.get("value_transform"), "value_transform", MAX_TRANSFORM_LENGTH
+        )
+        if entry.get("is_monotonic") not in (None, True, False):
+            _reject("is_monotonic in extra must be a boolean.")
+
+
+def _reject(message: str, **kwargs: Any) -> NoReturn:
+    """
+    Raise with a rendered message.
+
+    ``str()`` is not decoration: marshmallow special-cases ``str`` and ``dict``
+    and falls back to ``list(messages)`` for anything else, which turns a
+    ``LazyString`` into a list of single characters.
+    """
+    raise ValidationError(str(_(message, **kwargs)))
+
+
+def _reject_unless_string(value: Any, key: str, limit: int) -> None:
+    if value is None:
+        return
+    if not isinstance(value, str):
+        _reject("%(key)s in extra must be a string.", key=key)
+    if len(value) > limit:
+        _reject(
+            "%(key)s in extra must be at most %(limit)d characters.",
+            key=key,
+            limit=limit,
+        )
+
+
 class DatasetColumnsPutSchema(Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
@@ -101,6 +192,22 @@ class DatasetColumnsPutSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
+    partition_value_transform = fields.String(
+        allow_none=True,
+        metadata={
+            "description": (
+                "SQL expression containing a :value placeholder. Filters on "
+                "this column are mirrored onto the dataset's partition column "
+                "with the value passed through this transform."
+            )
+        },
+    )
+    # Deliberately no `load_default`: `DatasetDAO.update_columns` applies the
+    # loaded payload field by field onto the stored column, so a default here
+    # would let a partial column payload clear a monotonic flag the request
+    # never mentioned -- and silently stop mirroring range filters. Absent
+    # means "unchanged"; new columns fall back to the model's own default.
+    partition_transform_is_monotonic = fields.Boolean(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -179,6 +286,8 @@ class DatasetPostSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -194,6 +303,8 @@ class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
     currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_column = fields.String(allow_none=True, validate=Length(0, 250))
+    partition_mapped_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -205,7 +316,7 @@ class DatasetPutSchema(DiscardIsManagedExternallyMixin, Schema):
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
-    extra = fields.String(allow_none=True)
+    extra = fields.String(allow_none=True, validate=validate_dataset_extra)
     external_url = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
@@ -469,6 +580,9 @@ class ImportV1DatasetSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    # No partition mapping fields: it rides inside `extra`, which is already a
+    # `fields.Dict` here and already round-trips through export/import, so
+    # declaring them would export the same values twice.
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
     # data_file is used by the example loading system to reference Parquet files
     data_file = fields.String(allow_none=True, load_default=None)
@@ -494,6 +608,38 @@ class GetOrCreateDatasetSchema(Schema):
     )
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+
+
+class PartitionMappingPreviewSchema(Schema):
+    """
+    Payload for the dataset editor's partition mapping preview panel.
+
+    Every field is bounded. The endpoint parses `value_transform` with sqlglot
+    and then evaluates it against the warehouse, so an unbounded string is
+    parser time and warehouse time an owner can spend at will; the bounds keep
+    a malformed or oversized payload a 400 rather than work.
+    """
+
+    mapped_column = fields.String(
+        required=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={"description": "Column whose filters would be mirrored"},
+    )
+    value_transform = fields.String(
+        required=True,
+        allow_none=True,
+        # The stored column is `Text`, so this bounds the *request*, not the
+        # feature: a transform is one expression around `:value`, and 1024
+        # characters is far past anything that reads as one.
+        validate=Length(1, 1024),
+        metadata={"description": "SQL expression containing a :value placeholder"},
+    )
+    sample_value = fields.String(
+        required=True,
+        validate=Length(1, 250),
+        metadata={"description": "Value to evaluate the transform at"},
+    )
 
 
 class DatasetCacheWarmUpRequestSchema(Schema):
