@@ -36,12 +36,12 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class MixedTimeseriesChartPlugin(BaseChartPlugin):
     """Plugin for mixed_timeseries chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys
     chart_type = "mixed_timeseries"
     display_name = "Mixed Timeseries"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "mixed_timeseries": "Mixed Timeseries Chart",
     }
-    query_role_keys = BaseChartPlugin.query_role_keys
 
     def pre_validate(
         self,
@@ -172,6 +172,49 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
             ],
             error_code="MIXED_TIMESERIES_VALIDATION_ERROR",
         )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import (
+            build_mixed_timeseries_secondary,
+            build_single_query_dict,
+            extract_x_axis_col,
+            resolve_metrics_and_groupby,
+            with_x_axis_column,
+        )
+
+        metrics, groupby = resolve_metrics_and_groupby(form_data)
+        queries = [
+            build_single_query_dict(
+                form_data,
+                with_x_axis_column(form_data, groupby),
+                metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            ),
+            build_mixed_timeseries_secondary(
+                form_data,
+                extract_x_axis_col(form_data),
+                engine,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            ),
+        ]
+        queries[0]["series_columns"] = groupby
+        raw_secondary_groupby = form_data.get("groupby_b") or []
+        queries[1]["series_columns"] = (
+            [raw_secondary_groupby]
+            if isinstance(raw_secondary_groupby, str)
+            else list(raw_secondary_groupby)
+        )
+        return queries
 
     def secondary_query_form_data(
         self, form_data: Mapping[str, Any]

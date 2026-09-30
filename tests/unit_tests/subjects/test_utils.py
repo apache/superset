@@ -34,6 +34,7 @@ from superset.subjects.utils import (
     get_or_create_group_subject,
     get_or_create_role_subject,
     get_user_group_subjects,
+    get_user_subject_ids,
     get_user_subject_ids_subquery,
 )
 
@@ -611,3 +612,82 @@ def test_compute_subjects_all_variants(mock_compute):
         ensure_no_lockout=True,
         field_name="editors",
     )
+
+
+def test_get_user_subject_ids_memoises_within_a_request(app) -> None:
+    """The subject lookup runs once per user per request, not once per check."""
+    with patch(
+        "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
+    ) as query:
+        with app.test_request_context("/"):
+            assert get_user_subject_ids(1) == [7, 8]
+            assert get_user_subject_ids(1) == [7, 8]
+            assert query.call_count == 1
+
+            # A different principal is a different cache entry.
+            get_user_subject_ids(2)
+            assert query.call_count == 2
+
+
+def test_get_user_subject_ids_cache_does_not_leak_across_requests(app) -> None:
+    """The cache is tied to the request, not the enclosing app context.
+
+    A worker can hold one app context open across many requests. If the cache
+    lived on ``g`` it would survive from one request into the next and serve a
+    stale answer; tied to the request object it starts empty each time.
+    """
+    with app.app_context():
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
+        ) as query:
+            with app.test_request_context("/"):
+                assert get_user_subject_ids(1) == [7, 8]
+                assert get_user_subject_ids(1) == [7, 8]
+                assert query.call_count == 1
+
+        # Same app context, a new request. The membership changed underneath;
+        # the second request must re-query rather than reuse the first's cache.
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[9]
+        ) as query:
+            with app.test_request_context("/"):
+                assert get_user_subject_ids(1) == [9]
+                assert query.call_count == 1
+
+
+def test_get_user_subject_ids_not_cached_outside_a_request(app_context) -> None:
+    """Background tasks and CLI commands keep the uncached behaviour."""
+    with patch(
+        "superset.subjects.utils._query_user_subject_ids", return_value=[7]
+    ) as query:
+        get_user_subject_ids(1)
+        get_user_subject_ids(1)
+        assert query.call_count == 2
+
+
+def test_get_user_subject_ids_returns_a_copy(app) -> None:
+    """Callers hand this list on, so mutating it must not poison the cache."""
+    with patch("superset.subjects.utils._query_user_subject_ids", return_value=[7]):
+        with app.test_request_context("/"):
+            first = get_user_subject_ids(1)
+            first.append(999)
+            assert get_user_subject_ids(1) == [7]
+
+
+def test_get_user_subject_ids_serves_a_stale_set_within_the_request(app) -> None:
+    """A subject added mid-request is not seen until the next request.
+
+    This is the staleness window the docstring relies on: a create path can add
+    a subject after the cache is warm, and this call keeps returning the set it
+    first saw. It is safe because a subject created mid-request is not yet listed
+    in any resource's editors or viewers, so a check that omits it returns the
+    same access decision.
+    """
+    with app.test_request_context("/"):
+        with patch("superset.subjects.utils._query_user_subject_ids", return_value=[7]):
+            assert get_user_subject_ids(1) == [7]
+        # Membership changed underneath, same request: the cache still answers 7.
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[7, 99]
+        ):
+            assert get_user_subject_ids(1) == [7]

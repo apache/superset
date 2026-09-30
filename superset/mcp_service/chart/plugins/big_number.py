@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _big_number_chart_what,
@@ -205,7 +205,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
         show_trendline = getattr(config, "show_trendline", False)
         temporal_column = getattr(config, "temporal_column", None)
         if show_trendline and temporal_column:
-            return "big_number"
+            return self.TRENDLINE_VIZ_TYPE
         return "big_number_total"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
@@ -259,4 +259,41 @@ class BigNumberChartPlugin(BaseChartPlugin):
             # plural "metrics" key even for single-metric chart types.
             plural_metrics = form_data.get("metrics") or []
             metric = plural_metrics[0] if plural_metrics else None
-        return ([metric] if metric else []), []
+        columns: list[Any] = []
+        if viz_type == self.TRENDLINE_VIZ_TYPE:
+            # The query builder imports this helper after plugin loading.
+            from superset.mcp_service.chart.chart_helpers import (
+                resolve_big_number_columns,
+            )
+
+            columns = resolve_big_number_columns(dict(form_data))
+        return ([metric] if metric else []), columns
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        if viz_type != self.TRENDLINE_VIZ_TYPE:
+            return None
+        from superset.mcp_service.chart.chart_helpers import (
+            build_single_query_dict,
+        )
+
+        metrics, columns = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        return [
+            build_single_query_dict(
+                form_data,
+                columns,
+                metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]

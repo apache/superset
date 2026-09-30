@@ -252,7 +252,7 @@ def update_chart_preview(  # noqa: C901
                 or (previous_form_data or {}).get("datasource_id")
                 or ""
             ).split("__", 1)[0]
-            plugin = get_registry().get(config.chart_type)
+            plugin = get_registry().get(config.chart_type, include_disabled=True)
             dataset_rebind = previous_datasource != str(dataset.id) and (
                 bool(previous_datasource)
                 or bool(plugin and plugin.unbound_form_data_is_rebind)
@@ -289,7 +289,7 @@ def update_chart_preview(  # noqa: C901
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
-                config, dataset_id=request.dataset_id
+                config, dataset_id=request.dataset_id, include_disabled=True
             )
             new_form_data.pop("_mcp_warnings", None)
             new_form_data = canonicalize_operation_form_data(

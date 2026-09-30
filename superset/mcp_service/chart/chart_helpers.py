@@ -823,17 +823,19 @@ def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
     return metrics
 
 
+def normalize_groupby(form_data: Mapping[str, Any]) -> list[Any]:
+    """Normalize native scalar groupby without applying query-role aliases."""
+    raw_groupby = form_data.get("groupby") or []
+    return [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+
+
 def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
     """Extract groupby columns from form_data with fallback aliases."""
     raw_columns = form_data.get("all_columns")
     if form_data.get("query_mode") == "raw" and isinstance(raw_columns, list):
         return list(raw_columns)
 
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[Any] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
+    groupby = normalize_groupby(form_data)
 
     if groupby:
         return groupby
@@ -994,6 +996,143 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
         col_name = x_axis.get("column_name")
         return col_name if isinstance(col_name, str) and col_name else None
     return None
+
+
+# Viz types whose buildQuery reads a single "Sort query by" metric from
+# form_data['orderby'] (the dndSortByControl) rather than a sort flag.
+_SORT_METRIC_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
+
+
+def resolve_sort_metric(form_data: dict[str, Any]) -> Any | None:
+    """Extract the "Sort query by" metric for viz types that carry one."""
+    if form_data.get("viz_type") not in _SORT_METRIC_VIZ_TYPES:
+        return None
+    raw = form_data.get("orderby")
+    if isinstance(raw, (list, tuple)):
+        raw = raw[0] if raw else None
+    return raw or None
+
+
+def apply_treemap_query_fields(
+    qd: dict[str, Any],
+    form_data: dict[str, Any],
+    columns: list[Any],
+    effective_row_limit: int | None,
+) -> None:
+    """Apply Treemap temporal binding and bounded hierarchy ordering."""
+    # extractExtras maps the selected SQL time column to QueryObject granularity.
+    # A normalized dashboard override takes precedence, including a clear.
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity is not None:
+        qd["granularity"] = granularity
+    # Match Treemap buildQuery/applyOrderBy, including hierarchy tie-breakers.
+    ordering = qd.pop("orderby", [])
+    ordering.extend(
+        (column, True) for column in columns if isinstance(column, str) and column
+    )
+    try:
+        bounded = float(effective_row_limit or 0) != 0
+    except (ValueError, TypeError):
+        bounded = True
+    if bounded and ordering:
+        qd["orderby"] = ordering
+
+
+def build_single_query_dict(
+    form_data: dict[str, Any],
+    columns: list[Any],
+    metrics: list[Any],
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build one query entry for QueryContextFactory from form_data fields."""
+    qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
+    # Saved query-shaped ordering is distinct from typed sort_by/order_by_cols.
+    if form_data.get("orderby"):
+        qd["orderby"] = form_data["orderby"]
+    effective_row_limit = row_limit
+    if effective_row_limit is None:
+        effective_row_limit = form_data.get("row_limit")
+    if effective_row_limit is not None:
+        qd["row_limit"] = effective_row_limit
+    if order_desc is not None:
+        qd["order_desc"] = order_desc
+    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge) order by the
+    # metric descending. buildQuery derives this on the frontend; translate
+    # the flag here when there is no explicit ordering or a row_limit truncates
+    # an unordered result (dropping the heaviest rows rather than the top-N).
+    if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):
+        qd["orderby"] = [(metrics[0], False)]
+    elif sort_metric := resolve_sort_metric(form_data):
+        # Bubble's buildQuery pairs its "Sort query by" metric with the
+        # negated order_desc flag; order_desc defaults to True (descending).
+        # An explicit argument wins, or qd["order_desc"] set above would
+        # contradict the direction emitted here.
+        descending = (
+            order_desc if order_desc is not None else form_data.get("order_desc", True)
+        )
+        qd["orderby"] = [(sort_metric, not descending)]
+    apply_form_data_filters_to_query(qd, form_data)
+    return qd
+
+
+def build_mixed_timeseries_secondary(
+    form_data: dict[str, Any],
+    x_axis_col: str | None,
+    engine: str,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build the secondary query dict for the ``mixed_timeseries`` viz type."""
+    # avoid circular import
+    from superset.utils.core import split_adhoc_filters_into_base_filters
+
+    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
+    raw_b = form_data.get("groupby_b") or []
+    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
+    if x_axis_col and x_axis_col not in groupby_b:
+        groupby_b = [x_axis_col] + groupby_b
+
+    # Each series owns its ordering; primary metrics may not exist in query B.
+    qd = build_single_query_dict(
+        {**form_data, "orderby": form_data.get("orderby_b")},
+        groupby_b,
+        metrics_b,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    if time_range_b := form_data.get("time_range_b"):
+        qd["time_range"] = time_range_b
+    if row_limit is None and (row_limit_b := form_data.get("row_limit_b")) is not None:
+        qd["row_limit"] = row_limit_b
+
+    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
+        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
+        split_adhoc_filters_into_base_filters(secondary_fd, engine)
+        if secondary_filters := secondary_fd.get("filters"):
+            qd["filters"] = secondary_filters
+        else:
+            qd.pop("filters", None)
+        for clause in ("where", "having"):
+            if secondary_clause := secondary_fd.get(clause):
+                qd[clause] = secondary_clause
+            else:
+                qd.pop(clause, None)
+    return qd
+
+
+# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
+_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
+    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
+)
+
+
+def with_x_axis_column(form_data: dict[str, Any], groupby: list[Any]) -> list[Any]:
+    """Prepend a time-series chart's x-axis column to its query columns."""
+    x_axis_col = extract_x_axis_col(form_data)
+    if x_axis_col and x_axis_col not in groupby:
+        return [x_axis_col, *groupby]
+    return groupby
 
 
 def build_query_dicts_from_form_data(

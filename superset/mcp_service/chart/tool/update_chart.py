@@ -198,7 +198,9 @@ def _append_table_columns(
     # empty. Route each kind by is_metric instead, to keep an aggregate chart
     # aggregate no matter which mix of columns is appended.
     metric_patch = (
-        map_config_to_form_data(TableChartConfig(columns=metric_columns))
+        map_config_to_form_data(
+            TableChartConfig(columns=metric_columns), include_disabled=True
+        )
         if metric_columns
         else {}
     )
@@ -294,7 +296,7 @@ def _build_update_payload(  # noqa: C901
 
     if parsed_config is not None:
         new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
         )
         new_form_data.pop("_mcp_warnings", None)
         existing_form_data = _get_existing_form_data(chart)
@@ -415,7 +417,7 @@ def _build_preview_form_data(
 
     if parsed_config is not None:
         new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
         )
         new_form_data.pop("_mcp_warnings", None)
         dataset_rebind = _is_dataset_rebind(request, chart)
@@ -470,7 +472,7 @@ def _build_preview_form_data(
     return merged
 
 
-def _validate_update_against_dataset(
+def _validate_update_against_dataset(  # noqa: C901
     parsed_config: Any,
     form_data: dict[str, Any],
     chart: Any,
@@ -546,6 +548,11 @@ def _validate_update_against_dataset(
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(
             message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    except ValueError as ex:
+        return _validation_error_response(
+            message="Chart configuration is invalid",
             details=str(ex),
         )
     if merged_config is not None:
@@ -841,7 +848,7 @@ async def update_chart(  # noqa: C901
         # config is already a typed ChartConfig | None (validated by Pydantic)
         try:
             config_plugin = (
-                get_registry().get(request.config.chart_type)
+                get_registry().get(request.config.chart_type, include_disabled=True)
                 if request.config is not None
                 else None
             )

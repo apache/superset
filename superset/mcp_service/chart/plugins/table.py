@@ -36,13 +36,13 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class TableChartPlugin(BaseChartPlugin):
     """Plugin for table chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
     chart_type = "table"
     display_name = "Table"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "table": "Table",
         "ag-grid-table": "Interactive Table",
     }
-    query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
     supports_column_append = True
 
     def pre_validate(

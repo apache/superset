@@ -85,6 +85,18 @@ REGISTERED_PLUGIN_QUERY_ROLE_KEYS = (
 QUERY_ROLE_KEYS = SHARED_FORM_DATA_QUERY_ROLE_KEYS | REGISTERED_PLUGIN_QUERY_ROLE_KEYS
 
 
+def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+    """Cap compile samples, falling back to the cap for invalid saved limits."""
+    value = form_data.get("row_limit")
+    if isinstance(value, bool):
+        return cap
+    try:
+        limit = int(value or cap)
+    except (TypeError, ValueError, OverflowError):
+        return cap
+    return min(cap, limit) if limit > 0 else cap
+
+
 @runtime_checkable
 class ChartTypePlugin(Protocol):
     """
