@@ -121,3 +121,12 @@ test('getComparisonColorTokens strips an existing alpha channel from an 8-digit 
     strongText: '#33669980',
   });
 });
+
+test('getComparisonColorTokens passes a non-hex theme token (e.g. rgba) through unchanged instead of tinting it', () => {
+  const rgbaToken = 'rgba(255, 255, 255, 0.85)';
+  expect(getComparisonColorTokens(rgbaToken, supersetTheme)).toEqual({
+    text: rgbaToken,
+    background: rgbaToken,
+    strongText: rgbaToken,
+  });
+});

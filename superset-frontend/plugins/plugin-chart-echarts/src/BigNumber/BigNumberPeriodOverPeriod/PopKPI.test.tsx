@@ -63,19 +63,19 @@ test('renders the down arrow when the metric decreased', () => {
   expect(screen.getByText('-20')).toBeInTheDocument();
 });
 
-// The precise color resolution (legacy `comparisonColorScheme` fallback,
+// The color-resolution *logic* (legacy `comparisonColorScheme` fallback,
 // custom hex precedence, the neutral disabled state) is covered by pure
 // unit tests against `resolveComparisonColorKeys` / `getComparisonColorTokens`
-// in utils.test.ts, since emotion's `css` prop styles aren't reliably
-// observable through jsdom's computed styles. These tests instead confirm
-// PopKPI renders without crashing across the same prop combinations.
+// in utils.test.ts. These tests confirm PopKPI renders without crashing
+// across the same prop combinations, and that the resolved color actually
+// reaches the arrow indicator's `css` prop style.
 test('renders without crashing with only the legacy comparisonColorScheme (backward compatibility)', () => {
   render(<PopKPI {...baseProps} comparisonColorScheme="Red" />);
 
   expect(screen.getByText('↑')).toBeInTheDocument();
 });
 
-test('renders without crashing with a custom increaseColor hex', () => {
+test('applies the resolved custom increaseColor to the arrow indicator', () => {
   render(
     <PopKPI
       {...baseProps}
@@ -84,7 +84,7 @@ test('renders without crashing with a custom increaseColor hex', () => {
     />,
   );
 
-  expect(screen.getByText('↑')).toBeInTheDocument();
+  expect(screen.getByText('↑')).toHaveStyleRule('color', '#336699');
 });
 
 test('renders without crashing when comparisonColorEnabled is false', () => {
