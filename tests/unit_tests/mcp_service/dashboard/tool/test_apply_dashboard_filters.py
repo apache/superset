@@ -794,6 +794,7 @@ async def test_realtime_publish_outcome(
             "superset.security_manager.get_current_guest_user_if_guest",
             return_value=None,
         ),
+        patch("superset.security_manager.can_access", return_value=True),
     ):
         if websocket_enabled is None:
             current_app.config.pop("WEBSOCKET_ENABLE", None)
@@ -844,6 +845,7 @@ def test_realtime_guest_or_missing_principal(channel: str | None) -> None:
             "superset.websocket.channel.get_current_guest_subscriber_key",
             return_value=channel,
         ),
+        patch("superset.security_manager.can_access", return_value=True),
     ):
         assert _publish_filters_applied(1, "key") is (channel is not None)
     if channel is None:
@@ -855,6 +857,47 @@ def test_realtime_guest_or_missing_principal(channel: str | None) -> None:
             payload={"dashboard_id": 1, "permalink_key": "key"},
             routes=[channel],
         )
+
+
+@pytest.mark.parametrize("can_read_realtime", [True, False])
+def test_realtime_publish_requires_realtime_permission(
+    can_read_realtime: bool,
+) -> None:
+    """Publish only when the caller holds the permission its socket is gated on."""
+    from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+        _publish_filters_applied,
+    )
+
+    with (
+        patch.dict(current_app.config, WEBSOCKET_ENABLE=True),
+        patch(
+            "superset.coordination.base.CoordinationService.is_backend_defined",
+            return_value=True,
+        ),
+        patch(
+            "superset.realtime.publish.publish_realtime", return_value=True
+        ) as publish,
+        patch(
+            "superset.security_manager.get_current_guest_user_if_guest",
+            return_value=None,
+        ),
+        patch("superset.websocket.channel.get_user_id", return_value=42),
+        patch(
+            "superset.security_manager.can_access", return_value=can_read_realtime
+        ) as can_access,
+    ):
+        assert _publish_filters_applied(1, "key") is can_read_realtime
+
+    can_access.assert_called_once_with("can_read", "Realtime")
+    if can_read_realtime:
+        publish.assert_called_once_with(
+            topic="dashboard.filters_applied",
+            scope="principal",
+            payload={"dashboard_id": 1, "permalink_key": "key"},
+            routes=["user:42"],
+        )
+    else:
+        publish.assert_not_called()
 
 
 @pytest.mark.asyncio

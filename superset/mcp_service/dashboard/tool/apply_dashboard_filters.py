@@ -72,11 +72,16 @@ def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
     from superset.coordination.base import CoordinationService
     from superset.realtime.publish import publish_realtime
     from superset.websocket.channel import get_realtime_principal
+    from superset.websocket.permissions import can_access_realtime_notifications
 
     try:
         if not current_app.config.get("WEBSOCKET_ENABLE"):
             return False
         if not CoordinationService.is_backend_defined():
+            return False
+        # Same gate the websocket channel cookie is minted behind: without it the
+        # caller has no authorized socket to receive the nudge.
+        if not can_access_realtime_notifications():
             return False
         principal = get_realtime_principal()
         if principal is None:
