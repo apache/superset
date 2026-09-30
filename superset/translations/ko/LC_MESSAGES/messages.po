@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1311,6 +1311,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). 자세히 보기:"
 " https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -2208,6 +2211,9 @@ msgstr "차트 추가"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "대시보드 저장"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -6780,6 +6786,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "호스트 이름을 확인할 수 없습니다: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8256,6 +8268,11 @@ msgstr "삭제"
 #, fuzzy
 msgid "Delete item"
 msgstr "템플릿 불러오기"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -15730,6 +15747,15 @@ msgstr "결과"
 msgid "Not Time Series"
 msgstr "시계열 아님"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 #, fuzzy
 msgid "Not a valid ZIP file"
 msgstr "테이블 추가"
@@ -19531,6 +19557,9 @@ msgstr "스키마"
 #, fuzzy
 msgid "Schema cache timeout"
 msgstr "차트 유형"
+
+msgid "Schema not found."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -23774,6 +23803,13 @@ msgstr "쿼리에 하나 이상의 잘못된 형식의 템플릿 매개변수가
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -23944,6 +23980,10 @@ msgid ""
 "run this query."
 msgstr "스키마 \"%(schema)s\"가 존재하지 않습니다. 이 쿼리를 실행하려면 유효한 스키마를 사용해야 합니다."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24046,6 +24086,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "테이블 \"%(table)s\"가 존재하지 않습니다. 이 쿼리를 실행하려면 유효한 테이블을 사용해야 합니다."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24717,6 +24761,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -26126,6 +26175,9 @@ msgstr "화요일"
 #, fuzzy
 msgid "Tukey"
 msgstr "Query 공유"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "타입"
@@ -27630,6 +27682,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "%(location)s행의 \"%(column_name)s\" 열을 찾을 수 없습니다."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -29549,6 +29605,11 @@ msgstr "버튼(cmd + z)을 변경 사항을 저장할 때까지 누르세요."
 #, fuzzy
 msgid "by using"
 msgstr "을(를) 사용하여"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,

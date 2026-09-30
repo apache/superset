@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -992,6 +992,9 @@ msgid ""
 "https://echarts.apache.org/en/option.html. "
 msgstr ""
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1618,6 +1621,9 @@ msgstr "பாதிக்கப்பட்ட சார்ட்டுகள�
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "பாதிக்கப்பட்ட டேஷ்போர்டுகள்"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4604,6 +4610,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
 
@@ -5612,6 +5624,11 @@ msgstr "குழுவை நீக்கு"
 
 msgid "Delete item"
 msgstr "உருப்படியை நீக்கு"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -10229,6 +10246,15 @@ msgstr "சமமில்லை"
 msgid "Not Time Series"
 msgstr "நேரத் தொடர் அல்ல"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 msgid "Not a valid ZIP file"
 msgstr "செல்லுபடியாகும் ZIP கோப்பு அல்ல"
 
@@ -12528,6 +12554,9 @@ msgstr "ஸ்கீமா (Schema)"
 
 msgid "Schema cache timeout"
 msgstr "ஸ்கீமா கேச் காலாவதி"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "கோப்பு பதிவேற்றத்திற்கு அனுமதிக்கப்பட்ட ஸ்கீமாக்கள்"
@@ -15268,6 +15297,13 @@ msgstr "வினவலில் ஒன்று அல்லது அதற்
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "வினவலை ஏற்ற முடியவில்லை"
 
@@ -15372,6 +15408,10 @@ msgstr ""
 "வேண்டும்."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -15435,6 +15475,10 @@ msgid ""
 msgstr ""
 "அட்டவணை \"%(table)s\" இல்லை. வினவலை இயக்க சரியான அட்டவணையைப் பயன்படுத்த "
 "வேண்டும்."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15897,6 +15941,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16791,6 +16840,9 @@ msgstr "செவ்வாய்"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "வகை"
@@ -17743,6 +17795,10 @@ msgid ""
 msgstr ""
 "வரிசை %(location)s இல் உள்ள நெடுவரிசை \"%(column_name)s\" ஐ எங்களால் "
 "கண்டறிய முடியவில்லை."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -18905,6 +18961,12 @@ msgstr "மாற்றங்களைச் சேமிக்கும் வ�
 
 msgid "by using"
 msgstr "பயன்படுத்துவதன் மூலம்"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "காலியாக இருக்க முடியாது"

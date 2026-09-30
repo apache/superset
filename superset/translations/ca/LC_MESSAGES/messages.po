@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1023,6 +1023,9 @@ msgstr ""
 "(p. ex., { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}). Detalls: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1678,6 +1681,9 @@ msgstr "Gràfics Afectats"
 
 msgid "Affected Dashboards"
 msgstr "Dashboards Afectats"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4850,6 +4856,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "No s'ha pogut resoldre el nom del servidor: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "No s'ha pogut validar l'usuari a la sessió actual."
 
@@ -5949,6 +5961,11 @@ msgstr "Eliminar rol"
 #, fuzzy
 msgid "Delete item"
 msgstr "Eliminar plantilla"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -10974,6 +10991,15 @@ msgstr "No igual a (≠)"
 msgid "Not Time Series"
 msgstr "No Sèries Temporals"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 msgid "Not a valid ZIP file"
 msgstr "No és un arxiu ZIP vàlid"
 
@@ -13460,6 +13486,9 @@ msgstr "Esquema"
 
 msgid "Schema cache timeout"
 msgstr "Timeout de la caché d'esquema"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Esquemes permesos per pujada d'arxius"
@@ -16569,6 +16598,13 @@ msgstr "La consulta conté un o més paràmetres de plantilla mal formats."
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "La consulta no s'ha pogut carregar"
 
@@ -16697,6 +16733,10 @@ msgstr ""
 "executar aquesta consulta."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16761,6 +16801,10 @@ msgid ""
 msgstr ""
 "La taula \"%(table)s\" no existeix. S'ha d'usar una taula vàlida per "
 "executar aquesta consulta."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17278,6 +17322,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18297,6 +18346,9 @@ msgstr "Dimarts"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipus"
@@ -19374,6 +19426,10 @@ msgid ""
 msgstr ""
 "No sembla que puguem resoldre la columna \"%(column_name)s\" a la línia "
 "%(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20603,6 +20659,12 @@ msgstr "botó (cmd + z) fins que desis els teus canvis."
 
 msgid "by using"
 msgstr "usant"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "no pot estar buit"

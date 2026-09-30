@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -932,6 +932,9 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1501,6 +1504,9 @@ msgstr "影響を受けるチャート"
 
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4264,6 +4270,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
 
@@ -5197,6 +5209,11 @@ msgstr "グループを削除"
 
 msgid "Delete item"
 msgstr "項目を削除"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -9625,6 +9642,15 @@ msgstr "等しくない (≠)"
 msgid "Not Time Series"
 msgstr "非時系列"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
 
@@ -11882,6 +11908,9 @@ msgstr "スキーマ"
 
 msgid "Schema cache timeout"
 msgstr "スキーマキャッシュのタイムアウト"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "ファイルのアップロードが許可されているスキーマ"
@@ -14472,6 +14501,13 @@ msgstr "クエリに1つ以上の不正なテンプレートパラメータが�
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
 
@@ -14570,6 +14606,10 @@ msgid ""
 msgstr "スキーマ「%(schema)s」が存在しません。クエリを実行するには有効なスキーマを使用してください。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14625,6 +14665,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "テーブル「%(table)s」が存在しません。クエリを実行するには有効なテーブルを使用してください。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15069,6 +15113,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -15901,6 +15950,9 @@ msgstr "火曜日"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "種類"
@@ -16800,6 +16852,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "%(location)s 行目の列「%(column_name)s」を解決できません。"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -17869,6 +17925,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 
 msgid "by using"
 msgstr "以下を使用して"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "空にできません"

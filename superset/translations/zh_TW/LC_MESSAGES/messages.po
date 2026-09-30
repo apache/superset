@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1038,6 +1038,9 @@ msgstr ""
 "\"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}）。詳細資訊：https://echarts.apache.org/en/option.html。 "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1734,6 +1737,9 @@ msgstr "選擇圖表"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "選擇看板"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4997,6 +5003,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "無法解析主機名稱：\"%(host)s\"。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6153,6 +6165,11 @@ msgstr "删除"
 #, fuzzy
 msgid "Delete item"
 msgstr "删除模板"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -11482,6 +11499,15 @@ msgstr "不等於（≠）"
 msgid "Not Time Series"
 msgstr "没有時間系列"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 #, fuzzy
 msgid "Not a valid ZIP file"
 msgstr "没有應用過濾器"
@@ -14118,6 +14144,9 @@ msgstr "模式"
 
 msgid "Schema cache timeout"
 msgstr "模式缓存超時"
+
+msgid "Schema not found."
+msgstr ""
 
 #, fuzzy
 msgid "Schemas allowed for File upload"
@@ -17266,6 +17295,13 @@ msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "這個查詢無法被加载"
 
@@ -17379,6 +17415,10 @@ msgid ""
 msgstr "表 \"%(schema)s\" 不存在。必須使用有效的表來運行此查詢。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -17452,6 +17492,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "表 \"%(table)s\" 不存在。必須使用有效的表來運行此查詢。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17952,6 +17996,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18982,6 +19031,9 @@ msgstr "星期二"
 #, fuzzy
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "類型"
@@ -20081,6 +20133,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "我們似乎無法解析行 %(location)s 所處的列 \"%(column_name)s\" 。"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21329,6 +21385,11 @@ msgstr "按钮（cmd + z）直到你保存它。"
 
 msgid "by using"
 msgstr "基於"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "不能為空"

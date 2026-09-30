@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 17:16-0700\n"
+"POT-Creation-Date: 2026-09-30 14:07-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -1436,6 +1436,9 @@ msgstr ""
 "(esim. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}). Lisätietoja: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -2499,6 +2502,9 @@ msgstr "Vaikuttavat kaaviot"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "Vaikuttavat kojelaudat"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -7572,6 +7578,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Isäntänimeä \"%(host)s\" ei voitu ratkaista."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -9399,6 +9411,11 @@ msgstr "Poista ryhmä"
 #, fuzzy
 msgid "Delete item"
 msgstr "Poista kohde"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -17537,6 +17554,15 @@ msgstr "Ei yhtä suuri"
 msgid "Not Time Series"
 msgstr "Ei aikasarjaa"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -21662,6 +21688,9 @@ msgstr "Skeema"
 #, fuzzy
 msgid "Schema cache timeout"
 msgstr "Skeeman välimuistin aikakatkaisu"
+
+msgid "Schema not found."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -26400,6 +26429,13 @@ msgstr "Kysely sisältää yhden tai useamman virheellisen malliparametrin."
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -26576,6 +26612,10 @@ msgstr ""
 "Skeemaa \"%(schema)s\" ei ole olemassa. Tämän kyselyn suorittamiseen "
 "tarvitaan kelvollinen skeema."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -26679,6 +26719,10 @@ msgid ""
 msgstr ""
 "Taulukkoa \"%(table)s\" ei ole olemassa. Tämän kyselyn suorittamiseen "
 "tarvitaan kelvollinen taulukko."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27425,6 +27469,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28914,6 +28963,9 @@ msgstr "Tiistai"
 #, fuzzy
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -30532,6 +30584,10 @@ msgid ""
 msgstr ""
 "Saraketta \"%(column_name)s\" rivillä %(location)s ei näytä voivan "
 "ratkaista."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -32455,6 +32511,12 @@ msgstr "painike (cmd + z) kunnes tallennat muutoksesi."
 #, fuzzy
 msgid "by using"
 msgstr "käyttämällä"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
