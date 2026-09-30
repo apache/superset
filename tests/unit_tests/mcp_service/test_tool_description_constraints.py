@@ -17,6 +17,7 @@
 
 """Calling guidance must survive discovery without relying on truncated prose."""
 
+import inspect
 import re
 
 import pytest
@@ -550,7 +551,7 @@ async def test_direct_no_query_catalog_preserves_priority_guidance(
     assert len(entry["description"]) + len(instructions) <= 300
     # A purpose paragraph survives; any subsequent paragraphs are whole, never
     # an incomplete bullet or the misleading numbered-list fragment "Workflow: 1."
-    description = tool.description or ""
+    description = inspect.cleandoc(tool.description or "")
     paragraphs = re.split(r"\n\s*\n", description)
     assert entry["description"].startswith(paragraphs[0])
     assert entry["description"] in [
@@ -580,8 +581,8 @@ async def test_reported_descriptions_truncate_at_whole_paragraphs(name: str) -> 
 
     tool = await mcp.get_tool(name)
     assert tool is not None
-    description = tool.description or ""
-    result = _truncate_description(description, 300)
+    description = inspect.cleandoc(tool.description or "")
+    result = _truncate_description(tool.description or "", 300)
     assert result
     assert len(result) <= 300
     assert result in [
