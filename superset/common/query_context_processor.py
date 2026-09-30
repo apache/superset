@@ -427,7 +427,9 @@ class QueryContextProcessor:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
-        datasource = self._qc_datasource
+        datasource: Explorable = self._qc_datasource
+        # Reject unenforceable restrictions before provider identity or cache reads.
+        rls: list[str] = security_manager.get_rls_cache_key(datasource)
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
         # Annotation data is cached on the same entry as the dataframe, so the
@@ -439,7 +441,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_cache_key(datasource),
+                rls=rls,
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
