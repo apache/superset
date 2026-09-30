@@ -1296,5 +1296,6 @@ test('TableRenderer keeps each metric aggregation on its own formatter', () => {
   const grandTotalCells = screen
     .getAllByRole('gridcell')
     .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells.length).toBe(1);
   expect(grandTotalCells[0]).toHaveTextContent('3.000 r');
 });

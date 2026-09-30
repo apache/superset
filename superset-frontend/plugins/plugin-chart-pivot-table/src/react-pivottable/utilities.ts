@@ -1027,6 +1027,7 @@ class PivotData {
   rowTotals: Record<string, Aggregator>;
   colTotals: Record<string, Aggregator>;
   allTotal: Aggregator | null;
+  allTotalFormatter: ((...args: unknown[]) => Aggregator) | null;
   subtotals: SubtotalOptions;
   sorted: boolean;
 
@@ -1107,6 +1108,7 @@ class PivotData {
     // it resolves its formatter through getFormattedAggregator like every other
     // slot -- see the note there.
     this.allTotal = null;
+    this.allTotalFormatter = null;
     this.subtotals = subtotals;
     this.sorted = false;
 
@@ -1134,19 +1136,28 @@ class PivotData {
   }
 
   /*
-   * Push a record into the grand-total slot, creating the slot on first use.
+   * Push a record into the grand-total slot, (re)building that slot's aggregator
+   * whenever the record resolves to a different formatter.
    *
    * The grand total has no key of its own, so -- exactly like rowTotals and
-   * colTotals -- its aggregator is built from the first record that reaches it,
-   * which lets it pick up that record's per-metric formatter. Building it in the
-   * constructor from `this.aggregator` instead (as this used to) pins it to
-   * `defaultFormatter`, so a metric configured with a currency or custom d3
-   * format had its total render as a bare number while its body cells rendered
-   * as money.
+   * colTotals -- its aggregator is derived from the records that reach it rather
+   * than fixed up front. Building it in the constructor from `this.aggregator`
+   * (as this used to) pinned it to `defaultFormatter`, so a metric configured
+   * with a currency or custom d3 format had its total render as a bare number
+   * while its body cells rendered as money.
+   *
+   * Rebuilding on a formatter change is what keeps that honest when several
+   * metrics share the grand total: `push` overwrites the stored value, so a slot
+   * built once from the first metric would go on to render the *last* metric's
+   * value in the *first* metric's format. `getFormattedAggregator` returns a
+   * stable function per metric, so an identity check is enough to spot the
+   * switch, and records that resolve to the same formatter still accumulate.
    */
-  pushAllTotal(record: PivotRecord) {
-    if (!this.allTotal) {
-      this.allTotal = this.getFormattedAggregator(record)(this, [], []);
+  pushAllTotal(record: PivotRecord): void {
+    const formatter = this.getFormattedAggregator(record);
+    if (!this.allTotal || formatter !== this.allTotalFormatter) {
+      this.allTotalFormatter = formatter;
+      this.allTotal = formatter(this, [], []);
     }
     this.allTotal.push(record);
   }

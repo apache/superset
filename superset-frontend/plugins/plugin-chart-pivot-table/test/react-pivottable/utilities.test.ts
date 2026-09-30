@@ -148,31 +148,9 @@ test('grand total uses the metric formatter, not the default formatter', () => {
 test('metric-collapse total uses the metric formatter', () => {
   // No rollup level produces an empty key on the metric axis, so the collapsed
   // total is mirrored into rowTotals/allTotal from the metric-only records.
-  const pivotData = buildPivot([
-    {
-      color: 'blue',
-      Metric: 'sales',
-      value: 100,
-      __rows: ['color'],
-      __columns: ['Metric'],
-      __metricKey: 'Metric',
-    },
-    {
-      color: 'red',
-      Metric: 'sales',
-      value: 200,
-      __rows: ['color'],
-      __columns: ['Metric'],
-      __metricKey: 'Metric',
-    },
-    {
-      Metric: 'sales',
-      value: 300,
-      __rows: [],
-      __columns: ['Metric'],
-      __metricKey: 'Metric',
-    },
-  ]);
+  // Dropping the trailing grand-total record from the shared fixture is exactly
+  // that case.
+  const pivotData = buildPivot(SINGLE_METRIC_DATA.slice(0, -1));
 
   // There is no explicit rows=[]/columns=[] record here, so the grand total is
   // fed purely by the metric-collapse mirror -- and it still has to pick up the
@@ -226,6 +204,41 @@ test('each aggregation cell uses the formatter of its own metric', () => {
   expect(rendered(pivotData, ['blue'], ['sales'])).toBe('$100.00');
   expect(rendered(pivotData, ['blue'], ['rate'])).toBe('5.000 r');
 });
+
+/**
+ * Which metric a multi-metric grand total belongs to is #44725's question, and
+ * this PR does not settle it. What must never happen is the slot being built
+ * once from the first metric and then going on to render the *last* metric's
+ * value in the *first* metric's format -- a regression that reads as correct
+ * formatting of a plainly wrong number.
+ *
+ * Whichever metric's value the slot ends up showing, it has to be formatted as
+ * that same metric. Asserted for both orders, since `push` overwrites the stored
+ * value and the last record wins.
+ */
+test.each([
+  ['sales first', ['sales', 'rate'], '5.000 r'],
+  ['rate first', ['rate', 'sales'], '$300.00'],
+])(
+  'multi-metric grand total formats the value it shows as that metric (%s)',
+  (_label, order, expected) => {
+    const grandTotals: Record<string, number> = { sales: 300, rate: 5 };
+    const pivotData = buildPivot(
+      order.map(metric => ({
+        Metric: metric,
+        value: grandTotals[metric],
+        __rows: [],
+        __columns: [],
+        __metricKey: 'Metric',
+      })),
+    );
+
+    // The value is the last record's; the formatter has to be that metric's too.
+    const agg = pivotData.getAggregator([], []);
+    expect(agg.value()).toBe(grandTotals[order[order.length - 1]]);
+    expect(agg.format(agg.value(), agg)).toBe(expected);
+  },
+);
 
 test('a total with no per-metric formatter still falls back to the default', () => {
   const pivotData = new PivotData({
