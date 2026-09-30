@@ -83,6 +83,8 @@ class _LiveDatasourceNameFilter:
         from superset.models.slice import Slice
         from superset.semantic_layers.models import SemanticView
 
+        # Keep this SQL expression aligned with SqlaTable.name, which supplies
+        # the table name used by resolve_chart_datasource_name during serialization.
         table_name = case(
             (
                 (SqlaTable.schema.isnot(None)) & (SqlaTable.schema != ""),

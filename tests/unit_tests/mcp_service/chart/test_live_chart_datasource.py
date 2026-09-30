@@ -650,3 +650,29 @@ async def test_deleted_dataset_keeps_access_error(
     result = json.loads(response.content[0].text)
     assert result["error_type"] == "DatasetNotAccessible"
     assert "has been deleted or does not exist" in result["error"]
+
+
+@pytest.mark.parametrize("schema", [None, "", "analytics"])
+@pytest.mark.parametrize("catalog", [None, "warehouse"])
+def test_live_name_filter_matches_sqla_table_name(
+    session: Session,
+    charts: PersistedCharts,
+    schema: str | None,
+    catalog: str | None,
+) -> None:
+    """Keep the SQL filter in parity with the Python datasource naming rule."""
+    from superset.mcp_service.chart.schemas import ChartFilter
+
+    table = session.query(SqlaTable).filter(SqlaTable.id == charts.table_id).one()
+    table.schema = schema
+    table.catalog = catalog
+    session.flush()
+    chart = _load(session, charts.table_chart_id)
+    expected_name = table.name
+    assert resolve_chart_datasource_name(chart) == expected_name
+
+    name_filter = list_charts_module._LiveDatasourceNameFilter(
+        [ChartFilter(col="datasource_name", opr="eq", value=expected_name)]
+    )
+    matches = name_filter.apply(session.query(Slice), None).all()
+    assert [match.id for match in matches] == [charts.table_chart_id]
