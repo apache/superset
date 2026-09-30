@@ -93,10 +93,15 @@ MySQL-compatible engines keep their existing SSL handling.
 
 SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
 of JSON numbers, preserving precision and trailing zeros in the results grid
-and exports. Numeric sorting still compares their exact values. API consumers
-performing arithmetic should parse these strings with a decimal library, not
-JavaScript `Number`. Chart result serialization is unchanged. Re-run queries
-whose cached JSON results were produced before upgrading all workers.
+and exports. The strings use fixed-point notation, and non-finite `NaN` and
+`Infinity` decimals are returned as `null`. Numeric sorting still compares
+their exact values. API consumers performing arithmetic should parse these
+strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
+extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
+carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
+`AVG` or `ROUND` results), so adding them with `+` concatenates instead of
+summing. Chart result serialization is unchanged. Re-run queries whose cached
+JSON results were produced before upgrading all workers.
 
 ### Version history retention setting
 
