@@ -384,7 +384,10 @@ class Slice(  # pylint: disable=too-many-public-methods
     def form_data(self) -> dict[str, Any]:
         form_data: dict[str, Any] = {}
         try:
-            form_data = json.loads(self.params)
+            d = json.loads(self.params)
+            if not isinstance(d, dict):
+                raise ValueError("params is not a JSON object")
+            form_data = d
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
@@ -487,7 +490,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
     if isinstance(id_or_uuid, int):
         return Slice.id == id_or_uuid
-    if id_or_uuid.isdigit():
+    if id_or_uuid.isdecimal():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid
 
@@ -496,7 +499,29 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
-    src_class = DatasourceDAO.sources[target.datasource_type]
+    src_class: type[Datasource] | None = DatasourceDAO.sources.get(
+        target.datasource_type
+    )
+    if src_class is None:
+        # An unknown ``datasource_type`` (a legacy connector, a typo, or an
+        # extension type core does not know yet) has no resolvable datasource.
+        # Guard with ``.get()`` so this before_insert/before_update listener
+        # does not raise KeyError and 500 every save of such a chart. Fail
+        # closed by clearing the denormalized perm columns: a chart whose type
+        # is mutated to an unknown value loses access instead of resolving under
+        # its former datasource's stale perm in list filters. An unresolved
+        # datasource cannot satisfy datasource-derived access; independent
+        # owner/Admin/viewer chart grants retain their usual checks.
+        logger.warning(
+            "Slice %r references unknown datasource_type %r; clearing perm "
+            "columns (fail closed).",
+            target.slice_name,
+            target.datasource_type,
+        )
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:

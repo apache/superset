@@ -36,7 +36,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
-from superset.constants import TimeGrain
+from superset.constants import EPOCH_FORMATS, TimeGrain
 from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
@@ -289,12 +289,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        if not cursor.description:
-            return []
-        return super().fetch_data(cursor, limit)
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
@@ -322,11 +316,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
-        if (
-            time_grain
-            and isinstance(col_type, String)
-            and pdf not in ("epoch_s", "epoch_ms")
-        ):
+        if time_grain and isinstance(col_type, String) and pdf not in EPOCH_FORMATS:
             expr = TimestampExpression(
                 expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
                 col,
