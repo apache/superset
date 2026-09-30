@@ -114,6 +114,14 @@ const sortKeyCaches = new WeakMap<
   Map<Exclude<CellValue, null>, SortKey>
 >();
 
+/** @internal Inspect cache reuse without coupling tests to parser details. */
+export function getCachedSortKey(
+  value: Exclude<CellValue, null>,
+  rows: readonly unknown[],
+): SortKey | undefined {
+  return sortKeyCaches.get(rows)?.get(value);
+}
+
 function sortKey(
   value: Exclude<CellValue, null>,
   rows?: readonly unknown[],

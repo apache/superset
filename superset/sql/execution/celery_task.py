@@ -323,7 +323,7 @@ def _serialize_result_set(
             data = write_ipc_buffer(result_set.pa_table).to_pybytes()
     else:
         df = result_set.to_pandas_df()
-        data = df_to_records(df) or []
+        data = df_to_records(df, convert_decimals=True) or []
 
     return (data, result_set.columns)
 

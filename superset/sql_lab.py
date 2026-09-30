@@ -423,7 +423,7 @@ def _serialize_and_expand_data(
         all_columns, expanded_columns = (selected_columns, [])
     else:
         df = result_set.to_pandas_df()
-        data = df_to_records(df) or []
+        data = df_to_records(df, convert_decimals=True) or []
 
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(

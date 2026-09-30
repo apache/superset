@@ -593,7 +593,7 @@ class QueryContextProcessor:
         # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
         # while downstream envelope validation still rejects injected infinity.
         # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
-        return df_to_records(df, convert_decimals=False)
+        return df_to_records(df)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:

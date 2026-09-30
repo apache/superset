@@ -105,7 +105,7 @@ def df_to_records(
     dframe: pd.DataFrame,
     *,
     convert_big_integers: bool = True,
-    convert_decimals: bool = True,
+    convert_decimals: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.

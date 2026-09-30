@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { decimalParts, sortResults } from './sortResults';
+import { decimalParts, getCachedSortKey, sortResults } from './sortResults';
 
 test.each([
   ['2', '10', -1],
@@ -218,20 +218,21 @@ test('rejects long adversarial near-miss inputs', () => {
 
 test('reuses sort keys only within the same result set', () => {
   const rows = [{ value: '1.25' }, { value: '2.50' }];
-  const parse = jest.spyOn(global, 'BigInt');
-  try {
-    expect(sortResults('1.25', '2.50', rows)).toBe(-1);
-    const calls = parse.mock.calls.length;
-    expect(calls).toBeGreaterThan(0);
-    expect(sortResults('2.50', '1.25', rows)).toBe(1);
-    expect(parse).toHaveBeenCalledTimes(calls);
+  expect(getCachedSortKey('1.25', rows)).toBeUndefined();
+  expect(sortResults('1.25', '2.50', rows)).toBe(-1);
+  const firstKey = getCachedSortKey('1.25', rows);
+  const secondKey = getCachedSortKey('2.50', rows);
+  expect(firstKey).toBeDefined();
+  expect(secondKey).toBeDefined();
+  expect(sortResults('2.50', '1.25', rows)).toBe(1);
+  expect(getCachedSortKey('1.25', rows)).toBe(firstKey);
+  expect(getCachedSortKey('2.50', rows)).toBe(secondKey);
 
-    expect(sortResults('1.25', '2.50', [...rows])).toBe(-1);
-    expect(parse).toHaveBeenCalledTimes(calls * 2);
-    expect(sortResults('1.25', '2.50')).toBe(-1);
-    expect(sortResults('1.25', '2.50')).toBe(-1);
-    expect(parse).toHaveBeenCalledTimes(calls * 4);
-  } finally {
-    parse.mockRestore();
-  }
+  const otherRows = [...rows];
+  expect(getCachedSortKey('1.25', otherRows)).toBeUndefined();
+  expect(sortResults('1.25', '2.50', otherRows)).toBe(-1);
+  expect(getCachedSortKey('1.25', otherRows)).toEqual(firstKey);
+  expect(getCachedSortKey('1.25', otherRows)).not.toBe(firstKey);
+  expect(sortResults('1.25', '2.50')).toBe(-1);
+  expect(getCachedSortKey('1.25', rows)).toBe(firstKey);
 });
