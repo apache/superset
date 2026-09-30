@@ -172,7 +172,16 @@ def test_get_column_spec(
 
 @pytest.mark.parametrize(
     "native_type",
-    ["BLOB", "RAW(16)", "NUMBERING", "BINARY_FLOATING", "CLOBBER", "NCLOBS"],
+    [
+        "BLOB",
+        "RAW(16)",
+        "LONG RAW",
+        "long raw",
+        "NUMBERING",
+        "BINARY_FLOATING",
+        "CLOBBER",
+        "NCLOBS",
+    ],
 )
 def test_get_column_spec_unmapped_types(native_type: str) -> None:
     """Leave binary types and unrelated names sharing mapped prefixes unmapped."""

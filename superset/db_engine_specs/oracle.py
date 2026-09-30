@@ -63,7 +63,7 @@ class OracleEngineSpec(BaseEngineSpec):
     # primary numeric type (reflected as e.g. "NUMBER" or "NUMBER(10, 2)"), and
     # without these mappings such columns get no generic type, so they are not
     # treated as numeric (no default SUM aggregate, excluded from numeric
-    # column lists). BLOB and RAW are binary and are intentionally left unmapped.
+    # column lists). BLOB, RAW and LONG RAW are binary and intentionally unmapped.
     # The patterns are anchored on a word boundary so unrelated type names that
     # merely share a prefix (e.g. a user-defined "NUMBERING" type) stay unmapped.
     column_type_mappings = (
@@ -89,6 +89,19 @@ class OracleEngineSpec(BaseEngineSpec):
             GenericDataType.STRING,
         ),
     )
+    # LONG RAW is binary like BLOB and RAW. Keep it unmapped rather than letting
+    # the LONG pattern above, or the base numeric "^long" pattern, claim it.
+    _long_raw_type = re.compile(r"^long\s+raw\b", re.IGNORECASE)
+
+    @classmethod
+    def get_column_types(
+        cls,
+        column_type: str | None,
+    ) -> tuple[types.TypeEngine, GenericDataType] | None:
+        """Leave LONG RAW unmapped; otherwise apply the Oracle and base mappings."""
+        if column_type and cls._long_raw_type.match(column_type):
+            return None
+        return super().get_column_types(column_type)
 
     _time_grain_expressions = {
         None: "{col}",
