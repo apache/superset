@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 13:48+0300\n"
+"POT-Creation-Date: 2026-09-29 20:44-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -165,7 +165,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% calculation"
 msgstr ""
 
@@ -185,7 +185,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of parent"
 msgstr ""
 
@@ -193,7 +193,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of total"
 msgstr ""
 
@@ -15143,7 +15143,9 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
-msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -15166,7 +15168,9 @@ msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
 #, python-format
-msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -18831,3 +18835,4 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
