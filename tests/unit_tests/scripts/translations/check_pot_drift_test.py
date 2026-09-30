@@ -54,6 +54,8 @@ def _pot(*msgids: str) -> str:
 
 
 def _fake_extract_text(pot_text: str) -> Callable[..., MagicMock]:
+    """Stand-in for ``pybabel extract`` that writes ``pot_text`` to its ``-o`` path."""
+
     def run(args: list[str], **_kwargs: object) -> MagicMock:
         Path(args[args.index("-o") + 1]).write_text(pot_text, encoding="utf-8")
         return MagicMock(returncode=0)
@@ -62,6 +64,7 @@ def _fake_extract_text(pot_text: str) -> Callable[..., MagicMock]:
 
 
 def _fake_extract(fresh_msgids: tuple[str, ...]) -> Callable[..., MagicMock]:
+    """Stand-in for ``pybabel extract`` whose template holds ``fresh_msgids``."""
     return _fake_extract_text(_pot(*fresh_msgids))
 
 
@@ -156,6 +159,7 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
 
 
 def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
+    """Run ``diff`` on two templates with the same msgids; return comment drift."""
     committed = tmp_path / "messages.pot"
     committed.write_text(_HEADER + committed_text, encoding="utf-8")
     with patch.object(
