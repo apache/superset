@@ -31,6 +31,10 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.permalink import (
+    get_matching_dashboard_permalink_state,
+    lookup_dashboard_reference,
+)
 from superset.mcp_service.dashboard.schemas import (
     dashboard_layout_serializer,
     DashboardError,
@@ -49,19 +53,24 @@ logger = logging.getLogger(__name__)
         title="Get dashboard layout",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_dashboard_layout(
     request: GetDashboardLayoutRequest, ctx: Context
 ) -> DashboardLayout | DashboardError:
     """
-    Get parsed dashboard layout by ID, UUID, or slug.
+    Get parsed dashboard layout by ID, UUID, slug, or dashboard permalink.
 
     Returns the tabs and chart positions extracted from the dashboard's
     position_json. get_dashboard_info omits position_json to keep responses
     small; call this tool when you need the structured layout (e.g. to
     explain which charts live under which tab, or to locate a chart by
     its parent tab).
+
+    If the user gives you a shared URL containing ``/dashboard/p/<key>/``, pass
+    the URL or bare key as ``identifier`` (or use ``permalink_key`` alone). The
+    response identifies the active tab and includes the shared filter state.
 
     Example usage:
     ```json
@@ -86,9 +95,40 @@ async def get_dashboard_layout(
                 supports_slug=True,
                 logger=logger,
             )
-            result = core.run_tool(request.identifier)
+            lookup_result = lookup_dashboard_reference(
+                identifier=request.identifier,
+                permalink_key=request.permalink_key,
+                lookup=core.run_tool,
+                is_found=lambda value: isinstance(value, DashboardLayout),
+            )
+            result = lookup_result.result
+            if result is None:
+                # Only reachable when the dashboard had to come from a permalink,
+                # so an identifier's own "not found" error is preserved below.
+                return DashboardError.create(
+                    "Dashboard permalink could not be resolved. It may be invalid "
+                    "or expired; ask for a fresh shared dashboard link.",
+                    "permalink_not_found",
+                )
 
         if isinstance(result, DashboardLayout):
+            if lookup_result.permalink_value:
+                permalink_state = get_matching_dashboard_permalink_state(
+                    lookup_result, result.id, result.uuid
+                )
+                if permalink_state:
+                    payload = result.model_dump(mode="python")
+                    payload.update(
+                        permalink_key=permalink_state.key,
+                        filter_state=permalink_state.state,
+                        is_permalink_state=True,
+                    )
+                    result = DashboardLayout.model_validate(payload)
+                else:
+                    await ctx.warning(
+                        "permalink_key belongs to a different dashboard; ignoring "
+                        "its active-tab and filter state."
+                    )
             await ctx.info(
                 "Dashboard layout retrieved: id=%s, tab_count=%s, chart_count=%s, "
                 "has_layout=%s"

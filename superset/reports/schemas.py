@@ -20,10 +20,19 @@ from typing import Any, Optional, Union
 from croniter import croniter
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, Schema, validate, validates, validates_schema
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    pre_load,
+    Schema,
+    validate,
+    validates,
+    validates_schema,
+)
 from marshmallow.validate import Length, Range, ValidationError
 from pytz import all_timezones
 
+from superset import is_feature_enabled
 from superset.reports.models import (
     ReportCreationMethod,
     ReportDataFormat,
@@ -132,6 +141,8 @@ class ValidatorConfigJSONSchema(Schema):
 
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+# A Slack channel id: C public, G private, D direct message.
+SLACK_CHANNEL_ID_REGEX = re.compile(r"^[CGD][A-Z0-9]{6,}$")
 
 
 class ReportRecipientConfigJSONSchema(Schema):
@@ -179,8 +190,74 @@ class ReportRecipientSchema(Schema):
         validate_addresses("ccTarget", config.get("ccTarget"), required=False)
         validate_addresses("bccTarget", config.get("bccTarget"), required=False)
 
+    @validates_schema
+    def validate_slack_recipients(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """SlackV2 recipients must be channel ids, because a name never delivers."""
+        # SlackV2 only. The deprecated Slack v1 path still accepts channel names:
+        # it sends with files_upload/chat_postMessage, which resolve a name, and
+        # existing v1 recipients are auto-upgraded to SlackV2 on first send by
+        # update_report_schedule_slack_v2. Rejecting names here would break that
+        # upgrade path and the v1 contract.
+        if data.get("type") != ReportRecipientType.SLACKV2.value:
+            return
 
-class ReportSchedulePostSchema(Schema):
+        target = ((data.get("recipient_config_json") or {}).get("target") or "").strip()
+        # Superset splits a target on commas, semicolons and whitespace, so each
+        # part has to be a channel id on its own.
+        channels = [channel for channel in re.split(r"[,;\s]+", target) if channel]
+        if not channels:
+            raise ValidationError(
+                {"target": [_("A Slack channel is required for Slack recipients")]}
+            )
+
+        invalid = [c for c in channels if not SLACK_CHANNEL_ID_REGEX.match(c)]
+        if invalid:
+            raise ValidationError(
+                {
+                    "target": [
+                        _(
+                            "Not a Slack channel id: %(invalid)s. Superset uploads "
+                            "report attachments with files_upload_v2, which accepts "
+                            "a channel id and rejects a channel name, so a name is "
+                            "saved successfully and then never delivers. Choose the "
+                            "channel from the dropdown, or copy its id from Slack "
+                            "(channel name, View channel details, the id is at the "
+                            "bottom).",
+                            invalid=", ".join(invalid),
+                        )
+                    ]
+                }
+            )
+
+
+_RETRY_FIELD_KEYS = (
+    "retry_on_failure",
+    "retry_max_attempts",
+    "send_failed_reports",
+    "retry_notify_owners",
+    "retry_notify_recipients",
+)
+
+
+class RetryFieldStripMixin:
+    """Strip retry fields from the raw payload before validation when the
+    feature is off.  Using ``@pre_load`` ensures that field-level validators
+    (e.g. ``Range`` on ``retry_max_attempts``) are never reached for values
+    that will be discarded anyway."""
+
+    @pre_load
+    def strip_retry_fields_if_disabled(
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            for key in _RETRY_FIELD_KEYS:
+                data.pop(key, None)
+        return data
+
+
+class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         allow_none=False,
@@ -355,6 +432,8 @@ class ReportSchedulePostSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> None:
+        if not is_feature_enabled("ALERT_REPORTS_RETRY"):
+            return
         if data.get("send_failed_reports") and not data.get("retry_on_failure"):
             raise ValidationError(
                 {
@@ -362,13 +441,6 @@ class ReportSchedulePostSchema(Schema):
                         _("send_failed_reports requires retry_on_failure to be enabled")
                     ]
                 }
-            )
-        # Retry is only supported for reports, not alerts.
-        if data.get("type") == ReportScheduleType.ALERT and data.get(
-            "retry_on_failure"
-        ):
-            raise ValidationError(
-                {"retry_on_failure": [_("Retries are not supported for alerts")]}
             )
 
 
@@ -396,7 +468,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
         unknown = EXCLUDE
 
 
-class ReportSchedulePutSchema(Schema):
+class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         required=False,

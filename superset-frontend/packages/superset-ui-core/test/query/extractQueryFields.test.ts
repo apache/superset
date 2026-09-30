@@ -59,6 +59,28 @@ describe('extractQueryFields', () => {
     ).toEqual(['metric_1', 'metric_2', 'my_custom_metric']);
   });
 
+  test('should extract butterfly chart metrics', () => {
+    expect(
+      extractQueryFields({
+        groupby: ['category'],
+        left_metric: 'left_sum',
+        right_metric: 'right_sum',
+      }).metrics,
+    ).toEqual(['left_sum', 'right_sum']);
+  });
+
+  test('should extract candlestick OHLC metrics', () => {
+    expect(
+      extractQueryFields({
+        x_axis: 'date',
+        open: 'open',
+        close: 'close',
+        high: 'high',
+        low: 'low',
+      }).metrics,
+    ).toEqual(['open', 'close', 'high', 'low']);
+  });
+
   test('should extract columns', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],

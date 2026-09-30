@@ -34,6 +34,8 @@ export type ActivityOperation =
 
 export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
+export type CreationKind = 'pre_tracking' | 'created' | 'imported' | 'unknown';
+
 export interface ActivityChangedBy {
   id: number;
   first_name: string | null;
@@ -58,7 +60,16 @@ export interface ActivityRecord {
   from_value: unknown;
   to_value: unknown;
   summary: string;
-  impact: { charts: number } | null;
+  impact: {
+    charts: number;
+    /**
+     * The affected charts (id + name at that transaction), sorted by name.
+     * Always present when `impact` is non-null on servers that emit it;
+     * optional only for responses from older backends that predate the
+     * field.
+     */
+    affected_charts?: { id: number; name: string }[];
+  } | null;
   /**
    * True only on records whose transaction is the entity's first tracked
    * save (the first update after its retroactive baseline). Such saves can
@@ -68,6 +79,12 @@ export interface ActivityRecord {
    * older backend responses that predate the field.
    */
   first_tracked_save?: boolean;
+  /**
+   * Set only on the synthetic starting-version record
+   * (`kind === '__creation__'`): how the entity came to exist. Machine
+   * values — the display copy lives in `CREATION_LABELS` (display.ts).
+   */
+  creation_kind?: CreationKind | null;
 }
 
 export interface ActivityResponse {
@@ -154,6 +171,12 @@ export interface SaveGroup {
   actionKind: ActivityActionKind;
   records: ActivityRecord[];
   /**
+   * Set when this group is the synthetic starting-version row (the
+   * oldest entry): drives the Original version / Created / Imported
+   * headline via `CREATION_LABELS`.
+   */
+  creationKind?: CreationKind | null;
+  /**
    * The entity's first tracked save (params-normalization flood) — render
    * compact/collapsed. Set when any of the save's records carries
    * `first_tracked_save`.
@@ -209,6 +232,45 @@ export interface SessionLogEntry {
   user: string | null;
 }
 
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+type PresentNormalizationValue<Prefix extends 'from' | 'to'> =
+  Prefix extends 'from'
+    ? { from_present: true; from_value: JsonValue }
+    : { to_present: true; to_value: JsonValue };
+
+type MissingNormalizationValue<Prefix extends 'from' | 'to'> =
+  Prefix extends 'from'
+    ? { from_present: false; from_value?: never }
+    : { to_present: false; to_value?: never };
+
+/** One guarded hydration transition sent with an existing-chart overwrite. */
+export type AutomaticNormalizationTransition = { control: string } & (
+  | PresentNormalizationValue<'from'>
+  | MissingNormalizationValue<'from'>
+) &
+  (PresentNormalizationValue<'to'> | MissingNormalizationValue<'to'>);
+
+export type AutomaticNormalizationTransitions = Record<
+  string,
+  AutomaticNormalizationTransition
+>;
+
+/** Identity-bound state for one chart hydration and its in-flight save. */
+export interface ChartNormalizationTrackingState {
+  chartId: number;
+  hydrationSessionId: string;
+  transitions: AutomaticNormalizationTransitions;
+  invalidatedControls: Record<string, true>;
+  saveAttemptId: string | null;
+}
+
 export interface VersionHistoryState {
   isPanelOpen: boolean;
   entityType: VersionedEntityType | null;
@@ -228,4 +290,6 @@ export interface VersionHistoryState {
    * the one their page shows.
    */
   lastRestoredEntityUuid: string | null;
+  /** Advisory transitions for the active Explore chart hydration. */
+  chartNormalization?: ChartNormalizationTrackingState | null;
 }

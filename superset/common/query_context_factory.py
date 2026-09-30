@@ -55,7 +55,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_type: ChartDataResultType | None = None,
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
+        force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
+        preserve_null_row_limit: bool = False,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -88,6 +90,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         "BaseDatasource", datasource_model_instance
                     ),
                     server_pagination=server_pagination,
+                    preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,
                 ),
             )
@@ -107,6 +110,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_type=result_type,
             result_format=result_format,
             force=force,
+            force_nonce=force_nonce,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
@@ -269,6 +273,42 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # treated as an explicitly selected granularity, which would rewrite
             # the x-axis or remove an independent temporal filter below.
             query_object.granularity = main_dttm_col
+            return
+
+        if (
+            not x_axis
+            and query_object.granularity is None
+            and query_object.is_timeseries
+        ):
+            # A chart saved before the x-axis control existed keeps its time
+            # column in ``form_data`` under the legacy ``granularity_sqla`` key
+            # and never wrote it into the stored query object. The paths that
+            # rebuild a query from form data resolve that key
+            # (``extractExtras.ts`` for Explore, ``form_data_query_context`` for
+            # the Excel export and MCP tools), but anything that replays the
+            # stored ``query_context`` verbatim reaches the
+            # ``not granularity and is_timeseries`` guard in ``models/helpers``
+            # and fails with "Datetime column not provided as part table
+            # configuration". Prefer ``granularity`` over ``granularity_sqla``,
+            # then the dataset's main datetime column, to match those consumers.
+            # Candidates are matched against the dataset's
+            # temporal columns so one that has since been dropped, or is no
+            # longer temporal, is ignored.
+            candidates = (
+                (form_data or {}).get("granularity"),
+                (form_data or {}).get("granularity_sqla"),
+                getattr(datasource, "main_dttm_col", None),
+            )
+            query_object.granularity = next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate in temporal_columns
+                ),
+                None,
+            )
+            # Inferring a legacy time column must not remove an independent
+            # temporal filter as an explicit granularity override would.
             return
 
         if granularity := query_object.granularity:

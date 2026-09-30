@@ -26,7 +26,6 @@ from flask_login import login_user
 from werkzeug.http import parse_cookie
 
 from superset.utils.class_utils import load_class_from_name
-from superset.utils.urls import headless_url
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +60,12 @@ class MachineAuthProvider:
 
         url = urlparse(app.config["WEBDRIVER_BASEURL"])
 
-        # Setting cookies requires doing a request first
-        page = browser_context.new_page()
-        page.goto(headless_url("/login/"))
-
+        # No navigation is needed before setting cookies: unlike Selenium's
+        # driver.add_cookie(), BrowserContext.add_cookies() takes the domain
+        # directly. Priming with a page load on /login/ used to leave that page
+        # open on the shared cookie jar, and any late response from it carrying
+        # an anonymous "Set-Cookie: session=..." could overwrite the cookie
+        # injected below, silently deauthenticating the whole context.
         cookies = self.get_cookies(user)
 
         browser_context.clear_cookies()

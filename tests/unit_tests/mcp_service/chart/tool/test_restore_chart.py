@@ -23,6 +23,7 @@ autouse mock_auth fixture, matching the other chart tool test files.
 
 from collections.abc import Iterator
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -45,11 +46,15 @@ def mcp_server() -> object:
 @pytest.fixture(autouse=True)
 def mock_auth() -> Iterator[Mock]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        # The tool's editorship gate calls the real security manager; default
+        # it to a no-op (caller is an editor) so unrelated tests keep passing.
+        # The disclosure regression tests below re-patch it to raise.
+        with patch("superset.security_manager.raise_for_editorship"):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 def _mock_chart(
@@ -232,6 +237,33 @@ async def test_restore_chart_lookup_db_error_is_structured(
     assert "down" not in (content["error"] or "")
 
 
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_chart_editorship_check_db_error_is_structured(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """DB failures during the editorship check (not just the initial lookup)
+    must return the structured LookupFailed response instead of escaping the
+    tool as an unhandled error."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_chart(chart_id=10, slice_name="Sales")
+
+    with patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=OperationalError("SELECT ...", {}, Exception("down")),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_chart", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "LookupFailed"
+    assert "down" not in (content["error"] or "")
+
+
 @pytest.mark.asyncio
 async def test_restore_chart_rejects_boolean_identifier(mcp_server: object) -> None:
     """bool subclasses int; identifier=true must not coerce to chart ID 1."""
@@ -240,3 +272,81 @@ async def test_restore_chart_rejects_boolean_identifier(mcp_server: object) -> N
     async with Client(mcp_server) as client:
         with pytest.raises(ToolError):
             await client.call_tool("restore_chart", {"request": {"identifier": True}})
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_chart_inaccessible_chart_reads_as_not_found(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """A chart outside the caller's RBAC scope must not leak its existence or
+    title: the unfiltered restore lookup finds it, the base-filtered re-lookup
+    does not, so the tool must answer exactly as if it does not exist.
+
+    The mock's return value is keyed on the actual ``skip_base_filter`` kwarg
+    of each call rather than call order, so a regression that accidentally
+    keeps ``skip_base_filter=True`` on the re-lookup (turning the intended
+    NotFound response into a disclosure) is caught by a call-order-based
+    mock returning the chart on both calls, not masked by it."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    def _find_side_effect(*args: Any, **kwargs: Any) -> Any | None:
+        # Mirrors the real DAO contract: only an explicit skip_base_filter=True
+        # (the initial unfiltered restore lookup) sees the chart; the
+        # re-lookup omits it, so it defaults to False and must see nothing.
+        if kwargs.get("skip_base_filter"):
+            return _mock_chart(chart_id=10, slice_name="Secret KPI")
+        return None
+
+    mock_find.side_effect = _find_side_effect
+    forbidden = SupersetSecurityException(
+        SupersetError(
+            message="forbidden",
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch("superset.security_manager.raise_for_editorship", side_effect=forbidden):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_chart", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "NotFound"
+    assert "Secret KPI" not in (content["error"] or "")
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_chart_visible_non_editor_gets_nameless_forbidden(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """A caller who can see the chart but cannot edit it gets a permission
+    error naming the id only, never the title."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    chart = _mock_chart(chart_id=10, slice_name="Secret KPI")
+    mock_find.side_effect = [chart, chart]
+    forbidden = SupersetSecurityException(
+        SupersetError(
+            message="forbidden",
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch("superset.security_manager.raise_for_editorship", side_effect=forbidden):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_chart", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["permission_denied"] is True
+    assert content["error_type"] == "Forbidden"
+    assert "Secret KPI" not in (content["error"] or "")
+    assert "10" in (content["error"] or "")

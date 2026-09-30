@@ -49,6 +49,11 @@ import {
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 import { validateMessageEvent } from './originValidation';
+import {
+  measureGuestToken,
+  guestAuthenticationMessage,
+  GuestTokenSize,
+} from './guestTokenDiagnostics';
 
 // Defer plugin setup until after the language pack loads to prevent t() calls in
 // plugin control panel configs from being cached in English before translations are ready.
@@ -177,6 +182,7 @@ if (!window.parent || window.parent === window) {
 let displayedUnauthorizedToast = false;
 let root: Root | null = null;
 let started = false;
+let guestTokenSize: GuestTokenSize | undefined;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -209,8 +215,10 @@ function start() {
     endpoint: '/api/v1/me/roles/',
   });
   return pluginsReady.then(
-    () =>
-      getMeWithRole().then(
+    () => {
+      // Snapshot at dispatch, not at handshake: plugin loading can overlap refresh.
+      const requestTokenSize = guestTokenSize;
+      return getMeWithRole().then(
         ({ result }) => {
           // fill in some missing bootstrap data
           // (because at pageload, we don't have any auth yet)
@@ -225,18 +233,18 @@ function start() {
           }
           root.render(<EmbeddedApp />);
         },
-        err => {
+        (error: unknown) => {
           // something is most likely wrong with the guest token; reset the guard
           // so a rehandshake with a valid token can retry.
-          logging.error(err);
-          showFailureMessage(
-            t(
-              'Something went wrong with embedded authentication. Check the dev console for details.',
-            ),
-          );
+          // A refresh while the request is in flight makes attribution ambiguous.
+          const size =
+            requestTokenSize === guestTokenSize ? requestTokenSize : undefined;
+          logging.error('Embedded authentication failed', size);
+          showFailureMessage(guestAuthenticationMessage(size, error));
           started = false;
         },
-      ),
+      );
+    },
     err => {
       // setupPlugins() or setupCodeOverrides() threw while preparing plugins;
       // reset the guard and recreate pluginsReady so a retry actually re-runs
@@ -258,6 +266,17 @@ function start() {
  * Configures SupersetClient with the correct settings for the embedded dashboard page.
  */
 function setupGuestClient(guestToken: string) {
+  guestTokenSize = measureGuestToken(
+    guestToken,
+    bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
+    bootstrapData.config?.GUEST_TOKEN_HEADER_MAX_BYTES,
+  );
+  if (guestTokenSize.headerBudgetExceeded) {
+    logging.warn(
+      'Guest token exceeds configured request-header budget',
+      guestTokenSize,
+    );
+  }
   setupClient({
     appRoot: applicationRoot(),
     guestToken,
@@ -268,18 +287,19 @@ function setupGuestClient(guestToken: string) {
 
 window.addEventListener('message', function embeddedPageInitializer(event) {
   if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
-    log('ignoring message unrelated to embedded comms', event);
+    log('ignoring message unrelated to embedded comms');
     return;
   }
 
   const port = event.ports?.[0];
   if (event.data.handshake === 'port transfer' && port) {
-    log('message port received', event);
+    log('message port received');
 
     Switchboard.init({
       port,
       name: 'superset',
-      debug: debugMode,
+      // Switchboard debug logs message bodies, including guest-token credentials.
+      debug: false,
     });
 
     Switchboard.defineMethod(

@@ -24,7 +24,12 @@ import {
   ExtraFormData,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
+import {
+  EMPTY_FILTER_SQL_EXPRESSION,
+  FALSE_STRING,
+  NULL_STRING,
+  TRUE_STRING,
+} from 'src/utils/common';
 import {
   Clauses,
   ExpressionTypes,
@@ -60,7 +65,7 @@ export const getSelectExtraFormData = (
       {
         expressionType: ExpressionTypes.Sql,
         clause: Clauses.Where,
-        sqlExpression: '1 = 0',
+        sqlExpression: EMPTY_FILTER_SQL_EXPRESSION,
       },
     ];
   } else if (value !== undefined && value !== null && value.length !== 0) {

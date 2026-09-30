@@ -24,8 +24,10 @@ purge rolls back. The record is written ``pending`` *before* the purge and
 flipped to ``confirmed`` *after* it commits, so a crash leaves at most a
 ``pending`` row, never a missing one. ``pending`` rows are reconciled on the
 next run. Completed records are immutable. Consecutive scheduled evaluations
-that remain blocked may discard only their current redundant provisional row;
-force-purge and other meaningful outcomes are retained independently.
+that remain blocked for the same reason may discard only their current
+redundant provisional row — a reason change retains one new row carrying the
+new code; force-purge and other meaningful outcomes are retained
+independently.
 
 The dedicated ``purge_audit_log`` table is content-free (no name or PII; only
 action, actor, UTC time, entity type, UUID, and affected referrers) and is never
@@ -52,6 +54,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from superset import db
 from superset.models.purge_audit_log import (
+    PURGE_AUDIT_COORDINATION_ID,
+    PurgeAuditCoordination,
     PurgeAuditLog,
     STATUS_BLOCKED,
     STATUS_CONFIRMED,
@@ -61,6 +65,10 @@ from superset.models.purge_audit_log import (
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+class PurgeAuditCoordinationError(RuntimeError):
+    """The database coordination sentinel is absent or indeterminate."""
 
 
 def _dedicated_session() -> Session:
@@ -87,18 +95,41 @@ class _AuditRecoverySnapshot:
     entity_type: str
     entity_uuid: str | None
     created_on: datetime
+    # Sourced from the finalization call's reason argument, never from the
+    # row: pending rows are reason-less by design, so reading the row here
+    # would silently record NULL.
+    reason: str | None
 
 
-def _utc_now() -> datetime:
-    """Naive UTC now for the audit columns.
+def utc_now() -> datetime:
+    """Naive UTC now for the purge-audit table's timestamps.
 
     Note this deliberately differs from the metadata schema's audit
     columns (``changed_on`` / ``deleted_at``), which are naive-local per
     the PR #33693 UTC revert — the purge audit table is self-contained
     (``created_on`` and the reconcile cutoff both use this clock), so it
-    can use the saner convention without a comparison hazard.
+    can use the saner convention without a comparison hazard. Public
+    because pruning must compute its cutoffs on this same clock.
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def acquire_coordination_lock(session: Session) -> None:
+    """Hold the singleton audit/pruning lock until ``session`` commits.
+
+    Incrementing the version performs a real write on every supported metadata
+    database. This supplies SQLite's database write lock and a row lock on
+    PostgreSQL/MySQL without relying on ``SELECT FOR UPDATE`` support.
+    """
+    updated_rows: int | None = session.execute(
+        sa.update(PurgeAuditCoordination.__table__)
+        .where(PurgeAuditCoordination.__table__.c.id == PURGE_AUDIT_COORDINATION_ID)
+        .values(lock_version=PurgeAuditCoordination.__table__.c.lock_version + 1)
+    ).rowcount
+    if updated_rows != 1:
+        raise PurgeAuditCoordinationError(
+            "purge-audit coordination sentinel is missing or indeterminate"
+        )
 
 
 def write_ahead(
@@ -114,6 +145,18 @@ def write_ahead(
     write itself fails (which must not block the purge)."""
     session = _dedicated_session()
     try:
+        # Lock BEFORE stamping the clock: this ordering is load-bearing, not
+        # incidental. Acquiring the coordination lock first serializes this write
+        # against a concurrent pruning batch (which holds the same lock across its
+        # DELETE), so a write_ahead that loses the race commits only after the
+        # batch and is never visible to that batch's SELECT. Because ``utc_now()``
+        # below is read only after the batch commits, the new row's ``created_on``
+        # also sorts after the batch's run cutoff under bounded clock skew -- but
+        # the module's streak invariants, not wall-clock ordering alone, are the
+        # primary safeguard against a row landing in an already-pruned streak.
+        # Reordering the lock and the ``created_on=utc_now()`` stamp would
+        # reintroduce the race.
+        acquire_coordination_lock(session)
         record = PurgeAuditLog(
             status=STATUS_PENDING,
             trigger=trigger,
@@ -121,7 +164,7 @@ def write_ahead(
             entity_type=entity_type,
             entity_uuid=entity_uuid,
             removed_dashboard_slices=removed_dashboard_slices,
-            created_on=_utc_now(),
+            created_on=utc_now(),
         )
         session.add(record)
         session.commit()
@@ -136,18 +179,30 @@ def write_ahead(
         session.close()
 
 
-def finalize(record_id: UUID | None, status: str, **details: Any) -> None:
-    """Finalize a pending attempt on the dedicated audit session."""
+def finalize(
+    record_id: UUID | None,
+    status: str,
+    *,
+    reason: str | None = None,
+    **details: Any,
+) -> None:
+    """Finalize a pending attempt on the dedicated audit session.
+
+    ``reason`` is persisted only for blocked outcomes; the audit records a
+    cause for a purge that did not happen, never for one that did.
+    """
     if record_id is None:
         return
     session = _dedicated_session()
     try:
         values: dict[str, Any] = {"status": status}
         if status == STATUS_CONFIRMED:
-            values["confirmed_on"] = _utc_now()
+            values["confirmed_on"] = utc_now()
         referrers = details.get("affected_referrers")
         if referrers:
             values["affected_referrers"] = ",".join(referrers)
+        if reason is not None and status == STATUS_BLOCKED:
+            values["reason"] = reason
         removed_dashboard_slices = details.get("removed_dashboard_slices")
         if removed_dashboard_slices is not None:
             values["removed_dashboard_slices"] = removed_dashboard_slices
@@ -192,12 +247,21 @@ def fail(record_id: UUID | None) -> None:
     finalize(record_id, STATUS_FAILED)
 
 
-def block(record_id: UUID | None) -> None:
-    """Mark an attempt blocked by ordinary deletion policy."""
-    finalize(record_id, STATUS_BLOCKED)
+def block(record_id: UUID | None, reason: str | None) -> None:
+    """Mark an attempt blocked by ordinary deletion policy.
+
+    ``reason`` is a stable machine code from the closed ``REASON_*``
+    vocabulary in :mod:`superset.commands.deletion_retention.purge_policy`.
+    It is required by signature (every blocked outcome has a classified
+    cause); ``None`` is tolerated defensively so a threading gap can never
+    block a purge, and leaves the persisted reason NULL.
+    """
+    finalize(record_id, STATUS_BLOCKED, reason=reason)
 
 
-def _capture_recovery_snapshot(record: PurgeAuditLog) -> _AuditRecoverySnapshot:
+def _capture_recovery_snapshot(
+    record: PurgeAuditLog, reason: str | None
+) -> _AuditRecoverySnapshot:
     """Capture the content-free fields needed for fail-safe recovery."""
     return _AuditRecoverySnapshot(
         id=cast(UUID, record.id),
@@ -205,26 +269,37 @@ def _capture_recovery_snapshot(record: PurgeAuditLog) -> _AuditRecoverySnapshot:
         entity_type=str(record.entity_type),
         entity_uuid=record.entity_uuid,
         created_on=cast(datetime, record.created_on),
+        reason=reason,
     )
 
 
 def _retention_predecessor(
     session: Session, current: PurgeAuditLog
 ) -> PurgeAuditLog | None:
-    """Return the latest row that could unambiguously precede ``current``."""
+    """Return the latest row that could unambiguously precede ``current``.
+
+    The latest same-entity retention row by ``created_on`` — deliberately not
+    bounded by ``current.created_on``. If another visible row has a later
+    timestamp, it surfaces here so the caller's strictly-older check retains
+    the current row. Timestamps provide database ordering for this predicate,
+    not causal ordering across workers.
+    """
     predecessor: PurgeAuditLog | None = session.execute(
         sa.select(PurgeAuditLog)
         .where(PurgeAuditLog.entity_uuid == current.entity_uuid)
         .where(PurgeAuditLog.entity_type == current.entity_type)
         .where(PurgeAuditLog.trigger == TRIGGER_RETENTION)
-        .where(PurgeAuditLog.created_on <= current.created_on)
         .where(PurgeAuditLog.id != current.id)
         .order_by(PurgeAuditLog.created_on.desc())
         .limit(1)
     ).scalar_one_or_none()
     if predecessor is None:
         return predecessor
-    tied_mixed_status_exists: bool = session.execute(
+    # A timestamp-tied row differing in status OR reason makes the
+    # predecessor ambiguous. ``is_distinct_from`` keeps the reason
+    # comparison NULL-safe on all supported dialects (reason is nullable;
+    # status is not).
+    tied_mixed_exists: bool = session.execute(
         sa.select(
             sa.exists().where(
                 PurgeAuditLog.entity_uuid == current.entity_uuid,
@@ -232,23 +307,43 @@ def _retention_predecessor(
                 PurgeAuditLog.trigger == TRIGGER_RETENTION,
                 PurgeAuditLog.created_on == predecessor.created_on,
                 PurgeAuditLog.id != current.id,
-                PurgeAuditLog.status != predecessor.status,
+                sa.or_(
+                    PurgeAuditLog.status != predecessor.status,
+                    PurgeAuditLog.reason.is_distinct_from(predecessor.reason),
+                ),
             )
         )
     ).scalar_one()
-    if tied_mixed_status_exists:
+    if tied_mixed_exists:
         return None
     return predecessor
 
 
 def _suppress_redundant_block(
-    session: Session, current: PurgeAuditLog, predecessor: PurgeAuditLog | None
+    session: Session,
+    current: PurgeAuditLog,
+    predecessor: PurgeAuditLog | None,
+    reason: str | None,
 ) -> bool:
-    """Delete only a pending row with a strictly older blocked predecessor."""
+    """Delete a pending row only against a strictly older same-reason block."""
+    if not reason:
+        # Fail safe on a threading gap: a missing current code must retain
+        # the row (and be visible), never silently revive the status-only
+        # predicate.
+        logger.warning(
+            "deletion_retention: blocked audit row %s has no reason code; "
+            "refusing suppression",
+            current.id,
+        )
+        return False
     if (
         predecessor is None
         or predecessor.created_on >= current.created_on
         or predecessor.status != STATUS_BLOCKED
+        # A reason-less (pre-feature) predecessor never matches: the first
+        # post-upgrade block of a long-blocked entity is retained once and
+        # becomes the new suppression anchor.
+        or predecessor.reason != reason
     ):
         return False
     deleted_rows: int | None = session.execute(
@@ -264,7 +359,7 @@ def _suppress_redundant_block(
     return deleted_rows == 1
 
 
-def _retain_blocked(session: Session, record_id: UUID) -> None:
+def _retain_blocked(session: Session, record_id: UUID, reason: str | None) -> None:
     """Conditionally retain the current provisional row as blocked."""
     session.execute(
         sa.update(PurgeAuditLog.__table__)
@@ -272,7 +367,7 @@ def _retain_blocked(session: Session, record_id: UUID) -> None:
             PurgeAuditLog.__table__.c.id == record_id,
             PurgeAuditLog.__table__.c.status == STATUS_PENDING,
         )
-        .values(status=STATUS_BLOCKED, removed_dashboard_slices=0)
+        .values(status=STATUS_BLOCKED, removed_dashboard_slices=0, reason=reason)
     )
 
 
@@ -282,10 +377,15 @@ def _recover_retention_blocked(
     """Retain blocked evidence on a fresh session after persistence uncertainty."""
     recovery_session: Session = _dedicated_session()
     try:
+        acquire_coordination_lock(recovery_session)
         current: PurgeAuditLog | None = recovery_session.get(PurgeAuditLog, record_id)
         if current is not None:
             if current.status == STATUS_PENDING:
-                _retain_blocked(recovery_session, record_id)
+                _retain_blocked(
+                    recovery_session,
+                    record_id,
+                    snapshot.reason if snapshot else None,
+                )
                 recovery_session.commit()
             return "fallback"
         if snapshot is None:
@@ -299,7 +399,11 @@ def _recover_retention_blocked(
                 entity_type=snapshot.entity_type,
                 entity_uuid=snapshot.entity_uuid,
                 removed_dashboard_slices=0,
-                created_on=snapshot.created_on,
+                # Recovery is a new database-visible write. Timestamp it after
+                # acquiring the coordination lock so it cannot materialize in
+                # pruning's already-processed logical past.
+                created_on=utc_now(),
+                reason=snapshot.reason,
             )
         )
         recovery_session.commit()
@@ -319,9 +423,14 @@ def _recover_retention_blocked(
 
 
 def finalize_retention_blocked(
-    record_id: UUID | None,
+    record_id: UUID | None, reason: str | None
 ) -> RetentionBlockedDisposition:
-    """Finalize a scheduled blocker, suppressing only proven redundant evidence."""
+    """Finalize a scheduled blocker, suppressing only proven redundant evidence.
+
+    ``reason`` is the stable machine code for the block (see
+    :func:`block`); it is persisted on retained rows and captured in the
+    snapshot used by the crash-recovery path.
+    """
     if record_id is None:
         return "fallback"
     session: Session = _dedicated_session()
@@ -330,15 +439,17 @@ def finalize_retention_blocked(
         current: PurgeAuditLog | None = session.get(PurgeAuditLog, record_id)
         if current is None:
             return "fallback"
-        snapshot = _capture_recovery_snapshot(current)
+        snapshot = _capture_recovery_snapshot(current, reason)
         if current.status != STATUS_PENDING or current.trigger != TRIGGER_RETENTION:
             return "retained"
         predecessor: PurgeAuditLog | None = None
         if current.entity_uuid is not None:
             predecessor = _retention_predecessor(session, current)
-        suppressed: bool = _suppress_redundant_block(session, current, predecessor)
+        suppressed: bool = _suppress_redundant_block(
+            session, current, predecessor, reason
+        )
         if not suppressed:
-            _retain_blocked(session, record_id)
+            _retain_blocked(session, record_id, reason)
         session.commit()
         return "suppressed" if suppressed else "retained"
     except SQLAlchemyError:
@@ -383,8 +494,14 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     ``confirmed``. A surviving or unresolvable entity means the attempt did
     not durably purge it and is finalized as failed; normal selection may
     retry.
+
+    An attempt that had already decided ``blocked`` when its worker died is
+    indistinguishable here from any other stalled attempt, so it reconciles
+    as failed with no reason: pending rows carry no reason by design, and
+    inventing one would assert evidence this process never witnessed. The
+    next scheduled attempt re-anchors the entity with its real code.
     """
-    cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
+    cutoff: datetime = stale_before or utc_now() - _PENDING_STALE_AFTER
     reconciled = absent = failed = 0
     session = _dedicated_session()
     try:

@@ -55,8 +55,12 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import {
+  dashboardInfoChanged,
+  dashboardSaveSucceeded,
+} from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
 import {
@@ -64,6 +68,7 @@ import {
   AccessSection,
   StylingSection,
   RefreshSection,
+  AsyncModeSection,
   CertificationSection,
   AdvancedSection,
 } from './sections';
@@ -79,6 +84,15 @@ type PropertiesModalProps = {
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
   onlyApply?: boolean;
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'dashboard';
+    accessorCount: number;
+  }) => {
+    content: React.ReactNode;
+    saveDisabled?: boolean;
+    saveTooltip?: string;
+  };
 };
 
 type DashboardInfo = {
@@ -107,6 +121,7 @@ const PropertiesModal = ({
   onlyApply = false,
   onSubmit = () => {},
   show = false,
+  renderExtraFields,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
@@ -123,10 +138,22 @@ const PropertiesModal = ({
   });
   const [editors, setEditors] = useState<Subject[]>([]);
   const [viewers, setViewers] = useState<Subject[]>([]);
+
+  const extraFields = useMemo(
+    () =>
+      renderExtraFields?.({
+        assetId: dashboardId,
+        assetType: 'dashboard',
+        accessorCount: editors.length + viewers.length,
+      }),
+    [renderExtraFields, dashboardId, editors.length, viewers.length],
+  );
+
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const [customCss, setCustomCss] = useState('');
   const [refreshFrequency, setRefreshFrequency] = useState(0);
+  const [asyncMode, setAsyncMode] = useState<AsyncModeOverride>('default');
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
   const [themes, setThemes] = useState<
@@ -206,10 +233,16 @@ const PropertiesModal = ({
         'map_label_colors',
         'color_scheme_domain',
         'show_chart_timestamps',
+        // Edited via the async-mode dropdown, not the raw JSON editor, so the
+        // dropdown is the single source of truth (mirrors show_chart_timestamps).
+        'async_mode',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
       setRefreshFrequency(metadata?.refresh_frequency || 0);
+      setAsyncMode(
+        (metadata?.async_mode as AsyncModeOverride | undefined) || 'default',
+      );
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
@@ -351,6 +384,14 @@ const PropertiesModal = ({
     // refresh") rather than falling through to the dropdown value (#42116).
     jsonMetadataObj.refresh_frequency =
       jsonMetadataObj.refresh_frequency ?? refreshFrequency;
+    // Persist the per-dashboard async override from the dropdown (the sole source
+    // of truth — async_mode is omitted from the Advanced JSON editor). 'default'
+    // clears it so the deployment default applies.
+    if (asyncMode === 'default') {
+      delete jsonMetadataObj.async_mode;
+    } else {
+      jsonMetadataObj.async_mode = asyncMode;
+    }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
@@ -439,6 +480,7 @@ const PropertiesModal = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
       }).then(() => {
+        dispatch(dashboardSaveSucceeded(dashboardId));
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('The dashboard has been saved'));
@@ -467,16 +509,11 @@ const PropertiesModal = ({
         setIsLoading(false);
       }
 
-      // Fetch themes (excluding system themes)
+      // Fetch all assignable themes, including the system default/dark
+      // themes (THEME_DEFAULT/THEME_DARK), so they can be pinned to a
+      // dashboard like any custom theme.
       const themeQuery = rison.encode({
         columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
       });
       SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
         .then(({ json }) => {
@@ -571,10 +608,9 @@ const PropertiesModal = ({
         name: t('General information'),
         validator: () => {
           const errors = [];
-          const values = form.getFieldsValue();
+          const title = form.getFieldValue('title');
 
-          // Check validation - only add if title is empty
-          if (!values.title || values.title.trim().length === 0) {
+          if (!title || title.trim().length === 0) {
             errors.push(t('Dashboard name is required'));
           }
 
@@ -698,15 +734,21 @@ const PropertiesModal = ({
       }}
       title={t('Dashboard properties')}
       isEditMode
-      saveDisabled={dashboardInfo?.isManagedExternally || hasErrors}
+      saveDisabled={
+        dashboardInfo?.isManagedExternally ||
+        hasErrors ||
+        extraFields?.saveDisabled
+      }
       saveLoading={isApplying}
       contentLoading={isLoading}
       errorTooltip={
-        dashboardInfo?.isManagedExternally
-          ? t(
-              "This dashboard is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : dashboardInfo?.isManagedExternally
+            ? t(
+                "This dashboard is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       saveText={saveLabel}
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
@@ -769,6 +811,7 @@ const PropertiesModal = ({
                   onChangeViewers={handleOnChangeViewers}
                   onChangeTags={handleChangeTags}
                   onClearTags={handleClearTags}
+                  renderExtraFields={extraFields}
                 />
               ),
             },
@@ -817,6 +860,29 @@ const PropertiesModal = ({
                 />
               ),
             },
+            ...(isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)
+              ? [
+                  {
+                    key: 'async',
+                    label: (
+                      <CollapseLabelInModal
+                        title={t('Asynchronous query execution')}
+                        subtitle={t(
+                          'Control whether this dashboard loads chart data ' +
+                            'asynchronously',
+                        )}
+                        testId="async-mode-section"
+                      />
+                    ),
+                    children: (
+                      <AsyncModeSection
+                        value={asyncMode}
+                        onChange={setAsyncMode}
+                      />
+                    ),
+                  },
+                ]
+              : []),
             {
               key: 'certification',
               label: (

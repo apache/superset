@@ -669,11 +669,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information/i,
+      name: /General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings/i,
+      name: /File settings/i,
     });
     await userEvent.click(fileSettingsTab);
     await waitFor(() => {
@@ -689,11 +689,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information/i,
+      name: /General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings/i,
+      name: /File settings/i,
     });
     await userEvent.click(fileSettingsTab);
     await waitFor(() => {
@@ -709,11 +709,11 @@ describe('UploadDataModal Collapse Tabs', () => {
       useRedux: true,
     });
     const generalInfoTab = screen.getByRole('tab', {
-      name: /expanded General information/i,
+      name: /General information/i,
     });
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
-      name: /collapsed File settings/i,
+      name: /File settings/i,
     });
     await userEvent.click(fileSettingsTab);
     await waitFor(() => {

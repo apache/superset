@@ -34,7 +34,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
@@ -53,6 +53,38 @@ from superset.views.datasource.schemas import (
 from superset.views.datasource.utils import get_samples
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
+
+# Datasource types whose ``datasource_id`` refers to a dataset row.
+_DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.value})
+
+
+def _load_dataset_for_samples(
+    view: BaseSupersetView, params: dict[str, Any]
+) -> tuple[DatasourceModel | None, FlaskResponse | None]:
+    """Pre-fetch and access-check the dataset for an authenticated request.
+
+    Only dataset-backed types are pre-fetched. Non-table types (query,
+    saved_query) use a different access model; passing them to
+    ``raise_for_access(datasource=...)`` would check the wrong attributes,
+    so ``get_samples()`` handles the lookup for those types.
+
+    Returns ``(dataset, None)`` on success and ``(None, error_response)``
+    when the caller should return the error response.
+    """
+    if params["datasource_type"] not in _DATASET_TYPES:
+        return None, None
+    try:
+        dataset = DatasourceDAO.get_datasource(
+            datasource_type=params["datasource_type"],
+            database_id_or_uuid=params["datasource_id"],
+        )
+    except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+        return None, view.response_404()
+    try:
+        security_manager.raise_for_access(datasource=dataset)
+    except SupersetSecurityException:
+        return None, json_error_response(_("Forbidden"), status=403)
+    return dataset, None
 
 
 class Datasource(BaseSupersetView):
@@ -223,26 +255,17 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
 
-        # Refuse early for datasource types that don't model raw rows
-        # (e.g. semantic views, which only expose pre-defined metrics and
-        # dimensions). Without this gate the request would still go through
-        # the standard query pipeline and fail with an opaque 500.
-        # ``supports_samples`` defaults to True for any datasource class that
-        # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
-        # to work without needing the attribute declared on each class.
-        ds_class = DatasourceDAO.sources.get(
-            DatasourceType(params["datasource_type"]),
-        )
-        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
-            return json_error_response(
-                _("Samples are not available for this datasource type."),
-                status=400,
-            )
-
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
                 return json_error_response(_("Forbidden"), status=403)
+            # Guest drill access is only defined for dataset-backed charts.
+            # Refuse other datasource types before the DatasetDAO lookup:
+            # ``datasource_id`` values for those types live in unrelated id
+            # spaces, so the lookup below would validate whichever unrelated
+            # SqlaTable happens to share the integer id.
+            if params["datasource_type"] not in _DATASET_TYPES:
+                return self.response_404()
             dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
@@ -256,27 +279,24 @@ class Datasource(BaseSupersetView):
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            # Pre-fetch and access-check only for table-type datasources.
-            # Non-table types (query, saved_query) use a different access model;
-            # passing them to raise_for_access(datasource=...) would check the
-            # wrong attributes. Let get_samples() handle the lookup for those types.
-            if params["datasource_type"] in {
-                DatasourceType.TABLE.value,
-                DatasourceType.DATASET.value,
-            }:
-                try:
-                    dataset = DatasourceDAO.get_datasource(
-                        datasource_type=params["datasource_type"],
-                        database_id_or_uuid=params["datasource_id"],
-                    )
-                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-                    return self.response_404()
-                try:
-                    security_manager.raise_for_access(datasource=dataset)
-                except SupersetSecurityException:
-                    return json_error_response(_("Forbidden"), status=403)
-            else:
-                dataset = None
+            dataset, error_response = _load_dataset_for_samples(self, params)
+            if error_response is not None:
+                return error_response
+
+        # Refuse datasource types that don't model raw rows only after the
+        # authorization checks above, keeping authorization-before-capability
+        # ordering: guests get 403/404 from the guest branch, while
+        # authenticated users hit this purely type-level gate (a 400 that is a
+        # function of the requested ``datasource_type`` alone -- no per-object
+        # lookup happens for non-table types, by design).
+        ds_class = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"]),
+        )
+        if ds_class is not None and not ds_class.supports_samples:
+            return json_error_response(
+                _("Samples are not available for this datasource type."),
+                status=400,
+            )
 
         rv = get_samples(
             datasource_type=params["datasource_type"],

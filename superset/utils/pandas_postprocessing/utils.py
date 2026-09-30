@@ -61,6 +61,15 @@ _PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
     {"max", "mean", "median", "min", "prod", "std", "sum", "var"}
 )
 
+# Reverse lookup from the numpy callables above to their pandas string name, so a
+# bare callable operator (e.g. np.median) can be swapped for the string form before
+# reaching GroupBy.agg and avoid the same FutureWarning.
+_STRING_AGGREGATOR_BY_CALLABLE: dict[Callable[..., Any], str] = {
+    func: name
+    for name, func in NUMPY_FUNCTIONS.items()
+    if name in _PANDAS_STRING_AGGREGATORS
+}
+
 DENYLIST_ROLLING_FUNCTIONS = (
     "count",
     "corr",
@@ -86,16 +95,24 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
 
 PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
     TimeGrain.SECOND: "s",
+    TimeGrain.FIVE_SECONDS: "5s",
+    TimeGrain.THIRTY_SECONDS: "30s",
     TimeGrain.MINUTE: "min",
     TimeGrain.FIVE_MINUTES: "5min",
     TimeGrain.TEN_MINUTES: "10min",
     TimeGrain.FIFTEEN_MINUTES: "15min",
     TimeGrain.THIRTY_MINUTES: "30min",
+    # An alternate ISO-8601 spelling of THIRTY_MINUTES that a number of engine
+    # specs expose instead; the two denote the same interval.
+    TimeGrain.HALF_HOUR: "30min",
     TimeGrain.HOUR: "h",
+    TimeGrain.SIX_HOURS: "6h",
     TimeGrain.DAY: "D",
     TimeGrain.WEEK: "W",
     TimeGrain.MONTH: "ME" if _PANDAS_VERSION >= (2, 2) else "M",
     TimeGrain.QUARTER: "QE" if _PANDAS_VERSION >= (2, 2) else "Q",
+    # An alternate ISO-8601 spelling of QUARTER, as with HALF_HOUR above.
+    TimeGrain.QUARTER_YEAR: "QE" if _PANDAS_VERSION >= (2, 2) else "Q",
     TimeGrain.YEAR: "YE" if _PANDAS_VERSION >= (2, 2) else "A",
     TimeGrain.WEEK_STARTING_SUNDAY: "W-SUN",
     TimeGrain.WEEK_STARTING_MONDAY: "W-MON",
@@ -177,7 +194,11 @@ def _get_aggregate_funcs(
             )
         operator = agg_obj["operator"]
         if callable(operator):
-            aggfunc: str | Callable[..., Any] = operator
+            # A bare numpy callable (e.g. np.median) that pandas maps to its own
+            # GroupBy method triggers a FutureWarning; use the string name instead.
+            aggfunc: str | Callable[..., Any] = _STRING_AGGREGATOR_BY_CALLABLE.get(
+                operator, operator
+            )
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:

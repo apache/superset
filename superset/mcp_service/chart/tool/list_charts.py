@@ -71,6 +71,7 @@ _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
         title="List charts",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_charts(

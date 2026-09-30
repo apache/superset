@@ -34,6 +34,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  isXAxisSet,
   QueryFormData,
   QueryFormMetric,
   resolveAutoCurrency,
@@ -44,9 +45,14 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { getOriginalSeries } from '@superset-ui/chart-controls';
+import {
+  getOriginalSeries,
+  getTimeOffset,
+  isDerivedSeries,
+} from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -59,6 +65,7 @@ import {
   LegendOrientation,
   Refs,
 } from '../types';
+import { BarValueLabelPosition } from '../Timeseries/types';
 import { parseAxisBound } from '../utils/controls';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
@@ -69,10 +76,14 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -97,10 +108,16 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
+import {
+  TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
+  OpacityEnum,
+} from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createSpacedXAxisFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
@@ -138,6 +155,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendState,
+    legendIndex,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -184,11 +202,15 @@ export default function transformProps(
     opacityB,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     seriesType,
     seriesTypeB,
     showLegend,
     showValue,
     showValueB,
+    labelPosition,
+    labelPositionB,
     onlyTotal,
     onlyTotalB,
     stack,
@@ -264,7 +286,43 @@ export default function transformProps(
     getMetricDisplayName(metricsB[0], verboseMap) || '';
 
   const dataTypes = getColtypesMapping(queriesData[0]);
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
+  // `coltypes` on the query response can fail to mark the designated x-axis
+  // column Temporal for reasons unrelated to what the column actually is —
+  // see the matching comment in Timeseries/transformProps.ts for the full
+  // rationale. Cross-reference the datasource's own column definition for
+  // the x-axis column (`is_dttm`/`type_generic`) instead of a resolved
+  // time grain, which can come from an unrelated dashboard-level
+  // cross-filter that applies to every chart regardless of whether that
+  // chart's own x-axis is temporal. The column identifier mirrors
+  // getXAxisColumn's own precedence (isXAxisSet, true for either a
+  // physical or a valid ad-hoc x_axis) — see the matching comment in
+  // Timeseries/transformProps.ts for why an ad-hoc x_axis must not fall
+  // through to granularity_sqla's metadata.
+  const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
+  const rawXAxisColumnName = isXAxisSet(chartProps.rawFormData)
+    ? isPhysicalColumn(chartProps.rawFormData.x_axis)
+      ? chartProps.rawFormData.x_axis
+      : undefined
+    : ((chartProps.rawFormData as { granularity_sqla?: string })
+        ?.granularity_sqla ?? undefined);
+  const xAxisDatasourceColumn = datasource.columns?.find(
+    column => column.column_name === rawXAxisColumnName,
+  );
+  const isDesignatedTemporalColumn =
+    !!xAxisDatasourceColumn?.is_dttm ||
+    xAxisDatasourceColumn?.type_generic === GenericDataType.Temporal;
+  const xAxisDataType =
+    !rawXAxisDataTypeIsUsable && isDesignatedTemporalColumn
+      ? GenericDataType.Temporal
+      : rawXAxisDataType;
   const xAxisType = getAxisType(
     stack,
     xAxisForceCategorical,
@@ -302,6 +360,7 @@ export default function transformProps(
     totalStackedValues: totalStackedValuesB,
     xAxisType,
   });
+
   const series: SeriesOption[] = [];
 
   const resolvedCurrency = resolveAutoCurrency(
@@ -444,6 +503,10 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
+  // Tracks a stable pattern index per time offset so that derived series
+  // sharing the same comparison window (across both queries A and B) get
+  // the same dash pattern, mirroring the regular Timeseries transform.
+  const offsetPatterns: { [key: string]: number } = {};
 
   // The rendered ECharts series names are display names that can diverge from
   // the backend `label_map` keys: the metric display name is prepended when
@@ -458,6 +521,22 @@ export default function transformProps(
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesName,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesName;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
     const labelMapValues = rawLabelMap?.[seriesName];
@@ -513,6 +592,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
@@ -533,6 +613,8 @@ export default function transformProps(
         thresholdValues,
         timeShiftColor,
         theme,
+        labelPosition,
+        lineStyle,
       },
     );
 
@@ -545,6 +627,23 @@ export default function transformProps(
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesEntry = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesEntry,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesEntry;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
+
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     const labelMapValuesB = rawLabelMapB?.[seriesEntry];
@@ -601,6 +700,7 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',
@@ -621,6 +721,8 @@ export default function transformProps(
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        labelPosition: labelPositionB,
+        lineStyle,
       },
     );
 
@@ -638,12 +740,6 @@ export default function transformProps(
     if (maxSecondary === undefined) maxSecondary = 1;
   }
 
-  // A dashboard-level time grain override (e.g. via a filter or the temporal
-  // range control) is delivered in extraFormData and should take precedence
-  // over the chart's own time grain when formatting temporal axes/tooltips.
-  const resolvedTimeGrain =
-    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
-
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
@@ -653,44 +749,31 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : String;
 
+  // hideOverlap must stay off so the forced boundary label from showMaxLabel
+  // is never suppressed (#39899). The formatter itself dedupes consecutive
+  // identical labels and thins out labels that would otherwise visually
+  // collide, since hideOverlap can no longer do that for us.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  // "All" (interval === '0') means every label is meant to show, so the
+  // spacing check below (which blanks labels that would otherwise visually
+  // collide) has to be bypassed too, not just ECharts' own hideOverlap.
+  const showAllLabels = xAxisLabelInterval === '0';
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? createSpacedXAxisFormatter(
+        xAxisFormatter,
+        ...getXAxisDomain(
+          [
+            rebasedDataA as Record<string, unknown>[],
+            rebasedDataB as Record<string, unknown>[],
+          ],
+          xAxisLabel,
+        ),
+        Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        showAllLabels,
+      )
     : xAxisFormatter;
 
   const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
@@ -755,8 +838,74 @@ export default function transformProps(
     xAxisTitleMarginPx,
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
+
+  // Size a bar series to its own grain-bucket pixel width instead of a flat
+  // constant, so a sparse bucket doesn't visually spill into neighboring,
+  // unpopulated buckets. Computed here — after `chartPadding` (legend,
+  // axis title, zoomable padding) is fully finalized — and applied as a
+  // post-pass over the already-built `series`, so the plot-length used
+  // matches the actual grid area ECharts will render into (a heavily-
+  // padded chart, e.g. a side legend, genuinely has far less plot area
+  // than `width` alone suggests) rather than a flat per-side constant.
+  // Only meaningful when a bar series is actually rendered — skip the
+  // domain scan otherwise. Combines both queries' data for the domain
+  // estimate, matching the same combined-domain approach the x-axis label
+  // spacing formatter below already uses. MixedTimeseries has no
+  // chart-orientation control (confirmed: no `orientation`/
+  // `OrientationType` field on its form data, no xAxis/yAxis swap anywhere
+  // in this file), so the temporal axis always renders along `width` —
+  // no horizontal-orientation case to account for. See getGrainBarMaxWidth
+  // for the domain/grain part of the mechanism.
+  if (
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesTypeB === EchartsTimeseriesSeriesType.Bar
+  ) {
+    const barMaxWidthPx = getGrainBarMaxWidth(
+      xAxisType,
+      resolvedTimeGrain,
+      [
+        rebasedDataA as Record<string, unknown>[],
+        rebasedDataB as Record<string, unknown>[],
+      ],
+      xAxisLabel,
+      Math.max(width - chartPadding.left - chartPadding.right, 0),
+    );
+    if (barMaxWidthPx !== undefined) {
+      series.forEach(s => {
+        if (s.type === 'bar') {
+          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
+        }
+      });
+    }
+  }
+
   const alignTicks = yAxisIndex !== yAxisIndexB;
+
+  // Both queries share the axis, so a bucket contributed by either needs a tick.
+  const temporalTickValues = resolveTemporalTickValues(
+    [...rebasedDataA, ...rebasedDataB],
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    showAllLabels ? 0 : xAxisLabelInterval,
+    deduplicatedFormatter,
+    false,
+    zoomable,
+  );
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
@@ -769,21 +918,13 @@ export default function transformProps(
       name: xAxisTitle,
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
-      axisLabel: {
-        hideOverlap: showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-        formatter: deduplicatedFormatter,
-        rotate: xAxisLabelRotation,
-        interval: xAxisLabelInterval,
-        ...(showMaxLabel && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-          showMinLabel: true,
-          alignMinLabel: 'left',
-        }),
-      },
+      ...temporalAxisTickConfig,
       minorTick: { show: minorTicks },
+      axisTick: {
+        ...temporalAxisTickConfig.axisTick,
+        show: axisTicks ? 'auto' : false,
+      },
+      ...(gridlines ? {} : { splitLine: { show: false } }),
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
           ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -814,6 +955,8 @@ export default function transformProps(
         min: yAxisMin,
         max: yAxisMax,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
+        splitLine: { show: gridlines },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -836,6 +979,7 @@ export default function transformProps(
         min: minSecondary,
         max: maxSecondary,
         minorTick: { show: minorTicks },
+        axisTick: { show: axisTicks ? 'auto' : false },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
@@ -939,6 +1083,7 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
@@ -1001,6 +1146,8 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     onFocusedSeries,
+    onLegendStateChanged,
+    onLegendScroll,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

@@ -74,12 +74,14 @@ class ForcePurgeCommand:
         model_cls: type[SoftDeleteMixin] | None = None,
         require_archived: bool = False,
         require_audit: bool = False,
+        confirmed_impact_token: str | None = None,
     ) -> None:
         self._uuid: str = uuid
         self._actor: str = actor
         self._model_cls = model_cls
         self._require_archived = require_archived
         self._require_audit = require_audit
+        self._confirmed_impact_token: str | None = confirmed_impact_token
 
     def _resolve(self) -> SoftDeleteMixin | None:
         """Find the entity by UUID, visibility-filter bypassed.
@@ -164,6 +166,7 @@ class ForcePurgeCommand:
                     entity,
                     enforce_window=False,
                     require_archived=self._require_archived,
+                    confirmed_impact_token=self._confirmed_impact_token,
                 )
             # Commit AFTER the suppression block: Continuum executes its
             # pending association statements during flush/commit, so the
@@ -183,7 +186,7 @@ class ForcePurgeCommand:
                 removed_dashboard_slices=result.removed_dashboard_slices,
             )
         elif result.blocked_reason is not None:
-            audit.block(record_id)
+            audit.block(record_id, result.blocker.code if result.blocker else None)
         else:
             audit.fail(record_id)
         if result.purged:

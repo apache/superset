@@ -18,12 +18,14 @@
  * under the License.
  */
 import {
+  AnnotationLayer,
   AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  isTimeseriesAnnotationLayer,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -40,8 +42,11 @@ import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
+  ONE_DAY_MS,
   StackControlsValue,
+  TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
+  WEEKLY_TIME_GRAINS,
 } from '../constants';
 import {
   EchartsTimeseriesSeriesType,
@@ -50,6 +55,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
+import { getXAxisDomain } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -68,7 +74,12 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+// Keyed on every distinct legend label and (since Gantt's category names
+// share this cache too) every distinct category name ever measured, so an
+// unbounded cache could grow with high-cardinality data over a long session.
+// Cap it and evict the least-recently-used entry once full.
+const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
+const TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
   | string
@@ -94,10 +105,14 @@ function getLegendLabel(item: LegendDataItem): string {
   return String(item.name);
 }
 
-function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+export function measureTextWidth(text: string, theme: SupersetTheme): number {
   const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
-  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  const cachedWidth = TEXT_WIDTH_CACHE.get(cacheKey);
   if (cachedWidth !== undefined) {
+    // Re-insert so the Map's iteration order (used for LRU eviction below)
+    // reflects recency, not just insertion order.
+    TEXT_WIDTH_CACHE.delete(cacheKey);
+    TEXT_WIDTH_CACHE.set(cacheKey, cachedWidth);
     return cachedWidth;
   }
 
@@ -112,7 +127,13 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     }
   }
 
-  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
+    const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
+    if (oldestKey !== undefined) {
+      TEXT_WIDTH_CACHE.delete(oldestKey);
+    }
+  }
+  TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
 }
 
@@ -137,7 +158,7 @@ function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
     label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
-      measureLegendTextWidth(label, theme),
+      measureTextWidth(label, theme),
   );
 }
 
@@ -225,8 +246,7 @@ function getLongestLegendLabelWidth(
   theme: SupersetTheme,
 ): number {
   return labels.reduce(
-    (maxWidth, label) =>
-      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+    (maxWidth, label) => Math.max(maxWidth, measureTextWidth(label, theme)),
     0,
   );
 }
@@ -432,6 +452,26 @@ export function extractDataTotalValues(
   };
 }
 
+const DEFAULT_STACK_GROUP = '__default__';
+
+/**
+ * Computes, per stack group, which series index is the "topmost" (i.e. the
+ * series that should display the value label) for each data point.
+ *
+ * When a stackDimension splits bars into separate ECharts stack groups the
+ * computation must be done independently per group, otherwise only the
+ * globally-last series is flagged and all other groups miss their label.
+ *
+ * @param series      The raw series array (parallel to the rendered series).
+ * @param opts.stack           Whether stacking is active.
+ * @param opts.onlyTotal       Whether to show only the stack total.
+ * @param opts.isHorizontal    Whether the chart is horizontal.
+ * @param opts.legendState     Active legend state (hidden series are skipped).
+ * @param opts.seriesStackIds  Optional per-series stack-group key (parallel to
+ *                             `series`). Defaults to a single shared group.
+ * @returns A `Record<stackGroupKey, number[]>` where each inner array maps
+ *          `dataIndex → seriesIndex` of the topmost series in that group.
+ */
 export function extractShowValueIndexes(
   series: SeriesOption[],
   opts: {
@@ -439,35 +479,43 @@ export function extractShowValueIndexes(
     onlyTotal?: boolean;
     isHorizontal?: boolean;
     legendState?: LegendState;
+    seriesStackIds?: string[];
   },
-): number[] {
-  const showValueIndexes: number[] = [];
-  const { legendState, stack, isHorizontal, onlyTotal } = opts;
-  if (stack) {
-    series.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (entry.id && legendState && !legendState[entry.id]) {
-          return;
-        }
-        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
+): Record<string, number[]> {
+  const result: Record<string, number[]> = Object.create(null);
+  const { legendState, stack, isHorizontal, onlyTotal, seriesStackIds } = opts;
+  if (!stack) {
+    return result;
+  }
+
+  series.forEach((entry, seriesIndex) => {
+    const stackGroup = seriesStackIds?.[seriesIndex] ?? DEFAULT_STACK_GROUP;
+    if (!Object.prototype.hasOwnProperty.call(result, stackGroup)) {
+      result[stackGroup] = [];
+    }
+    const showValueIndexes = result[stackGroup];
+
+    const { data = [] } = entry;
+    (data as [any, number][]).forEach((datum, dataIndex) => {
+      if (entry.id && legendState && !legendState[entry.id]) {
+        return;
+      }
+      const numericValue = datum[isHorizontal ? 0 : 1];
+      if (!onlyTotal && numericValue !== null) {
+        showValueIndexes[dataIndex] = seriesIndex;
+      }
+      if (onlyTotal) {
+        if (numericValue > 0) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (onlyTotal) {
-          if (datum[isHorizontal ? 0 : 1] > 0) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
-          if (
-            !showValueIndexes[dataIndex] &&
-            datum[isHorizontal ? 0 : 1] !== null
-          ) {
-            showValueIndexes[dataIndex] = seriesIndex;
-          }
+        if (!showValueIndexes[dataIndex] && numericValue !== null) {
+          showValueIndexes[dataIndex] = seriesIndex;
         }
-      });
+      }
     });
-  }
-  return showValueIndexes;
+  });
+
+  return result;
 }
 
 export function sortAndFilterSeries(
@@ -791,6 +839,21 @@ export function extractGroupbyLabel({
     .join(', ');
 }
 
+/**
+ * ECharts `scrollDataIndex` is the legend entry index of the first visible
+ * item. Dashboard state keeps the last scroll position across re-renders, so
+ * clamp it when the legend has fewer entries after a data refresh.
+ */
+export function getLegendScrollDataIndex(
+  legendIndex: number | undefined,
+  legendItemCount: number,
+): number {
+  if (legendItemCount <= 0) {
+    return 0;
+  }
+  return Math.min(Math.max(legendIndex ?? 0, 0), legendItemCount - 1);
+}
+
 export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
@@ -800,7 +863,8 @@ export function getLegendProps(
   legendState?: LegendState,
   padding?: LegendPaddingType,
 ): LegendComponentOption {
-  const legend: LegendComponentOption = {
+  // `animation` is read by ECharts but missing from its legend option type
+  const legend: LegendComponentOption & { animation?: boolean } = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
@@ -808,6 +872,15 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    ...(type === LegendType.Scroll
+      ? {
+          // A scrolling legend is rebuilt from its first page on every re-render
+          // and then animated back to `scrollDataIndex`, which reads as the legend
+          // sliding away and returning. Turning the animation off makes it render
+          // on the right page to begin with.
+          animation: false,
+        }
+      : {}),
     selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
@@ -986,6 +1059,192 @@ export function getAxisType(
   return AxisType.Category;
 }
 
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
+/**
+ * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
+ * choose.
+ *
+ * ECharts generates time ticks from a calendar ladder with no week unit, so for
+ * weekly data it steps days from the 1st of each month instead: labels drift
+ * across weekdays and snap to month starts (#17226). Coarser grains already land
+ * on their data and keep ECharts' calendar-nice labels.
+ */
+export function getTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain?: string,
+): number[] | undefined {
+  if (
+    xAxisType !== AxisType.Time ||
+    !timeGrain ||
+    !WEEKLY_TIME_GRAINS.has(timeGrain)
+  ) {
+    return undefined;
+  }
+  const values = new Set<number>();
+  data.forEach(row => {
+    const value = row[xAxisLabel];
+    const timestamp =
+      // eslint-disable-next-line no-nested-ternary
+      value instanceof Date
+        ? value.getTime()
+        : typeof value === 'string'
+          ? parseTemporalString(value)
+          : Number(value ?? NaN);
+    if (Number.isFinite(timestamp)) {
+      values.add(timestamp);
+    }
+  });
+  return values.size ? [...values].sort((a, b) => a - b) : undefined;
+}
+
+/**
+ * Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+ * A timeseries annotation contributes its own timestamps and widens the axis
+ * past the buckets, and ECharts clips pinned ticks to the extent, so that
+ * span would render bare — leave those charts on ECharts' own ticks.
+ */
+export function resolveTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain: string | undefined,
+  annotationLayers: AnnotationLayer[],
+): number[] | undefined {
+  const hasTimeseriesAnnotation = annotationLayers.some(
+    layer => layer.show && isTimeseriesAnnotationLayer(layer),
+  );
+  return hasTimeseriesAnnotation
+    ? undefined
+    : getTemporalTickValues(data, xAxisLabel, xAxisType, timeGrain);
+}
+
+// Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
+// every bucket combs a long weekly range. Downsample evenly, keeping ends.
+const MAX_PINNED_AXIS_TICKS = 60;
+
+export function capTickMarks(
+  values: number[],
+  maxTicks: number = MAX_PINNED_AXIS_TICKS,
+): number[] {
+  if (values.length <= maxTicks) {
+    return values;
+  }
+  const step = Math.ceil(values.length / maxTicks);
+  const capped = values.filter((_, index) => index % step === 0);
+  const last = values[values.length - 1];
+  if (capped[capped.length - 1] !== last) {
+    capped.push(last);
+  }
+  return capped;
+}
+
+/**
+ * axisLabel/axisTick fragment for a temporal x-axis, shared by Timeseries and
+ * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
+ * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
+ * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
+ * thins from) uses the same capped set on a non-zoomable, non-"All" axis, so
+ * a label surviving hideOverlap thinning always lands on a real tick and
+ * gridline rather than a capped-away bucket.
+ *
+ * On a zoomable axis, axisLabel uses the full set instead — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * axisTick deliberately stays capped in that case; hideOverlap keeps thinning
+ * the (uncapped) labels dynamically, so gridlines don't need to track them
+ * 1:1, and a full weekly gridline set on a long zoomable range is its own
+ * source of clutter.
+ *
+ * When the user picks "All" (interval === 0), the tradeoff is different:
+ * every label is meant to be shown, so a label landing on a capped-away tick
+ * with no matching gridline would defeat the point. axisTick uncaps to match
+ * axisLabel in that case, on both zoomable and non-zoomable axes.
+ */
+export function getTemporalAxisTickConfig(
+  temporalTickValues: number[] | undefined,
+  showMaxLabel: boolean,
+  xAxisType: AxisType,
+  xAxisLabelRotation: number,
+  xAxisLabelInterval: number | string | undefined,
+  formatter: unknown,
+  isHorizontal: boolean = false,
+  zoomable: boolean = false,
+): {
+  axisLabel: Record<string, unknown>;
+  axisTick?: { customValues: number[] };
+} {
+  const cappedTickValues = temporalTickValues
+    ? capTickMarks(temporalTickValues)
+    : undefined;
+  // When the user picks "All" (interval === 0), they want every label shown.
+  // Disable hideOverlap so ECharts never drops a label, and pin customValues
+  // to the full tick set so each label lands on a real gridline.
+  const showAllLabels = xAxisLabelInterval === 0;
+  // On a zoomable axis the full set is already used; for "All" we also bypass
+  // the cap so every tick gets a label rather than the 60-mark subset.
+  const labelCustomValues =
+    zoomable || showAllLabels ? temporalTickValues : cappedTickValues;
+  const tickCustomValues = showAllLabels
+    ? temporalTickValues
+    : cappedTickValues;
+
+  return {
+    axisLabel: {
+      // Pinned ticks label every bucket, which does crowd, so thinning
+      // wins there unless the user asked for every label.
+      hideOverlap:
+        !showAllLabels &&
+        (!!temporalTickValues ||
+          (showMaxLabel
+            ? false
+            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0))),
+      formatter,
+      rotate: xAxisLabelRotation,
+      // ECharts only honors axisLabel.interval on category axes. A time axis
+      // ignores it, so the "All" setting relies on showAllLabels disabling
+      // hideOverlap above rather than on interval: 0 here.
+      interval: xAxisLabelInterval,
+      // Force the boundary labels so the first and last dates stay visible:
+      // hideOverlap can hide the last label, and a min date that falls
+      // between "nice" ticks otherwise renders no beginning label. Applied
+      // for pinned axes too — showMaxLabel only shields its immediate
+      // neighbour, so a farther label on a crowded weekly axis can still be
+      // dropped, but that's strictly better than no shielding at all.
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        showMinLabel: true,
+      }),
+      // The alignments assume the axis runs along the bottom; a horizontal
+      // chart puts this axis on the side, where they misplace the labels.
+      ...(showMaxLabel &&
+        !isHorizontal && {
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
+        }),
+      ...(labelCustomValues && { customValues: labelCustomValues }),
+    },
+    ...(tickCustomValues && { axisTick: { customValues: tickCustomValues } }),
+  };
+}
+
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
@@ -1043,6 +1302,59 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+/**
+ * Computes a bar-width cap (px) sized to a temporal x-axis's own resolved
+ * time-grain bucket, instead of a flat constant that ignores how many
+ * pixels the grain actually spans on the rendered axis. Returns undefined
+ * when there isn't enough information to compute a grain-aware width (a
+ * non-temporal axis, no resolved grain outside TIMEGRAIN_TO_TIMESTAMP, or
+ * no data), so callers can fall back to their own default in that case.
+ *
+ * Uses getXAxisDomain — the same data-extent estimate the x-axis label
+ * spacing formatter already relies on — for the visible axis span. For two
+ * or more distinct x-values that's the real ECharts-rendered span (ECharts
+ * applies no padding there). For a single distinct value (domainMin ===
+ * domainMax), it falls back to 2 * ONE_DAY_MS, mirroring ECharts' own
+ * degenerate-domain padding for a time axis exactly (calcNiceForTimeScale
+ * in echarts/lib/scale/Time.js pads a single-point extent by ONE_DAY on
+ * each side, independent of grain) rather than guessing at a different
+ * span. This function does not change what range ECharts decides to
+ * render — only how wide a bar is drawn within whatever range that already
+ * is.
+ *
+ * `plotLengthPx` must already be the pixel length of whichever screen
+ * dimension the temporal axis actually renders along — callers are
+ * responsible for accounting for orientation (a horizontal bar chart swaps
+ * the temporal axis onto the chart's vertical/height dimension, not width;
+ * see the call sites in Timeseries/transformProps.ts and
+ * MixedTimeseries/transformProps.ts) before calling this.
+ */
+export function getGrainBarMaxWidth(
+  xAxisType: AxisType,
+  resolvedTimeGrain: string | undefined,
+  dataRecordArrays: Record<string, unknown>[][],
+  xAxisCol: string,
+  plotLengthPx: number,
+): number | undefined {
+  if (xAxisType !== AxisType.Time || !resolvedTimeGrain) {
+    return undefined;
+  }
+  const grainMs =
+    TIMEGRAIN_TO_TIMESTAMP[
+      resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+    ];
+  if (!grainMs) {
+    return undefined;
+  }
+  const [domainMin, domainMax] = getXAxisDomain(dataRecordArrays, xAxisCol);
+  if (domainMin === undefined || domainMax === undefined) {
+    return undefined;
+  }
+  const domainSpanMs =
+    domainMax > domainMin ? domainMax - domainMin : 2 * ONE_DAY_MS;
+  return (grainMs / domainSpanMs) * Math.max(plotLengthPx, 0);
 }
 
 /**

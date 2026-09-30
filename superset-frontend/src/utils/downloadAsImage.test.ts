@@ -17,7 +17,9 @@
  * under the License.
  */
 import domToImage from 'dom-to-image-more';
+import { getInstanceByDom } from 'echarts/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -27,8 +29,24 @@ jest.mock('dom-to-image-more', () => ({
   default: { toJpeg: jest.fn(), toPng: jest.fn() },
 }));
 
+jest.mock('echarts/core', () => ({
+  __esModule: true,
+  getInstanceByDom: jest.fn(),
+}));
+
 jest.mock('src/components/MessageToasts/actions', () => ({
-  addWarningToast: jest.fn(),
+  // Must return a real action object: the utils pass the action to
+  // `store.dispatch`, and Redux rejects a dispatched `undefined`. Delegating
+  // to the actual creator keeps the mocked shape identical to production.
+  addWarningToast: jest.fn((text: string, options?: Record<string, unknown>) =>
+    jest
+      .requireActual('src/components/MessageToasts/actions')
+      .addWarningToast(text, options),
+  ),
+}));
+
+jest.mock('src/views/store', () => ({
+  store: { dispatch: jest.fn() },
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
@@ -38,6 +56,12 @@ jest.mock('@apache-superset/core/translation', () => ({
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
+const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
+const mockDispatch = store.dispatch as jest.Mock;
+// The genuine action the store receives, for dispatch-shape assertions.
+const realAddWarningToast = jest.requireActual(
+  'src/components/MessageToasts/actions',
+).addWarningToast as (text: string) => Record<string, unknown>;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
 Object.defineProperty(document, 'fonts', {
@@ -81,6 +105,9 @@ function attachMockApi(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks does not clear a mockReturnValue, so reset the instance lookup explicitly to
+  // stop a return value leaking into any clone-path test added after the ECharts ones below.
+  mockGetInstanceByDom.mockReset();
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
   mockToPng.mockResolvedValue('data:image/png;base64,test');
 });
@@ -200,6 +227,22 @@ test('shows warning toast when element is not found', async () => {
   expect(mockAddWarningToast).toHaveBeenCalledWith(
     'Image download failed, please refresh and try again.',
   );
+  // The action creator's result is what reaches the store, not the toast
+  // itself. Compared on the stable fields — the toast id is a fresh nanoid
+  // per call, so the full object can never be equal.
+  const dispatched = mockDispatch.mock.calls[0][0] as {
+    type: string;
+    payload: Record<string, unknown>;
+  };
+  const expected = realAddWarningToast(
+    'Image download failed, please refresh and try again.',
+  ) as { type: string; payload: { toastType: string; duration: number } };
+  expect(dispatched.type).toBe(expected.type);
+  expect(dispatched.payload).toMatchObject({
+    toastType: expected.payload.toastType,
+    duration: expected.payload.duration,
+    text: 'Image download failed, please refresh and try again.',
+  });
   expect(mockToJpeg).not.toHaveBeenCalled();
 });
 
@@ -601,9 +644,41 @@ test('falls through to clone path for dashboard export with multiple ag-grid cha
   document.body.removeChild(dashboard);
 });
 
-test('captures JPEG for non-ag-grid elements via the clone path', async () => {
+// A chart holding a table that scrolls in both axes, in a slot that never clips
+function buildScrollableChartElement(rootClassName?: string) {
   const container = document.createElement('div');
+  if (rootClassName) {
+    container.className = rootClassName;
+  }
+  const slot = document.createElement('div');
+  slot.className = 'chart-slot';
+  slot.style.overflow = 'visible';
+  slot.style.width = '100px';
+  const scrollContainer = document.createElement('div');
+  scrollContainer.className = 'scroll-container';
+  scrollContainer.style.overflow = 'auto';
+  scrollContainer.style.width = '100px';
+  scrollContainer.style.height = '50px';
+  const wideContent = document.createElement('div');
+  wideContent.style.width = '400px';
+  wideContent.style.height = '300px';
+  wideContent.textContent = 'wide table content';
+  scrollContainer.appendChild(wideContent);
+  // A sibling that clips via `overflow: clip` rather than a scrolling value
+  const clipContainer = document.createElement('div');
+  clipContainer.className = 'clip-container';
+  clipContainer.style.overflow = 'clip';
+  clipContainer.style.width = '100px';
+  clipContainer.style.height = '50px';
+  slot.appendChild(scrollContainer);
+  slot.appendChild(clipContainer);
+  container.appendChild(slot);
   document.body.appendChild(container);
+  return { container, cleanup: () => document.body.removeChild(container) };
+}
+
+test('captures JPEG for non-ag-grid elements via the clone path', async () => {
+  const { container, cleanup } = buildScrollableChartElement();
 
   const handler = downloadAsImageOptimized('div', 'Bar Chart');
   await handler(syntheticEventFor(container));
@@ -612,9 +687,52 @@ test('captures JPEG for non-ag-grid elements via the clone path', async () => {
     expect.any(HTMLElement),
     expect.objectContaining({ quality: 0.95 }),
   );
+  // A single chart has no neighbours to overlap, so its scrollable content is
+  // expanded on both axes and the whole table makes it into the image
+  const clone = mockToJpeg.mock.calls[0][0] as HTMLElement;
+  const clonedScrollContainer = clone.querySelector(
+    '.scroll-container',
+  ) as HTMLElement;
+  expect(clonedScrollContainer.style.height).toBe('auto');
+  expect(clonedScrollContainer.style.overflow).toBe('visible');
+  expect(
+    (clone.querySelector('.clip-container') as HTMLElement).style.overflow,
+  ).toBe('visible');
   expect(mockAddWarningToast).not.toHaveBeenCalled();
 
-  document.body.removeChild(container);
+  cleanup();
+});
+
+test('dashboard clone path expands scrollable content vertically without unclipping it horizontally', async () => {
+  const { container, cleanup } = buildScrollableChartElement('dashboard');
+
+  const handler = downloadAsImageOptimized('div', 'My Dashboard');
+  await handler(syntheticEventFor(container));
+
+  const clone = mockToJpeg.mock.calls[0][0] as HTMLElement;
+  const clonedScrollContainer = clone.querySelector(
+    '.scroll-container',
+  ) as HTMLElement;
+  // Vertical: grows so every row is captured and the grid reflows around it
+  expect(clonedScrollContainer.style.height).toBe('auto');
+  expect(clonedScrollContainer.style.overflowY).toBe('visible');
+  // Horizontal: stays clipped, otherwise a sideways-scrolling table paints its
+  // off-slot columns over the charts next to it in the same dashboard row.
+  // `clip`, not `hidden`, so the `visible` above is not promoted to `auto`
+  expect(clonedScrollContainer.style.overflowX).toBe('clip');
+  // The slot never clipped on screen, so the export must not start clipping it
+  const clonedSlot = clone.querySelector('.chart-slot') as HTMLElement;
+  expect(clonedSlot.style.overflowX).toBe('');
+  expect(clonedSlot.style.overflow).toBe('visible');
+  // `overflow: clip` clips just as much as `auto`/`hidden` do, so it is treated
+  // the same way rather than left alone
+  const clonedClipContainer = clone.querySelector(
+    '.clip-container',
+  ) as HTMLElement;
+  expect(clonedClipContainer.style.overflowX).toBe('clip');
+  expect(clonedClipContainer.style.overflowY).toBe('visible');
+
+  cleanup();
 });
 
 test('shows warning toast when clone capture throws', async () => {
@@ -732,5 +850,229 @@ test('clone path falls back to white background when theme is absent', async () 
     expect.objectContaining({ bgcolor: undefined }),
   );
 
+  document.body.removeChild(container);
+});
+
+// jsdom does not implement HTMLCanvasElement.getContext, so stub a minimal 2d context.
+function stubCanvasContext() {
+  const drawImage = jest.fn();
+  const spy = jest
+    .spyOn(HTMLCanvasElement.prototype, 'getContext')
+    .mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+  return { drawImage, restore: () => spy.mockRestore() };
+}
+
+test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is crisp', async () => {
+  const { restore } = stubCanvasContext();
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  const canvas = document.createElement('canvas');
+  // on-screen backing store: CSS 400×300 at devicePixelRatio 1
+  canvas.width = 400;
+  canvas.height = 300;
+  host.appendChild(canvas);
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  // Fake ECharts instance whose renderToCanvas returns a 2× (high-res) canvas
+  const hiRes = document.createElement('canvas');
+  hiRes.width = 800;
+  hiRes.height = 600;
+  let renderOpts: Record<string, unknown> | undefined;
+  const renderToCanvas = jest.fn((opts?: Record<string, unknown>) => {
+    renderOpts = opts;
+    return hiRes;
+  });
+  mockGetInstanceByDom.mockReturnValue({ renderToCanvas });
+
+  // Capture the cloned canvas backing store handed to dom-to-image
+  let clonedCanvasWidth: number | undefined;
+  let clonedCanvasHeight: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    const c = cloneRoot.querySelector('canvas');
+    clonedCanvasWidth = c?.width;
+    clonedCanvasHeight = c?.height;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  // Instance recovered from the canvas's echarts-host ancestor...
+  expect(mockGetInstanceByDom).toHaveBeenCalledWith(host);
+  // ...and re-rendered at PNG_SCALE (2). No backgroundColor is forced, so the chart keeps its
+  // own configured background (matching the on-screen canvas).
+  expect(renderToCanvas).toHaveBeenCalled();
+  expect(renderOpts).toEqual(expect.objectContaining({ pixelRatio: 2 }));
+  expect(renderOpts).not.toHaveProperty('backgroundColor');
+  // The cloned canvas dom-to-image serializes is the 2× high-res source
+  expect(clonedCanvasWidth).toBe(800);
+  expect(clonedCanvasHeight).toBe(600);
+  expect(mockToPng).toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('preserves a non-ECharts canvas at its on-screen resolution (no re-render)', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+
+  const container = document.createElement('div');
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  container.appendChild(canvas);
+  document.body.appendChild(container);
+
+  let clonedCanvasWidth: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    clonedCanvasWidth = cloneRoot.querySelector('canvas')?.width;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Deck Chart',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  // No echarts-host ancestor → echarts is never imported/consulted and the on-screen bitmap is
+  // copied 1:1.
+  expect(mockGetInstanceByDom).not.toHaveBeenCalled();
+  expect(clonedCanvasWidth).toBe(400);
+  expect(drawImage).toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('falls back to a 1:1 copy when the ECharts instance is gone (getInstanceByDom returns undefined)', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  // Disposed / not-yet-initialised chart: the host is in the DOM but has no live instance.
+  mockGetInstanceByDom.mockReturnValue(undefined);
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  host.appendChild(canvas);
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  let clonedCanvasWidth: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    clonedCanvasWidth = cloneRoot.querySelector('canvas')?.width;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(mockGetInstanceByDom).toHaveBeenCalledWith(host);
+  // No instance → the on-screen bitmap is copied 1:1 and the export still completes
+  expect(clonedCanvasWidth).toBe(400);
+  expect(drawImage).toHaveBeenCalled();
+  expect(mockToPng).toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('falls back to a 1:1 copy (and still exports) when renderToCanvas throws', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  // A valid but unhealthy instance (mid-dispose, errored chart) whose re-render throws.
+  const renderToCanvas = jest.fn(() => {
+    throw new Error('chart is disposing');
+  });
+  mockGetInstanceByDom.mockReturnValue({ renderToCanvas });
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  host.appendChild(canvas);
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  let clonedCanvasWidth: number | undefined;
+  mockToPng.mockImplementation((cloneRoot: HTMLElement) => {
+    clonedCanvasWidth = cloneRoot.querySelector('canvas')?.width;
+    return Promise.resolve('data:image/png;base64,test');
+  });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  // The throw is swallowed per-canvas: the export completes via the on-screen 1:1 copy rather
+  // than aborting the whole capture.
+  expect(renderToCanvas).toHaveBeenCalled();
+  expect(clonedCanvasWidth).toBe(400);
+  expect(drawImage).toHaveBeenCalled();
+  expect(mockToPng).toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  restore();
+  document.body.removeChild(container);
+});
+
+test('re-renders an ECharts host only once when it owns multiple canvas layers', async () => {
+  const { restore } = stubCanvasContext();
+
+  const container = document.createElement('div');
+  const host = document.createElement('div');
+  host.className = 'echarts-host';
+  // ECharts may add a second <canvas> for a hover/progressive layer
+  host.appendChild(document.createElement('canvas'));
+  host.appendChild(document.createElement('canvas'));
+  container.appendChild(host);
+  document.body.appendChild(container);
+
+  const hiRes = document.createElement('canvas');
+  hiRes.width = 800;
+  hiRes.height = 600;
+  const renderToCanvas = jest.fn(() => hiRes);
+  mockGetInstanceByDom.mockReturnValue({ renderToCanvas });
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Sunburst',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  // Both canvases resolve to the same instance; the flattened render happens once
+  expect(renderToCanvas).toHaveBeenCalledTimes(1);
+
+  restore();
   document.body.removeChild(container);
 });

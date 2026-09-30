@@ -30,6 +30,7 @@ from superset.exceptions import SupersetException
 from superset.utils.core import (
     build_email_attachment,
     cast_to_boolean,
+    cast_to_num,
     check_is_safe_zip,
     DateColumn,
     extract_dataframe_dtypes,
@@ -247,6 +248,24 @@ def test_other_values():
     assert cast_to_boolean(object()) is False
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("5", 5),
+        ("5.2", 5.2),
+        (" 2", 2.0),
+        (10, 10),
+        (None, None),
+        ("this is not a string", None),
+        # ``str.isdigit()`` is true for these but ``int()`` rejects them
+        ("²", None),
+        ("①", None),
+    ],
+)
+def test_cast_to_num(value: Any, expected: Any) -> None:
+    assert cast_to_num(value) == expected
+
+
 def test_normalize_dttm_col() -> None:
     """
     Tests for the ``normalize_dttm_col`` function.
@@ -290,18 +309,19 @@ def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
     assert df["year"].tolist() == before
 
 
-def test_normalize_dttm_col_epoch_seconds() -> None:
-    """Test conversion of epoch seconds."""
-    df = pd.DataFrame(
-        {
-            "epoch_col": [
-                1577836800,
-                1609459200,
-                1640995200,
-            ]  # 2020-01-01, 2021-01-01, 2022-01-01
-        }
-    )
-    dttm_cols = (DateColumn(col_label="epoch_col", timestamp_format="epoch_s"),)
+@pytest.mark.parametrize(
+    "timestamp_format,values",
+    [
+        ("epoch_s", [1577836800, 1609459200, 1640995200]),
+        ("epoch_ms", [1577836800000, 1609459200000, 1640995200000]),
+        ("epoch_us", [1577836800000000, 1609459200000000, 1640995200000000]),
+    ],
+)
+def test_normalize_dttm_col_epoch(timestamp_format: str, values: list[int]) -> None:
+    """Test conversion of epoch seconds, milliseconds, and microseconds."""
+    # values are 2020-01-01, 2021-01-01, 2022-01-01 in timestamp_format's unit
+    df = pd.DataFrame({"epoch_col": values})
+    dttm_cols = (DateColumn(col_label="epoch_col", timestamp_format=timestamp_format),)
 
     normalize_dttm_col(df, dttm_cols)
 
@@ -309,27 +329,6 @@ def test_normalize_dttm_col_epoch_seconds() -> None:
     assert df["epoch_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
     assert df["epoch_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
     assert df["epoch_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
-
-
-def test_normalize_dttm_col_epoch_milliseconds() -> None:
-    """Test conversion of epoch milliseconds."""
-    df = pd.DataFrame(
-        {
-            "epoch_ms_col": [
-                1577836800000,
-                1609459200000,
-                1640995200000,
-            ]  # 2020-01-01, 2021-01-01, 2022-01-01
-        }
-    )
-    dttm_cols = (DateColumn(col_label="epoch_ms_col", timestamp_format="epoch_ms"),)
-
-    normalize_dttm_col(df, dttm_cols)
-
-    assert is_datetime64_dtype(df["epoch_ms_col"])
-    assert df["epoch_ms_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
-    assert df["epoch_ms_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
-    assert df["epoch_ms_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
 def test_normalize_dttm_col_formatted_date() -> None:
@@ -1942,8 +1941,24 @@ def test_sanitize_svg_content_safe():
 
 
 def test_sanitize_svg_content_removes_scripts():
-    """Test that nh3 removes dangerous script content."""
+    """Test that dangerous script content is removed."""
     malicious_svg = '<svg><script>alert("xss")</script><rect/></svg>'
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "alert" not in result
+
+
+def test_sanitize_svg_content_removes_script_with_attributes_on_closer():
+    """A closing </script foo> tag is still a valid closer to browsers."""
+    malicious_svg = "<svg><script>fetch('/api/v1/me/')</script foo></svg>"
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "fetch" not in result
+
+
+def test_sanitize_svg_content_removes_unterminated_script():
+    """An unterminated <script> opener with no closing tag is still stripped."""
+    malicious_svg = "<svg><script>alert('xss')"
     result = sanitize_svg_content(malicious_svg)
     assert "script" not in result.lower()
     assert "alert" not in result

@@ -40,13 +40,13 @@ describe('CheckboxControl', () => {
     expect(checkbox).not.toBeChecked();
   });
 
-  test('Checks the box when the label is clicked', () => {
+  test('Checks the box when the label is clicked', async () => {
     render(setup());
     const label = screen.getByRole('button', {
       name: /checkbox label/i,
     });
 
-    userEvent.click(label);
+    await userEvent.click(label);
     expect(defaultProps.onChange).toHaveBeenCalled();
   });
 });

@@ -21,6 +21,7 @@ import {
   getClientErrorMessage,
   getClientErrorObject,
   getErrorText,
+  selectClientErrorMessage,
   parseErrorJson,
   ErrorTypeEnum,
 } from '@superset-ui/core';
@@ -106,8 +107,14 @@ test('Handles backwards compatibility between old error messages and the new SIP
 test('Handles Response that can be parsed as text', async () => {
   const textError = 'Hello I am a text error';
 
-  const errorObj = await getClientErrorObject(new Response(textError));
-  expect(errorObj).toMatchObject({ error: textError });
+  const errorObj = await getClientErrorObject(
+    new Response(textError, { status: 403, statusText: 'Forbidden' }),
+  );
+  expect(errorObj).toMatchObject({
+    error: 'Forbidden',
+    status: 403,
+    statusText: 'Forbidden',
+  });
 });
 
 test('Handles Response that contains raw html be parsed as text', async () => {
@@ -244,6 +251,24 @@ test('parseErrorJson with message', () => {
   });
 });
 
+test('parseErrorJson preserves string-valued validation messages', () => {
+  const calculatedColumnError =
+    'Custom SQL fields cannot be parsed as a single SQL statement.';
+
+  expect(
+    parseErrorJson({
+      message: {
+        'columns.0.expression': calculatedColumnError,
+      },
+    }),
+  ).toEqual({
+    message: {
+      'columns.0.expression': calculatedColumnError,
+    },
+    error: calculatedColumnError,
+  });
+});
+
 test('parseErrorJson with HTML message', () => {
   expect(
     parseErrorJson({
@@ -327,7 +352,7 @@ test('getErrorText', async () => {
 
   const error = JSON.stringify({ message: 'Forbidden' });
   expect(await getErrorText(new Response(error), 'dashboard')).toEqual(
-    'You do not have permission to edit this dashboard',
+    'Sorry, there was an error saving this dashboard: Forbidden',
   );
   expect(
     await getErrorText(
@@ -340,8 +365,7 @@ test('getErrorText', async () => {
 test('getErrorText for a non-JSON 403 response', async () => {
   // A 403 originating outside Superset (reverse proxy, WAF, SSO gateway)
   // carries an HTML or plain-text body instead of the API's JSON
-  // `{"message": "Forbidden"}`, so it must fall back to the generic
-  // status-derived text rather than the permission-denied copy.
+  // `{"message": "Forbidden"}`. The HTTP status remains authoritative.
   const proxyForbidden = new Response(
     '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
     {
@@ -351,7 +375,7 @@ test('getErrorText for a non-JSON 403 response', async () => {
     },
   );
   expect(await getErrorText(proxyForbidden, 'dashboard')).toEqual(
-    'Sorry, there was an error saving this dashboard: Forbidden',
+    'You do not have permission to edit this dashboard',
   );
 
   const supersetForbidden = new Response(
@@ -361,4 +385,32 @@ test('getErrorText for a non-JSON 403 response', async () => {
   expect(await getErrorText(supersetForbidden, 'dashboard')).toEqual(
     'You do not have permission to edit this dashboard',
   );
+
+  const specificForbidden = new Response(
+    JSON.stringify({ message: "You don't have the rights to create a chart" }),
+    { status: 403, statusText: 'FORBIDDEN' },
+  );
+  expect(await getErrorText(specificForbidden, 'chart')).toEqual(
+    "Sorry, there was an error saving this chart: You don't have the rights to create a chart",
+  );
+});
+
+test('selectClientErrorMessage applies consistent precedence', () => {
+  expect(
+    selectClientErrorMessage({ error: 'Forbidden', status: 403 }, 'Fallback', {
+      403: 'Permission denied',
+    }),
+  ).toBe('Permission denied');
+  expect(selectClientErrorMessage({ error: 'Server detail' }, 'Fallback')).toBe(
+    'Server detail',
+  );
+  expect(
+    selectClientErrorMessage(
+      parseErrorJson({
+        message: { field: ['Normalized validation detail'] },
+      }),
+      'Fallback',
+    ),
+  ).toBe('Normalized validation detail');
+  expect(selectClientErrorMessage({ error: '' }, 'Fallback')).toBe('Fallback');
 });

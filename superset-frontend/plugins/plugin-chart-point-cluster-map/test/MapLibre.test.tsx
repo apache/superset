@@ -70,6 +70,23 @@ jest.mock('@apache-superset/core/theme', () => ({
 jest.mock('maplibre-gl/dist/maplibre-gl.css', () => ({}));
 jest.mock('../src/MapLibre.css', () => ({}));
 
+// maplibre-gl 6 is an ESM-only package with no "require"/"default" export
+// condition, so jest's (CJS-based) resolver can't locate the real module to
+// mock over it by name; { virtual: true } skips that resolution step.
+//
+// The mock jest.fn() is created inline (not hoisted out to a `const`)
+// because MapLibre.tsx calls maplibregl.setWorkerUrl() synchronously at
+// import time, and `import`/jest.mock() calls are themselves hoisted above
+// this file's plain `const` declarations — a `const` referenced here would
+// still be in its temporal dead zone when that import-time call fires.
+jest.mock(
+  'maplibre-gl',
+  () => ({ __esModule: true, setWorkerUrl: jest.fn() }),
+  { virtual: true },
+);
+
+// eslint-disable-next-line import/first
+import * as maplibregl from 'maplibre-gl';
 // eslint-disable-next-line import/first
 import MapLibre from '../src/MapLibre';
 
@@ -93,6 +110,22 @@ const defaultProps = {
   ] as [[number, number], [number, number]],
   onViewportChange: jest.fn(),
 };
+
+// Captured before the first jest.clearAllMocks() below wipes the call the
+// module made at import time.
+const setWorkerUrlCallAtImport = [
+  ...jest.mocked(maplibregl.setWorkerUrl).mock.calls,
+];
+
+test('points maplibre-gl at the CopyPlugin-emitted worker asset before any map can mount', () => {
+  // maplibre-gl 6's ESM-only build derives its worker URL from
+  // `import.meta.url`, which webpack rewrites to a build-time path that
+  // doesn't match maplibre's `^https?:` check, so the worker silently
+  // fails to start unless setWorkerUrl() is called first (see MapLibre.tsx).
+  expect(setWorkerUrlCallAtImport).toEqual([
+    ['/static/assets/maplibre-gl-worker.mjs'],
+  ]);
+});
 
 beforeEach(() => {
   lastMapProps = {};

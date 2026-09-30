@@ -152,6 +152,55 @@ def test_validate_report_extra_anchor_string_invalid() -> None:
     assert exceptions[0].field_name == "extra"
 
 
+def test_validate_report_extra_malformed_position_json() -> None:
+    # A dashboard whose position_json is not valid JSON must surface a
+    # ValidationError rather than letting a raw JSONDecodeError escape.
+    command = CreateReportScheduleCommand({})
+    dashboard = MagicMock()
+    dashboard.position_json = "{not valid json"
+    command._properties = {
+        "extra": {"dashboard": {"activeTabs": ["TAB-1"]}},
+        "dashboard": dashboard,
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
+def test_validate_report_extra_malformed_json_metadata() -> None:
+    # A dashboard whose json_metadata is not valid JSON must surface a
+    # ValidationError while validating native filters rather than letting a
+    # raw JSONDecodeError escape.
+    command = CreateReportScheduleCommand({})
+    dashboard = MagicMock()
+    dashboard.position_json = json.dumps({"TAB-1": {}})
+    dashboard.json_metadata = "{not valid json"
+    command._properties = {
+        "extra": {
+            "dashboard": {
+                "nativeFilters": [
+                    {
+                        "nativeFilterId": "NATIVE_FILTER-1",
+                        "filterType": "filter_select",
+                        "columnName": "col",
+                        "filterValues": [],
+                    }
+                ]
+            }
+        },
+        "dashboard": dashboard,
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
 # ---------------------------------------------------------------------------
 # Phase 1 gap closure: validate() — alert + database combos
 # ---------------------------------------------------------------------------

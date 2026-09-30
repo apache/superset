@@ -27,6 +27,24 @@ const mockedProps: Omit<ConfirmStatusChangeProps, 'children'> = {
   onConfirm: jest.fn(),
 };
 
+test('forwards the primary button label and style to the opened modal', () => {
+  const { getByTestId, getByRole } = render(
+    <ConfirmStatusChange
+      {...mockedProps}
+      primaryButtonName="Retire"
+      primaryButtonStyle="primary"
+    >
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  fireEvent.click(getByTestId('trigger'));
+
+  const button = getByRole('button', { name: 'Retire' });
+  expect(button).toBeInTheDocument();
+  expect(button).not.toHaveClass('ant-btn-dangerous');
+});
+
 test('renders children with showConfirm function', () => {
   const childrenSpy = jest.fn().mockReturnValue(<div>test content</div>);
 
@@ -174,4 +192,27 @@ test('closes modal when onHide is called', () => {
 
   // Modal should be hidden (not visible)
   expect(modal).not.toBeVisible();
+});
+
+test('keeps the confirm button disabled while disablePrimaryButton is set', () => {
+  const { getByTestId, getByRole, rerender } = render(
+    <ConfirmStatusChange {...mockedProps} disablePrimaryButton>
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  fireEvent.click(getByTestId('trigger'));
+  fireEvent.change(getByTestId('delete-modal-input'), {
+    target: { value: 'DELETE' },
+  });
+
+  expect(getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+  rerender(
+    <ConfirmStatusChange {...mockedProps} disablePrimaryButton={false}>
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  expect(getByRole('button', { name: 'Delete' })).toBeEnabled();
 });

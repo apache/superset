@@ -229,7 +229,12 @@ def _generate_gis_type_sanitization_test_cases() -> list[
     if not ocient_is_installed():
         return []
 
-    from pyocient import _STLinestring, _STPoint, _STPolygon, TypeCodes
+    from pyocient import TypeCodes
+    from pyocient.api import (
+        STLinestring as _STLinestring,
+        STPoint as _STPoint,
+        STPolygon as _STPolygon,
+    )
 
     return [
         (
@@ -296,7 +301,7 @@ def _generate_gis_type_sanitization_test_cases() -> list[
         (
             "empty_polygon",
             TypeCodes.ST_POLYGON,
-            _STPolygon(exterior=[], holes=[]),
+            _STPolygon(exterior=[], holes=[], fullFlag=False),
             {
                 "geometry": None,
                 "properties": {},
@@ -311,6 +316,7 @@ def _generate_gis_type_sanitization_test_cases() -> list[
                     _STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (1, 1), (1, 0)]
                 ],
                 holes=[],
+                fullFlag=False,
             ),
             {
                 "geometry": {
@@ -332,6 +338,7 @@ def _generate_gis_type_sanitization_test_cases() -> list[
                     [_STPoint(long=t[0], lat=t[1]) for t in [(2, 0), (2, 1), (2, 0)]],
                     [_STPoint(long=t[0], lat=t[1]) for t in [(3, 0), (3, 1), (3, 0)]],
                 ],
+                fullFlag=False,
             ),
             {
                 "geometry": {
@@ -352,6 +359,7 @@ def _generate_gis_type_sanitization_test_cases() -> list[
             _STPolygon(
                 exterior=[_STPoint(long=t[0], lat=t[1]) for t in [(1, 0)]],
                 holes=[],
+                fullFlag=False,
             ),
             {
                 "geometry": {
@@ -368,6 +376,7 @@ def _generate_gis_type_sanitization_test_cases() -> list[
             _STPolygon(
                 exterior=[_STPoint(long=t[0], lat=t[1]) for t in [(1, 0), (0, 1)]],
                 holes=[],
+                fullFlag=False,
             ),
             {
                 "geometry": {
@@ -400,7 +409,7 @@ def test_gis_type_sanitization(
 
 @pytest.mark.skipif(not ocient_is_installed(), reason="requires ocient dependencies")
 def test_point_list_to_wkt() -> None:
-    from pyocient import _STPoint
+    from pyocient.api import STPoint as _STPoint
 
     wkt = _point_list_to_wkt(
         [_STPoint(long=t[0], lat=t[1]) for t in [(2, 0), (2, 1), (2, 0)]]

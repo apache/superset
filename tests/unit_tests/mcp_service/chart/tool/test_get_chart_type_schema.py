@@ -17,14 +17,24 @@
 
 """Tests for get_chart_type_schema tool logic."""
 
+from typing import Any
+
 import pytest
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
     _CHART_TYPE_ADAPTERS,
+    _compiled_chart_schema,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_all_feature_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise every registered adapter, including host-gated chart types."""
+    monkeypatch.setattr(feature_flag_manager, "is_feature_enabled", lambda _: True)
 
 
 class TestGetChartTypeSchema:
@@ -66,6 +76,35 @@ class TestGetChartTypeSchema:
         result = _call_schema("big_number")
         props = result["schema"]["properties"]
         assert "metric" in props
+
+    def test_gauge_uses_public_identity_and_full_control_schema(self) -> None:
+        result = _call_schema("gauge")
+        assert result["chart_type"] == "gauge"
+        props = result["schema"]["properties"]
+        assert {
+            "metric",
+            "groupby",
+            "sort_by_metric",
+            "min_val",
+            "max_val",
+            "color_scheme",
+            "number_format",
+            "currency_format",
+            "value_formatter",
+            "start_angle",
+            "end_angle",
+            "show_pointer",
+            "show_progress",
+            "intervals",
+            "interval_color_indices",
+            "time_range",
+            "granularity_sqla",
+        } <= set(props)
+        assert all(example["chart_type"] == "gauge" for example in result["examples"])
+
+    def test_native_gauge_alias_returns_public_schema_identity(self) -> None:
+        result = _call_schema("gauge_chart")
+        assert result["chart_type"] == "gauge"
 
     def test_include_examples_false_omits_examples(self) -> None:
         result = _call_schema("xy", include_examples=False)
@@ -112,3 +151,26 @@ class TestGetChartTypeSchema:
         for chart_type in VALID_CHART_TYPES:
             assert chart_type in _CHART_EXAMPLES
             assert len(_CHART_EXAMPLES[chart_type]) >= 1
+
+
+def test_schema_cache_compiles_once_and_isolates_response_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeated discovery avoids compilation without sharing mutable response data."""
+    _compiled_chart_schema.cache_clear()
+    adapter = _CHART_TYPE_ADAPTERS["treemap_v2"]
+    original = adapter.json_schema
+    calls = 0
+
+    def counted_schema() -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return original()
+
+    monkeypatch.setattr(adapter, "json_schema", counted_schema)
+    first = _call_schema("treemap_v2")
+    first["schema"]["properties"].clear()
+    second = _call_schema("treemap_v2")
+    assert "groupby" in second["schema"]["properties"]
+    assert calls == 1
+    _compiled_chart_schema.cache_clear()

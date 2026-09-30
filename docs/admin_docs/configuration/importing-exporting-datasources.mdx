@@ -83,6 +83,26 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
+## Importing a Directory of Assets
+
+The `import_directory` command imports a directory of exported assets (databases, datasets,
+dashboards, charts) in the same layout produced by the ZIP-based export. Saved queries and tags
+included in a full export are not imported by this command:
+
+```bash
+superset import_directory <path / directory>
+```
+
+As with `import_datasources`, the optional username flag **-u** sets the user assigned as the
+owner of the imported assets. The default is 'admin'. Example:
+
+```bash
+superset import_directory <path / directory> -u 'admin'
+```
+
+If the specified user does not exist, the command fails immediately with an error rather than
+importing the assets without an owner.
+
 ## Dashboard Import Overwrite Behavior
 
 When importing a dashboard ZIP with the **overwrite** option enabled, any existing charts that are part of the dashboard are **replaced** rather than duplicated. This applies to:

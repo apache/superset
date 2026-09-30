@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 # entries through newly upgraded processes without trying to rewrite cached data.
 MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v2:"
 
+# Tools whose responses must never be served from the response cache,
+# regardless of MCP_CACHE_CONFIG["excluded_tools"]. The catalog is a live,
+# per-user projection: a cached page could outlive a revoked grant.
+ALWAYS_EXCLUDED_TOOLS: frozenset[str] = frozenset({"get_catalog"})
+
 
 def _version_cache_prefix(
     prefix: str | Callable[[], str],
@@ -90,10 +95,12 @@ def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
     call_tool_settings: Dict[str, Any] = {}
     if "call_tool_ttl" in cache_config:
         call_tool_settings["ttl"] = cache_config["call_tool_ttl"]
-    if "excluded_tools" in cache_config:
-        call_tool_settings["excluded_tools"] = cache_config["excluded_tools"]
-    if call_tool_settings:
-        settings["call_tool_settings"] = call_tool_settings
+    excluded_tools = list(cache_config.get("excluded_tools") or [])
+    excluded_tools.extend(
+        name for name in sorted(ALWAYS_EXCLUDED_TOOLS) if name not in excluded_tools
+    )
+    call_tool_settings["excluded_tools"] = excluded_tools
+    settings["call_tool_settings"] = call_tool_settings
 
     return settings
 
@@ -123,6 +130,27 @@ def create_response_caching_middleware() -> Any | None:
             logger.debug("MCP response caching disabled")
             return None
 
+        # ResponseCachingMiddleware keys cache entries on the method/tool
+        # name + arguments only and runs ahead of the per-request auth/RBAC
+        # checks, so a cache hit returns a response computed for a different
+        # caller. Only appropriate when every request is guaranteed to come
+        # from the same principal.
+        # that sends byte-identical arguments within the TTL, skipping every
+        # authorization check. Fail closed unless the operator explicitly
+        # accepts a cache shared across principals -- only safe when every
+        # request is guaranteed to come from the same principal (e.g. a
+        # single-user development deployment).
+        if not cache_config.get("dangerously_share_cache_across_principals", False):
+            logger.warning(
+                "MCP_CACHE_CONFIG['enabled'] is set, but response caching "
+                "stays disabled: cache keys do not include the requesting "
+                "principal, so cached responses would be served across users "
+                "without any authorization checks. Set "
+                "'dangerously_share_cache_across_principals': True only when "
+                "all requests share a single principal."
+            )
+            return None
+
         try:
             from fastmcp.server.middleware.caching import ResponseCachingMiddleware
         except ImportError:
@@ -148,6 +176,19 @@ def create_response_caching_middleware() -> Any | None:
 
         # Build per-operation settings from config
         settings = _build_caching_settings(cache_config)
+
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        search_config = flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
+        proxy_name = search_config.get("call_tool_name", "call_tool")
+        # The proxy forwards to FastMCP's tool execution, where the target's
+        # cache policy applies. Caching the outer proxy response would bypass
+        # that policy and could replay an always-excluded catalog response.
+        excluded_tools = settings["call_tool_settings"]["excluded_tools"]
+        if proxy_name not in excluded_tools:
+            excluded_tools.append(proxy_name)
 
         # Create middleware (store=None uses FastMCP's default in-memory store)
         middleware = ResponseCachingMiddleware(

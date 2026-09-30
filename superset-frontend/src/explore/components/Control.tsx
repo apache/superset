@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useState, useEffect } from 'react';
+import { ReactNode, useCallback, useState, useEffect, FocusEvent } from 'react';
 import { isEqual } from 'lodash-es';
 import {
   ControlType,
@@ -70,7 +70,18 @@ export default function Control(props: ControlProps) {
   } = props;
 
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const wasVisible = usePrevious(isVisible);
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (
+      !(event.relatedTarget instanceof Node) ||
+      !event.currentTarget.contains(event.relatedTarget)
+    ) {
+      setFocused(false);
+    }
+  };
+
   const onChange = useCallback(
     (value: any, errors: any[]) => setControlValue(name, value, errors),
     [name, setControlValue],
@@ -119,9 +130,15 @@ export default function Control(props: ControlProps) {
       style={hidden ? { display: 'none' } : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={handleBlur}
     >
       <ErrorBoundary>
-        <ControlComponent onChange={onChange} hovered={hovered} {...props} />
+        <ControlComponent
+          onChange={onChange}
+          hovered={hovered || focused}
+          {...props}
+        />
       </ErrorBoundary>
     </StyledControl>
   );

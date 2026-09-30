@@ -27,6 +27,11 @@ def test_query_context_schema_accepts_empty_queries(app_context: Any) -> None:
     list and every layer is fetched client-side. The schema must accept
     that shape so the container chart can flow through /api/v1/chart/data,
     and the processor must return an empty result list for it.
+
+    Also exercises the request-level ``async_mode`` / ``tab_id`` hints the async
+    chart-data POST sends at the top level: the schema must accept and drop them
+    (``tab_id`` in particular is read by the API via ``get_request_tab_id``), not
+    reject ``tab_id`` as an unknown field — which would 400 every async request.
     """
     with patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
@@ -38,6 +43,8 @@ def test_query_context_schema_accepts_empty_queries(app_context: Any) -> None:
                 "queries": [],
                 "result_format": "json",
                 "result_type": "full",
+                "async_mode": True,
+                "tab_id": "abc123",
             }
         )
     assert query_context.queries == []

@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Callable
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app, has_request_context, url_for
@@ -44,7 +44,7 @@ from superset_core.common.models import Dashboard as CoreDashboard
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource, DatasourceDAO
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
@@ -52,6 +52,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.models import SemanticView
 from superset.subjects.models import (
     dashboard_editors,
     dashboard_viewers,
@@ -61,6 +62,9 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
+
+if TYPE_CHECKING:
+    from superset.explorables.base import Explorable
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -128,6 +132,7 @@ dashboard_slices = Table(
         ForeignKey("slices.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    sqla.Index("ix_dashboard_slices_slice_id", "slice_id"),
 )
 
 
@@ -271,6 +276,31 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     def datasources(self) -> set[BaseDatasource]:
         return {slc.datasource for slc in self.slices if slc.datasource}
 
+    def has_member_datasource(self, datasource: BaseDatasource | Explorable) -> bool:
+        """Type-aware membership: does a member chart reference this datasource?
+
+        A *member datasource* is the ``(datasource_type, datasource_id)``
+        pair a member chart references. Comparing the pair — never the bare
+        numeric id — makes the test immune to id collisions across
+        datasource types, and it needs no datasource resolution (zero
+        queries). ``datasources`` above stays table-shaped for its
+        export/thumbnail/dataset-payload consumers and must not be used for
+        membership checks: it silently omits every non-table datasource.
+        """
+        # ``type`` is duck-typed on purpose: drill entry points hand this
+        # method loosely-typed datasources, and an object with no type or no
+        # id is simply no member — fail closed. Ids are compared as-is: an
+        # explorable with a string id never matches the integer
+        # ``datasource_id`` column, which is likewise fail closed.
+        candidate_type: object = getattr(datasource, "type", None)
+        candidate_id: object = getattr(datasource, "id", None)
+        if candidate_type is None or candidate_id is None:
+            return False
+        return any(
+            (slc.datasource_type, slc.datasource_id) == (candidate_type, candidate_id)
+            for slc in self.slices
+        )
+
     @property
     def charts(self) -> list[str]:
         return [slc.chart for slc in self.slices]
@@ -345,21 +375,63 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
     def datasets_trimmed_for_slices(
         self,
-    ) -> list[tuple[BaseDatasource, dict[str, Any]]]:
-        slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
+    ) -> list[tuple[BaseDatasource | SemanticView, dict[str, Any]]]:
+        """Return trimmed chart metadata, keeping datasource types distinct."""
+        # Key by (datasource_type, datasource_id): SqlaTable and SemanticView
+        # have independent auto-increment id spaces, so grouping by the bare
+        # datasource_id would merge unrelated datasources with colliding ids.
+        slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
-            slices_by_datasource[slc.datasource_id].add(slc)
+            slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 
-        result: list[tuple[BaseDatasource, dict[str, Any]]] = []
+        result: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = []
 
         for _, slices in slices_by_datasource.items():
-            # Use the eagerly-loaded datasource from any slice in the group
-            datasource = next(iter(slices)).datasource
+            # Resolve once per typed datasource, retaining eager-loaded tables.
+            datasource: Datasource | None = next(iter(slices)).resolved_datasource
 
-            if datasource:
+            if isinstance(datasource, (BaseDatasource, SemanticView)):
+                if isinstance(
+                    datasource, SemanticView
+                ) and not security_manager.can_access_datasource(datasource):
+                    # Keep the dashboard lookup identity without instantiating
+                    # a provider or discovering metadata with stored credentials.
+                    result.append(
+                        (
+                            datasource,
+                            {
+                                "id": datasource.id,
+                                "type": datasource.type,
+                                "name": datasource.name,
+                                "supports_samples": datasource.supports_samples,
+                                "supports_drill_to_detail": (
+                                    datasource.supports_drill_to_detail
+                                ),
+                            },
+                        )
+                    )
+                    continue
                 # Filter out unneeded fields from the datasource payload
-                result.append((datasource, datasource.data_for_slices(list(slices))))
+                try:
+                    payload: dict[str, Any] = dict(
+                        datasource.data_for_slices(list(slices))
+                    )
+                except Exception as ex:  # noqa: BLE001
+                    if not isinstance(datasource, SemanticView):
+                        raise
+                    # Provider discovery must not hide other charts' metadata.
+                    # Providers have no shared operational exception contract.
+                    # Exception details may contain credentials or provider URLs.
+                    logger.warning(
+                        "Could not serialize semantic view id=%s "
+                        "layer_uuid=%s error=%s",
+                        datasource.id,
+                        datasource.semantic_layer_uuid,
+                        type(ex).__name__,
+                    )
+                    continue
+                result.append((datasource, payload))
 
         return result
 
@@ -378,15 +450,69 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         return {}
 
     @property
-    def tabs(self) -> dict[str, Any]:
+    def tabs(self) -> dict[str, Any]:  # noqa: C901
+        # Callers index ``all_tabs`` and iterate ``tab_tree``, so every exit
+        # returns that shape. A bare ``{}`` reaches the API as a payload with
+        # neither key, which a caller cannot iterate.
+        no_tabs: dict[str, Any] = {"all_tabs": {}, "tab_tree": []}
+        if not isinstance(self.position, dict):
+            logger.warning("Dashboard %s: layout is not a mapping", self.id)
+            return no_tabs
         if self.position == {}:
-            return {}
+            return no_tabs
 
-        def get_node(node_id: str) -> dict[str, Any]:
+        def get_node(node_id: str) -> Optional[dict[str, Any]]:
             """
             Helper function for getting a node from the position_data
             """
-            return self.position[node_id]
+            return self.position.get(node_id)
+
+        def resolve_child(child_id: Any) -> Optional[dict[str, Any]]:
+            """
+            Helper function for reading a child id, or None if it cannot be walked
+            """
+            child = get_node(child_id) if isinstance(child_id, str) else None
+            if not isinstance(child, dict):
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, missing or malformed",
+                    self.id,
+                    child_id,
+                )
+                return None
+            if child_id in visited:
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, the layout reaches "
+                    "it more than once",
+                    self.id,
+                    child_id,
+                )
+                return None
+            visited.add(child_id)
+            return child
+
+        def register_tab(node: dict[str, Any]) -> None:
+            """
+            Helper function for titling a TAB node and adding it to all_tabs
+            """
+            meta = node.get("meta")
+            title = meta.get("text") if isinstance(meta, dict) else None
+            if not isinstance(title, str):
+                logger.warning(
+                    "Dashboard %s: tab node %s has no title in the layout",
+                    self.id,
+                    node.get("id"),
+                )
+                title = ""
+            node["title"] = title
+            node_id = node.get("id")
+            if not isinstance(node_id, str):
+                logger.warning(
+                    "Dashboard %s: skipping tab node with no usable id in the layout",
+                    self.id,
+                )
+                return
+            node["value"] = node_id
+            all_tabs[node_id] = title
 
         def build_tab_tree(
             node: dict[str, Any], children: list[dict[str, Any]]
@@ -394,29 +520,67 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             """
             Function for building the tab tree structure and list of all tabs
             """
+            if "type" not in node:
+                logger.warning(
+                    "Dashboard %s: skipping untyped layout node %s",
+                    self.id,
+                    node.get("id"),
+                )
+                return
 
+            # A node whose type is not one of the four below is walked through
+            # without contributing to the tree, exactly as an untabbed layout
+            # element always has been.
+            node_type = node["type"]
+            child_ids = node.get("children", [])
+            if not isinstance(child_ids, list):
+                logger.warning(
+                    "Dashboard %s: layout node %s has malformed children",
+                    self.id,
+                    node.get("id"),
+                )
+                child_ids = []
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
-            for child_id in node.get("children", []):
-                child = get_node(child_id)
-                if node["type"] == "TABS":
-                    # if TABS add create a new list and append children to it
-                    # new_children.append(child)
-                    children.append(child)
+            for child_id in child_ids:
+                child = resolve_child(child_id)
+                if child is None:
+                    continue
+                if node_type == "TABS":
+                    # Only a node that will register as a tab belongs in the
+                    # tree. Anything else -- an untyped node, or a tab whose id
+                    # cannot key ``all_tabs`` -- is rejected later and would be
+                    # left in the tree with no ``value`` and no ``title``. It is
+                    # still walked, so tabs stored below it are not lost.
+                    if child.get("type") == "TAB" and isinstance(child.get("id"), str):
+                        children.append(child)
+                    else:
+                        logger.warning(
+                            "Dashboard %s: keeping layout node %s out of the "
+                            "tab tree, it is not a usable tab",
+                            self.id,
+                            child_id,
+                        )
                     queue.append((child, new_children))
-                elif node["type"] in ["GRID", "ROOT"]:
+                elif node_type in ["GRID", "ROOT"]:
                     queue.append((child, children))
-                elif node["type"] == "TAB":
+                elif node_type == "TAB":
                     queue.append((child, new_children))
-            if node["type"] == "TAB":
+            if node_type == "TAB":
                 node["children"] = new_children
-                node["title"] = node["meta"]["text"]
-                node["value"] = node["id"]
-                all_tabs[node["id"]] = node["title"]
+                register_tab(node)
 
         root = get_node("ROOT_ID")
+        if not isinstance(root, dict):
+            logger.warning("Dashboard %s: layout has no usable ROOT_ID node", self.id)
+            return no_tabs
+
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}
+        # A layout is a tree, so every node is reached once. A stored layout
+        # that reaches one twice would walk it twice, and a cycle would never
+        # stop, so the walk keeps track of what it has already reached.
+        visited: set[str] = {"ROOT_ID"}
         queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
         queue.append((root, tab_tree))
         while queue:

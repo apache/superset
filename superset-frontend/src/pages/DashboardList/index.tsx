@@ -122,6 +122,8 @@ export interface Dashboard {
   description?: string;
   thumbnail_url?: string | null;
   editors?: Subject[];
+  // Bare subject ids from a deployment's EXTRA_EDITORS_RESOLVER.
+  extra_editors?: number[];
   viewers?: Subject[];
   tags: TagType[];
   created_by: object;
@@ -182,6 +184,12 @@ function DashboardList(props: DashboardListProps) {
   const isMobile = useIsMobile();
   const theme = useTheme();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  // Tracks the pending "+ Dashboard" navigation: /dashboard/new/ is a hard
+  // navigation (window.location.assign) whose GET creates the dashboard
+  // server-side before redirecting to the editor, so the click can look dead
+  // for the whole round-trip on large instances. Flipping the button into its
+  // loading state gives immediate feedback until the page unloads.
+  const [creatingDashboard, setCreatingDashboard] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -505,7 +513,11 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Dashboard>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -848,7 +860,9 @@ function DashboardList(props: DashboardListProps) {
       icon: <Icons.PlusOutlined iconSize="m" />,
       name: t('Dashboard'),
       buttonStyle: 'primary',
+      loading: creatingDashboard,
       onClick: () => {
+        setCreatingDashboard(true);
         navigateTo('/dashboard/new/', { assign: true });
       },
     });

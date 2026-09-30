@@ -37,7 +37,12 @@ export const TIMESERIES_CONSTANTS = {
   gridOffsetBottom: 20,
   gridOffsetBottomZoomable: 80,
   legendRightTopOffset: 30,
-  legendTopRightOffset: 55,
+  // Width reserved at the chart's right edge so a top-oriented legend (whose
+  // rightmost content is its own All/Inv selector buttons) clears the zoomable
+  // toolbox, which occupies the same corner. The toolbox's dataZoom icons
+  // render from ~67px to ~20px in from the right edge, so the previous 55px
+  // put the legend on top of them (#37286).
+  legendTopRightOffset: 90,
   zoomBottom: 30,
   toolboxTop: 0,
   toolboxRight: 5,
@@ -52,6 +57,12 @@ export const TIMESERIES_CONSTANTS = {
   microChartHeight: 60,
   // One y-axis tick per this many pixels of chart height
   yAxisPixelsPerTick: 80,
+  // Rough average glyph width (px) used to estimate whether adjacent x-axis
+  // time labels would visually collide, since the real rendered width isn't
+  // known until ECharts lays out the axis.
+  xAxisLabelCharWidthPx: 7,
+  // Minimum gap (px) to keep between adjacent x-axis time labels.
+  xAxisLabelMinGapPx: 8,
 };
 
 export enum OpacityEnum {
@@ -89,13 +100,36 @@ export const StackControlOptionsWithoutStream: [
   [StackControlsValue.Stack, t('Stack')],
 ];
 
+// Grains ECharts' time axis cannot tick on; see getTemporalTickValues in
+// utils/series.
+export const WEEKLY_TIME_GRAINS: ReadonlySet<string> = new Set([
+  TimeGranularity.WEEK,
+  TimeGranularity.WEEK_STARTING_SUNDAY,
+  TimeGranularity.WEEK_STARTING_MONDAY,
+  TimeGranularity.WEEK_ENDING_SATURDAY,
+  TimeGranularity.WEEK_ENDING_SUNDAY,
+]);
+
 export const TIMEGRAIN_TO_TIMESTAMP = {
+  [TimeGranularity.SECOND]: 1000,
+  [TimeGranularity.MINUTE]: 60 * 1000,
+  [TimeGranularity.FIVE_MINUTES]: 5 * 60 * 1000,
+  [TimeGranularity.TEN_MINUTES]: 10 * 60 * 1000,
+  [TimeGranularity.FIFTEEN_MINUTES]: 15 * 60 * 1000,
+  [TimeGranularity.THIRTY_MINUTES]: 30 * 60 * 1000,
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
   [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
   [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
+
+// ECharts' own fallback for a degenerate single-point time-axis domain
+// (min === max): it pads by exactly this much on each side, regardless of
+// grain (see calcNiceForTimeScale in echarts/lib/scale/Time.js). Bar-width
+// sizing for a sparse single-bucket chart mirrors this fixed padding rather
+// than guessing at a different visible span.
+export const ONE_DAY_MS = 3600 * 1000 * 24;
 
 export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendMargin: null,

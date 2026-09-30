@@ -15,12 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -e
+
 /app/docker/docker-init.sh
 
 # TODO: copy config overrides from ENV vars
 
 # TODO: run celery in detached state
-export SERVER_THREADS_AMOUNT=8
+export SERVER_THREADS_AMOUNT="${SERVER_THREADS_AMOUNT:-8}"
 # start up the web server
 
-/app/docker/entrypoints/run-server.sh
+exec /app/docker/entrypoints/run-server.sh

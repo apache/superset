@@ -51,7 +51,7 @@ def _find_dashboard_by_identifier(identifier: int | str) -> "Dashboard | None":
     from superset.daos.dashboard import DashboardDAO
 
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         return DashboardDAO.find_by_id(int(identifier))
     # Try UUID, then fall back to slug.
@@ -93,6 +93,8 @@ def _routes_to_soft_delete() -> bool:
         title="Delete dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def delete_dashboard(

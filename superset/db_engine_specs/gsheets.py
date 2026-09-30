@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 
@@ -32,12 +33,12 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
-from sqlalchemy import text
+from sqlalchemy import text, types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset import db, security_manager
+from superset import db
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
@@ -84,6 +85,11 @@ class GSheetsParametersSchema(Schema):
         },
         allow_none=True,
     )
+
+
+# Secure-extra key a service-account connection sets to impersonate the
+# logged-in user through Google Workspace domain-wide delegation.
+DELEGATION_KEY = "domain_wide_delegation"
 
 
 class GSheetsParametersType(TypedDict, total=False):
@@ -156,6 +162,27 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
 
     @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Convert a datetime to a SQL literal understood by shillelagh's GSheets
+        adapter.
+
+        ``SqliteEngineSpec.convert_dttm`` (inherited via ``ShillelaghEngineSpec``)
+        has no case for ``types.Date`` and returns ``None``, which makes Superset
+        fall back to a literal that still carries a time-of-day component. The
+        GSheets adapter's virtual table layer parses that literal with
+        ``datetime.date.fromisoformat``, which rejects the trailing time and
+        silently drops the filter value, producing an invalid query against the
+        Google Sheets API. A bare ``YYYY-MM-DD`` literal is required instead.
+        """
+        sqla_type = cls.get_sqla_column_type(target_type)
+        if isinstance(sqla_type, types.Date):
+            return f"'{dttm.date().isoformat()}'"
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
+
+    @classmethod
     def get_oauth2_authorization_uri(
         cls,
         config: "OAuth2ClientConfig",
@@ -175,6 +202,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
@@ -227,12 +255,54 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
-            user = security_manager.find_user(username=username)
-            if user and user.email:
-                url = url.update_query_dict({"subject": user.email})
+            # Resolved from the database rather than from ``username``: with
+            # ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled the caller has already
+            # substituted the email prefix into ``username``, so looking it up
+            # here as if it were still the login finds nothing whenever the two
+            # differ, silently leaving the subject unset. ``url`` is the same
+            # one ``Database._get_sqla_engine()`` resolved from, so both paths
+            # read the effective user from the same place.
+            if email := database.get_impersonation_email(url):
+                url = url.update_query_dict({"subject": email})
 
         if user_token:
-            url = url.update_query_dict({"access_token": user_token})
+            # Pass the token through ``connect_args`` rather than the URL.
+            # ``update_params_from_encrypted_extra`` stores the catalog (and any
+            # service account) in ``connect_args["adapter_kwargs"]``, and SQLAlchemy
+            # merges ``connect_args`` over the dialect's own arguments shallowly,
+            # so a token in the URL would be dropped and the query would run
+            # without credentials. For the same reason a ``subject`` set on the URL
+            # above is carried over, so it isn't dropped either.
+            connect_args = engine_kwargs.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            gsheetsapi_kwargs = adapter_kwargs.setdefault("gsheetsapi", {})
+            gsheetsapi_kwargs["access_token"] = user_token
+            if subject := url.query.get("subject"):
+                gsheetsapi_kwargs.setdefault("subject", subject)
+
+        encrypted_extra = database.get_encrypted_extra()
+        if encrypted_extra.get("service_account_info"):
+            # A service account from the secure extra always sits in
+            # ``connect_args``, so a ``subject`` on the URL never reaches
+            # shillelagh and the query runs as the service account itself.
+            # Honouring it for every such connection would break service
+            # accounts without Google Workspace domain-wide delegation (the
+            # connection form enables impersonation for every Google Sheets
+            # database), so the connection has to opt in explicitly.
+            subject = url.query.get("subject")
+            url = url.difference_update_query(["subject"])
+            if not user_token and encrypted_extra.get(DELEGATION_KEY) is True:
+                if not subject:
+                    # Never fall back to the service account's own access.
+                    raise SupersetException(
+                        __(
+                            "This Google Sheets connection impersonates the "
+                            "logged-in user, who has no e-mail address."
+                        )
+                    )
+                connect_args = engine_kwargs.setdefault("connect_args", {})
+                adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+                adapter_kwargs.setdefault("gsheetsapi", {})["subject"] = subject
 
         return url, engine_kwargs
 
@@ -305,6 +375,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
 
+        # Read by ``impersonate_user``; not a shillelagh argument.
+        params.pop(DELEGATION_KEY, None)
+
         if "service_account_info" in params:
             sa_info = params.pop("service_account_info")
             connect_args = params.setdefault("connect_args", {})
@@ -371,7 +444,22 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
-            encrypted_credentials = json.loads(encrypted_credentials)
+            try:
+                encrypted_credentials = json.loads(encrypted_credentials)
+            except json.JSONDecodeError:
+                errors.append(
+                    SupersetError(
+                        message=(
+                            "The service account credentials are not valid JSON. "
+                            "Please check that the field contains a valid service "
+                            "account key."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["service_account_info"]},
+                    ),
+                )
+                return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets
@@ -390,6 +478,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 }
             },
         )
+        cls.register_engine_events(engine)
         conn = engine.connect()
         idx = 0
 

@@ -16,7 +16,7 @@
 # under the License.
 
 import io
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -33,12 +33,38 @@ from superset.utils.excel import (
 
 def test_timezone_conversion() -> None:
     """
-    Test that columns with timezones are converted to a string.
+    Timezone-aware values are stored as naive Excel datetimes (wall clock).
     """
     df = pd.DataFrame({"dt": [datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)]})
     apply_column_types(df, [GenericDataType.TEMPORAL])
+    assert df["dt"].tolist() == [datetime(2023, 1, 1, 0, 0)]
     contents = df_to_excel(df)
-    assert pd.read_excel(contents)["dt"][0] == "2023-01-01 00:00:00+00:00"
+    exported = pd.read_excel(contents)["dt"][0]
+    assert pd.Timestamp(exported) == pd.Timestamp("2023-01-01 00:00:00")
+
+
+def test_timezone_keeps_wall_clock_not_utc_shift() -> None:
+    """
+    Offsets are dropped without converting to UTC.
+
+    2023-01-01 00:00 in UTC+3 must remain midnight, not 2022-12-31 21:00.
+    """
+    plus_three = timezone(timedelta(hours=3))
+    df = pd.DataFrame({"dt": [datetime(2023, 1, 1, 0, 0, tzinfo=plus_three)]})
+    apply_column_types(df, [GenericDataType.TEMPORAL])
+    assert df["dt"].iloc[0] == datetime(2023, 1, 1, 0, 0)
+
+
+def test_timezone_aware_index_exports() -> None:
+    """Pivot-style indexes with tz-aware timestamps still serialize to Excel."""
+    index = pd.DatetimeIndex(
+        [datetime(2024, 6, 1, 12, 0, tzinfo=timezone.utc)],
+        name="ds",
+    )
+    df = pd.DataFrame({"value": [1.5]}, index=index)
+    contents = df_to_excel(df)
+    result = pd.read_excel(contents, index_col=0)
+    assert pd.Timestamp(result.index[0]) == pd.Timestamp("2024-06-01 12:00:00")
 
 
 def test_quote_formulas() -> None:
@@ -184,6 +210,69 @@ def test_column_data_types_with_failing_conversion():
     assert not is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
+
+
+def test_apply_column_types_with_duplicate_column_labels() -> None:
+    """
+    Test that duplicate column labels do not break the export.
+
+    The verbose_map rename in QueryContextProcessor.get_data can collapse two
+    columns onto the same label, which used to raise
+    "'DataFrame' object has no attribute 'dtype'".
+    """
+    df = pd.DataFrame(
+        [
+            ["1", datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc), "2"],
+            ["3", datetime(2023, 1, 2, 0, 0, tzinfo=timezone.utc), "4"],
+        ],
+        columns=["dupe", "dupe", "other"],
+    )
+    coltypes: list[GenericDataType] = [
+        GenericDataType.STRING,
+        GenericDataType.TEMPORAL,
+        GenericDataType.NUMERIC,
+    ]
+
+    apply_column_types(df, coltypes)
+
+    # each position is typed independently, despite sharing a label
+    assert not is_numeric_dtype(df.iloc[:, 0])
+    assert list(df.iloc[:, 1]) == [
+        datetime(2023, 1, 1, 0, 0),
+        datetime(2023, 1, 2, 0, 0),
+    ]
+    assert is_numeric_dtype(df.iloc[:, 2])
+
+    contents = df_to_excel(df, index=False)
+    assert pd.read_excel(contents).shape == (2, 3)
+
+
+def test_quote_formulas_with_duplicate_column_labels() -> None:
+    """
+    Test that formulas are quoted even when column labels are duplicated.
+    """
+    df = pd.DataFrame(
+        [["=SUM(A1:A2)", "@SUM(A1:A2)", "normal"]],
+        columns=["dupe", "dupe", "other"],
+    )
+
+    result = quote_formulas(df)
+
+    assert result.iloc[0].tolist() == ["'=SUM(A1:A2)", "'@SUM(A1:A2)", "normal"]
+
+
+def test_quote_formulas_with_dedicated_string_dtype() -> None:
+    """
+    Test that formulas are quoted in columns using the dedicated string dtype.
+
+    pandas 3 gives string columns a ``str`` dtype rather than ``object``, so an
+    object-only dtype check would skip them and leave formulas unquoted.
+    """
+    df = pd.DataFrame({"formula": pd.array(["=SUM(A1:A2)", "normal"], dtype="string")})
+
+    result = quote_formulas(df)
+
+    assert result["formula"].tolist() == ["'=SUM(A1:A2)", "normal"]
 
 
 def test_column_data_types_with_large_numeric_values():

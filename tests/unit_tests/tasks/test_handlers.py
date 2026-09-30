@@ -80,11 +80,11 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
 
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
-        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+        patch(
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
+        ),
     ):
-        # Disable Redis by making distributed_coordination return None
-        mock_cache_manager.distributed_coordination = None
-
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         # Use regular Mock (not MagicMock) for _get_current_object to avoid
@@ -169,6 +169,8 @@ class TestTaskSetStatus:
 
         assert task.properties_dict.get("is_abortable") is False
         assert task.started_at is not None
+        # Stored as naive UTC (no tzinfo) so DB drivers can't tz-convert it.
+        assert task.started_at.tzinfo is None
 
     def test_set_status_in_progress_preserves_existing_is_abortable(self):
         """Test that re-setting IN_PROGRESS doesn't override is_abortable."""
@@ -238,9 +240,25 @@ class TestTaskDuration:
         # 30 seconds since start
         assert task.duration_seconds == 30.0
 
+    @freeze_time("2024-01-01 10:00:30")
+    def test_duration_seconds_running_task_naive_started_at(self):
+        """Running duration is correct when started_at is stored naive UTC.
+
+        Regression: an aware started_at converted to session-local time on write
+        would inflate the running duration by the local UTC offset. A naive-UTC
+        started_at must yield the true elapsed against a naive-UTC now.
+        """
+        from superset.models.tasks import Task
+
+        task = Task()
+        task.started_at = datetime(2024, 1, 1, 10, 0, 0)  # naive UTC
+        task.ended_at = None
+
+        assert task.duration_seconds == 30.0
+
     @freeze_time("2024-01-01 10:00:15")
     def test_duration_seconds_pending_task(self):
-        """Test duration for pending task returns queue time."""
+        """A pending (not-yet-started) task has no duration to show."""
         from superset.models.tasks import Task
 
         task = Task()
@@ -248,8 +266,8 @@ class TestTaskDuration:
         task.started_at = None
         task.ended_at = None
 
-        # 15 seconds since creation
-        assert task.duration_seconds == 15.0
+        # Not started yet → None (queue time is not execution time).
+        assert task.duration_seconds is None
 
     def test_duration_seconds_no_timestamps(self):
         """Test duration returns None when no timestamps available."""
@@ -290,7 +308,7 @@ class TestAbortHandlerRegistration:
 
         with (
             patch.object(TaskContext, "_set_abortable") as mock_set_abortable,
-            patch.object(TaskContext, "start_abort_polling"),
+            patch.object(TaskContext, "_start_abort_listener"),
         ):
             ctx = TaskContext(mock_task)
 
@@ -312,7 +330,7 @@ class TestAbortHandlerRegistration:
 
         with (
             patch.object(TaskContext, "_set_abortable") as mock_set_abortable,
-            patch.object(TaskContext, "start_abort_polling"),
+            patch.object(TaskContext, "_start_abort_listener"),
         ):
             ctx = TaskContext(mock_task)
 
@@ -675,3 +693,128 @@ class TestCleanupHandlers:
         task_context._run_cleanup()
 
         assert call_count == 1  # Still 1, not 2
+
+
+class TestHandlerFailureStatusWrite:
+    """The handler-failure writer must not rewrite a committed terminal status."""
+
+    def test_cleanup_failure_after_terminal_does_not_flip_status(self, task_context):
+        """Cleanup runs in the executor's finally — after a SUCCESS commit. A
+        raising cleanup handler must not flip the committed status: the write is a
+        conditional transition (no-op on a terminal task), and the failure detail
+        is instead recorded via a properties-only update."""
+        task_context._handler_failures = [("cleanup", RuntimeError("boom"), "trace")]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            # Simulate the task already being terminal (SUCCESS): the CAS no-ops.
+            transition.return_value.run.return_value = False
+            task_context._write_handler_failures_to_db()
+
+        # FAILURE was attempted only from non-terminal states...
+        assert transition.call_args.kwargs["new_status"] == TaskStatus.FAILURE
+        assert transition.call_args.kwargs["expected_status"] == [
+            TaskStatus.IN_PROGRESS,
+            TaskStatus.ABORTING,
+        ]
+        # ...and since it no-op'd, the detail was recorded without a status change.
+        update.assert_called_once()
+        assert "status" not in update.call_args.kwargs
+
+    def test_cleanup_failure_while_in_progress_marks_failure(self, task_context):
+        """When the task is still running, a handler failure does flip it to
+        FAILURE and does not need the properties-only fallback write."""
+        task_context._handler_failures = [("cleanup", RuntimeError("boom"), "trace")]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            transition.return_value.run.return_value = True  # transition succeeded
+            task_context._write_handler_failures_to_db()
+
+        transition.assert_called_once()
+        update.assert_not_called()
+
+    def test_cleanup_failure_after_body_failure_preserves_original_error(
+        self, task_context
+    ):
+        """Regression: a task-body exception writes the terminal error, then a
+        cleanup handler also fails. The properties-only fallback (task already
+        terminal) must PRESERVE the original body error — its message, exception
+        type, and stack trace — and add the cleanup detail alongside it, rather than
+        erasing it by writing a complete column built from a stale cache."""
+        # Body failed first: error_properties records the terminal error and keeps
+        # the cache authoritative.
+        try:
+            raise ValueError("body boom")
+        except ValueError as ex:
+            task_context.error_properties(exception=ex)
+
+        task_context._handler_failures = [
+            ("cleanup", RuntimeError("cleanup boom"), "cleanup-trace")
+        ]
+        with (
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand"
+            ) as transition,
+            patch(
+                "superset.commands.tasks.internal_update.InternalUpdateTaskCommand"
+            ) as update,
+        ):
+            transition.return_value.run.return_value = False  # already terminal
+            task_context._write_handler_failures_to_db()
+
+        props = update.call_args.kwargs["properties"]
+        # The original body error survives...
+        assert props["error_message"] == "body boom"
+        assert props["private"]["framework"]["exception_type"] == "ValueError"
+        assert "body boom" in props["private"]["framework"]["stack_trace"]
+        # ...and the cleanup failure is recorded alongside it.
+        assert (
+            props["private"]["framework"]["cleanup_error_message"]
+            == "Cleanup handler failed: cleanup boom"
+        )
+
+
+class TestErrorProperties:
+    """error_properties merges the executor cache with error detail (no wipe)."""
+
+    def test_error_properties_preserves_cache_and_adds_detail(self, task_context):
+        task_context._properties_cache = {
+            "is_abortable": True,
+            "progress_percent": 0.5,
+            "private": {"task": {"cancel_query_id": "q1"}},
+        }
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError as ex:
+            props = task_context.error_properties(exception=ex)
+
+        # Existing runtime fields and the private.task namespace are preserved...
+        assert props["is_abortable"] is True
+        assert props["progress_percent"] == 0.5
+        assert props["private"]["task"] == {"cancel_query_id": "q1"}
+        # ...and the structured error detail is added under the public message and
+        # the debug-only private.framework namespace.
+        assert props["error_message"] == "boom"
+        assert props["private"]["framework"]["exception_type"] == "RuntimeError"
+        assert "boom" in props["private"]["framework"]["stack_trace"]
+
+    def test_error_properties_plain_message_without_exception(self, task_context):
+        task_context._properties_cache = {"progress_percent": 0.5}
+        props = task_context.error_properties(error_message="fenced")
+        assert props["error_message"] == "fenced"
+        assert props["progress_percent"] == 0.5
+        assert "framework" not in props.get("private", {})

@@ -49,6 +49,7 @@ import {
 import { useSelector } from "react-redux";
 import { useResizeDetector } from "react-resize-detector";
 import { getDatasourceSamples } from "src/components/Chart/chartAction";
+import { PreformattedErrorDescription } from "src/components/ErrorMessage/PreformattedErrorDescription";
 import { useToasts } from "src/components/MessageToasts/withToasts";
 import { RootState } from "src/dashboard/types";
 import { useDatasetMetadataBar } from "src/features/datasets/metadataBar/useDatasetMetadataBar";
@@ -396,7 +397,11 @@ export default function DrillDetailPane({
           type="error"
           showIcon
           message={t("Failed to load drill-to-detail rows")}
-          description={responseError}
+          description={
+            <PreformattedErrorDescription>
+              {responseError}
+            </PreformattedErrorDescription>
+          }
         />
       </div>
     );

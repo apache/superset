@@ -31,7 +31,6 @@ from flask import (
     render_template,
     request,
     Response,
-    send_file,
 )
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -131,7 +130,8 @@ from superset.utils.core import (
     error_msg_from_exception,
     get_username,
     parse_js_uri_path_item,
-    sanitize_cookie_token,
+    send_export_zip,
+    write_zip_entry,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
@@ -147,6 +147,8 @@ from superset.views.error_handling import handle_api_exception, json_error_respo
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
+
+MAX_RELATED_DATASETS = 10
 
 
 # pylint: disable=too-many-public-methods
@@ -465,6 +467,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["uuid"] = new_model.uuid
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    new_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
@@ -564,6 +572,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    changed_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
@@ -1316,6 +1330,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
+        except OAuth2RedirectError:
+            # OAuth2 connections pass, so they can be saved. A user later
+            # can then store an OAuth2 token.
+            return self.response(200, message="OK")
         except (
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,
@@ -1384,6 +1402,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Names are access-filtered like charts and dashboards above, but the
+        # count is not. This route only requires ``can_read`` on Database, and
+        # ``DatabaseFilter`` admits a caller holding ``datasource_access`` on a
+        # single dataset in the database, so returning every name here would let
+        # them enumerate datasets they hold no permission on. The count has to
+        # stay unfiltered because it is what explains the delete being blocked --
+        # a bare number discloses far less than a name and schema.
+        datasets = []
+        for dataset in data["datasets"]:
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            datasets.append(
+                {
+                    "id": dataset.id,
+                    "table_name": dataset.table_name,
+                    "schema": dataset.schema,
+                }
+            )
+            if len(datasets) == MAX_RELATED_DATASETS:
+                break
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1392,6 +1430,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
+            datasets={"count": data["dataset_count"], "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))
@@ -1562,21 +1601,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatabasesCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatabaseNotFoundError:
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
@@ -2059,7 +2091,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             errors = [
                 SupersetError(
-                    message="\n".join(messages),
+                    message="\n".join(str(m) for m in messages),
                     error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},

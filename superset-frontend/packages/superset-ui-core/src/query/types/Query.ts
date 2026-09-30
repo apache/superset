@@ -164,6 +164,8 @@ export interface QueryContext {
   };
   /** Force refresh of all queries */
   force: boolean;
+  /** Idempotency token for a forced refresh (present only when forcing) */
+  force_nonce?: string;
   /** Type of result to return for queries */
   result_type: string;
   /** Response format */
@@ -243,6 +245,7 @@ export const ErrorTypeEnum = {
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
   MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
+  CSRF_ERROR: 'CSRF_ERROR',
 
   // Report errors
   REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR',
@@ -492,5 +495,3 @@ export enum ContributionType {
 export type DatasourceSamplesQuery = {
   filters?: QueryObjectFilterClause[];
 };
-
-export default {};

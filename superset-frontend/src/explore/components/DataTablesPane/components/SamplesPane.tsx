@@ -24,6 +24,7 @@ import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import { GridTable } from 'src/components/GridTable';
 import { GridSize } from 'src/components/GridTable/constants';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
@@ -136,6 +137,12 @@ export const SamplesPane = ({
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);
+  // Samples aren't capped by a chart's row_limit, just this pane's own
+  // page-size selector, so RowCountLabel's default "chart" wording is wrong here.
+  const limitReachedMessage = t(
+    'The sample row limit was reached. This %s may contain more rows.',
+    datasetLabelLower(),
+  );
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -161,6 +168,7 @@ export const SamplesPane = ({
           canDownload={canDownload}
           rowLimit={rowLimit}
           rowLimitOptions={ROW_LIMIT_OPTIONS}
+          limitReachedMessage={limitReachedMessage}
           onRowLimitChange={handleRowLimitChange}
         />
         <ErrorAlertWrapper>
@@ -168,7 +176,11 @@ export const SamplesPane = ({
             type="error"
             showIcon
             message={t('Failed to load samples')}
-            description={responseError}
+            description={
+              <PreformattedErrorDescription>
+                {responseError}
+              </PreformattedErrorDescription>
+            }
           />
         </ErrorAlertWrapper>
       </>
@@ -197,6 +209,7 @@ export const SamplesPane = ({
         canDownload={canDownload}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
       />
       <GridContainer>
