@@ -43,6 +43,8 @@ from testcontainers.core.waiting_utils import wait_for_logs
 
 
 class BigQueryContainer(DockerContainer):
+    """Wraps the `goccy/bigquery-emulator` image in a plain ``DockerContainer``."""
+
     def __init__(
         self,
         image: str = "ghcr.io/goccy/bigquery-emulator:latest",
@@ -51,6 +53,7 @@ class BigQueryContainer(DockerContainer):
         grpc_port: int = 9060,
         **kwargs: object,
     ) -> None:
+        """Configure the emulator's REST/gRPC ports and startup command."""
         super().__init__(image=image, **kwargs)
         self.project = project
         self.port = port
@@ -59,11 +62,13 @@ class BigQueryContainer(DockerContainer):
         self.with_command(f"--project={project} --port={port} --grpc-port={grpc_port}")
 
     def get_rest_endpoint(self) -> str:
+        """Return the emulator's host-mapped REST API base URL."""
         return (
             f"http://{self.get_container_host_ip()}:{self.get_exposed_port(self.port)}"
         )
 
     def get_client(self, **kwargs: object) -> bigquery.Client:
+        """Wait for the emulator to be ready and return a client pointed at it."""
         wait_for_logs(self, "REST server listening at", timeout=30.0)
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("credentials", AnonymousCredentials())
