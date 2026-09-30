@@ -298,6 +298,27 @@ async def test_get_dashboard_layout_resolves_shared_permalink(
     assert data["is_permalink_state"] is True
     assert data["filter_state"]["activeTabs"] == [_wrapped("TAB-2")]
     assert mock_find.call_args_list[-1].args == (42,)
+    # The explicit scope applies on top of the preserved permalink state, even
+    # when it selects a tab other than the permalink's active tab.
+    if options.get("tabs_only"):
+        assert data["scope"] == {
+            "tabs_only": True,
+            "tab_id": None,
+            "untabbed_only": False,
+        }
+        assert [tab["id"] for tab in data["tab_tree"]] == ["TAB-1", "TAB-2"]
+        assert data["charts"] == []
+    elif options.get("tab"):
+        assert data["scope"] == {
+            "tabs_only": False,
+            "tab_id": "TAB-1",
+            "untabbed_only": False,
+        }
+        assert [tab["id"] for tab in data["tabs"]] == ["TAB-1"]
+        assert [chart["chart_id"] for chart in data["charts"]] == [10]
+    else:
+        assert data["scope"] is None
+        assert [chart["chart_id"] for chart in data["charts"]] == [10, 20]
 
 
 @patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
