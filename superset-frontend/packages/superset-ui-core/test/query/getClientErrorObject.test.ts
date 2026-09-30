@@ -362,6 +362,21 @@ test('parseErrorJson keeps a message that starts with < but is not a tag', () =>
   });
 });
 
+test('parseErrorJson keeps a message that itself parses as JSON', () => {
+  // isJsonString() short-circuits checkForHtml before the tag checks ever
+  // run: a message that happens to parse as JSON on its own is never
+  // treated as an HTML error page, whatever text it contains — otherwise
+  // isProbablyHTML()'s full-string scan would flag the embedded tag below
+  // and incorrectly collapse this into a generic status message.
+  const message = '{"detail": "<div>not actually markup</div>"}';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
