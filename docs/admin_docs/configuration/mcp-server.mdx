@@ -1171,6 +1171,14 @@ empty marker labels use the formatted numeric value. Extra labels have no value
 to annotate and are ignored. These rules also apply to saved-chart previews and
 updates; omitted label controls preserve the saved state.
 
+### Chart query result limits
+
+MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`
+array emitted by Chart Data uses the same 50,000-entry limit, rather than the
+4,096-entry limit for other metadata arrays. Index entries count toward the
+shared row-data work budget and retain the 1 MiB aggregate metadata byte limit.
+Nested containers within an index entry retain the standard container limits.
+
 ### Reporting query dates
 
 `query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`

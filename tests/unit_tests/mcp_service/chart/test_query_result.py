@@ -1231,6 +1231,111 @@ def test_query_result_rejects_adversarial_values_with_bounded_errors(
     assert len(failure.error.encode()) < 500
 
 
+@pytest.mark.parametrize("row_count", [5000, MAX_QUERY_RESULT_ROWS])
+@pytest.mark.parametrize("query_count", [1, 2])
+def test_query_result_accepts_row_shaped_indexnames(
+    row_count: int, query_count: int
+) -> None:
+    """Full Chart Data results carry one index entry per dataframe row."""
+    frame = pd.DataFrame({"value": range(row_count)})
+    rows = frame.to_dict(orient="records")
+    indexnames = list(frame.index)
+    result = {
+        "queries": [
+            {"data": rows, "indexnames": indexnames, "rowcount": row_count}
+            for _ in range(query_count)
+        ]
+    }
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [rows] * query_count
+    assert all(query["indexnames"] == indexnames for query in result["queries"])
+
+
+def test_query_result_bounds_indexnames_by_the_row_limit() -> None:
+    """The row-index exception still has a per-query cardinality limit."""
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {"data": [], "indexnames": list(range(MAX_QUERY_RESULT_ROWS + 1))}
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "oversized array" in failure.error
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"queries": [{"data": [], "metadata": list(range(5000))}]},
+        {"queries": [{"data": [], "indexnames": [list(range(5000))]}]},
+        {"indexnames": list(range(5000)), "queries": [{"data": []}]},
+    ],
+)
+def test_query_result_keeps_non_row_metadata_array_limits(
+    result: dict[str, Any],
+) -> None:
+    """Only a query's outer row-index array gets the larger cardinality cap."""
+    data, failure = query_result_data(result)
+
+    assert data is None
+    assert failure is not None
+    assert "oversized array" in failure.error
+
+
+@pytest.mark.parametrize(
+    "budget_name", ["MAX_QUERY_RESULT_VALUES", "MAX_QUERY_RESULT_WORK"]
+)
+def test_query_result_charges_indexnames_to_the_value_work_budget(
+    monkeypatch: pytest.MonkeyPatch, budget_name: str
+) -> None:
+    """Row indexes share the row-data work budget instead of bypassing it."""
+    row_count = 5000
+    # One index array, its entries, and one object/scalar pair per data row.
+    value_count = 1 + 3 * row_count
+    # The work limit also counts the envelope's three metadata keys.
+    if budget_name == "MAX_QUERY_RESULT_WORK":
+        value_count += 3
+    monkeypatch.setattr(query_result_module, budget_name, value_count)
+    result = {
+        "queries": [
+            {
+                "data": [{"value": index} for index in range(row_count)],
+                "indexnames": list(range(row_count)),
+            }
+        ]
+    }
+
+    data, failure = query_result_data(result)
+    assert failure is None
+    assert data is not None
+    assert len(data[0]) == row_count
+
+    monkeypatch.setattr(query_result_module, budget_name, value_count - 1)
+    data, failure = query_result_data(result)
+    assert data is None
+    assert failure is not None
+    assert (
+        "too many total values" in failure.error or "total work limit" in failure.error
+    )
+
+
+def test_query_result_keeps_indexnames_in_the_metadata_byte_budget() -> None:
+    """Larger row-index arrays retain the aggregate metadata byte cap."""
+    data, failure = query_result_data(
+        {"queries": [{"data": [], "indexnames": ["x" * 32] * MAX_QUERY_RESULT_ROWS}]}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
+
+
 def test_query_result_accepts_documented_row_and_scalar_boundaries() -> None:
     rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
     boundary_integer = 1 << (MAX_QUERY_RESULT_INTEGER_BITS - 1)

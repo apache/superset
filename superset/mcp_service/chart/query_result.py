@@ -76,8 +76,9 @@ _MAX_RESULT_ROW_COUNT = (1 << 63) - 1
 # 4 KiB. Derived strings in a final Pydantic response have no per-cell cap; the
 # complete compact response remains subject to the 16 MiB aggregate budget.
 # Query metadata has its own 1 MiB aggregate budget so SQL and cache metadata
-# cannot consume the row-data allowance. Integer/Decimal bounds also prevent
-# later hashing, uniqueness, and JSON conversion from allocating by magnitude.
+# cannot consume the row-data allowance. Row-shaped indexnames use the row-data
+# work budget while retaining the metadata byte budget. Integer/Decimal bounds
+# prevent later hashing, uniqueness, and JSON conversion from allocating by magnitude.
 MAX_QUERY_RESULT_ROWS = 50_000
 MAX_QUERY_RESULT_TOTAL_ROWS = 2 * MAX_QUERY_RESULT_ROWS
 MAX_QUERY_RESULT_VALUES = 2_500_000
@@ -1277,9 +1278,9 @@ def _add_result_value_to_budget(value: Any, budget: _ResultBudget) -> str | None
 
 
 def _metadata_failure_for_value(  # noqa: C901
-    value: Any, budget: _ResultBudget
+    value: Any, budget: _ResultBudget, *, row_shaped: bool = False
 ) -> str | None:
-    """Bound exact-container query metadata independently of row data."""
+    """Bound metadata, charging row-shaped indexes to the row-data work budget."""
     stack: list[tuple[Any, int, bool]] = [(value, 0, False)]
     active_containers: set[int] = set()
     while stack:
@@ -1287,9 +1288,14 @@ def _metadata_failure_for_value(  # noqa: C901
         if leaving:
             active_containers.remove(id(item))
             continue
-        budget.metadata_items += 1
-        if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
-            return "metadata exceeds the item limit"
+        if row_shaped:
+            budget.values += 1
+            if budget.values > MAX_QUERY_RESULT_VALUES:
+                return "metadata contains too many total values"
+        else:
+            budget.metadata_items += 1
+            if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
+                return "metadata exceeds the item limit"
         if budget.values + budget.metadata_items > MAX_QUERY_RESULT_WORK:
             return "metadata exceeds the total work limit"
         if depth > _MAX_ROW_CONTAINER_DEPTH:
@@ -1328,7 +1334,14 @@ def _metadata_failure_for_value(  # noqa: C901
             active_containers.add(identity)
             stack.append((item, depth, True))
             width = list.__len__(item)
-            if width > _MAX_ROW_CONTAINER_ITEMS:
+            # Chart Data emits one indexname per row. Only that outer array
+            # receives the row limit; containers within an index stay bounded.
+            max_items = (
+                MAX_QUERY_RESULT_ROWS
+                if row_shaped and depth == 0
+                else _MAX_ROW_CONTAINER_ITEMS
+            )
+            if width > max_items:
                 return "metadata contains an oversized array"
             if reason := _charge_json_bytes(
                 budget,
@@ -1627,7 +1640,12 @@ def query_result_data(  # noqa: C901
         for metadata_key, metadata_value in dict.items(query):
             if metadata_key in {"data", *_ERROR_KEYS, "errors"}:
                 continue
-            if reason := _metadata_failure_for_value(metadata_value, budget):
+            if reason := _metadata_failure_for_value(
+                metadata_value,
+                budget,
+                row_shaped=metadata_key == "indexnames"
+                and type(metadata_value) is list,
+            ):
                 return None, _malformed_result(f"query {index} {reason}")
         if metadata_failure := _metadata_failure(query, f"query {index}"):
             return None, metadata_failure
