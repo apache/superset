@@ -68,6 +68,8 @@ const barWidth = (bar: Element): number => {
 // Shared scaffolding for the cell-bar cases below: they all render one column
 // of values and read back the bar each row drew, so a markup or config-shape
 // change should not have to be chased through five copies of the same glue.
+// `rule` takes an array for the cases that need a second rule alongside the
+// cell bar — a background rule over the same column, most of the time.
 const cellBarProps = ({
   values,
   showCellBars,
@@ -76,7 +78,7 @@ const cellBarProps = ({
 }: {
   values: unknown[];
   showCellBars: boolean;
-  rule: Record<string, unknown>;
+  rule: Record<string, unknown> | Record<string, unknown>[];
   base?: typeof testData.raw;
 }) =>
   transformProps({
@@ -92,7 +94,7 @@ const cellBarProps = ({
     rawFormData: {
       ...base.rawFormData,
       show_cell_bars: showCellBars,
-      conditional_formatting: [rule],
+      conditional_formatting: Array.isArray(rule) ? rule : [rule],
     },
   });
 
@@ -1308,21 +1310,12 @@ describe('plugin-chart-table', () => {
         // A column can carry a background rule and a cell-bar rule that both
         // match the same cell. The background rule is applied first, and it used
         // to clear the flag that gates bar geometry, so the cell bar fell back to
-        // the 100%-width band and every matching value read as equal magnitude.
-        const props = transformProps({
-          ...testData.raw,
-          queriesData: [
-            {
-              ...testData.raw.queriesData[0],
-              colnames: ['num'],
-              coltypes: [GenericDataType.Numeric],
-              data: [{ num: 0 }, { num: 4000 }, { num: 10000 }],
-            },
-          ],
-          rawFormData: {
-            ...testData.raw.rawFormData,
-            show_cell_bars: false,
-            conditional_formatting: [
+        // the full-width band and every matching value read as equal magnitude.
+        const { bars } = renderCellBars(
+          cellBarProps({
+            values: [0, 4000, 10000],
+            showCellBars: false,
+            rule: [
               {
                 colorScheme: '#D9D9D9',
                 column: 'num',
@@ -1332,21 +1325,12 @@ describe('plugin-chart-table', () => {
               },
               cellBarRule({ operator: Comparator.None }),
             ],
-          },
-        });
-        const { container } = render(
-          ProviderWrapper({
-            children: <TableChart {...props} sticky={false} />,
           }),
         );
-        const bars = container.querySelectorAll('div.cell-bar');
-        expect(bars.length).toBe(3);
-        // Every cell matches the background rule, so the flag is cleared on
-        // every cell. The bar must still be scaled against the column range:
-        // 4000 of [0, 10000] is 40%, not the 100% the fallback band paints.
-        expect(barWidth(bars[0])).toBe(0);
-        expect(barWidth(bars[1])).toBe(40);
-        expect(barWidth(bars[2])).toBe(100);
+        // Every cell matches both rules, so the flag is cleared on every cell.
+        // The bar must still be scaled against the column range: 4000 of
+        // [0, 10000] is 40%, not the 100% the fallback band paints.
+        expect(bars.map(barWidth)).toEqual([0, 40, 100]);
       });
 
       test('a non-finite value is not treated as a magnitude', () => {
