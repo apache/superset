@@ -621,3 +621,25 @@ def test_empty_result_set_preserves_column_metadata() -> None:
     df = result_set.to_pandas_df()
     assert len(df) == 0
     assert list(map(str, df.columns)) == ["id", "name", "created_at"]
+
+
+def test_integers_outside_int64_are_stringified() -> None:
+    """
+    Integers PyArrow cannot hold in int64 must not fail the whole result set.
+
+    MySQL-family ``BIGINT UNSIGNED`` columns return Python ints up to 2**64 - 1,
+    and ``pa.array`` raises ``OverflowError`` for anything above 2**63 - 1. Such a
+    column falls back to strings, which also keeps the exact value that a
+    JavaScript number could not represent.
+    """
+    data = [(1, 18446744073709551615), (2, 0), (3, None)]
+    description = [
+        ("id", "int", None, None, None, None, True),
+        ("ubig", "int", None, None, None, None, True),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    df = result_set.to_pandas_df()
+    assert df["id"].tolist() == [1, 2, 3]
+    assert df["ubig"].iloc[:2].tolist() == ["18446744073709551615", "0"]
+    assert pd.isna(df["ubig"].iloc[2])

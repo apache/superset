@@ -59,22 +59,51 @@ from ._pagination import (  # noqa: E402
 HTTP_PORT = 8000
 DBNAME = "default"
 
+# The image's entrypoint (databendlabs/databend docker/bootstrap.sh) gates
+# databend-query on a bare `sleep 1` after backgrounding databend-meta. When
+# metasrv's on-disk data upgrade and leader election overrun that one second
+# -- intermittently, on a loaded runner -- query's single connection attempt
+# to metasrv's gRPC port is refused, query exits, and nothing restarts it.
+# The entrypoint's closing `wait` keeps waiting on the surviving metasrv and
+# log-tail PIDs, so the container stays "running" while the banner line below
+# can never be emitted. Widening the wait timeout therefore cannot help; only
+# a fresh container can re-run the race, hence retrying bring-up.
+START_ATTEMPTS = 3
+
 
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Engine]:
-    container = DockerContainer("datafuselabs/databend")
-    container.with_exposed_ports(HTTP_PORT)
-    # The image's own startup banner documents this exact line as proof its
-    # HTTP query endpoint is bound and ready.
-    container.waiting_for(LogMessageWaitStrategy(f"listened at 0.0.0.0:{HTTP_PORT}"))
+    for attempt in range(1, START_ATTEMPTS + 1):
+        container = DockerContainer("datafuselabs/databend")
+        container.with_exposed_ports(HTTP_PORT)
+        # The image's own startup banner documents this exact line as proof its
+        # HTTP query endpoint is bound and ready.
+        container.waiting_for(
+            LogMessageWaitStrategy(f"listened at 0.0.0.0:{HTTP_PORT}")
+        )
+        try:
+            container.start()
+            break
+        except TimeoutError:
+            container.stop()
+            if attempt == START_ATTEMPTS:
+                raise
+        except Exception:
+            # Anything other than the metasrv race (a docker daemon error,
+            # an image pull failure) isn't going to be fixed by retrying;
+            # stop the container so it doesn't leak, then propagate.
+            container.stop()
+            raise
 
-    with container:
+    try:
         host = container.get_container_host_ip()
         port = container.get_exposed_port(HTTP_PORT)
         # "root" with no password is the image's builtin user -- confirmed
         # directly against a running container, not from the image's own
         # doc text, which only shows ${USER}/${PASSWORD} placeholders.
         yield create_engine(f"databend://root:@{host}:{port}/{DBNAME}?sslmode=disable")
+    finally:
+        container.stop()
 
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
