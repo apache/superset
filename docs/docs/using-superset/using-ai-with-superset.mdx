@@ -257,6 +257,12 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `health_check`      | Verify the MCP server is running and connected                       |
 | `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts)           |
 | `get_schema`        | Discover available charts, datasets, and dashboards with schema info |
+| `get_catalog`       | Compact, permission-filtered page of databases, datasets, charts, or dashboards (id, uuid, name, description, url) |
+
+Catalog pages are ordered oldest first (by id) and stay within 32 KiB. URLs longer than 2,048 characters are returned as
+`null` with `truncated: true`, rather than shortened into unusable links.
+Resource-specific read scopes (for example, `superset:dataset:read`) authorize only
+the corresponding catalog asset type, subject to the caller's permissions.
 
 ### Datasets
 

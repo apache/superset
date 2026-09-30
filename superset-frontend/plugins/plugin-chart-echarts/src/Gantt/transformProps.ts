@@ -47,6 +47,7 @@ import { LegendOrientation, Refs } from '../types';
 import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   groupData,
   measureTextWidth,
 } from '../utils/series';
@@ -126,6 +127,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    legendIndex,
   } = chartProps;
 
   const {
@@ -157,7 +159,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...formData,
   };
 
-  const { setControlValue, onLegendStateChanged } = hooks;
+  const { setControlValue, onLegendStateChanged, onLegendScroll } = hooks;
 
   const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
@@ -459,6 +461,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendState,
         padding,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     grid: {
@@ -534,5 +537,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     refs,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   };
 }
