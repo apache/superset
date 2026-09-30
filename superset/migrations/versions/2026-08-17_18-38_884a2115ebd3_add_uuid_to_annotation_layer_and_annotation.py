@@ -60,7 +60,29 @@ class Annotation(ImportMixin, Base):
 MODELS = (AnnotationLayer, Annotation)
 
 
+def _backfill_uuids(model: type[ImportMixin], session: sa.orm.Session) -> None:
+    """
+    Give every row without a UUID a new one, leaving existing UUIDs alone.
+
+    On a freshly added column every row is empty, so ``assign_uuids`` fills the
+    whole table (a single UPDATE on Postgres and MySQL). If an earlier run
+    stopped partway, only the rows still missing a UUID are filled, so UUIDs
+    that bundles may already reference are kept.
+    """
+    missing = session.query(model).filter(model.uuid.is_(None))
+    missing_count = missing.count()
+    if not missing_count:
+        return
+    if missing_count == session.query(model).count():
+        assign_uuids(model, session)
+        return
+    for obj in missing:
+        obj.uuid = uuid4()
+    session.commit()
+
+
 def _has_unique_constraint(table_name: str, constraint_name: str) -> bool:
+    """Whether ``table_name`` has a unique constraint named ``constraint_name``."""
     inspector = sa.inspect(op.get_bind())
     return any(
         constraint["name"] == constraint_name
@@ -79,8 +101,7 @@ def upgrade() -> None:
             table_name,
             sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         )
-        if session.query(model).filter(model.uuid.is_(None)).count():
-            assign_uuids(model, session)
+        _backfill_uuids(model, session)
 
         constraint_name = f"uq_{table_name}_uuid"
         if not _has_unique_constraint(table_name, constraint_name):

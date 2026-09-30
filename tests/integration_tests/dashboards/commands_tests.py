@@ -38,6 +38,7 @@ from superset.commands.dashboard.export import (
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers import v0, v1
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
+from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
@@ -1373,7 +1374,7 @@ class TestImportDashboardsAnnotationLayers(SupersetTestCase):
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard_annotation_source_chart_on_other_database(
         self, mock_add_permissions, sm_g, utils_g
-    ):
+    ) -> None:
         """Import an annotation source chart that isn't in the layout."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         dashboard_uuid = str(uuid4())
@@ -1450,6 +1451,75 @@ class TestImportDashboardsAnnotationLayers(SupersetTestCase):
             if source_database:
                 db.session.delete(source_database)
             db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_gamma_overwrite_keeps_existing_annotation_layer(
+        self, mock_add_permissions, sm_g, utils_g
+    ) -> None:
+        """Gamma's overwrite dashboard import reuses a layer without changing it."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        layer = AnnotationLayer(name=f"Gamma Dash Kept {uuid4()}", descr="original")
+        db.session.add(layer)
+        db.session.flush()
+        db.session.add(Annotation(layer_id=layer.id, short_descr="original-child"))
+        db.session.commit()
+        layer_uuid = str(layer.uuid)
+        layer_name = layer.name
+        dashboard_uuid = str(uuid4())
+        chart_uuid = str(uuid4())
+        chart_cfg = dashboard_chart_config(chart_uuid, "Gamma Dashboard Chart")
+        chart_cfg["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": layer_uuid,
+            }
+        ]
+        dash_cfg = dashboard_config_for_charts(
+            dashboard_uuid,
+            "Gamma Dashboard",
+            [("CHART-1", chart_uuid, chart_cfg["slice_name"])],
+        )
+        contents = dashboard_import_bundle(
+            dash_cfg,
+            {"main_chart.yaml": chart_cfg},
+            {
+                "layer.yaml": dashboard_annotation_layer_config(
+                    layer_uuid, "renamed-by-gamma", [], descr="changed"
+                )
+            },
+        )
+        try:
+            # the database and dataset have to exist: Gamma can't create them
+            ImportDatasetsCommand(
+                {
+                    "metadata.yaml": yaml.safe_dump(dataset_metadata_config),
+                    "databases/imported_database.yaml": yaml.safe_dump(database_config),
+                    "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+                },
+                overwrite=True,
+            ).run()
+
+            sm_g.user = utils_g.user = security_manager.find_user("gamma")
+            v1.ImportDashboardsCommand(
+                contents, overwrite=True, overwrite_all=True
+            ).run()
+
+            db.session.expire_all()
+            reloaded = (
+                db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one()
+            )
+            children = db.session.query(Annotation).filter_by(layer_id=reloaded.id)
+            assert reloaded.name == layer_name
+            assert reloaded.descr == "original"
+            assert [child.short_descr for child in children] == ["original-child"]
+        finally:
+            _cleanup_dashboard_annotation_import(
+                [chart_uuid], [layer_uuid], dashboard_uuid
+            )
 
 
 class TestExportDashboardsAnnotationLayer(SupersetTestCase):

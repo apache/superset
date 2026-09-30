@@ -42,7 +42,10 @@ from superset.utils.core import (
     get_annotation_layer_lists,
     get_user,
 )
-from superset.utils.dict_import_export import SELECTED_CHARTS_FILE_NAME
+from superset.utils.dict_import_export import (
+    SELECTED_CHARTS_FILE_NAME,
+    SELECTED_CHARTS_KEY,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -362,7 +365,9 @@ def get_dependency_chart_uuids(
     except yaml.YAMLError:
         logger.warning("Ignoring unreadable %s", SELECTED_CHARTS_FILE_NAME)
         return set()
-    selected = selection.get("chart_uuids") if isinstance(selection, dict) else None
+    selected = (
+        selection.get(SELECTED_CHARTS_KEY) if isinstance(selection, dict) else None
+    )
     if not isinstance(selected, list):
         logger.warning("Ignoring malformed %s", SELECTED_CHARTS_FILE_NAME)
         return set()

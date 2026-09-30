@@ -37,6 +37,7 @@ from superset.tags.models import TagType
 from superset.utils.dict_import_export import (
     EXPORT_VERSION,
     SELECTED_CHARTS_FILE_NAME,
+    SELECTED_CHARTS_KEY,
 )
 from superset.utils.file import get_filename
 from superset.utils import json
@@ -195,6 +196,17 @@ class ExportChartsCommand(ExportModelsCommand):
         if not self.export_related:
             return
 
+        # Tags are exported once for all requested charts (rather than per
+        # chart in `_export`) so a multi-chart export doesn't lose tags to
+        # the parent's per-file-name de-duplication of `tags.yaml`.
+        export_tags = ExportChartsCommand._include_tags and (
+            feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
+        )
+        # Nested exports (a dashboard's charts) write neither file, so skip the
+        # annotation source walk for them.
+        if not is_root and not export_tags:
+            return
+
         chart_ids = ExportChartsCommand.chart_ids_with_annotation_sources(self._models)
 
         # When annotation sources were pulled in, record which charts were
@@ -204,17 +216,11 @@ class ExportChartsCommand(ExportModelsCommand):
             yield (
                 SELECTED_CHARTS_FILE_NAME,
                 lambda: yaml.safe_dump(
-                    {"chart_uuids": selected_chart_uuids}, sort_keys=False
+                    {SELECTED_CHARTS_KEY: selected_chart_uuids}, sort_keys=False
                 ),
             )
 
-        # Tags are exported once for all requested charts (rather than per
-        # chart in `_export`) so a multi-chart export doesn't lose tags to
-        # the parent's per-file-name de-duplication of `tags.yaml`.
-        if (
-            ExportChartsCommand._include_tags
-            and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
-        ):
+        if export_tags:
             yield from ExportTagsCommand(chart_ids=chart_ids).run()
 
     @staticmethod

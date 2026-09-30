@@ -129,12 +129,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # discover charts used as annotation sources by those charts, which can
         # be in the bundle without being in any dashboard layout
-        chart_configs_by_uuid = {
+        chart_configs_by_uuid: dict[str, dict[str, Any]] = {
             str(config["uuid"]): config
             for file_name, config in configs.items()
             if file_name.startswith("charts/")
         }
-        pending_chart_uuids = list(chart_uuids)
+        pending_chart_uuids: list[str] = list(chart_uuids)
         while pending_chart_uuids:
             chart_config = chart_configs_by_uuid.get(pending_chart_uuids.pop())
             if chart_config is None:

@@ -141,8 +141,10 @@ class ImportChartsCommand(ImportModelsCommand):
 
         # Charts bundled only as annotation sources are reused when they exist,
         # the same way datasets and databases are, and keep their local tags.
-        dependency_chart_uuids = get_dependency_chart_uuids(contents, chart_configs)
-        reused_chart_uuids = (
+        dependency_chart_uuids: set[str] = get_dependency_chart_uuids(
+            contents, chart_configs
+        )
+        reused_chart_uuids: set[str] = (
             {
                 str(chart_uuid)
                 for (chart_uuid,) in db.session.query(Slice.uuid).filter(

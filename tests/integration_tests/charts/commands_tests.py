@@ -17,6 +17,7 @@
 import time
 from copy import deepcopy
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -1018,7 +1019,8 @@ def _chart_import_config(chart_uuid, slice_name):
     return config
 
 
-def _chart_using_source(chart_uuid, source_chart_uuid):
+def _chart_using_source(chart_uuid: str, source_chart_uuid: str) -> dict[str, Any]:
+    """Chart config with a table annotation sourced from another chart."""
     config = _chart_import_config(chart_uuid, "Uses Source")
     config["params"]["annotation_layers"] = [
         {
@@ -1031,7 +1033,12 @@ def _chart_using_source(chart_uuid, source_chart_uuid):
     return config
 
 
-def _source_chart_bundle(source_chart, main_chart=None, selected=None):
+def _source_chart_bundle(
+    source_chart: dict[str, Any],
+    main_chart: dict[str, Any] | None = None,
+    selected: list[str] | None = None,
+) -> dict[str, str]:
+    """Chart bundle with a source chart, an optional user of it and selection."""
     contents = {
         "metadata.yaml": yaml.safe_dump(chart_metadata_config),
         "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -1455,7 +1462,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_soft_deleted_chart_annotation_reference_drops_reference(
         self, mock_g
-    ):
+    ) -> None:
         """Drop a table/line annotation whose source chart is not visible."""
         mock_g.user = security_manager.find_user("admin")
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -1496,7 +1503,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_query_context_only_annotation_references_are_bundled(
         self, mock_g
-    ):
+    ) -> None:
         """Bundle dependencies referenced only from query_context."""
         mock_g.user = security_manager.find_user("admin")
         main_chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -1562,7 +1569,9 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_native_annotations_require_annotation_read(self, mock_g):
+    def test_export_chart_native_annotations_require_annotation_read(
+        self, mock_g
+    ) -> None:
         """Leave native layers out of the export without can_read on Annotation."""
         mock_g.user = security_manager.find_user("admin")
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -1624,7 +1633,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_tags_include_annotation_source_charts(self, mock_g):
+    def test_export_chart_tags_include_annotation_source_charts(self, mock_g) -> None:
         """tags.yaml carries the tags of charts exported as annotation sources."""
         mock_g.user = security_manager.find_user("admin")
         main_chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
@@ -2171,7 +2180,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_chart_circular_chart_annotation_references_keep_both_sides(
         self, mock_add_permissions, sm_g, utils_g
-    ):
+    ) -> None:
         """Charts referencing each other both keep their annotation references."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         chart_a_uuid = str(uuid4())
@@ -2232,7 +2241,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_chart_legacy_integer_annotation_references_are_dropped(
         self, mock_add_permissions, sm_g, utils_g
-    ):
+    ) -> None:
         """Integer IDs from pre-UUID bundles are not bound to local rows."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         local_layer = _create_chart_annotation_layer(name=f"Local {uuid4()}")
@@ -2293,7 +2302,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_chart_reuses_existing_annotation_source_chart(
         self, mock_add_permissions, sm_g, utils_g
-    ):
+    ) -> None:
         """An existing source chart is reused unchanged, tags included."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         source_chart_uuid = str(uuid4())
@@ -2358,7 +2367,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_chart_overwrites_selected_annotation_source_chart(
         self, mock_add_permissions, sm_g, utils_g
-    ):
+    ) -> None:
         """A source chart that was picked for the export is overwritten."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         source_chart_uuid = str(uuid4())
@@ -2383,3 +2392,67 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
             assert source.slice_name == "Changed Source"
         finally:
             _cleanup_imported_chart_bundle([main_chart_uuid, source_chart_uuid], [])
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_gamma_overwrite_keeps_existing_annotation_layer(
+        self, mock_add_permissions, sm_g, utils_g
+    ) -> None:
+        """Gamma's overwrite chart import reuses a layer without changing it."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        layer = _create_chart_annotation_layer(
+            name=f"Gamma Kept {uuid4()}", descr="original"
+        )
+        _create_chart_annotation(layer, short_descr="original-child")
+        layer_uuid = str(layer.uuid)
+        seed_chart_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        try:
+            # the database and dataset have to exist: Gamma can't create them
+            ImportChartsCommand(
+                _source_chart_bundle(_chart_import_config(seed_chart_uuid, "Seed")),
+                overwrite=True,
+            ).run()
+
+            main_chart = _chart_import_config(main_chart_uuid, "Gamma Chart")
+            main_chart["params"]["annotation_layers"] = [
+                {
+                    "name": "Native",
+                    "annotationType": "EVENT",
+                    "sourceType": "NATIVE",
+                    "value": layer_uuid,
+                }
+            ]
+            contents = {
+                "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+                "databases/imported_database.yaml": yaml.safe_dump(database_config),
+                "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+                "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+                "annotation_layers/layer.yaml": yaml.safe_dump(
+                    _annotation_layer_import_config(
+                        layer_uuid, "renamed-by-gamma", [], descr="changed"
+                    )
+                ),
+            }
+
+            sm_g.user = utils_g.user = security_manager.find_user("gamma")
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            db.session.expire_all()
+            reloaded = (
+                db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one()
+            )
+            children = db.session.query(Annotation).filter_by(layer_id=reloaded.id)
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            assert reloaded.name == layer.name
+            assert reloaded.descr == "original"
+            assert [child.short_descr for child in children] == ["original-child"]
+            assert [
+                annotation["value"]
+                for annotation in json.loads(chart.params)["annotation_layers"]
+            ] == [reloaded.id]
+        finally:
+            _cleanup_imported_chart_bundle(
+                [main_chart_uuid, seed_chart_uuid], [layer_uuid]
+            )
