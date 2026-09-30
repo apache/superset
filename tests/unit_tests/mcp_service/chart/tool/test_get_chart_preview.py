@@ -20,6 +20,7 @@ Unit tests for get_chart_preview MCP tool
 """
 
 import importlib
+from collections.abc import Iterator
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -3019,10 +3020,12 @@ async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
     "build_query_context_from_form_data"
 )
 def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
-    mock_build_query_context, mock_command
+    mock_build_query_context,
+    mock_command,
+    mock_query_context_materialization: None,
 ) -> None:
     query_context = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+        form_data={}, queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
     )
     mock_build_query_context.return_value = query_context
     mock_command.return_value.validate.return_value = None
@@ -3046,7 +3049,9 @@ def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
     "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
 )
 def test_saved_gauge_dispatch_and_validation_agree(
-    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+    stored_viz_type: str | None,
+    strategy: type[PreviewFormatStrategy],
+    mock_query_context_materialization: None,
 ) -> None:
     """Saved chart identity drives query construction and numeric validation."""
     chart = _gauge_chart()
@@ -3062,7 +3067,7 @@ def test_saved_gauge_dispatch_and_validation_agree(
         ) as command,
     ):
         build.return_value = SimpleNamespace(
-            queries=[SimpleNamespace(metrics=["saved_sla"])]
+            form_data={}, queries=[SimpleNamespace(metrics=["saved_sla"])]
         )
         command.return_value.run.return_value = {
             "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
@@ -3078,6 +3083,7 @@ def test_saved_gauge_dispatch_and_validation_agree(
 )
 def test_saved_gauge_preview_skips_empty_aggregate_groups(
     strategy: type[PreviewFormatStrategy],
+    mock_query_context_materialization: None,
 ) -> None:
     """Every saved preview format retains the finite dial from mixed query output."""
     chart = _gauge_chart()
@@ -3090,7 +3096,7 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
         ) as command,
     ):
         build.return_value = SimpleNamespace(
-            queries=[SimpleNamespace(metrics=["saved_sla"])]
+            form_data={}, queries=[SimpleNamespace(metrics=["saved_sla"])]
         )
         command.return_value.run.return_value = {
             "queries": [
@@ -3125,7 +3131,10 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
     "build_query_context_from_form_data"
 )
 def test_saved_preview_fallback_dispatch(
-    mock_build_query_context: MagicMock, mock_command: MagicMock, viz_type: str
+    mock_build_query_context: MagicMock,
+    mock_command: MagicMock,
+    viz_type: str,
+    mock_query_context_materialization: None,
 ) -> None:
     """Saved previews use funnel, unsupported, or generic fallback contracts."""
     chart = SimpleNamespace(
@@ -3138,7 +3147,7 @@ def test_saved_preview_fallback_dispatch(
         datasource_type="table",
     )
     mock_build_query_context.return_value = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["value"], columns=["stage"])]
+        form_data={}, queries=[SimpleNamespace(metrics=["value"], columns=["stage"])]
     )
     mock_command.return_value.run.return_value = {
         "queries": [{"data": [{"stage": "Visit", "value": 10}]}]
@@ -3153,3 +3162,12 @@ def test_saved_preview_fallback_dispatch(
         assert isinstance(result, VegaLitePreview)
         if viz_type == "funnel":
             assert result.specification["encoding"]["y"]["field"] == "stage"
+
+
+@pytest.fixture
+def mock_query_context_materialization() -> Iterator[None]:
+    """Keep plugin-renderer tests independent of query-context serialization."""
+    with patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.set_query_context_form_data"
+    ):
+        yield

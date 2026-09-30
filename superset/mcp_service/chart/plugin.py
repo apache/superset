@@ -231,6 +231,9 @@ class ChartTypePlugin(Protocol):
     #: Whether an empty result is a valid, renderable preview.
     allows_empty_result: ClassVar[bool]
 
+    #: Whether get_chart_data returns a successful response for zero rows.
+    allows_empty_data_result: ClassVar[bool]
+
     #: Whether saved-chart Vega-Lite previews take the requested width,
     #: height and chart description instead of the spec's own frame.
     resizes_saved_preview: ClassVar[bool]
@@ -378,6 +381,7 @@ class BaseChartPlugin:
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False
+    allows_empty_data_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
     preview_note: ClassVar[str | None] = None

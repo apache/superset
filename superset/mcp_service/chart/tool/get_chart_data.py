@@ -891,7 +891,7 @@ async def execute_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not (data_plugin and data_plugin.allows_empty_result) and not any(
+            if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
                 queries_data or []
             ):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
@@ -1228,7 +1228,7 @@ async def _query_from_form_data(  # noqa: C901
             if rows_error is not None:
                 return rows_error
 
-        if not (data_plugin and data_plugin.allows_empty_result) and not any(
+        if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
             queries_data or []
         ):
             logger.warning(

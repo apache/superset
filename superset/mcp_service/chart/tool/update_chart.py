@@ -401,12 +401,20 @@ def _build_replacement_form_data(
     replacement_dataset_id: int | None = None,
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
+    existing_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    include_disabled = bool(
+        existing_plugin and existing_plugin.chart_type == parsed_config.chart_type
+    )
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=include_disabled,
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
-    config_plugin = get_registry().get(parsed_config.chart_type, include_disabled=True)
+    config_plugin = get_registry().get(
+        parsed_config.chart_type, include_disabled=include_disabled
+    )
     if replacement_dataset_id is not None and not (
         config_plugin is not None and config_plugin.strict_dataset_rebind
     ):

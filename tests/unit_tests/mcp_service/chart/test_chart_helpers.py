@@ -22,6 +22,7 @@ import pandas as pd
 import pytest
 
 from superset.common.query_object import QueryObject
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
@@ -1351,7 +1352,7 @@ def test_gantt_frontend_contract_is_strict_and_bounded(
     if message is None:
         form_data["tooltip_columns"] = [f"column_{index}" for index in range(51)]
         message = "at most 50"
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(QueryObjectValidationError, match=message):
         _query_objects(form_data)
 
 
