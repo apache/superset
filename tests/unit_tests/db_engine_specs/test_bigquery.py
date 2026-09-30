@@ -18,6 +18,7 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 from datetime import datetime
+from itertools import islice
 from typing import Any, Optional
 from unittest import mock
 
@@ -29,7 +30,7 @@ from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.sql.parse import Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -791,6 +792,42 @@ def test_fetch_data_truncated_by_memory_limit(mocker: MockerFixture) -> None:
     assert result == first_batch
     assert flask_g.bq_memory_limited is True
     assert flask_g.bq_memory_limited_row_count == len(first_batch)
+
+
+@pytest.mark.parametrize("row_count", [3, 4, 5])
+@pytest.mark.parametrize("limit", [None, 4, 8])
+def test_fetch_data_eof_probe_preserves_budgeted_rows(
+    mocker: MockerFixture, row_count: int, limit: int | None
+) -> None:
+    """Only an explicitly truncated result omits the out-of-budget probe row."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    flask_g, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 4)
+    # Each one-cell row is estimated at 256 KiB: four rows exactly fill 1 MiB.
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    rows = [(i,) for i in range(row_count)]
+    remaining = iter(rows)
+    cursor = mock.MagicMock()
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=limit)
+
+    assert result == rows[:4]
+    assert isinstance(result, FetchedRows)
+    assert result.truncated is (row_count > 4)
+    assert flask_g.bq_memory_limited is (row_count > 4)
+    assert flask_g.bq_memory_limited_row_count == len(result)
+    if not result.truncated:
+        assert result == rows
+    expected_calls = [mock.call(4)]
+    if row_count >= 4:
+        expected_calls.append(mock.call(1))
+    assert cursor.fetchmany.call_args_list == expected_calls
+    assert list(remaining) == []
+    cursor.fetchall.assert_not_called()
 
 
 def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
