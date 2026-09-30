@@ -145,6 +145,20 @@ export class Select {
   }
 
   /**
+   * Text content of every option visible in the open dropdown, trimmed.
+   * Assumes the dropdown is already open (via {@link open}).
+   */
+  async getVisibleOptionTexts(): Promise<string[]> {
+    const dropdown = this.page
+      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
+      .last();
+    const options = dropdown.locator(SELECT_SELECTORS.OPTION);
+    await options.first().waitFor({ state: 'visible' });
+    const texts = await options.allTextContents();
+    return texts.map(t => t.trim());
+  }
+
+  /**
    * Types into the select to filter options (assumes dropdown is open)
    * @param text - The text to type
    */

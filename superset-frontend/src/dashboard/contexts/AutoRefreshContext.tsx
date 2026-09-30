@@ -29,15 +29,17 @@ import {
 export interface AutoRefreshContextValue {
   isAutoRefreshing: boolean;
   isRefreshInFlight: boolean;
+  autoRefreshingChartIds: number[];
   setIsAutoRefreshing: (value: boolean) => void;
   setRefreshInFlight: (value: boolean) => void;
-  startAutoRefresh: () => void;
+  startAutoRefresh: (chartIds?: number[]) => void;
   endAutoRefresh: () => void;
 }
 
 const AutoRefreshContext = createContext<AutoRefreshContextValue>({
   isAutoRefreshing: false,
   isRefreshInFlight: false,
+  autoRefreshingChartIds: [],
   setIsAutoRefreshing: () => {},
   setRefreshInFlight: () => {},
   startAutoRefresh: () => {},
@@ -57,25 +59,37 @@ export const AutoRefreshProvider: FC<AutoRefreshProviderProps> = ({
 }) => {
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const [isRefreshInFlight, setRefreshInFlight] = useState(false);
+  const [autoRefreshingChartIds, setAutoRefreshingChartIds] = useState<
+    number[]
+  >([]);
 
-  const startAutoRefresh = useCallback(() => {
+  const startAutoRefresh = useCallback((chartIds: number[] = []) => {
+    setAutoRefreshingChartIds(chartIds);
     setIsAutoRefreshing(true);
   }, []);
 
   const endAutoRefresh = useCallback(() => {
     setIsAutoRefreshing(false);
+    setAutoRefreshingChartIds([]);
   }, []);
 
   const value = useMemo(
     () => ({
       isAutoRefreshing,
       isRefreshInFlight,
+      autoRefreshingChartIds,
       setIsAutoRefreshing,
       setRefreshInFlight,
       startAutoRefresh,
       endAutoRefresh,
     }),
-    [isAutoRefreshing, isRefreshInFlight, startAutoRefresh, endAutoRefresh],
+    [
+      isAutoRefreshing,
+      isRefreshInFlight,
+      autoRefreshingChartIds,
+      startAutoRefresh,
+      endAutoRefresh,
+    ],
   );
 
   return (
@@ -96,6 +110,17 @@ export const useIsAutoRefreshing = (): boolean => {
 export const useIsRefreshInFlight = (): boolean => {
   const { isRefreshInFlight } = useContext(AutoRefreshContext);
   return isRefreshInFlight;
+};
+
+/**
+ * Whether the given chart is part of the currently in-flight silent
+ * auto-refresh batch. Unlike useIsAutoRefreshing, this is scoped to a single
+ * chart so charts loading for unrelated reasons (e.g. mounting into a
+ * freshly-selected tab) still show their own spinner.
+ */
+export const useIsChartAutoRefreshing = (chartId: number): boolean => {
+  const { autoRefreshingChartIds } = useContext(AutoRefreshContext);
+  return autoRefreshingChartIds.includes(chartId);
 };
 
 export default AutoRefreshContext;

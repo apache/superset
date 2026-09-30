@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 import backoff
 import requests
 from flask import current_app
+from flask_babel import gettext as __
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
@@ -180,7 +181,13 @@ class WebhookNotification(BaseNotification):
         content = {
             "name": self._content.name,
             "header": header_content,
-            "text": self._content.text,
+            # NotificationContent.text carries failure diagnostics; successful
+            # tabular output uses embedded_data rather than this field.
+            "text": (
+                __("Contact the report owner for error details.")
+                if self._content.text
+                else self._content.text
+            ),
             "description": self._content.description,
             "url": self._content.url,
         }
