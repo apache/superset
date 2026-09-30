@@ -61,6 +61,8 @@ interface GeoData {
 
 interface CountryMapProps {
   data: CountryMapDataItem[];
+  /** Original source value for each normalized region ISO code. */
+  sourceValues?: Record<string, string>;
   width: number;
   height: number;
   country: string;
@@ -96,6 +98,7 @@ const zoomStates = new WeakMap<
 function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const {
     data,
+    sourceValues,
     width,
     height,
     country,
@@ -180,7 +183,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   let mousedownPos: { x: number; y: number } | null = null;
 
   const sourceValue = (code: string) =>
-    data.find(row => row.country_id === code)?.source_value ?? code;
+    sourceValues && Object.prototype.hasOwnProperty.call(sourceValues, code)
+      ? sourceValues[code]
+      : code;
 
   // Cross-filter support
   const getCrossFilterDataMask = (

@@ -153,3 +153,75 @@ test('an ISO selection is recognised as selected and toggles the filter off', ()
     json.mockRestore();
   }
 });
+
+test('a region with a blank metric still cross-filters on its source value', () => {
+  const loader = d3 as unknown as {
+    json: (
+      url: string,
+      callback: (error: Error | null, data: unknown) => void,
+    ) => void;
+  };
+  const json = jest
+    .spyOn(loader, 'json')
+    .mockImplementation((_url, callback) => {
+      callback(null, usa);
+    });
+  const setDataMask = jest.fn();
+  const onContextMenu = jest.fn();
+  try {
+    const props = transformProps(
+      new ChartProps({
+        theme: supersetTheme,
+        width: 800,
+        height: 600,
+        formData: {
+          entity: 'state',
+          metric: 'sales',
+          select_country: 'usa',
+          region_format: 'abbreviation',
+          linear_color_scheme: 'schemeBlues',
+        },
+        queriesData: [
+          {
+            data: [
+              { state: 'CA', sales: null },
+              { state: 'TX', sales: 10 },
+            ],
+          },
+        ],
+        datasource: { currencyFormats: {}, columnFormats: {} },
+        hooks: { setDataMask, onContextMenu },
+        emitCrossFilters: true,
+      }),
+    );
+    const { container } = render(<ReactCountryMap {...props} />);
+    const california = [
+      ...container.querySelectorAll<SVGPathElement>('path.region'),
+    ].find(
+      path =>
+        (d3.select(path).datum() as RegionFeature).properties.ISO === 'US-CA',
+    );
+    expect(california).toBeDefined();
+    if (california) {
+      fireEvent.mouseDown(california);
+      fireEvent.click(california);
+      fireEvent.contextMenu(california);
+    }
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['CA'] }] },
+      }),
+    );
+    expect(onContextMenu).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        drillToDetail: [
+          { col: 'state', op: '==', val: 'CA', formattedVal: 'CA' },
+        ],
+      }),
+    );
+  } finally {
+    json.mockRestore();
+  }
+});

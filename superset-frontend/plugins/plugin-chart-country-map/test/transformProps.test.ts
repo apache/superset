@@ -241,3 +241,41 @@ test('typed country maps still reject unresolved regions with NULL metrics', () 
     ),
   ).toThrow('Unrecognized');
 });
+
+test('source values cover regions whose metric is blank', () => {
+  const transformed = transformProps(
+    createProps(
+      { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+      {
+        queriesData: [
+          {
+            data: [
+              { state: 'CA', count: null },
+              { state: 'TX', count: 10 },
+            ],
+          },
+        ],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-TX', source_value: 'TX', metric: 10 },
+  ]);
+  expect(transformed.sourceValues).toEqual({ 'US-CA': 'CA', 'US-TX': 'TX' });
+});
+
+test.each(['USA', 'Usa', 'usa'])(
+  'typed country maps accept select_country %s in any case',
+  selectCountry => {
+    const transformed = transformProps(
+      createProps(
+        { entity: 'state', selectCountry, regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'CA', count: 10 }] }] },
+      ),
+    );
+    expect(transformed.country).toBe('usa');
+    expect(transformed.data).toEqual([
+      { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+    ]);
+  },
+);

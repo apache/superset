@@ -62,17 +62,28 @@ export default function transformProps(chartProps: ChartProps) {
   // labels, so the rename happens here.
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
+  const country = String(selectCountry).toLowerCase();
   const displayData = formData.regionFormat
     ? normalizeRegions(
         rawData ?? [],
         entityLabel,
-        String(selectCountry),
+        country,
         formData.regionFormat,
       )
     : (rawData ?? []);
+  // Every normalized region maps back to its source value, including regions
+  // whose metric is blank, so cross-filters and drills on any clickable
+  // region filter on the original identifier rather than the boundary ISO.
+  const sourceValues: Record<string, string> = {};
+  if (formData.regionFormat) {
+    displayData.forEach((row: Record<string, unknown>, index: number) => {
+      sourceValues[String(row[entityLabel])] = rawData[index][entityLabel];
+    });
+  }
   const data = displayData.flatMap(
     (row: Record<string, unknown>, index: number) => {
-      // Validate regions even for sparse rows, but leave missing metrics blank.
+      // Validate regions even for sparse rows. A row without a finite metric
+      // is omitted from the rendered data, so its region stays unshaded.
       if (
         formData.regionFormat &&
         (typeof row[metricLabel] !== 'number' ||
@@ -114,7 +125,8 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    country: selectCountry ? String(selectCountry).toLowerCase() : null,
+    sourceValues,
+    country: selectCountry ? country : null,
     linearColorScheme,
     numberFormat, // left for backward compatibility
     colorScheme,
