@@ -90,8 +90,12 @@ class OrderedDimensions(set[Dimension]):
 
 @pytest.mark.parametrize("ordering", list(permutations(range(4))))
 @pytest.mark.parametrize("entry", ["validation", "mapping"])
+@pytest.mark.parametrize("selected_grain", [None, "P1M"])
 def test_default_resolution_exhausts_catalog_orders(
-    mocker: MockerFixture, ordering: tuple[int, ...], entry: str
+    mocker: MockerFixture,
+    ordering: tuple[int, ...],
+    entry: str,
+    selected_grain: str | None,
 ) -> None:
     """Every seed exercises all 24 orders, including both name-map entry paths."""
     variants: tuple[Dimension, ...] = tuple(
@@ -99,7 +103,8 @@ def test_default_resolution_exhausts_catalog_orders(
         for index, grain in enumerate((None, Grains.DAY, Grains.MONTH, Grains.YEAR))
     )
     raw: Dimension = variants[0]
-    datasource: MagicMock = mocker.Mock()
+    grouped: Dimension = variants[2] if selected_grain else raw
+    datasource: MagicMock = mocker.MagicMock()
     datasource.implementation = AbcOnlyView(
         OrderedDimensions(tuple(variants[index] for index in ordering)), set()
     )
@@ -108,7 +113,7 @@ def test_default_resolution_exhausts_catalog_orders(
         datasource=datasource,
         columns=["event_time"],
         metrics=[],
-        extras={"time_grain_sqla": "P1M"},
+        extras={"time_grain_sqla": selected_grain},
         filters=[{"col": "event_time", "op": "==", "val": "2026-01-20"}],
         from_dttm=datetime(2026, 1, 15),
         to_dttm=datetime(2026, 2, 1),
@@ -123,7 +128,10 @@ def test_default_resolution_exhausts_catalog_orders(
     if entry == "validation":
         axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
         _validate_granularity(query)
-        assert axis_spy.call_args.args[1]["event_time"] is raw
+        if selected_grain:
+            assert axis_spy.call_args.args[1]["event_time"] is raw
+        else:
+            axis_spy.assert_not_called()
         return
 
     queries: list[SemanticQuery] = map_query_object(query)
@@ -134,15 +142,15 @@ def test_default_resolution_exhausts_catalog_orders(
         (datetime(2026, 2, 1), datetime(2026, 1, 1)),
         strict=True,
     ):
-        assert result.dimensions == [variants[2]]
-        assert result.order == [(raw, OrderDirection.ASC)]
+        assert result.dimensions == [grouped]
+        assert result.order == [(grouped, OrderDirection.ASC)]
         assert result.filters == {
             Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
             Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, lower),
             Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, upper),
         }
         assert result.group_limit is not None
-        assert result.group_limit.dimensions == [raw]
+        assert result.group_limit.dimensions == [grouped]
         assert result.group_limit.filters == {
             Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
             Filter(
@@ -166,7 +174,7 @@ def test_default_grouping_without_raw_uses_finest_grain(
         Dimension("day", "event_time", pa.timestamp("us"), grain=Grains.DAY),
     )
     other: Dimension = Dimension("other", "other", pa.timestamp("us"))
-    datasource: MagicMock = mocker.Mock()
+    datasource: MagicMock = mocker.MagicMock()
     datasource.implementation = AbcOnlyView(
         OrderedDimensions(tuple(variants[index] for index in ordering) + (other,)),
         set(),
@@ -186,7 +194,7 @@ def test_ambiguous_grain_ids_are_rejected(
     mocker: MockerFixture, entry: str, grain: Grain | None
 ) -> None:
     """A preferred raw variant must not hide an ambiguous non-default grain."""
-    datasource: MagicMock = mocker.Mock()
+    datasource: MagicMock = mocker.MagicMock()
     datasource.implementation = AbcOnlyView(
         {
             Dimension("a", "event_time", pa.timestamp("us"), grain=grain),
@@ -840,7 +848,8 @@ def test_get_group_limit_from_query_object_none(mock_datasource: MagicMock) -> N
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result is None
@@ -870,7 +879,8 @@ def test_get_group_limit_from_query_object_basic(mock_datasource: MagicMock) -> 
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result == GroupLimit(
@@ -909,7 +919,8 @@ def test_get_group_limit_from_query_object_with_group_others(
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result
@@ -4272,3 +4283,23 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+def test_ordering_on_ungrouped_dimension_keeps_default(mocker: MockerFixture) -> None:
+    """Ranking non-grouped dimensions retains deterministic default resolution."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    category: Dimension = Dimension("category", "category", pa.string())
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({month, raw, category}, set())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["category"],
+        metrics=[],
+        orderby=[("event_time", True)],
+    )
+    result: SemanticQuery = map_query_object(query)[0]
+    assert result.dimensions == [category]
+    assert result.order == [(raw, OrderDirection.ASC)]

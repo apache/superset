@@ -37,6 +37,10 @@ _GRAIN_FINENESS: dict[str, int] = {
 }
 
 
+class AmbiguousDimensionError(QueryObjectValidationError):
+    """A host-detected catalog ambiguity safe to report to an authorized user."""
+
+
 def grain_preference(dimension: Dimension) -> tuple[int, int, str]:
     """Prefer raw, then finest known grain, then lexical representation."""
     grain: Grain | None = dimension.grain
@@ -64,7 +68,7 @@ def resolve_dimension_defaults(
         key: tuple[str, Grain | None] = (dimension.name, dimension.grain)
         previous_id: str | None = identities.get(key)
         if previous_id is not None and previous_id != dimension.id:
-            raise QueryObjectValidationError(
+            raise AmbiguousDimensionError(
                 _(
                     "Semantic dimension '%(name)s' has ambiguous variants for "
                     "grain '%(grain)s'. Use one ID per name and grain.",

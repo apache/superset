@@ -386,14 +386,21 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
         if name in normalized_columns and name != time_axis_column
     )
 
-    order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+    ranking_dimensions: dict[str, Dimension] = {
+        **all_dimensions,
+        **{dimension.name: dimension for dimension in dimensions},
+    }
+    order: list[OrderTuple] = _get_order_from_query_object(
+        query_object, all_metrics, ranking_dimensions
+    )
     limit = query_object.row_limit
     offset = query_object.row_offset
 
     group_limit = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=ranking_dimensions,
     )
 
     queries = []
@@ -900,13 +907,17 @@ def _get_order_from_query_object(
 def _get_group_limit_from_query_object(
     query_object: ValidatedQueryObject,
     all_metrics: dict[str, Metric],
+    *,
     all_dimensions: dict[str, Dimension],
+    ranking_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
         return None
 
-    dimensions = [all_dimensions[dim_id] for dim_id in query_object.series_columns]
+    dimensions: list[Dimension] = [
+        ranking_dimensions[dim_id] for dim_id in query_object.series_columns
+    ]
     top = query_object.series_limit
     metric = (
         all_metrics[query_object.series_limit_metric]

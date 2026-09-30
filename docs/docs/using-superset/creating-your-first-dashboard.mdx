@@ -196,7 +196,10 @@ chart grouped by month with a January 15 lower bound still filters the raw time
 dimension from January 15, rather than testing month buckets against that bound.
 Without a raw variant, the preferred available variant is used; Superset does not
 synthesize finer source data. Providers must expose at most one dimension ID per
-name and grain; conflicting IDs produce an ambiguity error.
+name and grain; conflicting IDs produce an ambiguity error. Sorting and series
+limits use the selected grouping grain, while filters and time bounds keep the
+default. On dashboards, an ambiguous dataset shows its error only on charts using
+that dataset; other datasets continue loading.
 
 :::note
 Semantic views and native filter support for them are part of the experimental Semantic Layers
