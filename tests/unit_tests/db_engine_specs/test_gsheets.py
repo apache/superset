@@ -690,20 +690,25 @@ def test_impersonate_user_access_token_with_catalog(mocker: MockerFixture) -> No
 
 def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> None:
     """
-    Test that the URL-derived ``subject`` still reaches the adapter when an access
-    token is also passed through ``connect_args``.
+    Test that ``subject`` and the access token both reach the adapter alongside a
+    catalog.
+
+    The catalog puts its own ``adapter_kwargs`` in ``connect_args``, which
+    SQLAlchemy merges shallowly over the URL-derived ones, so anything left only
+    on the URL would be dropped.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     database: MagicMock = mocker.MagicMock(encrypted_extra=None)
     database.get_impersonation_email.return_value = "alice@example.org"
     database.get_encrypted_extra.return_value = {}
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=0"}
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
         database,
         username="alice",
         user_token="access-token",  # noqa: S106
         url=make_url("gsheets://"),
-        engine_kwargs={},
+        engine_kwargs={"catalog": catalog},
     )
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
 
@@ -714,6 +719,7 @@ def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> No
     adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
     assert adapter_kwargs["access_token"] == "access-token"  # noqa: S105
     assert adapter_kwargs["subject"] == "alice@example.org"
+    assert adapter_kwargs["catalog"] == catalog
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
