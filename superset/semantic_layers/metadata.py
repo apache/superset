@@ -50,22 +50,24 @@ if TYPE_CHECKING:
     from superset.coordination.types import CoordinationBackend
     from superset.semantic_layers.models import SemanticLayer
 
+    class PublicationBackend(Protocol):
+        """The existing coordination backend's subset used by catalog publication."""
+
+        def get(self, name: str) -> bytes | None: ...
+        def set(
+            self, name: str, value: str, ex: int, nx: bool = False
+        ) -> bool | None: ...
+        def compare_and_delete(self, name: str, expected: str) -> int: ...
+        def compare_and_publish(
+            self, lease_key: str, expected: str, snapshot_key: str, value: str, ttl: int
+        ) -> bool: ...
+
+
 CATALOG_TTL_SECONDS: int = 300
 REFRESH_LEASE_SECONDS: int = 60
 FETCH_DEADLINE_SECONDS: int = 30
 MAX_CATALOG_BYTES: int = 10 * 1024 * 1024
 SNAPSHOT_FORMAT_VERSION: int = 1
-
-
-class PublicationBackend(Protocol):
-    """The existing coordination backend's subset used by catalog publication."""
-
-    def get(self, name: str) -> bytes | None: ...
-    def set(self, name: str, value: str, ex: int, nx: bool = False) -> bool | None: ...
-    def compare_and_delete(self, name: str, expected: str) -> int: ...
-    def compare_and_publish(
-        self, lease_key: str, expected: str, snapshot_key: str, value: str, ttl: int
-    ) -> bool: ...
 
 
 def metadata_scope(

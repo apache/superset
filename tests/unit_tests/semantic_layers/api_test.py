@@ -3434,3 +3434,49 @@ def test_structure_projects_uuid_and_shared_refresh_policy(
     view.raise_for_access.assert_called_once()
     view.implementation.get_dimensions.assert_called_once()
     view.implementation.get_metrics.assert_called_once()
+
+
+@REFRESH_APP
+def test_structure_categorizes_bound_metadata_failure(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Failure to read shared discovery is not an empty successful structure."""
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+    view: MagicMock = MagicMock()
+    view.implementation.get_dimensions.side_effect = MetadataRefreshError("unavailable")
+    session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+    assert response.status_code == 503
+    assert response.json["error"] == "unavailable"
+    assert "result" not in response.json
+    view.raise_for_access.assert_called_once()
+    view.implementation.get_metrics.assert_not_called()
+
+
+@REFRESH_APP
+def test_runtime_schema_uses_bound_adapter_after_access_check(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Stored connections discover runtime fields through their scoped adapter."""
+    layer: MagicMock = MagicMock(type="test")
+    adapter: MagicMock = layer.implementation.metadata_refresh
+    adapter.get_runtime_schema.return_value = {"enum": ["new_metric"]}
+    provider: MagicMock = MagicMock()
+    dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    dao.find_by_uuid.return_value = layer
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    response: TestResponse = client.post(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/schema/runtime",
+        json={"runtime_data": {"mode": "cube"}},
+    )
+    assert response.status_code == 200
+    assert response.json["result"] == {"enum": ["new_metric"]}
+    layer.raise_for_access.assert_called_once()
+    adapter.get_runtime_schema.assert_called_once_with({"mode": "cube"})
+    provider.get_runtime_schema.assert_not_called()

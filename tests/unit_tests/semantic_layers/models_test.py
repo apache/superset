@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -2402,3 +2402,71 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize("mode", ["disabled", "missing", "unsupported", "no_token"])
+def test_nonparticipating_metadata_identity_preserves_legacy_behavior(
+    mode: str,
+) -> None:
+    """Disabled/unsupported providers must not be constructed to make cache keys."""
+    layer: SemanticLayer = SemanticLayer(type="test", configuration="{}")
+    view: SemanticView = SemanticView(semantic_layer=layer)
+    provider: MagicMock = MagicMock()
+    provider.supports_metadata_refresh.return_value = mode != "unsupported"
+    implementation: PropertyMock
+    with (
+        patch(
+            "superset.semantic_layers.metadata.metadata_refresh_enabled",
+            return_value=mode != "disabled",
+        ),
+        patch.dict(
+            "superset.semantic_layers.models.registry",
+            {} if mode == "missing" else {"test": provider},
+            clear=True,
+        ),
+        patch.object(
+            SemanticView, "implementation", new_callable=PropertyMock
+        ) as implementation,
+    ):
+        implementation.return_value.metadata_cache_token = None
+        assert view.metadata_cache_token is None
+    if mode == "no_token":
+        implementation.assert_called_once()
+    else:
+        implementation.assert_not_called()
+    if mode == "disabled":
+        provider.supports_metadata_refresh.assert_not_called()
+
+
+@pytest.mark.parametrize("changed", ["snapshot", "view_uuid", "view_name", "selection"])
+def test_metadata_identity_tracks_captured_snapshot_and_view_selection(
+    changed: str,
+) -> None:
+    """A semantic change must not reuse compatibility from an older selection."""
+    layer: SemanticLayer = SemanticLayer(type="test", configuration="{}")
+    view: SemanticView = SemanticView(
+        uuid=uuid.uuid4(), name="full", semantic_layer=layer, configuration="{}"
+    )
+    implementation: MagicMock = MagicMock(metadata_cache_token=f"scope:{uuid.uuid4()}")
+    view.__dict__["implementation"] = implementation
+    provider: MagicMock = MagicMock()
+    with (
+        patch(
+            "superset.semantic_layers.metadata.metadata_refresh_enabled",
+            return_value=True,
+        ),
+        patch.dict("superset.semantic_layers.models.registry", {"test": provider}),
+    ):
+        before: str | None = view.metadata_cache_token
+        assert before is not None
+        assert view.metadata_cache_token == before
+        if changed == "snapshot":
+            implementation.metadata_cache_token = f"scope:{uuid.uuid4()}"
+        elif changed == "view_uuid":
+            view.uuid = uuid.uuid4()
+        elif changed == "view_name":
+            view.name = "renamed"
+        else:
+            view.configuration = '{"metrics": ["restricted"]}'
+        assert view.metadata_cache_token != before
+    provider.supports_metadata_refresh.assert_called_with({})
