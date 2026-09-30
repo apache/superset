@@ -45,6 +45,7 @@ class GaugeChartPlugin(BaseChartPlugin):
     """Plugin for gauge chart type."""
 
     chart_type = "gauge"
+    allows_empty_result = True
     display_name = "Gauge Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",

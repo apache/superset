@@ -990,6 +990,7 @@ def merge_chart_form_data(
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
+    # Loading the registry at module scope cycles through plugin imports.
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     if (plugin := plugin_for_viz_type(new_form_data.get("viz_type"))) is not None:

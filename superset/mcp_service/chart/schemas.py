@@ -26,6 +26,7 @@ import logging
 import math
 import re
 from collections.abc import Mapping
+from copy import deepcopy
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
 
@@ -2658,6 +2659,9 @@ class XYChartConfig(BaseChartConfig):
         return self
 
 
+DEFAULT_HISTOGRAM_BINS: int = 5
+
+
 class HistogramChartConfig(BaseChartConfig):
     """Config for histogram charts (viz_type ``histogram_v2``)."""
 
@@ -2672,7 +2676,9 @@ class HistogramChartConfig(BaseChartConfig):
         None,
         description="Optional dimensions to split the distribution into series",
     )
-    bins: int = Field(5, description="Number of histogram bins", ge=1, le=1000)
+    bins: int = Field(
+        DEFAULT_HISTOGRAM_BINS, description="Number of histogram bins", ge=1, le=1000
+    )
     normalize: bool = Field(False, description="Normalize bin counts to proportions")
     cumulative: bool = Field(False, description="Accumulate bin counts left to right")
     filters: List[FilterConfig] | None = Field(
@@ -3842,6 +3848,9 @@ class DeckScatterChartConfig(GeographicChartConfig):
         return self
 
 
+CHART_TYPE_DISCRIMINATOR: str = "chart_type"
+
+
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
@@ -3862,7 +3871,7 @@ ChartConfig = Annotated[
     | WorldMapChartConfig
     | DeckScatterChartConfig,
     Field(
-        discriminator="chart_type",
+        discriminator=CHART_TYPE_DISCRIMINATOR,
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
@@ -3874,11 +3883,14 @@ ChartConfig = Annotated[
 
 
 def _chart_type_values(*config_types: Any) -> list[str]:
-    """Return every ``chart_type`` discriminator value, in union order."""
+    """Return discriminator values from Annotated models or unions, in order."""
     values: list[str] = []
     for config_type in config_types:
-        for model in get_args(get_args(config_type)[0]) or (config_type,):
-            for value in get_args(model.model_fields["chart_type"].annotation):
+        union_type = get_args(config_type)[0]
+        for model in get_args(union_type) or (union_type,):
+            for value in get_args(
+                model.model_fields[CHART_TYPE_DISCRIMINATOR].annotation
+            ):
                 if value not in values:
                     values.append(value)
     return values
@@ -3907,8 +3919,10 @@ CHART_CONFIG_REFERENCE_SCHEMA: dict[str, Any] = {
 def chart_config_reference_schema(*, nullable: bool = False) -> WithJsonSchema:
     """Return the compact ``config`` schema annotation for chart tool inputs."""
     if not nullable:
-        return WithJsonSchema(CHART_CONFIG_REFERENCE_SCHEMA)
-    return WithJsonSchema({"anyOf": [CHART_CONFIG_REFERENCE_SCHEMA, {"type": "null"}]})
+        return WithJsonSchema(deepcopy(CHART_CONFIG_REFERENCE_SCHEMA))
+    return WithJsonSchema(
+        {"anyOf": [deepcopy(CHART_CONFIG_REFERENCE_SCHEMA), {"type": "null"}]}
+    )
 
 
 # Superset viz_type values that LLM clients routinely send where this API

@@ -40,8 +40,11 @@ def capped_compile_row_limit(
     form_data: Mapping[str, Any], cap: int = DEFAULT_COMPILE_ROW_LIMIT
 ) -> int:
     """Cap compile samples, falling back to the cap for invalid saved limits."""
+    value = form_data.get("row_limit")
+    if isinstance(value, bool):
+        return cap
     try:
-        limit = int(form_data.get("row_limit") or cap)
+        limit = int(value or cap)
     except (TypeError, ValueError, OverflowError):
         return cap
     return min(cap, limit) if limit > 0 else cap

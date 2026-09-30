@@ -24,6 +24,7 @@ from typing import Any
 import pytest
 from fastmcp.tools import FunctionTool
 from jsonschema import Draft202012Validator
+from mcp.types import Tool
 from pydantic import BaseModel
 
 from superset.mcp_service.app import mcp
@@ -72,6 +73,25 @@ TOOL_BUDGETS = [
     ("update_chart_preview", 2_000),
     ("generate_explore_link", 1_800),
 ]
+
+
+def _request_key(name: str) -> str:
+    """Return the resource key required by a chart tool request."""
+    return "identifier" if name == "update_chart" else "dataset_id"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("generate_chart", "dataset_id"),
+        ("update_chart", "identifier"),
+        ("update_chart_preview", "dataset_id"),
+        ("generate_explore_link", "dataset_id"),
+    ],
+)
+def test_request_key(name: str, expected: str) -> None:
+    """Chart tool requests select the saved-chart or dataset resource key."""
+    assert _request_key(name) == expected
 
 
 def _references(node: Any) -> Iterator[str]:
@@ -139,6 +159,34 @@ async def test_chart_tool_inventory_size(name: str, byte_budget: int) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("name", [row[0] for row in CHART_TOOLS])
+@pytest.mark.parametrize("catalog", ["search", "direct"])
+async def test_complete_chart_definition_fits_gateway_page(
+    name: str, catalog: str
+) -> None:
+    """Budget complete definitions, including metadata and the chart-type enum."""
+    tool = await mcp.get_tool(name)
+    assert tool is not None
+    if catalog == "search":
+        definition = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[0]
+        # The gateway canonicalizes FastMCP's metadata alias before validation.
+        if "meta" in definition:
+            definition["_meta"] = definition.pop("meta")
+    else:
+        # Direct tools/list includes descriptions, titles and output schemas.
+        definition = tool.to_mcp_tool().model_dump(
+            mode="json", by_alias=True, exclude_none=True
+        )
+    definition = Tool.model_validate(definition).model_dump(
+        mode="json", by_alias=True, exclude_unset=True
+    )
+    # Match the gateway's UTF-8 JSON page bound without dropping any fields,
+    # subtracting the enum or measuring only inputSchema.
+    page = json.dumps([definition], ensure_ascii=False, separators=(",", ":"))
+    assert len(page.encode("utf-8")) <= 100_000, (name, catalog)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(("name", "model"), CHART_TOOLS)
 async def test_chart_tool_schema_is_independent_of_chart_type_count(
     name: str, model: type[BaseModel]
@@ -160,8 +208,8 @@ async def test_chart_tool_schema_is_independent_of_chart_type_count(
 
 def test_budget_is_independent_of_chart_type_count() -> None:
     """Adding a chart type grows only the excluded enum, never the budgeted bytes."""
-    text = '{"enum":' + CHART_TYPE_ENUM + "}"
-    grown = CHART_TYPE_ENUM[:-1] + ',"another_registered_chart_type"]'
+    text: str = '{"enum":' + CHART_TYPE_ENUM + "}"
+    grown: str = CHART_TYPE_ENUM[:-1] + ',"another_registered_chart_type"]'
     assert budgeted_bytes(text) == len(b'{"enum":}')
     # A different enum is not excluded, so inlined per-type schemas still count.
     assert budgeted_bytes('{"enum":' + grown + "}") > len(b'{"enum":}')
@@ -200,7 +248,7 @@ async def test_chart_tool_inventory_preserves_complete_schema(name: str) -> None
 
     validator = Draft202012Validator(schema)
     request: dict[str, Any] = {
-        "identifier" if name == "update_chart" else "dataset_id": 1,
+        _request_key(name): 1,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]},
     }
     validator.validate({"request": request})
@@ -280,14 +328,23 @@ async def test_chart_tool_schema_first_invocation(
 
 
 @pytest.mark.asyncio
-async def test_compact_schema_keeps_server_side_validation() -> None:
+@pytest.mark.parametrize(("name", "model"), CHART_TOOLS)
+async def test_compact_schema_keeps_server_side_validation(
+    name: str, model: type[BaseModel]
+) -> None:
     """Invalid per-type fields are still rejected by the request model."""
-    controlled_tool = FunctionTool.from_function(_generate_fixture)
+
+    def validate_request(request: Any) -> str:
+        """Return the chart type without executing a query or persistence."""
+        return request.config.chart_type
+
+    validate_request.__annotations__["request"] = model
+    controlled_tool = FunctionTool.from_function(validate_request)
     with pytest.raises(Exception, match="columns|name"):
         await controlled_tool.run(
             {
                 "request": {
-                    "dataset_id": 1,
+                    _request_key(name): 1,
                     "config": {"chart_type": "table", "columns": [{"name": ""}]},
                 }
             }

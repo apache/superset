@@ -333,8 +333,6 @@ class TestHistogramNumericColumnValidation:
     def _validate(
         self, columns: list[dict[str, object]], column_name: str = "payment_type"
     ) -> "ChartGenerationError | None":
-        from unittest.mock import patch
-
         from superset.mcp_service.chart import registry
 
         plugin = registry.get("histogram")
@@ -494,6 +492,7 @@ def test_histogram_query_matches_frontend_build_query(
     adhoc_filters: list[dict[str, str]], expected_metrics: list[dict[str, str]]
 ) -> None:
     """Histogram queries select the binned column and apply histogramOperator."""
+
     form_data = {
         "viz_type": "histogram_v2",
         "datasource": "1__table",
@@ -503,9 +502,8 @@ def test_histogram_query_matches_frontend_build_query(
         "normalize": True,
         "adhoc_filters": adhoc_filters,
     }
-    with patch(
-        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
-        return_value="sqlite",
+    with patch.object(
+        chart_helpers, "resolve_datasource_engine", return_value="sqlite"
     ):
         queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
 

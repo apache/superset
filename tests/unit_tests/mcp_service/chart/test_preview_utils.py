@@ -277,6 +277,34 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     assert "bad metric" in result.error
 
 
+@pytest.mark.parametrize("stage", [None, 42, {}, {"expressionType": "SQL"}])
+def test_funnel_preview_rejects_invalid_stage(stage: object) -> None:
+    """Malformed stage references return the invalid-form-data contract."""
+    from superset.mcp_service.chart.schemas import ChartError
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidFormData"
+
+
+@pytest.mark.parametrize(
+    "stage", ["stage", {"label": "stage"}, {"sqlExpression": "stage"}]
+)
+def test_funnel_preview_resolves_stage(stage: object) -> None:
+    """Valid stage references retain their result labels."""
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [{"stage": "visit", "count": 3}], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, VegaLitePreview)
+    assert result.specification["encoding"]["y"]["field"] == "stage"
+
+
 def _vega_encoding(rows, form_data):
     result = preview_utils._generate_vega_lite_preview_from_data(rows, form_data)
     return result.specification.get("encoding", {})

@@ -42,6 +42,7 @@ class BubbleChartPlugin(BaseChartPlugin):
     """Plugin for bubble chart type."""
 
     chart_type = "bubble_v2"
+    allows_empty_result = True
     display_name = "Bubble Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "bubble_v2": "Bubble Chart",

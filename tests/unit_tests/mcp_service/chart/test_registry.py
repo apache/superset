@@ -270,3 +270,35 @@ def test_all_plugins_module_and_proxy_include_disabled(
     assert registry_module.all_plugins() == [first, second]
     assert get_registry().all_plugins() == [first, second]
     assert all_types() == ["another"]
+
+
+@pytest.mark.parametrize("native_first", [False, True])
+def test_native_owner_precedes_additional_owner(native_first: bool) -> None:
+    """Native ownership wins regardless of plugin registration order."""
+
+    class _AdditionalPlugin(_FakePlugin):
+        additional_viz_types = frozenset({"another_viz"})
+
+    additional = _AdditionalPlugin()
+    native = _AnotherPlugin()
+    for plugin in (native, additional) if native_first else (additional, native):
+        register(plugin)
+    assert registry_module.plugin_for_viz_type("another_viz") is native
+
+
+def test_additional_owner_uses_insertion_order() -> None:
+    """Keep the first additional owner when no native plugin claims the type."""
+
+    class _FirstAdditionalPlugin(_FakePlugin):
+        additional_viz_types = frozenset({"extra"})
+
+    class _SecondAdditionalPlugin(_AnotherPlugin):
+        additional_viz_types = frozenset({"extra"})
+
+    first = _FirstAdditionalPlugin()
+    second = _SecondAdditionalPlugin()
+    register(first)
+    register(second)
+    assert registry_module.plugin_for_viz_type("extra") is first
+    assert registry_module.plugin_for_viz_type("missing") is None
+    assert registry_module.plugin_for_viz_type(None) is None
