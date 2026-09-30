@@ -686,3 +686,31 @@ def test_stringified_decimals_use_fixed_point(
     assert "'" not in csv
     assert "E-" not in csv
     assert "E+" not in csv
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (
+            [Decimal("Infinity"), Decimal("-Infinity"), Decimal("NaN")],
+            [None, None, None],
+        ),
+        (
+            [Decimal("-0.00000010"), 1.5, Decimal("0E-18")],
+            ["-0.00000010", "1.5", "0.000000000000000000"],
+        ),
+    ],
+)
+def test_chart_dataframe_decimal_fallback(
+    mocker: MockerFixture,
+    values: list[Decimal | float],
+    expected: list[str | None],
+) -> None:
+    """Chart/dataset loading uses fixed-point strings and null non-finite Decimals."""
+    from superset.models.core import Database
+
+    database = mocker.Mock(db_engine_spec=BaseEngineSpec)
+    description = [("value", "numeric", None, None, None, None, True)]
+    df = Database.load_into_dataframe(database, description, [(v,) for v in values])
+
+    assert df["value"].tolist() == expected

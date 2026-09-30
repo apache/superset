@@ -100,8 +100,11 @@ strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
 extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
 carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
 `AVG` or `ROUND` results), so adding them with `+` concatenates instead of
-summing. Chart result serialization is unchanged. Re-run queries whose cached
-JSON results were produced before upgrading all workers.
+summing. Chart and dataset queries also use fixed-point strings for Decimal
+columns that fall back to string conversion (for example, Decimals mixed with
+floats), and non-finite Decimals in those columns become null. Other chart
+result serialization and chart number formatting are unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
 
 ### Version history retention setting
 

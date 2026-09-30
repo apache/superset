@@ -97,5 +97,8 @@ SQL Lab displays database `DECIMAL` and `NUMERIC` results as exact fixed-point
 text, including trailing zeros and never in scientific notation. Its JSON
 responses use strings so a browser does not round values such as
 `12345678901234567890.123456789012345678`. Sorting remains numeric and
-compares all digits; CSV exports retain those digits too. This does not change
-chart number formatting or chart result serialization.
+compares all digits; CSV exports retain those digits too. Chart and dataset
+queries share the result-set loader: Decimal columns that fall back to strings
+(for example, Decimals mixed with floats) also use fixed-point notation, with
+non-finite Decimals converted to null. Other chart result serialization and
+chart number formatting are unchanged.
