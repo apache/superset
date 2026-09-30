@@ -899,6 +899,97 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     return node
 
 
+# Alternation ordered so a quoted region is consumed whole before either
+# comment form can match inside it, keeping a `--` or `/*` that is merely
+# part of a literal from truncating the text after it. Each of the two
+# regions that scan forward for a closing delimiter -- the dollar-quoted
+# literal and the block comment -- needs a trailing "runs to end"
+# alternative for the unterminated case: without one the lazy `.*?` rescans
+# to end of text from every opener in turn, which is quadratic on input a
+# user controls. The unterminated literal stays inside the `literal` group
+# so it is preserved rather than blanked, since text a gate would match must
+# not disappear.
+_COMMENT_RE_TEMPLATE = r"""
+      (?P<literal>
+          {single_quoted}                       # single-quoted string
+        | {double_quoted}                       # double-quoted identifier
+        | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
+        | \$\w*\$.*                             # unterminated: runs to end
+      )
+    | {line_comment}[^\n]*                      # line comment
+    | /\*.*?\*/                                 # block comment
+    | /\*.*                                     # unterminated: runs to end
+    """
+
+
+def _quoted_literal_pattern(quote: str, backslash_escapes: bool) -> str:
+    """
+    Build the pattern matching one quoted region, delimiters included.
+
+    The doubled delimiter (``'it''s'``) always escapes. A backslash only
+    escapes on the dialects that say so, and where it does it must be
+    recognised: without it the scan ends the literal at the escaped quote of
+    ``'it\\'s -- x'``, reads the rest as code, and lets the ``--`` blank out
+    text the server actually runs, hiding it from every gate that scans here.
+
+    The alternatives are kept mutually exclusive -- the negated class drops
+    the escape character rather than overlapping with it -- so exactly one
+    branch can start at any position. An overlapping form would let a run of
+    backslashes with no closing quote backtrack exponentially, on text a user
+    controls.
+
+    :param quote: The delimiter character
+    :param backslash_escapes: Whether a backslash escapes on this dialect
+    :return: The pattern for one quoted region
+    """
+    if backslash_escapes:
+        return rf"{quote}(?:[^{quote}\\]|\\.|{quote}{quote})*{quote}"
+    return rf"{quote}(?:[^{quote}]|{quote}{quote})*{quote}"
+
+
+@lru_cache(maxsize=None)
+def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
+    """
+    Return the comment pattern a dialect's raw statement text is lexed with.
+
+    Both rules that vary are read off sqlglot rather than listed here, so a
+    dialect cannot be lexed with the wrong one because a list was not kept in
+    step: the MySQL family is identified by subclassing (``Doris``,
+    ``StarRocks`` and ``SingleStore`` all subclass ``MySQL``, as does this
+    repo's own ``Pinot``), and backslash escaping is read off the tokenizer.
+
+    MySQL-family engines only start a comment on ``--`` when whitespace (or
+    end of line) follows: ``1--2`` is arithmetic there. Stripping it as a
+    comment would delete text the server executes and blind every gate that
+    scans this body, so those dialects get the stricter rule.
+
+    An unknown dialect is lexed as if backslashes escape. That direction is
+    the safe one: treating an escape that is not one only ever folds more
+    text into a literal, which is preserved and still scanned, while missing
+    a real escape blanks executable text.
+
+    Cached because the answer depends only on the dialect, so a script would
+    otherwise re-derive it, and instantiate a sqlglot ``Dialect``, per
+    statement.
+
+    :param dialect: The statement's sqlglot dialect, or ``None`` when unknown
+    :return: The compiled comment pattern
+    """
+    dialect_cls = Dialect.get_or_raise(dialect) if dialect else None
+    backslash_escapes = (
+        dialect_cls is None or "\\" in dialect_cls.tokenizer_class.STRING_ESCAPES
+    )
+    line_comment = r"--(?=[ \t\r\n]|$)" if isinstance(dialect_cls, MySQL) else "--"
+    return re.compile(
+        _COMMENT_RE_TEMPLATE.format(
+            single_quoted=_quoted_literal_pattern("'", backslash_escapes),
+            double_quoted=_quoted_literal_pattern('"', backslash_escapes),
+            line_comment=line_comment,
+        ),
+        re.DOTALL | re.VERBOSE,
+    )
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -1040,42 +1131,6 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     # Opening delimiter of a dollar-quoted region, e.g. `$$` or `$tag$`.
     _DOLLAR_QUOTE_OPEN_RE = re.compile(r"\$\w*\$")
-
-    # Alternation ordered so a quoted region is consumed whole before either
-    # comment form can match inside it, keeping a `--` or `/*` that is merely
-    # part of a literal from truncating the text after it. Each of the two
-    # regions that scan forward for a closing delimiter -- the dollar-quoted
-    # literal and the block comment -- needs a trailing "runs to end"
-    # alternative for the unterminated case: without one the lazy `.*?` rescans
-    # to end of text from every opener in turn, which is quadratic on input a
-    # user controls. The unterminated literal stays inside the `literal` group
-    # so it is preserved rather than blanked, since text a gate would match must
-    # not disappear.
-    _COMMENT_RE_TEMPLATE = r"""
-          (?P<literal>
-              '(?:[^']|'')*'                        # single-quoted string
-            | "(?:[^"]|"")*"                        # double-quoted identifier
-            | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
-            | \$\w*\$.*                             # unterminated: runs to end
-          )
-        | {line_comment}[^\n]*                      # line comment
-        | /\*.*?\*/                                 # block comment
-        | /\*.*                                     # unterminated: runs to end
-        """
-
-    _COMMENT_RE = re.compile(
-        _COMMENT_RE_TEMPLATE.format(line_comment="--"),
-        re.DOTALL | re.VERBOSE,
-    )
-
-    # MySQL-family engines only start a comment on `--` when whitespace (or
-    # end of line) follows: `1--2` is arithmetic there. Stripping it as a
-    # comment would delete text the server executes and blind every gate that
-    # scans this body, so those dialects get the stricter rule.
-    _COMMENT_RE_SPACED_DASH = re.compile(
-        _COMMENT_RE_TEMPLATE.format(line_comment=r"--(?=[ \t\r\n]|$)"),
-        re.DOTALL | re.VERBOSE,
-    )
 
     # A literal nests once per level of dynamic-SQL indirection (an
     # `EXECUTE IMMEDIATE` inside an `EXECUTE IMMEDIATE`), so a handful covers
@@ -1294,29 +1349,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         text = self._peel_dollar_quote(text, head)
         return self._strip_comments(text)
 
-    @cached_property
+    @property
     def _comment_re(self) -> re.Pattern[str]:
         """
         Return the comment pattern this statement's dialect is lexed with.
 
-        The MySQL family is identified by subclassing rather than by a list of
-        dialects: sqlglot models the family that way (``Doris``, ``StarRocks``
-        and ``SingleStore`` all subclass ``MySQL``, as does this repo's own
-        ``Pinot``), so a list would have to be kept in step with it by hand and
-        would silently lex a missing member with the wrong ``--`` rule.
-
-        Resolved once per statement rather than per call: ``_strip_comments``
-        recurses once per literal it descends into, and the choice cannot
-        change between those calls.
-
         :return: The compiled comment pattern for this statement's dialect
         """
-        dialect = Dialect.get_or_raise(self._dialect) if self._dialect else None
-        return (
-            self._COMMENT_RE_SPACED_DASH
-            if isinstance(dialect, MySQL)
-            else self._COMMENT_RE
-        )
+        return _comment_re_for(self._dialect)
 
     @classmethod
     def _peel_dollar_quote(cls, text: str, head: str | None) -> str:
@@ -1398,6 +1438,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The text with each comment replaced by a single space, so
             tokens either side of a removed comment stay separated
         """
+        # Text carrying neither comment opener has nothing to strip, and the
+        # substitution below would be an identity: no comment branch can match,
+        # and every literal branch returns the literal unchanged. This is the
+        # same test `replace` already applies per literal, hoisted to the whole
+        # scan so the common comment-free body skips the pass entirely.
+        if "--" not in text and "/*" not in text:
+            return text
 
         def replace(match: re.Match[str]) -> str:
             if (literal := match.group("literal")) is None:

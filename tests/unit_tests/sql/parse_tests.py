@@ -2128,6 +2128,12 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         # Stripping inside a literal stops at its closing delimiter, so a `--`
         # in one still cannot comment out the statements that follow it.
         ("EXECUTE IMMEDIATE $$ CALL p('--'); RM @my_stage/c $$", "RM"),
+        # A backslash escapes the quote on this dialect, so the literal does
+        # not end at the quote it precedes. Reading that quote as the closing
+        # one would leave the rest of the body looking like code, letting the
+        # `--` blank out the command that follows it.
+        ("CALL p('it\\'s -- x', 'PUT file:///tmp/a @my_stage')", "PUT"),
+        ('CALL p("it\\"s -- x", \'GET @my_stage file:///tmp/a\')', "GET"),
         # A head that really is commented out inside the body still does not
         # run, so it is still not reported.
         ("EXECUTE IMMEDIATE 'SELECT 1 -- PUT file:///tmp/a @my_stage'", None),
@@ -6045,6 +6051,15 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         # so it must not lose the rest of the body to an unspaced `--`.
         ("CALL p(1--2, 'SET SCHEMA evil')", "singlestoredb", True),
         ("CALL p(1, 'x') -- SET SCHEMA evil", "singlestoredb", False),
+        # Whether a backslash escapes is read off the dialect too. Where it
+        # does, the literal does not end at the quote the backslash precedes,
+        # so the `--` after it is still inside that literal and cannot comment
+        # out the rebind carried in the next argument.
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "snowflake", True),
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "mysql", True),
+        # PostgreSQL has no backslash escape, so the literal really does end
+        # there and the `--` that follows opens a comment.
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "postgresql", False),
         # The family is identified by subclassing `MySQL`, so an engine that
         # joins it without being named anywhere here takes the rule too.
         ("CALL p(1--2, 'SET SCHEMA evil')", "pinot", True),
