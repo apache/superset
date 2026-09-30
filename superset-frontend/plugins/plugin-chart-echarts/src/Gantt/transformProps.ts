@@ -61,6 +61,7 @@ import { convertInteger } from '../utils/convertInteger';
 import { getTooltipLabels } from '../utils/tooltip';
 import {
   CATEGORY_LABEL_GAP,
+  CATEGORY_LABEL_TRUNCATE_GAP,
   Dimension,
   ELEMENT_HEIGHT_SCALE,
   MAX_CATEGORY_LABEL_WIDTH_RATIO,
@@ -255,7 +256,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   // category cannot eat the chart; anything past the cap is truncated with an
   // ellipsis by the label itself.
   const categoryLabelWidth = Math.min(
-    Math.ceil(maxCategoryLabelWidth),
+    maxCategoryLabelWidth > 0
+      ? Math.ceil(maxCategoryLabelWidth) + CATEGORY_LABEL_TRUNCATE_GAP
+      : 0,
     Math.floor(width * MAX_CATEGORY_LABEL_WIDTH_RATIO),
   );
 

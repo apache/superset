@@ -381,10 +381,51 @@ describe('category label width reservation', () => {
         }>
       ).find(series => series.markLine?.label?.show);
 
-      // "second" is the widest category name (6 chars) at ~0.62em per char.
+      // "second" is the widest category name (6 chars) at ~0.62em per char,
+      // plus the 1px ECharts reserves before truncating.
       expect(categoryLabelSeries?.markLine?.label?.width).toBe(
-        Math.ceil('second'.length * supersetTheme.fontSizeSM * 0.62),
+        Math.ceil('second'.length * supersetTheme.fontSizeSM * 0.62) + 1,
       );
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('sizes the label box so ECharts does not truncate the widest name', () => {
+    // ECharts' `overflow: 'truncate'` only keeps text that fits in
+    // `width - 1`, so a box exactly as wide as the text cuts off its last
+    // glyph. The widest name here measures an integral 142px.
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 142,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 141,
+              }
+            : {
+                width: 50,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 50,
+              },
+      } as never);
+    try {
+      const transformed = transformProps(
+        new ChartProps({
+          ...chartPropsConfig,
+          width: 1000,
+        }) as EchartsGanttChartProps,
+      );
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: { label?: { show?: boolean; width?: number } };
+        }>
+      ).find(series => series.markLine?.label?.show);
+      const labelWidth = categoryLabelSeries?.markLine?.label?.width ?? 0;
+
+      expect(labelWidth - 1).toBeGreaterThanOrEqual(142);
     } finally {
       getContext.mockRestore();
     }
