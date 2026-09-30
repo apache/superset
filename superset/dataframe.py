@@ -91,7 +91,7 @@ def _convert_decimals(value: Any) -> Any:
     # overridden ``items``/``__iter__`` hooks during conversion.
     value_type = type(value)
     if value_type is Decimal:
-        return str(value) if Decimal.is_finite(value) else None
+        return format(value, "f") if Decimal.is_finite(value) else None
     if value_type is dict:
         return {key: _convert_decimals(item) for key, item in dict.items(value)}
     if value_type is list:

@@ -550,6 +550,8 @@ def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
         "10.50",
         "0.00",
         "1E+30",
+        "0.000000000000000000",
+        "-0.000000100000000000",
     ],
 )
 def test_decimal_records_keep_all_digits(value: str) -> None:
@@ -557,7 +559,7 @@ def test_decimal_records_keep_all_digits(value: str) -> None:
     decimal_value: Decimal = Decimal(value)
     frame = pd.DataFrame({"value": [decimal_value, None]})
     records = df_to_records(frame)
-    assert records == [{"value": str(decimal_value)}, {"value": None}]
+    assert records == [{"value": format(decimal_value, "f")}, {"value": None}]
     # Both the HTTP JSON and JSON cache must quote decimals for JavaScript.
     assert superset_json.loads(superset_json.dumps(records)) == records
     # SQL Lab conversion must not modify DataFrames used for chart arithmetic.
@@ -592,3 +594,15 @@ def test_decimal_conversion_can_be_disabled_for_chart_records() -> None:
     records = df_to_records(frame, convert_decimals=False)
     assert records == [{"value": value}, {"value": {"a": [value]}}]
     assert type(records[0]["value"]) is Decimal
+
+
+def test_high_scale_negative_decimal_csv() -> None:
+    """Small negative decimals export in fixed notation without formula escaping."""
+    from superset.utils.csv import df_to_escaped_csv
+
+    records = df_to_records(pd.DataFrame({"value": [Decimal("-0.000000100000000000")]}))
+    assert records == [{"value": "-0.000000100000000000"}]
+    assert (
+        df_to_escaped_csv(pd.DataFrame(records), index=False, lineterminator="\n")
+        == "value\n-0.000000100000000000\n"
+    )

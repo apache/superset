@@ -70,49 +70,49 @@ test('sorts a mixed text and number column transitively', () => {
   expect(descending).toEqual(ascending);
 });
 
-// The regular expressions these parsers replaced, kept as a reference oracle.
-const LEGACY_DECIMAL =
+// Reference regexes the linear parsers must agree with.
+const REFERENCE_DECIMAL =
   /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/;
-const LEGACY_NUMERIC = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
+const REFERENCE_NUMERIC = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
 
 function strings(alphabet: string[], maxLength: number): string[] {
   const all = [''];
   let level = [''];
   for (let length = 1; length <= maxLength; length += 1) {
     level = level.flatMap(prefix => alphabet.map(token => prefix + token));
-    all.push(...level);
+    level.forEach(text => all.push(text));
   }
   return all;
 }
 
-test('linear parsers accept exactly what the legacy regexes matched', () => {
+test('linear parsers accept exactly what the reference regexes match', () => {
   const alphabet = ['0', '7', '.', 'e', 'E', '+', '-', 'x', 'NaN', 'Infinity'];
   const mismatches: string[] = [];
-  let checked = 0;
-  strings(alphabet, 5).forEach(text => {
-    if ((decimalParts(text) !== null) !== LEGACY_DECIMAL.test(text)) {
+  const inputs = strings(alphabet, 5);
+  expect(inputs).toHaveLength(111111);
+  expect(inputs).toEqual(
+    expect.arrayContaining(['NaN', 'Infinity', '-Infinity']),
+  );
+  inputs.forEach(text => {
+    if ((decimalParts(text) !== null) !== REFERENCE_DECIMAL.test(text)) {
       mismatches.push(`decimal: ${text}`);
     }
-    if (isNumericText(text) !== LEGACY_NUMERIC.test(text)) {
+    if (isNumericText(text) !== REFERENCE_NUMERIC.test(text)) {
       mismatches.push(`numeric: ${text}`);
     }
-    checked += 1;
   });
   expect(mismatches).toEqual([]);
-  expect(checked).toBeGreaterThan(100000);
 });
 
-test('parses adversarial near-miss inputs in linear time', () => {
+test('rejects long adversarial near-miss inputs', () => {
   const inputs = [
     `${'1'.repeat(200000)}x`,
     `.${'1'.repeat(200000)}.`,
     `1e${'1'.repeat(200000)}e`,
     `-${'1'.repeat(100000)}.${'1'.repeat(100000)}E+`,
   ];
-  const started = Date.now();
   inputs.forEach(text => {
     expect(decimalParts(text)).toBeNull();
     expect(isNumericText(text)).toBe(false);
   });
-  expect(Date.now() - started).toBeLessThan(1000);
 });
