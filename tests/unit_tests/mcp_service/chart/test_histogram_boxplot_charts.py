@@ -463,3 +463,65 @@ class TestBoxPlotNativeVocabulary:
             }
         )
         assert config.whisker_type == "min_max"
+
+
+@pytest.mark.parametrize(
+    ("adhoc_filters", "expected_metrics"),
+    [
+        ([], []),
+        (
+            [
+                {
+                    "expressionType": "SQL",
+                    "clause": "HAVING",
+                    "sqlExpression": "COUNT(*) > 1",
+                }
+            ],
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ],
+        ),
+    ],
+)
+def test_histogram_query_matches_frontend_build_query(
+    adhoc_filters: list[dict[str, str]], expected_metrics: list[dict[str, str]]
+) -> None:
+    """Histogram queries select the binned column and apply histogramOperator."""
+    from unittest.mock import patch
+
+    from superset.mcp_service.chart import chart_helpers
+
+    form_data = {
+        "viz_type": "histogram_v2",
+        "datasource": "1__table",
+        "column": "trip_duration",
+        "groupby": ["region"],
+        "bins": "20",
+        "normalize": True,
+        "adhoc_filters": adhoc_filters,
+    }
+    with patch.object(
+        chart_helpers, "resolve_datasource_engine", return_value="sqlite"
+    ):
+        queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    query = queries[0]
+    assert query["columns"] == ["region", "trip_duration"]
+    assert query["metrics"] == expected_metrics
+    assert query["post_processing"] == [
+        {
+            "operation": "histogram",
+            "options": {
+                "column": "trip_duration",
+                "groupby": ["region"],
+                "bins": 20,
+                "cumulative": False,
+                "normalize": True,
+            },
+        }
+    ]

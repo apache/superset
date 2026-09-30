@@ -22,6 +22,7 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
+import inspect
 import logging
 import os
 from collections.abc import Sequence
@@ -305,7 +306,17 @@ def _truncate_description(text: str, max_length: int) -> str:
 
     Cuts at the last sentence boundary before *max_length*, or at
     *max_length* with an ellipsis if no sentence boundary is found.
+
+    Dedents first: Python 3.13 has the compiler strip a docstring's common
+    leading whitespace at compile time (``__doc__`` comes out already
+    cleaned), while 3.11/3.12 store it raw and leave that to the caller. A
+    multi-line tool docstring's raw, un-dedented form is longer per line, so
+    the same character budget lands at a different point in the text
+    depending on which Python compiled it. Cleaning here first makes the cut
+    point (and this function's callers' byte budgets) consistent regardless
+    of interpreter version.
     """
+    text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
     # Try to cut at the last sentence boundary
