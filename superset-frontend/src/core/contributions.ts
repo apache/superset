@@ -54,7 +54,7 @@ export const GlobalLocations = {
     menu: 'global.settingsMenu',
     /**
      * Full-page views reachable from `settings.menu` items, rendered at
-     * `/extensions/view/:viewId` (see `src/views/routes.tsx`).
+     * `/extensions/view/:viewId+` (see `src/views/routes.tsx`).
      */
     panel: 'global.settingsPanel',
   },
