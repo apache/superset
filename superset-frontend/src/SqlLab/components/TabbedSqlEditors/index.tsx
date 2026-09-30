@@ -427,7 +427,7 @@ function TabbedSqlEditors({
       onEdit={handleEdit}
       popupClassName={SQLLAB_TAB_OVERFLOW_POPUP_CLASS}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
-      addIcon={<NewTabButton onAddSqlEditor={() => newQueryEditor()} />}
+      addIcon={<NewTabButton onAddSqlEditor={newQueryEditor} />}
       items={tabItems}
     />
   );
