@@ -38,6 +38,10 @@ This applies to requests rebuilt by the updated frontend in Explore and
 dashboards; it does not rewrite saved charts. Direct API requests and saved
 chart-data GET paths that bypass rebuilding remain subject to strict validation,
 so old stored query contexts can still fail. Updated frontend assets are required.
+Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
+recomputing it. A grouped chart saved before this change may lack the
+non-temporal column metadata needed to omit a dormant grain, so its dashboard
+requests can keep sending that grain until the chart is re-saved in Explore.
 
 ### Enabling Data Upload Functionality
 
