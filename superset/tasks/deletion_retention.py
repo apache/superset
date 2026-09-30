@@ -122,8 +122,8 @@ def _reconcile_unless_dry_run(dry_run: bool) -> None:
 
 def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
-    if window_days <= 0:
-        logger.info("deletion_retention: window is 0 (disabled); skipping")
+    if window_days == 0 or window_days < -1:
+        logger.info("deletion_retention: window is disabled or invalid; skipping")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
@@ -133,7 +133,11 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     # UTC-derived cutoff would shift the retention window by the server's
     # timezone offset, purging early west of UTC. If deleted_at ever moves
     # to UTC-aware, this must move with it.
-    cutoff = datetime.now() - timedelta(days=window_days)
+    cutoff: datetime = (
+        datetime.now()
+        if window_days == -1
+        else datetime.now() - timedelta(days=window_days)
+    )
     _reconcile_unless_dry_run(dry_run)
     purged: dict[str, int] = {}
     would_purge: dict[str, int] = {}
