@@ -48,7 +48,11 @@ class OracleEngineSpec(BaseEngineSpec):
         "pypi_packages": ["oracledb"],
         "connection_string": "oracle+oracledb://{username}:{password}@{hostname}:{port}",
         "default_port": 1521,
-        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "notes": (
+            "Previously used cx_Oracle, now uses oracledb. Legacy LONG columns are "
+            "treated as text, not numeric data, so Explore does not select SUM as "
+            "their default aggregate."
+        ),
         "docs_url": "https://python-oracledb.readthedocs.io/en/latest/user_guide/installation.html",
     }
     force_column_alias_quotes = True

@@ -81,8 +81,3 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="Oracle" database={databaseInfo} />
-
-### Column types
-
-Oracle's legacy `LONG` columns are treated as text, not numeric data, so Explore
-does not select `SUM` as their default aggregate.
