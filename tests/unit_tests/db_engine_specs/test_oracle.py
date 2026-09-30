@@ -145,6 +145,8 @@ def test_denormalize_name(name: str, expected_result: str):
         ("BINARY_FLOAT", types.Float, None, GenericDataType.NUMERIC, False),
         ("CLOB", types.Text, None, GenericDataType.STRING, False),
         ("NCLOB", types.Text, None, GenericDataType.STRING, False),
+        ("LONG", types.Text, None, GenericDataType.STRING, False),
+        ("long", types.Text, None, GenericDataType.STRING, False),
         # types already covered by the base mappings keep their behavior
         ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
         ("DOUBLE PRECISION", types.Float, None, GenericDataType.NUMERIC, False),

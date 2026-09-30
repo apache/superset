@@ -78,6 +78,12 @@ class OracleEngineSpec(BaseEngineSpec):
             types.Text(),
             GenericDataType.STRING,
         ),
+        # Oracle LONG stores character data, unlike the base numeric mapping.
+        (
+            re.compile(r"^long\b", re.IGNORECASE),
+            types.Text(),
+            GenericDataType.STRING,
+        ),
     )
 
     _time_grain_expressions = {
