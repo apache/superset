@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -21,6 +22,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.core import GenericDataType
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -38,12 +40,60 @@ class OracleEngineSpec(BaseEngineSpec):
         "pypi_packages": ["oracledb"],
         "connection_string": "oracle+oracledb://{username}:{password}@{hostname}:{port}",
         "default_port": 1521,
-        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "notes": (
+            "Previously used cx_Oracle, now uses oracledb. Legacy LONG columns are "
+            "treated as text, not numeric data, so Explore does not select SUM as "
+            "their default aggregate."
+        ),
         "docs_url": "https://python-oracledb.readthedocs.io/en/latest/user_guide/installation.html",
     }
     force_column_alias_quotes = True
     max_column_name_length = 128
     supports_multivalues_insert = True
+
+    # Oracle-native type names the base mappings don't cover. NUMBER is Oracle's
+    # primary numeric type (reflected as e.g. "NUMBER" or "NUMBER(10, 2)"), and
+    # without these mappings such columns get no generic type, so they are not
+    # treated as numeric (no default SUM aggregate, excluded from numeric
+    # column lists). BLOB, RAW and LONG RAW are binary and intentionally unmapped.
+    # The patterns are anchored on a word boundary so unrelated type names that
+    # merely share a prefix (e.g. a user-defined "NUMBERING" type) stay unmapped.
+    column_type_mappings = (
+        (
+            re.compile(r"^number\b", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^binary_(float|double)\b", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^n?clob\b", re.IGNORECASE),
+            types.Text(),
+            GenericDataType.STRING,
+        ),
+        # Oracle LONG stores character data, unlike the base numeric mapping.
+        (
+            re.compile(r"^long\b", re.IGNORECASE),
+            types.Text(),
+            GenericDataType.STRING,
+        ),
+    )
+    # LONG RAW is binary like BLOB and RAW. Keep it unmapped rather than letting
+    # the LONG pattern above, or the base numeric "^long" pattern, claim it.
+    _long_raw_type = re.compile(r"^long\s+raw\b", re.IGNORECASE)
+
+    @classmethod
+    def get_column_types(
+        cls,
+        column_type: str | None,
+    ) -> tuple[types.TypeEngine, GenericDataType] | None:
+        """Leave LONG RAW unmapped; otherwise apply the Oracle and base mappings."""
+        if column_type and cls._long_raw_type.match(column_type):
+            return None
+        return super().get_column_types(column_type)
 
     _time_grain_expressions = {
         None: "{col}",
