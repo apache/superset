@@ -149,3 +149,20 @@ def test_extract_verbose_multiline_diagnostic() -> None:
     errors = ExasolEngineSpec.extract_errors(Exception(raw))
     assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
     assert errors[0].message == diagnostic
+
+
+def test_extract_verbose_diagnostic_keeps_arrow_lines() -> None:
+    """Only PyExasol's envelope fields end the message field."""
+    diagnostic = "another server failure\nhint => check the view definition"
+    raw = (
+        f"\n(\n    message     =>  {diagnostic}\n"
+        "    dsn         =>  localhost:8563\n"
+        "    user        =>  SYS\n"
+        "    schema      =>  PUBLIC\n"
+        "    session_id  =>  1\n"
+        "    code        =>  42000\n"
+        "    query       =>  SELECT 1\n)\n"
+    )
+    errors = ExasolEngineSpec.extract_errors(Exception(raw))
+    assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+    assert errors[0].message == diagnostic

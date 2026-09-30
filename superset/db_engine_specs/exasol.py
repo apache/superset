@@ -145,9 +145,12 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             maxsplit=1,
         )[0]
         if match := re.search(r"(?m)^[ \t]*message[ \t]*=>[ \t]*", message):
-            # PyExasol prints the message first, then connection/query fields.
+            # PyExasol prints the message first, then its fixed connection/query
+            # fields. Only those field names end the message, so a diagnostic
+            # line that itself contains ``=>`` is kept.
             message = re.split(
-                r"(?m)^[ \t]*(?:\w+[ \t]*=>|\)[ \t]*$)",
+                r"(?m)^[ \t]*(?:(?:dsn|user|schema|session_id|code|query)[ \t]*=>"
+                r"|\)[ \t]*$)",
                 message[match.end() :],
                 maxsplit=1,
             )[0]
