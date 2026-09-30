@@ -967,18 +967,22 @@ export function getLegendProps(
       const tooltipWidth = size.contentSize[0];
       const tooltipHeight = size.contentSize[1];
       // Center horizontally over the hovered legend item
-      const x = Math.min(
-        Math.max(elRect.x + elRect.width / 2 - tooltipWidth / 2, 0),
-        size.viewSize[0] - tooltipWidth,
+      const x = Math.max(
+        Math.min(
+          elRect.x + elRect.width / 2 - tooltipWidth / 2,
+          size.viewSize[0] - tooltipWidth,
+        ),
+        0,
       );
       // Place above the legend item; negative y appears above canvas with confine:false
       const y = elRect.y - tooltipHeight - 8;
       return [x, y];
     },
     formatter: (params: { name: string }) => {
-      // Suppress tooltip when text fits — approx 7.5px per char at default font size
-      const approxMaxChars = Math.floor(maxTextWidth / 7.5);
-      return params.name.length > approxMaxChars ? escape(params.name) : '';
+      // Suppress tooltip when text fits
+      return measureTextWidth(params.name, theme) > maxTextWidth
+        ? escape(params.name)
+        : '';
     },
   });
 
@@ -1002,7 +1006,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
-        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.left));
+        if (horizontalLegendWidth != null) {
+          legend.tooltip = makeLegendTooltip(getLegendWidth(padding.left));
+        }
       }
       break;
     case LegendOrientation.Right:
@@ -1013,7 +1019,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
-        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.right));
+        if (horizontalLegendWidth != null) {
+          legend.tooltip = makeLegendTooltip(getLegendWidth(padding.right));
+        }
       }
       break;
     case LegendOrientation.Bottom:

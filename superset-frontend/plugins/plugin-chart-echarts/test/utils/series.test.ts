@@ -1412,7 +1412,7 @@ describe('getLegendProps', () => {
     );
     // getLegendWidth(150) = max(150 - 45, 0) = 105
     expect(result.textStyle).toEqual({ overflow: 'truncate', width: 105 });
-    expect(result.tooltip).toBeDefined();
+    expect(result.tooltip).toBeUndefined();
   });
 });
 

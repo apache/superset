@@ -558,7 +558,7 @@ export default function transformProps(
             bleedMargin: 5,
             ...(labelMaxWidth > 0 && {
               width: labelMaxWidth,
-              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+              overflow: labelOverflow,
             }),
           }
         : {
@@ -566,7 +566,7 @@ export default function transformProps(
             position: 'inner',
             ...(labelMaxWidth > 0 && {
               width: labelMaxWidth,
-              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+              overflow: labelOverflow,
             }),
           },
       emphasis: {
