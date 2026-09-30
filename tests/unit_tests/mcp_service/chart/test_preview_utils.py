@@ -25,6 +25,8 @@ from decimal import Decimal
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
 from superset.mcp_service.chart import preview_utils
 
 
