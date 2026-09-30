@@ -34,6 +34,18 @@ from superset.mcp_service.chart.schemas import ChartError, ColumnRef, VegaLitePr
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
+def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+    """Cap compile samples, falling back to the cap for invalid saved limits."""
+    value = form_data.get("row_limit")
+    if isinstance(value, bool):
+        return cap
+    try:
+        limit = int(value or cap)
+    except (TypeError, ValueError, OverflowError):
+        return cap
+    return min(cap, limit) if limit > 0 else cap
+
+
 @runtime_checkable
 class ChartTypePlugin(Protocol):
     """
@@ -219,6 +231,9 @@ class ChartTypePlugin(Protocol):
     #: Whether an empty result is a valid, renderable preview.
     allows_empty_result: ClassVar[bool]
 
+    #: Whether get_chart_data returns a successful response for zero rows.
+    allows_empty_data_result: ClassVar[bool]
+
     #: Whether saved-chart Vega-Lite previews take the requested width,
     #: height and chart description instead of the spec's own frame.
     resizes_saved_preview: ClassVar[bool]
@@ -366,6 +381,7 @@ class BaseChartPlugin:
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False
+    allows_empty_data_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
     preview_note: ClassVar[str | None] = None

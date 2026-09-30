@@ -513,17 +513,19 @@ def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
     return metrics
 
 
+def normalize_groupby(form_data: Mapping[str, Any]) -> list[Any]:
+    """Normalize native scalar groupby without applying query-role aliases."""
+    raw_groupby = form_data.get("groupby") or []
+    return [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+
+
 def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
     """Extract groupby columns from form_data with fallback aliases."""
     raw_columns = form_data.get("all_columns")
     if form_data.get("query_mode") == "raw" and isinstance(raw_columns, list):
         return list(raw_columns)
 
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[Any] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
+    groupby = normalize_groupby(form_data)
 
     if groupby:
         return groupby
@@ -556,6 +558,37 @@ def resolve_metrics_and_groupby(
     if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
         return fields
     return resolve_shared_metrics(form_data), resolve_groupby(form_data)
+
+
+def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
+    """Resolve the temporal column used by Big Number with Trendline.
+
+    The frontend accepts the temporal binding through either ``x_axis`` or the
+    legacy ``granularity_sqla`` control. MCP preview and compile historically
+    used the physical granularity column when ``x_axis`` was absent; preserve
+    that contract rather than reducing every Big Number query to a total.
+
+    ``big_number_total`` intentionally does not use this helper because its
+    frontend query has no temporal dimension.
+    """
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return [x_axis]
+    if isinstance(x_axis, dict):
+        if (
+            isinstance(x_axis.get("sqlExpression"), str)
+            and x_axis.get("sqlExpression")
+            and isinstance(x_axis.get("label"), str)
+            and x_axis.get("label")
+            and x_axis.get("expressionType") in (None, "SQL")
+        ):
+            return [x_axis]
+        column_name = x_axis.get("column_name")
+        if isinstance(column_name, str) and column_name:
+            return [column_name]
+
+    granularity = form_data.get("granularity_sqla")
+    return [granularity] if isinstance(granularity, str) and granularity else []
 
 
 def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
@@ -614,7 +647,7 @@ def _normalized_x_axis_query_field(form_data: dict[str, Any]) -> Any | None:
     return normalized
 
 
-def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
+def _resolve_big_number_query_columns(form_data: dict[str, Any]) -> list[Any]:
     """Resolve only Big Number's explicit x-axis query column.
 
     The frontend keeps ``granularity_sqla`` out of ``columns`` and asks the
@@ -1688,8 +1721,9 @@ def build_mixed_timeseries_secondary(
     if x_axis_col and x_axis_col not in groupby_b:
         groupby_b = [x_axis_col] + groupby_b
 
+    # Each series owns its ordering; primary metrics may not exist in query B.
     qd = build_single_query_dict(
-        form_data,
+        {**form_data, "orderby": form_data.get("orderby_b")},
         groupby_b,
         metrics_b,
         row_limit=row_limit,
@@ -1733,7 +1767,7 @@ def build_histogram_query_dicts(
         row_limit=row_limit,
         order_desc=order_desc,
     )
-    having_filter = any(
+    having_filter = bool(form_data.get("having")) or any(
         isinstance(filter_, dict) and filter_.get("clause") == "HAVING"
         for filter_ in form_data.get("adhoc_filters") or []
     )
@@ -2082,7 +2116,7 @@ def build_big_number_query_dicts(  # noqa: C901
 ) -> list[dict[str, Any]]:
     """Render Big Number (with or without trendline) buildQuery."""
     metric = form_data.get("metric")
-    columns = resolve_big_number_columns(form_data) if trendline else []
+    columns = _resolve_big_number_query_columns(form_data) if trendline else []
     query = build_single_query_dict(
         form_data,
         columns,

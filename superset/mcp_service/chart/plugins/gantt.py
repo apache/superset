@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 
 from pydantic import ValidationError
 
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_utils import _summarize_filters, map_gantt_config
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import (
@@ -50,6 +51,7 @@ class GanttChartPlugin(BaseChartPlugin):
         "gantt_chart": "Gantt Chart",
     }
     owns_update_merge = True
+    allows_empty_result = True
     strict_dataset_rebind = True
     resizes_saved_preview = True
 
@@ -255,12 +257,15 @@ class GanttChartPlugin(BaseChartPlugin):
     ) -> list[dict[str, Any]] | None:
         from superset.mcp_service.chart.chart_helpers import build_gantt_query_dicts
 
-        return build_gantt_query_dicts(
-            form_data,
-            engine=engine,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
+        try:
+            return build_gantt_query_dicts(
+                form_data,
+                engine=engine,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
 
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]

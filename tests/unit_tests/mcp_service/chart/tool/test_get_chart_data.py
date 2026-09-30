@@ -6147,3 +6147,41 @@ async def test_saved_data_uses_guarded_effective_form_data(
     payload = json.loads(result.content[0].text)
     assert "error_type" not in payload
     assert payload["data"] == rows
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "invalid_fields, message",
+    [
+        ({"start_time": None}, "start_time"),
+        ({"end_time": None}, "end_time"),
+        ({"y_axis": None}, "y_axis"),
+        ({"tooltip_columns": ["task"] * 51}, "tooltip_columns"),
+        ({"tooltip_metrics": ["count"] * 51}, "tooltip_metrics"),
+        ({"order_by_cols": [["start", "yes"]]}, "ascending_boolean"),
+    ],
+)
+async def test_malformed_gantt_query_returns_validation_error(
+    invalid_fields: dict[str, Any],
+    message: str,
+) -> None:
+    """Reject malformed cached Gantt roles without reporting an internal failure."""
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        result = await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "gantt_chart",
+                "start_time": "start",
+                "end_time": "end",
+                "y_axis": "task",
+                **invalid_fields,
+            },
+            GetChartDataRequest(form_data_key="gantt"),
+            _AsyncContext(),
+        )
+    assert isinstance(result, ChartError)
+    assert result.error_type == "ValidationError"
+    assert message in result.error

@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
+    fallback_vega_lite_preview,
     plugin_ascii_preview,
     plugin_vega_lite_preview,
 )
@@ -542,8 +543,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # Extract data from result
             chart_data = queries_data[0] if queries_data else []
 
-            # Every plugin-owned preview (including those that render an
-            # empty result) is shared with the unsaved-chart preview path.
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            if not chart_data and not (plugin and plugin.allows_empty_result):
+                return ChartError(
+                    error="No data available for Vega-Lite visualization",
+                    error_type="NoDataError",
+                )
+            # Plugin-owned previews share the unsaved-chart renderer, subject
+            # to the plugin's explicit empty-result contract.
             if (
                 plugin_preview := self._create_plugin_preview(chart_data, form_data)
             ) is not None:
@@ -553,11 +560,10 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
                 )
-            if not chart_data:
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
-                )
+            if (
+                fallback := fallback_vega_lite_preview(chart_data, form_data)
+            ) is not None:
+                return fallback
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)

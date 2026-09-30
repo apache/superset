@@ -27,7 +27,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_histogram_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, HistogramChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    HistogramChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
@@ -39,6 +44,7 @@ class HistogramChartPlugin(BaseChartPlugin):
     """Plugin for histogram chart type."""
 
     chart_type = "histogram"
+    allows_empty_result = True
     display_name = "Histogram"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "histogram_v2": "Histogram",
@@ -191,8 +197,9 @@ class HistogramChartPlugin(BaseChartPlugin):
         groupby = [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
         column = form_data.get("column")
         columns = [*groupby, column] if column else groupby
-        # Matches Histogram buildQuery: a HAVING filter needs an aggregate.
-        has_having = any(
+        # Frontend buildQuery adds an aggregate for adhoc HAVING filters.
+        # MCP also honors the top-level having expression.
+        has_having = bool(form_data.get("having")) or any(
             isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
             for filter_ in form_data.get("adhoc_filters") or []
         )
@@ -226,3 +233,13 @@ class HistogramChartPlugin(BaseChartPlugin):
             row_limit=row_limit,
             order_desc=order_desc,
         )
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Render the postprocessed histogram bins."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_histogram_vega_lite_preview,
+        )
+
+        return generate_histogram_vega_lite_preview(data, form_data)

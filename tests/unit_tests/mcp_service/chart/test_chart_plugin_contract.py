@@ -28,7 +28,7 @@ import inspect
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import TypeAdapter
@@ -93,6 +93,7 @@ FLAGS = (
     "unbound_form_data_is_rebind",
     "normalize_data_results",
     "allows_empty_result",
+    "allows_empty_data_result",
     "resizes_saved_preview",
     "supports_column_append",
     "temporal_json_numbers",
@@ -304,6 +305,59 @@ def test_preview_contract(
     assert isinstance(table_preview, (TablePreview, ChartError))
     vega_preview = _generate_vega_lite_preview_from_data(deepcopy(data), form_data)
     assert isinstance(vega_preview, (VegaLitePreview, ChartError))
+
+
+@pytest.mark.parametrize("allows_empty", [False, True])
+@pytest.mark.parametrize("plugin_renderer", [False, True])
+def test_saved_empty_preview_obeys_plugin_contract(
+    allows_empty: bool, plugin_renderer: bool
+) -> None:
+    """The flag governs empty rows for both plugin and generic renderers."""
+    from superset.mcp_service.chart.schemas import GetChartPreviewRequest
+    from superset.mcp_service.chart.tool.get_chart_preview import (
+        VegaLitePreviewStrategy,
+    )
+
+    chart = MagicMock(id=1, viz_type="__contract__", params="{}")
+    strategy = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=1, format="vega_lite")
+    )
+    plugin = BaseChartPlugin()
+    preview = VegaLitePreview(type="vega_lite", specification={"data": {"values": []}})
+    module = "superset.mcp_service.chart.tool.get_chart_preview"
+    with (
+        patch.object(BaseChartPlugin, "allows_empty_result", allows_empty),
+        patch(f"{module}.plugin_for_viz_type", return_value=plugin),
+        patch(f"{module}.build_query_context_from_form_data"),
+        patch.object(strategy, "_authorize_guest_query"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(
+            strategy,
+            "_create_plugin_preview",
+            return_value=preview if plugin_renderer else None,
+        ) as render,
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": []}]}
+        result = strategy.generate()
+    if allows_empty:
+        assert isinstance(result, VegaLitePreview)
+        assert result.specification["data"]["values"] == []
+    else:
+        assert isinstance(result, ChartError)
+        assert result.error_type == "NoDataError"
+        render.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "chart_type", ["bubble_v2", "treemap_v2", "gauge", "histogram", "gantt"]
+)
+def test_empty_rendering_plugins_opt_in(chart_type: str) -> None:
+    """Every plugin intentionally rendering empty rows declares that capability."""
+    plugin = get_registry().get(chart_type)
+    assert plugin is not None
+    assert plugin.allows_empty_result
 
 
 @pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)

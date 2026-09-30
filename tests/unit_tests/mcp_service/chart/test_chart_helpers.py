@@ -22,9 +22,11 @@ import pandas as pd
 import pytest
 
 from superset.common.query_object import QueryObject
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
+    _resolve_big_number_query_columns,
     _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
@@ -34,7 +36,6 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
-    resolve_big_number_columns,
     resolve_deck_gl_columns,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -1351,7 +1352,7 @@ def test_gantt_frontend_contract_is_strict_and_bounded(
     if message is None:
         form_data["tooltip_columns"] = [f"column_{index}" for index in range(51)]
         message = "at most 50"
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(QueryObjectValidationError, match=message):
         _query_objects(form_data)
 
 
@@ -2620,7 +2621,7 @@ def test_resolve_metrics_and_groupby_non_singular_viz_type_uses_standard_resolut
 def test_big_number_trendline_resolves_supported_time_column_aliases(
     form_data, expected_columns
 ):
-    assert resolve_big_number_columns(form_data) == expected_columns
+    assert _resolve_big_number_query_columns(form_data) == expected_columns
 
 
 def test_big_number_total_does_not_add_temporal_dimension(monkeypatch):
@@ -2867,3 +2868,113 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
         # what matters is that the primary ordering is not reused.
         assert secondary["orderby"] == [["sum_sales", False]]
     assert form_data["orderby"] == [["count", True]]
+
+
+@pytest.mark.parametrize("groupby", [[], ["region"]])
+@pytest.mark.parametrize("having", [False, True])
+def test_histogram_query_matches_frontend_contract(
+    monkeypatch: pytest.MonkeyPatch, groupby: list[str], having: bool
+) -> None:
+    """Histogram queries select raw observations and run the binning operator."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    form_data = {
+        "viz_type": "histogram_v2",
+        "column": "value",
+        "groupby": groupby,
+        "bins": 3,
+        "normalize": True,
+        "cumulative": True,
+        "row_limit": 100,
+        "adhoc_filters": [
+            {
+                "clause": "HAVING",
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*) > 0",
+            }
+        ]
+        if having
+        else [],
+    }
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+    assert query["columns"] == [*groupby, "value"]
+    assert bool(query["metrics"]) is having
+    assert query["post_processing"] == [
+        {
+            "operation": "histogram",
+            "options": {
+                "column": "value",
+                "groupby": groupby,
+                "bins": 3,
+                "normalize": True,
+                "cumulative": True,
+            },
+        }
+    ]
+    assert query["row_limit"] == 100
+
+
+@pytest.mark.parametrize("axis_key", ["x_axis", "granularity_sqla"])
+def test_waterfall_query_preserves_category_and_order(
+    monkeypatch: pytest.MonkeyPatch, axis_key: str
+) -> None:
+    """Waterfall queries retain the axis and breakdown instead of a grand total."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "waterfall",
+            axis_key: "category",
+            "groupby": ["region"],
+            "metric": "revenue",
+            "row_limit": 20,
+        },
+        1,
+        "table",
+    )[0]
+    axis = query["columns"][0]
+    assert (axis["sqlExpression"] if isinstance(axis, dict) else axis) == "category"
+    assert query["columns"][1:] == ["region"]
+    assert query["metrics"] == ["revenue"]
+    assert query["orderby"] == [["category", True], ["region", True]]
+
+
+@pytest.mark.parametrize("legacy_axis", [False, True])
+@pytest.mark.parametrize("time_grain", ["P1M", None])
+def test_waterfall_query_preserves_temporal_binding(
+    monkeypatch: pytest.MonkeyPatch, legacy_axis: bool, time_grain: str | None
+) -> None:
+    """A typed Waterfall's grain stays bound to its selected temporal column."""
+    from superset.mcp_service.chart.chart_utils import map_waterfall_config
+    from superset.mcp_service.chart.schemas import WaterfallChartConfig
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    form_data = map_waterfall_config(
+        WaterfallChartConfig.model_validate(
+            {
+                "x_axis": {"name": "event_time"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "breakdown": {"name": "region"},
+                "time_grain": time_grain,
+            }
+        )
+    )
+    if legacy_axis:
+        form_data["granularity_sqla"] = form_data.pop("x_axis")
+
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+
+    axis = query["columns"][0]
+    assert (axis["sqlExpression"] if isinstance(axis, dict) else axis) == "event_time"
+    assert query["columns"][1:] == ["region"]
+    assert query["orderby"] == [["event_time", True], ["region", True]]
+    assert query["metrics"] == [form_data["metric"]]
+    assert query["granularity"] == "event_time"
+    assert query.get("extras", {}).get("time_grain_sqla") == time_grain

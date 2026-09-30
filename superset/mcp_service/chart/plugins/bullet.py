@@ -93,6 +93,7 @@ class BulletChartPlugin(BaseChartPlugin):
     temporal_json_numbers = True
     # The frontend renders an empty result (a zero measure when ungrouped).
     allows_empty_result = True
+    allows_empty_data_result = True
     # Updates merge filter provenance plus Bullet's bounded native controls;
     # no other saved control is carried into the typed Bullet state.
     owns_update_merge = True

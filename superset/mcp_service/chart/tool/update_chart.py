@@ -216,7 +216,9 @@ def _append_table_columns(
     # empty. Route each kind by is_metric instead, to keep an aggregate chart
     # aggregate no matter which mix of columns is appended.
     metric_patch = (
-        map_config_to_form_data(TableChartConfig(columns=metric_columns))
+        map_config_to_form_data(
+            TableChartConfig(columns=metric_columns), include_disabled=True
+        )
         if metric_columns
         else {}
     )
@@ -399,8 +401,14 @@ def _build_replacement_form_data(
     replacement_dataset_id: int | None = None,
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
+    existing_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    include_disabled = bool(
+        existing_plugin and existing_plugin.chart_type == parsed_config.chart_type
+    )
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=include_disabled,
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None

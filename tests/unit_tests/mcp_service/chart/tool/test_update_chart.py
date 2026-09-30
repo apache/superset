@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     GenerateChartResponse,
     LegendConfig,
     MixedTimeseriesChartConfig,
@@ -3201,3 +3202,111 @@ async def test_saved_update_oversized_response_retains_chart_id() -> None:
     assert result.error is not None
     assert result.error.error_code == "CHART_RESPONSE_TOO_LARGE"
     assert "updated successfully" in result.error.details
+
+
+@pytest.mark.parametrize("has_finite", [True, False])
+@pytest.mark.parametrize("preview_path", [True, False])
+def test_gauge_update_compile_keeps_finite_groups(
+    has_finite: bool,
+    preview_path: bool,
+) -> None:
+    """Both update payload paths execute the real finite-dial compile contract."""
+    config = GaugeChartConfig(metric={"name": "saved_sla", "saved_metric": True})
+    request = UpdateChartRequest(identifier=1, config=config)
+    dataset = Mock(
+        id=7,
+        table_name="scores",
+        schema=None,
+        columns=[],
+        metrics=[
+            Mock(metric_name="saved_sla", expression="AVG(score)", description=None)
+        ],
+        database=Mock(database_name="examples"),
+    )
+    chart = Mock(
+        id=1,
+        datasource_id=7,
+        datasource=dataset,
+        slice_name="Gauge",
+        params=json.dumps({"viz_type": "gauge_chart", "metric": "saved_sla"}),
+    )
+    if preview_path:
+        form_data = _build_preview_form_data(request, chart, parsed_config=config)
+    else:
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        assert isinstance(payload, dict)
+        form_data = json.loads(payload["params"])
+    assert isinstance(form_data, dict)
+    with (
+        patch(
+            "superset.mcp_service.chart.compile.DatasetValidator.validate_against_dataset",
+            return_value=(True, None),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            return_value=Mock(form_data={}, queries=[]),
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [{"saved_sla": None}, {"saved_sla": float("nan")}]
+                    + ([{"saved_sla": 0}] if has_finite else [])
+                }
+            ]
+        }
+        result = update_chart_module._validate_update_against_dataset(
+            config, form_data, chart
+        )
+    if has_finite:
+        assert result is None
+    else:
+        assert result is not None
+        assert result.success is False
+        assert result.error.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.kwargs["row_limit"] == 10
+    command.return_value.validate.assert_called_once()
+
+
+def test_append_metrics_retains_disabled_table_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Appending to a saved aggregate table does not enable chart creation."""
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(registry, "_is_plugin_enabled", lambda chart_type: False)
+    request = UpdateChartRequest(
+        identifier=1, add_columns=[ColumnRef(name="amount", aggregate="SUM")]
+    )
+    chart = Mock(
+        slice_name="Aggregate table",
+        params=json.dumps(
+            {"viz_type": "table", "query_mode": "aggregate", "groupby": ["region"]}
+        ),
+    )
+    result = _build_update_payload(request, chart)
+    assert isinstance(result, dict)
+    form_data = json.loads(result["params"])
+    assert form_data["groupby"] == ["region"]
+    assert form_data["metrics"][0]["column"]["column_name"] == "amount"
+    assert registry.get("table") is None
+
+
+def test_plugin_value_error_returns_validation_response() -> None:
+    """Non-Gantt plugins share the documented ValueError validation contract."""
+    plugin = Mock()
+    plugin.validate_merged_form_data.side_effect = ValueError("Invalid role")
+    chart = Mock(datasource=Mock(id=1))
+    with patch.object(update_chart_module, "plugin_for_viz_type", return_value=plugin):
+        response = update_chart_module._validate_update_against_dataset(
+            TableChartConfig(columns=[ColumnRef(name="region")]),
+            {"viz_type": "table"},
+            chart,
+        )
+    assert response is not None
+    assert response.error is not None
+    assert response.error.error_type == "ValidationError"
+    assert response.error.details == "Invalid role"
