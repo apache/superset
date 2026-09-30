@@ -1128,7 +1128,10 @@ describe('plugin-chart-table', () => {
           cellBarProps({
             values: ['1234.00', '10000.00', '0.00'],
             showCellBars: false,
-            rule: cellBarRule({ operator: Comparator.Equal, targetValue: 1234 }),
+            rule: cellBarRule({
+              operator: Comparator.Equal,
+              targetValue: 1234,
+            }),
           }),
         );
         expect(bars[0]).toBeTruthy();
@@ -1164,7 +1167,10 @@ describe('plugin-chart-table', () => {
             // A String column renders a text input, so the target the control
             // persists is a string, and Equal compares it strictly. Parsing the
             // cell first would leave the rule unable to match its own cell.
-            rule: cellBarRule({ operator: Comparator.Equal, targetValue: '1234' }),
+            rule: cellBarRule({
+              operator: Comparator.Equal,
+              targetValue: '1234',
+            }),
           }),
         );
         expect(bars[0]).toBeTruthy();
@@ -3676,4 +3682,3 @@ test('a cell-bar rule with percentage bounds scales numeric strings like numbers
     asNumbers.columnColorFormatters?.[0]?.getColorFromValue(100),
   );
 });
-
