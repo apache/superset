@@ -23,7 +23,7 @@ import { useResolveView } from 'src/core/views';
 
 /**
  * Generic full-page host for a single extension-registered view, reached at
- * `/extensions/view/:viewId`. Extensions cannot render their own views
+ * `/extensions/view/:viewId+`. Extensions cannot render their own views
  * directly (`resolveView`/`useResolveView` are host-internal, not part of
  * the public `@apache-superset/core` SDK) -- they register a view at
  * `GlobalLocations.settings.panel` and a matching command at

@@ -57,5 +57,8 @@ export const RoutePaths = {
   USERS: '/users/',
   GROUPS: '/list_groups/',
   EXTENSIONS: '/extensions/list/',
-  EXTENSION_VIEW: '/extensions/view/:viewId',
+  // `+` matches one or more path segments, so a view id containing `/`
+  // (e.g. an extension-namespaced id) resolves the same way client-side
+  // as it does on the Flask host route (`<path:view_id>`).
+  EXTENSION_VIEW: '/extensions/view/:viewId+',
 } as const;
