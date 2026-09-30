@@ -628,7 +628,10 @@ test('saved true survives datasource changes until an explicit keyboard edit', a
   expect(
     screen.getByRole('button', { name: 'Turn off server pagination' }),
   ).toHaveFocus();
-  await userEvent.keyboard('{Enter}');
+  await userEvent.type(
+    screen.getByRole('button', { name: 'Turn off server pagination' }),
+    '{enter}',
+  );
   expect(screen.getByRole('checkbox')).not.toBeChecked();
   expect(onEdit).toHaveBeenCalledTimes(1);
   expect(onEdit).toHaveBeenCalledWith(false);

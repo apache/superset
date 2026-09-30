@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 10:19-0600\n"
+"POT-Creation-Date: 2026-09-28 13:48+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -126,8 +126,8 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
@@ -1485,6 +1485,9 @@ msgid "Affected Charts"
 msgstr ""
 
 msgid "Affected Dashboards"
+msgstr ""
+
+msgid "Affected Datasets"
 msgstr ""
 
 msgid "Affected semantic views"
@@ -4272,6 +4275,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr ""
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 
@@ -5220,6 +5229,11 @@ msgid "Delete group"
 msgstr ""
 
 msgid "Delete item"
+msgstr ""
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -11977,6 +11991,9 @@ msgstr ""
 msgid "Schema cache timeout"
 msgstr ""
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr ""
 
@@ -15126,6 +15143,10 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
+msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
@@ -15145,6 +15166,10 @@ msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
 #, python-format
+msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
@@ -15161,6 +15186,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no "
+"e-mail address."
 msgstr ""
 
 msgid ""
@@ -16004,6 +16034,9 @@ msgid "Tukey"
 msgstr ""
 
 msgid "Turn off server pagination"
+msgstr ""
+
+msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
 msgid "Type"
@@ -17969,6 +18002,12 @@ msgstr ""
 
 msgid "by using"
 msgstr ""
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr ""

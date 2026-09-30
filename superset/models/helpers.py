@@ -71,6 +71,7 @@ from sqlalchemy.orm import (
     with_loader_criteria,
 )
 from sqlalchemy.orm.session import ORMExecuteState
+from sqlalchemy.sql import visitors
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -91,6 +92,7 @@ from superset.common.utils.time_range_utils import (
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
+    EPOCH_FORMATS,
     NULL_STRING,
     SKIP_VISIBILITY_FILTER_CLASSES,
     TimeGrain,
@@ -353,9 +355,13 @@ def _retry_temporal_join_values_at_wider_resolution(
     datetime_format: str | None,
 ) -> pd.Series:
     """Retry valid values outside pandas' nanosecond datetime range."""
-    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    resolution = (
+        datetime_format.removeprefix("epoch_")
+        if datetime_format in EPOCH_FORMATS
+        else "s"
+    )
     try:
-        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+        if datetime_format and datetime_format not in EPOCH_FORMATS:
             parsed_values = [
                 datetime.strptime(str(value), datetime_format)
                 if pd.notna(value)
@@ -2268,6 +2274,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
+    def rename_shadowing_aliases(self, qry: Select) -> None:
+        """
+        Rename SELECT aliases that would shadow a source column, in place.
+
+        Some engines (e.g. ClickHouse) resolve an identifier to a SELECT alias
+        before a source column of the same name, in every clause. With an alias
+        like `DATE_TRUNC('day', ts) AS ts`, a `WHERE ts >= ...` then filters on
+        the truncated value and a `GROUP BY DATE_TRUNC('day', ts)` truncates the
+        alias again. An alias is renamed when it names a column of the
+        datasource, or a column its own expression reads, and its expression is
+        not simply that column. The final output columns keep their names, as
+        they are updated by `labels_expected` after querying.
+        """
+        if not self.db_engine_spec.select_alias_shadows_source_column:
+            return
+
+        try:
+            column_names = set(self.column_names)
+        except NotImplementedError:
+            column_names = set()
+
+        def expression_text(element: ColumnElement) -> str | None:
+            try:
+                return str(element.compile(compile_kwargs={"literal_binds": True}))
+            except Exception:  # pylint: disable=broad-except
+                return None
+
+        quotes = "\"`'"
+        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+            for col in select.selected_columns:
+                if not isinstance(col, Label) or not isinstance(col.name, str):
+                    continue
+                name = col.name
+                expression = expression_text(col.element)
+                if expression is None or expression.strip().strip(quotes) == name:
+                    continue
+                unquoted = re.sub(f"[{quotes}]", "", expression)
+                reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
+                if name in column_names or reads_it:
+                    col.name = f"{name}__"
+
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """
         Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
@@ -2330,14 +2377,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             :return: Mutated DataFrame
             """
             labels_expected = query_str_ext.labels_expected
-            if df is not None and not df.empty:
-                if len(df.columns) < len(labels_expected):
-                    raise QueryObjectValidationError(
-                        _("Db engine did not return all queried columns")
-                    )
-                if len(df.columns) > len(labels_expected):
-                    df = df.iloc[:, 0 : len(labels_expected)]
-                df.columns = labels_expected
+            if df is None:
+                return df
+            if df.empty and len(df.columns) < len(labels_expected):
+                # Nothing to label, e.g. a result without columns.
+                return df
+            # An empty result is labelled too: it still carries the names the
+            # engine gave its columns, which can differ from the expected labels
+            # (e.g. aliases renamed by `make_orderby_compatible`).
+            if len(df.columns) < len(labels_expected):
+                raise QueryObjectValidationError(
+                    _("Db engine did not return all queried columns")
+                )
+            if len(df.columns) > len(labels_expected):
+                df = df.iloc[:, 0 : len(labels_expected)]
+            df.columns = labels_expected
             return df
 
         extras = query_obj.get("extras") or {}
@@ -3811,6 +3865,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         for table in statement.tables
                     )
                 except Exception:  # pylint: disable=broad-except
+                    # This retry queries db.session again and rebuilds an
+                    # engine, so it can re-poison the session the outer handler
+                    # just rolled back. Roll back again: failing closed below
+                    # raises QueryObjectValidationError, which callers catch
+                    # and carry on from, and the continue-path keeps running
+                    # this query outright.
+                    #
+                    # Unconditional, mirroring the outer handler, rather than
+                    # gated on the exception being a SQLAlchemyError: this code
+                    # issues DB work and can then surface an unrelated error
+                    # (rendering an RLS clause, say) on a session the DB work
+                    # already poisoned. The outer handler has itself already
+                    # rolled back unconditionally by this point, so there is no
+                    # pending work left for this one to discard.
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
                     rls_required = True
                 if rls_required:
                     raise QueryObjectValidationError(
@@ -4204,7 +4273,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if tf:
-            if tf in {"epoch_ms", "epoch_s"}:
+            if tf in EPOCH_FORMATS:
                 # In general, Superset works with timezone-naive datetime objects
                 # internally. However, timestamp() applies local timezone to
                 # timezone-naive datetime objects. Therefore, we have to be explicit
@@ -4214,9 +4283,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
 
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
+                return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
@@ -5766,6 +5833,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = qry.where(top_groups)
 
         qry = qry.select_from(tbl)
+        self.rename_shadowing_aliases(qry)
 
         if is_rowcount:
             if not db_engine_spec.allows_subqueries:
