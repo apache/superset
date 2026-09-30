@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
@@ -30,8 +33,13 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { defaultControls, defaultState } from 'src/explore/store';
+import {
+  defaultControls,
+  defaultState,
+  getControlsState,
+} from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
+import { setControlValue } from 'src/explore/actions/exploreActions';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
@@ -51,6 +59,42 @@ const FormDataMock = () => {
   );
 
   return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
+};
+
+// Mirrors the props ExploreViewContainer derives from the store, so the real
+// reducer and the real container run against each other.
+const StoreBackedControlPanelsContainer = () => {
+  const dispatch = useDispatch();
+  const exploreState = useSelector((state: ExplorePageState) => state.explore);
+  const actions = {
+    setControlValue: (
+      ...args: Parameters<typeof setControlValue>
+    ): ReturnType<typeof setControlValue> =>
+      dispatch(setControlValue(...args)) as unknown as ReturnType<
+        typeof setControlValue
+      >,
+  };
+  return (
+    <ControlPanelsContainer
+      exploreState={exploreState}
+      actions={actions}
+      datasource_type={DatasourceType.Table}
+      controls={exploreState.controls}
+      form_data={getFormDataFromControls(exploreState.controls)}
+      isDatasourceMetaLoading={false}
+      chart={
+        {
+          queriesResponse: null,
+          chartStatus: 'success',
+        } as ControlPanelsContainerProps['chart']
+      }
+      onQuery={jest.fn()}
+      onStop={jest.fn()}
+      canStopQuery={false}
+      chartIsStale={false}
+      errorMessage={null}
+    />
+  );
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -97,8 +141,24 @@ describe('ControlPanelsContainer', () => {
     ],
   };
 
+  // Reuses the 'Query' section label of the table config so the section stays
+  // expanded after a switch (the accordion only honors its initial open keys).
+  const switchTargetConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['groupby'], ['metrics'], ['limit']],
+      },
+    ],
+  };
+
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
+    getChartControlPanelRegistry().registerValue(
+      'switch-target',
+      switchTargetConfig,
+    );
     jest.clearAllMocks();
     // Default: feature disabled
     mockIsFeatureEnabled.mockReturnValue(false);
@@ -106,6 +166,7 @@ describe('ControlPanelsContainer', () => {
 
   afterEach(() => {
     getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().remove('switch-target');
     jest.clearAllMocks();
   });
 
@@ -622,5 +683,96 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
+  });
+
+  function createStoreBackedExplore() {
+    const datasource = {
+      id: 1,
+      type: DatasourceType.Table,
+      columns: [{ column_name: 'name' }, { column_name: 'gender' }],
+      metrics: [{ metric_name: 'count' }],
+      verbose_map: {},
+      column_formats: {},
+    };
+    const baseState = { datasource };
+    const formData = {
+      viz_type: 'table',
+      datasource: '1__table',
+      groupby: ['name', 'gender'],
+      metrics: ['count'],
+      all_columns: ['name'],
+      row_limit: 100,
+    };
+    const controls = getControlsState(
+      baseState,
+      formData as unknown as Parameters<typeof getControlsState>[1],
+    );
+    // Control states carry mapStateToProps functions, so the default
+    // serializability check would only add noise.
+    return configureStore({
+      reducer: reducerIndex,
+      preloadedState: {
+        explore: {
+          ...baseState,
+          controls,
+          form_data: getFormDataFromControls(
+            controls as ControlPanelsContainerProps['controls'],
+          ),
+        },
+      } as never,
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+      devTools: false,
+    });
+  }
+
+  test('switching viz_type re-renders the control sections of the new viz', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+
+    expect(
+      await screen.findByRole('button', { name: /group by/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/series limit/i)).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+
+    // `limit` exists only in the target viz, so its control is rendered from
+    // the control state the reducer built for that viz.
+    expect(
+      (await screen.findAllByText(/series limit/i)).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /group by/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+    await screen.findAllByText(/series limit/i);
+
+    const { form_data: formData, controls } = (
+      store.getState() as ExplorePageState
+    ).explore;
+    expect(formData.viz_type).toBe('switch-target');
+    expect(formData.groupby).toEqual(['name', 'gender']);
+    expect(formData.metrics).toEqual(['count']);
+    expect(formData.standardizedFormData.controls).toEqual({
+      metrics: ['count'],
+      columns: ['name', 'gender'],
+    });
+    expect(controls.all_columns).toBeUndefined();
+    expect(formData.all_columns).toBeUndefined();
   });
 });
