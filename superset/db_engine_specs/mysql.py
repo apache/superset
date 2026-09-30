@@ -21,6 +21,7 @@ import logging
 import re
 from datetime import datetime
 from decimal import Decimal
+from importlib import import_module
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
@@ -42,6 +43,7 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.util import asbool
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -76,6 +78,117 @@ SYNTAX_ERROR_REGEX = re.compile(
     "check the manual that corresponds to your MySQL server "
     "version for the right syntax to use near '(?P<server_error>.*)"
 )
+
+
+def _mysql_bool_option(options: dict[str, Any], key: str) -> Optional[bool]:
+    """Parse a boolean driver option, treating a blank value as unset."""
+    value = options.get(key)
+    if value is None or value == "":
+        return None
+    return asbool(value) if isinstance(value, str) else bool(value)
+
+
+def _require_pymysql_tls(query: dict[str, Any], args: dict[str, Any]) -> None:
+    """Keep PyMySQL TLS options native so verification applies to them."""
+    pymysql = import_module("pymysql")
+
+    # Older releases silently fall back even with explicit SSL options.
+    if pymysql.VERSION[:2] < (1, 2):
+        raise ValueError("The MySQL SSL toggle requires PyMySQL >= 1.2")
+    # SQLAlchemy folds URL ssl_ca/cert/key into an ssl dictionary,
+    # but PyMySQL ignores that dictionary when ssl_verify_cert is set.
+    # Keep these as native connect_args so the CA is not discarded.
+    for key in ("ssl_ca", "ssl_cert", "ssl_key"):
+        if key in query:
+            args.setdefault(key, query.pop(key))
+    check_hostname = _mysql_bool_option(query, "ssl_check_hostname")
+    query.pop("ssl_check_hostname", None)
+    if check_hostname is not None:
+        verify_identity = _mysql_bool_option(args, "ssl_verify_identity")
+        if verify_identity not in (None, check_hostname):
+            raise ValueError("MySQL SSL request conflicts with ssl_verify_identity")
+        args["ssl_verify_identity"] = check_hostname
+    if query.keys() & {"ssl_capath", "ssl_cipher"}:
+        raise ValueError("Unsupported PyMySQL SSL option with the SSL toggle")
+    if "ssl" in args:
+        raise ValueError(
+            "Use individual ssl_ca/ssl_cert/ssl_key options with the SSL toggle"
+        )
+
+
+def _require_mysql_verified_tls(
+    driver: str, query: dict[str, Any], args: dict[str, Any]
+) -> None:
+    """Use required verification on drivers without an encryption-only mode."""
+    # The drivers test ssl_disabled for truthiness, so a URL string such as
+    # "false" would disable TLS. Parse it here and drop non-disabling values.
+    for source in (query, args):
+        if _mysql_bool_option(source, "ssl_disabled"):
+            raise ValueError("MySQL SSL request conflicts with ssl_disabled")
+        source.pop("ssl_disabled", None)
+    # Connector/Python has no REQUIRED mode: certificate verification is
+    # necessary to prevent its opportunistic fallback to cleartext.
+    if _mysql_bool_option({**query, **args}, "ssl_verify_cert") is False:
+        raise ValueError("MySQL SSL request requires ssl_verify_cert")
+    if driver == "pymysql":
+        _require_pymysql_tls(query, args)
+    args["ssl_verify_cert"] = True
+
+
+def _mysql_ssl_requested(value: Any) -> bool:
+    """Parse scalar requests; leave native SSL dictionaries to the driver."""
+    if isinstance(value, (str, bool, int)):
+        return asbool(value)
+    if value is not None and not isinstance(value, dict):
+        raise ValueError("Invalid MySQL ssl option")
+    return False
+
+
+def _mysqlclient_ssl_mode(options: dict[str, Any]) -> str:
+    """Select fail-closed TLS semantics for the linked client library."""
+    # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
+    # Connector/C. Verification modes fail closed on both client libraries.
+    mode = options.get("ssl_mode", "REQUIRED")
+    if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+        raise ValueError("MySQL SSL request conflicts with ssl_mode")
+    if mode == "REQUIRED":
+        client_info = import_module("MySQLdb").get_client_info()
+        # Only recognized Oracle clients have fail-closed REQUIRED semantics.
+        # MariaDB Connector/C (3.x) and unknown clients require verification.
+        if not re.match(r"^(?:5\.7|8\.\d+|9\.\d+)\.", client_info):
+            mode = "VERIFY_CA"
+    return mode
+
+
+def require_mysql_tls(
+    uri: URL, connect_args: dict[str, Any]
+) -> tuple[URL, dict[str, Any]]:
+    """Consume scalar ``ssl`` requests without weakening native TLS settings."""
+    if uri.get_backend_name() != "mysql":
+        return uri, connect_args
+    query = dict(uri.query)
+    args = dict(connect_args)
+    # A true URL request cannot be cancelled by an advanced connect argument.
+    requested = _mysql_ssl_requested(query.get("ssl"))
+    requested = _mysql_ssl_requested(args.get("ssl")) or requested
+    if not requested:
+        return uri, connect_args
+
+    for options in (query, args):
+        if isinstance(options.get("ssl"), (str, bool, int)):
+            options.pop("ssl")
+    driver = uri.get_driver_name()
+    options = {**query, **args}
+    if driver == "mysqldb":
+        args["ssl_mode"] = _mysqlclient_ssl_mode(options)
+    elif driver in ("mysqlconnector", "pymysql"):
+        _require_mysql_verified_tls(driver, query, args)
+    elif driver == "auroradataapi":
+        # The Data API is only reachable over HTTPS and takes no ssl argument.
+        pass
+    else:
+        raise ValueError("Unsupported driver for the MySQL SSL toggle")
+    return uri.set(query=query), args
 
 
 class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
@@ -123,6 +236,41 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
+        "notes": (
+            "The SSL toggle (or ssl=1 in the URI) requires TLS. With mysqlclient, "
+            "Oracle libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB "
+            "Connector/C and unrecognized client versions use VERIFY_CA to prevent "
+            "cleartext fallback. Explicit VERIFY_CA and VERIFY_IDENTITY are retained. "
+            "Existing saved connections with the toggle on are affected at upgrade, "
+            "without a feature flag. Verification can fail for self-signed/default "
+            "server certificates or missing trust roots. MySQL does not use the "
+            "connection form's Root certificate field (server_cert). Set ssl_ca to a "
+            "trusted CA file path available on every web and worker node, for example "
+            "in the URI (?ssl=1&ssl_ca=/path/to/ca.pem). "
+            "Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL "
+            "requires version 1.2 or newer; use individual ssl_ca, ssl_cert and "
+            "ssl_key options instead of a nested ssl dictionary with the toggle. "
+            "Options that disable TLS or required verification are rejected. "
+            "Standard Aurora MySQL connections intentionally follow the same rules, "
+            "including IAM connections. For certificate verification, install the "
+            "Amazon RDS CA bundle on every web and worker node and set ssl_ca to that "
+            "file. IAM authentication does not supply a CA. The Aurora Data API uses "
+            "HTTPS and needs no MySQL TLS arguments. "
+            "SSH tunnels rewrite the connection host to the local bind address "
+            "(typically 127.0.0.1). MariaDB Connector/C also checks hostname identity "
+            "with VERIFY_CA, so a certificate for the remote database hostname will "
+            "fail. For SSH-only transport, turn off the SSL toggle and remove ssl=1; "
+            "this removes the TLS guarantee on the SSH endpoint-to-database leg. If "
+            "end-to-end TLS is required, use a driver/native TLS configuration "
+            "compatible with the tunnel and validate it separately. "
+            "Operators using native TLS settings can turn off the toggle, remove "
+            "ssl=1 and configure extra.engine_params.connect_args (for example a "
+            "driver-supported native ssl dictionary). Superset passes those settings "
+            "through without enforcing TLS; ensure the chosen driver configuration "
+            "does not silently fall back to cleartext. "
+            "Connections using the separate MariaDB engine (mariadb:// URIs) and "
+            "other MySQL-compatible engines keep their existing SSL handling."
+        ),
         "parameters": {
             "username": "Database username",
             "password": "Database password",
@@ -445,6 +593,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
+        if cls.engine == "mysql":
+            return require_mysql_tls(uri, new_connect_args)
         return uri, new_connect_args
 
     @classmethod
