@@ -24,19 +24,24 @@
  * only accept a `sqllab` scope today -- so extensions register against
  * them imperatively instead.
  *
+ * This constant is internal to the Superset app; it isn't exported from
+ * `@apache-superset/core`, so extensions reference these locations by
+ * their literal string values instead of importing `GlobalLocations`.
+ * The Settings menu host only renders the `primary` group.
+ *
  * @example
  * ```typescript
  * import { menus, views } from '@apache-superset/core';
  *
  * views.registerView(
  *   { id: 'my-ext.settings', name: 'My Settings' },
- *   GlobalLocations.settings.panel,
+ *   'global.settingsPanel',
  *   MySettingsPanel,
  * );
  * menus.registerMenuItem(
  *   { view: 'my-ext.settings', command: 'my-ext.openSettings' },
- *   GlobalLocations.settings.menu,
- *   'secondary',
+ *   'global.settingsMenu',
+ *   'primary',
  * );
  * ```
  *
