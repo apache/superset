@@ -771,8 +771,8 @@ def test_aggregation_ambiguity_returns_validation_errors() -> None:
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
-    mock_factory, mock_cmd_cls
-):
+    mock_factory: Mock, mock_cmd_cls: Mock
+) -> None:
     """Gantt query building raises QueryObjectValidationError, which is not a
     CommandException; compile must still return CHART_COMPILE_FAILED."""
     form_data = {
