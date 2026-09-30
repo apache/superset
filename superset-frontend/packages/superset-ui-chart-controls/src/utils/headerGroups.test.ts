@@ -28,6 +28,7 @@ import {
   hasRenderableHeaderGroups,
   isHeaderGroupsTimeComparisonEnabled,
   nestColDefsInHeaderGroups,
+  normalizeColumnConfigKeys,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
   toStoredTimeComparisonColumnKey,
@@ -338,6 +339,35 @@ test('toStoredTimeComparisonColumnKey leaves unmatched comparison-like keys unch
   expect(
     toStoredTimeComparisonColumnKey('# profit', comparisonRevenueColumns),
   ).toBe('# profit');
+});
+
+test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        'Principale revenue': { columnWidth: 300 },
+        region: { d3NumberFormat: '.2f' },
+      },
+      ['Main revenue', '# revenue', 'region'],
+    ),
+  ).toEqual({
+    'Main revenue': { columnWidth: 300 },
+    region: { d3NumberFormat: '.2f' },
+  });
+});
+
+test('normalizeColumnConfigKeys prefers an existing stored Main entry over a localized duplicate', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        'Main revenue': { columnWidth: 120 },
+        'Principale revenue': { columnWidth: 300 },
+      },
+      comparisonRevenueColumns,
+    ),
+  ).toEqual({
+    'Main revenue': { columnWidth: 120 },
+  });
 });
 
 test('expandGroupColumnKey skips ambiguous localized Main keys', () => {

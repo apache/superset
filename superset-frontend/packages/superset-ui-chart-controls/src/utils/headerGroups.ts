@@ -325,6 +325,33 @@ export function syncTimeComparisonGroups(
   return missing.length === 0 ? kept : [...kept, ...missing];
 }
 
+/**
+ * Remap saved comparison-column config onto locale-independent keys.
+ *
+ * Charts created before comparison slots were stored as `Main …` may still
+ * keep `t('Main') …` entries (for example `Principale revenue`). The column
+ * editor lists the stored keys, so those legacy entries must be rewritten
+ * before it filters `column_config` down to `colnames`.
+ */
+export function normalizeColumnConfigKeys<T>(
+  value: Record<string, T> | undefined,
+  colnames: string[],
+): Record<string, T> {
+  if (!value) {
+    return {};
+  }
+  const colnamesSet = new Set(colnames);
+  const next: Record<string, T> = {};
+  Object.entries(value).forEach(([key, config]) => {
+    const stored = toStoredTimeComparisonColumnKey(key, colnames);
+    const target = colnamesSet.has(stored) ? stored : key;
+    if (key === target || !(target in next)) {
+      next[target] = config;
+    }
+  });
+  return next;
+}
+
 export function headerGroupsHaveSameContent(
   left: HeaderGroupConfig[],
   right: HeaderGroupConfig[],
