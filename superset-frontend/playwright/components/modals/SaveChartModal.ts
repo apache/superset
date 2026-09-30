@@ -19,7 +19,6 @@
 
 import { Page } from '@playwright/test';
 import { Input, Modal, Radio, Select } from '../core';
-import { waitForGet } from '../../helpers/api/intercepts';
 
 /**
  * Save actions offered by the modal's radio group, keyed to their labels.
@@ -97,20 +96,18 @@ export class SaveChartModal extends Modal {
   }
 
   /**
-   * Adds the chart to an existing dashboard. Waits for the select's
-   * debounced search to return before clicking: until it does, the only
-   * option matching the typed title is the "create new" one, and picking it
-   * silently saves the chart to a duplicate dashboard.
+   * Adds the chart to an existing dashboard. Waits for the select's initial
+   * options to load before typing: the "create new" option is only offered
+   * when no loaded option has the typed title, so typing earlier leaves it as
+   * the sole match and picking it silently saves the chart to a duplicate
+   * dashboard. Relies on the workspace holding fewer dashboards than the
+   * select's page size, so the initial load contains the target and typing
+   * filters client-side without a server search.
    */
   async selectExistingDashboard(dashboardTitle: string): Promise<void> {
-    const escapedTitle = dashboardTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const searched = waitForGet(
-      this.page,
-      new RegExp(`api/v1/dashboard/\\?q=.*${escapedTitle}`),
-    );
     await this.dashboardSelect.open();
+    await this.dashboardSelect.getVisibleOptionTexts();
     await this.dashboardSelect.type(dashboardTitle);
-    await searched;
     await this.dashboardSelect.clickOption(dashboardTitle);
   }
 
