@@ -1133,6 +1133,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "generate_dashboard",
         "generate_explore_link",
         "get_annotation_layer_info",
+        "get_catalog",
         "get_chart_type_schema",
         "get_compatible_dimensions",
         "get_compatible_metrics",
