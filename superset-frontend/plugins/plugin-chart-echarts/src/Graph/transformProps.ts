@@ -178,7 +178,9 @@ function getCategoryLabel(key: string) {
     return NULL_STRING;
   }
   const label = getCategoryValue(key);
-  return label === NULL_STRING ? JSON.stringify(label) : label;
+  return label === NULL_STRING || label.startsWith('"')
+    ? JSON.stringify(label)
+    : label;
 }
 
 export default function transformProps(

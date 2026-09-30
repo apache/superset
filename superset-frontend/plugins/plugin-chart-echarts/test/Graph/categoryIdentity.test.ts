@@ -236,6 +236,19 @@ test('preserves saved reserved literal colors across Dashboard rerenders', () =>
   expect(colorMap.getColorMap().get(reserved)).toBe(reservedColor);
 });
 
+test('distinguishes null and literal labels containing quotes or escapes', () => {
+  const values = [null, '<NULL>', '"<NULL>"', '"\\"<NULL>\\""', '"quoted"'];
+  const { legend } = transform(values).echartOptions as {
+    legend: { data: string[]; formatter: (key: string) => string };
+  };
+  const labels = legend.data.map(legend.formatter);
+  expect(labels.slice(0, 3)).toEqual(['<NULL>', '"<NULL>"', '"\\"<NULL>\\""']);
+  expect(new Set(labels).size).toBe(values.length);
+  expect(labels.slice(1).map(label => JSON.parse(label))).toEqual(
+    values.slice(1),
+  );
+});
+
 test.each([{ values: [null, 'N/A'] }, { values: [null, 'N/A', '<NULL>'] }])(
   'keeps node, edge and legend colors consistent with saved Dashboard colors ($values)',
   ({ values }) => {
@@ -271,81 +284,89 @@ test.each([{ values: [null, 'N/A'] }, { values: [null, 'N/A', '<NULL>'] }])(
   },
 );
 
-test('ECharts legend selection hides only the selected null or literal category', () => {
-  use([GraphChart, LegendComponent, TooltipComponent, SVGRenderer]);
-  const { echartOptions } = transform([null, 'N/A', '<NULL>']);
-  const [series] = echartOptions.series as GraphSeriesOption[];
-  const names = series.categories!.map(category => category.name as string);
-  const chart = init(null, null, {
-    renderer: 'svg',
-    ssr: true,
-    width: 800,
-    height: 600,
-  });
-  const model = chart as unknown as {
-    getModel: () => {
-      getSeriesByIndex: (index: number) => {
-        getData: () => {
-          count: () => number;
-          getName: (index: number) => string;
+test.each(['N/A', '"<NULL>"', '"\\"<NULL>\\""'])(
+  'ECharts legend selection keeps null and <NULL> independent of %s',
+  literal => {
+    use([GraphChart, LegendComponent, TooltipComponent, SVGRenderer]);
+    const values = [null, literal, '<NULL>'];
+    const { echartOptions } = transform(values);
+    const [series] = echartOptions.series as GraphSeriesOption[];
+    const names = series.categories!.map(category => category.name as string);
+    const chart = init(null, null, {
+      renderer: 'svg',
+      ssr: true,
+      width: 800,
+      height: 600,
+    });
+    const model = chart as unknown as {
+      getModel: () => {
+        getSeriesByIndex: (index: number) => {
+          getData: () => {
+            count: () => number;
+            getName: (index: number) => string;
+          };
         };
       };
     };
-  };
-  const visibleNodes = () => {
-    const data = model.getModel().getSeriesByIndex(0).getData();
-    return Array.from({ length: data.count() }, (_, index) =>
-      data.getName(index),
-    );
-  };
-  try {
-    chart.setOption({ ...echartOptions, animation: false });
-    expect(visibleNodes()).toHaveLength(6);
-    chart.dispatchAction({ type: 'legendUnSelect', name: names[0] });
-    expect(visibleNodes()).toEqual([
-      'source-1',
-      'target-1',
-      'source-2',
-      'target-2',
-    ]);
-    chart.dispatchAction({ type: 'legendSelect', name: names[0] });
-    chart.dispatchAction({ type: 'legendUnSelect', name: names[2] });
-    expect(visibleNodes()).toEqual([
-      'source-0',
-      'target-0',
-      'source-1',
-      'target-1',
-    ]);
-    const next = transform([null, 'N/A', '<NULL>'], {}, { [names[2]]: false });
-    chart.setOption(
-      { ...next.echartOptions, animation: false },
-      { notMerge: true },
-    );
-    expect(visibleNodes()).toEqual([
-      'source-0',
-      'target-0',
-      'source-1',
-      'target-1',
-    ]);
-    const nullHidden = transform(
-      [null, 'N/A', '<NULL>'],
-      {},
-      { [names[0]]: false },
-    );
-    chart.setOption(
-      { ...nullHidden.echartOptions, animation: false },
-      { notMerge: true },
-    );
-    expect(visibleNodes()).toEqual([
-      'source-1',
-      'target-1',
-      'source-2',
-      'target-2',
-    ]);
-  } finally {
-    chart.dispose();
-  }
-});
+    const visibleNodes = () => {
+      const data = model.getModel().getSeriesByIndex(0).getData();
+      return Array.from({ length: data.count() }, (_, index) =>
+        data.getName(index),
+      );
+    };
+    try {
+      chart.setOption({ ...echartOptions, animation: false });
+      expect(visibleNodes()).toHaveLength(6);
+      chart.dispatchAction({ type: 'legendUnSelect', name: names[0] });
+      expect(visibleNodes()).toEqual([
+        'source-1',
+        'target-1',
+        'source-2',
+        'target-2',
+      ]);
+      chart.dispatchAction({ type: 'legendSelect', name: names[0] });
+      chart.dispatchAction({ type: 'legendUnSelect', name: names[2] });
+      expect(visibleNodes()).toEqual([
+        'source-0',
+        'target-0',
+        'source-1',
+        'target-1',
+      ]);
+      const next = transform(values, {}, { [names[2]]: false });
+      chart.setOption(
+        { ...next.echartOptions, animation: false },
+        { notMerge: true },
+      );
+      expect(visibleNodes()).toEqual([
+        'source-0',
+        'target-0',
+        'source-1',
+        'target-1',
+      ]);
+      const nullHidden = transform(values, {}, { [names[0]]: false });
+      chart.setOption(
+        { ...nullHidden.echartOptions, animation: false },
+        { notMerge: true },
+      );
+      expect(visibleNodes()).toEqual([
+        'source-1',
+        'target-1',
+        'source-2',
+        'target-2',
+      ]);
+      chart.dispatchAction({ type: 'legendSelect', name: names[0] });
+      chart.dispatchAction({ type: 'legendUnSelect', name: names[1] });
+      expect(visibleNodes()).toEqual([
+        'source-0',
+        'target-0',
+        'source-2',
+        'target-2',
+      ]);
+    } finally {
+      chart.dispose();
+    }
+  },
+);
 
 test.each(['asc', 'desc'])(
   'sorts the legend by displayed labels (%s)',
