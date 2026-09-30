@@ -268,6 +268,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             "driver-supported native ssl dictionary). Superset passes those settings "
             "through without enforcing TLS; ensure the chosen driver configuration "
             "does not silently fall back to cleartext. "
+            "Connections using the separate MariaDB engine (mariadb:// URIs) and "
+            "other MySQL-compatible engines keep their existing SSL handling."
         ),
         "parameters": {
             "username": "Database username",

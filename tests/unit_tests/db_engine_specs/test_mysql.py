@@ -779,3 +779,38 @@ def test_native_tls_without_toggle_is_unchanged(driver: str, host: str) -> None:
     assert args["ssl"] == options["ssl"]
     assert "ssl_mode" not in args
     assert "ssl_verify_cert" not in args
+
+
+def test_pymysql_nested_ssl_dict_fails_closed() -> None:
+    """PyMySQL discards a nested ssl dictionary once ssl_verify_cert is set."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="individual ssl_ca/ssl_cert/ssl_key"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url("mysql+pymysql://localhost/db?ssl=1"),
+            {"ssl": {"ca": "/certs/ca.pem"}},
+        )
+
+
+@pytest.mark.parametrize("value", [["1"], 1.5])
+def test_ssl_request_rejects_invalid_ssl_value(value: Any) -> None:
+    """An ssl value that is neither a flag nor a native dictionary fails closed."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="Invalid MySQL ssl option"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url("mysql://localhost/db"), {"ssl": value}
+        )
+
+
+@pytest.mark.parametrize(
+    "driver", ["mysql+cymysql", "mysql+mariadbconnector", "mysql+aiomysql"]
+)
+def test_ssl_request_unsupported_driver_fails_closed(driver: str) -> None:
+    """Drivers without known fail-closed TLS options must not receive ssl=1."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="Unsupported driver"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url(f"{driver}://localhost/db?ssl=1"), {}
+        )
