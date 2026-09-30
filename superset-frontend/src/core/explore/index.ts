@@ -22,6 +22,11 @@ import type {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import type {
+  ControlState,
+  ControlStateMapping,
+  ControlValueValidator,
+} from '@superset-ui/chart-controls';
 import { setControlValue } from 'src/explore/actions/exploreActions';
 import { getVisibleFormDataFromControls } from 'src/explore/controlUtils';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
@@ -77,10 +82,100 @@ const requireFormData = (): QueryFormData => {
   return formData;
 };
 
+// Top-level ECharts option keys Superset never exposes as a discrete
+// control (see sharedControls.tsx's `echart_options`). A caller trying to
+// set one of these by name isn't naming a typo — they're reaching for a
+// setting that only exists through that JS-override control, so the error
+// should point there instead of just saying "unknown control".
+const ECHART_OPTIONS_HINT_KEYS = new Set([
+  'title',
+  'legend',
+  'grid',
+  'tooltip',
+  'toolbox',
+  'datazoom',
+  'visualmap',
+  'animation',
+  'backgroundcolor',
+  'textstyle',
+  'graphic',
+  'polar',
+  'radiusaxis',
+  'angleaxis',
+  'radar',
+  'geo',
+  'parallel',
+  'parallelaxis',
+  'singleaxis',
+  'timeline',
+  'calendar',
+  'dataset',
+  'aria',
+  'brush',
+]);
+
+const matchesEchartOptionsKey = (controlName: string): boolean => {
+  const [firstSegment] = controlName.split(/[._]/);
+  return (
+    ECHART_OPTIONS_HINT_KEYS.has(controlName.toLowerCase()) ||
+    ECHART_OPTIONS_HINT_KEYS.has(firstSegment.toLowerCase())
+  );
+};
+
+const buildUnknownControlMessage = (
+  controlName: string,
+  controls: ControlStateMapping,
+): string => {
+  if (controls.echart_options && matchesEchartOptionsKey(controlName)) {
+    return (
+      `"${controlName}" is not a control on this chart, but it looks like an ECharts ` +
+      `option. Try setting it through the "echart_options" control instead, e.g. ` +
+      `setControlValues({ echart_options: '{ "${controlName.split(/[._]/)[0]}": { ... } }' }).`
+    );
+  }
+  // getControlValues() only reflects form_data — the currently-applied
+  // values, missing controls that are hidden or untouched — so it can't
+  // stand in for the full set of controls this viz type supports. `controls`
+  // (unlike form_data) has one entry per control the control panel defines,
+  // so list those names directly instead of pointing at the wrong API.
+  const validNames = Object.keys(controls).sort().join(', ');
+  return (
+    `"${controlName}" is not a valid control for the chart currently loaded in ` +
+    `Explore. Valid controls for this chart type are: ${validNames}.`
+  );
+};
+
+const validateControlValue = (
+  controlName: string,
+  value: unknown,
+  control: ControlState,
+): void => {
+  const validators = (control.validators ?? []) as ControlValueValidator[];
+  const processedState = { ...control, value } as ControlState;
+  const errors = validators
+    .map(validator => validator.call(control, value, processedState))
+    .filter((error): error is string => typeof error === 'string' && !!error);
+  if (errors.length > 0) {
+    throw new Error(
+      `Invalid value for control "${controlName}": ${errors.join('; ')}`,
+    );
+  }
+};
+
 const setControlValues: typeof exploreApi.setControlValues = async (
   values: Record<string, unknown>,
 ) => {
   requireFormData();
+  const controls = getExploreState().controls ?? ({} as ControlStateMapping);
+  // Validate every entry before dispatching any of them, so a bad entry
+  // later in the object can't leave earlier ones applied.
+  Object.entries(values).forEach(([controlName, value]) => {
+    const control = controls[controlName];
+    if (!control) {
+      throw new Error(buildUnknownControlMessage(controlName, controls));
+    }
+    validateControlValue(controlName, value, control);
+  });
   Object.entries(values).forEach(([controlName, value]) => {
     store.dispatch(
       setControlValue(controlName, value, undefined, { programmatic: true }),

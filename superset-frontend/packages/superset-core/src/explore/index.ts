@@ -83,8 +83,18 @@ export declare function getControlValue(name: string): unknown;
  * `renderTrigger` (e.g. `echart_options`) re-render an instant preview in
  * place — no save and no new data query required.
  *
+ * Every entry is validated before any of them is applied, so a rejected
+ * call never applies a partial set of changes.
+ *
  * @param values A map of control name to the value it should be set to.
  * @returns Promise that resolves once the values have been applied.
+ *
+ * @throws If `values` names a control that doesn't exist on the chart's
+ * current viz type. When the name matches a setting only reachable through
+ * the raw ECharts override (e.g. `title`, `legend`, `tooltip`), the error
+ * points to `echart_options` instead.
+ * @throws If a value fails the target control's own validators (e.g. a
+ * non-numeric `row_limit`). The error includes each validator's message.
  *
  * @example
  * ```typescript

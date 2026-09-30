@@ -55,11 +55,24 @@ const mockGetState = store.getState as jest.Mock;
 const mockDispatch = store.dispatch as jest.Mock;
 const mockRequestChartDataResolved = requestChartDataResolved as jest.Mock;
 
+const mockRowLimitValidator = jest.fn((value: unknown) =>
+  Number.isInteger(value) ? false : 'is expected to be an integer',
+);
+
 // Mirrors the current controls Explore would be querying with, matching the
 // pre-normalization `form_data` slice used elsewhere in these tests.
 const defaultControls = {
   datasource: { value: '1__table' },
   viz_type: { value: 'echarts_timeseries_bar' },
+};
+
+// A real viz type's `controls` slice (see getAllControlsState) has one
+// entry per control the control panel defines, which is what lets
+// setControlValues tell an unknown control name from a known one.
+const controlsWithEchartOptionsAndRowLimit = {
+  ...defaultControls,
+  echart_options: { value: '{}', validators: [] },
+  row_limit: { value: 10000, validators: [mockRowLimitValidator] },
 };
 
 function activateExplore(overrides: Record<string, unknown> = {}) {
@@ -133,7 +146,7 @@ test('setControlValues throws when active but no chart is loaded (no datasource)
 });
 
 test('setControlValues dispatches a programmatic setControlValue per entry', async () => {
-  activateExplore();
+  activateExplore({ controls: controlsWithEchartOptionsAndRowLimit });
 
   await explore.setControlValues({
     echart_options: '{ "title": "Revenue" }',
@@ -150,6 +163,68 @@ test('setControlValues dispatches a programmatic setControlValue per entry', asy
     programmatic: true,
   });
   expect(mockDispatch).toHaveBeenCalledTimes(2);
+});
+
+test('setControlValues throws on an unknown control name, listing the valid ones', async () => {
+  activateExplore();
+
+  // The valid-controls list must come from `controls` (every control the
+  // current viz type's panel defines), not from getControlValues()/form_data,
+  // which only reflects currently-applied values and can omit hidden or
+  // untouched controls.
+  await expect(
+    explore.setControlValues({ not_a_real_control: 1 }),
+  ).rejects.toThrow(
+    '"not_a_real_control" is not a valid control for the chart currently ' +
+      'loaded in Explore. Valid controls for this chart type are: ' +
+      'datasource, viz_type.',
+  );
+  expect(mockDispatch).not.toHaveBeenCalled();
+});
+
+test('setControlValues hints at echart_options for an unknown ECharts-shaped name', async () => {
+  activateExplore({ controls: controlsWithEchartOptionsAndRowLimit });
+
+  await expect(
+    explore.setControlValues({ tooltip_trigger: 'item' }),
+  ).rejects.toThrow('"tooltip_trigger" is not a control on this chart');
+  await expect(
+    explore.setControlValues({ tooltip_trigger: 'item' }),
+  ).rejects.toThrow('echart_options');
+  expect(mockDispatch).not.toHaveBeenCalled();
+});
+
+test('setControlValues does not hint at echart_options when the chart has no such control', async () => {
+  activateExplore({
+    controls: {
+      datasource: { value: '1__table' },
+      viz_type: { value: 'table' },
+    },
+  });
+
+  await expect(explore.setControlValues({ title: 'x' })).rejects.toThrow(
+    '"title" is not a valid control',
+  );
+});
+
+test("setControlValues throws when a value fails the control's own validator", async () => {
+  activateExplore({ controls: controlsWithEchartOptionsAndRowLimit });
+
+  await expect(
+    explore.setControlValues({ row_limit: 'not-a-number' }),
+  ).rejects.toThrow(
+    'Invalid value for control "row_limit": is expected to be an integer',
+  );
+  expect(mockDispatch).not.toHaveBeenCalled();
+});
+
+test('setControlValues validates every entry before dispatching any of them', async () => {
+  activateExplore({ controls: controlsWithEchartOptionsAndRowLimit });
+
+  await expect(
+    explore.setControlValues({ row_limit: 100, not_a_real_control: 1 }),
+  ).rejects.toThrow('"not_a_real_control" is not a valid control');
+  expect(mockDispatch).not.toHaveBeenCalled();
 });
 
 test('getQuery throws when Explore is not the active surface', async () => {
