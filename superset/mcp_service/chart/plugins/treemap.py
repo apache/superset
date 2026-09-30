@@ -20,15 +20,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     _treemap_chart_what,
     map_treemap_config,
 )
-from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, TreemapChartConfig
+from superset.mcp_service.chart.plugin import BaseChartPlugin, capped_compile_row_limit
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    TreemapChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
@@ -37,10 +42,18 @@ class TreemapChartPlugin(BaseChartPlugin):
     """Plugin for treemap chart type."""
 
     chart_type = "treemap_v2"
+    allows_empty_result = True
     display_name = "Treemap"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "treemap_v2": "Treemap",
     }
+    requires_compile_check = True
+    strict_dataset_rebind = True
+    requires_config_for_dataset_rebind = True
+    unbound_form_data_is_rebind = True
+    normalize_data_results = True
+    invalid_result_error_code = "INVALID_TREEMAP_RESULT"
+    invalid_result_message = "Treemap metric query returned invalid values"
 
     def pre_validate(
         self,
@@ -149,4 +162,126 @@ class TreemapChartPlugin(BaseChartPlugin):
                 "'metric': {'name': 'revenue', 'aggregate': 'SUM'}}",
             ],
             error_code="TREEMAP_VALIDATION_ERROR",
+        )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        # Treemap has exactly these roles; stale controls from another plugin
+        # must not override its singular metric or ordered hierarchy.
+        """Resolve the singular metric and ordered hierarchy."""
+        metric = form_data.get("metric")
+        hierarchy = form_data.get("groupby") or []
+        return ([metric] if metric else []), (
+            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
+        )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Build the Treemap query with its hierarchy-specific fields."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.chart_helpers import (
+            apply_treemap_query_fields,
+            build_single_query_dict,
+        )
+
+        metrics, hierarchy = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        query = build_single_query_dict(
+            form_data,
+            hierarchy,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        apply_treemap_query_fields(
+            query,
+            form_data,
+            hierarchy,
+            row_limit if row_limit is not None else form_data.get("row_limit"),
+        )
+        return [query]
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        """Validate and normalize Treemap query results."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.query_result import (
+            normalize_treemap_query_result,
+        )
+
+        return normalize_treemap_query_result(result, form_data)
+
+    def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
+        """Bound the compile check to a small valid row limit."""
+        return capped_compile_row_limit(form_data)
+
+    def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
+        """Resolve the persisted preview row limit within its accepted range."""
+        value = form_data.get("row_limit", 100)
+        try:
+            limit = int(value)
+        except (TypeError, ValueError, OverflowError):
+            limit = 100
+        return limit if 1 <= limit <= 10000 else 100
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int
+    ) -> str | ChartError | None:
+        """Render the hierarchy as an ASCII preview."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.treemap_preview import treemap_ascii
+
+        return treemap_ascii(data, form_data, width)
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Render the hierarchy as a Vega-Lite preview."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.treemap_preview import treemap_vega_lite
+
+        return treemap_vega_lite(data, form_data)
+
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Complete omitted roles from the saved configuration."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.chart_utils import (
+            resolve_treemap_update_config,
+        )
+
+        return resolve_treemap_update_config(
+            config, existing_form_data, dataset_rebind=dataset_rebind
+        )
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        """Merge Treemap controls while respecting dataset rebinds."""
+        # Defer service helper imports to avoid plugin-loading cycles.
+        from superset.mcp_service.chart.chart_utils import _merge_treemap_form_data
+
+        if not isinstance(config, TreemapChartConfig):
+            return None
+        return _merge_treemap_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
         )

@@ -42,6 +42,7 @@ class TableChartPlugin(BaseChartPlugin):
         "table": "Table",
         "ag-grid-table": "Interactive Table",
     }
+    supports_column_append = True
 
     def pre_validate(
         self,
