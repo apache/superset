@@ -589,24 +589,33 @@ function ColumnCollectionTable({
   filterTerm,
   filterFields,
 }: ColumnCollectionTableProps): JSX.Element {
-  const tableColumns = isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-    ? [
-        'column_name',
-        ...(showExpression ? ['expression'] : []),
-        'advanced_data_type',
-        'type',
-        'is_dttm',
-        'filterable',
-        'groupby',
-      ]
-    : [
-        'column_name',
-        ...(showExpression ? ['expression'] : []),
-        'type',
-        'is_dttm',
-        'filterable',
-        'groupby',
-      ];
+  const tableColumns = [
+    'column_name',
+    ...(showExpression ? ['expression'] : []),
+    ...(isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+      ? ['advanced_data_type']
+      : []),
+    'type',
+    'is_dttm',
+    'filterable',
+    'groupby',
+  ];
+
+  const renderExpressionCell = (
+    v: unknown,
+    onChange: (value: unknown) => void,
+  ): ReactNode => (
+    <TextAreaControl
+      initialValue={v as string}
+      onChange={onChange}
+      className="datasource-sql-expression"
+      language="sql"
+      offerEditInModal={false}
+      minLines={5}
+      textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
+      resize="both"
+    />
+  );
 
   return (
     <CollectionTable
@@ -800,18 +809,7 @@ function ColumnCollectionTable({
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
               advanced_data_type: d => <Label>{d as string}</Label>,
-              expression: (v, onChange) => (
-                <TextAreaControl
-                  initialValue={v as string}
-                  onChange={onChange}
-                  className="datasource-sql-expression"
-                  language="sql"
-                  offerEditInModal={false}
-                  minLines={5}
-                  textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
-                  resize="both"
-                />
-              ),
+              expression: renderExpressionCell,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -840,18 +838,7 @@ function ColumnCollectionTable({
                   </StyledLabelWrapper>
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
-              expression: (v, onChange) => (
-                <TextAreaControl
-                  initialValue={v as string}
-                  onChange={onChange}
-                  className="datasource-sql-expression"
-                  language="sql"
-                  offerEditInModal={false}
-                  minLines={5}
-                  textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
-                  resize="both"
-                />
-              ),
+              expression: renderExpressionCell,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
