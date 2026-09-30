@@ -54,8 +54,16 @@ class CatalogSnapshot:
     observed_at: str
 
     def __post_init__(self) -> None:
+        if not isinstance(self.payload, str):
+            raise TypeError("Catalog payload must be a string")
+        if not isinstance(self.cache_token, str):
+            raise TypeError("Catalog cache_token must be a string")
+        if not isinstance(self.observed_at, str):
+            raise TypeError("Catalog observed_at must be a string")
         if not self.cache_token:
             raise ValueError("Catalog cache token must not be empty")
+        if not self.observed_at:
+            raise ValueError("Catalog observed_at must not be empty")
 
 
 @dataclass(frozen=True)
@@ -94,30 +102,36 @@ class MetadataSnapshotStore(Protocol):
 
     The loader receives a finite absolute time.monotonic() deadline and acquires
     and validates canonical JSON within that budget and any tighter provider limit.
-    The host sets one deadline before waiting or acquisition; providers must not
-    reset it for nested requests. An exhausted budget raises the deadline category
-    before further I/O. The deadline is process-local, never serialized or used
-    for cache expiry or publication ordering; it does not replace writer fencing.
+    The caller sets one deadline before waiting or acquisition and passes it to
+    every store/adapter call; implementations must not reset it for nested calls.
+    Non-finite values and exhausted budgets raise the deadline category before
+    further I/O, including cache reads. The deadline is process-local, never
+    serialized or used for cache expiry or publication ordering; it does not
+    replace writer fencing.
     The host owns expiry, writer fencing and publication confirmation. This
     protocol does not provide storage, authorization or distributed coordination.
     Host-only invalidation and cache inspection are outside the provider interface.
     """
 
-    def read(self, fetch: CatalogLoader) -> CatalogSnapshot:
+    def read(self, fetch: CatalogLoader, *, deadline: float) -> CatalogSnapshot:
         """Read a valid observation or perform bounded coordinated acquisition.
 
         Cold readers wait/re-read within a finite deadline or fail safely; they
         must not silently use an obsolete local copy. Cache hits retain identity
         and expiry. Return the payload and its identity from the same observation.
+        Pass the caller's deadline unchanged to nested refresh and loader calls.
         """
         ...
 
-    def refresh(self, fetch: CatalogLoader) -> MetadataRefreshResult:
+    def refresh(
+        self, fetch: CatalogLoader, *, deadline: float
+    ) -> MetadataRefreshResult:
         """Bypass a hit and confirm publication with a fresh cache token.
 
         A busy explicit refresh reports in_progress. Failure must not renew
         freshness. An unconfirmed outcome reports indeterminate rather than
         retrying publication blindly or claiming success or rollback.
+        Acquisition and publication share the caller's deadline without renewal.
         """
         ...
 
@@ -126,19 +140,27 @@ class MetadataRefreshAdapter(ABC):
     """Opt a provider into host-coordinated metadata discovery and refresh."""
 
     @abstractmethod
-    def bind(self, store: MetadataSnapshotStore) -> None:
+    def bind(self, store: MetadataSnapshotStore, *, deadline: float) -> None:
         """Bind once before discovery and reject rebinding as configuration error.
 
         Participating full/custom views and runtime schema must use this store.
         The host supplies trusted scope and checks authority before construction.
+        Construction stays deadline-free. Capture the caller's finite absolute
+        monotonic deadline here and pass it unchanged to discovery store reads.
+        Reject non-finite or exhausted budgets with the deadline category before
+        binding; failure leaves the adapter unbound. A new host operation needs
+        a fresh adapter, not a renewed discovery budget on an existing binding.
         """
 
     @abstractmethod
-    def refresh(self) -> MetadataRefreshResult:
+    def refresh(self, *, deadline: float) -> MetadataRefreshResult:
         """Acquire validated metadata and request confirmed host publication.
 
         An unbound adapter reports unsupported. Do not return success after only
         fetching upstream data or silently fall back to provider-local caching.
+        Pass the caller's finite absolute monotonic deadline unchanged to the
+        store. Reject non-finite or exhausted budgets with the deadline category
+        before I/O; nested calls never create a new budget.
         """
 
     @abstractmethod
