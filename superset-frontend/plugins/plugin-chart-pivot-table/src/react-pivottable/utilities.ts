@@ -1537,11 +1537,7 @@ class PivotData {
           const flatRk = flatKey(rowPrefix);
           this.rowGroupMetricTotals[flatRk] ??= Object.create(null);
           this.rowGroupMetricTotals[flatRk][metricValue] ??=
-            this.getFormattedAggregator(record)(
-              this,
-              rowPrefix,
-              [metricValue],
-            );
+            this.getFormattedAggregator(record)(this, rowPrefix, [metricValue]);
           this.rowGroupMetricTotals[flatRk][metricValue].push(record);
         });
       }
@@ -1561,11 +1557,7 @@ class PivotData {
           const flatCk = flatKey(colPrefix);
           this.colGroupMetricTotals[flatCk] ??= Object.create(null);
           this.colGroupMetricTotals[flatCk][metricValue] ??=
-            this.getFormattedAggregator(record)(
-              this,
-              [metricValue],
-              colPrefix,
-            );
+            this.getFormattedAggregator(record)(this, [metricValue], colPrefix);
           this.colGroupMetricTotals[flatCk][metricValue].push(record);
         });
       }

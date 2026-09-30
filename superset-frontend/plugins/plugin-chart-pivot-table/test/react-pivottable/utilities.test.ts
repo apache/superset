@@ -222,7 +222,7 @@ test('result aggregation blanks a shared total slot that would mix two different
   expect(pivotData.getAggregator([], []).value()).toBeNull();
 });
 
-test('a non-fraction result aggregation keeps the metric\'s own custom formatter', () => {
+test("a non-fraction result aggregation keeps the metric's own custom formatter", () => {
   // Median re-aggregates SUM(sales)'s own per-store values; disabling every
   // custom formatter whenever any result aggregation was active (instead of
   // only the " as Fraction of " ones, which render their own percentage)

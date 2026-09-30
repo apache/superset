@@ -2188,9 +2188,7 @@ def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
         "rowTotals": True,
         "colTotals": True,
     }
-    without_show_values_as = {
-        k: v for k, v in form_data.items() if k != "showValuesAs"
-    }
+    without_show_values_as = {k: v for k, v in form_data.items() if k != "showValuesAs"}
 
     pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
     pivoted_without = pivot_table_v2(
