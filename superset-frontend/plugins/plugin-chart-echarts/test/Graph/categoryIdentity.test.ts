@@ -114,9 +114,10 @@ test('keeps literal internal identifiers separate from null, including normalize
   const nodes = series.data as EChartGraphNode[];
   expect(series.categories).toHaveLength(values.length);
   expect(new Set(nodes.map(node => node.category)).size).toBe(values.length);
-  expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(
-    values.length,
-  );
+  expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
+  // Literal values share the color lookup's existing whitespace normalization.
+  expect(nodes[2].itemStyle?.color).toBe(nodes[6].itemStyle?.color);
+  expect(nodes[0].itemStyle?.color).not.toBe(nodes[6].itemStyle?.color);
 });
 
 test('displays readable labels without exposing category identifiers', () => {
@@ -146,6 +147,94 @@ test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
     expect(nodes[0].itemStyle?.color).not.toBe('#abcdef');
   },
 );
+
+test.each(
+  [LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard].flatMap(
+    source => [false, true].map(withNull => ({ source, withNull })),
+  ),
+)(
+  'preserves reserved literal custom colors (context $source, null $withNull)',
+  ({ source, withNull }) => {
+    colorMap.source = source;
+    const reserved = '__superset_null__';
+    const literalColors: Record<string, string> = {
+      [reserved]: '#123456',
+      [`${reserved}${reserved}`]: '#abcdef',
+    };
+    Object.entries(literalColors).forEach(([label, color]) => {
+      CategoricalColorNamespace.getNamespace().setColor(label, color);
+    });
+    const values: (string | null)[] = [
+      reserved,
+      `${reserved}${reserved}`,
+      ` ${reserved} `,
+    ];
+    if (withNull) values.unshift(null);
+    const [series] = transform(values, { sliceId: 42 }).echartOptions
+      .series as GraphSeriesOption[];
+    const nodes = series.data as EChartGraphNode[];
+    values.forEach((value, index) => {
+      const pair = nodes.slice(index * 2, index * 2 + 2);
+      pair.forEach(node => {
+        if (value === null) {
+          expect(Object.values(literalColors)).not.toContain(
+            node.itemStyle?.color,
+          );
+        } else {
+          expect(node.itemStyle?.color).toBe(literalColors[value.trim()]);
+        }
+        const category = series.categories!.find(c => c.name === node.category);
+        expect(node.itemStyle?.color).toBe(category?.itemStyle?.color);
+      });
+    });
+    expect(CategoricalColorNamespace.getNamespace().forcedItems).toEqual(
+      literalColors,
+    );
+  },
+);
+
+test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
+  'does not apply a filtered-out literal custom color to null in context %s',
+  source => {
+    colorMap.source = source;
+    CategoricalColorNamespace.getNamespace().setColor(
+      '__superset_null__',
+      '#123456',
+    );
+    const [series] = transform([null], { sliceId: 42 }).echartOptions
+      .series as GraphSeriesOption[];
+    (series.data as EChartGraphNode[]).forEach(node => {
+      expect(node.itemStyle?.color).not.toBe('#123456');
+    });
+  },
+);
+
+test('preserves saved reserved literal colors across Dashboard rerenders', () => {
+  colorMap.source = LabelsColorMapSource.Dashboard;
+  const reserved = '__superset_null__';
+  const [reservedColor, naColor] = CategoricalColorNamespace.getScale().range();
+  colorMap.addSlice(reserved, reservedColor, 41);
+  colorMap.addSlice('N/A', naColor, 41);
+  const render = () => {
+    const [series] = transform([null, reserved, 'N/A'], {
+      sliceId: 42,
+    }).echartOptions.series as GraphSeriesOption[];
+    const nodes = series.data as EChartGraphNode[];
+    expect(nodes[2].itemStyle?.color).toBe(reservedColor);
+    expect(nodes[4].itemStyle?.color).toBe(naColor);
+    expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
+    nodes.forEach(node => {
+      const category = series.categories!.find(c => c.name === node.category);
+      expect(node.itemStyle?.color).toBe(category?.itemStyle?.color);
+    });
+    return nodes.map(node => node.itemStyle?.color);
+  };
+  const first = render();
+  const saved = new Map(colorMap.getColorMap());
+  expect(render()).toEqual(first);
+  expect(colorMap.getColorMap()).toEqual(saved);
+  expect(colorMap.getColorMap().get(reserved)).toBe(reservedColor);
+});
 
 test.each([{ values: [null, 'N/A'] }, { values: [null, 'N/A', '<NULL>'] }])(
   'keeps node, edge and legend colors consistent with saved Dashboard colors ($values)',

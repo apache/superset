@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  getLabelsColorMap,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
@@ -164,14 +165,19 @@ function getCategoryKey(columnName: string, name?: DataRecordValue) {
     : label;
 }
 
+/** Recover the original literal value for color lookup and display. */
+function getCategoryValue(key: string) {
+  return key.startsWith(NULL_CATEGORY_KEY)
+    ? key.slice(NULL_CATEGORY_KEY.length)
+    : key;
+}
+
 /** Format category identities for display without changing legend selection keys. */
 function getCategoryLabel(key: string) {
   if (key === NULL_CATEGORY_KEY) {
     return NULL_STRING;
   }
-  const label = key.startsWith(NULL_CATEGORY_KEY)
-    ? key.slice(NULL_CATEGORY_KEY.length)
-    : key;
+  const label = getCategoryValue(key);
   return label === NULL_STRING ? JSON.stringify(label) : label;
 }
 
@@ -257,7 +263,6 @@ export default function transformProps(
     }
     const node = echartNodes[nodes[name]];
     if (category) {
-      categories.add(category);
       // category may be empty when one of `sourceCategory`
       // or `targetCategory` is not set.
       if (!node.category) {
@@ -267,17 +272,48 @@ export default function transformProps(
     return node;
   }
 
-  // Resolve shared Dashboard color collisions before capturing node/edge colors.
-  if (sliceId) {
-    data.forEach(link => {
-      if (link[metricLabel]) {
-        [sourceCategory, targetCategory].forEach(column => {
-          if (column) {
-            colorFn(getCategoryKey(column, link[column]), sliceId);
-          }
-        });
+  data.forEach(link => {
+    if (link[metricLabel]) {
+      [sourceCategory, targetCategory].forEach(column => {
+        if (column) {
+          const category = getCategoryKey(column, link[column]);
+          if (category) categories.add(category);
+        }
+      });
+    }
+  });
+
+  const hasNullCategory = categories.has(NULL_CATEGORY_KEY);
+  // Resolve literal colors under their original keys before assigning null a color.
+  if (sliceId || hasNullCategory) {
+    categories.forEach(category => {
+      if (category !== NULL_CATEGORY_KEY) {
+        colorFn(getCategoryValue(category), sliceId);
       }
     });
+  }
+
+  let nullColor = firstColor;
+  if (hasNullCategory) {
+    const reservedColorKeys = new Set([
+      ...colorFn.chartLabelsColorMap.keys(),
+      ...Object.keys(colorFn.forcedColors),
+      ...getLabelsColorMap().getColorMap().keys(),
+    ]);
+    let nullColorKey = NULL_CATEGORY_KEY;
+    while (reservedColorKeys.has(nullColorKey)) {
+      nullColorKey += NULL_CATEGORY_KEY;
+    }
+    // Keep this lookup local: shared color settings belong to literal values.
+    nullColor = colorFn(nullColorKey);
+  }
+
+  function getCategoryColor(category: string) {
+    if (category === NULL_CATEGORY_KEY) return nullColor;
+    const value = getCategoryValue(category);
+    return hasNullCategory
+      ? (colorFn.chartLabelsColorMap.get(value.trim()) ?? firstColor)
+      : colorFn(value, sliceId);
   }
 
   data.forEach(link => {
@@ -294,10 +330,10 @@ export default function transformProps(
       ? getCategoryKey(targetCategory, link[targetCategory])
       : undefined;
     const sourceNodeColor = sourceCategoryName
-      ? colorFn(sourceCategoryName, sliceId)
+      ? getCategoryColor(sourceCategoryName)
       : firstColor;
     const targetNodeColor = targetCategoryName
-      ? colorFn(targetCategoryName, sliceId)
+      ? getCategoryColor(targetCategoryName)
       : firstColor;
 
     const sourceNode = getOrCreateNode(
@@ -357,7 +393,7 @@ export default function transformProps(
       categories: categoryList.map(c => ({
         name: c,
         itemStyle: {
-          color: colorFn(c, sliceId),
+          color: getCategoryColor(c),
         },
       })),
       layout,

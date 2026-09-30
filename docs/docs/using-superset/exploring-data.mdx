@@ -227,7 +227,8 @@ Graph charts can group source and target nodes by category. When a category colu
 SQL `NULL` values, those nodes appear under `<NULL>` in the legend. Literal `N/A` and `<NULL>`
 values remain separate categories with their own colors. The literal string `<NULL>` is displayed
 as `"<NULL>"` to distinguish it from a null value. Each category can be toggled independently in
-the legend.
+the legend. Custom colors remain associated with the original literal
+values. The null color is automatic and can change when filtering changes the visible categories.
 
 ### Markup
 
