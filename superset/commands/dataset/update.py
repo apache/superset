@@ -75,11 +75,16 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         model_id: int,
         data: dict[str, Any],
         override_columns: Optional[bool] = False,
+        *,
+        preserve_existing_metrics: bool = False,
+        delete_metric_ids: set[int] | None = None,
     ):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
         self.override_columns = override_columns
+        self._delete_metric_ids = delete_metric_ids
+        self._preserve_existing_metrics = preserve_existing_metrics
         self._properties["override_columns"] = override_columns
 
     @transaction(
@@ -95,7 +100,12 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
-        return DatasetDAO.update(self._model, attributes=self._properties)
+        return DatasetDAO.update(
+            self._model,
+            attributes=self._properties,
+            preserve_existing_metrics=self._preserve_existing_metrics,
+            delete_metric_ids=self._delete_metric_ids,
+        )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
@@ -118,6 +128,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         self._validate_dataset_source(exceptions)
         self._validate_semantics(exceptions)
+        if (
+            self._delete_metric_ids is not None
+            and not DatasetDAO.validate_metrics_exist(
+                self._model_id, list(self._delete_metric_ids)
+            )
+        ):
+            exceptions.append(DatasetMetricsNotFoundValidationError())
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
