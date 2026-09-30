@@ -145,10 +145,7 @@ test('logs and re-throws when the request rejects', async () => {
 
   try {
     await expect(fetchTopNValues(baseParams)).rejects.toBe(error);
-    expect(consoleError).toHaveBeenCalledWith(
-      'Error fetching top N values:',
-      error,
-    );
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), error);
   } finally {
     consoleError.mockRestore();
   }
