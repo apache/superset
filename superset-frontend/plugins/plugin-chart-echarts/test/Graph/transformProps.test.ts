@@ -93,22 +93,25 @@ test.each([null, undefined])(
       );
       const [series] = echartOptions.series as GraphSeriesOption[];
       const nodes = series.data as EChartGraphNode[];
+      const nullKey = nodes[0].category;
+      const legend = echartOptions.legend as {
+        data: string[];
+        formatter: (key: string) => string;
+      };
 
-      expect(echartOptions.legend).toEqual(
-        expect.objectContaining({ data: [NULL_STRING, 'N/A'] }),
-      );
+      expect(legend.data.map(legend.formatter)).toEqual([NULL_STRING, 'N/A']);
       expect(series.categories).toEqual([
-        expect.objectContaining({ name: NULL_STRING }),
+        expect.objectContaining({ name: nullKey }),
         expect.objectContaining({ name: 'N/A' }),
       ]);
       expect(series.data).toEqual([
         expect.objectContaining({
           name: 'source_value_1',
-          category: NULL_STRING,
+          category: nullKey,
         }),
         expect.objectContaining({
           name: 'target_value_1',
-          category: NULL_STRING,
+          category: nullKey,
         }),
         expect.objectContaining({ name: 'source_value_2', category: 'N/A' }),
         expect.objectContaining({ name: 'target_value_2', category: 'N/A' }),

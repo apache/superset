@@ -224,8 +224,10 @@ Once you’re done, publish the chart in your Tutorial Dashboard.
 ### Graph Chart Categories
 
 Graph charts can group source and target nodes by category. When a category column contains
-SQL `NULL` values, those nodes appear under `<NULL>` in the legend. A literal `N/A` value remains
-a separate category with its own color.
+SQL `NULL` values, those nodes appear under `<NULL>` in the legend. Literal `N/A` and `<NULL>`
+values remain separate categories with their own colors. The literal string `<NULL>` is displayed
+as `"<NULL>"` to distinguish it from a null value. Each category can be toggled independently in
+the legend.
 
 ### Markup
 
