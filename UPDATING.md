@@ -26,24 +26,42 @@ assists people when migrating to a new version.
 
 ### MySQL SSL requests require TLS
 
-The MySQL SSL toggle and legacy `ssl=1` URLs require an encrypted connection.
-For mysqlclient (`mysql://` and `mysql+mysqldb://`), Superset translates this
-request to `ssl_mode=VERIFY_CA`, retaining explicit `VERIFY_CA` or
-`VERIFY_IDENTITY` modes. Contradictory options such as `ssl_mode=DISABLED`
-or `ssl_disabled=True` fail rather than cancelling the SSL request.
+The SSL toggle (or ssl=1 in the URI) requires TLS. With mysqlclient, Oracle
+libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB Connector/C and
+unrecognized client versions use VERIFY_CA to prevent cleartext fallback.
+Explicit VERIFY_CA and VERIFY_IDENTITY are retained.
 
-Certificate verification is needed because mysqlclient built with MariaDB
-Connector/C can fall back to cleartext even with `ssl_mode=REQUIRED`; the toggle
-upgrades that mode to `VERIFY_CA`. Configure a trusted CA and a server certificate
-valid for the connection hostname (MariaDB Connector/C also checks identity).
+Existing saved connections with the toggle on are affected at upgrade, without a
+feature flag. Verification can fail for self-signed/default server certificates
+or missing trust roots. MySQL does not use the connection form's Root
+certificate field (server_cert). Set ssl_ca to a trusted CA file path available
+on every web and worker node, for example in the URI
+(?ssl=1&ssl_ca=/path/to/ca.pem).
 
-For Connector/Python and PyMySQL, the toggle enables `ssl_verify_cert=True`.
-Configure `ssl_ca` for a private certificate authority. PyMySQL must be version
-1.2 or newer because older versions can fall back to an unencrypted connection.
-Use individual `ssl_ca`, `ssl_cert`, and `ssl_key` connection arguments instead
-of a nested `ssl` dictionary when using the toggle with PyMySQL.
-The Aurora MySQL Data API driver (`mysql+auroradataapi://`) always uses HTTPS,
-so the toggle is accepted without passing an `ssl` argument to that driver.
+Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL requires
+version 1.2 or newer; use individual ssl_ca, ssl_cert and ssl_key options
+instead of a nested ssl dictionary with the toggle. Options that disable TLS or
+required verification are rejected.
+
+Standard Aurora MySQL connections intentionally follow the same rules, including
+IAM connections. For certificate verification, install the Amazon RDS CA bundle
+on every web and worker node and set ssl_ca to that file. IAM authentication
+does not supply a CA. The Aurora Data API uses HTTPS and needs no MySQL TLS
+arguments.
+
+SSH tunnels rewrite the connection host to the local bind address (typically
+127.0.0.1). MariaDB Connector/C also checks hostname identity with VERIFY_CA, so
+a certificate for the remote database hostname will fail. For SSH-only
+transport, turn off the SSL toggle and remove ssl=1; this removes the TLS
+guarantee on the SSH endpoint-to-database leg. If end-to-end TLS is required,
+use a driver/native TLS configuration compatible with the tunnel and validate it
+separately.
+
+Operators using native TLS settings can turn off the toggle, remove ssl=1 and
+configure extra.engine_params.connect_args (for example a driver-supported
+native ssl dictionary). Superset passes those settings through without enforcing
+TLS; ensure the chosen driver configuration does not silently fall back to
+cleartext.
 
 - The `/register/` self-registration page and the login page's "Register" button
   are only served for the auth types that support self-registration

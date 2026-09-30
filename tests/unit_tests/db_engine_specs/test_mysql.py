@@ -512,9 +512,21 @@ def test_extended_aggregation_func_median_unsupported() -> None:
     assert spec.get_extended_aggregation_func("MEDIAN") is None
 
 
+@pytest.mark.parametrize(
+    "client_info,expected_mode",
+    [
+        ("3.3.17", "VERIFY_CA"),
+        ("5.7.44", "REQUIRED"),
+        ("8.4.6", "REQUIRED"),
+        ("9.4.0", "REQUIRED"),
+        ("unknown", "VERIFY_CA"),
+    ],
+)
 @pytest.mark.parametrize("driver", ["mysql", "mysql+mysqldb"])
 @pytest.mark.parametrize("source", ["uri", "toggle", "connect_args"])
-def test_ssl_request_requires_tls(driver: str, source: str) -> None:
+def test_ssl_request_requires_tls(
+    driver: str, source: str, client_info: str, expected_mode: str
+) -> None:
     """The SSL toggle and legacy URI flag must require, not prefer, TLS."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
@@ -538,9 +550,11 @@ def test_ssl_request_requires_tls(driver: str, source: str) -> None:
         uri = uri.update_query_dict({"ssl": "1"})
     else:
         args = {"ssl": True}
-    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = client_info
+        url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
     options = dict(url.query, **result)
-    assert options["ssl_mode"] == "VERIFY_CA"
+    assert options["ssl_mode"] == expected_mode
     assert "ssl" not in options
 
 
@@ -603,14 +617,27 @@ def test_ssl_request_does_not_change_other_engines() -> None:
     assert "ssl_mode" not in args
 
 
-def test_ssl_request_upgrades_required_mode() -> None:
+@pytest.mark.parametrize(
+    "client_info,expected_mode",
+    [("3.3.17", "VERIFY_CA"), ("8.4.6", "REQUIRED")],
+)
+@pytest.mark.parametrize("source", ["uri", "connect_args"])
+def test_ssl_request_upgrades_required_mode(
+    client_info: str, expected_mode: str, source: str
+) -> None:
     """MariaDB Connector/C maps mysqlclient REQUIRED to opportunistic TLS."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
-    _, args = MySQLEngineSpec.adjust_engine_params(
-        make_url("mysql://localhost/db?ssl=1&ssl_mode=REQUIRED"), {}
-    )
-    assert args["ssl_mode"] == "VERIFY_CA"
+    uri = make_url("mysql://localhost/db?ssl=1")
+    options = {}
+    if source == "uri":
+        uri = uri.update_query_dict({"ssl_mode": "REQUIRED"})
+    else:
+        options["ssl_mode"] = "REQUIRED"
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = client_info
+        _, args = MySQLEngineSpec.adjust_engine_params(uri, options)
+    assert args["ssl_mode"] == expected_mode
 
 
 def test_pymysql_hostname_verification_survives() -> None:
@@ -710,3 +737,45 @@ def test_pymysql_hostname_check_conflict_fails_closed() -> None:
             make_url("mysql+pymysql://localhost/db?ssl=1&ssl_check_hostname=true"),
             {"ssl_verify_identity": False},
         )
+
+
+def test_pymysql_old_version_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    """PyMySQL before 1.2 must not reach its silent cleartext fallback."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    monkeypatch.setattr("pymysql.VERSION", (1, 1, 1))
+    with pytest.raises(ValueError, match="requires PyMySQL >= 1.2"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url("mysql+pymysql://localhost/db?ssl=1"), {}
+        )
+
+
+@pytest.mark.parametrize("host", ["cluster.rds.amazonaws.com", "127.0.0.1"])
+def test_aurora_mysql_tls_preserves_ca(host: str) -> None:
+    """Standard Aurora and tunneled hosts keep verification and the RDS CA."""
+    from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
+
+    uri = make_url(f"mysql://{host}/db?ssl=1&ssl_ca=/certs/rds-ca.pem")
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        module.return_value.get_client_info.return_value = "3.3.17"
+        url, args = AuroraMySQLEngineSpec.adjust_engine_params(uri, {})
+    assert url.host == host
+    assert url.query["ssl_ca"] == "/certs/rds-ca.pem"
+    assert args["ssl_mode"] == "VERIFY_CA"
+
+
+@pytest.mark.parametrize("driver", ["mysql", "mysql+pymysql"])
+@pytest.mark.parametrize("host", ["localhost", "127.0.0.1"])
+def test_native_tls_without_toggle_is_unchanged(driver: str, host: str) -> None:
+    """The documented native TLS recovery path bypasses toggle enforcement."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"{driver}://{host}/db")
+    options = {"ssl": {"ca": "/certs/ca.pem"}}
+    with patch("superset.db_engine_specs.mysql.import_module") as module:
+        url, args = MySQLEngineSpec.adjust_engine_params(uri, options)
+    module.assert_not_called()
+    assert url == uri
+    assert args["ssl"] == options["ssl"]
+    assert "ssl_mode" not in args
+    assert "ssl_verify_cert" not in args

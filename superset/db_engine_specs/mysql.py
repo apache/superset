@@ -144,6 +144,22 @@ def _mysql_ssl_requested(value: Any) -> bool:
     return False
 
 
+def _mysqlclient_ssl_mode(options: dict[str, Any]) -> str:
+    """Select fail-closed TLS semantics for the linked client library."""
+    # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
+    # Connector/C. Verification modes fail closed on both client libraries.
+    mode = options.get("ssl_mode", "REQUIRED")
+    if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+        raise ValueError("MySQL SSL request conflicts with ssl_mode")
+    if mode == "REQUIRED":
+        client_info = import_module("MySQLdb").get_client_info()
+        # Only recognized Oracle clients have fail-closed REQUIRED semantics.
+        # MariaDB Connector/C (3.x) and unknown clients require verification.
+        if not re.match(r"^(?:5\.7|8\.\d+|9\.\d+)\.", client_info):
+            mode = "VERIFY_CA"
+    return mode
+
+
 def require_mysql_tls(
     uri: URL, connect_args: dict[str, Any]
 ) -> tuple[URL, dict[str, Any]]:
@@ -164,12 +180,7 @@ def require_mysql_tls(
     driver = uri.get_driver_name()
     options = {**query, **args}
     if driver == "mysqldb":
-        # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
-        # Connector/C. Verification modes fail closed on both client libraries.
-        mode = options.get("ssl_mode", "VERIFY_CA")
-        if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
-            raise ValueError("MySQL SSL request conflicts with ssl_mode")
-        args["ssl_mode"] = "VERIFY_CA" if mode == "REQUIRED" else mode
+        args["ssl_mode"] = _mysqlclient_ssl_mode(options)
     elif driver in ("mysqlconnector", "pymysql"):
         _require_mysql_verified_tls(driver, query, args)
     elif driver == "auroradataapi":
@@ -225,6 +236,39 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
+        "notes": (
+            "The SSL toggle (or ssl=1 in the URI) requires TLS. With mysqlclient, "
+            "Oracle libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB "
+            "Connector/C and unrecognized client versions use VERIFY_CA to prevent "
+            "cleartext fallback. Explicit VERIFY_CA and VERIFY_IDENTITY are retained. "
+            "Existing saved connections with the toggle on are affected at upgrade, "
+            "without a feature flag. Verification can fail for self-signed/default "
+            "server certificates or missing trust roots. MySQL does not use the "
+            "connection form's Root certificate field (server_cert). Set ssl_ca to a "
+            "trusted CA file path available on every web and worker node, for example "
+            "in the URI (?ssl=1&ssl_ca=/path/to/ca.pem). "
+            "Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL "
+            "requires version 1.2 or newer; use individual ssl_ca, ssl_cert and "
+            "ssl_key options instead of a nested ssl dictionary with the toggle. "
+            "Options that disable TLS or required verification are rejected. "
+            "Standard Aurora MySQL connections intentionally follow the same rules, "
+            "including IAM connections. For certificate verification, install the "
+            "Amazon RDS CA bundle on every web and worker node and set ssl_ca to that "
+            "file. IAM authentication does not supply a CA. The Aurora Data API uses "
+            "HTTPS and needs no MySQL TLS arguments. "
+            "SSH tunnels rewrite the connection host to the local bind address "
+            "(typically 127.0.0.1). MariaDB Connector/C also checks hostname identity "
+            "with VERIFY_CA, so a certificate for the remote database hostname will "
+            "fail. For SSH-only transport, turn off the SSL toggle and remove ssl=1; "
+            "this removes the TLS guarantee on the SSH endpoint-to-database leg. If "
+            "end-to-end TLS is required, use a driver/native TLS configuration "
+            "compatible with the tunnel and validate it separately. "
+            "Operators using native TLS settings can turn off the toggle, remove "
+            "ssl=1 and configure extra.engine_params.connect_args (for example a "
+            "driver-supported native ssl dictionary). Superset passes those settings "
+            "through without enforcing TLS; ensure the chosen driver configuration "
+            "does not silently fall back to cleartext. "
+        ),
         "parameters": {
             "username": "Database username",
             "password": "Database password",
