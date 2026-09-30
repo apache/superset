@@ -66,9 +66,27 @@ def test_docs_js_change_needs_docs_only() -> None:
     assert needs.needs_docs(files) is True
 
 
+def test_websocket_change_needs_websocket_only() -> None:
+    """oxfmt-websocket needs the pinned Node.js setup (via `npx oxfmt`), but
+    neither the frontend nor docs dependency install."""
+    files = ["superset-websocket/src/index.ts"]
+    assert needs.needs_frontend(files) is False
+    assert needs.needs_docs(files) is False
+    assert needs.needs_websocket(files) is True
+
+
+def test_websocket_json_change_needs_neither() -> None:
+    """oxfmt-websocket excludes JSON (see that hook's comment in
+    .pre-commit-config.yaml), so a package-lock.json-only change must not
+    trip needs_websocket."""
+    files = ["superset-websocket/package-lock.json"]
+    assert needs.needs_websocket(files) is False
+
+
 def test_empty_file_list_needs_neither() -> None:
     assert needs.needs_frontend([]) is False
     assert needs.needs_docs([]) is False
+    assert needs.needs_websocket([]) is False
 
 
 def test_similarly_named_path_outside_the_real_directory_does_not_match() -> None:
@@ -129,3 +147,24 @@ def test_main_writes_needs_docs_true_for_a_docs_js_change(tmp_path: Path) -> Non
     output = output_file.read_text()
     assert "needs_frontend=false" in output
     assert "needs_docs=true" in output
+
+
+def test_main_writes_needs_websocket_true_for_a_websocket_change(
+    tmp_path: Path,
+) -> None:
+    """Same subprocess/main() interface as above, but for a websocket-only
+    change that should flip needs_websocket on and leave the others off."""
+    output_file = tmp_path / "github_output.txt"
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, str(SCRIPT_PATH)],
+        input="superset-websocket/src/index.ts\n",
+        capture_output=True,
+        text=True,
+        env={"GITHUB_OUTPUT": str(output_file), "PATH": "/usr/bin:/bin"},
+        check=True,
+    )
+    assert result.returncode == 0
+    output = output_file.read_text()
+    assert "needs_frontend=false" in output
+    assert "needs_docs=false" in output
+    assert "needs_websocket=true" in output

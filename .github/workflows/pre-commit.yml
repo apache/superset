@@ -65,10 +65,12 @@ jobs:
               all)
                 echo "needs_frontend=true" >> "$GITHUB_OUTPUT"
                 echo "needs_docs=true" >> "$GITHUB_OUTPUT"
+                echo "needs_websocket=true" >> "$GITHUB_OUTPUT"
                 ;;
               none)
                 echo "needs_frontend=false" >> "$GITHUB_OUTPUT"
                 echo "needs_docs=false" >> "$GITHUB_OUTPUT"
+                echo "needs_websocket=false" >> "$GITHUB_OUTPUT"
                 ;;
             esac
           }
@@ -165,7 +167,10 @@ jobs:
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
 
       - name: Setup Node.js
-        if: steps.changed_files.outputs.needs_frontend == 'true' || steps.changed_files.outputs.needs_docs == 'true'
+        # oxfmt-websocket needs the pinned Node.js here too (via `npx oxfmt`
+        # in scripts/oxfmt.sh), even though it needs neither the frontend nor
+        # docs dependency install below.
+        if: steps.changed_files.outputs.needs_frontend == 'true' || steps.changed_files.outputs.needs_docs == 'true' || steps.changed_files.outputs.needs_websocket == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
