@@ -3553,3 +3553,98 @@ test('TableChart should NOT emit cross-filter when clicking a cell in a not-filt
   );
   expect(crossFilterCall).toBeUndefined();
 });
+
+test('a string column of numeric-looking identifiers gets no bar and keeps its cross-filter', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.raw,
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['code'],
+        coltypes: [GenericDataType.String],
+        // Zero-padded identifiers read as numbers. The column is declared text,
+        // so the generic toggle must leave it alone: a bar here would also
+        // swallow the click that filters the table by the identifier.
+        data: [{ code: '00123' }, { code: '00456' }, { code: '00789' }],
+      },
+    ],
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      show_cell_bars: true,
+    },
+  });
+  const { container } = render(
+    <ProviderWrapper>
+      <TableChart
+        {...props}
+        emitCrossFilters
+        setDataMask={setDataMask}
+        sticky={false}
+      />
+    </ProviderWrapper>,
+  );
+
+  expect(container.querySelectorAll('div.cell-bar').length).toBe(0);
+  const rows = container.querySelectorAll('tbody tr');
+  fireEvent.click(rows[0].querySelectorAll('td')[0]);
+  const crossFilterCall = setDataMask.mock.calls.find(
+    (call: any[]) => call[0]?.filterState?.filters,
+  );
+  expect(crossFilterCall).toBeDefined();
+  expect(crossFilterCall![0].filterState.filters).toEqual({ code: ['00123'] });
+});
+
+test('a cell-bar rule with percentage bounds scales numeric strings like numbers', () => {
+  const percentRule = {
+    operator: Comparator.None,
+    colorScheme: '#FF0000',
+    useGradient: true,
+    boundUnit: BoundUnit.Percent,
+    minBound: 0,
+    maxBound: 200,
+    objectFormatting: ObjectFormattingEnum.CELL_BAR,
+  };
+  const asNumbers = transformProps({
+    ...testData.raw,
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['num'],
+        coltypes: [GenericDataType.Numeric],
+        data: [{ num: 50 }, { num: 100 }],
+      },
+    ],
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      conditional_formatting: [{ ...percentRule, column: 'num' }],
+    },
+  });
+  const asStrings = transformProps({
+    ...testData.raw,
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['num'],
+        coltypes: [GenericDataType.Numeric],
+        data: [{ num: '50.00' }, { num: '100.00' }],
+      },
+    ],
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      conditional_formatting: [{ ...percentRule, column: 'num' }],
+    },
+  });
+
+  // The bounds are a share of the column, so both rules resolve against the
+  // same [50, 100] magnitudes and must hand back the same two colors. Reading
+  // the column as raw strings leaves the percentage bound with nothing to
+  // measure, and the rule falls back to the automatic range.
+  expect(asStrings.columnColorFormatters?.[0]?.getColorFromValue(50)).toBe(
+    asNumbers.columnColorFormatters?.[0]?.getColorFromValue(50),
+  );
+  expect(asStrings.columnColorFormatters?.[0]?.getColorFromValue(100)).toBe(
+    asNumbers.columnColorFormatters?.[0]?.getColorFromValue(100),
+  );
+});
+

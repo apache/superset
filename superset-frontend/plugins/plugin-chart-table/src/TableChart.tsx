@@ -78,10 +78,11 @@ import {
 import { isEmpty, debounce, isEqual } from 'lodash-es';
 import {
   ColorFormatters,
+  comparesNumerically,
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
-  Comparator,
+  parseNumericValue,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -145,34 +146,6 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
   }
   return 'basic';
 }
-
-// Parse a cell value into a number when it reads as one. Datasources can
-// deliver numeric columns as strings ("1.00"); bars are geometric and need
-// the numeric magnitude, the same way the XLSX export interprets them.
-// Infinity is not a magnitude a bar can be drawn from, and it would collapse
-// the column range, so only finite numbers count as numeric.
-function parseNumeric(value: unknown): number | undefined {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : undefined;
-  }
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return undefined;
-}
-
-// These comparators only ever match text. Handing them a parsed number makes
-// them miss the very cells they were written for, so a numeric-looking string
-// must reach them unchanged.
-const STRING_COMPARATORS = new Set<string>([
-  Comparator.BeginsWith,
-  Comparator.EndsWith,
-  Comparator.Containing,
-  Comparator.NotContaining,
-]);
 
 /**
  * Cell background width calculation for horizontal bar chart
@@ -532,7 +505,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ) {
       const nums = data
         ?.map(row => row?.[key])
-        .map(value => (coerceNumeric ? parseNumeric(value) : value))
+        .map(value => (coerceNumeric ? parseNumericValue(value) : value))
         .filter(value => typeof value === 'number') as number[];
       if (nums.length > 0) {
         return (
@@ -1098,15 +1071,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         );
       // Render geometry parses numeric-looking strings, so the range has to be
       // built from the same values or a string cell gets a width measured
-      // against a range that excluded it. An explicit CELL_BAR rule also lifts
-      // the numeric-column gate: a DECIMAL metric delivered as a string is not
-      // flagged isMetric, and it still needs proportionally scaled bars rather
-      // than a full-width band.
+      // against a range that excluded it. Coercion is for columns the query
+      // declares numeric, and for any column a cell-bar rule was pointed at:
+      // a DECIMAL metric delivered as a string is a magnitude even where the
+      // backend mis-reports its type, and it needs proportionally scaled bars
+      // rather than a full-width band. A plain string column under the generic
+      // toggle keeps its cells as they are — parsing "00123" gave an
+      // identifier a bar, and with it the cross-filter click that the bar
+      // overlay suppresses.
+      const coerceNumericColumn =
+        dataType === GenericDataType.Numeric || hasCellBarFormatter;
       const valueRange =
         !hasBasicColorFormatters &&
         (generalShowCellBars || hasCellBarFormatter) &&
         (isMetric || isRawRecords || isPercentMetric || hasCellBarFormatter) &&
-        getValueRange(key, alignPositiveNegative, true);
+        getValueRange(key, alignPositiveNegative, coerceNumericColumn);
 
       let className = '';
       if (emitCrossFilters && !isMetric) {
@@ -1147,7 +1126,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // Cell bar geometry uses the numeric magnitude; string cells that
           // read as numbers ("1.00") still draw a bar, matching how the rule
           // engine treats them.
-          const numericValue = parseNumeric(value);
+          const numericValue = parseNumericValue(value);
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
               basicColorFormatters[row.index]?.[originKey]?.backgroundColor;
@@ -1196,24 +1175,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueToFormat = value;
                 }
                 // String cells that read as numbers ("1.00") must compare
-                // numerically, or comparator rules like `= 1` never match.
-                // Two kinds of rule are the exception, because both match on
-                // the string itself and parsing first would hide the value
-                // from them: a text comparator, and any rule whose target the
-                // control stored as text (a text column renders a text input,
-                // and Equal compares that target strictly).
+                // numerically, or comparator rules like `= 1` never match. The
+                // rule engine resolves its own bounds from the same decision,
+                // so a text comparator — and any rule whose target the control
+                // stored as text — keeps the string.
                 if (
-                  formatter.objectFormatting ===
-                    ObjectFormattingEnum.CELL_BAR &&
-                  !(
-                    formatter.operator !== undefined &&
-                    STRING_COMPARATORS.has(formatter.operator)
-                  ) &&
-                  typeof formatter.targetValue !== 'string' &&
+                  comparesNumerically(formatter) &&
                   valueToFormat !== null &&
                   valueToFormat !== undefined
                 ) {
-                  const coerced = parseNumeric(valueToFormat);
+                  const coerced = parseNumericValue(valueToFormat);
                   if (coerced !== undefined) {
                     valueToFormat = coerced;
                   }
