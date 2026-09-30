@@ -441,7 +441,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand(
-                    dashboard_ids=dashboard_ids, chart_ids=chart_ids
+                    dashboard_ids=dashboard_ids,
+                    chart_ids=ExportChartsCommand.chart_ids_with_annotation_sources(
+                        model.slices
+                    ),
                 ).run()
 
             # Export related theme

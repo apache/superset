@@ -27,7 +27,10 @@ from superset.commands.annotation_layer.importers.v1.utils import (
     import_annotation_layer,
 )
 from superset.commands.chart.exceptions import ChartImportError
-from superset.commands.chart.importers.v1.utils import import_charts
+from superset.commands.chart.importers.v1.utils import (
+    find_annotation_dependency_chart_uuids,
+    import_charts,
+)
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
@@ -54,6 +57,15 @@ class ImportChartsCommand(ImportModelsCommand):
         "databases/": ImportV1DatabaseSchema(),
     }
     import_error = ChartImportError
+
+    def _reused_dependency_uuids(self) -> set[str]:
+        return find_annotation_dependency_chart_uuids(
+            [
+                config
+                for file_name, config in self._configs.items()
+                if file_name.startswith("charts/")
+            ]
+        )
 
     @staticmethod
     # ruff: noqa: C901
@@ -126,11 +138,16 @@ class ImportChartsCommand(ImportModelsCommand):
                 chart_configs.append(update_chart_config_dataset(config, dataset_dict))
 
         # annotation source charts are imported before the charts using them
+        # Charts pulled in only as annotation sources are reused when they
+        # exist, the same way datasets and databases are.
         for config, chart in import_charts(
             chart_configs,
             overwrite=overwrite,
             default_viewers=default_viewers,
             annotation_layer_ids=annotation_layer_ids,
+            dependency_chart_uuids=find_annotation_dependency_chart_uuids(
+                chart_configs
+            ),
         ):
             # Handle tags using import_tag function
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):

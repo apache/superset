@@ -19,7 +19,10 @@ from typing import Any
 
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.commands.chart.importers.v1.utils import (
+    find_annotation_dependency_chart_uuids,
+    migrate_chart,
+)
 from superset.extensions import feature_flag_manager
 from superset.utils import json
 
@@ -281,3 +284,43 @@ def test_migrate_chart_table_migrates_when_flag_enabled(
 
     assert new_config["viz_type"] == "ag-grid-table"
     assert json.loads(new_config["params"])["viz_type"] == "ag-grid-table"
+
+
+def _chart_with_sources(chart_uuid: str, *source_uuids: str) -> dict[str, Any]:
+    return {
+        "uuid": chart_uuid,
+        "params": {
+            "annotation_layers": [
+                {"sourceType": "table", "value": source_uuid}
+                for source_uuid in source_uuids
+            ]
+        },
+    }
+
+
+def test_find_annotation_dependency_chart_uuids_follows_chain() -> None:
+    """Charts reachable from a requested chart are dependencies."""
+    configs = [
+        _chart_with_sources("a", "b"),
+        _chart_with_sources("b", "c"),
+        _chart_with_sources("c"),
+        _chart_with_sources("standalone"),
+    ]
+    assert find_annotation_dependency_chart_uuids(configs) == {"b", "c"}
+
+
+def test_find_annotation_dependency_chart_uuids_cycle_without_root() -> None:
+    """A cycle nothing else points into is treated as requested."""
+    configs = [_chart_with_sources("a", "b"), _chart_with_sources("b", "a")]
+    assert find_annotation_dependency_chart_uuids(configs) == set()
+
+
+def test_find_annotation_dependency_chart_uuids_cycle_below_root() -> None:
+    """A cycle reached from a requested chart is made of dependencies."""
+    configs = [
+        _chart_with_sources("root", "a"),
+        _chart_with_sources("a", "b"),
+        _chart_with_sources("b", "a"),
+        _chart_with_sources("self", "self"),
+    ]
+    assert find_annotation_dependency_chart_uuids(configs) == {"a", "b"}

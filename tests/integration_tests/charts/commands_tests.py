@@ -50,6 +50,7 @@ from superset.models.core import Database
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType
+from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.base_tests import (
@@ -1595,6 +1596,54 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_tags_include_annotation_source_charts(self, mock_g):
+        """tags.yaml carries the tags of charts exported as annotation sources."""
+        mock_g.user = security_manager.find_user("admin")
+        main_chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = main_chart.params
+        ref_chart = _create_chart_dependency(
+            main_chart, slice_name=f"Tagged Ref {uuid4()}"
+        )
+        tag = Tag(
+            name=f"source-tag-{uuid4().hex[:8]}",
+            type=TagType.custom,
+            description="tag on the source chart",
+        )
+        db.session.add(tag)
+        db.session.flush()
+        db.session.add(
+            TaggedObject(
+                tag_id=tag.id, object_id=ref_chart.id, object_type=ObjectType.chart
+            )
+        )
+        try:
+            main_chart.params = json.dumps(
+                {
+                    **json.loads(original_params or "{}"),
+                    "annotation_layers": [
+                        {
+                            "name": "Table",
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": ref_chart.id,
+                        }
+                    ],
+                }
+            )
+            db.session.commit()
+
+            contents = dict(ExportChartsCommand([main_chart.id]).run())
+            tags = yaml.safe_load(contents["tags.yaml"]())["tags"]
+            assert {"tag_name": tag.name, "description": tag.description} in tags
+        finally:
+            main_chart.params = original_params
+            db.session.query(TaggedObject).filter_by(tag_id=tag.id).delete()
+            db.session.delete(tag)
+            db.session.commit()
+            _delete_chart_dependency(ref_chart)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_without_annotation_layers_adds_no_annotation_dependencies(
         self, mock_g
     ):
@@ -2207,3 +2256,68 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
         finally:
             _cleanup_imported_chart_bundle([main_chart_uuid], [])
             _delete_chart_annotation_layer(local_layer)
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_reuses_existing_annotation_source_chart(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """An existing source chart doesn't block importing the chart using it."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        source_chart_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        source_chart = _chart_import_config(source_chart_uuid, "Existing Source")
+        base_contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+        }
+        try:
+            ImportChartsCommand(
+                {
+                    **base_contents,
+                    "charts/source_chart.yaml": yaml.safe_dump(source_chart),
+                },
+                overwrite=True,
+            ).run()
+            existing_source = (
+                db.session.query(Slice).filter_by(uuid=source_chart_uuid).one()
+            )
+
+            changed_source = deepcopy(source_chart)
+            changed_source["slice_name"] = "Changed Source"
+            main_chart = _chart_import_config(main_chart_uuid, "Uses Source")
+            main_chart["params"]["annotation_layers"] = [
+                {
+                    "name": "Source",
+                    "annotationType": "EVENT",
+                    "sourceType": "table",
+                    "value": source_chart_uuid,
+                }
+            ]
+            contents = {
+                **base_contents,
+                "charts/source_chart.yaml": yaml.safe_dump(changed_source),
+                "charts/main_chart.yaml": yaml.safe_dump(main_chart),
+            }
+
+            # Alpha can write charts but isn't an editor of the admin's source.
+            sm_g.user = utils_g.user = security_manager.find_user("alpha")
+
+            # overwrite=False: the existing source isn't a conflict
+            ImportChartsCommand(contents, overwrite=False).run()
+
+            # overwrite=True: the source is reused instead of overwritten
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            db.session.expire_all()
+            source = db.session.query(Slice).filter_by(uuid=source_chart_uuid).one()
+            main = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            assert source.id == existing_source.id
+            assert source.slice_name == "Existing Source"
+            assert [
+                layer["value"] for layer in json.loads(main.params)["annotation_layers"]
+            ] == [source.id]
+        finally:
+            _cleanup_imported_chart_bundle([main_chart_uuid, source_chart_uuid], [])

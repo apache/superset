@@ -198,7 +198,9 @@ class ExportChartsCommand(ExportModelsCommand):
             and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
         ):
             yield from ExportTagsCommand(
-                chart_ids=[model.id for model in self._models]
+                chart_ids=ExportChartsCommand.chart_ids_with_annotation_sources(
+                    self._models
+                )
             ).run()
 
     @staticmethod
@@ -265,6 +267,24 @@ class ExportChartsCommand(ExportModelsCommand):
                 elif source_type == "NATIVE":
                     native_layer_ids.add(value)
         return chart_ids, native_layer_ids
+
+    @staticmethod
+    def chart_ids_with_annotation_sources(charts: list[Slice]) -> list[int | str]:
+        """
+        Return the IDs of ``charts`` plus, recursively, of the charts they use as
+        annotation sources, i.e. every chart a related export writes out.
+        """
+        chart_ids: list[int | str] = [chart.id for chart in charts]
+        visited = {chart.id for chart in charts}
+        pending = list(charts)
+        while pending:
+            source_ids, _ = ExportChartsCommand._annotation_reference_ids(pending.pop())
+            new_ids = sorted(source_ids - visited)
+            visited.update(new_ids)
+            for source_chart in ChartDAO.find_by_ids(new_ids) if new_ids else []:
+                chart_ids.append(source_chart.id)
+                pending.append(source_chart)
+        return chart_ids
 
     @staticmethod
     def _export_annotation_layers(

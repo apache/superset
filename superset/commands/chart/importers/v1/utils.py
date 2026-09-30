@@ -340,6 +340,34 @@ def get_chart_annotation_dependencies(chart_config: dict[str, Any]) -> set[str]:
     }
 
 
+def find_annotation_dependency_chart_uuids(
+    chart_configs: list[dict[str, Any]],
+) -> set[str]:
+    """
+    Return UUIDs of bundled charts that are only there as annotation sources.
+
+    Charts no other bundled chart points at are the ones requested; every chart
+    reachable from them through annotation references is a dependency. Charts
+    in a cycle with no entry point count as requested.
+    """
+    configs_by_uuid = {str(config["uuid"]): config for config in chart_configs}
+    dependencies_by_uuid = {
+        chart_uuid: get_chart_annotation_dependencies(config) - {chart_uuid}
+        for chart_uuid, config in configs_by_uuid.items()
+    }
+    referenced = set().union(*dependencies_by_uuid.values())
+    roots = set(configs_by_uuid) - referenced
+
+    reachable: set[str] = set()
+    pending = list(roots)
+    while pending:
+        for dependency_uuid in dependencies_by_uuid.get(pending.pop(), set()):
+            if dependency_uuid in configs_by_uuid and dependency_uuid not in reachable:
+                reachable.add(dependency_uuid)
+                pending.append(dependency_uuid)
+    return reachable - roots
+
+
 def topological_sort_charts(
     chart_configs: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -390,9 +418,13 @@ def import_charts(
     default_viewers: list[Subject] | None = None,
     annotation_layer_ids: dict[str, int] | None = None,
     chart_ids: dict[str, int] | None = None,
+    dependency_chart_uuids: set[str] | None = None,
 ) -> list[tuple[dict[str, Any], Slice]]:
     """
     Import chart configs in annotation-dependency order.
+
+    Charts in ``dependency_chart_uuids`` are imported with ``overwrite=False``:
+    an existing one is reused unchanged, like a dataset dependency.
 
     Charts that reference another chart of the bundle as an annotation source
     are imported after it. When the references form a cycle, the charts imported
@@ -411,9 +443,10 @@ def import_charts(
         has_pending_refs = bool(
             get_chart_annotation_dependencies(config) & pending_chart_uuids
         )
+        is_dependency = str(config["uuid"]) in (dependency_chart_uuids or set())
         chart = import_chart(
             config,
-            overwrite=overwrite,
+            overwrite=overwrite and not is_dependency,
             default_viewers=default_viewers,
             annotation_layer_ids=annotation_layer_ids,
             chart_ids=chart_ids,
