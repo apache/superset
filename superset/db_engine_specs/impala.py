@@ -129,6 +129,27 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """Wait for asynchronous operations using the public cursor API."""
+        if callable(getattr(cursor, "execute_async", None)):
+            from impala.error import Error
+
+            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
+            try:
+                while cursor.is_executing():
+                    if time.monotonic() >= deadline:
+                        cursor.cancel_operation()
+                        raise TimeoutError("Timed out waiting for the Impala operation")
+                    time.sleep(0.1)
+                if cursor.execution_failed():
+                    # Fetching surfaces the driver's detailed asynchronous error,
+                    # including errors on statements that produce no result set.
+                    cursor.fetchall()
+            except Error as ex:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+        return super().fetch_data(cursor, limit)
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 

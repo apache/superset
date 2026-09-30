@@ -923,12 +923,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: CellProps<Dataset>) =>
-          isSemanticView({ kind }) ? (
-            <span>{t('Semantic View')}</span>
-          ) : (
-            <DatasetTypeLabel datasetType={kind} />
-          ),
+        }: CellProps<Dataset>) => (
+          <DatasetTypeLabel
+            datasetType={kind}
+            label={isSemanticView({ kind }) ? t('Semantic View') : undefined}
+          />
+        ),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,

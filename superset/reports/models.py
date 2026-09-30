@@ -183,6 +183,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # Retry state — written by the execution engine, not user-configurable
     retry_attempt = Column(Integer, default=0, nullable=False, server_default="0")
     retry_scheduled_dttm = Column(DateTime, nullable=True)
+    execution_owner = Column(String(36), nullable=True)
+    execution_window = Column(DateTime, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
 

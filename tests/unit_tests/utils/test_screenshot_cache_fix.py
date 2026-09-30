@@ -356,6 +356,85 @@ class TestShouldTriggerTask:
         payload_computing = ScreenshotCachePayload(status=StatusValues.COMPUTING)
         assert payload_computing.should_trigger_task(force=True) is True
 
+    @patch("superset.utils.screenshots.app")
+    def test_fresh_in_progress_request_respects_force(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+
+        for status in (StatusValues.PENDING, StatusValues.COMPUTING):
+            payload = ScreenshotCachePayload(status=status, scope="dashboard:5")
+
+            assert (
+                payload.should_enqueue_task(
+                    force=False,
+                    expected_scope="dashboard:5",
+                )
+                is False
+            )
+            assert (
+                payload.should_enqueue_task(
+                    force=True,
+                    expected_scope="dashboard:5",
+                )
+                is True
+            )
+
+    @patch("superset.utils.screenshots.app")
+    def test_forced_in_progress_request_respects_coalescing_window(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        for status in (StatusValues.PENDING, StatusValues.COMPUTING):
+            fresh_payload = ScreenshotCachePayload(
+                status=status,
+                scope="dashboard:5",
+            )
+            older_payload = ScreenshotCachePayload(
+                status=status,
+                timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+                scope="dashboard:5",
+            )
+
+            assert (
+                fresh_payload.should_enqueue_task(
+                    force=True,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
+                )
+                is False
+            )
+            assert (
+                older_payload.should_enqueue_task(
+                    force=True,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
+                )
+                is True
+            )
+            assert (
+                older_payload.should_enqueue_task(
+                    force=False,
+                    expected_scope="dashboard:5",
+                    force_retry_after_seconds=1,
+                )
+                is False
+            )
+
+    @patch("superset.utils.screenshots.app")
+    def test_stale_in_progress_request_is_enqueued_again(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        payload = ScreenshotCachePayload(
+            status=StatusValues.PENDING,
+            timestamp=timestamp,
+            scope="dashboard:5",
+        )
+
+        assert payload.should_enqueue_task(expected_scope="dashboard:5") is True
+
 
 class TestIsComputingStale:
     """Test the is_computing_stale method."""

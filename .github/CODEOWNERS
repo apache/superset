@@ -1,15 +1,15 @@
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @sha174n @dpgaspar @sadpandajoe @hainenber
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @sha174n @dpgaspar @sadpandajoe @hainenber @msyavuz
 
 # Notify PMC members of changes to CI-executed scripts (supply-chain risk:
 # scripts/ files run directly in CI workflows and can execute arbitrary code)
 
-/scripts/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @sadpandajoe @hainenber
+/scripts/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @sadpandajoe @hainenber @msyavuz
 
 # Notify PMC members of changes to required GitHub Actions
 
-/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @Antonio-RiveroMartnez
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @Antonio-RiveroMartnez @msyavuz
 
 # Maps are fragile and political. GeoJson edits MUST be made in the Jupyter notebook or they'll be overwritten.
 
@@ -19,11 +19,11 @@
 
 # Notify PMC members of changes to extension-related files
 
-/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas
-/superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe
-/superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe
-/superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe
+/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas @geido @msyavuz
+/superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
+/superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
+/superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
 
 # Notify PMC members of config changes e.g. feature flags
 
-/superset/config.py @michael-s-molina @villebro @rusackas @sadpandajoe
+/superset/config.py @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz

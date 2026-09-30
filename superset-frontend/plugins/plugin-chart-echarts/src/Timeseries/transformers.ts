@@ -150,6 +150,18 @@ function getVerticalOutsideLayout(
   };
 }
 
+/** Whether a bar segment's value-axis extent is too small to legibly
+ * display its value label at any position. */
+function isBelowLabelLegibilityFloor(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+): boolean {
+  const segmentSize = isHorizontal
+    ? Math.abs(params.rect.width)
+    : Math.abs(params.rect.height);
+  return segmentSize < MIN_LABEL_SEGMENT_SIZE_PX;
+}
+
 /** Keep fitting labels inside, move oversized labels outside the bar, and
  * suppress labels for segments too small to legibly fit one either way. */
 export function getAutoBarLabelLayout(
@@ -157,10 +169,7 @@ export function getAutoBarLabelLayout(
   isHorizontal: boolean,
   isNegative = false,
 ): LabelLayoutOption {
-  const segmentSize = isHorizontal
-    ? Math.abs(params.rect.width)
-    : Math.abs(params.rect.height);
-  if (segmentSize < MIN_LABEL_SEGMENT_SIZE_PX) {
+  if (isBelowLabelLegibilityFloor(params, isHorizontal)) {
     return HIDDEN_LABEL_LAYOUT;
   }
   const fitsWidth =
@@ -314,6 +323,19 @@ function createAutoBarLabelLayout(
   };
 }
 
+/** Suppress the value label on a bar segment too small to legibly display
+ * one at any position, without repositioning anything: manual label
+ * placements keep their configured spot, and only the legibility floor
+ * already applied to the Auto position carries over. */
+function createBarLabelLegibilityFloorLayout(
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params =>
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+      ? HIDDEN_LABEL_LAYOUT
+      : {};
+}
+
 /** Apply the value-end label position to a negative bar datum. */
 function transformNegativeLabel(
   dataItem: unknown,
@@ -385,8 +407,9 @@ export function transformSeries(
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
-    totalStackedValues?: number[];
-    showValueIndexes?: number[];
+    totalStackedValues?: number[] | Record<string, number[]>;
+    showValueIndexes?: Record<string, number[]>;
+    stackGroup?: string;
     thresholdValues?: number[];
     richTooltip?: boolean;
     seriesKey?: OptionName;
@@ -423,7 +446,8 @@ export function transformSeries(
     formatter,
     legendState,
     totalStackedValues = [],
-    showValueIndexes = [],
+    showValueIndexes = {},
+    stackGroup,
     thresholdValues = [],
     richTooltip,
     seriesKey,
@@ -582,7 +606,11 @@ export function transformSeries(
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
-    // entire chart area. Bars with many categories auto-size below this cap.
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
     ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
@@ -610,7 +638,11 @@ export function transformSeries(
       ? {
           labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
         }
-      : {}),
+      : plotType === 'bar' && showValue
+        ? {
+            labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
+          }
+        : {}),
     label: {
       show: !!showValue,
       // An explicit labelPosition (the generic control still used by
@@ -652,6 +684,37 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        // Resolve per-stack-group index array and totals. When stackDimension
+        // creates separate ECharts stacks, each group has its own topmost-
+        // series index so the label appears on the correct bar segment.
+        const DEFAULT_STACK_GROUP = '__default__';
+        const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
+        const stackShowValueIndexes = Array.isArray(showValueIndexes)
+          ? showValueIndexes
+          : Object.prototype.hasOwnProperty.call(
+                showValueIndexes,
+                resolvedStackGroup,
+              ) && Array.isArray(showValueIndexes[resolvedStackGroup])
+            ? showValueIndexes[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  showValueIndexes,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
+              ? showValueIndexes[DEFAULT_STACK_GROUP]
+              : [];
+        const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
+          ? totalStackedValues
+          : Object.prototype.hasOwnProperty.call(
+                totalStackedValues,
+                resolvedStackGroup,
+              ) && Array.isArray(totalStackedValues[resolvedStackGroup])
+            ? totalStackedValues[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  totalStackedValues,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
+              ? totalStackedValues[DEFAULT_STACK_GROUP]
+              : [];
         if (!onlyTotal) {
           // A stacked segment with no height begins and ends at the same
           // coordinate as the top of the segment beneath it, so its label is
@@ -669,8 +732,10 @@ export function transformSeries(
           }
           return '';
         }
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
+        if (seriesIndex === stackShowValueIndexes[dataIndex]) {
+          return formatter(
+            isAreaExpand ? 1 : resolvedTotalStackedValues[dataIndex],
+          );
         }
         return '';
       },
@@ -979,8 +1044,12 @@ export function getPadding(
     legendOrientation,
     margin,
     {
+      // The Y-axis title margin, whether it lands on the top or the left
+      // side, is only reserved when a title is actually rendered. Without
+      // that guard every chart pays for the default margin, which eats a
+      // large share of the plot area on narrow charts.
       top:
-        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        yAxisTitlePosition === 'Top' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
           : yAxisTitlePosition === 'Left'
             ? TIMESERIES_CONSTANTS.gridOffsetTop
@@ -990,7 +1059,7 @@ export function getPadding(
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,

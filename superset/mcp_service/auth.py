@@ -357,6 +357,33 @@ def _tool_denied_for_principal(func: Callable[..., Any]) -> bool:
     return getattr(func, "__name__", None) not in allowed
 
 
+def manual_class_permissions(*class_names: str) -> Callable[[F], F]:
+    """Declare resource classes checked manually by a multi-resource tool.
+
+    The outer auth gate accepts a scope for any declared class. The tool MUST
+    enforce both RBAC and token scope for the actual requested class before
+    accessing it. Apply below @tool so registration sees this metadata.
+    """
+
+    def decorate(func: F) -> F:
+        """Attach the resource-scope alternatives without bypassing auth."""
+        func._manual_class_permissions = class_names  # type: ignore[attr-defined]
+        return func
+
+    return decorate
+
+
+def _tool_scope_allows(
+    func: Callable[..., Any], method_name: str, class_name: str | None = None
+) -> bool:
+    """Check static scopes or the declared alternatives for a manual check."""
+    if class_name:
+        return _token_scope_allows(method_name, class_name)
+    if classes := getattr(func, "_manual_class_permissions", ()):
+        return any(_token_scope_allows(method_name, name) for name in classes)
+    return _token_scope_allows(method_name)
+
+
 def check_tool_permission(  # noqa: C901
     func: Callable[..., Any], *, log_denial: bool = True
 ) -> bool:
@@ -400,7 +427,9 @@ def check_tool_permission(  # noqa: C901
         # Token capabilities and user RBAC are independent restrictions.
         # Disabling RBAC must not discard scopes explicitly carried by a key.
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return _token_scope_allows(method_permission_name, class_permission_name)
+            return _tool_scope_allows(
+                func, method_permission_name, class_permission_name
+            )
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -426,11 +455,11 @@ def check_tool_permission(  # noqa: C901
                     "class_permission_name; allowing access without an RBAC check",
                     func.__name__,
                 )
-            if not _token_scope_allows(method_permission_name):
+            if not _tool_scope_allows(func, method_permission_name):
                 if log_denial:
                     logger.warning(
                         "Scope denied for permission-less tool %s: token lacks "
-                        "flat scope for method %s",
+                        "required scope for method %s",
                         func.__name__,
                         method_permission_name,
                     )
@@ -1171,7 +1200,7 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
         _mcp_session_token.reset(token)
 
 
-def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
+def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -1183,11 +1212,20 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     If present, check_tool_permission() verifies the user has the required
     FAB permission before the tool function runs.
 
+    tool_name is the registered tool identity, including any extension prefix.
+    When supplied, dataset routing scope is checked before execution. None
+    skips only that routing check for resources and prompts, not authentication
+    or RBAC. Tools must register through @tool, which supplies this identity.
+
     Supports both sync and async tool functions.
     """
     import functools
     import inspect
     import types
+
+    # Defer the scope module's FastMCP dependency until a handler is wrapped,
+    # alongside the Context import below.
+    from superset.mcp_service.dataset_scope import enforce_call_dataset_scope
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -1237,6 +1275,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1284,6 +1324,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,

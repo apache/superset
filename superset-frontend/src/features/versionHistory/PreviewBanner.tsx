@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -74,7 +75,7 @@ export default function PreviewBanner({
   entityType,
   canRestore = false,
 }: PreviewBannerProps) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     entityType: activeEntityType,
     preview,
