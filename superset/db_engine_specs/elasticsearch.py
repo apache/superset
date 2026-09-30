@@ -45,6 +45,7 @@ def _fetch_page_via_cursor(
     page_size: int,
     sql_path: str,
     close_path: str,
+    *,
     headers: dict[str, str] | None = None,
     rows_key: str = "rows",
     columns_key: str = "columns",
@@ -93,6 +94,7 @@ def _fetch_page_via_cursor(
         )
         # Column metadata comes from the remote service; fall back to a
         # positional label rather than failing on an entry without a name.
+        # OpenSearch schema supplies aliases; Elasticsearch supplies names only.
         columns = [
             col.get("alias") or col.get("name") or f"column_{idx}"
             for idx, col in enumerate(response.get(columns_key, []))
