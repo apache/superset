@@ -36,6 +36,48 @@ assists people when migrating to a new version.
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
 
+### MySQL SSL requests require TLS
+
+The SSL toggle (or ssl=1 in the URI) requires TLS. With mysqlclient, Oracle
+libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB Connector/C and
+unrecognized client versions use VERIFY_CA to prevent cleartext fallback.
+Explicit VERIFY_CA and VERIFY_IDENTITY are retained.
+
+Existing saved connections with the toggle on are affected at upgrade, without a
+feature flag. Verification can fail for self-signed/default server certificates
+or missing trust roots. MySQL does not use the connection form's Root
+certificate field (server_cert). Set ssl_ca to a trusted CA file path available
+on every web and worker node, for example in the URI
+(?ssl=1&ssl_ca=/path/to/ca.pem).
+
+Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL requires
+version 1.2 or newer; use individual ssl_ca, ssl_cert and ssl_key options
+instead of a nested ssl dictionary with the toggle. Options that disable TLS or
+required verification are rejected.
+
+Standard Aurora MySQL connections intentionally follow the same rules, including
+IAM connections. For certificate verification, install the Amazon RDS CA bundle
+on every web and worker node and set ssl_ca to that file. IAM authentication
+does not supply a CA. The Aurora Data API uses HTTPS and needs no MySQL TLS
+arguments.
+
+SSH tunnels rewrite the connection host to the local bind address (typically
+127.0.0.1). MariaDB Connector/C also checks hostname identity with VERIFY_CA, so
+a certificate for the remote database hostname will fail. For SSH-only
+transport, turn off the SSL toggle and remove ssl=1; this removes the TLS
+guarantee on the SSH endpoint-to-database leg. If end-to-end TLS is required,
+use a driver/native TLS configuration compatible with the tunnel and validate it
+separately.
+
+Operators using native TLS settings can turn off the toggle, remove ssl=1 and
+configure extra.engine_params.connect_args (for example a driver-supported
+native ssl dictionary). Superset passes those settings through without enforcing
+TLS; ensure the chosen driver configuration does not silently fall back to
+cleartext.
+
+Connections using the separate MariaDB engine (mariadb:// URIs) and other
+MySQL-compatible engines keep their existing SSL handling.
+
 
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
