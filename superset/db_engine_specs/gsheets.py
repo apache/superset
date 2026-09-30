@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, UTC
 from decimal import Decimal
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
@@ -92,11 +92,15 @@ def to_json_value(value: Any) -> Any:
     Convert a dataframe cell into a JSON value the Sheets API parses back.
 
     Dates and timestamps become ISO strings (``USER_ENTERED`` input parses them
-    as dates), durations become signed ``H:MM:SS[.ffffff]`` strings with total
-    hours (including days), and numpy scalars become Python scalars.
+    as dates). Aware timestamps are normalized to UTC with the offset removed;
+    naive timestamps retain their clock time. Durations become signed
+    ``H:MM:SS[.ffffff]`` strings with total hours (including days), and numpy
+    scalars become Python scalars.
     """
     value = _to_python_value(value)
     if isinstance(value, datetime):
+        if value.utcoffset() is not None:
+            value = value.astimezone(UTC).replace(tzinfo=None)
         return value.isoformat(sep=" ")
     if isinstance(value, (date, time)):
         return value.isoformat()
@@ -638,13 +642,17 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             spreadsheet_url = payload["spreadsheetUrl"]
 
         # insert data
-        data = df.astype(object).where(df.notna(), None).map(to_json_value)
-        data = data.fillna("").values.tolist()
-        data.insert(0, df.columns.values.tolist())
+        normalized_df = df.astype(object).where(df.notna(), None)
+        # Convert cells outside pandas to avoid inferring floats for nullable ints.
+        values = [
+            [to_json_value(value) if value is not None else "" for value in row]
+            for row in normalized_df.itertuples(index=False, name=None)
+        ]
+        values.insert(0, df.columns.values.tolist())
         body = {
             "range": range_,
             "majorDimension": "ROWS",
-            "values": data,
+            "values": values,
         }
         url = (
             "https://sheets.googleapis.com/v4/spreadsheets/"

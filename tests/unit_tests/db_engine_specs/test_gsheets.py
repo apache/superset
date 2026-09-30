@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone, UTC
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -1204,6 +1204,85 @@ def test_upload_dates(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
+    "column, expected",
+    [
+        (
+            pd.Series(pd.to_datetime(["2024-03-01 00:30:00.123456+02:00", None])),
+            ["2024-02-29 22:30:00.123456", ""],
+        ),
+        (
+            pd.Series(pd.to_datetime(["2024-02-29 23:30:00-05:00", None])),
+            ["2024-03-01 04:30:00", ""],
+        ),
+        (
+            pd.Series([1, None, 9007199254740993], dtype="Int64"),
+            [1, "", 9007199254740993],
+        ),
+        (
+            pd.Series([time(12, 34, 56, 123456), None, time(0, 0)]),
+            ["12:34:56.123456", "", "00:00:00"],
+        ),
+        (
+            pd.Series(pd.to_timedelta([5, 90_000_000_000, None], unit="ns")),
+            ["0:00:00", "0:01:30", ""],
+        ),
+    ],
+    ids=["positive-offset", "negative-offset", "nullable-int", "time", "ns-duration"],
+)
+def test_upload_cell_types(
+    mocker: MockerFixture,
+    column: pd.Series,
+    expected: list[str | int],
+) -> None:
+    """Serialize cells without offsets or pandas' integer-to-float inference."""
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch("superset.db_engine_specs.gsheets.db")
+    get_adapter = mocker.patch(
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
+    )
+    session = get_adapter.return_value._get_session.return_value
+    session.post.return_value.json.return_value = {
+        "spreadsheetId": 1,
+        "spreadsheetUrl": "https://docs.example.org",
+        "sheets": [{"properties": {"title": "sample_data"}}],
+    }
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    df = pd.DataFrame({"value": column})
+    original = df.copy(deep=True)
+
+    GSheetsEngineSpec.df_to_sql(database, Table("sample_data"), df, {})
+
+    request = session.post.call_args.kwargs
+    assert request["params"] == {"valueInputOption": "USER_ENTERED"}
+    values = json.loads(json.dumps(request["json"]["values"]))
+    assert values == [["value"], *[[value] for value in expected]]
+    # Numeric equality alone would accept 1.0 in place of 1.
+    assert [type(row[0]) for row in values[1:]] == [type(value) for value in expected]
+    pd.testing.assert_frame_equal(df, original)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (datetime(2024, 3, 1, 0, 30, tzinfo=UTC), "2024-03-01 00:30:00"),
+        (
+            datetime(2024, 3, 1, 0, 30, tzinfo=timezone(timedelta(hours=2))),
+            "2024-02-29 22:30:00",
+        ),
+        (pd.Timestamp("2024-03-01 00:30:00", tz="Asia/Kolkata"), "2024-02-29 19:00:00"),
+        (datetime(2024, 3, 1, 0, 30), "2024-03-01 00:30:00"),
+    ],
+)
+def test_to_json_value_datetime_utc(value: datetime, expected: str) -> None:
+    """Aware timestamps become naive UTC; naive timestamps retain their clock time."""
+    from superset.db_engine_specs.gsheets import to_json_value
+
+    assert to_json_value(value) == expected
+
+
+@pytest.mark.parametrize(
     "value, expected",
     [
         (np.datetime64("2024-02-29T23:59:58", "us"), "2024-02-29 23:59:58"),
@@ -1238,11 +1317,15 @@ def test_to_json_value_numpy_dates_and_durations(value: Any, expected: Any) -> N
 
 
 @pytest.mark.parametrize("impersonate_user", [None, False, True])
-@pytest.mark.parametrize("serialized_credentials", [False, True])
+@pytest.mark.parametrize(
+    "serialized_credentials", [False, True], ids=["edit", "create"]
+)
+@pytest.mark.parametrize("catalog_in_parameters", [False, True])
 def test_validate_parameters_service_account_subject(
     mocker: MockerFixture,
     impersonate_user: bool | None,
     serialized_credentials: bool,
+    catalog_in_parameters: bool,
 ) -> None:
     """Create and edit validate as the service account, even with the modal flag."""
     from superset.db_engine_specs.gsheets import (
@@ -1261,9 +1344,12 @@ def test_validate_parameters_service_account_subject(
             "service_account_info": (
                 json.dumps(credentials) if serialized_credentials else credentials
             ),
-            "catalog": {"sheet": sheet_url},
         },
     }
+    if catalog_in_parameters:
+        properties["parameters"]["catalog"] = {"sheet": sheet_url}
+    else:
+        properties["catalog"] = {"sheet": sheet_url}
     if impersonate_user is not None:
         properties["impersonate_user"] = impersonate_user
 

@@ -38,6 +38,12 @@ does not change the identity used to access the spreadsheet.
 ## Upload values
 
 Date and datetime upload values are sent as ISO strings rather than numeric
-nanosecond counts. Timezone-aware datetimes preserve their UTC offset in the
-string; Google Sheets may keep these as text instead of native datetime cells.
+nanosecond counts. Timezone-aware datetimes are converted to UTC, then uploaded
+without a timezone suffix so Google Sheets can parse them as datetime cells
+with `USER_ENTERED` input. For example, `2024-03-01 00:30:00+02:00` is uploaded as
+`2024-02-29 22:30:00`. The original timezone is not retained; interpret these cell
+values as UTC. Naive datetimes keep their original clock time.
+
+Nullable integer columns retain integer values in the upload payload, and missing
+values become empty cells. Time-only values use `HH:MM:SS[.ffffff]` strings.
 Durations are sent as signed `H:MM:SS[.ffffff]` strings, with hours including days.
