@@ -228,12 +228,56 @@ test('new tab button runs the contributed command when its menu item is clicked'
     ),
   );
 
-  setup(undefined, initialState);
+  const { getAllByRole } = setup(undefined, initialState);
+  const tabCount = () =>
+    getAllByRole('tab').filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    ).length;
+  const countBefore = tabCount();
 
   fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
   fireEvent.click(await screen.findByText('Contributed Tab'));
 
   await waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
+  // Regression: `handler` is a no-op mock that never touches tabs itself, so
+  // any tab appearing here can only be the bug's side effect. The dropdown
+  // popup is DOM-portaled, but stays a React-tree descendant of the native
+  // <button onClick={() => onEdit('add')}> that antd's Tabs wraps addIcon
+  // in. React's synthetic events bubble along the React tree (piercing the
+  // portal), so without stopping propagation in the popup, this click also
+  // fired that ancestor's onEdit('add') and created an unwanted plain tab.
+  expect(tabCount()).toEqual(countBefore);
+});
+
+test('clicking SQL Editor in the dropdown adds exactly one tab, not two', async () => {
+  // Same regression as above, exercised via the built-in "SQL Editor" item
+  // instead of a contributed one — this is the path a plain SQL tab actually
+  // goes through once any extension contribution makes the dropdown appear
+  // at all (with zero contributions, "+" adds a tab directly and never
+  // renders this dropdown — see the no-contributions test below).
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  const { getAllByRole } = setup(undefined, initialState);
+  const tabCount = () =>
+    getAllByRole('tab').filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    ).length;
+  const countBefore = tabCount();
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+  fireEvent.click(await screen.findByText('SQL Editor'));
+
+  await waitFor(() => expect(tabCount()).toEqual(countBefore + 1));
+  // Give any second (buggy) tab creation a chance to land before asserting
+  // the count didn't grow further.
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(tabCount()).toEqual(countBefore + 1);
 });
 
 test('new tab button adds a tab directly when there are no contributions', async () => {
