@@ -1199,3 +1199,102 @@ test('TableRenderer ignores customFormatters while showValuesAs is a percentage'
     expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
   );
 });
+
+/**
+ * #44724: an aggregation cell must be formatted with the formatter of the metric
+ * it aggregates, not with the chart-level `defaultFormatter`. `sales` is a
+ * currency metric, so every one of its cells -- body, column total and the
+ * grand-total corner -- has to read like money. Before the fix the grand-total
+ * corner was built straight from `defaultFormatter` and rendered as a bare
+ * "300.00".
+ */
+const CURRENCY_TAGGED_DATA = [
+  // leaf cells: rows = [color], columns = [Metric]
+  {
+    color: 'blue',
+    Metric: 'sales',
+    value: 100,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  {
+    color: 'red',
+    Metric: 'sales',
+    value: 200,
+    __rows: ['color'],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // column total: rows = [], columns = [Metric]
+  {
+    Metric: 'sales',
+    value: 300,
+    __rows: [],
+    __columns: ['Metric'],
+    __metricKey: 'Metric',
+  },
+  // grand total: rows = [], columns = []
+  { Metric: 'sales', value: 300, __rows: [], __columns: [] },
+];
+
+const defaultNumberFormatter = (x: number) => x.toFixed(2);
+const currencyFormatter = (x: number) => `$${x.toFixed(2)}`;
+
+test('TableRenderer formats the grand total with the metric formatter', () => {
+  const props = buildDefaultProps({
+    data: CURRENCY_TAGGED_DATA,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    defaultFormatter: defaultNumberFormatter,
+    customFormatters: { Metric: { sales: currencyFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Body cells and the column total already used the metric formatter; assert
+  // them so a regression anywhere in the chain is caught here too.
+  expect(getCellTexts('pvtVal')).toEqual(['$100.00', '$200.00']);
+  // `pvtTotal` covers both the right-hand row totals and the bottom column
+  // total. Only the column total is scoped to `sales` here: a row total spans
+  // the whole metric axis, so with several metrics on it there is no single
+  // correct formatter to apply -- deciding that is #44725, and `getFormattedAggregator`
+  // deliberately falls back to the default for that case.
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['$300.00']));
+
+  // The grand-total corner aggregates that same single metric, so it must use
+  // the same formatter rather than falling back to the default.
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells.length).toBe(1);
+  expect(grandTotalCells[0]).toHaveTextContent('$300.00');
+  expect(grandTotalCells[0].textContent).not.toMatch(/^300\.00$/);
+});
+
+test('TableRenderer keeps each metric aggregation on its own formatter', () => {
+  const rateFormatter = (x: number) => `${x.toFixed(3)} r`;
+  const props = buildDefaultProps({
+    data: CURRENCY_TAGGED_DATA.map(record =>
+      record.Metric === 'sales'
+        ? { ...record, Metric: 'rate', value: record.value / 100 }
+        : record,
+    ),
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+    defaultFormatter: defaultNumberFormatter,
+    customFormatters: { Metric: { rate: rateFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(getCellTexts('pvtVal')).toEqual(['1.000 r', '2.000 r']);
+  expect(getCellTexts('pvtTotal')).toEqual(expect.arrayContaining(['3.000 r']));
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells[0]).toHaveTextContent('3.000 r');
+});
