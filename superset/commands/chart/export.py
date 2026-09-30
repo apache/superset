@@ -41,7 +41,7 @@ from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     get_annotation_layer_lists,
 )
-from superset.extensions import db, feature_flag_manager
+from superset.extensions import db, feature_flag_manager, security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +113,14 @@ class ExportChartsCommand(ExportModelsCommand):
         return file_content
 
     @staticmethod
+    def _can_read_annotations() -> bool:
+        """
+        Match the chart-data path, which only returns native annotation layers
+        to users with can_read on Annotation.
+        """
+        return security_manager.can_access("can_read", "Annotation")
+
+    @staticmethod
     def _replace_annotation_layer_uuids(
         model: Slice,
         annotation_layers: list[dict[str, Any]],
@@ -129,6 +137,14 @@ class ExportChartsCommand(ExportModelsCommand):
             source_type = layer.get("sourceType")
             value = layer.get("value")
             if isinstance(value, int) and source_type == "NATIVE":
+                if not ExportChartsCommand._can_read_annotations():
+                    logger.warning(
+                        "Chart %s references annotation layer %s, which the user "
+                        "can't read; dropping it from the export",
+                        model.id,
+                        value,
+                    )
+                    continue
                 ann_layer = (
                     db.session.query(AnnotationLayer).filter_by(id=value).one_or_none()
                 )
@@ -279,7 +295,7 @@ class ExportChartsCommand(ExportModelsCommand):
                 )
 
         # Native annotation layers (sourceType == "NATIVE", value = layer ID)
-        if native_layer_ids:
+        if native_layer_ids and ExportChartsCommand._can_read_annotations():
             existing_layer_ids = [
                 layer_id
                 for (layer_id,) in db.session.query(AnnotationLayer.id)

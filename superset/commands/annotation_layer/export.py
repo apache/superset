@@ -21,6 +21,7 @@ from typing import Callable
 
 import yaml
 
+from superset import security_manager
 from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
 from superset.commands.export.models import ExportModelsCommand
 from superset.daos.annotation_layer import AnnotationLayerDAO
@@ -37,6 +38,13 @@ class ExportAnnotationLayersCommand(ExportModelsCommand):
 
     dao = AnnotationLayerDAO
     not_found = AnnotationLayerNotFoundError
+
+    def validate(self) -> None:
+        # Layers carry their annotations, which the chart-data path only
+        # serves with can_read on Annotation; the export follows the same rule.
+        if not security_manager.can_access("can_read", "Annotation"):
+            raise self.not_found()
+        super().validate()
 
     @staticmethod
     def _file_name(model: AnnotationLayer) -> str:

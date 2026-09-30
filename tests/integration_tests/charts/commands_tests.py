@@ -25,6 +25,8 @@ import yaml
 from flask import g  # noqa: F401
 
 from superset import db, security_manager
+from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
+from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
@@ -1528,6 +1530,68 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
             db.session.commit()
             _delete_chart_dependency(ref_chart)
             _delete_chart_annotation_layer(native_layer)
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_native_annotations_require_annotation_read(self, mock_g):
+        """Leave native layers out of the export without can_read on Annotation."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        layer = _create_chart_annotation_layer(name=f"Unreadable {uuid4()}")
+        _create_chart_annotation(layer, short_descr="secret")
+        can_access = security_manager.can_access
+
+        def can_access_without_annotation_read(permission: str, view: str) -> bool:
+            if (permission, view) == ("can_read", "Annotation"):
+                return False
+            return can_access(permission, view)
+
+        try:
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Native",
+                            "annotationType": "EVENT",
+                            "sourceType": "NATIVE",
+                            "value": layer.id,
+                        },
+                        {
+                            "name": "Formula",
+                            "annotationType": "FORMULA",
+                            "sourceType": "",
+                            "value": "x",
+                        },
+                    ],
+                }
+            )
+            db.session.commit()
+
+            with patch.object(
+                security_manager,
+                "can_access",
+                side_effect=can_access_without_annotation_read,
+            ):
+                contents = dict(ExportChartsCommand([chart.id]).run())
+                chart_yaml = yaml.safe_load(
+                    contents[f"charts/Energy_Sankey_{chart.id}.yaml"]()
+                )
+                with pytest.raises(AnnotationLayerNotFoundError):
+                    list(ExportAnnotationLayersCommand([layer.id]).run())
+
+            assert [
+                annotation["name"]
+                for annotation in chart_yaml["params"]["annotation_layers"]
+            ] == ["Formula"]
+            assert not [
+                path for path in contents if path.startswith("annotation_layers/")
+            ]
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+            _delete_chart_annotation_layer(layer)
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")

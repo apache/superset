@@ -30,7 +30,10 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.annotation_layer.importers.v1.utils import (
     import_annotation_layer,
 )
-from superset.commands.chart.importers.v1.utils import import_charts
+from superset.commands.chart.importers.v1.utils import (
+    get_chart_annotation_dependencies,
+    import_charts,
+)
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -123,6 +126,23 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 # discover theme associated with dashboard
                 if config.get("theme_uuid"):
                     theme_uuids.add(config["theme_uuid"])
+
+        # discover charts used as annotation sources by those charts, which can
+        # be in the bundle without being in any dashboard layout
+        chart_configs_by_uuid = {
+            str(config["uuid"]): config
+            for file_name, config in configs.items()
+            if file_name.startswith("charts/")
+        }
+        pending_chart_uuids = list(chart_uuids)
+        while pending_chart_uuids:
+            chart_config = chart_configs_by_uuid.get(pending_chart_uuids.pop())
+            if chart_config is None:
+                continue
+            for dependency_uuid in get_chart_annotation_dependencies(chart_config):
+                if dependency_uuid not in chart_uuids:
+                    chart_uuids.add(dependency_uuid)
+                    pending_chart_uuids.append(dependency_uuid)
 
         # discover datasets associated with charts
         for file_name, config in configs.items():

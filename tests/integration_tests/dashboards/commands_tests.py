@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from unittest.mock import MagicMock, patch  # noqa: F401
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import yaml
@@ -1366,6 +1367,89 @@ class TestImportDashboardsAnnotationLayers(SupersetTestCase):
             _cleanup_dashboard_annotation_import(
                 [chart_uuid], [layer_uuid], dashboard_uuid
             )
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_annotation_source_chart_on_other_database(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Import an annotation source chart that isn't in the layout."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        dashboard_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        source_chart_uuid = str(uuid4())
+        source_database_config = {
+            **deepcopy(database_config),
+            "uuid": str(uuid4()),
+            "database_name": f"annotation_source_db_{uuid4().hex[:8]}",
+            "sqlalchemy_uri": "postgresql://user:pass@host2",
+        }
+        source_dataset_config = {
+            **deepcopy(dataset_config),
+            "uuid": str(uuid4()),
+            "table_name": "annotation_source_dataset",
+            "database_uuid": source_database_config["uuid"],
+        }
+        source_chart_cfg = dashboard_chart_config(
+            source_chart_uuid, "Annotation Source Chart"
+        )
+        source_chart_cfg["dataset_uuid"] = source_dataset_config["uuid"]
+        main_chart_cfg = dashboard_chart_config(main_chart_uuid, "Annotated Chart")
+        main_chart_cfg["params"]["annotation_layers"] = [
+            {
+                "name": "Source",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": source_chart_uuid,
+            }
+        ]
+        dash_cfg = dashboard_config_for_charts(
+            dashboard_uuid,
+            "Dashboard Cross Database Annotation",
+            [("CHART-1", main_chart_uuid, main_chart_cfg["slice_name"])],
+        )
+        contents = dashboard_import_bundle(
+            dash_cfg,
+            {"main_chart.yaml": main_chart_cfg, "source_chart.yaml": source_chart_cfg},
+        )
+        contents["databases/source_database.yaml"] = yaml.safe_dump(
+            source_database_config
+        )
+        contents["datasets/source_dataset.yaml"] = yaml.safe_dump(source_dataset_config)
+        try:
+            v1.ImportDashboardsCommand(contents, overwrite=True).run()
+
+            main_chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            source_chart = (
+                db.session.query(Slice).filter_by(uuid=source_chart_uuid).one()
+            )
+            assert source_chart.table.database.uuid == UUID(
+                source_database_config["uuid"]
+            )
+            assert [
+                layer["value"]
+                for layer in json.loads(main_chart.params)["annotation_layers"]
+            ] == [source_chart.id]
+        finally:
+            _cleanup_dashboard_annotation_import(
+                [main_chart_uuid, source_chart_uuid], [], dashboard_uuid
+            )
+            source_dataset = (
+                db.session.query(SqlaTable)
+                .filter_by(uuid=source_dataset_config["uuid"])
+                .one_or_none()
+            )
+            if source_dataset:
+                db.session.delete(source_dataset)
+            source_database = (
+                db.session.query(Database)
+                .filter_by(uuid=source_database_config["uuid"])
+                .one_or_none()
+            )
+            if source_database:
+                db.session.delete(source_database)
+            db.session.commit()
 
 
 class TestExportDashboardsAnnotationLayer(SupersetTestCase):
