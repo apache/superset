@@ -1214,6 +1214,23 @@ class PivotData {
   allTotal: Aggregator;
   subtotals: SubtotalOptions;
   sorted: boolean;
+  // Result aggregation only: how many records map to each full-depth
+  // (row, col) address, keyed the same way as `tree` (row flat key, then
+  // col flat key). Reaching full row/col depth does NOT by itself mean a
+  // true single-record leaf -- any attribute absent from `rows`/`cols`
+  // (e.g. a `store` dimension) can still collapse several records into the
+  // same address, and those need the result-aggregation reducer applied
+  // across them exactly like a subtotal does. Computed once up front so
+  // `processResultRecord` can tell the two cases apart before it has seen
+  // every record.
+  leafRecordCounts: Record<string, Record<string, number>>;
+  // Whether the active result aggregation is one of the "... as Fraction of
+  // ..." choices. Those never "reduce" a leaf's records into a summary stat
+  // -- they divide a scope's own sum/count by another scope's (row/col/
+  // total) via `fractionOf`'s cross-lookup -- so, unlike every other result
+  // aggregation, they must run at leaf cells too, never fall back to
+  // `leafAggregator`'s raw DB passthrough.
+  isFractionResult: boolean;
 
   static forEachRecord: (
     input: unknown,
@@ -1299,6 +1316,7 @@ class PivotData {
     // `leafAggregator` stays this plain, DB-verbatim aggregator even when
     // `this.aggregator` above is a reducer.
     this.leafAggregator = plainAggregator;
+    this.isFractionResult = isFractionResultAggregation(resultAggregation);
     // Percentage display always uses a fixed percent format -- a per-metric
     // custom formatter (currency, decimals, etc.) doesn't apply to a ratio,
     // so the " as Fraction of " result aggregations (like `fractionType`)
@@ -1367,6 +1385,26 @@ class PivotData {
     this.allTotal = this.aggregator(this, [], []);
     this.subtotals = subtotals;
     this.sorted = false;
+    // See `leafRecordCounts` above: only needed for result aggregation, and
+    // only cheap to get right by counting up front, since `processRecord`
+    // below sees records one at a time and can't yet know whether its own
+    // full-depth address will end up shared by a later record.
+    this.leafRecordCounts = Object.create(null);
+    if (resultFactory) {
+      const rows = this.props.rows as string[];
+      const cols = this.props.cols as string[];
+      (this.props.data as PivotRecord[]).forEach(record => {
+        const rowKey = flatKey(
+          rows.map(key => String(key in record ? record[key] : 'null')),
+        );
+        const colKey = flatKey(
+          cols.map(key => String(key in record ? record[key] : 'null')),
+        );
+        this.leafRecordCounts[rowKey] ??= Object.create(null);
+        this.leafRecordCounts[rowKey][colKey] =
+          (this.leafRecordCounts[rowKey][colKey] ?? 0) + 1;
+      });
+    }
 
     // iterate through input, accumulating data for cells
     PivotData.forEachRecord(this.props.data, this.processRecord);
@@ -1628,11 +1666,18 @@ class PivotData {
           target = this.tree[rk];
           key = ck;
         }
-        // Both axes at full depth: a true leaf, which always receives
-        // exactly one record and must keep that record's own DB-computed
-        // value, never a result-aggregation reducer applied to a one-item
-        // set (see `leafAggregator`/`getLeafAggregator`).
-        const isLeafScope = ri === rows.length && ci === cols.length;
+        // Both axes at full depth AND exactly one record shares this
+        // address: a true leaf, which must keep that record's own
+        // DB-computed value, never a result-aggregation reducer applied to
+        // a one-item set (see `leafAggregator`/`getLeafAggregator`). Full
+        // depth alone isn't enough -- see `leafRecordCounts`. Fraction
+        // result aggregations are never leaf-passthrough eligible -- see
+        // `isFractionResult`.
+        const isLeafScope =
+          !this.isFractionResult &&
+          ri === rows.length &&
+          ci === cols.length &&
+          this.leafRecordCounts[rk]?.[ck] === 1;
         target[key] ??= (
           isLeafScope
             ? this.getLeafAggregator(
