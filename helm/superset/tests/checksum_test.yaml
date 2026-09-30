@@ -23,7 +23,7 @@ templates:
   - deployment-ws.yaml
   - deployment-mcp.yaml
 tests:
-  - it: main deployment has new config checksum, not the old connections checksum
+  - it: main deployment has new config checksums, not the old connections checksum
     template: deployment.yaml
     asserts:
       - exists:
