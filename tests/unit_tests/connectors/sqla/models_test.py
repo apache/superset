@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
 import pytest
@@ -29,6 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import (
+    BaseDatasource,
     SqlaTable,
     SqlMetric,
     TableColumn,
@@ -52,6 +53,8 @@ from superset.models.helpers import (
     validate_rendered_expression,
 )
 from superset.sql.parse import Table
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.superset_typing import AdhocMetric, QueryObjectDict
 from superset.utils import json
 
@@ -1408,6 +1411,74 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
 
 
+def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that set ``quote_table_includes_schema = False`` (e.g. MongoDB, whose
+    PyMongoSQL driver resolves ``schema.collection`` as a literal collection name
+    instead of parsing it) must get an unqualified FROM-clause identifier from
+    ``get_sqla_table``, built through the engine spec's own ``quote_table``, the
+    same way ``select_star`` builds it for SQL Lab's Data Preview. Regression test
+    for datasets on such engines returning no rows once a schema is set.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("sqlite://")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = False
+    database.db_engine_spec.quote_table.side_effect = (
+        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    )
+    database.get_dialect.return_value = engine.dialect
+
+    table = SqlaTable(
+        table_name="orders",
+        database=database,
+        schema="testdb",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled
+    database.db_engine_spec.quote_table.assert_called_once()
+
+
+def test_get_sqla_table_schema_qualified_by_default(mocker: MockerFixture) -> None:
+    """
+    Engines that don't override ``quote_table_includes_schema`` (the default,
+    ``True``) keep qualifying the FROM clause with the schema, unaffected by the
+    opt-out path above.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = True
+
+    table = SqlaTable(
+        table_name="My-Table",
+        database=database,
+        schema="My-Schema",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert '"My-Schema"."My-Table"' in compiled
+    database.db_engine_spec.quote_table.assert_not_called()
+
+
 def test_sqla_table_currency_code_column_property() -> None:
     """
     Test currency_code_column property on SqlaTable.
@@ -2488,3 +2559,53 @@ def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
         ExploreMixin.get_rendered_sql.__get__(datasource)(
             template_processor=template_processor
         )
+
+
+def test_data_exposes_editors(mocker: MockerFixture) -> None:
+    """
+    ``SqlaTable.data`` exposes the dataset editors.
+
+    Explore gates the "Edit dataset" action on ``datasource.editors``, so the
+    payload built from this property has to carry them. They are serialized with
+    the same compact subject shape the dataset REST API returns for
+    ``editors.id`` / ``editors.label`` / ``editors.type``.
+    """
+    mocker.patch.object(
+        BaseDatasource,
+        "data",
+        new_callable=PropertyMock,
+        return_value={},
+    )
+
+    dataset = SqlaTable(
+        database=Database(database_name="my_db", sqlalchemy_uri="sqlite://"),
+        table_name="my_table",
+    )
+    dataset.editors = [
+        Subject(id=1, label="alice", type=SubjectType.USER),
+        Subject(id=7, label="Alpha", type=SubjectType.ROLE),
+    ]
+
+    assert dataset.data["editors"] == [
+        {"id": 1, "label": "alice", "type": SubjectType.USER},
+        {"id": 7, "label": "Alpha", "type": SubjectType.ROLE},
+    ]
+
+
+def test_data_exposes_editors_when_empty(mocker: MockerFixture) -> None:
+    """
+    A dataset without editors reports an empty list rather than omitting the key.
+    """
+    mocker.patch.object(
+        BaseDatasource,
+        "data",
+        new_callable=PropertyMock,
+        return_value={},
+    )
+
+    dataset = SqlaTable(
+        database=Database(database_name="my_db", sqlalchemy_uri="sqlite://"),
+        table_name="my_table",
+    )
+
+    assert dataset.data["editors"] == []
