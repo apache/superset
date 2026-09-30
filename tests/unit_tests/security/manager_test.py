@@ -25,7 +25,13 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
-from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
+from flask_appbuilder.const import (
+    AUTH_DB,
+    AUTH_LDAP,
+    AUTH_OAUTH,
+    AUTH_REMOTE_USER,
+    AUTH_SAML,
+)
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -55,7 +61,10 @@ def test_security_manager(app_context: None) -> None:
 
 
 def _register_views_with_mock_appbuilder(
-    mocker: MockerFixture, auth_type: int
+    mocker: MockerFixture,
+    auth_type: int,
+    auth_user_registration: bool = False,
+    register_superset_registeruser_view: bool = False,
 ) -> MagicMock:
     """
     Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
@@ -72,7 +81,7 @@ def _register_views_with_mock_appbuilder(
         current_app.config,
         {
             "AUTH_TYPE": auth_type,
-            "AUTH_USER_REGISTRATION": False,
+            "AUTH_USER_REGISTRATION": auth_user_registration,
             "AUTH_RATE_LIMITED": False,
         },
     )
@@ -84,7 +93,7 @@ def _register_views_with_mock_appbuilder(
     sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
     sm.appbuilder = mock_appbuilder
     sm.register_superset_auth_view = True
-    sm.register_superset_registeruser_view = False
+    sm.register_superset_registeruser_view = register_superset_registeruser_view
     sm.userstatschartview = None
 
     mocker.patch(
@@ -134,6 +143,69 @@ def test_register_views_still_registers_superset_auth_view_for_db_auth(
         call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
     ]
     assert SupersetAuthView in registered
+
+
+@pytest.mark.parametrize(
+    "auth_type,auth_user_registration",
+    [
+        (AUTH_LDAP, True),
+        (AUTH_REMOTE_USER, True),
+        (AUTH_SAML, True),
+        (AUTH_DB, False),
+    ],
+)
+def test_register_views_does_not_register_registeruser_view(
+    app_context: None,
+    mocker: MockerFixture,
+    auth_type: int,
+    auth_user_registration: bool,
+) -> None:
+    """
+    SupersetRegisterUserView must only register where self-registration works.
+
+    FlaskAppBuilder wires the "/register/form" handler that the page posts to
+    only for AUTH_DB and AUTH_OAUTH, and only when AUTH_USER_REGISTRATION is
+    set. LDAP/SAML/AUTH_REMOTE_USER deployments must set AUTH_USER_REGISTRATION
+    anyway so users get provisioned on first login, which used to publish a
+    public "/register/" form that submits to a 404 -- reported in
+    apache/superset#37100.
+    """
+    from superset.views.auth import SupersetRegisterUserView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(
+        mocker,
+        auth_type,
+        auth_user_registration=auth_user_registration,
+        register_superset_registeruser_view=True,
+    )
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetRegisterUserView not in registered
+
+
+@pytest.mark.parametrize("auth_type", [AUTH_DB, AUTH_OAUTH])
+def test_register_views_registers_registeruser_view_for_self_registration(
+    app_context: None, mocker: MockerFixture, auth_type: int
+) -> None:
+    """
+    Control case: the auth types FlaskAppBuilder registers a register-user view
+    for still get the "/register/" page when AUTH_USER_REGISTRATION is set.
+    """
+    from superset.views.auth import SupersetRegisterUserView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(
+        mocker,
+        auth_type,
+        auth_user_registration=True,
+        register_superset_registeruser_view=True,
+    )
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetRegisterUserView in registered
 
 
 @pytest.fixture
