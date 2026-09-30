@@ -89,12 +89,17 @@ test('SAVE_SLICE_SUCCESS records the saved chart and its response data', () => {
   const data = { id: 7, slice_name: 'My chart' };
 
   const newState = saveModalReducer(
-    { lastSavedChart: { id: 1 } },
+    { isVisible: true, dashboards: [{ id: 1 }], lastSavedChart: { id: 1 } },
     { type: SAVE_SLICE_SUCCESS, data },
   );
 
+  expect(newState).toEqual({
+    isVisible: true,
+    dashboards: [{ id: 1 }],
+    data,
+    lastSavedChart: { id: 7 },
+  });
   expect(newState.data).toBe(data);
-  expect(newState.lastSavedChart).toEqual({ id: 7 });
 });
 
 test.each([
@@ -133,7 +138,7 @@ test('HYDRATE_EXPLORE replaces the state with payload.saveModal', () => {
     data: { saveModal: { dashboards: [], isVisible: false } },
   };
 
-  expect(saveModalReducer(state, action)).toEqual({
+  expect(saveModalReducer(state, action)).toStrictEqual({
     dashboards: [],
     isVisible: false,
     lastSavedChart: undefined,
