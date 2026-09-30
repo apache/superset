@@ -16,14 +16,43 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, cast
 
 from flask import current_app
 
 from superset.common.query_object import QueryObject
-from superset.utils.core import FilterOperator
+from superset.constants import NO_TIME_RANGE
+from superset.superset_typing import Column
+from superset.utils.core import (
+    FilterOperator,
+    get_x_axis_label,
+)
 from superset.utils.date_parser import get_since_until
+
+
+def get_time_range_from_filters(
+    time_range: str | None,
+    filters: Sequence[Mapping[str, object]] | None,
+    columns: list[Column] | None,
+) -> str:
+    """Select the original range expression without evaluating relative dates."""
+    if time_range is not None:
+        return time_range
+    temporal_filters: list[Mapping[str, object]] = [
+        filter_
+        for filter_ in filters or []
+        if filter_.get("op") == FilterOperator.TEMPORAL_RANGE
+    ]
+    if not temporal_filters:
+        return NO_TIME_RANGE
+    x_axis_label: str | None = get_x_axis_label(columns)
+    selected: Mapping[str, object] = next(
+        (filter_ for filter_ in temporal_filters if filter_.get("col") == x_axis_label),
+        temporal_filters[0],
+    )
+    return cast(str, selected.get("val"))
 
 
 def get_since_until_from_time_range(

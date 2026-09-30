@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Default preference for immutable semantic dimension variants."""
+"""Resolve immutable provider dimensions for each query usage."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from enum import Enum
 
 from flask_babel import gettext as _
 from superset_core.semantic_layers.types import Dimension, Grain
@@ -37,6 +38,18 @@ _GRAIN_FINENESS: dict[str, int] = {
 }
 
 
+class DimensionUsage(Enum):
+    """Keep selection policy explicit at each host/provider boundary."""
+
+    METADATA = "metadata"
+    COMPATIBILITY = "compatibility"
+    FILTER = "filter"
+    TIME_BOUND = "time_bound"
+    GROUP = "group"
+    ORDER = "order"
+    SERIES_LIMIT = "series_limit"
+
+
 class AmbiguousDimensionError(QueryObjectValidationError):
     """A host-detected catalog ambiguity safe to report to an authorized user."""
 
@@ -54,14 +67,26 @@ def grain_preference(dimension: Dimension) -> tuple[int, int, str]:
     )
 
 
-def resolve_dimension_defaults(
+def resolve_dimensions(
     dimensions: Iterable[Dimension],
+    *,
+    usage: DimensionUsage,
+    grouping_grains: Mapping[str, Grain | None] | None = None,
 ) -> dict[str, Dimension]:
-    """Resolve names without hiding conflicting identities for any grain.
+    """Resolve names to exact provider identities for one usage role.
 
-    Return the original provider objects. Even non-preferred grains must be
-    unambiguous: explicit grouping can select them independently of defaults.
+    Grouping, order and series limits share explicitly selected grouping grains.
+    Other roles use the raw/finest default, independently of grouping. Return the
+    original Dimension, retaining its id, grain and provider metadata for sort
+    operands and result-alias mapping. This function does not combine predicates.
+    Every grain is validated, including variants not selected for this usage.
     """
+    selected: dict[str, Dimension] = {}
+    use_grouping: bool = usage in {
+        DimensionUsage.GROUP,
+        DimensionUsage.ORDER,
+        DimensionUsage.SERIES_LIMIT,
+    }
     defaults: dict[str, Dimension] = {}
     identities: dict[tuple[str, Grain | None], str] = {}
     for dimension in dimensions:
@@ -77,9 +102,16 @@ def resolve_dimension_defaults(
                 )
             )
         identities[key] = dimension.id
+        if (
+            use_grouping
+            and grouping_grains is not None
+            and dimension.name in grouping_grains
+            and dimension.grain == grouping_grains[dimension.name]
+        ):
+            selected[dimension.name] = dimension
         preferred: Dimension | None = defaults.get(dimension.name)
         if preferred is None or grain_preference(dimension) < grain_preference(
             preferred
         ):
             defaults[dimension.name] = dimension
-    return defaults
+    return {**defaults, **selected}

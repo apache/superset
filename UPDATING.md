@@ -34,6 +34,8 @@ assists people when migrating to a new version.
   different IDs for the same name and grain must disambiguate their catalog;
   such catalogs are rejected instead of silently selecting an ID. On dashboards,
   only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal filters are preserved alongside the chart's time bounds,
+  which can narrow results where those filters were previously discarded.
 
 ### Empty MCP chart previews
 

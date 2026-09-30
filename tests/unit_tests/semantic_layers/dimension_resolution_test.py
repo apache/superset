@@ -24,7 +24,10 @@ import pytest
 from superset_core.semantic_layers.types import Dimension, Grain, Grains
 
 from superset.exceptions import QueryObjectValidationError
-from superset.semantic_layers.dimension_resolution import resolve_dimension_defaults
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
 
 
 @pytest.mark.parametrize(
@@ -48,7 +51,7 @@ def test_defaults_preserve_preferred_provider_object(
     )
     for ordering in permutations(dimensions):
         assert (
-            resolve_dimension_defaults(ordering)["event_time"]
+            resolve_dimensions(ordering, usage=DimensionUsage.METADATA)["event_time"]
             is dimensions[expected_index]
         )
 
@@ -57,23 +60,31 @@ def test_empty_catalog_and_distinct_names() -> None:
     """An empty catalog stays empty; grain collisions across names are valid."""
     first: Dimension = Dimension("a", "first", pa.timestamp("us"), grain=Grains.DAY)
     second: Dimension = Dimension("b", "second", pa.timestamp("us"), grain=Grains.DAY)
-    assert resolve_dimension_defaults(()) == {}
-    assert resolve_dimension_defaults((first, second)) == {
+    assert resolve_dimensions((), usage=DimensionUsage.METADATA) == {}
+    assert resolve_dimensions((first, second), usage=DimensionUsage.METADATA) == {
         "first": first,
         "second": second,
     }
-    assert resolve_dimension_defaults((first, first))["first"] is first
+    assert (
+        resolve_dimensions((first, first), usage=DimensionUsage.METADATA)["first"]
+        is first
+    )
 
 
 @pytest.mark.parametrize("grain", [None, Grains.MONTH, Grain("Custom", "P2D")])
-def test_same_grain_different_ids_always_rejected(grain: Grain | None) -> None:
+@pytest.mark.parametrize("usage", list(DimensionUsage))
+def test_same_grain_different_ids_always_rejected(
+    grain: Grain | None, usage: DimensionUsage
+) -> None:
     """Ambiguity is checked even when a raw variant would win the default."""
     first: Dimension = Dimension("a", "event_time", pa.timestamp("us"), grain=grain)
     second: Dimension = Dimension("b", "event_time", pa.timestamp("us"), grain=grain)
     raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
     for ordering in permutations((first, second, raw)):
         with pytest.raises(QueryObjectValidationError, match="ambiguous"):
-            resolve_dimension_defaults(ordering)
+            resolve_dimensions(
+                ordering, usage=usage, grouping_grains={"event_time": Grains.MONTH}
+            )
 
 
 def test_grain_identity_uses_representation_not_display_name() -> None:
@@ -85,4 +96,26 @@ def test_grain_identity_uses_representation_not_display_name() -> None:
         "b", "event_time", pa.timestamp("us"), grain=Grain("B", "P1D")
     )
     with pytest.raises(QueryObjectValidationError, match="ambiguous"):
-        resolve_dimension_defaults((first, second))
+        resolve_dimensions((first, second), usage=DimensionUsage.METADATA)
+
+
+@pytest.mark.parametrize("usage", list(DimensionUsage))
+def test_resolution_retains_provider_identity_per_usage(usage: DimensionUsage) -> None:
+    """Ranking/grouping select month; every other role retains the raw object."""
+    raw: Dimension = Dimension("metric_time", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "metric_time__month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    selected: bool = usage in {
+        DimensionUsage.GROUP,
+        DimensionUsage.ORDER,
+        DimensionUsage.SERIES_LIMIT,
+    }
+    expected: Dimension = month if selected else raw
+    for ordering in permutations((raw, month)):
+        resolved: Dimension = resolve_dimensions(
+            ordering, usage=usage, grouping_grains={"event_time": Grains.MONTH}
+        )["event_time"]
+        assert resolved is expected
+        assert resolved.id == expected.id
+        assert resolved.grain == expected.grain

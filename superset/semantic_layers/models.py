@@ -60,7 +60,10 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.dimension_resolution import resolve_dimension_defaults
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -503,7 +506,9 @@ class SemanticView(AuditMixinNullable, Model):
         # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
         # kept uses the same default/ambiguity policy as query mapping.
         return list(
-            resolve_dimension_defaults(self.implementation.get_dimensions()).values()
+            resolve_dimensions(
+                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+            ).values()
         )
 
     @property
@@ -754,7 +759,9 @@ class SemanticView(AuditMixinNullable, Model):
         view implementation, and translates the result back to names.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
+        dim_map: dict[str, Dimension] = resolve_dimensions(
+            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        )
         sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
         sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
         compatible = self.implementation.get_compatible_metrics(sel_metrics, sel_dims)
@@ -774,7 +781,9 @@ class SemanticView(AuditMixinNullable, Model):
         the shared list_metrics projection.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
+        dim_map: dict[str, Dimension] = resolve_dimensions(
+            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        )
         sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
         sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
         compatible = self.implementation.get_compatible_dimensions(

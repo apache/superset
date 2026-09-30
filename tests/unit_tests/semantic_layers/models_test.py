@@ -2444,3 +2444,36 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "method", ["get_compatible_metrics", "get_compatible_dimensions"]
+)
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
+    """Both compatibility projections use default identities and reject collisions."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    duplicate: Dimension = Dimension(
+        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    catalog: tuple[Dimension, ...] = (
+        (raw, month, duplicate) if ambiguous else (raw, month)
+    )
+    implementation: MagicMock = MagicMock()
+    implementation.get_metrics.return_value = set()
+    provider_method: MagicMock = getattr(implementation, method)
+    provider_method.return_value = set()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(catalog):
+        implementation.get_dimensions.return_value = ordering
+        if ambiguous:
+            with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+                getattr(view, method)([], ["event_time"])
+            provider_method.assert_not_called()
+        else:
+            assert getattr(view, method)([], ["event_time"]) == []
+            assert provider_method.call_args.args[1] == {raw}
