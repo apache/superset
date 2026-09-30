@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -155,25 +155,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard pentru a ne asigura că ordonarea lexicografică\n"
-"                      coincide cu ordonarea cronologică. Dacă\n"
-"                      formatul timestamp nu respectă standardul ISO 8601\n"
-"                      va trebui să definiți o expresie și un tip pentru\n"
-"                      transformarea șirului într-o dată sau timestamp. "
-"Rețineți\n"
-"                      în prezent fusurile orare nu sunt suportate. Dacă "
-"timpul este stocat\n"
-"                      în format epoch, puneți `epoch_s` sau `epoch_ms`. "
-"Dacă niciun model\n"
-"                      nu este specificat, revenim la utilizarea valorilor"
-" implicite opționale la nivel de\n"
-"                      bază de date/nume de coloană prin parametrul extra."
 
 msgid " to add calculated columns"
 msgstr " pentru a adăuga coloane calculate"
@@ -262,11 +249,27 @@ msgstr ""
 "securitate."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "fișier %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1084,6 +1087,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Detalii: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1773,6 +1779,9 @@ msgstr "Grafice Afectate"
 
 msgid "Affected Dashboards"
 msgstr "Panouri de control afectate"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4962,6 +4971,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nu s-a putut rezolva numele de gazdă: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nu s-a putut valida utilizatorul în sesiunea curentă."
 
@@ -5404,6 +5419,9 @@ msgstr "Tabloul de bord nu a putut fi restaurat."
 msgid "Dashboard could not be updated."
 msgstr "Panoul de control nu a putut fi actualizat."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Panoul de control nu există"
 
@@ -5418,6 +5436,9 @@ msgstr "Tabloul de bord a fost exportat cu succes ca exemplu"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Tabloul de bord a fost exportat cu succes"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panoul de control a fost importat"
@@ -6092,6 +6113,11 @@ msgstr "Șterge grup"
 #, fuzzy
 msgid "Delete item"
 msgstr "Șterge elementul"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7553,9 +7579,6 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Formatul fișierului Excel nu poate fi determinat"
 
@@ -7737,6 +7760,11 @@ msgstr "Exportă în .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportă în .CSV pivotat"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9457,6 +9485,12 @@ msgstr "Ianuarie"
 msgid "Jinja templating"
 msgstr "Șabloane Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Iulie"
 
@@ -10193,6 +10227,10 @@ msgstr "Mapbox (cheie API necesară)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox necesită configurarea unui MAPBOX_API_KEY pe server."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Martie"
@@ -11086,6 +11124,9 @@ msgstr ""
 "Nu există diagrame deck.gl cu mai multe straturi adăugate în prezent la "
 "acest tablou de bord."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nicio înregistrare găsită"
 
@@ -11178,6 +11219,11 @@ msgstr ""
 "Niciun validator numit %(validator_name)s găsit (configurat pentru "
 "motorul %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Poziție etichetă nod"
 
@@ -11195,6 +11241,11 @@ msgstr "Niciunul -> Săgeată"
 
 msgid "None -> None"
 msgstr "Niciunul -> Niciunul"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -11219,6 +11270,15 @@ msgstr "Nu Egal"
 
 msgid "Not Time Series"
 msgstr "Nu Serii Temporale"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nu este un fișier ZIP valid"
@@ -11625,8 +11685,7 @@ msgstr "Șir format număr d3 opțional"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
+msgstr "Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11760,8 +11819,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15, "
-"...). Tastați o perioadă personalizată pentru a o adăuga."
+"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15,"
+" ...). Tastați o perioadă personalizată pentru a o adăuga."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11874,6 +11933,10 @@ msgstr "Limită partiție"
 
 msgid "Partition Threshold"
 msgstr "Prag partiție"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12379,6 +12442,12 @@ msgstr "Prefix sau sufix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13750,6 +13819,9 @@ msgstr "Schemă"
 
 msgid "Schema cache timeout"
 msgstr "Timeout cache schemă"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Schemă permise pentru încărcare fișier"
@@ -16542,6 +16614,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16776,6 +16854,15 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametrul %(parameters)s din interogarea dvs. este nedefinit."
 msgstr[1] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
 msgstr[2] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -17178,6 +17265,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Unitatea de timp folosită pentru gruparea blocurilor"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Cele două parole pe care le-ați introdus nu se potrivesc!"
 
@@ -17239,6 +17329,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Numele de utilizator furnizat la conectarea la o bază de date nu este "
 "valid."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Valorile se suprapun cu alte valori de prag"
@@ -17607,6 +17715,12 @@ msgstr "A apărut o problemă la previzualizarea interogării selectate. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17624,6 +17738,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Acestea sunt seturile de date la care va fi aplicat acest filtru."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17776,6 +17896,12 @@ msgstr ""
 "adnotare."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18484,6 +18610,9 @@ msgstr[2] ""
 msgid "Token Request URI"
 msgstr "URI de solicitare a tokenului"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -18672,6 +18801,9 @@ msgstr "Marți"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tip"
@@ -21027,6 +21159,13 @@ msgstr "buton (cmd + z) până salvați modificările."
 msgid "by using"
 msgstr "folosind"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 msgid "cannot be empty"
 msgstr "nu poate fi gol"
 
@@ -21071,6 +21210,13 @@ msgstr "tip culoare"
 
 msgid "column"
 msgstr "coloană"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -21467,6 +21613,9 @@ msgstr "este nul"
 
 msgid "is true"
 msgstr "este adevărat"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "cheie a-z"

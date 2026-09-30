@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -154,26 +154,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standarts, lai nodrošinātu, ka leksikogrāfiskā secība\n"
-"                      sakrīt ar hronoloģisko secību. Ja\n"
-"                      laika zīmoga formāts neatbilst ISO 8601 standartam,"
-"\n"
-"                      jums būs jādefinē izteiksme un tips, lai\n"
-"                      pārveidotu virkni datumā vai laika zīmogā. Ņemiet "
-"vērā, ka\n"
-"                      pašlaik laika zonas netiek atbalstītas. Ja laiks ir"
-" saglabāts\n"
-"                      epohas formātā, ievadiet `epoch_s` vai `epoch_ms`. "
-"Ja nav norādīts nekāds paraugs\n"
-"                      , mēs izmantojam papildu parametru, lai izmantotu "
-"papildu noklusējumus katram\n"
-"                      datubāzes/kolonnas nosaukuma līmenim."
 
 msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
@@ -258,11 +244,27 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "%(label)s fails"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1038,6 +1040,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
 "informācija: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1052,8 +1057,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
-"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona "
-"analīzei."
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
+" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1668,6 +1673,9 @@ msgstr "Ietekmētās diagrammas"
 
 msgid "Affected Dashboards"
 msgstr "Ietekmētie infopaneļi"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4682,6 +4690,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
@@ -5089,6 +5103,9 @@ msgstr "Informācijas paneli nevarēja atjaunot."
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Informācijas panelis neeksistē"
 
@@ -5097,6 +5114,9 @@ msgstr "Informācijas panelis veiksmīgi eksportēts kā piemērs"
 
 msgid "Dashboard exported successfully"
 msgstr "Informācijas panelis veiksmīgi eksportēts"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Infopanelis importēts"
@@ -5717,6 +5737,11 @@ msgstr "Dzēst grupu"
 
 msgid "Delete item"
 msgstr "Dzēst objektu"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7073,9 +7098,6 @@ msgstr "Excel eksports"
 msgid "Excel XML Export"
 msgstr "Excel XML eksports"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nevar noteikt Excel faila formātu"
 
@@ -7242,6 +7264,11 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8822,6 +8849,12 @@ msgstr "Janvāris"
 msgid "Jinja templating"
 msgstr "Jinja veidņošana"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Jūlijs"
 
@@ -9517,6 +9550,10 @@ msgstr "E-pasts ir obligāts"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox prasa, lai serverī būtu konfigurēts MAPBOX_API_KEY."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Marts"
@@ -10353,6 +10390,9 @@ msgstr "Nav atrasti atbilstoši rezultāti"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Šim informācijas panelim pašlaik nav pievienotu filtru."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Ieraksti nav atrasti"
 
@@ -10437,6 +10477,11 @@ msgstr ""
 "Nav atrasts validators ar nosaukumu %(validator_name)s (konfigurēts "
 "%(engine_spec)s dzinējam)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Mezgla apzīmējuma pozīcija"
 
@@ -10454,6 +10499,11 @@ msgstr "Neviens -> Bulta"
 
 msgid "None -> None"
 msgstr "Neviens -> Neviens"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normāls"
@@ -10478,6 +10528,15 @@ msgstr "Nav vienāds"
 
 msgid "Not Time Series"
 msgstr "Nav laika sērija"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nav derīgs ZIP fails"
@@ -11010,8 +11069,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, MA15, "
-"...). Ierakstiet pielāgotu periodu, lai to pievienotu."
+"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, "
+"MA15, ...). Ierakstiet pielāgotu periodu, lai to pievienotu."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11118,6 +11177,10 @@ msgstr "Nodalījumu ierobežojums"
 
 msgid "Partition Threshold"
 msgstr "Nodalījumu slieksnis"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -11595,6 +11658,12 @@ msgstr "Prefikss vai piedēklis"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12900,6 +12969,9 @@ msgstr "Shēma"
 
 msgid "Schema cache timeout"
 msgstr "Shēmas kešatmiņas noilgums"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Shēmas, kurās atļauta failu augšupielāde"
@@ -15486,6 +15558,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15708,6 +15786,15 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametrs %(parameters)s jūsu vaicājumā nav definēts."
 msgstr[1] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
 msgstr[2] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -16095,6 +16182,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Laika vienība, kas izmantota bloku grupēšanai"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
 
@@ -16144,6 +16234,24 @@ msgstr "Lietotājvārds \"%(username)s\" nepastāv."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Lietotājvārds, kas norādīts, pieslēdzoties datubāzei, nav derīgs."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Vērtības pārklājas ar citām pārtraukuma punktu vērtībām"
@@ -16483,6 +16591,12 @@ msgstr "Priekšskatot atlasīto vaicājumu, radās problēma. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16500,6 +16614,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Šīs ir datu kopas, kurām šis filtrs tiks piemērots."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16644,6 +16764,12 @@ msgstr ""
 "                  skata jāpārsūta uz diagrammu, kas satur anotāciju datus."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17286,6 +17412,9 @@ msgstr[2] ""
 msgid "Token Request URI"
 msgstr "Talona pieprasījuma URI"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -17474,6 +17603,9 @@ msgstr "Otrdiena"
 
 msgid "Tukey"
 msgstr "Tūkija"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tips"
@@ -19700,6 +19832,13 @@ msgstr "pogu (cmd + z), kamēr saglabāsiet izmaiņas."
 msgid "by using"
 msgstr "izmantojot"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
 
@@ -19742,6 +19881,13 @@ msgstr "krāsas veids"
 
 msgid "column"
 msgstr "kolonna"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -20116,6 +20262,9 @@ msgstr "ir null"
 
 msgid "is true"
 msgstr "ir patiess"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "atslēga a-z"

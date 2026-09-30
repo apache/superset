@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -160,9 +160,6 @@ msgstr " para detalhes."
 msgid " near '%(highlight)s'"
 msgstr " perto de '%(highlight)s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -173,27 +170,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" padrão para garantir que a ordenação lexicográfica\n"
-"                      coincida com a ordenação cronológica. Se o\n"
-"                      formato do carimbo de data/hora não cumprir o "
-"padrão ISO 8601,\n"
-"                      terá de definir uma expressão e um tipo para\n"
-"                      transformar a cadeia numa data ou carimbo de "
-"data/hora. Note\n"
-"                      que atualmente os fusos horários não são "
-"suportados. Se o tempo for armazenado\n"
-"                      no formato epoch, coloque `epoch_s` ou `epoch_ms`. "
-"Se nenhum padrão\n"
-"                      for especificado, utilizamos os valores "
-"predefinidos opcionais por\n"
-"                      base de dados/nome de coluna através do parâmetro "
-"extra."
 
 msgid " to add calculated columns"
 msgstr " para adicionar colunas calculadas"
@@ -303,6 +285,18 @@ msgstr ""
 "%(dialect)s não pode ser utilizado como fonte de dados por razões de "
 "segurança."
 
+#, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
@@ -311,6 +305,10 @@ msgstr "ficheiro %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1278,6 +1276,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Detalhes: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1291,8 +1292,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo "
-"de cada período. É habitualmente usado em análises financeiras e de "
+"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo"
+" de cada período. É habitualmente usado em análises financeiras e de "
 "intervalos de séries temporais."
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2068,6 +2069,9 @@ msgstr "Gráficos afetados"
 
 msgid "Affected Dashboards"
 msgstr "Dashboards afetados"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -6025,6 +6029,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Não foi possível resolver o nome do anfitrião: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -6553,6 +6563,9 @@ msgstr "O painel não pôde ser restaurado."
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o dashboard."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -6564,6 +6577,9 @@ msgstr "Dashboard exportado como exemplo com sucesso"
 
 msgid "Dashboard exported successfully"
 msgstr "Dashboard exportado com sucesso"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importado"
@@ -7303,6 +7319,11 @@ msgstr "Eliminar grupo"
 
 msgid "Delete item"
 msgstr "Eliminar item"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -9103,9 +9124,6 @@ msgstr "Exportar Excel"
 msgid "Excel XML Export"
 msgstr "Exportar Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Excel file format cannot be determined"
@@ -9312,6 +9330,11 @@ msgstr "Exportar para .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar para .CSV dinamizado"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -11453,6 +11476,12 @@ msgstr "Janeiro"
 msgid "Jinja templating"
 msgstr "Modelos Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12369,6 +12398,10 @@ msgstr "Mapbox (requer chave de API)"
 # sr_Latn]
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "O Mapbox requer que um MAPBOX_API_KEY seja configurado no servidor."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Março"
@@ -13488,6 +13521,9 @@ msgstr ""
 "Não existem gráficos deck.gl de múltiplas camadas adicionados a este "
 "dashboard."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nenhum registo encontrado"
 
@@ -13603,6 +13639,11 @@ msgstr ""
 "Nenhum validador com o nome %(validator_name)s encontrado (configurado "
 "para o motor %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13635,6 +13676,11 @@ msgstr "Nenhum -> Seta"
 # uk, zh, zh_TW]
 msgid "None -> None"
 msgstr "Nenhum -> Nenhum"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13673,6 +13719,15 @@ msgstr "Diferente"
 # uk, zh, zh_TW]
 msgid "Not Time Series"
 msgstr "Não é uma série temporal"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Não é um ficheiro ZIP válido"
@@ -14406,8 +14461,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Sobreponha médias móveis simples do preço de fecho (MA5, MA10, MA15, ...). "
-"Escreva um período personalizado para o adicionar."
+"Sobreponha médias móveis simples do preço de fecho (MA5, MA10, MA15, "
+"...). Escreva um período personalizado para o adicionar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14545,6 +14600,10 @@ msgstr "Limite de Partição"
 # uk, zh, zh_TW]
 msgid "Partition Threshold"
 msgstr "Limiar de partição"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15238,6 +15297,12 @@ msgstr "Prefixo ou sufixo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16931,6 +16996,9 @@ msgstr "Esquema"
 
 msgid "Schema cache timeout"
 msgstr "Tempo limite de cache do esquema"
+
+msgid "Schema not found."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -20220,6 +20288,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -20526,6 +20600,15 @@ msgstr[0] "O parâmetro %(parameters)s na sua consulta não está definido."
 msgstr[1] ""
 "Os seguintes parâmetros na sua consulta não estão definidos: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21057,6 +21140,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "A unidade de tempo utilizada para o agrupamento de blocos"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "As duas palavras-passe introduzidas não coincidem!"
 
@@ -21123,6 +21209,24 @@ msgstr "O nome de utilizador \"%(username)s\" não existe."
 # uk, zh, zh_TW]
 msgid "The username provided when connecting to a database is not valid."
 msgstr "O nome de utilizador fornecido ao ligar a uma base de dados não é válido."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -21519,6 +21623,12 @@ msgstr "Ocorreu um problema ao pré-visualizar a consulta selecionada. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -21537,6 +21647,12 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "These are the datasets this filter will be applied to."
 msgstr "Estes são os conjuntos de dados aos quais este filtro será aplicado."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21739,6 +21855,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "Este dashboard não existe"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22556,6 +22678,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI de pedido de token"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, python-format
 msgid ""
@@ -22813,6 +22938,9 @@ msgstr "Terça-feira"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipo"
@@ -24361,8 +24489,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Se ativado, as velas de subida usam a cor de aumento e as de descida a de "
-"diminuição. Desative para uma só cor de série, com corpo preenchido nas "
+"Se ativado, as velas de subida usam a cor de aumento e as de descida a de"
+" diminuição. Desative para uma só cor de série, com corpo preenchido nas "
 "subidas e oco nas descidas."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
@@ -25870,6 +25998,12 @@ msgstr "botão (cmd + z) até guardar as suas alterações."
 msgid "by using"
 msgstr "usando"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -25931,6 +26065,13 @@ msgstr "tipo de cor"
 
 msgid "column"
 msgstr "Coluna"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -26437,6 +26578,9 @@ msgstr "é nulo"
 
 msgid "is true"
 msgstr "é verdadeiro"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

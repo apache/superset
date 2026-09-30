@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -153,26 +153,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" estàndard per assegurar que l'ordenació lexicogràfica\n"
-"                      coincideixi amb l'ordenació cronològica. Si el\n"
-"                      format de marca temporal no compleix amb "
-"l'estàndard ISO 8601\n"
-"                      hauràs de definir una expressió i tipus per\n"
-"                      transformar la cadena en una data o marca temporal."
-" Nota\n"
-"                      que actualment les zones horàries no estan "
-"suportades. Si el temps està emmagatzemat\n"
-"                      en format epoch, posa `epoch_s` o `epoch_ms`. Si no"
-" s'especifica cap patró\n"
-"                      recorrem a usar els valors per defecte opcionals a "
-"nivell de\n"
-"                      base de dades/nom de columna via el paràmetre extra."
 
 msgid " to add calculated columns"
 msgstr " per afegir columnes calculades"
@@ -263,11 +249,27 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "fitxer %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1023,6 +1025,9 @@ msgstr ""
 "(p. ex., { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}). Detalls: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1036,9 +1041,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Un gràfic de candlestick mostra els valors d'obertura, tancament, màxim i "
-"mínim de cada període. S'utilitza habitualment per a anàlisi financera i "
-"d'intervals de sèries temporals."
+"Un gràfic de candlestick mostra els valors d'obertura, tancament, màxim i"
+" mínim de cada període. S'utilitza habitualment per a anàlisi financera i"
+" d'intervals de sèries temporals."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1687,6 +1692,9 @@ msgstr "Gràfics Afectats"
 
 msgid "Affected Dashboards"
 msgstr "Dashboards Afectats"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4316,8 +4324,7 @@ msgstr "Esquema de colors"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Color quan el valor de tancament és més gran o igual que el d'obertura."
+msgstr "Color quan el valor de tancament és més gran o igual que el d'obertura."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Color quan el valor de tancament és més petit que el d'obertura."
@@ -4893,6 +4900,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "No s'ha pogut resoldre el nom del servidor: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "No s'ha pogut validar l'usuari a la sessió actual."
 
@@ -5330,6 +5343,9 @@ msgstr "No s'ha pogut restaurar el tauler."
 msgid "Dashboard could not be updated."
 msgstr "El dashboard no s'ha pogut actualitzar."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "El dashboard no existeix"
 
@@ -5340,6 +5356,9 @@ msgstr "Aquest dashboard s'ha desat amb èxit."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Aquest dashboard s'ha desat amb èxit."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importat"
@@ -6002,6 +6021,11 @@ msgstr "Eliminar rol"
 #, fuzzy
 msgid "Delete item"
 msgstr "Eliminar plantilla"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7446,9 +7470,6 @@ msgstr "Informe Setmanal"
 msgid "Excel XML Export"
 msgstr "Informe Setmanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "El format del fitxer Excel no es pot determinar"
 
@@ -7627,6 +7648,11 @@ msgstr "Exportar a .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV pivotat"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9344,6 +9370,12 @@ msgstr "Gener"
 msgid "Jinja templating"
 msgstr "Plantilles Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Juliol"
 
@@ -10065,6 +10097,10 @@ msgstr "El correu electrònic és obligatori"
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox requereix que es configuri MAPBOX_API_KEY al servidor."
 
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid "March"
 msgstr "Març"
 
@@ -10700,8 +10736,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Nom de la sèrie de candlestick a la llegenda i al tooltip quan no "
-"s'ha definit cap dimensió de sèrie."
+"Nom de la sèrie de candlestick a la llegenda i al tooltip quan no s'ha "
+"definit cap dimensió de sèrie."
 
 msgid "Name your database"
 msgstr "Dona nom a la teva base de dades"
@@ -10939,6 +10975,9 @@ msgstr "Cap registre coincident trobat"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Cap filtre està afegit actualment a aquest dashboard."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Cap registre trobat"
 
@@ -11026,6 +11065,11 @@ msgstr ""
 "Cap validador anomenat %(validator_name)s trobat (configurat per al motor"
 " %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Posició d'etiqueta de node"
 
@@ -11043,6 +11087,11 @@ msgstr "Cap -> Fletxa"
 
 msgid "None -> None"
 msgstr "Cap -> Cap"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -11069,6 +11118,15 @@ msgstr "No igual a (≠)"
 
 msgid "Not Time Series"
 msgstr "No Sèries Temporals"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "No és un arxiu ZIP vàlid"
@@ -11489,8 +11547,7 @@ msgstr "Cadena de format de número d3 opcional"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensió opcional per dividir el gràfic en diverses sèries de candlestick."
+msgstr "Dimensió opcional per dividir el gràfic en diverses sèries de candlestick."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11621,8 +11678,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Superposa mitjanes mòbils simples del preu de tancament (MA5, MA10, MA15, "
-"...). Escriu un període personalitzat per afegir-lo."
+"Superposa mitjanes mòbils simples del preu de tancament (MA5, MA10, MA15,"
+" ...). Escriu un període personalitzat per afegir-lo."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11733,6 +11790,10 @@ msgstr "Límit de Partició"
 
 msgid "Partition Threshold"
 msgstr "Llindar de Partició"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12230,6 +12291,12 @@ msgstr "Prefix o sufix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13586,6 +13653,9 @@ msgstr "Esquema"
 
 msgid "Schema cache timeout"
 msgstr "Timeout de la caché d'esquema"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Esquemes permesos per pujada d'arxius"
@@ -16353,6 +16423,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16586,6 +16662,15 @@ msgstr[0] "El paràmetre %(parameters)s a la teva consulta no està definit."
 msgstr[1] ""
 "Els següents paràmetres a la teva consulta no estan definits: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -16992,6 +17077,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "La unitat de temps usada per l'agrupament de blocs"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Les contrasenyes no coincideixen!"
@@ -17050,6 +17138,24 @@ msgstr "L'usuari \"%(username)s\" no existeix."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "L'usuari proporcionat quan es connecta a una base de dades no és vàlid."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17407,6 +17513,12 @@ msgstr "Hi ha hagut un problema previsualitzant la consulta seleccionada. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17423,6 +17535,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Aquests són els datasets als quals s'aplicarà aquest filtre."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17572,6 +17690,12 @@ msgstr ""
 "d'anotació."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18279,6 +18403,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI de sol·licitud de testimoni"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -18475,6 +18602,9 @@ msgstr "Dimarts"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipus"
@@ -19683,8 +19813,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "Si està activat, les veles alcistes usen el color d'augment i les "
-"baixistes el de disminució. Desactiva-ho per usar un sol color de sèrie, amb "
-"cos ple a les pujades i buit a les baixades."
+"baixistes el de disminució. Desactiva-ho per usar un sol color de sèrie, "
+"amb cos ple a les pujades i buit a les baixades."
 
 #, fuzzy
 msgid ""
@@ -20811,6 +20941,12 @@ msgstr "botó (cmd + z) fins que desis els teus canvis."
 msgid "by using"
 msgstr "usant"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "cannot be empty"
 msgstr "no pot estar buit"
 
@@ -20854,6 +20990,13 @@ msgstr "tipus de color"
 
 msgid "column"
 msgstr "columna"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -21244,6 +21387,9 @@ msgstr "És nul"
 #, fuzzy
 msgid "is true"
 msgstr "És cert"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "clau a-z"

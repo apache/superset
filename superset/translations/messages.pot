@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 13:48+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -214,11 +214,27 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -8146,6 +8162,12 @@ msgstr ""
 msgid "Jinja templating"
 msgstr ""
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr ""
 
@@ -8791,6 +8813,10 @@ msgid "Mapbox (API key required)"
 msgstr ""
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
+msgstr ""
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
 msgstr ""
 
 msgid "March"
@@ -9580,6 +9606,9 @@ msgstr ""
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr ""
 
@@ -9655,6 +9684,11 @@ msgstr ""
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
 msgstr ""
 
 msgid "Node label position"
@@ -10294,6 +10328,10 @@ msgid "Partition Limit"
 msgstr ""
 
 msgid "Partition Threshold"
+msgstr ""
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
 msgstr ""
 
 msgid ""
@@ -14473,6 +14511,15 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
 
@@ -14780,6 +14827,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr ""
 
@@ -14823,6 +14873,24 @@ msgid "The username \"%(username)s\" does not exist."
 msgstr ""
 
 msgid "The username provided when connecting to a database is not valid."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -15143,7 +15211,9 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
-msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -15166,7 +15236,9 @@ msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
 #, python-format
-msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -15846,6 +15918,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Token Request URI"
+msgstr ""
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 
 #, python-format
@@ -18040,6 +18115,13 @@ msgstr ""
 msgid "column"
 msgstr ""
 
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
+
 #, python-format
 msgid "connecting to %(dbModelName)s"
 msgstr ""
@@ -18381,6 +18463,9 @@ msgid "is null"
 msgstr ""
 
 msgid "is true"
+msgstr ""
+
+msgid "is_monotonic in extra must be a boolean."
 msgstr ""
 
 msgid "key a-z"

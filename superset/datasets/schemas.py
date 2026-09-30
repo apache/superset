@@ -117,7 +117,12 @@ def validate_dataset_extra(value: str | None) -> None:
 
     blob = decoded[PARTITION_MAPPING_EXTRA_KEY]
     if not isinstance(blob, dict):
-        _reject("%(key)s in extra must be an object.", key=PARTITION_MAPPING_EXTRA_KEY)
+        _reject(
+            _(
+                "%(key)s in extra must be an object.",
+                key=PARTITION_MAPPING_EXTRA_KEY,
+            )
+        )
 
     for key, limit in (
         ("partition_column", MAX_COLUMN_NAME_LENGTH),
@@ -132,41 +137,49 @@ def _validate_column_transforms(transforms: Any) -> None:
     if transforms is None:
         return
     if not isinstance(transforms, dict):
-        _reject("column_transforms in extra must be an object.")
+        _reject(_("column_transforms in extra must be an object."))
     for column_name, entry in transforms.items():
         if not isinstance(entry, dict):
             _reject(
-                "column_transforms.%(name)s in extra must be an object.",
-                name=column_name,
+                _(
+                    "column_transforms.%(name)s in extra must be an object.",
+                    name=column_name,
+                )
             )
         _reject_unless_string(
             entry.get("value_transform"), "value_transform", MAX_TRANSFORM_LENGTH
         )
         if entry.get("is_monotonic") not in (None, True, False):
-            _reject("is_monotonic in extra must be a boolean.")
+            _reject(_("is_monotonic in extra must be a boolean."))
 
 
-def _reject(message: str, **kwargs: Any) -> NoReturn:
+def _reject(message: Any) -> NoReturn:
     """
     Raise with a rendered message.
 
-    ``str()`` is not decoration: marshmallow special-cases ``str`` and ``dict``
-    and falls back to ``list(messages)`` for anything else, which turns a
-    ``LazyString`` into a list of single characters.
+    Takes an already-translated message rather than a format string, so every
+    literal sits under a `_()` call `pybabel extract` can see; handing one in as
+    a variable would leave these strings out of the catalogs entirely.
+
+    ``str()`` is not decoration either: marshmallow special-cases ``str`` and
+    ``dict`` and falls back to ``list(messages)`` for anything else, which turns
+    a ``LazyString`` into a list of single characters.
     """
-    raise ValidationError(str(_(message, **kwargs)))
+    raise ValidationError(str(message))
 
 
 def _reject_unless_string(value: Any, key: str, limit: int) -> None:
     if value is None:
         return
     if not isinstance(value, str):
-        _reject("%(key)s in extra must be a string.", key=key)
+        _reject(_("%(key)s in extra must be a string.", key=key))
     if len(value) > limit:
         _reject(
-            "%(key)s in extra must be at most %(limit)d characters.",
-            key=key,
-            limit=limit,
+            _(
+                "%(key)s in extra must be at most %(limit)d characters.",
+                key=key,
+                limit=limit,
+            )
         )
 
 

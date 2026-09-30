@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -134,19 +134,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -229,11 +222,27 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s は、セキュリティ上の理由からデータソースとして使用できません。"
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "%(label)s ファイル"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -932,6 +941,9 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1507,6 +1519,9 @@ msgstr "影響を受けるチャート"
 
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4301,6 +4316,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
 
@@ -4680,6 +4701,9 @@ msgstr "ダッシュボードを復元できませんでした。"
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません"
 
@@ -4688,6 +4712,9 @@ msgstr "ダッシュボードの構成をエクスポートしました"
 
 msgid "Dashboard exported successfully"
 msgstr "ダッシュボードのエクスポートが完了しました"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "ダッシュボードをインポートしました"
@@ -5244,6 +5271,11 @@ msgstr "グループを削除"
 
 msgid "Delete item"
 msgstr "項目を削除"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6499,9 +6531,6 @@ msgstr "Excelエクスポート"
 msgid "Excel XML Export"
 msgstr "Excel XMLエクスポート"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excelファイルの形式を特定できません"
 
@@ -6663,6 +6692,11 @@ msgstr "基データCSVとしてエクスポート"
 
 msgid "Export to pivoted .CSV"
 msgstr "ピボット済みCSVとしてエクスポート"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8159,6 +8193,12 @@ msgstr "1月"
 msgid "Jinja templating"
 msgstr "Jinjaテンプレート"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "7月"
 
@@ -8807,6 +8847,10 @@ msgstr "Mapbox (APIキー必須)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox を使用するには、サーバーに MAPBOX_API_KEY を設定する必要があります。"
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "3月"
@@ -9594,6 +9638,9 @@ msgstr "一致する結果が見つかりません"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "レコードが見つかりません"
 
@@ -9671,6 +9718,11 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s エンジンに設定された「%(validator_name)s」という名前のバリデータが見つかりません"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "ノードラベルの位置"
 
@@ -9688,6 +9740,11 @@ msgstr "なし -> 矢印"
 
 msgid "None -> None"
 msgstr "なし -> なし"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "標準"
@@ -9712,6 +9769,15 @@ msgstr "等しくない (≠)"
 
 msgid "Not Time Series"
 msgstr "非時系列"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
@@ -10299,6 +10365,10 @@ msgstr "パーティション制限"
 msgid "Partition Threshold"
 msgstr "パーティションしきい値"
 
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -10740,6 +10810,12 @@ msgstr "接頭辞または接尾辞"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -11997,6 +12073,9 @@ msgstr "スキーマ"
 
 msgid "Schema cache timeout"
 msgstr "スキーマキャッシュのタイムアウト"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "ファイルのアップロードが許可されているスキーマ"
@@ -14324,6 +14403,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -14508,6 +14593,15 @@ msgstr "指定されたデータベースにオブジェクトが存在しませ
 msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されていません。"
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -14825,6 +14919,9 @@ msgstr "各ブロックの時間単位。domain_granularity より小さく、�
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
 
@@ -14869,6 +14966,24 @@ msgstr "ユーザー名「%(username)s」は存在しません。"
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "データベース接続時に指定されたユーザー名が無効です。"
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "この値は他のブレークポイント値と重複しています"
@@ -15189,6 +15304,12 @@ msgstr "選択したクエリのプレビュー中に問題が発生しました
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -15204,6 +15325,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "このフィルターが適用されるデータセットです。"
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15332,6 +15459,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "このダッシュボードは存在しません"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "このダッシュボードは外部で管理されているため、Superset では編集できません"
@@ -15892,6 +16025,9 @@ msgstr[0] ""
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 #, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
@@ -16068,6 +16204,9 @@ msgstr "火曜日"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "種類"
@@ -18063,6 +18202,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 msgid "by using"
 msgstr "以下を使用して"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+
 msgid "cannot be empty"
 msgstr "空にできません"
 
@@ -18104,6 +18248,13 @@ msgstr "色の種類"
 
 msgid "column"
 msgstr "列"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -18454,6 +18605,9 @@ msgstr "NULL である"
 
 msgid "is true"
 msgstr "は真 (True) です"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "キー順 (a-z)"

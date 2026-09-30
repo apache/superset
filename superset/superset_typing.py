@@ -45,6 +45,11 @@ class DatasetColumnData(TypedDict, total=False):
     uuid: str | None
     is_certified: bool
     is_dttm: bool
+    # Partition filter mapping. Reported only on the effective mapped column;
+    # every other column reads them as unset, which is what its own row would
+    # say once these become real columns.
+    partition_value_transform: str | None
+    partition_transform_is_monotonic: bool
     python_date_format: str | None
     type: str
     type_generic: NotRequired["GenericDataType" | None]

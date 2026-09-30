@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -165,26 +165,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standaard om ervoor te zorgen dat de lexicografische volgorde\n"
-"                      samenvalt met de chronologische volgorde. Als het "
-"tijdstempel\n"
-"                      niet overeenkomt met de ISO 8601 standaard\n"
-"                      dan moet u een expressie definiëren en typen voor\n"
-"                      om de tekenreeks om te zetten in een datum of "
-"tijdstempel. Note\n"
-"                      currently time zones are not supported Als de tijd "
-"wordt opgeslagen\n"
-"                      in epoch formaat, zet `epoch_s` of `epoch_ms`. Als "
-"er geen patroon\n"
-"                      is opgegeven, vallen we terug naar de optionele "
-"standaardwaarden op een\n"
-"                      database/kolom naam niveau via de extra parameter."
 
 msgid " to add calculated columns"
 msgstr " berekende kolommen toevoegen"
@@ -277,11 +263,27 @@ msgstr ""
 "gebruikt."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1041,6 +1043,9 @@ msgstr ""
 "title: { text: \"Mijn grafiek\" }, tooltip: { trigger: \"item\" } }). "
 "Details: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1054,8 +1059,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste waarden "
-"per periode. Wordt vaak gebruikt voor financiële en andere "
+"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste "
+"waarden per periode. Wordt vaak gebruikt voor financiële en andere "
 "tijdreeks-bereikanalyses."
 
 #, fuzzy
@@ -1715,6 +1720,9 @@ msgstr "Selecteer grafieken"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "Selecteer dashboards"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4409,8 +4417,7 @@ msgstr "Kleurenschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
+msgstr "Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kleur wanneer de slotwaarde kleiner is dan de openingswaarde."
@@ -5020,6 +5027,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5475,6 +5488,9 @@ msgstr "Dashboard kon niet worden hersteld."
 msgid "Dashboard could not be updated."
 msgstr "Dashboard kon niet worden bijgewerkt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Het dashboard bestaat niet"
 
@@ -5485,6 +5501,9 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard geïmporteerd"
@@ -6160,6 +6179,11 @@ msgstr "verwijder"
 #, fuzzy
 msgid "Delete item"
 msgstr "Verwijder template"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7647,9 +7671,6 @@ msgstr "Wekelijks Rapport"
 msgid "Excel XML Export"
 msgstr "Wekelijks Rapport"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7835,6 +7856,11 @@ msgstr "Exporteren naar origineel .CSV bestand"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporteren naar pivoted .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9600,6 +9626,12 @@ msgstr "Januari"
 msgid "Jinja templating"
 msgstr "Jinja templating"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Juli"
 
@@ -10348,6 +10380,10 @@ msgstr "Waarde is vereist"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox vereist dat er een MAPBOX_API_KEY op de server is geconfigureerd."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Maart"
@@ -11260,6 +11296,9 @@ msgstr "Geen overeenkomende records gevonden"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Er zijn momenteel geen filters toegevoegd aan dit dashboard."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Geen gegevens gevonden"
 
@@ -11348,6 +11387,11 @@ msgstr ""
 "Geen validator gevonden met de naam %(validator_name)s (geconfigureerd "
 "voor de %(engine_spec)s engine)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Node label positie"
 
@@ -11365,6 +11409,11 @@ msgstr "Geen -> Pijl"
 
 msgid "None -> None"
 msgstr "Geen -> Geen"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normaal"
@@ -11392,6 +11441,15 @@ msgstr "Niet gelijk aan (≠)"
 
 msgid "Not Time Series"
 msgstr "Geen Tijdserie"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 #, fuzzy
 msgid "Not a valid ZIP file"
@@ -11950,8 +12008,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5, "
-"MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
+"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5,"
+" MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12065,6 +12123,10 @@ msgstr "Partitie Limiet"
 
 msgid "Partition Threshold"
 msgstr "Partitie Drempelwaarde"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12592,6 +12654,12 @@ msgstr "Voorvoegsel of achtervoegsel"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13984,6 +14052,9 @@ msgstr "Schema"
 
 msgid "Schema cache timeout"
 msgstr "Schema cache time-out"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Schemas toegestaan voor bestandsupload"
@@ -16829,6 +16900,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17083,6 +17160,15 @@ msgstr[0] "De parameter %(parameters)s in uw query is niet gedefinieerd."
 msgstr[1] ""
 "De volgende parameters in uw zoekopdracht zijn ongedefinieerd: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -17507,6 +17593,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "De tijdeenheid die gebruikt wordt voor het groeperen van blokken"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Dashboards bestaan niet"
@@ -17568,6 +17657,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "De opgegeven gebruikersnaam tijdens het verbinden met een database is "
 "niet geldig."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17939,6 +18046,12 @@ msgstr "Er was een probleem met het bekijken van de geselecteerde query. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17955,6 +18068,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Dit zijn de datasets waarop dit filter zal worden toegepast."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18108,6 +18227,12 @@ msgstr ""
 "annotatie gegevens."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18831,6 +18956,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "Token-aanvraag-URI"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -19029,6 +19157,9 @@ msgstr "Dinsdag"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Type"
@@ -21425,6 +21556,12 @@ msgstr "knop (cmd + z) totdat je jouw wijzigingen opslaat."
 msgid "by using"
 msgstr "door te gebruiken"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "cannot be empty"
 msgstr "mag niet leeg zijn"
 
@@ -21471,6 +21608,13 @@ msgstr "Kleur op"
 
 msgid "column"
 msgstr "kolom"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "connecting to %(dbModelName)s"
@@ -21865,6 +22009,9 @@ msgstr "Is null"
 #, fuzzy
 msgid "is true"
 msgstr "Is waar"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "sleutel a-z"

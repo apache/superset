@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -158,21 +158,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" معيار لضمان الترتيب المعجمي\n"
-" يتزامن مع الترتيب الزمني. إذا كان\n"
-" لا يلتزم تنسيق الطابع الزمني بمعيار ISO 8601\n"
-" ستحتاج إلى تحديد تعبير وكتابة لـ\n"
-" تحويل السلسلة إلى تاريخ أو طابع زمني. ملاحظة\n"
-" لا يتم دعم المناطق الزمنية حاليًا. إذا تم تخزين الوقت\n"
-" في شكل حقبة، ضع `epoch_s` أو `epoch_ms`. إذا لم يكن هناك نمط\n"
-" تم تحديد أننا نعود إلى استخدام الإعدادات الافتراضية الاختيارية على per\n"
-" مستوى اسم قاعدة البيانات/العمود عبر المعلمة الإضافية."
 
 msgid " to add calculated columns"
 msgstr " لإضافة أعمدة محسوبة"
@@ -265,11 +256,27 @@ msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "لا يمكن استخدام %(dialect)s كمصدر بيانات لأسباب أمنية."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1152,6 +1159,9 @@ msgstr ""
 "trigger: \"item\" } }). التفاصيل: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1838,6 +1848,9 @@ msgstr "حدد الرسوم البيانية"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "حدد لوحات المعلومات"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -5088,6 +5101,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "تعذر حل اسم المضيف: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5539,6 +5558,9 @@ msgstr "تعذّر استعادة لوحة التحكم."
 msgid "Dashboard could not be updated."
 msgstr "تعذر تحديث لوحة المعلومات."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "لوحة القيادة غير موجودة"
 
@@ -5549,6 +5571,9 @@ msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "لوحة المعلومات المستوردة"
@@ -6214,6 +6239,11 @@ msgstr "حذف"
 #, fuzzy
 msgid "Delete item"
 msgstr "حذف القالب"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7765,9 +7795,6 @@ msgstr "تقرير أسبوعي"
 msgid "Excel XML Export"
 msgstr "تقرير أسبوعي"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7953,6 +7980,11 @@ msgstr "تصدير إلى ملف CSV الأصلي"
 
 msgid "Export to pivoted .CSV"
 msgstr "التصدير إلى ملف CSV المحوري"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9698,6 +9730,12 @@ msgstr "كانون الثاني"
 msgid "Jinja templating"
 msgstr "قالب جينجا"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "تموز"
 
@@ -10444,6 +10482,10 @@ msgstr "القيمة مطلوبة"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "يتطلب Mapbox تكوين MAPBOX_API_KEY على الخادم."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "آذار"
@@ -11355,6 +11397,9 @@ msgstr "لم يتم العثور على سجلات مطابقة"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "لم تتم إضافة أي فلاتر حاليًا إلى لوحة التحكم هذه."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr " لم يتم العثور على أية سجلات "
 
@@ -11443,6 +11488,11 @@ msgstr ""
 "لم يتم %(validator_name)s العثور على مدقق مسمى (تم تكوينه %(engine_spec)s"
 " للمحرك)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "موضع تسمية العقدة"
 
@@ -11460,6 +11510,11 @@ msgstr "لا شيء -> سهم"
 
 msgid "None -> None"
 msgstr "لا شيء -> لا شيء"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "عادي"
@@ -11487,6 +11542,15 @@ msgstr "لا يساوي (≠)"
 
 msgid "Not Time Series"
 msgstr "ليست سلسلة زمنية"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 #, fuzzy
 msgid "Not a valid ZIP file"
@@ -12152,6 +12216,10 @@ msgstr "حد التقسيم"
 msgid "Partition Threshold"
 msgstr "عتبة التقسيم"
 
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12682,6 +12750,12 @@ msgstr "بادئة أو لاحقة"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14076,6 +14150,9 @@ msgstr "مخطط"
 
 msgid "Schema cache timeout"
 msgstr "مهلة ذاكرة التخزين المؤقت للمخطط"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "المخططات المسموح بها لتحميل الملفات"
@@ -16889,6 +16966,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17128,6 +17211,15 @@ msgstr[2] "المعاملان %(parameters)s في استعلامك غير معر
 msgstr[3] "المعاملات التالية في استعلامك غير معرّفة: %(parameters)s."
 msgstr[4] "المعاملات التالية في استعلامك غير معرّفة: %(parameters)s."
 msgstr[5] "المعاملات التالية في استعلامك غير معرّفة: %(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -17530,6 +17622,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "الوحدة الزمنية المستخدمة لتجميع الكتل"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "لوحات المعلومات غير موجودة"
@@ -17587,6 +17682,24 @@ msgstr "اسم المستخدم \"%(username)s\" غير موجود."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "اسم المستخدم المقدم عند الاتصال بقاعدة بيانات غير صالح."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17946,6 +18059,12 @@ msgstr "حدثت مشكلة أثناء معاينة الاستعلام المح�
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17966,6 +18085,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "هذه هي مجموعات البيانات التي سيتم تطبيق عامل التصفية عليها."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18119,6 +18244,12 @@ msgstr ""
 " يجب تمرير العرض إلى المخطط الذي يحتوي على بيانات التعليقات التوضيحية."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18838,6 +18969,9 @@ msgstr[5] ""
 msgid "Token Request URI"
 msgstr "عنوان URI لطلب الرمز"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -19032,6 +19166,9 @@ msgstr "يوم الثلاثاء"
 
 msgid "Tukey"
 msgstr "توكي"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "النوع"
@@ -21404,6 +21541,16 @@ msgstr "زر (cmd + z) حتى تقوم بحفظ التغييرات."
 msgid "by using"
 msgstr "باستخدام"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 msgid "cannot be empty"
 msgstr "لا يمكن أن تكون فارغة"
 
@@ -21450,6 +21597,13 @@ msgstr "نوع الفرز"
 
 msgid "column"
 msgstr "عمود"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "connecting to %(dbModelName)s"
@@ -21854,6 +22008,9 @@ msgstr "لا يوجد"
 #, fuzzy
 msgid "is true"
 msgstr "صحيح"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "مفتاح من الألف إلى الياء"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -163,27 +163,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard, aby zapewnić, że kolejność leksykograficzna\n"
-"                      pokrywa się z kolejnością chronologiczną. Jeśli\n"
-"                      format znacznika czasu nie jest zgodny z normą ISO "
-"8601,\n"
-"                      musisz zdefiniować wyrażenie i typ do\n"
-"                      przekształcenia ciągu w datę lub znacznik czasu. "
-"Uwaga:\n"
-"                      strefy czasowe nie są obecnie obsługiwane. Jeśli "
-"czas jest\n"
-"                      przechowywany w formacie epoch, użyj `epoch_s` lub "
-"`epoch_ms`. Jeśli\n"
-"                      nie określono wzorca, stosujemy opcjonalne wartości"
-" domyślne\n"
-"                      na poziomie bazy danych/nazwy kolumny za pomocą "
-"dodatkowego parametru."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -279,11 +264,27 @@ msgstr ""
 "bezpieczeństwa."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1066,6 +1067,9 @@ msgstr ""
 "wykres\" }, tooltip: { trigger: \"item\" } }). Szczegóły: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1079,9 +1083,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i minimum "
-"dla każdego okresu. Jest powszechnie używany do analiz finansowych i "
-"zakresów szeregów czasowych."
+"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i "
+"minimum dla każdego okresu. Jest powszechnie używany do analiz "
+"finansowych i zakresów szeregów czasowych."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1762,6 +1766,9 @@ msgstr "Wybierz wykresy"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "Wybierz pulpity nawigacyjne"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -3462,8 +3469,8 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Świece rysują wypełnione ciało między otwarciem a zamknięciem. OHLC rysuje "
-"znaczniki otwarcia i zamknięcia na trzonie maksimum–minimum."
+"Świece rysują wypełnione ciało między otwarciem a zamknięciem. OHLC "
+"rysuje znaczniki otwarcia i zamknięcia na trzonie maksimum–minimum."
 
 msgid "Cannot access the query"
 msgstr "Nie można uzyskać dostępu do zapytania"
@@ -4441,8 +4448,7 @@ msgstr "Schemat kolorów"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kolor, gdy wartość zamknięcia jest większa lub równa wartości otwarcia."
+msgstr "Kolor, gdy wartość zamknięcia jest większa lub równa wartości otwarcia."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kolor, gdy wartość zamknięcia jest mniejsza niż wartość otwarcia."
@@ -5066,6 +5072,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nie udało się rozpoznać nazwy hosta: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5544,6 +5556,9 @@ msgstr "Nie udało się przywrócić dashboardu."
 msgid "Dashboard could not be updated."
 msgstr "Nie można zaktualizować pulpitu nawigacyjnego."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Pulpit nawigacyjny nie istnieje"
 
@@ -5554,6 +5569,9 @@ msgstr "Ten pulpit został pomyślnie zapisany."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Ten pulpit został pomyślnie zapisany."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard imported"
@@ -6237,6 +6255,11 @@ msgstr "usuń"
 #, fuzzy
 msgid "Delete item"
 msgstr "Usuń szablon"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7768,9 +7791,6 @@ msgstr "Raport tygodniowy"
 msgid "Excel XML Export"
 msgstr "Raport tygodniowy"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nie można określić formatu pliku Excel"
 
@@ -7957,6 +7977,11 @@ msgstr "Eksportuj do oryginalnego .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportuj do .CSV z pivotem"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9761,6 +9786,12 @@ msgstr "Styczeń"
 msgid "Jinja templating"
 msgstr "Szablonowanie Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Lipiec"
 
@@ -10502,6 +10533,10 @@ msgstr "Wartość jest wymagana"
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox wymaga skonfigurowania MAPBOX_API_KEY na serwerze."
 
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid "March"
 msgstr "Marzec"
 
@@ -11176,8 +11211,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Nazwa serii świecowej w legendzie i podpowiedzi, gdy nie ustawiono wymiaru "
-"serii."
+"Nazwa serii świecowej w legendzie i podpowiedzi, gdy nie ustawiono "
+"wymiaru serii."
 
 msgid "Name your database"
 msgstr "Nazwij swoją bazę danych"
@@ -11430,6 +11465,9 @@ msgstr "Nie znaleziono pasujących rekordów"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Do tego dashboardu nie dodano żadnych filtrów."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nie znaleziono rekordów"
 
@@ -11518,6 +11556,11 @@ msgstr ""
 "Nie znaleziono walidatora o nazwie %(validator_name)s (skonfigurowanego "
 "dla silnika %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Pozycja etykiety węzła"
 
@@ -11535,6 +11578,11 @@ msgstr "Brak -> Strzałka"
 
 msgid "None -> None"
 msgstr "Brak -> Brak"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normalny"
@@ -11561,6 +11609,15 @@ msgstr "Nie równe (≠)"
 
 msgid "Not Time Series"
 msgstr "Nie jest to seria czasowa"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nieprawidłowy plik ZIP"
@@ -12236,6 +12293,10 @@ msgstr "Limit partycji"
 msgid "Partition Threshold"
 msgstr "Próg partycji"
 
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12773,6 +12834,12 @@ msgstr "Prefiks lub sufiks"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14231,6 +14298,9 @@ msgstr "Schemat"
 
 msgid "Schema cache timeout"
 msgstr "Przekroczono czas pamięci podręcznej schematu"
+
+msgid "Schema not found."
+msgstr ""
 
 #, fuzzy
 msgid "Schemas allowed for File upload"
@@ -17158,6 +17228,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17408,6 +17484,15 @@ msgstr[0] "Parametr %(parameters)s w twoim zapytaniu jest niezdefiniowany."
 msgstr[1] ""
 "Następujące parametry w twoim zapytaniu są niezdefiniowane: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -17808,6 +17893,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Jednostka czasu używana do grupowania bloków."
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Pulpity nawigacyjne nie istnieją"
@@ -17869,6 +17957,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Podana nazwa użytkownika podczas łączenia z bazą danych jest "
 "nieprawidłowa."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -18252,6 +18358,12 @@ msgstr "Wystąpił problem podczas podglądu wybranego zapytania. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -18269,6 +18381,12 @@ msgstr ""
 #, fuzzy
 msgid "These are the datasets this filter will be applied to."
 msgstr "Oto zbiory danych, do których zostanie zastosowany ten filtr."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18421,6 +18539,12 @@ msgstr ""
 "powinno zostać przekazane do wykresu zawierającego dane adnotacji."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -19160,6 +19284,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI żądania tokenu"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -19369,6 +19496,9 @@ msgstr "Wtorek"
 #, fuzzy
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Typ"
@@ -21787,6 +21917,12 @@ msgstr "przycisk (cmd + z), dopóki nie zapiszesz swoich zmian."
 msgid "by using"
 msgstr "używając"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+
 #, fuzzy
 msgid "cannot be empty"
 msgstr "nie może być puste"
@@ -21835,6 +21971,13 @@ msgstr "typ koloru"
 
 msgid "column"
 msgstr "kolumna"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "connecting to %(dbModelName)s"
@@ -22252,6 +22395,9 @@ msgstr "Jest zerem"
 #, fuzzy
 msgid "is true"
 msgstr "Jest prawdziwy"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "klucz a-z"

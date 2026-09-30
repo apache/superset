@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -149,26 +149,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Стандарт для забезпечення того, щоб лексикографічне впорядкування\n"
-"                     збігалося з хронологічним. Якщо формат часової мітки"
-" не відповідає\n"
-"                     стандарту ISO 8601, потрібно визначити вираз і тип "
-"для\n"
-"                     перетворення рядка у дату або часову мітку. Зверніть"
-" увагу,\n"
-"                     що наразі часові пояси не підтримуються. Якщо час "
-"збережено\n"
-"                     у форматі epoch, використовуйте epoch_s або "
-"epoch_ms. Якщо шаблон\n"
-"                     не вказано, буде використано значення за "
-"замовчуванням на рівні\n"
-"                     бази даних/назви стовпця через параметр extra."
 
 msgid " to add calculated columns"
 msgstr " для додавання обчислювальних стовпців"
@@ -253,11 +239,27 @@ msgstr ""
 "міркувань."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "Файл %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -1059,6 +1061,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Деталі:"
 " https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1073,8 +1078,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Свічковий графік показує ціни відкриття, закриття, максимум і мінімум за "
-"кожен період. Зазвичай використовується для фінансового та іншого аналізу "
-"діапазонів часових рядів."
+"кожен період. Зазвичай використовується для фінансового та іншого аналізу"
+" діапазонів часових рядів."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -1687,6 +1692,9 @@ msgstr "Задіяні діаграми"
 
 msgid "Affected Dashboards"
 msgstr "Задіяні звіти"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4133,10 +4141,14 @@ msgstr "Кольорова схема"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr "Колір, який використовується, коли значення закриття більше або дорівнює значенню відкриття."
+msgstr ""
+"Колір, який використовується, коли значення закриття більше або дорівнює "
+"значенню відкриття."
 
 msgid "Color used when the close value is less than the open value."
-msgstr "Колір, який використовується, коли значення закриття менше за значення відкриття."
+msgstr ""
+"Колір, який використовується, коли значення закриття менше за значення "
+"відкриття."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4684,6 +4696,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не вдалося розпізнати вузол: «%(host)s»."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Не вдалося підтвердити користувача в поточному сеансі."
 
@@ -5089,6 +5107,9 @@ msgstr "Не вдалося відновити панель."
 msgid "Dashboard could not be updated."
 msgstr "Не вдалось оновити звіт."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Звіт не існує"
 
@@ -5097,6 +5118,9 @@ msgstr "Звіт успішно експортовано як приклад"
 
 msgid "Dashboard exported successfully"
 msgstr "Звіт успішно експортовано"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Звіт імпортовано"
@@ -5716,6 +5740,11 @@ msgstr "Вилучити групу"
 
 msgid "Delete item"
 msgstr "Вилучити елемент"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7082,9 +7111,6 @@ msgstr "Експортувати в Excel"
 msgid "Excel XML Export"
 msgstr "Експортувати в XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Не вдалося визначити формат файла Excel"
 
@@ -7251,6 +7277,11 @@ msgstr "Експортувати до первинного .csv"
 
 msgid "Export to pivoted .CSV"
 msgstr "Експортувати до зведеного .csv"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8825,6 +8856,12 @@ msgstr "Січень"
 msgid "Jinja templating"
 msgstr "Шаблонізація Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Липень"
 
@@ -9519,6 +9556,10 @@ msgstr "Електронна пошта обовʼязкова"
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox вимагає налаштування MAPBOX_API_KEY на сервері."
 
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid "March"
 msgstr "Березень"
 
@@ -10128,8 +10169,7 @@ msgstr "Назва вашої мітки"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
-"Назва свічкового ряду в легенді та підказці, якщо вимір ряду не задано."
+msgstr "Назва свічкового ряду в легенді та підказці, якщо вимір ряду не задано."
 
 msgid "Name your database"
 msgstr "Назвіть вашу базу даних"
@@ -10351,6 +10391,9 @@ msgstr "Не знайдено відповідних результатів"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Наразі до цього звіту не додано жодного фільтра."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Не знайдено жодного запису"
 
@@ -10437,6 +10480,11 @@ msgstr ""
 "Не знайдено перевірку із назвою %(validator_name)s , яку налаштовано для "
 "рушія %(engine_spec)s"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Розміщення кнопок"
 
@@ -10454,6 +10502,11 @@ msgstr "Нічого -> Стрілка"
 
 msgid "None -> None"
 msgstr "Нічого -> Нічого"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Звичайний"
@@ -10478,6 +10531,15 @@ msgstr "Не дорівнює"
 
 msgid "Not Time Series"
 msgstr "Не часові ряди"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Неправильний архів"
@@ -11114,6 +11176,10 @@ msgstr "Обмеження розподілу"
 msgid "Partition Threshold"
 msgstr "Поріг розподілу"
 
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -11589,6 +11655,12 @@ msgstr "Префікс або суфікс"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12900,6 +12972,9 @@ msgstr "Схема"
 
 msgid "Schema cache timeout"
 msgstr "Тривалість кешу схеми"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Схеми, в які можна вивантажувати файли"
@@ -15486,6 +15561,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15707,6 +15788,15 @@ msgstr[0] "Параметр %(parameters)s у вашому запиті не в�
 msgstr[1] "Параметри, які не визначено, у вашому запиті: %(parameters)s."
 msgstr[2] "Параметри, які не визначено, у вашому запиті: %(parameters)s."
 msgstr[3] "Параметр %(parameters)s у вашому запиті не визначено."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -16093,6 +16183,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Одиниця часу, що використовується для групування блоків"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Паролі, які ви ввели, не збігаються!"
 
@@ -16144,6 +16237,24 @@ msgstr "Користувача «%(username)s» не існує."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Вказаний користувач неправильний для зʼєднання з базою даних."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Значення перетинаються з іншими порогами"
@@ -16481,6 +16592,12 @@ msgstr "Трапилась проблема огляду вибраного за
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16499,6 +16616,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Фільтр буде застосовано до цих наборів даних."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16642,6 +16765,12 @@ msgstr ""
 " анотацій."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17289,6 +17418,9 @@ msgstr[3] ""
 msgid "Token Request URI"
 msgstr "Посилання запиту жетону"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -17477,6 +17609,9 @@ msgstr "Вівторок"
 
 msgid "Tukey"
 msgstr "Підхід Тьюкі"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Тип"
@@ -18613,8 +18748,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Якщо ввімкнено, зростаючі свічки використовують колір зростання, а спадні "
-"— колір падіння. Вимкніть, щоб використати один колір ряду: зафарбоване "
+"Якщо ввімкнено, зростаючі свічки використовують колір зростання, а спадні"
+" — колір падіння. Вимкніть, щоб використати один колір ряду: зафарбоване "
 "тіло при зростанні та порожнє при падінні."
 
 msgid ""
@@ -19702,6 +19837,14 @@ msgstr "натискайте кнопку (cmd + z), доки не збереж�
 msgid "by using"
 msgstr "через"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
 msgid "cannot be empty"
 msgstr "не може бути порожнім"
 
@@ -19744,6 +19887,13 @@ msgstr "забарвлення"
 
 msgid "column"
 msgstr "стовпець"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -20118,6 +20268,9 @@ msgstr "порожній"
 
 msgid "is true"
 msgstr "правда"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "абетка а-я"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 15:18+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -142,21 +142,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Standard entsprechen muss, um sicherzustellen, dass die lexikographische"
-" Reihenfolge mit der chronologischen Reihenfolge übereinstimmt. Wenn das "
-"Zeitstempelformat nicht dem ISO 8601-Standard entspricht, müssen Sie "
-"einen Ausdruck und einen Typ definieren, um die Zeichenfolge in ein Datum"
-" oder einen Zeitstempel umzuwandeln. Hinweis: Derzeit werden Zeitzonen "
-"nicht unterstützt. Wenn Zeit im Epochenformat gespeichert ist, Geben Sie "
-"\"epoch_s\" oder \"epoch_ms\" ein. Wenn kein Muster angegeben ist, "
-"greifen wir die extra Parameter auf die optionalen Standardwerte auf "
-"Datenbank-/Spaltennamenebene zurück."
 
 msgid " to add calculated columns"
 msgstr ", um berechnete Spalten hinzuzufügen"
@@ -243,11 +234,27 @@ msgstr ""
 "werden."
 
 #, python-format
+msgid "%(key)s in extra must be a string."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "%(key)s in extra must be at most %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
 msgstr "%(label)s Datei"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -982,6 +989,9 @@ msgstr ""
 "B. { title: { text: \"Mein Diagramm\" }, tooltip: { trigger: \"item\" } "
 "}). Details: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -996,8 +1006,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Ein Kerzenchart zeigt Eröffnungs-, Schluss-, Höchst- und Tiefstwerte für "
-"jeden Zeitraum. Er wird häufig für Finanz- und andere "
-"Zeitreihen-Spannweitenanalysen verwendet."
+"jeden Zeitraum. Er wird häufig für Finanz- und andere Zeitreihen-"
+"Spannweitenanalysen verwendet."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -1620,6 +1630,9 @@ msgstr "Betroffene Diagramme"
 
 msgid "Affected Dashboards"
 msgstr "Betroffene Dashboards"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -3222,8 +3235,8 @@ msgid ""
 "for open and close on a high-low stem."
 msgstr ""
 "Kerzen zeichnen einen gefüllten Körper zwischen Eröffnung und Schluss. "
-"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem "
-"Hoch-Tief-Stiel."
+"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem Hoch-Tief-"
+"Stiel."
 
 msgid "Cannot access the query"
 msgstr "Zugriff auf die Abfrage nicht möglich"
@@ -4097,8 +4110,7 @@ msgstr "Farbschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
+msgstr "Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Farbe, wenn der Schlusswert kleiner als der Eröffnungswert ist."
@@ -4667,6 +4679,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Hostname konnte nicht aufgelöst werden: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 "Der/Die Benutzer*in konnte in der aktuellen Sitzung nicht authentifiziert"
@@ -5072,6 +5090,9 @@ msgstr "Dashboard konnte nicht wiederhergestellt werden."
 msgid "Dashboard could not be updated."
 msgstr "Das Dashboard konnte nicht aktualisiert werden."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Dashboard existiert nicht"
 
@@ -5080,6 +5101,9 @@ msgstr "Das Dashboard wurde erfolgreich als Beispiel exportiert"
 
 msgid "Dashboard exported successfully"
 msgstr "Das Dashboard wurde erfolgreich exportiert"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importiert"
@@ -5696,6 +5720,11 @@ msgstr "Gruppe löschen"
 
 msgid "Delete item"
 msgstr "Element löschen"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7044,9 +7073,6 @@ msgstr "Excel Export"
 msgid "Excel XML Export"
 msgstr "Excel XML-Export"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel-Dateiformat kann nicht bestimmt werden"
 
@@ -7210,6 +7236,11 @@ msgstr "Export in das ursprüngliche .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Export in das pivotierte .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8789,6 +8820,12 @@ msgstr "Januar"
 msgid "Jinja templating"
 msgstr "Jinja Vorlagen"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Juli"
 
@@ -9461,6 +9498,10 @@ msgstr "Mapbox (API-Schlüssel erforderlich)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Für Mapbox muss auf dem Server ein MAPBOX_API_KEY konfiguriert werden."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "März"
@@ -10281,6 +10322,9 @@ msgstr ""
 "Derzeit sind keine mehrschichtigen Deck.gl-Diagramme zu diesem Dashboard "
 "hinzugefügt."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Keine Einträge gefunden"
 
@@ -10368,6 +10412,11 @@ msgstr ""
 "Kein Validator mit dem Namen %(validator_name)s gefunden (konfiguriert "
 "für die Engine %(engine_spec)s )"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Position der Knotenbeschriftung"
 
@@ -10385,6 +10434,11 @@ msgstr "Keine -> Pfeil"
 
 msgid "None -> None"
 msgstr "Keine -> Keine"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -10409,6 +10463,15 @@ msgstr "Ist nicht gleich (≠)"
 
 msgid "Not Time Series"
 msgstr "Keine Zeitreihen"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Keine gültige ZIP-Datei"
@@ -10814,8 +10877,7 @@ msgstr "Optionale d3-Zahlenformat-Zeichenfolge"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
+msgstr "Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10948,8 +11010,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10, "
-"MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
+"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10,"
+" MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11059,6 +11121,10 @@ msgstr "Partitionslimit"
 
 msgid "Partition Threshold"
 msgstr "Partitionsschwellenwert"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -11544,6 +11610,12 @@ msgstr "Präfix oder Suffix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12836,6 +12908,9 @@ msgstr "Schema"
 
 msgid "Schema cache timeout"
 msgstr "Zeitüberschreitung Schema-Zwischenspeicher"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Zulässige Schemata für den Datei-Upload"
@@ -15393,6 +15468,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15625,6 +15706,15 @@ msgstr[0] "Der Parameter %(parameters)s in ihrer Abfrage ist nicht definiert."
 msgstr[1] ""
 "Die folgenden Parameter in Ihrer Abfrage sind nicht definiert: "
 "%(parameters)s."
+
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -16024,6 +16114,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Die Zeiteinheit, die für die Gruppierung von Blöcken verwendet wird"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Die beiden Passwörter stimmen nicht überein!"
 
@@ -16076,6 +16169,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Der Anmeldename, der beim Herstellen einer Datenbankverbindung angegeben "
 "wurde, ist ungültig."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Die Werte überschneiden sich mit anderen Breakpoints"
@@ -16432,6 +16543,12 @@ msgstr "Bei der Vorschau der ausgewählten Abfrage ist ein Problem aufgetreten. 
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16448,6 +16565,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Dies sind die Datensätze, auf die dieser Filter angewendet wird."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16601,6 +16724,12 @@ msgstr ""
 "übergeben werden soll."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17256,6 +17385,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI für die Token-Anfrage"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -17443,6 +17575,9 @@ msgstr "Dienstag"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Typ"
@@ -18584,8 +18719,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende die "
-"Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
+"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende "
+"die Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
 "gefüllter Körper bei Anstieg, hohler Körper bei Rückgang."
 
 msgid ""
@@ -19692,6 +19827,12 @@ msgstr "Schaltfläche drücken (cmd + z), bevor Sie Ihre Änderungen speichern."
 msgid "by using"
 msgstr "durch die Verwendung von"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "cannot be empty"
 msgstr "darf nicht leer sein"
 
@@ -19733,6 +19874,13 @@ msgstr "Farbtyp"
 
 msgid "column"
 msgstr "Spalte"
+
+msgid "column_transforms in extra must be an object."
+msgstr ""
+
+#, python-format
+msgid "column_transforms.%(name)s in extra must be an object."
+msgstr ""
 
 #, python-format
 msgid "connecting to %(dbModelName)s"
@@ -20085,6 +20233,9 @@ msgstr "ist null"
 
 msgid "is true"
 msgstr "ist wahr"
+
+msgid "is_monotonic in extra must be a boolean."
+msgstr ""
 
 msgid "key a-z"
 msgstr "Schlüssel a-z"
