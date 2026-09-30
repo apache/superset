@@ -1121,6 +1121,9 @@ msgstr ""
 "Mapa, ktorá vykresluje kruhy s premenlivým polomerom na súradniciach "
 "zemepisnej šírky a dĺžky"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Metrika pre určenie farby"
 
@@ -4421,6 +4424,9 @@ msgstr "Veľkosť písma pre porovnanie"
 
 msgid "Comparison suffix"
 msgstr "Prípona pre porovnanie"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Skombinujte viac vrstiev dohromady a vytvorte komplexní vizualizácia."
@@ -9886,6 +9892,21 @@ msgstr "Parametre metadat"
 msgid "Metadata has been synced"
 msgstr "Metadata bola synchronizována"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "metry"
@@ -12239,6 +12260,9 @@ msgstr "Znovu načítať"
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -13894,6 +13918,9 @@ msgstr "Sémantické pohľady"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Odoslať ako CSV"
 
@@ -14066,6 +14093,9 @@ msgstr "Zdieľať trvalý odkaz e-mailem"
 #, fuzzy
 msgid "Shared"
 msgstr "Zdieľať"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Zdieľaný dotaz"
@@ -15084,6 +15114,12 @@ msgstr "Synchronizovať oprávnenie"
 
 msgid "Sync columns from source"
 msgstr "Synchronizovať stĺpce zo zdroje"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -16304,6 +16340,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL služby vrstvy"
 
@@ -17274,6 +17319,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Táto sekcia obsahuje chyby validace"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18054,6 +18102,9 @@ msgstr "Nemožno prečítať súbor, prosím obnovte stránku a skúste to znovu
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Nemožno načítať farby nástenky"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr "Nemožno synchronizovať oprávnenie pre toto databázové pripojenie."

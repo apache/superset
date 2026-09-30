@@ -1542,6 +1542,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr "แผนที่ที่แสดงวงกลมด้วยรัศมีที่เปลี่ยนแปลงได้ตามพิกัดละติจูด/ลองจิจูด"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -6960,6 +6963,9 @@ msgstr "ขนาดตัวอักษรสำหรับการเปร
 #, fuzzy
 msgid "Comparison suffix"
 msgstr "คำต่อท้ายสำหรับการเปรียบเทียบ"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16092,6 +16098,21 @@ msgstr "พารามิเตอร์เมตาดาต้า"
 msgid "Metadata has been synced"
 msgstr "ซิงค์เมตาดาต้าแล้ว"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -20069,6 +20090,9 @@ msgstr "โหลดใหม่"
 msgid "Reload SQL Lab"
 msgstr "โหลด SQL Lab ใหม่"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -22777,6 +22801,9 @@ msgstr "มุมมองเชิงความหมาย"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -23076,6 +23103,9 @@ msgstr "แชร์ลิงก์ถาวรทางอีเมล"
 #, fuzzy
 msgid "Shared"
 msgstr "แชร์"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -24773,6 +24803,12 @@ msgstr "ซิงค์สิทธิ์"
 #, fuzzy
 msgid "Sync columns from source"
 msgstr "ซิงค์คอลัมน์จากแหล่งข้อมูล"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -26551,6 +26587,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -27939,6 +27984,9 @@ msgstr "ส่วนนี้มีตัวเลือกที่ช่วย
 msgid "This section contains validation errors"
 msgstr "ส่วนนี้มีข้อผิดพลาดในการตรวจสอบ"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -29154,6 +29202,9 @@ msgstr "ไม่สามารถอ่านไฟล์ได้ โปร�
 #, fuzzy
 msgid "Unable to retrieve dashboard colors"
 msgstr "ไม่สามารถดึงข้อมูลสีของแดชบอร์ดได้"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]

@@ -1139,6 +1139,9 @@ msgstr ""
 "Een kaart die het renderen van cirkels met een variabele straal neemt op "
 "breedtegraad / lengtegraad coördinaten"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Een metriek te gebruiken voor kleur"
 
@@ -4674,6 +4677,9 @@ msgstr "Vergelijking achtervoegsel"
 
 msgid "Comparison suffix"
 msgstr "Vergelijking achtervoegsel"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Meerdere lagen samen samenstellen om complexe visuals te vormen."
@@ -10561,6 +10567,21 @@ msgstr "Metadata Parameters"
 msgid "Metadata has been synced"
 msgstr "Metadata zijn gesynchroniseerd"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "meters"
@@ -13030,6 +13051,9 @@ msgstr "Herlaad"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab herladen"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14782,6 +14806,9 @@ msgstr "Semantische weergaven"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Verstuur als CSV"
 
@@ -14990,6 +15017,9 @@ msgstr "Deel permalink via e-mail"
 #, fuzzy
 msgid "Shared"
 msgstr "Deel"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Gedeelde zoekopdracht"
@@ -16051,6 +16081,12 @@ msgstr "Machtigingen synchroniseren"
 
 msgid "Sync columns from source"
 msgstr "Synchroniseer kolommen van bron"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17413,6 +17449,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Toon series waarden op de grafiek"
@@ -18468,6 +18513,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Deze sectie bevat validatiefouten"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -19297,6 +19345,9 @@ msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Dashboard kleuren kunnen niet worden opgehaald"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

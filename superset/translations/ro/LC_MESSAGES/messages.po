@@ -1184,6 +1184,9 @@ msgstr ""
 "O hartă care realizează randarea cercurilor cu o rază variabilă la "
 "coordonatele de latitudine/longitudine"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Un indicator de utilizat pentru culoare"
 
@@ -4637,6 +4640,9 @@ msgstr "Dimensiune font comparare"
 
 msgid "Comparison suffix"
 msgstr "Sufix comparare"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Compune mai multe straturi împreună pentru a forma vizualizări complexe."
@@ -10375,6 +10381,21 @@ msgstr "Parametri Metadate"
 msgid "Metadata has been synced"
 msgstr "Metadatele au fost sincronizate"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -12789,6 +12810,9 @@ msgstr "Reîncarcă"
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14552,6 +14576,9 @@ msgstr "Vizualizări semantice"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Trimite ca CSV"
 
@@ -14735,6 +14762,9 @@ msgstr "Partajează link permanent prin email"
 #, fuzzy
 msgid "Shared"
 msgstr "Partajat"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Interogare partajată"
@@ -15781,6 +15811,12 @@ msgstr "Sincronizează permisiuni"
 
 msgid "Sync columns from source"
 msgstr "Sincronizează coloanele din sursă"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -17067,6 +17103,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL-ul serviciului stratului"
 
@@ -18102,6 +18147,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Această secțiune conține erori de validare"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18905,6 +18953,9 @@ msgstr "Nu se poate citi fișierul, vă rugăm reîmprospătați și încercați
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Nu se pot prelua culorile panoului de control"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr ""

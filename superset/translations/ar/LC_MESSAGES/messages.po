@@ -1251,6 +1251,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr "خريطة تأخذ دوائر تجسيد ذات نصف قطر متغير عند إحداثيات خطوط الطول والعرض"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "مقياس للاستخدام للون"
 
@@ -4741,6 +4744,9 @@ msgstr "لاحقة المقارنة"
 
 msgid "Comparison suffix"
 msgstr "لاحقة المقارنة"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "قم بتكوين طبقات متعددة معا لتشكيل مرئيات معقدة."
@@ -10652,6 +10658,21 @@ msgstr "بارامترات البيانات الوصفية"
 msgid "Metadata has been synced"
 msgstr "تمت مزامنة البيانات الوصفية"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "متر"
@@ -13118,6 +13139,9 @@ msgstr "إعادة تحميل"
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14866,6 +14890,9 @@ msgstr "العروض الدلالية"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "أرسل كملف CSV"
 
@@ -15072,6 +15099,9 @@ msgstr "مشاركة الرابط الثابت عبر البريد الإلكت�
 #, fuzzy
 msgid "Shared"
 msgstr "شارك"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "استعلام مشترك"
@@ -16127,6 +16157,12 @@ msgstr "مزامنة الأذونات"
 
 msgid "Sync columns from source"
 msgstr "مزامنة الأعمدة من المصدر"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17437,6 +17473,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "عرض قيم السلسلة على الرسم البياني"
@@ -18459,6 +18504,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "يحتوي هذا القسم على أخطاء التحقق"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -19290,6 +19338,9 @@ msgstr "فشل تنزيل الصورة، يرجى التحديث والمحاو�
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "غير قادر على استرداد ألوان لوحة المعلومات"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

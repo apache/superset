@@ -1113,6 +1113,9 @@ msgstr ""
 "He mahere ka tango i ngā porohita me te pūtoro rerekē i ngā tūtohi "
 "latitude/longitude"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "He ine hei whakamahi mō te tae"
 
@@ -4523,6 +4526,9 @@ msgstr "Rahi momotuhi whakatairite"
 
 msgid "Comparison suffix"
 msgstr "Kūmuri whakatairite"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Whakakotahi i ngā papa maha hei hanga whakakite uaua."
@@ -10163,6 +10169,21 @@ msgstr "Tawhā Metadata"
 msgid "Metadata has been synced"
 msgstr "Kua hāngaitia te metadata"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "mita"
@@ -12559,6 +12580,9 @@ msgstr "Uta-anō"
 msgid "Reload SQL Lab"
 msgstr "Utahia anō te SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14269,6 +14293,9 @@ msgstr "ngā tirohanga tikanga"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Tuku hei CSV"
 
@@ -14467,6 +14494,9 @@ msgstr "Tuari hononga-ā-mau mā te īmēra"
 #, fuzzy
 msgid "Shared"
 msgstr "Tuari"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Pātai tuari"
@@ -15509,6 +15539,12 @@ msgstr "Hāngai Mōtika"
 
 msgid "Sync columns from source"
 msgstr "Hāngai tīwae mai i te puna"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -16779,6 +16815,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Te url ratonga o te papa"
 
@@ -17800,6 +17845,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Kei roto i tēnei wāhanga ngā hapa manatoko"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18605,6 +18653,9 @@ msgstr "I rahua te tikiake whakaahua, tēnā whakahouhia, ā, whakamātauhia an�
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Kāore e taea te tiki i ngā tae papatohu"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr "Kāore e taea te hāngai i ngā mōtika mō tēnei hononga pātengi raraunga."

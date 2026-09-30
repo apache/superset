@@ -999,6 +999,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr ""
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr ""
 
@@ -3968,6 +3971,9 @@ msgid "Comparison font size"
 msgstr ""
 
 msgid "Comparison suffix"
+msgstr ""
+
+msgid "Complete the semantic layer configuration before syncing metadata."
 msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
@@ -8955,6 +8961,21 @@ msgstr ""
 msgid "Metadata has been synced"
 msgstr ""
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 msgid "Meters"
 msgstr ""
 
@@ -11126,6 +11147,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -12597,6 +12621,9 @@ msgstr ""
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr ""
 
@@ -12755,6 +12782,9 @@ msgid "Share permalink by email"
 msgstr ""
 
 msgid "Shared"
+msgstr ""
+
+msgid "Shared metadata storage is unavailable. Try again later."
 msgstr ""
 
 msgid "Shared query"
@@ -13679,6 +13709,12 @@ msgid "Sync Permissions"
 msgstr ""
 
 msgid "Sync columns from source"
+msgstr ""
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
 msgstr ""
 
 #, python-format
@@ -14700,6 +14736,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr ""
 
@@ -15524,6 +15569,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -16205,6 +16253,9 @@ msgid "Unable to read the file, please refresh and try again."
 msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
+msgstr ""
+
+msgid "Unable to sync metadata. Try again later."
 msgstr ""
 
 msgid "Unable to sync permissions for this database connection."

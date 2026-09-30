@@ -1110,6 +1110,9 @@ msgstr ""
 "Un mapa que toma círculos de renderizado con un radio variable en "
 "coordenadas de latitud/longitud"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Una métrica que se puede usar para el color"
 
@@ -4512,6 +4515,9 @@ msgstr "Tamaño de fuente de comparación"
 
 msgid "Comparison suffix"
 msgstr "Sufijo de comparación"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Compone varias capas juntas para formar imágenes complejas."
@@ -10140,6 +10146,21 @@ msgstr "Parámetros de metadatos"
 msgid "Metadata has been synced"
 msgstr "Los metadatos se han sincronizado"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "metros"
@@ -12534,6 +12555,9 @@ msgstr "Volver a cargar"
 msgid "Reload SQL Lab"
 msgstr "Recargar SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14219,6 +14243,9 @@ msgstr "Vistas semánticas"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
 
@@ -14414,6 +14441,9 @@ msgstr "Compartir enlace permanente por correo electrónico"
 #, fuzzy
 msgid "Shared"
 msgstr "Compartir"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Consulta compartida"
@@ -15458,6 +15488,12 @@ msgstr "Sincronizar permisos"
 
 msgid "Sync columns from source"
 msgstr "Sincronizar columnas desde la fuente"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -16766,6 +16802,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "La URL de servicio de la capa"
 
@@ -17791,6 +17836,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Esta sección contiene errores de validación"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18591,6 +18639,9 @@ msgstr "La descarga de la imagen ha fallado; actualiza e inténtalo de nuevo."
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "No se han podido recuperar los colores del panel de control"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr ""

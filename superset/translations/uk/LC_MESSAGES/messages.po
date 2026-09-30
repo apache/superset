@@ -1150,6 +1150,9 @@ msgstr ""
 "Карта, яка малює кола різного радіуса на заданих координатах "
 "(широта/довгота)"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Показник, що впливає на колір"
 
@@ -4371,6 +4374,9 @@ msgstr "Розмір шрифту порівняння"
 
 msgid "Comparison suffix"
 msgstr "Суфікс порівняння"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "Поєднайте кілька шарів разом для створення складних візуалізацій."
@@ -9689,6 +9695,21 @@ msgstr "Параметри метаданих"
 msgid "Metadata has been synced"
 msgstr "Метадані актуалізовано"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 msgid "Meters"
 msgstr "Метри"
 
@@ -11988,6 +12009,9 @@ msgstr "Перезавантажити"
 msgid "Reload SQL Lab"
 msgstr "Перезавантажити SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -13613,6 +13637,9 @@ msgstr "Семантичні вигляди"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "Надіслати як CSV"
 
@@ -13781,6 +13808,9 @@ msgstr "Поділитися посиланням через лист"
 #, fuzzy
 msgid "Shared"
 msgstr "Поділитися"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "Спільний запит"
@@ -14783,6 +14813,12 @@ msgstr "Актуалізувати права доступів"
 
 msgid "Sync columns from source"
 msgstr "Актуалізувати стовпці з джерелом"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -15990,6 +16026,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Службове посилання шару"
 
@@ -16929,6 +16974,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Цей розділ містить помилки перевірки"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -17697,6 +17745,9 @@ msgstr "Не вдалося прочитати файл. Оновіть стор
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Не вдалося отримати кольори звіту"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr "Не вдалося актуалізувати права доступів для цього підʼєднання."

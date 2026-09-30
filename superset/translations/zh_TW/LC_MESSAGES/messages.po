@@ -1147,6 +1147,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr "在緯度/經度座標處以可變半徑繪製圓形的地圖"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "用於颜色的指標"
 
@@ -4665,6 +4668,9 @@ msgstr "最小字體大小"
 
 msgid "Comparison suffix"
 msgstr "比較前缀"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10691,6 +10697,21 @@ msgstr "元數據参數"
 msgid "Metadata has been synced"
 msgstr "元數據已同步"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "米"
@@ -13258,6 +13279,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新載入 SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -15020,6 +15044,9 @@ msgstr "語義視圖"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "發送為CSV"
 
@@ -15228,6 +15255,9 @@ msgstr "通過電子郵件分享链接"
 #, fuzzy
 msgid "Shared"
 msgstr "分享"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "已分享的查詢"
@@ -16311,6 +16341,12 @@ msgstr "同步權限"
 
 msgid "Sync columns from source"
 msgstr "從源同步列"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17573,6 +17609,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "在圖表上顯示系列值"
@@ -18581,6 +18626,9 @@ msgstr "本節包含允許對查詢结果進行高級分析處理後的選項。
 msgid "This section contains validation errors"
 msgstr "這部分有錯誤"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -19418,6 +19466,9 @@ msgstr "圖片發送失敗，請刷新或重試"
 #, fuzzy
 msgid "Unable to retrieve dashboard colors"
 msgstr "無法擷取儀表板顏色"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

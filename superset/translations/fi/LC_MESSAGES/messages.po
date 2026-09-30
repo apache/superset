@@ -1602,6 +1602,9 @@ msgstr ""
 "Kartta, joka piirtää ympyröitä vaihtelevalla säteellä "
 "leveysaste-/pituusastekoordinaateissa"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -7110,6 +7113,9 @@ msgstr "Vertailun fonttikoko"
 #, fuzzy
 msgid "Comparison suffix"
 msgstr "Vertailun jälkiliite"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16313,6 +16319,21 @@ msgstr "Metatietojen parametrit"
 msgid "Metadata has been synced"
 msgstr "Metatiedot on synkronoitu"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -20316,6 +20337,9 @@ msgstr "Lataa uudelleen"
 msgid "Reload SQL Lab"
 msgstr "Lataa SQL Lab uudelleen"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -23039,6 +23063,9 @@ msgstr "Semanttiset näkymät"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -23339,6 +23366,9 @@ msgstr "Jaa pysyvä linkki sähköpostitse"
 #, fuzzy
 msgid "Shared"
 msgstr "Jaa"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -25053,6 +25083,12 @@ msgstr "Synkronoi oikeudet"
 #, fuzzy
 msgid "Sync columns from source"
 msgstr "Synkronoi sarakkeet lähteestä"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -26867,6 +26903,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -28291,6 +28336,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Tämä osio sisältää validointivirheitä"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -29515,6 +29563,9 @@ msgstr "Tiedoston lukeminen epäonnistui. Päivitä sivu ja yritä uudelleen."
 #, fuzzy
 msgid "Unable to retrieve dashboard colors"
 msgstr "Koontinäytön värien hakeminen epäonnistui"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]

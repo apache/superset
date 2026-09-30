@@ -1094,6 +1094,9 @@ msgstr ""
 "அட்சரேகை/தீர்க்கரேகை (latitude/longitude) ஆயத்தொலைவுகளில் மாறுபடும் "
 "ஆரத்துடன் (radius) வட்டங்களை வரைந்து காட்டும் வரைபடம்"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "நிறத்திற்காகப் பயன்படுத்த வேண்டிய ஒரு அளவீடு (metric)"
 
@@ -4330,6 +4333,9 @@ msgstr "ஒப்பீட்டு எழுத்து அளவு"
 
 msgid "Comparison suffix"
 msgstr "ஒப்பீட்டுப் பின்னொட்டு (suffix)"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "சிக்கலான காட்சிகளை உருவாக்கப் பல அடுக்குகளை ஒன்றாக இணைக்கவும்."
@@ -9571,6 +9577,21 @@ msgstr "மெட்டாடேட்டா அளவுருக்கள்"
 msgid "Metadata has been synced"
 msgstr "மெட்டாடேட்டா ஒத்திசைக்கப்பட்டது"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 msgid "Meters"
 msgstr "மீட்டர்கள்"
 
@@ -11785,6 +11806,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -13325,6 +13349,9 @@ msgstr ""
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "CSV ஆக அனுப்பு"
 
@@ -13493,6 +13520,9 @@ msgstr "பெர்மாலின்க்கை மின்னஞ்சல�
 #, fuzzy
 msgid "Shared"
 msgstr "பகிர்"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "பகிரப்பட்ட வினவல்"
@@ -14473,6 +14503,12 @@ msgstr "அனுமதிகளை ஒத்திசைக்கவும்"
 
 msgid "Sync columns from source"
 msgstr "மூலத்திலிருந்து நெடுவரிசைகளை ஒத்திசைக்கவும்"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -15567,6 +15603,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "அடுக்கின் சேவை URL"
 
@@ -16453,6 +16498,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "இந்தப் பிரிவில் சரிபார்ப்பு பிழைகள் உள்ளன"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -17171,6 +17219,9 @@ msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "டாஷ்போர்டு நிறங்களைப் பெற முடியவில்லை"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr "இந்தத் தரவுத்தள இணைப்பிற்கான அனுமதிகளை ஒத்திசைக்க முடியவில்லை."

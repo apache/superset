@@ -1131,6 +1131,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr "一个在地理坐标上绘制可变半径圆的地图"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "用于颜色的指标"
 
@@ -4408,6 +4411,9 @@ msgstr "比较字体大小"
 
 msgid "Comparison suffix"
 msgstr "比较后缀"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10007,6 +10013,21 @@ msgstr "元数据参数"
 msgid "Metadata has been synced"
 msgstr "元数据已同步"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "米"
@@ -12430,6 +12451,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新加载 SQL 工具箱"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14057,6 +14081,9 @@ msgstr "语义视图"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "发送为CSV"
 
@@ -14248,6 +14275,9 @@ msgstr "通过电子邮件分享链接"
 
 msgid "Shared"
 msgstr "已共享"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "已分享的查询"
@@ -15267,6 +15297,12 @@ msgstr "同步权限"
 
 msgid "Sync columns from source"
 msgstr "从源同步列"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16449,6 +16485,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "图层的服务 URL"
 
@@ -17379,6 +17424,9 @@ msgstr "本节包含允许对查询结果进行高级分析后处理的选项。
 msgid "This section contains validation errors"
 msgstr "此部分包含验证错误"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18167,6 +18215,9 @@ msgstr "无法读取文件，请刷新后重试。"
 # uk]
 msgid "Unable to retrieve dashboard colors"
 msgstr "无法获取看板颜色"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

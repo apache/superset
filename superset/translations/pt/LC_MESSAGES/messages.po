@@ -1407,6 +1407,9 @@ msgstr ""
 "Um mapa que apresenta círculos com raio variável nas coordenadas de "
 "latitude/longitude"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "Uma métrica a utilizar para cor"
 
@@ -5609,6 +5612,9 @@ msgstr "Tamanho da fonte de comparação"
 # zh, zh_TW]
 msgid "Comparison suffix"
 msgstr "Sufixo de comparação"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12617,6 +12623,21 @@ msgstr "Parâmetros de Metadados"
 msgid "Metadata has been synced"
 msgstr "Os metadados foram sincronizados"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 msgid "Meters"
 msgstr "Metros"
 
@@ -15753,6 +15774,9 @@ msgstr "Recarregar"
 msgid "Reload SQL Lab"
 msgstr "Recarregar o SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -17740,6 +17764,9 @@ msgstr "Vistas semânticas"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -17987,6 +18014,9 @@ msgstr "Partilhar hiperligação permanente por e-mail"
 
 msgid "Shared"
 msgstr "Partilhado"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "query partilhada"
@@ -19326,6 +19356,12 @@ msgstr "Sincronizar Permissões"
 # uk, zh, zh_TW]
 msgid "Sync columns from source"
 msgstr "Sincronizar colunas da fonte"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -20912,6 +20948,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The service url of the layer"
@@ -22109,6 +22154,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Esta secção contém erros de validação"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -23091,6 +23139,9 @@ msgstr "Não foi possível ler o ficheiro, atualize a página e tente novamente.
 # uk]
 msgid "Unable to retrieve dashboard colors"
 msgstr "Não foi possível obter as cores do dashboard"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

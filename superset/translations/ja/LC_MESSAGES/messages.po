@@ -1009,6 +1009,9 @@ msgid ""
 "latitude/longitude coordinates"
 msgstr "緯度・経度座標上に、可変半径の円を描画する地図です。"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "色付けに使用するメトリック"
 
@@ -3995,6 +3998,9 @@ msgstr "比較表示のフォントサイズ"
 
 msgid "Comparison suffix"
 msgstr "比較表示の接尾辞"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "複数のレイヤーを組み合わせて複雑なビジュアルを作成します。"
@@ -8970,6 +8976,21 @@ msgstr "メタデータパラメータ"
 msgid "Metadata has been synced"
 msgstr "メタデータの同期が完了しました"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 msgid "Meters"
 msgstr "メートル"
 
@@ -11124,6 +11145,9 @@ msgstr "再読み込み"
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -12606,6 +12630,9 @@ msgstr "セマンティックビュー"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "CSVとして送信"
 
@@ -12767,6 +12794,9 @@ msgstr "固定リンクをメールで共有"
 
 msgid "Shared"
 msgstr "共有"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "共有クエリ"
@@ -13691,6 +13721,12 @@ msgstr "権限の同期"
 
 msgid "Sync columns from source"
 msgstr "ソースから列を同期"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 #, python-format
 msgid "Syncing permissions for %s"
@@ -14739,6 +14775,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "レイヤーのサービスURL"
 
@@ -15567,6 +15612,9 @@ msgstr "このセクションには、クエリ結果の高度な分析後処理
 msgid "This section contains validation errors"
 msgstr "このセクションには検証エラーが含まれています"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -16254,6 +16302,9 @@ msgstr "ファイルを読み込めませんでした。更新して再度お試
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "ダッシュボードの配色を取得できませんでした"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 msgid "Unable to sync permissions for this database connection."
 msgstr "このデータベース接続の権限を同期できませんでした。"

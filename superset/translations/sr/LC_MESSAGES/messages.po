@@ -1291,6 +1291,9 @@ msgstr ""
 "Карта која приказује кругове са променљивим радијусом на координатама "
 "географске ширине/дужине"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "A metric to use for color"
 msgstr "Метрика која се користи за боју"
@@ -5258,6 +5261,9 @@ msgstr "Величина фонта за поређење"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Comparison suffix"
 msgstr "Суфикс поређења"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Compose multiple layers together to form complex visuals."
@@ -11809,6 +11815,21 @@ msgstr "Параметри метаподатака"
 msgid "Metadata has been synced"
 msgstr "Метаподаци су синхронизовани"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 # uk]
 msgid "Meters"
 msgstr "Метри"
@@ -14648,6 +14669,9 @@ msgstr "Поново учитај"
 msgid "Reload SQL Lab"
 msgstr "Поново учитај SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -16574,6 +16598,9 @@ msgstr "Семантички прегледи"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Send as CSV"
 msgstr "Пошаљи као CSV"
@@ -16786,6 +16813,9 @@ msgstr "Подели трајну везу путем е-поште"
 
 msgid "Shared"
 msgstr "Дељено"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -18011,6 +18041,12 @@ msgstr "Синхронизуј дозволе"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sync columns from source"
 msgstr "Синхронизуј колоне из извора"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 #, python-format
@@ -19399,6 +19435,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 msgid "The service url of the layer"
 msgstr "URL адреса сервиса слоја"
@@ -20489,6 +20534,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "Овај одељак садржи грешке валидације"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -21386,6 +21434,9 @@ msgstr "Није могуће прочитати датотеку, освежи�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Unable to retrieve dashboard colors"
 msgstr "Није могуће преузети боје контролне табле"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Unable to sync permissions for this database connection."

@@ -1128,6 +1128,9 @@ msgstr ""
 "نقشه‌ای که دایره‌های رندر شده با شعاع متغیر را در مختصات عرض جغرافیایی / "
 "طول جغرافیایی نمایش می‌دهد"
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr "معیاری برای استفاده از رنگ"
 
@@ -4558,6 +4561,9 @@ msgstr "اندازه فونت مقایسه"
 
 msgid "Comparison suffix"
 msgstr "پسوند مقایسه"
+
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
 msgstr "چندین لایه را با هم ترکیب کنید تا تصاویری پیچیده تشکیل دهید."
@@ -10318,6 +10324,21 @@ msgstr "پارامترهای متا داده"
 msgid "Metadata has been synced"
 msgstr "متاداده همگام‌سازی شده است"
 
+msgid "Metadata is up to date"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+msgid "Metadata synced"
+msgstr ""
+
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
 #, fuzzy
 msgid "Meters"
 msgstr "متر"
@@ -12740,6 +12761,9 @@ msgstr "بارگذاری مجدد"
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
 
+msgid "Reload fields"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -14450,6 +14474,9 @@ msgstr "نماهای معنایی"
 msgid "Send Failed Reports"
 msgstr ""
 
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
 msgid "Send as CSV"
 msgstr "به‌عنوان CSV ارسال کنید"
 
@@ -14653,6 +14680,9 @@ msgstr "لینک دائمی را از طریق ایمیل به اشتراک بگ
 #, fuzzy
 msgid "Shared"
 msgstr "به اشتراک گذاری"
+
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
 
 msgid "Shared query"
 msgstr "کوئری مشترک"
@@ -15708,6 +15738,12 @@ msgstr "همگام‌سازی مجوزها"
 
 msgid "Sync columns from source"
 msgstr "همگام‌سازی ستون‌ها از منبع"
+
+msgid "Sync metadata"
+msgstr ""
+
+msgid "Syncing metadata…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16985,6 +17021,15 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "نمایش مقادیر سری در نمودار"
@@ -18013,6 +18058,9 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr "این بخش شامل خطاهای اعتبارسنجی است"
 
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
@@ -18818,6 +18866,9 @@ msgstr "دانلود تصویر ناموفق بود، لطفاً صفحه را �
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "نمی‌توان رنگ‌های داشبورد را بازیابی کرد"
+
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
