@@ -107,8 +107,9 @@ async def generate_chart(  # noqa: C901
       The two ID spaces are unrelated. Use saved metrics and named dimensions;
       ad-hoc aggregation and SQL metrics are not supported on semantic views.
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'gauge', 'treemap_v2', 'pivot_table', 'mixed_timeseries', 'handlebars',
-      'big_number', 'histogram', 'box_plot', 'waterfall', 'gantt', plus host-gated
+      'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
+      'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
+      'gantt', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
@@ -152,6 +153,9 @@ async def generate_chart(  # noqa: C901
     - chart_type='treemap_v2' for hierarchical part-to-whole.
       Required fields: groupby (ordered hierarchy), metric
 
+    - chart_type='bubble_v2' for a scatter of bubbles sized by a metric.
+      Required fields: entity, x, y, size (x/y/size are metrics)
+
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
       cumulative
@@ -181,6 +185,7 @@ async def generate_chart(  # noqa: C901
     - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
     - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
     - "treemap" / "hierarchy" -> chart_type='treemap_v2'
+    - "bubble" / "bubble chart" -> chart_type='bubble_v2'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
@@ -391,7 +396,8 @@ async def generate_chart(  # noqa: C901
                 if target is not None:
                     dataset = target.explorable
                 elif isinstance(request.dataset_id, int) or (
-                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                    isinstance(request.dataset_id, str)
+                    and request.dataset_id.isdecimal()
                 ):
                     dataset_id = (
                         int(request.dataset_id)
@@ -680,7 +686,7 @@ async def generate_chart(  # noqa: C901
             if target is not None:
                 numeric_dataset_id = target.id
             elif isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 candidate_id = (
                     int(request.dataset_id)
@@ -832,7 +838,7 @@ async def generate_chart(  # noqa: C901
                                     dataset_id_for_preview = target.id
                                 elif (
                                     isinstance(request.dataset_id, str)
-                                    and request.dataset_id.isdigit()
+                                    and request.dataset_id.isdecimal()
                                 ):
                                     dataset_id_for_preview = int(request.dataset_id)
                                 elif isinstance(request.dataset_id, int):

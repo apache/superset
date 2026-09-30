@@ -44,7 +44,6 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
-    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import (
     _compile_chart,
@@ -58,12 +57,11 @@ from superset.mcp_service.chart.datasource_resolver import (
     validate_semantic_view_form_data,
     view_not_found_error,
 )
+from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartConfig,
     ColumnRef,
-    GanttChartConfig,
-    GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
@@ -172,7 +170,8 @@ def _append_table_columns(
     columns: list[ColumnRef],
 ) -> dict[str, Any] | GenerateChartResponse:
     """Append table columns/metrics without replacing the saved column lists."""
-    if existing_form_data.get("viz_type") not in {"table", "ag-grid-table"}:
+    saved_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    if saved_plugin is None or not saved_plugin.supports_column_append:
         return _validation_error_response(
             message="'add_columns' is only supported for table charts.",
             details=(
@@ -204,7 +203,9 @@ def _append_table_columns(
     # empty. Route each kind by is_metric instead, to keep an aggregate chart
     # aggregate no matter which mix of columns is appended.
     metric_patch = (
-        map_config_to_form_data(TableChartConfig(columns=metric_columns))
+        map_config_to_form_data(
+            TableChartConfig(columns=metric_columns), include_disabled=True
+        )
         if metric_columns
         else {}
     )
@@ -425,18 +426,19 @@ def _build_replacement_form_data(
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id
+        parsed_config, dataset_id=effective_dataset_id, include_disabled=True
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
+    config_plugin = get_registry().get(parsed_config.chart_type, include_disabled=True)
     if (
         replacement_type == "table"
         and replacement_dataset_id is not None
-        and not isinstance(parsed_config, (GanttChartConfig, GaugeChartConfig))
+        and not (config_plugin is not None and config_plugin.strict_dataset_rebind)
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gantt and Gauge keep the
-        # stricter rebind contracts handled downstream.
+        # resolve, then merge as a same-dataset update. Plugins with a strict
+        # rebind contract handle the rebind in merge_update_form_data.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -658,20 +660,27 @@ def _validate_update_against_dataset(
         )
 
     try:
-        merged_gantt_config = validate_gantt_form_data(
-            form_data,
-            dataset.id,
+        merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        merged_config = (
+            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            if merged_plugin is not None
+            else None
         )
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(
             message="Gantt chart column roles are invalid",
             details=str(ex),
         )
-    if merged_gantt_config is not None:
+    except ValueError as ex:
+        return _validation_error_response(
+            message="Chart configuration is invalid",
+            details=str(ex),
+        )
+    if merged_config is not None:
         # Validation must describe the state that will actually be queried or
         # persisted, including any omitted series/subcategory values restored
         # from the saved chart.
-        parsed_config = merged_gantt_config
+        parsed_config = merged_config
 
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
@@ -985,15 +994,20 @@ async def update_chart(  # noqa: C901
         rebind_type: str
         is_rebind: bool
         rebind_id, rebind_type, is_rebind = _rebind_target(request, chart)
+        saved_plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
         if (
             is_rebind
             and request.config is None
-            and getattr(chart, "viz_type", None) == "gauge_chart"
+            and saved_plugin is not None
+            and saved_plugin.requires_config_for_dataset_rebind
         ):
             return _validation_error_response(
-                message="Gauge dataset rebind requires a complete Gauge config.",
+                message=(
+                    f"{saved_plugin.display_name} dataset rebind requires a "
+                    f"complete {saved_plugin.display_name} config."
+                ),
                 details=(
-                    "Provide chart_type='gauge' and a metric valid on the target "
+                    "Provide the chart type and complete roles valid on the target "
                     "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),
@@ -1052,7 +1066,28 @@ async def update_chart(  # noqa: C901
         new_form_data: dict[str, Any] | None = None
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
-        parsed_config = request.config
+        try:
+            config_plugin = (
+                get_registry().get(request.config.chart_type, include_disabled=True)
+                if request.config is not None
+                else None
+            )
+            parsed_config = (
+                config_plugin.resolve_update_config(
+                    request.config,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
+                )
+                if config_plugin is not None
+                else request.config
+            )
+        except ValueError as ex:
+            return _validation_error_response(
+                f"Invalid {config_plugin.display_name if config_plugin else 'chart'} "
+                "update configuration",
+                str(ex),
+            )
         validation_config = parsed_config
         if request.add_columns is not None:
             validation_config = TableChartConfig(columns=request.add_columns)

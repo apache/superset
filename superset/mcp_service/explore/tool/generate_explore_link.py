@@ -157,7 +157,7 @@ async def generate_explore_link(  # noqa: C901
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
             dataset = None
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 dataset_id_int = (
                     int(request.dataset_id)
@@ -312,7 +312,8 @@ async def generate_explore_link(  # noqa: C901
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=normalized_config.chart_type == "gauge",
+                run_compile_check=normalized_config.chart_type
+                in ("gauge", "treemap_v2"),
             )
         if not compile_result.success:
             await ctx.warning(

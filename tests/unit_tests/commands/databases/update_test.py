@@ -15,16 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
 from superset import db
-from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import (
+    DatabaseConnectionFailedError,
+    DatabaseInvalidError,
+)
 from superset.commands.database.update import UpdateDatabaseCommand
 from superset.constants import PASSWORD_MASK
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import security_manager
+from superset.models.core import Database
 from superset.utils import json
 from tests.conftest import with_config
 from tests.unit_tests.commands.databases.conftest import oauth2_client_info
@@ -672,6 +678,207 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     update_catalog_attribute.assert_called_once_with(1, "main")
 
 
+@pytest.fixture
+def unreachable_database(mocker: MockerFixture) -> Database:
+    """Set up a database whose permission-sync ping fails, without persistence."""
+    database = Database(
+        id=1,
+        database_name="Druid",
+        expose_in_sqllab=True,
+        impersonate_user=False,
+        extra='{"engine_params": {}, "metadata_params": {}}',
+        encrypted_extra='{"connect_args": {"jwt": "original-token"}}',
+    )
+    database.set_sqlalchemy_uri("druid://user:secret@localhost:8082/druid/v2/sql/")
+    mocker.patch(
+        "superset.commands.database.update.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+
+    def update(model: Database, properties: dict[str, Any]) -> Database:
+        """Apply the command's properties in place, as the DAO does."""
+        for key, value in properties.items():
+            setattr(model, key, value)
+        return model
+
+    mocker.patch(
+        "superset.commands.database.update.DatabaseDAO.update", side_effect=update
+    )
+    mocker.patch(
+        "superset.commands.database.update.DatabaseDAO.validate_update_uniqueness",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(security_manager, "get_user_by_username")
+    mocker.patch.object(database, "get_sqla_engine")
+    mocker.patch("superset.commands.database.sync_permissions.ping", return_value=False)
+    return database
+
+
+@pytest.mark.parametrize("full_payload", [False, True])
+@pytest.mark.parametrize("async_mode", [False, True])
+def test_update_unreachable_database_metadata(
+    mocker: MockerFixture,
+    unreachable_database: Database,
+    caplog: pytest.LogCaptureFixture,
+    full_payload: bool,
+    async_mode: bool,
+) -> None:
+    """An offline database can be hidden from SQL Lab with unchanged settings."""
+    from flask import current_app
+
+    mocker.patch.dict(
+        current_app.config, {"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": async_mode}
+    )
+    enqueue = mocker.patch(
+        "superset.commands.database.sync_permissions.sync_database_permissions_task.delay"
+    )
+    update_catalog = mocker.patch.object(
+        UpdateDatabaseCommand, "_update_catalog_attribute"
+    )
+    properties: dict[str, Any] = {"expose_in_sqllab": False}
+    if full_payload:
+        properties.update(
+            database_name="Druid",
+            sqlalchemy_uri=unreachable_database.sqlalchemy_uri,
+            masked_encrypted_extra=json.dumps({"connect_args": {"jwt": PASSWORD_MASK}}),
+            extra='{"metadata_params": {}, "engine_params": {}}',
+            impersonate_user=False,
+            server_cert=None,
+            ssh_tunnel=None,
+        )
+
+    result = UpdateDatabaseCommand(1, properties).run()
+
+    assert result is unreachable_database
+    assert result.expose_in_sqllab is False
+    assert result.password == "secret"  # noqa: S105
+    assert json.loads(result.encrypted_extra)["connect_args"]["jwt"] == "original-token"
+    assert "Skipping permission sync for database 1" in caplog.text
+    assert "original-token" not in caplog.text
+    enqueue.assert_not_called()
+    update_catalog.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "properties",
+    [
+        {"database_name": "Renamed"},
+        {"sqlalchemy_uri": "druid://user:secret@other-host:8082/druid/v2/sql/"},
+        {"sqlalchemy_uri": "druid://user:changed@localhost:8082/druid/v2/sql/"},
+        {"masked_encrypted_extra": '{"connect_args": {"jwt": "changed"}}'},
+        {
+            "sqlalchemy_uri": "druid://user:secret@localhost:8082/druid/v2/sql/",
+            "extra": '{"engine_params": {"connect_args": {"scheme": "https"}}}',
+        },
+        {"extra": '{"allow_multi_catalog": true}'},
+        {"server_cert": "changed-certificate"},
+        {"impersonate_user": True},
+        {"ssh_tunnel": None},
+    ],
+    ids=[
+        "rename",
+        "host",
+        "password",
+        "encrypted-extra",
+        "engine-params",
+        "catalogs",
+        "certificate",
+        "impersonation",
+        "remove-tunnel",
+    ],
+)
+def test_update_unreachable_database_changed_connection_fails(
+    mocker: MockerFixture,
+    unreachable_database: Database,
+    properties: dict[str, Any],
+) -> None:
+    """Changed connection settings or names still require a successful sync."""
+    if "sqlalchemy_uri" in properties:
+        # Keep these cases independent of stored extra credentials.
+        unreachable_database.encrypted_extra = None
+    if "ssh_tunnel" in properties:
+        unreachable_database.ssh_tunnel = SSHTunnel(server_address="localhost")
+    rollback = mocker.patch.object(db.session, "rollback")
+    commit = mocker.patch.object(db.session, "commit")
+
+    with pytest.raises(DatabaseConnectionFailedError):
+        UpdateDatabaseCommand(1, {"expose_in_sqllab": False, **properties}).run()
+
+    rollback.assert_called_once()
+    commit.assert_not_called()
+
+
+@pytest.mark.parametrize("field", ["extra", "encrypted_extra"])
+@pytest.mark.parametrize("invalid_original", [False, True], ids=["incoming", "stored"])
+def test_update_unreachable_database_invalid_json_fails(
+    mocker: MockerFixture,
+    unreachable_database: Database,
+    field: str,
+    invalid_original: bool,
+) -> None:
+    """Invalid JSON must not allow an update to skip a failed permission sync."""
+    if field == "extra":
+        # Reach JSON comparison without reusing secrets across engine-param changes.
+        unreachable_database.password = None
+        unreachable_database.encrypted_extra = None
+    properties: dict[str, Any] = {"expose_in_sqllab": False, field: "{invalid"}
+    if invalid_original:
+        setattr(unreachable_database, field, "{invalid")
+        properties[field] = "{}"
+    rollback = mocker.patch.object(db.session, "rollback")
+    commit = mocker.patch.object(db.session, "commit")
+
+    with pytest.raises(DatabaseConnectionFailedError):
+        UpdateDatabaseCommand(1, properties).run()
+
+    rollback.assert_called_once()
+    commit.assert_not_called()
+
+
+@pytest.mark.parametrize("connection_alive", [False, True])
+def test_update_with_missing_old_password(
+    mocker: MockerFixture,
+    unreachable_database: Database,
+    connection_alive: bool,
+) -> None:
+    """An unavailable old password must not prevent repairing the connection."""
+    from flask import current_app
+    from sqlalchemy.engine.url import URL
+
+    unreachable_database.encrypted_extra = None
+
+    def password_store(uri: URL) -> str:
+        """Only the replacement connection has a stored password."""
+        if uri.host == "localhost":
+            raise KeyError("The old password was removed")
+        return "new-secret"
+
+    mocker.patch.dict(
+        current_app.config, {"SQLALCHEMY_CUSTOM_PASSWORD_STORE": password_store}
+    )
+    mocker.patch(
+        "superset.commands.database.sync_permissions.ping",
+        return_value=connection_alive,
+    )
+    sync = mocker.patch(
+        "superset.commands.database.sync_permissions."
+        "SyncPermissionsCommand.sync_database_permissions"
+    )
+    new_uri = "druid://user:new-secret@replacement:8082/druid/v2/sql/"
+    command = UpdateDatabaseCommand(1, {"sqlalchemy_uri": new_uri})
+
+    if connection_alive:
+        result = command.run()
+        assert result is unreachable_database
+        assert result.sqlalchemy_uri_decrypted == new_uri
+        sync.assert_called_once()
+    else:
+        with pytest.raises(DatabaseConnectionFailedError):
+            command.run()
+        sync.assert_not_called()
+
+
 def test_update_host_change_requires_new_credentials(mocker: MockerFixture) -> None:
     """
     An update that repoints an existing database at a different host while
@@ -964,3 +1171,117 @@ def test_update_unrelated_fields_still_work(mocker: MockerFixture) -> None:
     UpdateDatabaseCommand(1, {"expose_in_sqllab": False}).run()
 
     database_dao.update.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "new_host, purged",
+    [
+        (None, False),
+        ("dbc-1234.cloud.databricks.com", False),
+        ("dbc-5678.cloud.databricks.com", True),
+    ],
+)
+def test_update_oauth2_derived_endpoints(
+    mocker: MockerFixture,
+    app_context: None,
+    new_host: str | None,
+    purged: bool,
+) -> None:
+    """
+    Endpoints derived from the host are compared with the new host's endpoints:
+    saving the same config keeps the tokens, and a new workspace host purges them.
+    """
+    client_info = {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "scope": "sql offline_access",
+    }
+    uri = "databricks://token:@{host}:443?http_path=/sql/1.0/warehouses/abc"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=uri.format(host="dbc-1234.cloud.databricks.com"),
+        encrypted_extra=json.dumps({"oauth2_client_info": client_info}),
+    )
+    purge_oauth2_tokens = mocker.patch.object(database, "purge_oauth2_tokens")
+    properties: dict[str, Any] = {
+        "encrypted_extra": json.dumps({"oauth2_client_info": client_info}),
+    }
+    if new_host:
+        properties["sqlalchemy_uri"] = uri.format(host=new_host)
+
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    command._handle_oauth2()
+
+    assert purge_oauth2_tokens.called is purged
+
+
+@pytest.mark.parametrize("new_client_info", ["not-a-dict", ["a", "b"], ""])
+def test_update_oauth2_malformed_client_info_purges_tokens(
+    mocker: MockerFixture,
+    app_context: None,
+    new_client_info: Any,
+) -> None:
+    """
+    A non-dict ``oauth2_client_info`` doesn't crash the update; it counts as a
+    change and purges the existing tokens.
+    """
+    client_info = {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "scope": "sql offline_access",
+    }
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": client_info}),
+    )
+    purge_oauth2_tokens = mocker.patch.object(database, "purge_oauth2_tokens")
+
+    command = UpdateDatabaseCommand(
+        1,
+        {"encrypted_extra": json.dumps({"oauth2_client_info": new_client_info})},
+    )
+    command._model = database
+    command._handle_oauth2()
+
+    purge_oauth2_tokens.assert_called_once()
+
+
+def test_update_oauth2_unresolvable_endpoints_purges_tokens(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    When the new URI has no host the endpoints can't be derived, so the raw
+    client info is compared and the tokens are purged instead of failing.
+    """
+    client_info = {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "scope": "sql offline_access",
+    }
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": client_info}),
+    )
+    purge_oauth2_tokens = mocker.patch.object(database, "purge_oauth2_tokens")
+
+    command = UpdateDatabaseCommand(
+        1,
+        {
+            "encrypted_extra": json.dumps({"oauth2_client_info": client_info}),
+            "sqlalchemy_uri": "databricks://token:@:443?http_path=/sql/1.0/warehouses/abc",
+        },
+    )
+    command._model = database
+    command._handle_oauth2()
+
+    purge_oauth2_tokens.assert_called_once()
