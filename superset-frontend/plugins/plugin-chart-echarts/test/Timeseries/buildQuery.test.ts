@@ -80,9 +80,8 @@ describe('Timeseries buildQuery', () => {
     });
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['count', 'na_sales']);
-    const pivot = (query.post_processing || []).find(
-      op => op?.operation === 'pivot',
-    );
+    const pivot = (query.post_processing || []).find(isPostProcessingPivot);
+    expect(pivot).toBeDefined();
     expect(pivot?.options).toMatchObject({
       index: ['genre'],
       columns: ['platform'],
@@ -126,6 +125,7 @@ describe('Timeseries buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['count', 'na_sales']);
     const pivot = (query.post_processing || []).find(isPostProcessingPivot);
+    expect(pivot).toBeDefined();
     // The sort metric survives the pivot under its base label only; its
     // time-shifted column is dropped along with the rest.
     expect(Object.keys(pivot?.options.aggregates ?? {}).sort()).toEqual([
