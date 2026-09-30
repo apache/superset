@@ -24,8 +24,9 @@ import pyarrow as pa
 import pytest
 from flask import Flask
 from flask_caching.backends.nullcache import NullCache
-from flask_caching.backends.rediscache import RedisSentinelCache
+from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
 from pytest_mock import MockerFixture
+from redis import Redis
 from redis.exceptions import TimeoutError as RedisTimeoutError
 from superset_core.semantic_layers.types import (
     AggregationType,
@@ -59,6 +60,7 @@ from superset.semantic_layers.cache_repository import (
     SemanticCacheLookupError,
     SemanticCacheLookupResult,
     SemanticCacheRepository,
+    SemanticCacheWriteFence,
 )
 from tests.unit_tests.semantic_layers.conftest import (
     build_semantic_query,
@@ -132,6 +134,72 @@ def test_coordination_constructs_private_bounded_client(
     assert kwargs["socket_timeout"] == expected
     assert kwargs["socket_connect_timeout"] == expected
     original._cache.assert_not_called()
+
+
+def test_fenced_write_wraps_backend_failure(mocker: MockerFixture) -> None:
+    """A failed atomic write exposes the cache boundary error and its cause."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    coordination: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    client: MagicMock = MagicMock()
+    coordination._cache = client
+    backend: SafeSemanticCacheBackend = SafeSemanticCacheBackend(
+        RedisCache(host=client)
+    )
+    failure: RedisTimeoutError = RedisTimeoutError("write timed out")
+    mocker.patch.object(coordination, "compare_owner_and_set", side_effect=failure)
+    fence: SemanticCacheWriteFence = SemanticCacheWriteFence(
+        "lease", "owner", lambda: True, coordination
+    )
+
+    raised: pytest.ExceptionInfo[SemanticCacheBackendError]
+    with pytest.raises(SemanticCacheBackendError, match="fenced set failed") as raised:
+        backend.set_if_owner(fence, "value", "payload", 60)
+
+    assert raised.value.__cause__ is failure
+    client.set.assert_not_called()
+
+
+def test_coordination_without_app_preserves_injected_client(
+    mocker: MockerFixture,
+) -> None:
+    """Without application configuration the injected client stays caller-owned."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+    from superset.semantic_layers.cache import _bounded_coordination_backend
+
+    original: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    mocker.patch("superset.semantic_layers.cache.has_app_context", return_value=False)
+    factory: MagicMock = mocker.patch.object(RedisCacheBackend, "from_config")
+
+    assert _bounded_coordination_backend(original, 0.25) is original
+    factory.assert_not_called()
+
+
+def test_coordination_bounds_sentinel_discovery_and_master() -> None:
+    """Private master and Sentinel discovery clients both have bounded retries."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+    from superset.semantic_layers.cache import _bounded_coordination_backend
+
+    app: Flask = Flask(__name__)
+    app.config["DISTRIBUTED_COORDINATION_CONFIG"] = {
+        "CACHE_TYPE": "RedisSentinelCache",
+        "CACHE_REDIS_SENTINELS": [("127.0.0.1", 26379), ("127.0.0.1", 26380)],
+    }
+    original: RedisSentinelCacheBackend = object.__new__(RedisSentinelCacheBackend)
+    with app.app_context():
+        bounded: OwnerTokenCoordinationBackend = _bounded_coordination_backend(
+            original, 0.25
+        )
+
+    assert isinstance(bounded, RedisSentinelCacheBackend)
+    assert bounded is not original
+    assert len(bounded._sentinel.sentinels) == 2
+    client: Redis
+    for client in [bounded._cache, *bounded._sentinel.sentinels]:
+        options: dict[str, Any] = client.connection_pool.connection_kwargs
+        assert options["socket_timeout"] == 0.25
+        assert options["socket_connect_timeout"] == 0.25
+        assert options["retry"].get_retries() == 0
 
 
 class _ImmediateCoordinator:
@@ -816,7 +884,7 @@ def test_initialize_disables_on_value_discarding_backend() -> None:
     so containment would pay for coordination without ever serving a hit."""
 
     class _WrappedBackend:
-        cache = NullCache()
+        cache: NullCache = NullCache()
 
     for backend in (NullCache(), _WrappedBackend()):
         state: SemanticCacheState = initialize_semantic_cache(
@@ -842,7 +910,7 @@ def test_initialize_disables_on_replica_read_backend() -> None:
             pass
 
     class _WrappedBackend:
-        cache = _StubSentinelBackend()
+        cache: _StubSentinelBackend = _StubSentinelBackend()
 
     for backend in (_StubSentinelBackend(), _WrappedBackend()):
         state: SemanticCacheState = initialize_semantic_cache(
@@ -857,3 +925,32 @@ def test_initialize_disables_on_replica_read_backend() -> None:
         assert state.effective is False
         assert state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND
         assert state.requested is True
+
+
+def test_fence_rejection_counts_miss_and_executes_provider() -> None:
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(),
+        missing_value_keys=frozenset({"stale"}),
+        fence_rejections=1,
+    )
+    metrics: MagicMock = MagicMock()
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics=metrics,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+    assert not outcome.cache_hit
+    provider.assert_called_once()
+    repository.prune_missing.assert_called_once_with(
+        build_view_meta(), frozenset({"stale"})
+    )
+    metrics.incr.assert_any_call("semantic_cache.containment.fence_reject")
+    metrics.incr.assert_any_call("semantic_cache.containment.miss")
