@@ -824,11 +824,16 @@ thumbnail cache. Requested viewport dimensions must be between 64 and 4096 pixel
 Capture uses the configured screenshot timeouts. Cancelling an MCP request does
 not immediately interrupt its rendering worker.
 
-`get_chart_preview` is excluded from the response-size guard by default because
-base64 PNG images routinely exceed its text budget. All preview formats from
-this tool are therefore not bounded by `MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`.
-Operators can remove the tool from `excluded_tools` to enforce that limit, but
-PNG requests may then fail after rendering.
+PNG responses have a separate serialized byte ceiling,
+`MCP_RESPONSE_SIZE_CONFIG["png_max_bytes"]` (default: 1,000,000 bytes),
+including base64 image data and preview metadata. The guard rejects larger
+responses with an error asking for smaller viewport dimensions or a URL preview.
+A viewport within the 64..4096 range can still exceed this byte ceiling,
+particularly with higher configured pixel density or detailed charts. Images are
+not truncated or silently rescaled. Other preview formats retain the normal
+`max_bytes` budget (default: 50,000 bytes). Operators can override `png_max_bytes`
+in `superset_config.py`; disabling the guard or explicitly excluding the tool
+also disables its image budget.
 
 PNG capture uses a dedicated two-worker executor per MCP process, separate from
 the pool used for transport authentication. Additional captures wait for a

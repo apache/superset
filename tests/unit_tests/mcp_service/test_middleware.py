@@ -1387,8 +1387,8 @@ class TestResponseSizeGuardMiddleware:
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
 
-    def test_default_config_excludes_rendered_chart_preview(self) -> None:
-        """PNG previews exceed the default text budget and cannot be truncated."""
+    def test_default_config_checks_chart_preview(self) -> None:
+        """Only PNG responses may use the separate image budget."""
         mock_flask_app = MagicMock()
         mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
 
@@ -1399,7 +1399,8 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
-        assert "get_chart_preview" in middleware.excluded_tools
+        assert middleware.png_max_bytes == 1_000_000
+        assert "get_chart_preview" not in middleware.excluded_tools
         assert "health_check" in middleware.excluded_tools
 
     def test_creates_middleware_when_enabled(self) -> None:
@@ -1407,6 +1408,7 @@ class TestCreateResponseSizeGuardMiddleware:
         mock_config = {
             "enabled": True,
             "max_bytes": 30000,
+            "png_max_bytes": 250000,
             "warn_threshold_pct": 75,
             "excluded_tools": ["health_check"],
         }
@@ -1423,6 +1425,7 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware is not None
         assert isinstance(middleware, ResponseSizeGuardMiddleware)
         assert middleware.max_bytes == 30000
+        assert middleware.png_max_bytes == 250000
         assert middleware.warn_threshold_pct == 75
         assert "health_check" in middleware.excluded_tools
 

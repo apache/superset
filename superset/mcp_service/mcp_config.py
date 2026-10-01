@@ -28,6 +28,7 @@ from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -448,6 +449,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
 # - max_bytes: Maximum serialized response size in bytes (default: 50,000)
+# - png_max_bytes: Maximum serialized PNG preview response size (default: 1,000,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,
@@ -467,6 +469,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "max_bytes": DEFAULT_MAX_RESPONSE_BYTES,
+    "png_max_bytes": DEFAULT_MAX_PNG_RESPONSE_BYTES,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
@@ -474,7 +477,6 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
-        "get_chart_preview",  # Rendered PNG previews exceed the text budget
     ],
 }
 
