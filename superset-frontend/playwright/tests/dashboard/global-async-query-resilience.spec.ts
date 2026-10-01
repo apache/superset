@@ -98,12 +98,14 @@ testWithAssets(
     // re-runs the identical broken query, so its text proves nothing about the
     // refresh. Require the failure to come back over the wire instead.
     const responseBodies: string[] = [];
-    page.on('response', response => {
-      if (response.url().includes(GAQ.CHART_DATA_PATH)) {
-        void response
-          .text()
-          .then(body => responseBodies.push(body))
-          .catch(() => {});
+    page.on('response', async response => {
+      if (!response.url().includes(GAQ.CHART_DATA_PATH)) {
+        return;
+      }
+      try {
+        responseBodies.push(await response.text());
+      } catch {
+        // A superseded request's body is no longer retrievable; nothing to record.
       }
     });
 
