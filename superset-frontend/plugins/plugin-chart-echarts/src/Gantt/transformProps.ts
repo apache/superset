@@ -48,7 +48,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   groupData,
-  measureTextWidth,
+  measureTextInkWidth,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -61,6 +61,7 @@ import { convertInteger } from '../utils/convertInteger';
 import { getTooltipLabels } from '../utils/tooltip';
 import {
   CATEGORY_LABEL_GAP,
+  CATEGORY_LABEL_TRUNCATE_GAP,
   Dimension,
   ELEMENT_HEIGHT_SCALE,
   MAX_CATEGORY_LABEL_WIDTH_RATIO,
@@ -215,6 +216,14 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const categoryLines: { yAxis: number; name?: string }[] = [];
   let sum = 0;
   let prevSum = 0;
+  let maxCategoryLabelWidth = 0;
+
+  // The category labels are drawn via the markLine `label` below, so its font
+  // must match the one measureTextInkWidth measures with (the theme's
+  // fontSizeSM / fontFamily), or the reserved grid area can end up narrower
+  // than the rendered text.
+  const categoryLabelFontSize = theme.fontSizeSM;
+  const categoryLabelFontFamily = theme.fontFamily;
 
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
@@ -225,6 +234,15 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       yAxis: seriesCount - (sum + prevSum) / 2,
       name,
     });
+
+    if (name) {
+      // Reserve the rendered glyphs' ink extent rather than only the advance
+      // width, which previously left labels clipped by a few pixels.
+      maxCategoryLabelWidth = Math.max(
+        maxCategoryLabelWidth,
+        measureTextInkWidth(name, theme),
+      );
+    }
 
     borderLines.push({ yAxis: seriesCount - sum });
 
@@ -238,13 +256,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   // category cannot eat the chart; anything past the cap is truncated with an
   // ellipsis by the label itself.
   const categoryLabelWidth = Math.min(
-    Math.ceil(
-      categoryLines.reduce(
-        (maxWidth, { name }) =>
-          name ? Math.max(maxWidth, measureTextWidth(name, theme)) : maxWidth,
-        0,
-      ),
-    ),
+    maxCategoryLabelWidth > 0
+      ? Math.ceil(maxCategoryLabelWidth) + CATEGORY_LABEL_TRUNCATE_GAP
+      : 0,
     Math.floor(width * MAX_CATEGORY_LABEL_WIDTH_RATIO),
   );
 
@@ -365,9 +379,8 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           position: 'start',
           formatter: '{b}',
           color: theme.colorText,
-          // Must match the font size measureTextWidth assumes above, or the
-          // reserved categoryLabelWidth won't match what actually renders.
-          fontSize: theme.fontSizeSM,
+          fontSize: categoryLabelFontSize,
+          fontFamily: categoryLabelFontFamily,
           width: categoryLabelWidth,
           overflow: 'truncate',
         },
