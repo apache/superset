@@ -3246,3 +3246,91 @@ test('TableChart should NOT emit cross-filter when clicking a cell in a not-filt
   );
   expect(crossFilterCall).toBeUndefined();
 });
+
+test.each([
+  { orderDesc: true, firstClickDesc: true },
+  { orderDesc: false, firstClickDesc: false },
+])(
+  'pushes the clicked column sort to the server own state when server pagination is enabled (order_desc $orderDesc)',
+  ({ orderDesc, firstClickDesc }) => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        order_desc: orderDesc,
+      },
+      hooks: { setDataMask },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: (
+          <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+        ),
+      }),
+    );
+
+    const lastPushedSortBy = () =>
+      setDataMask.mock.calls
+        .map(([mask]) => mask?.ownState?.sortBy)
+        .filter(Array.isArray)
+        .at(-1);
+
+    expect(lastPushedSortBy()).toBeUndefined();
+
+    // The first click sorts in the configured default direction and the
+    // second click flips it; each change is pushed with the column key.
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: firstClickDesc }),
+    ]);
+
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: !firstClickDesc }),
+    ]);
+  },
+);
+
+test('does not push a column sort to the server own state when server pagination is disabled', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      server_pagination: false,
+    },
+    hooks: { setDataMask },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['name'],
+        coltypes: [GenericDataType.String],
+        data: [{ name: 'Michael' }, { name: 'John' }],
+      },
+    ],
+  });
+  render(
+    ProviderWrapper({
+      children: (
+        <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+      ),
+    }),
+  );
+
+  fireEvent.click(screen.getByText('name'));
+
+  const pushedSort = setDataMask.mock.calls.some(([mask]) =>
+    Object.prototype.hasOwnProperty.call(mask?.ownState ?? {}, 'sortBy'),
+  );
+  expect(pushedSort).toBe(false);
+});
