@@ -1190,6 +1190,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
+    def count_select_expressions(self) -> int:
+        """
+        How many expressions this statement's ``SELECT`` list holds.
+
+        A caller that wraps a user-supplied fragment in ``SELECT <fragment>``
+        parses successfully whether the fragment is one expression or a
+        comma-separated list, and the two are not interchangeable: the second
+        returns more columns than the caller asked for. Returns 0 for anything
+        that is not a ``SELECT``.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return 0
+        return len(self._parsed.expressions)
+
     def get_niladic_functions(self) -> set[str]:
         """
         Names of functions called with no arguments.

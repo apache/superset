@@ -91,7 +91,7 @@
         "name": "PARTITION_FILTER_MAPPING",
         "default": false,
         "lifecycle": "development",
-        "description": "Configure and validate a mapping from a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune. For now this only stores and validates the mapping; no query consumer emits the mirrored predicate yet."
+        "description": "Map a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune. Filters on the mapped column are mirrored onto the partition column at query time, so enabling this changes the SQL charts emit rather than only storing configuration."
       },
       {
         "name": "PRESTO_EXPAND_DATA",
