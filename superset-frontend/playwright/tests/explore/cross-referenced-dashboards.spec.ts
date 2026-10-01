@@ -25,12 +25,11 @@
  * the API to reach the SEARCH_THRESHOLD (10) search-input behavior.
  */
 import type { Page } from '@playwright/test';
-import rison from 'rison';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPutChart } from '../../helpers/api/chart';
+import { getDashboardsByName } from '../../helpers/api/dashboard';
 import { createTestDashboard } from '../dashboard/dashboard-test-helpers';
-import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
-import { Select } from '../../components/core/Select';
+import { waitForPut } from '../../helpers/api/intercepts';
 import { ExplorePage } from '../../pages/ExplorePage';
 import { TIMEOUT } from '../../utils/constants';
 import { createExploreTestChart } from './explore-test-helpers';
@@ -44,57 +43,17 @@ async function overwriteToDashboard(
   chartId: number,
   dashboardName: string,
 ): Promise<void> {
-  // Wait for the initial options to load before triggering a search.
-  const dashboardsLoaded = waitForGet(page, 'api/v1/dashboard/', {
-    pathMatch: true,
-  });
   const saveModal = await explorePage.openSaveModal();
   await saveModal.selectSaveAction('overwrite');
-  const dashboardSelect = new Select(
-    page,
-    saveModal.body.locator('[data-test="Select a dashboard"]'),
-  );
-  await dashboardSelect.open();
-  const dashboardsResponse = await dashboardsLoaded;
-  expect(dashboardsResponse.ok()).toBe(true);
-  const { count, result }: { count: number; result: unknown[] } =
-    await dashboardsResponse.json();
-  // AsyncSelect filters locally when all options are loaded. Otherwise it
-  // debounces a GET with the dashboard_title filter encoded in Rison's q param.
-  const titleFilter = rison.encode({
-    col: 'dashboard_title',
-    opr: 'ct',
-    value: dashboardName,
-  });
-  const dashboardsSearched =
-    count > result.length
-      ? page.waitForResponse(response => {
-          const url = new URL(response.url());
-          return (
-            response.request().method() === 'GET' &&
-            url.pathname.endsWith('/api/v1/dashboard/') &&
-            (url.searchParams.get('q') ?? '').includes(titleFilter)
-          );
-        })
-      : undefined;
-  await dashboardSelect.type(dashboardName);
-  if (dashboardsSearched) {
-    expect((await dashboardsSearched).ok()).toBe(true);
-  }
-  const dashboardOption = page
-    .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
-    .locator('.ant-select-item-option')
-    .getByText(dashboardName, { exact: true });
-  await expect(dashboardOption).toBeVisible();
-  await dashboardOption.click();
-  await expect(
-    dashboardSelect.element.getByText(dashboardName, { exact: true }),
-  ).toBeVisible();
+  await saveModal.selectExistingDashboard(dashboardName);
   const updated = waitForPut(page, `api/v1/chart/${chartId}`, {
     pathMatch: true,
   });
   await saveModal.clickSave();
   expect((await updated).ok()).toBe(true);
+  // A duplicate here means the save created a new dashboard instead of
+  // picking the existing one; it would also escape testAssets cleanup.
+  expect((await getDashboardsByName(page, dashboardName)).count).toBe(1);
   await explorePage.waitForPageLoad();
 }
 
