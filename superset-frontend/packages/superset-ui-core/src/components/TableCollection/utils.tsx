@@ -95,13 +95,23 @@ export function mapColumns<T extends object>(
   columnsForWrapText?: string[],
 ) {
   return columns.map(column => {
-    const id = column.id ?? '';
+    // react-table backfills `id` from a string `accessor` for its own
+    // internal column instances, but callers routinely author raw column
+    // configs (the shape this function actually receives, per
+    // `ListViewColumn`) with only `accessor` set. Falling back to it here
+    // keeps every column's antd `key`/`dataIndex` unique; without it,
+    // id-less columns all collapse onto the same (undefined) key and antd
+    // can't tell them apart for sorting.
+    const id =
+      column.id ??
+      (typeof column.accessor === 'string' ? column.accessor : undefined) ??
+      '';
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
       title: column.Header as ReactNode,
-      dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
+      dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
-      key: column.id,
+      key: id,
       width: column.size
         ? COLUMN_SIZE_MAP[column.size as TableSize]
         : undefined,

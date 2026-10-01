@@ -412,9 +412,7 @@ test('should render a static Cell node alongside an ordinary accessor value', ()
     },
   ];
 
-  render(
-    <TableCollection {...defaultProps} columns={columnsWithStaticCell} />,
-  );
+  render(<TableCollection {...defaultProps} columns={columnsWithStaticCell} />);
 
   // A static `Cell` node renders as-is for every row...
   expect(screen.getAllByText('Static').length).toBeGreaterThan(0);
