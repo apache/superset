@@ -18,71 +18,25 @@
 """Column-error guidance uses only bounded, authorized dataset metadata."""
 
 from contextlib import nullcontext
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from superset.mcp_service.chart.schemas import GenerateChartRequest
+from superset.mcp_service.chart.schemas import ColumnRef, GenerateChartRequest
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("column", "names", "allowed", "expected_type", "guidance"),
-    [
-        (
-            "no_such_col",
-            ["month", "category", "revenue"],
-            True,
-            "column_not_found",
-            "No matching columns found",
-        ),
-        (
-            "categry",
-            ["month", "category", "revenue"],
-            True,
-            "column_not_found",
-            "Did you mean: category?",
-        ),
-        (
-            "revnue",
-            ["month", "category", "revenue"],
-            True,
-            "column_not_found",
-            "Did you mean: revenue?",
-        ),
-        (
-            "no_such_col",
-            [],
-            True,
-            "multiple_invalid_columns",
-            "No matching columns found",
-        ),
-        (
-            "no_such_col",
-            ["month", "category", "revenue"],
-            False,
-            "dataset_not_found",
-            None,
-        ),
-        (
-            "gross_margi",
-            ["month", "category", "revenue"],
-            True,
-            "column_not_found",
-            "No matching columns found",
-        ),
-    ],
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    MAX_ERROR_CONTEXT_COLUMNS,
 )
-async def test_generate_chart_column_guidance(
-    column: str,
-    names: list[str],
-    allowed: bool,
-    expected_type: str,
-    guidance: str | None,
-) -> None:
-    """Exercise the reported unsaved bar request through the real pipeline."""
-    dataset = Mock(
+from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+
+GET_DATASET_INFO = "Use get_dataset_info to see available columns"
+
+
+def _orm_dataset(names: list[str]) -> Mock:
+    return Mock(
         id=268,
         table_name="sales_fixture",
         schema=None,
@@ -104,7 +58,10 @@ async def test_generate_chart_column_guidance(
             )
         ],
     )
-    request = GenerateChartRequest.model_validate(
+
+
+def _bar_request(column: str) -> GenerateChartRequest:
+    return GenerateChartRequest.model_validate(
         {
             "dataset_id": 268,
             "save_chart": False,
@@ -116,13 +73,29 @@ async def test_generate_chart_column_guidance(
             },
         }
     )
-    ctx = Mock(
+
+
+def _ctx() -> Mock:
+    return Mock(
         info=AsyncMock(),
         debug=AsyncMock(),
         warning=AsyncMock(),
         error=AsyncMock(),
         report_progress=AsyncMock(),
     )
+
+
+async def _run_generate_chart(
+    column: str, names: list[str], access: dict[str, Any]
+) -> tuple[Any, Mock, Mock]:
+    """Drive the reported unsaved bar request through the real pipeline.
+
+    Patching ``find_by_id`` to return the dataset regardless of the acting user
+    simulates a dataset the DAO's ``DatasourceFilter`` admits while the security
+    manager's access check denies it — the only case where the tool-level check
+    changes the outcome.
+    """
+    dataset = _orm_dataset(names)
     with (
         patch(
             "superset.mcp_service.chart.tool.generate_chart.event_logger.log_context",
@@ -135,10 +108,67 @@ async def test_generate_chart_column_guidance(
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch(
             "superset.mcp_service.auth.security_manager.can_access_datasource",
-            return_value=allowed,
-        ) as access,
+            **access,
+        ) as checked,
     ):
-        result = await generate_chart(request, ctx=ctx)
+        result = await generate_chart(_bar_request(column), ctx=_ctx())
+    return result, checked, dataset
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("column", "names", "expected_type", "guidance", "ranked_names"),
+    [
+        (
+            "no_such_col",
+            ["month", "category", "revenue"],
+            "column_not_found",
+            "No matching columns found",
+            ["month", "category", "revenue"],
+        ),
+        (
+            "categry",
+            ["month", "category", "revenue"],
+            "column_not_found",
+            "Did you mean: category?",
+            ["category", "month", "revenue"],
+        ),
+        (
+            "revnue",
+            ["month", "category", "revenue"],
+            "column_not_found",
+            "Did you mean: revenue?",
+            ["revenue", "month", "category"],
+        ),
+        # An empty schema also invalidates the ``y`` reference, so two distinct
+        # columns are missing and the plural error is the correct outcome.
+        (
+            "no_such_col",
+            [],
+            "multiple_invalid_columns",
+            "No matching columns found",
+            [],
+        ),
+        (
+            "gross_margi",
+            ["month", "category", "revenue"],
+            "column_not_found",
+            "No matching columns found",
+            ["month", "category", "revenue"],
+        ),
+    ],
+)
+async def test_generate_chart_column_guidance(
+    column: str,
+    names: list[str],
+    expected_type: str,
+    guidance: str,
+    ranked_names: list[str],
+) -> None:
+    """Guidance names real candidates and never echoes the caller's input."""
+    result, checked, dataset = await _run_generate_chart(
+        column, names, {"return_value": True}
+    )
 
     assert result.success is False
     assert result.error is not None
@@ -147,37 +177,55 @@ async def test_generate_chart_column_guidance(
     suggestions = " ".join(error.suggestions)
     assert column not in suggestions
     assert "Check available columns?" not in suggestions
+    # ``gross_margin`` is a saved metric: never a candidate for a dimension.
     assert "gross_margin" not in suggestions
-    if guidance:
-        assert suggestions.count("Use get_dataset_info to see available columns") == 1
-        assert guidance in suggestions
-        if guidance == "No matching columns found":
-            assert "Did you mean:" not in suggestions
-        assert error.dataset_context is not None
-        assert error.dataset_context.available_columns == [
-            {"name": name} for name in names
-        ]
-        assert error.dataset_context.available_metrics == []
-    else:
-        assert error.dataset_context is None
-        for name in names:
-            assert name not in error.model_dump_json()
-    access.assert_called_with(datasource=dataset)
+    assert suggestions.count(GET_DATASET_INFO) == 1
+    assert guidance in suggestions
+    if guidance == "No matching columns found":
+        assert "Did you mean:" not in suggestions
+    assert error.dataset_context is not None
+    assert error.dataset_context.available_columns == [
+        {"name": name} for name in ranked_names
+    ]
+    # The dataset's saved metrics are listed, so the caller can tell an empty
+    # metric list from a dataset that simply wasn't asked about.
+    assert error.dataset_context.available_metrics == [{"name": "gross_margin"}]
+    checked.assert_called_with(datasource=dataset)
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "missing", [["private_input"], ["private_input", "other_input"]]
+    "access",
+    [
+        pytest.param({"return_value": False}, id="denied"),
+        pytest.param({"side_effect": RuntimeError("boom")}, id="raises"),
+    ],
 )
-def test_column_context_is_bounded_and_sanitized(missing: list[str]) -> None:
-    """Neither raw references nor unrestricted metadata become suggestions."""
-    from superset.mcp_service.chart.schemas import ColumnRef
-    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-    from superset.mcp_service.common.error_schemas import DatasetContext
+async def test_generate_chart_withholds_metadata_without_access(
+    access: dict[str, Any],
+) -> None:
+    """A denied or failing access check withholds all dataset metadata."""
+    names = ["month", "category", "revenue"]
+    result, checked, dataset = await _run_generate_chart("no_such_col", names, access)
 
-    names = ["<fixture>", "x" * 1000] + [f"column_{i}" for i in range(20)]
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_type == "dataset_not_found"
+    assert getattr(result.error, "dataset_context", None) is None
+    payload = result.error.model_dump_json()
+    for name in [*names, "sales_fixture", "gross_margin"]:
+        assert name not in payload
+    checked.assert_called_with(datasource=dataset)
+
+
+def test_column_context_is_bounded_and_names_only() -> None:
+    """Context carries verbatim names, bounded by count, without expressions."""
+    names = ["Customer's Name", "Sales & Marketing", "y" * 255] + [
+        f"column_{i}" for i in range(20)
+    ]
     context = DatasetContext(
         id=268,
-        table_name="fixture",
+        table_name="Sales & Marketing",
         database_name="fixture",
         available_columns=[
             {"name": name, "expression": "PRIVATE SQL"} for name in names
@@ -185,40 +233,94 @@ def test_column_context_is_bounded_and_sanitized(missing: list[str]) -> None:
         available_metrics=[{"name": "metric", "expression": "PRIVATE SQL"}],
     )
     error = DatasetValidator._validate_columns_exist(
-        [ColumnRef(name=name) for name in missing], context
+        [ColumnRef(name="private_input")], context
     )
     assert error is not None
     assert error.dataset_context is not None
     columns = error.dataset_context.available_columns
-    assert len(columns) == 10
-    assert columns[0] == {"name": "&lt;fixture&gt;"}
-    assert len(columns[1]["name"]) < 220
+    assert len(columns) == MAX_ERROR_CONTEXT_COLUMNS
+    # Verbatim per the Tool Result Value Contract: no escaping, no truncation.
+    assert columns[0] == {"name": "Customer's Name"}
+    assert columns[1] == {"name": "Sales & Marketing"}
+    assert columns[2] == {"name": "y" * 255}
+    assert error.dataset_context.table_name == "Sales & Marketing"
+    assert error.dataset_context.available_metrics == [{"name": "metric"}]
     assert "PRIVATE SQL" not in error.model_dump_json()
     assert len(error.suggestions) <= 10
-    for name in missing:
-        assert name not in " ".join(error.suggestions)
+    assert "private_input" not in " ".join(error.suggestions)
 
 
-def test_column_candidates_are_bounded_and_sanitized() -> None:
+def test_truncated_context_says_how_many_columns_exist() -> None:
+    """A partial column list tells the caller it was cut off."""
+    context = DatasetContext(
+        id=268,
+        table_name="fixture",
+        database_name="fixture",
+        available_columns=[{"name": f"column_{i}"} for i in range(25)],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="no_such_col")], context
+    )
+    assert error is not None
+    assert (
+        f"Showing {MAX_ERROR_CONTEXT_COLUMNS} of 25 columns; "
+        "call get_dataset_info for the full list" in error.suggestions
+    )
+
+
+def test_suggested_column_is_never_cut_from_the_context() -> None:
+    """Fuzzy candidates lead the bounded context, ahead of schema order."""
+    context = DatasetContext(
+        id=268,
+        table_name="fixture",
+        database_name="fixture",
+        available_columns=[{"name": f"col_{i:02d}"} for i in range(10)]
+        + [{"name": "customer_region"}],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="customer_regin")], context
+    )
+    assert error is not None
+    assert "Did you mean: customer_region?" in error.suggestions
+    assert error.dataset_context is not None
+    assert error.dataset_context.available_columns[0] == {"name": "customer_region"}
+
+
+def test_each_candidate_gets_its_own_sanitization_budget() -> None:
+    """Candidates are a list template var, not one pre-joined string.
+
+    A shared 200-character budget cut the third name mid-word and dropped the
+    closing ``?``; one candidate matching the filter regex blanked the whole
+    line.
+    """
+    long_names = [f"{letter * 63}{i}" for i, letter in enumerate("abc")]
+    error = ChartErrorBuilder.column_not_found_error("private_input", long_names)
+    line = next(s for s in error.suggestions if s.startswith("Did you mean:"))
+    assert line == f"Did you mean: {', '.join(long_names)}?"
+
+    filtered = ChartErrorBuilder.column_not_found_error(
+        "private_input", ["data:revenue", "revenue", "category"]
+    )
+    line = next(s for s in filtered.suggestions if s.startswith("Did you mean:"))
+    assert line == "Did you mean: [FILTERED], revenue, category?"
+    assert "private_input" not in " ".join(filtered.suggestions)
+
+
+def test_column_candidates_are_escaped_and_capped() -> None:
     """Candidate guidance retains escaping and the three-candidate cap."""
-    from superset.mcp_service.utils.error_builder import ChartErrorBuilder
-
     error = ChartErrorBuilder.column_not_found_error(
         "private_input", ["<fixture>", "revenue", "category", "excluded"]
     )
     assert error.error_type == "column_not_found"
     assert error.error_code == "CHART_COLUMN_NOT_FOUND"
-    assert error.suggestions[-1] == "Did you mean: &lt;fixture&gt;, revenue, category?"
+    assert "Did you mean: &lt;fixture&gt;, revenue, category?" in error.suggestions
+    assert "excluded" not in " ".join(error.suggestions)
     assert "private_input" not in " ".join(error.suggestions)
 
 
 @pytest.mark.parametrize("names", [[], ["revenue", "category"]])
 def test_multiple_column_guidance_uses_real_candidates(names: list[str]) -> None:
     """Multiple errors share the same real-candidate/no-match behavior."""
-    from superset.mcp_service.chart.schemas import ColumnRef
-    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-    from superset.mcp_service.common.error_schemas import DatasetContext
-
     context = DatasetContext(
         id=268,
         table_name="fixture",
@@ -234,19 +336,53 @@ def test_multiple_column_guidance_uses_real_candidates(names: list[str]) -> None
     assert error.message == "Multiple columns not found in dataset"
     assert error.details == "Invalid columns: revnue, categry"
     if names:
-        assert error.suggestions[-1] == "Did you mean: revenue, category?"
+        assert "Did you mean: revenue, category?" in error.suggestions
     else:
-        assert error.suggestions[-1].startswith("No matching columns found.")
+        assert "No matching columns found." in error.suggestions
     assert "revnue" not in " ".join(error.suggestions)
     assert "categry" not in " ".join(error.suggestions)
 
 
+def test_shared_candidate_cap_is_filled_round_robin() -> None:
+    """One missing column with many matches can't take every candidate slot."""
+    context = DatasetContext(
+        id=268,
+        table_name="fixture",
+        database_name="fixture",
+        available_columns=[
+            {"name": name}
+            for name in ["revenue", "revenue_usd", "revenue_eur", "category"]
+        ],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="revnue"), ColumnRef(name="categry")], context
+    )
+    assert error is not None
+    line = next(s for s in error.suggestions if s.startswith("Did you mean:"))
+    # ``revnue`` alone matches three columns; ``category`` must still appear.
+    assert line == "Did you mean: revenue, category, revenue_usd?"
+
+
+def test_one_column_referenced_twice_is_not_a_multiple_error() -> None:
+    """The plural branch counts distinct names, not refs."""
+    context = DatasetContext(
+        id=268,
+        table_name="fixture",
+        database_name="fixture",
+        available_columns=[{"name": "region"}],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="regon"), ColumnRef(name="regon")], context
+    )
+    assert error is not None
+    assert error.error_type == "column_not_found"
+    assert error.error_code == "CHART_COLUMN_NOT_FOUND"
+    assert error.message == "Column 'regon' not found in dataset"
+    assert "Did you mean: region?" in error.suggestions
+
+
 def test_multiple_column_details_preserve_bounded_escaped_names() -> None:
     """Invalid names belong in bounded details, not candidate guidance."""
-    from superset.mcp_service.chart.schemas import ColumnRef
-    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-    from superset.mcp_service.common.error_schemas import DatasetContext
-
     context = DatasetContext(id=268, table_name="fixture", database_name="fixture")
     error = DatasetValidator._build_column_error(
         [ColumnRef.model_construct(name="<missing>"), ColumnRef(name="x" * 250)],
@@ -254,6 +390,92 @@ def test_multiple_column_details_preserve_bounded_escaped_names() -> None:
         context,
     )
 
-    assert error.details == "Invalid columns: &lt;missing&gt;, " + "x" * 189 + (
-        "...[truncated]"
+    assert error.details.startswith("Invalid columns: &lt;missing&gt;, x")
+    assert error.details.endswith("...[truncated]")
+    assert "<missing>" not in error.details
+
+
+def test_aggregate_near_miss_points_at_the_saved_metric() -> None:
+    """A metric-slot typo must not dead-end on 'No matching columns found.'"""
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": name} for name in ["ds", "gender", "name", "num"]],
+        available_metrics=[{"name": "sum_boys"}, {"name": "sum_girls"}],
     )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="num_boys", aggregate="SUM")], context
+    )
+    assert error is not None
+    assert error.error_type == "column_not_found"
+    hint = next(
+        s for s in error.suggestions if s.startswith("Did you mean the saved metric")
+    )
+    assert "'sum_boys'" in hint
+    assert '"saved_metric": true' in hint
+    # Never steer the caller back to the broken SUM(metric) shape.
+    assert "num_boys" not in " ".join(error.suggestions)
+    assert error.dataset_context is not None
+    assert error.dataset_context.available_metrics == [
+        {"name": "sum_boys"},
+        {"name": "sum_girls"},
+    ]
+
+
+def test_dimension_near_miss_never_points_at_a_saved_metric() -> None:
+    """Without an aggregate the slot needs a physical column, so no hint."""
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": "ds"}],
+        available_metrics=[{"name": "sum_boys"}],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="num_boys")], context
+    )
+    assert error is not None
+    suggestions = " ".join(error.suggestions)
+    assert "sum_boys" not in suggestions
+    assert "No matching columns found." in error.suggestions
+
+
+def test_physical_column_candidate_wins_over_a_metric_hint() -> None:
+    """A real column match is the more direct fix, so the hint stays out."""
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": "num_boys_total"}],
+        available_metrics=[{"name": "num_boys_sum"}],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="num_boys_totl", aggregate="SUM")], context
+    )
+    assert error is not None
+    assert "Did you mean: num_boys_total?" in error.suggestions
+    assert all(
+        not s.startswith("Did you mean the saved metric") for s in error.suggestions
+    )
+
+
+@pytest.mark.parametrize(
+    ("include_metrics", "expected"),
+    [(False, []), (True, ["sum_boys"])],
+)
+def test_metrics_are_suggested_only_where_they_are_legal(
+    include_metrics: bool, expected: list[str]
+) -> None:
+    """HAVING subjects may name a saved metric; dimensions and WHERE may not."""
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": "ds"}],
+        available_metrics=[{"name": "sum_boys"}],
+    )
+    suggestions = DatasetValidator._get_column_suggestions(
+        "sum_boy", context, include_metrics=include_metrics
+    )
+    assert [s.name for s in suggestions] == expected

@@ -35,7 +35,7 @@ from __future__ import annotations
 import logging
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Tuple
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -234,7 +234,9 @@ def _validate_adhoc_filter_columns(
     and surface only when Explore tries to run the query.
     """
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
-    invalid: List[str] = []
+    # (column, clause) pairs: the clause decides whether a saved metric is a
+    # legal reference, and so whether metrics belong in the suggestions.
+    invalid: List[Tuple[str, str]] = []
     for f in adhoc_filters:
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
@@ -247,7 +249,7 @@ def _validate_adhoc_filter_columns(
         clause = f.get("clause", "WHERE").upper()
         try:
             if not _adhoc_filter_column_valid(column, clause, dataset_context):
-                invalid.append(column)
+                invalid.append((column, clause))
         except AmbiguousDatasetReferenceError as ex:
             return DatasetValidator._build_ambiguous_reference_error(ex)
 
@@ -255,9 +257,9 @@ def _validate_adhoc_filter_columns(
         return None
 
     suggestions: List[str] = []
-    for column in invalid:
+    for column, clause in invalid:
         for suggestion in DatasetValidator._get_column_suggestions(
-            column, dataset_context
+            column, dataset_context, include_metrics=clause == "HAVING"
         ):
             name = (
                 suggestion.name
@@ -267,7 +269,7 @@ def _validate_adhoc_filter_columns(
             if name and name not in suggestions:
                 suggestions.append(name)
 
-    bad = ", ".join(sorted(set(invalid)))
+    bad = ", ".join(sorted({column for column, _ in invalid}))
     return ChartGenerationError(
         error_type="invalid_column",
         message=(f"Filter references column(s) not in dataset: {bad}"),

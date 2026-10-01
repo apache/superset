@@ -23,6 +23,7 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -85,6 +86,36 @@ def _orm_dataset(
     return dataset
 
 
+def _assert_saved_metric_hint(error: Any) -> None:
+    """A metric-slot typo is steered at the saved metric, not SUM(column).
+
+    ``num_boys`` is neither a column nor an exact metric name, so the physical
+    column pass finds nothing. Without the metric near-miss hint the caller
+    dead-ends on "No matching columns found." and its likely next move is
+    ``SUM(num)`` — a valid chart answering a different question.
+    """
+    assert error.error_type == "column_not_found"
+    hint = next(
+        s for s in error.suggestions if s.startswith("Did you mean the saved metric")
+    )
+    assert "'sum_boys'" in hint
+    assert '"saved_metric": true' in hint
+    # Never suggest the broken SUM(metric) shape.
+    assert all("SUM(sum_boys)" not in s for s in error.suggestions)
+    assert error.dataset_context is not None
+    assert {c["name"] for c in error.dataset_context.available_columns} == {
+        "ds",
+        "gender",
+        "name",
+        "num",
+    }
+    # The dataset's saved metrics are listed, so an empty list means "none".
+    assert {m["name"] for m in error.dataset_context.available_metrics} == {
+        "sum_boys",
+        "sum_girls",
+    }
+
+
 class TestBuildDatasetContextFromOrm:
     """Cover the helper that converts ORM dataset → DatasetContext."""
 
@@ -127,13 +158,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert result.error_obj.error_type == "column_not_found"
-        assert result.error_obj.suggestions[-1].startswith("No matching columns found.")
-        assert all("sum_boys" not in s for s in result.error_obj.suggestions)
-        assert result.error_obj.dataset_context is not None
-        assert {
-            c["name"] for c in result.error_obj.dataset_context.available_columns
-        } == {"ds", "gender", "name", "num"}
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_bad_metric_column_rejected(self):
         ds = _orm_dataset()
@@ -145,13 +170,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success, "Pie chart with bad metric column should fail"
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert result.error_obj.error_type == "column_not_found"
-        assert result.error_obj.suggestions[-1].startswith("No matching columns found.")
-        assert all("sum_boys" not in s for s in result.error_obj.suggestions)
-        assert result.error_obj.dataset_context is not None
-        assert {
-            c["name"] for c in result.error_obj.dataset_context.available_columns
-        } == {"ds", "gender", "name", "num"}
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_valid_dimension_and_saved_metric_passes(self):
         ds = _orm_dataset()
@@ -444,6 +463,39 @@ class TestAdhocFiltersFromFormData:
         assert result.success, (
             "A saved-metric name in a HAVING filter should pass Tier-1 validation"
         )
+
+    @pytest.mark.parametrize(
+        ("clause", "suggested"),
+        [("HAVING", True), ("WHERE", False)],
+    )
+    def test_metric_suggestions_follow_the_filter_clause(
+        self, clause: str, suggested: bool
+    ):
+        """A stale HAVING subject gets the metric back; WHERE must not.
+
+        A HAVING subject may legitimately name a saved metric, so a misspelled
+        one should be offered the metric. In WHERE only a physical column is
+        legal, so suggesting a metric would steer the caller into invalid SQL.
+        """
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
+        )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "sum_boy",  # near-miss of the saved metric
+                    "operator": ">",
+                    "comparator": "0",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert ("sum_boys" in result.error_obj.suggestions) is suggested
 
 
 class TestValidateAndCompileTier2:
