@@ -21,6 +21,7 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseNotFoundValidationError,
@@ -32,6 +33,10 @@ from superset.commands.dataset.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.commands.utils import populate_subjects
+from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    validate_partition_mapping,
+)
 from superset.daos.dataset import DatasetDAO
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
@@ -248,5 +253,52 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
         populate_subjects(self._properties, exceptions, include_viewers=False)
 
+        self._validate_partition_mapping(exceptions)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _validate_partition_mapping(self, exceptions: list[ValidationError]) -> None:
+        """
+        Reject a partition mapping that cannot work, at create time too.
+
+        `UpdateDatasetCommand` has validated this since the mapping landed, but
+        create did not, so the same mapping accepted on POST and rejected on PUT
+        was reachable -- and once stored it is only reported as broken by the
+        editor, which an API-only caller never opens.
+
+        What create can check is narrower than what update can. The dataset's
+        columns are synced by `fetch_metadata` *after* this runs, so "is that a
+        real column?" has no answer yet; both submitted names are therefore
+        passed as known so the existence checks pass trivially and the checks
+        that do not need a column list still run. There is no column payload on
+        POST either, so no transform can arrive here to validate.
+        """
+        if not is_feature_enabled(PARTITION_FILTER_MAPPING):
+            return
+
+        partition_column = self._properties.get("partition_column")
+        database = self._properties.get("database")
+        if not partition_column or not database:
+            # No database means the caller already has a
+            # `DatabaseNotFoundValidationError`; there is no engine to validate
+            # a mapping against and no value in a second error about it.
+            return
+
+        partition_mapped_column = self._properties.get("partition_mapped_column")
+        for issue in validate_partition_mapping(
+            column_names={
+                name
+                for name in (partition_column, partition_mapped_column)
+                if name is not None
+            },
+            partition_column=partition_column,
+            partition_mapped_column=partition_mapped_column,
+            main_dttm_col=None,
+            transform=None,
+            engine=database.backend,
+        ):
+            if issue.blocking:
+                exceptions.append(
+                    ValidationError(str(issue.message), field_name=issue.field)
+                )

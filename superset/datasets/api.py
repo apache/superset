@@ -426,6 +426,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "table_name",
         "sql",
         "editors",
+        # `DatasetPostSchema` accepts these, so POST does persist a mapping;
+        # listing them keeps `/_info` and the generated spec honest about it.
+        "partition_column",
+        "partition_mapped_column",
     ]
     edit_columns = [
         "table_name",

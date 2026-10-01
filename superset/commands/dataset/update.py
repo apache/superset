@@ -470,6 +470,30 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if not partition_column:
             return
 
+        # A column payload drops every column it omits, and `update_columns`
+        # then runs `DatasetDAO.clear_dangling_partition_mapping` to drop a
+        # mapping whose columns went with them -- but that happens later, during
+        # `run()`. Validate the state that cleanup leaves behind, or a metadata
+        # sync that legitimately removes the mapped column is rejected before
+        # the cleanup meant to handle it ever runs, which is exactly the
+        # orphaned case the cleanup exists for.
+        #
+        # Only a *stored* reference is forgiven. Asking in this very request to
+        # map onto a column the same request does not define is a mistake worth
+        # reporting, not something to quietly clean up.
+        if columns is not None:
+            if (
+                "partition_column" not in self._properties
+                and partition_column not in column_names
+            ):
+                return
+            if (
+                "partition_mapped_column" not in self._properties
+                and partition_mapped_column
+                and partition_mapped_column not in column_names
+            ):
+                partition_mapped_column = None
+
         database = self._properties.get("database") or self._model.database
         catalog = self._properties.get("catalog", self._model.catalog)
         schema = self._properties.get("schema", self._model.schema)
