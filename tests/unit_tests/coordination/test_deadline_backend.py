@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from redis.exceptions import TimeoutError as RedisTimeoutError
@@ -146,3 +146,14 @@ def test_call_deadline_does_not_mutate_or_extend_the_backend_budget() -> None:
     assert time.monotonic() - started < 0.4
     with pytest.raises(ValueError, match="finite"):
         backend.with_deadline(float("nan"))
+
+
+def test_implausible_budget_never_starts_redis_command() -> None:
+    backend: DeadlineRedisBackend = DeadlineRedisBackend(
+        {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 301
+    )
+    command: AsyncMock
+    with patch.object(backend, "_command", new_callable=AsyncMock) as command:
+        with pytest.raises(RedisTimeoutError):
+            backend.get("owned-key")
+        command.assert_not_awaited()

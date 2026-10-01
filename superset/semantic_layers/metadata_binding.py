@@ -30,7 +30,10 @@ from typing import Any, TYPE_CHECKING
 from flask import current_app, has_app_context, has_request_context, request
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.layer import SemanticLayer as LayerABC
-from superset_core.semantic_layers.metadata import MetadataRefreshError
+from superset_core.semantic_layers.metadata import (
+    MetadataRefreshError,
+    remaining_budget,
+)
 from superset_core.semantic_layers.view import SemanticView as ViewABC
 
 from superset import db, is_feature_enabled
@@ -81,8 +84,8 @@ def _operation(*, require_budget: bool = True) -> MetadataOperation:
     state: MetadataOperation | None = _current_operation()
     if state is None or not math.isfinite(state.deadline):
         raise MetadataRefreshError("configuration")
-    if require_budget and state.deadline <= time.monotonic():
-        raise MetadataRefreshError("deadline")
+    if require_budget:
+        remaining_budget(state.deadline, now=time.monotonic())
     return state
 
 
@@ -95,6 +98,8 @@ def metadata_operation(*, deadline: float | None = None) -> Iterator[None]:
     """Workers opt in before access checks; nested calls never replenish the budget."""
     if deadline is not None and not math.isfinite(deadline):
         raise MetadataRefreshError("configuration")
+    if deadline is not None:
+        remaining_budget(deadline, now=time.monotonic())
     if _current_operation() is not None:
         _operation(require_budget=False)
         yield

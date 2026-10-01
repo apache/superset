@@ -22,7 +22,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from math import isfinite
+from time import monotonic
 from typing import Any, get_args, Literal, Protocol, TypeAlias
+
+# Five minutes permits slow discovery while rejecting accidental wall-clock deadlines.
+# This is a sanity ceiling, not a default; hosts/providers should use tighter budgets.
+MAX_METADATA_BUDGET_SECONDS: float = 300.0
 
 # The host passes a finite absolute time.monotonic() deadline in this process.
 CatalogLoader: TypeAlias = Callable[[float], str]
@@ -46,7 +52,8 @@ class CatalogSnapshot:
     The provider supplies canonical JSON in payload. The host assigns a nonempty,
     opaque, scope-qualified cache_token for each successful publication, including
     unchanged discovery. observed_at is a UTC RFC3339 source-observation time for
-    display, not a cache creation/expiry time or an ordering authority.
+    display, not a cache creation/expiry time or an ordering authority. The producer
+    is responsible for RFC3339 formatting; this record checks type/nonemptiness.
     """
 
     payload: str = field(repr=False)
@@ -81,6 +88,8 @@ class MetadataRefreshResult:
     def __post_init__(self) -> None:
         if self.status not in ("changed", "unchanged"):
             raise ValueError("Unknown metadata refresh result status")
+        if not isinstance(self.snapshot, CatalogSnapshot):
+            raise TypeError("Metadata refresh snapshot must be a CatalogSnapshot")
 
 
 class MetadataRefreshError(Exception):
@@ -97,6 +106,19 @@ class MetadataRefreshError(Exception):
         super().__init__(category)
 
 
+def remaining_budget(deadline: float, *, now: float | None = None) -> float:
+    """Return bounded seconds left or reject an invalid monotonic deadline.
+
+    ``now`` supports hosts with an injected monotonic clock; it must use the same
+    process-local clock as deadline. Neither value is a wall-clock timestamp.
+    The sanity ceiling catches epoch timestamps without silently clamping them.
+    """
+    remaining: float = deadline - (monotonic() if now is None else now)
+    if not isfinite(remaining) or not 0 < remaining <= MAX_METADATA_BUDGET_SECONDS:
+        raise MetadataRefreshError("deadline")
+    return remaining
+
+
 class MetadataSnapshotStore(Protocol):
     """Define host-owned publication for one authorized connection scope.
 
@@ -104,10 +126,10 @@ class MetadataSnapshotStore(Protocol):
     and validates canonical JSON within that budget and any tighter provider limit.
     The caller sets one deadline before waiting or acquisition and passes it to
     every store/adapter call; implementations must not reset it for nested calls.
-    Non-finite values and exhausted budgets raise the deadline category before
-    further I/O, including cache reads. The deadline is process-local, never
-    serialized or used for cache expiry or publication ordering; it does not
-    replace writer fencing.
+    Use remaining_budget to reject non-finite, expired or implausibly large budgets
+    with the deadline category before further I/O, including cache reads.
+    The deadline is process-local, never serialized or used for cache expiry or
+    publication ordering; it does not replace writer fencing.
     The host owns expiry, writer fencing and publication confirmation. This
     protocol does not provide storage, authorization or distributed coordination.
     Host-only invalidation and cache inspection are outside the provider interface.
@@ -147,8 +169,8 @@ class MetadataRefreshAdapter(ABC):
         The host supplies trusted scope and checks authority before construction.
         Construction stays deadline-free. Capture the caller's finite absolute
         monotonic deadline here and pass it unchanged to discovery store reads.
-        Reject non-finite or exhausted budgets with the deadline category before
-        binding; failure leaves the adapter unbound. A new host operation needs
+        Validate with remaining_budget before binding; failure leaves the adapter
+        unbound. A new host operation needs
         a fresh adapter, not a renewed discovery budget on an existing binding.
         """
 
@@ -159,8 +181,8 @@ class MetadataRefreshAdapter(ABC):
         An unbound adapter reports unsupported. Do not return success after only
         fetching upstream data or silently fall back to provider-local caching.
         Pass the caller's finite absolute monotonic deadline unchanged to the
-        store. Reject non-finite or exhausted budgets with the deadline category
-        before I/O; nested calls never create a new budget.
+        store. Validate with remaining_budget before I/O; nested calls never create a
+        new budget.
         """
 
     @abstractmethod

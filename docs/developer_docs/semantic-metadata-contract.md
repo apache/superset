@@ -100,6 +100,10 @@ exception cause chains. Providers translating sensitive vendor errors should use
 `raise MetadataRefreshError("upstream") from None`. HTTP status codes and
 localized text belong to the host.
 
+- `configuration_changed`: the authorized connection scope/configuration changed during the operation; discard the candidate rather than publish under obsolete authority.
+- `invalid_payload`: acquisition or a stored observation cannot satisfy the provider's catalog schema; never publish partial metadata or an error as an empty catalog.
+- `unavailable`: host-owned metadata storage or coordination cannot be reached or used; `upstream` instead identifies failure to acquire metadata from the provider's remote service.
+
 The host establishes one finite absolute `float` deadline using
 `time.monotonic()` in the calling process before waiting or acquisition. It passes
 that value explicitly to `adapter.bind(store, deadline=deadline)`,
@@ -108,8 +112,8 @@ that value explicitly to `adapter.bind(store, deadline=deadline)`,
 The adapter forwards it to the store, and the store passes it to `fetch(deadline)`
 unchanged. Multiple calls within the same operation share this deadline through
 publication; neither the store nor nested acquisition may mint a new budget.
-Implementations reject NaN, either infinity and exhausted deadlines with
-`MetadataRefreshError("deadline")` before I/O, including cache reads. The protocol
+Implementations use `remaining_budget` to reject non-finite, expired or
+implausibly large deadlines before I/O, including cache reads. The protocol
 signatures do not execute these checks on behalf of implementations.
 The provider checks
 the remaining time before each upstream operation and uses the tighter of that
@@ -126,6 +130,16 @@ reads. A new operation requires a fresh provider/adapter instance and a new bind
 not rebinding or renewing an existing instance's discovery budget. The explicit
 store/refresh parameters remain required. The example exercises normal provider
 construction followed by this bind-time handoff.
+
+Use `remaining_budget(deadline)` before I/O and publication. It returns the
+positive remaining seconds and raises `MetadataRefreshError("deadline")` for
+non-finite, expired or implausibly large budgets. The SDK ceiling
+`MAX_METADATA_BUDGET_SECONDS = 300.0` permits slow metadata discovery while
+catching common `time.time()`/monotonic clock confusion; it is not a default or a
+reason to extend the caller's budget. Longer requests must be split into bounded
+operations. Hosts/providers may use tighter limits. For a host with an injected
+monotonic clock, `remaining_budget(deadline, now=clock())` uses that same clock
+without introducing host types into the SDK.
 
 This value is neither a duration nor a UTC timestamp. Do not serialize it across
 processes, use it as cache expiry, or use it to order publications. A deadline
