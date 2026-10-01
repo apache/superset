@@ -163,10 +163,25 @@ export const getComparisonColorTokens = (
   // background stays a valid 8-digit hex instead of stacking a second one.
   const isEightDigitHex = /^#[0-9a-f]{8}$/i.test(resolvedColor);
   const isSixDigitHex = /^#[0-9a-f]{6}$/i.test(resolvedColor);
-  // Non-hex theme tokens (e.g. an antd token resolving to an `rgba(...)`
-  // string) can't take a hex alpha suffix without producing invalid CSS, so
-  // pass those through unchanged rather than tinting them.
   if (!isEightDigitHex && !isSixDigitHex) {
+    // Non-hex theme tokens (e.g. an antd token resolving to an
+    // `rgb(...)`/`rgba(...)` string) can't take a hex alpha suffix without
+    // producing invalid CSS. Rebuild the background with a low alpha from
+    // the color's own r/g/b components instead, so the pill still gets a
+    // light tint rather than becoming the same color as its own text.
+    const rgbMatch = resolvedColor.match(
+      /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+\s*)?\)$/i,
+    );
+    if (rgbMatch) {
+      const [, r, g, b] = rgbMatch;
+      return {
+        text: resolvedColor,
+        background: `rgba(${r}, ${g}, ${b}, 0.1)`,
+        strongText: resolvedColor,
+      };
+    }
+    // Any other unrecognized format (e.g. a named CSS color) is passed
+    // through unchanged rather than risk producing invalid CSS.
     return {
       text: resolvedColor,
       background: resolvedColor,

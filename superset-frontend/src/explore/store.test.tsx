@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  CategoricalScheme,
+  getCategoricalSchemeRegistry,
+  getChartControlPanelRegistry,
+  VizType,
+} from '@superset-ui/core';
 import {
   applyDefaultFormData,
   getControlsState,
@@ -36,6 +41,13 @@ beforeAll(() => {
       },
     ],
   });
+  getCategoricalSchemeRegistry().registerValue(
+    'testScheme',
+    new CategoricalScheme({
+      id: 'testScheme',
+      colors: ['#1f77b4', '#ff7f0e', '#2ca02c'],
+    }),
+  );
 });
 
 afterAll(() => {
@@ -372,4 +384,91 @@ test('handleDeprecatedControls is idempotent — no-op when matrixify_enable alr
   expect(formData.matrixify_enable).toBe(true);
   expect(formData.matrixify_mode_rows).toBe('dimensions');
   expect(formData.matrixify_mode_columns).toBe('metrics');
+});
+
+// ============================================================
+// #42910: legacy color-picker field migrations. `comparison_color_scheme`
+// and `interval_color_indices` are no longer registered controls, so
+// `getFormDataFromControls` drops them on the next save — these migrations
+// carry their value forward into the controls that replaced them before
+// that can happen.
+// ============================================================
+
+test('handleDeprecatedControls migrates comparison_color_scheme Green into increase/decrease colors', () => {
+  const formData: any = {
+    viz_type: VizType.BigNumberPeriodOverPeriod,
+    comparison_color_scheme: 'Green',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.increase_color).toBe('Green');
+  expect(formData.decrease_color).toBe('Red');
+});
+
+test('handleDeprecatedControls migrates the reversed comparison_color_scheme Red choice', () => {
+  const formData: any = {
+    viz_type: VizType.BigNumberPeriodOverPeriod,
+    comparison_color_scheme: 'Red',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.increase_color).toBe('Red');
+  expect(formData.decrease_color).toBe('Green');
+});
+
+test('handleDeprecatedControls does not override already-set increase/decrease colors', () => {
+  const formData: any = {
+    viz_type: VizType.BigNumberPeriodOverPeriod,
+    comparison_color_scheme: 'Red',
+    increase_color: '#336699',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.increase_color).toBe('#336699');
+  expect(formData.decrease_color).toBeUndefined();
+});
+
+test('handleDeprecatedControls is a no-op for BigNumberPeriodOverPeriod without a legacy scheme', () => {
+  const formData: any = { viz_type: VizType.BigNumberPeriodOverPeriod };
+  handleDeprecatedControls(formData);
+
+  expect(formData.increase_color).toBeUndefined();
+  expect(formData.decrease_color).toBeUndefined();
+});
+
+test('handleDeprecatedControls migrates interval_color_indices into interval_colors', () => {
+  const formData: any = {
+    viz_type: VizType.Gauge,
+    intervals: '20,40,60',
+    interval_color_indices: '2,3',
+    color_scheme: 'testScheme',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#1f77b4']);
+});
+
+test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
+  const formData: any = {
+    viz_type: VizType.Gauge,
+    intervals: '20,40,60',
+    interval_color_indices: '2,3',
+    interval_colors: ['#000000'],
+    color_scheme: 'testScheme',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.interval_colors).toEqual(['#000000']);
+});
+
+test('handleDeprecatedControls leaves interval_colors unset when the color scheme is unresolvable', () => {
+  const formData: any = {
+    viz_type: VizType.Gauge,
+    intervals: '20,40,60',
+    interval_color_indices: '2,3',
+    color_scheme: 'not-a-real-scheme',
+  };
+  handleDeprecatedControls(formData);
+
+  expect(formData.interval_colors).toBeUndefined();
 });
