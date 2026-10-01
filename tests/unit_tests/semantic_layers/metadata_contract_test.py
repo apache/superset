@@ -23,7 +23,6 @@ import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import FrozenInstanceError
-from math import isfinite
 from pathlib import Path
 from time import monotonic
 from typing import Any, cast, get_args, get_type_hints, Literal
@@ -31,6 +30,7 @@ from typing import Any, cast, get_args, get_type_hints, Literal
 import pyarrow as pa
 import pytest
 from pydantic import BaseModel
+from superset_core.semantic_layers import metadata as metadata_sdk
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.metadata import (
     CatalogLoader,
@@ -40,6 +40,7 @@ from superset_core.semantic_layers.metadata import (
     MetadataRefreshErrorCategory,
     MetadataRefreshResult,
     MetadataSnapshotStore,
+    remaining_budget,
 )
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -49,6 +50,14 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import SemanticView
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """Control the SDK monotonic clock used by the examples."""
+    times: list[float] = [100.0]
+    monkeypatch.setattr(metadata_sdk, "monotonic", lambda: times[0])
+    return times
 
 
 class LegacyView(SemanticView):
@@ -139,8 +148,7 @@ class MemoryStore:
         self.publications: int = 0
 
     def read(self, fetch: CatalogLoader, *, deadline: float) -> CatalogSnapshot:
-        if not isfinite(deadline) or deadline <= monotonic():
-            raise MetadataRefreshError("deadline")
+        remaining_budget(deadline)
         return (
             self.snapshot
             if self.snapshot is not None
@@ -150,11 +158,9 @@ class MemoryStore:
     def refresh(
         self, fetch: CatalogLoader, *, deadline: float
     ) -> MetadataRefreshResult:
-        if not isfinite(deadline) or deadline <= monotonic():
-            raise MetadataRefreshError("deadline")
+        remaining_budget(deadline)
         payload: str = fetch(deadline)
-        if deadline <= monotonic():
-            raise MetadataRefreshError("deadline")
+        remaining_budget(deadline)
         previous: CatalogSnapshot | None = self.snapshot
         self.publications += 1
         self.snapshot = CatalogSnapshot(
@@ -180,14 +186,12 @@ class MemoryAdapter(MetadataRefreshAdapter):
     def bind(self, store: MetadataSnapshotStore, *, deadline: float) -> None:
         if self.store is not None:
             raise MetadataRefreshError("configuration")
-        if not isfinite(deadline) or deadline <= monotonic():
-            raise MetadataRefreshError("deadline")
+        remaining_budget(deadline)
         self.store = store
         self.deadline = deadline
 
     def fetch(self, deadline: float) -> str:
-        if not isfinite(deadline) or deadline <= monotonic():
-            raise MetadataRefreshError("deadline")
+        remaining_budget(deadline)
         self.fetches += 1
         return self.payload
 
@@ -356,9 +360,11 @@ class RejectHostImports(importlib.abc.MetaPathFinder):
 
 sys.meta_path.insert(0, RejectHostImports())
 sys.path.insert(0, sys.argv[1])
+from superset_core.semantic_layers import metadata as metadata_sdk
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.metadata import CatalogSnapshot
 from superset_core.semantic_layers.view import SemanticView
+assert metadata_sdk.remaining_budget(25.0, now=0.0) == 25.0
 assert not SemanticLayer.supports_metadata_refresh({})
 assert CatalogSnapshot('[]', 'scope:1', '2026-09-30T12:00:00Z').cache_token == 'scope:1'
 """
@@ -426,12 +432,8 @@ def test_expired_loader_deadline_rejects_before_acquisition() -> None:
 
 
 def test_store_passes_one_deadline_and_cache_hits_do_not_acquire(
-    monkeypatch: pytest.MonkeyPatch,
+    clock: list[float],
 ) -> None:
-    def fixed_clock() -> float:
-        return 100.0
-
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", fixed_clock)
     deadlines: list[float] = []
 
     def fetch(deadline: float) -> str:
@@ -508,29 +510,23 @@ def test_example_rejects_invalid_deadlines_without_acquisition(
 
 
 def test_sequential_store_calls_share_remaining_budget(
-    monkeypatch: pytest.MonkeyPatch,
+    clock: list[float],
 ) -> None:
     """Time spent in one acquisition reduces the next call's remaining budget."""
-    times: list[float] = [100.0]
     deadlines: list[float] = []
-
-    def clock() -> float:
-        """Return deterministic operation time."""
-        return times[0]
 
     def fetch(deadline: float) -> str:
         """Consume part of the operation's budget."""
         deadlines.append(deadline)
-        times[0] += 20.0
+        clock[0] += 20.0
         return "[]"
 
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", clock)
     store: MemoryStore = MemoryStore()
     store.read(fetch, deadline=150.0)
     store.refresh(fetch, deadline=150.0)
     assert deadlines == [150.0, 150.0]
     before: CatalogSnapshot | None = store.snapshot
-    times[0] = 150.0
+    clock[0] = 150.0
     with pytest.raises(MetadataRefreshError, match="^deadline$"):
         store.refresh(fetch, deadline=150.0)
     with pytest.raises(MetadataRefreshError, match="^deadline$"):
@@ -541,22 +537,17 @@ def test_sequential_store_calls_share_remaining_budget(
 
 
 def test_provider_factory_accepts_discovery_deadline_only_at_bind(
+    clock: list[float],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Normal construction stays deadline-free; bind carries the host budget."""
-    times: list[float] = [100.0]
     deadlines: list[float] = []
-
-    def clock() -> float:
-        """Return deterministic operation time."""
-        return times[0]
 
     def fetch(self: MemoryAdapter, deadline: float) -> str:
         """Capture the unchanged budget passed to provider acquisition."""
         deadlines.append(deadline)
         return self.payload
 
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", clock)
     monkeypatch.setattr(MemoryAdapter, "fetch", fetch)
     layer: LegacyLayer = OptedInLayer.from_configuration({})
     assert isinstance(layer, OptedInLayer)
@@ -568,11 +559,11 @@ def test_provider_factory_accepts_discovery_deadline_only_at_bind(
     store: MemoryStore = MemoryStore()
     layer.adapter.bind(store, deadline=125.0)
     assert layer.get_semantic_views({})
-    times[0] = 120.0
+    clock[0] = 120.0
     assert layer.adapter.get_runtime_schema() == {"enum": ["orders", "revenue"]}
     layer.adapter.refresh(deadline=125.0)
     assert deadlines == [125.0, 125.0]
-    times[0] = 125.0
+    clock[0] = 125.0
     with pytest.raises(MetadataRefreshError, match="^deadline$"):
         layer.adapter.get_runtime_schema()
     assert store.publications == 2
@@ -580,15 +571,10 @@ def test_provider_factory_accepts_discovery_deadline_only_at_bind(
 
 @pytest.mark.parametrize("deadline", [float("nan"), float("inf"), -float("inf"), 100.0])
 def test_invalid_bind_deadline_does_not_partially_bind(
-    monkeypatch: pytest.MonkeyPatch, deadline: float
+    clock: list[float], deadline: float
 ) -> None:
     """Invalid binding leaves the adapter unbound and permits a valid first bind."""
 
-    def clock() -> float:
-        """Return deterministic operation time."""
-        return 100.0
-
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", clock)
     layer: LegacyLayer = OptedInLayer.from_configuration({})
     assert isinstance(layer, OptedInLayer)
     store: MemoryStore = MemoryStore()
@@ -605,32 +591,27 @@ def test_invalid_bind_deadline_does_not_partially_bind(
 
 
 def test_discovery_and_adapter_refresh_preserve_host_deadline(
+    clock: list[float],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """View/schema discovery and explicit refresh retain one caller budget."""
-    times: list[float] = [100.0]
     deadlines: list[float] = []
-
-    def clock() -> float:
-        """Return deterministic operation time."""
-        return times[0]
 
     def fetch(self: MemoryAdapter, deadline: float) -> str:
         """Record the deadline reaching the provider through each path."""
         deadlines.append(deadline)
         return self.payload
 
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", clock)
     monkeypatch.setattr(MemoryAdapter, "fetch", fetch)
     layer: OptedInLayer = OptedInLayer()
     store: MemoryStore = MemoryStore()
     layer.adapter.bind(store, deadline=125.0)
     layer.get_semantic_view("example", {})
-    times[0] = 120.0
+    clock[0] = 120.0
     assert layer.adapter.get_runtime_schema() == {"enum": ["orders", "revenue"]}
     layer.adapter.refresh(deadline=125.0)
     assert deadlines == [125.0, 125.0]
-    times[0] = 125.0
+    clock[0] = 125.0
     with pytest.raises(MetadataRefreshError, match="^deadline$"):
         layer.get_semantic_views({})
     with pytest.raises(MetadataRefreshError, match="^deadline$"):
@@ -643,21 +624,15 @@ def test_discovery_and_adapter_refresh_preserve_host_deadline(
 
 @pytest.mark.parametrize("warm", [False, True])
 def test_acquisition_exhausting_budget_cannot_publish(
-    monkeypatch: pytest.MonkeyPatch, warm: bool
+    clock: list[float], warm: bool
 ) -> None:
     """A completed fetch cannot publish or replace a snapshot after its deadline."""
-    times: list[float] = [100.0]
-
-    def clock() -> float:
-        """Return deterministic operation time."""
-        return times[0]
 
     def fetch(deadline: float) -> str:
         """Exhaust the budget during acquisition."""
-        times[0] = deadline
+        clock[0] = deadline
         return '["new"]'
 
-    monkeypatch.setattr(sys.modules[__name__], "monotonic", clock)
     store: MemoryStore = MemoryStore()
     if warm:
         store.snapshot = CatalogSnapshot("[]", "scope:1", "2026-09-30T12:00:00Z")
@@ -668,3 +643,52 @@ def test_acquisition_exhausting_budget_cannot_publish(
         store.refresh(fetch, deadline=150.0)
     assert store.publications == publications
     assert store.snapshot is before
+
+
+@pytest.mark.parametrize(
+    "deadline",
+    [
+        float("nan"),
+        float("inf"),
+        -float("inf"),
+        0.0,
+        99.0,
+        100.0,
+        401.0,
+        1_790_000_000.0,
+    ],
+)
+def test_remaining_budget_rejects_invalid_or_implausible_deadline(
+    clock: list[float], deadline: float
+) -> None:
+    with pytest.raises(MetadataRefreshError, match="^deadline$"):
+        remaining_budget(deadline)
+
+
+def test_remaining_budget_decreases_and_accepts_ceiling(clock: list[float]) -> None:
+    assert metadata_sdk.MAX_METADATA_BUDGET_SECONDS == 300.0
+    assert remaining_budget(400.0) == 300.0
+    clock[0] = 110.0
+    assert remaining_budget(400.0) == 290.0
+    clock[0] = 400.0
+    with pytest.raises(MetadataRefreshError, match="^deadline$"):
+        remaining_budget(400.0)
+
+
+@pytest.mark.parametrize("snapshot", [None, "not a snapshot", {}, 17, True])
+def test_refresh_result_rejects_non_snapshot(snapshot: object) -> None:
+    with pytest.raises(
+        TypeError, match="^Metadata refresh snapshot must be a CatalogSnapshot$"
+    ):
+        MetadataRefreshResult("changed", cast(CatalogSnapshot, snapshot))
+
+
+@pytest.mark.parametrize("now", [float("nan"), float("inf"), -float("inf"), 400.0])
+def test_remaining_budget_rejects_invalid_injected_clock(now: float) -> None:
+    with pytest.raises(MetadataRefreshError, match="^deadline$"):
+        remaining_budget(400.0, now=now)
+
+
+def test_remaining_budget_uses_injected_monotonic_clock() -> None:
+    assert remaining_budget(125.0, now=100.0) == 25.0
+    assert remaining_budget(25.0, now=0.0) == 25.0
