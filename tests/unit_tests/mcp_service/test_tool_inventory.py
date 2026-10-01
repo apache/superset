@@ -18,11 +18,13 @@
 """Per-tool size and schema fidelity budgets for the entire registered inventory."""
 
 from copy import deepcopy
+from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.schemas import CHART_TYPE_VALUES
 from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.server import _create_search_result_serializer, _strip_titles
 from superset.utils import json
@@ -30,8 +32,25 @@ from superset.utils import json
 # Compact JSON including tool metadata, measured as UTF-8 bytes.
 # Small-tool budgets are fixed snapshots: ceil(measured_bytes / 100) * 100 + 100,
 # leaving 100-199 bytes for incidental description edits. Do not recompute limits
-# at test time: they must catch schema growth. Large chart tools retain their
-# explicit delivery budgets, well below the sizes produced by reference inlining.
+# at test time: they must catch schema growth. Chart tools advertise a compact
+# config reference and follow the same rule, measured without the chart_type
+# enum so adding chart types never needs a budget change; see
+# test_chart_tool_inventory.py.
+CHART_TYPE_ENUM = json.dumps(
+    CHART_TYPE_VALUES, ensure_ascii=False, separators=(",", ":")
+)
+
+
+def budgeted_bytes(text: str) -> int:
+    """Measure an entry excluding the registry-derived chart_type enum.
+
+    The enum grows by one name per registered chart type; everything else,
+    including any inlined per-type schema, counts against the budget.
+    """
+    enum_bytes = len(CHART_TYPE_ENUM.encode("utf-8")) * text.count(CHART_TYPE_ENUM)
+    return len(text.encode("utf-8")) - enum_bytes
+
+
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 2_900,
@@ -47,10 +66,11 @@ TOOL_BUDGETS = {
     "execute_sql": 2_100,
     "find_users": 1_500,
     "generate_bug_report": 2_600,
-    "generate_chart": 50_000,
+    "generate_chart": 2_400,
     "generate_dashboard": 3_400,
-    "generate_explore_link": 50_000,
+    "generate_explore_link": 1_800,
     "get_annotation_layer_info": 1_000,
+    "get_catalog": 1_600,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
     "get_chart_preview": 3_400,
@@ -109,9 +129,9 @@ TOOL_BUDGETS = {
     "restore_dashboard": 1_000,
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
-    "update_chart": 55_000,
-    "update_chart_preview": 55_000,
-    "update_dashboard": 4_100,
+    "update_chart": 4_100,
+    "update_chart_preview": 2_000,
+    "update_dashboard": 4_200,
     "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
 }
@@ -133,7 +153,7 @@ async def test_tool_inventory_size(name: str) -> None:
     entry = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[0]
     assert "inputSchema" in entry  # Summary mode must not hide schema growth.
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
-    byte_count = len(text.encode("utf-8"))
+    byte_count = budgeted_bytes(text)
     byte_budget = TOOL_BUDGETS[name]
     assert byte_count <= byte_budget, (name, byte_count, byte_budget)
 
@@ -161,3 +181,46 @@ async def test_inventory_budget_allows_incidental_description_edit() -> None:
     entry["description"] += " A chart preview."
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
     assert len(text.encode("utf-8")) <= TOOL_BUDGETS["get_chart_preview"]
+
+
+# Tool search results are delivered as one page. MCP gateways cap a page at
+# 100 KB, so the largest ``max_results`` entries together must fit; with chart
+# config schemas inlined, generate_chart and update_chart alone exceeded it.
+SEARCH_PAGE_BYTE_LIMIT = 100_000
+
+
+@pytest.mark.asyncio
+async def test_worst_case_search_page_fits_gateway_limit() -> None:
+    """The largest possible tool-search page stays under the gateway page cap."""
+    serializer = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)
+    tools = await mcp.list_tools(run_middleware=False)
+
+    def entry_bytes(tool: Any) -> int:
+        text = json.dumps(
+            serializer([tool])[0], ensure_ascii=False, separators=(",", ":")
+        )
+        return len(text.encode("utf-8"))
+
+    limit = MCP_TOOL_SEARCH_CONFIG["max_results"]
+    largest = sorted(tools, key=entry_bytes, reverse=True)[:limit]
+    page = json.dumps(serializer(largest), ensure_ascii=False, separators=(",", ":"))
+    assert len(page.encode("utf-8")) <= SEARCH_PAGE_BYTE_LIMIT, [
+        (tool.name, entry_bytes(tool)) for tool in largest
+    ]
+    # Every chart tool together also fits, whatever the configured limit.
+    chart_tools = [
+        tool
+        for tool in tools
+        if tool.name
+        in {
+            "generate_chart",
+            "update_chart",
+            "update_chart_preview",
+            "generate_explore_link",
+            "get_chart_type_schema",
+        }
+    ]
+    chart_page = json.dumps(
+        serializer(chart_tools), ensure_ascii=False, separators=(",", ":")
+    )
+    assert len(chart_page.encode("utf-8")) <= SEARCH_PAGE_BYTE_LIMIT
