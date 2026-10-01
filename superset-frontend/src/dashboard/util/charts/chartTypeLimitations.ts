@@ -55,12 +55,6 @@ export const CHART_TYPE_LIMITATIONS: Record<string, ChartTypeLimitation> = {
     warningMessage: (usedColumns, ignoredColumns) =>
       `Graph charts only support two dimensions (source and target). Using "${usedColumns[0]}" for source and "${usedColumns[1]}" for target. Additional columns (${ignoredColumns.join(', ')}) will be ignored.`,
   },
-  sankey_v2: {
-    maxDimensions: 2,
-    dimensionNames: ['source', 'target'],
-    warningMessage: (usedColumns, ignoredColumns) =>
-      `Sankey charts only support two dimensions (source and target). Using "${usedColumns[0]}" for source and "${usedColumns[1]}" for target. Additional columns (${ignoredColumns.join(', ')}) will be ignored.`,
-  },
   bubble_v2: {
     maxDimensions: 2,
     dimensionNames: ['series', 'entity'],
