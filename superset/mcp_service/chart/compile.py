@@ -102,17 +102,18 @@ def _compile_chart(
     from superset.mcp_service.chart.chart_helpers import (
         build_query_context_from_form_data,
     )
+    from superset.mcp_service.chart.plugin import BaseChartPlugin
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     try:
         query_form_data = deepcopy(form_data)
         query_form_data["datasource"] = f"{dataset_id}__table"
         query_form_data["datasource_id"] = dataset_id
         query_form_data["datasource_type"] = "table"
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=min(10, int(form_data.get("row_limit") or 10))
-            if form_data.get("viz_type") in ("gauge_chart", "treemap_v2")
-            else 2,
+            row_limit=plugin.compile_row_limit(form_data) if plugin else 2,
             force=False,
         )
 
@@ -133,15 +134,9 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
-            is_treemap = form_data.get("viz_type") == "treemap_v2"
-            error_code = (
-                "INVALID_TREEMAP_RESULT" if is_treemap else "INVALID_GAUGE_RESULT"
-            )
-            message = (
-                "Treemap metric query returned invalid values"
-                if is_treemap
-                else "Gauge metric query returned invalid values"
-            )
+            result_contract = plugin or BaseChartPlugin
+            error_code = result_contract.invalid_result_error_code
+            message = result_contract.invalid_result_message
             return CompileResult(
                 success=False,
                 error=result.error,

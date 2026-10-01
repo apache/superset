@@ -270,9 +270,22 @@ def treemap_hierarchy_labels(form_data: Mapping[str, Any]) -> list[str] | None:
 
 
 def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
-    """Validate chart-specific result contracts before consumers use rows."""
-    if form_data.get("viz_type") != "treemap_v2":
-        return normalize_gauge_query_result(result, form_data)
+    """Validate chart-specific result contracts before consumers use rows.
+
+    Every chart-data consumer (compile, previews, get_chart_data and its
+    exports) calls this single dispatcher; the owning plugin's
+    ``normalize_query_result`` hook defines the contract.
+    """
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return result
+    return plugin.normalize_query_result(result, form_data)
+
+
+def normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Require unique hierarchy outputs and finite numeric Treemap metrics."""
     if failure := query_result_failure(result):
         return failure
     label = metric_result_label(form_data.get("metric"))
