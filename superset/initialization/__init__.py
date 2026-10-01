@@ -220,6 +220,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.archived_assets import ArchivedAssetsView
+        from superset.views.canvas import CanvasView
         from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
         from superset.views.css_templates import CssTemplateModelView
@@ -360,6 +361,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-dashboard",
             category="",
             category_icon="",
+        )
+        appbuilder.add_view(
+            CanvasView,
+            "Canvases",
+            label=_("Canvases"),
+            icon="fa-object-group",
+            category="",
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("CANVAS"),
         )
         appbuilder.add_view(
             SliceModelView,

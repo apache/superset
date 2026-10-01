@@ -452,6 +452,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           widgetTypes:
                             type: object
                             description: The widget type of each resolvable node
+                          gridColumns:
+                            type: object
+                            description: The column count of each grid container
             401:
               $ref: '#/components/responses/401'
             404:

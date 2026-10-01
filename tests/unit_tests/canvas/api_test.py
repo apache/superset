@@ -116,6 +116,7 @@ def test_get_definition(client: Any, full_api_access: None, canvas: Any) -> None
     assert response.json["result"]["filterScopes"] == {}
     assert response.json["result"]["placements"] == {}
     assert response.json["result"]["widgetTypes"] == {}
+    assert response.json["result"]["gridColumns"] == {}
 
 
 def test_apply_operations_bumps_revision_logs_and_publishes(

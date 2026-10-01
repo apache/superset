@@ -53,3 +53,4 @@ def test_placements_include_auto_placed_nodes_and_grid_containers() -> None:
         "g": "group",
         "c": "chart",
     }
+    assert context["gridColumns"] == {"g": 12}

@@ -21,7 +21,9 @@ Placement rules live on the server only: ``placements`` gives every node on a
 grid its resolved position, auto-placed nodes included, so clients render
 without re-implementing auto-placement and collision push-down.
 ``widget_types`` maps nodes to their widget's type so clients pick a renderer;
-nodes whose widget no longer resolves are left out.
+nodes whose widget no longer resolves are left out. ``gridColumns`` gives the
+column count of each grid container, whose children's placements are in its
+own grid units.
 """
 
 from __future__ import annotations
@@ -56,6 +58,7 @@ def render_context(
     grids: list[tuple[list[str], int]] = [
         (definition["root"]["children"], definition["root"]["layout"]["columns"])
     ]
+    grid_columns: dict[str, int] = {}
     for node_id, node in nodes.items():
         widget_type = widget_types.get(node_id)
         if widget_type is None:
@@ -63,6 +66,7 @@ def render_context(
         container = rules.get(widget_type)
         if container.is_container and container.grid_columns is not None:
             grids.append((node.get("children") or [], container.grid_columns))
+            grid_columns[node_id] = container.grid_columns
 
     placements: dict[str, dict[str, int]] = {}
     for children, columns in grids:
@@ -74,4 +78,8 @@ def render_context(
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
-    return {"widgetTypes": widget_types, "placements": placements}
+    return {
+        "widgetTypes": widget_types,
+        "placements": placements,
+        "gridColumns": grid_columns,
+    }
