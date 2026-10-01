@@ -117,6 +117,14 @@ logger = logging.getLogger(__name__)
 
 FEATURE_FLAG = "PARTITION_FILTER_MAPPING"
 
+#: Longest transform accepted anywhere. A transform is one SQL expression an
+#: owner types by hand, so this is generous; the point is that it is bounded.
+#: Every entry point enforces it -- the typed column field, the import schema
+#: and the preview request -- because `is_transform_active` parses the stored
+#: value on each Explore load, and an unbounded string would make that parse
+#: the expensive part of rendering a chart.
+MAX_TRANSFORM_LENGTH = 1024
+
 #: Placeholder the owner writes in the transform, e.g. ``unix_timestamp(:value)``.
 #: Matched with word boundaries so ``:values`` is not mistaken for it.
 VALUE_PLACEHOLDER_RE = re.compile(r":value\b")

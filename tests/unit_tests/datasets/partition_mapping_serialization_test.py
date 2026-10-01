@@ -30,8 +30,10 @@ from typing import Any
 
 import pytest
 from flask import Flask
+from marshmallow import ValidationError
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.partition_mapping import MAX_TRANSFORM_LENGTH
 from superset.datasets.schemas import (
     DatasetColumnsPutSchema,
     DatasetPutSchema,
@@ -267,6 +269,41 @@ def test_put_schema_allows_clearing_the_mapping() -> None:
     """Removing a mapping is a null, not an omission."""
     loaded = DatasetPutSchema().load({"partition_column": None})
     assert loaded["partition_column"] is None
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [DatasetColumnsPutSchema, ImportV1ColumnSchema],
+    ids=["put", "import"],
+)
+def test_a_transform_longer_than_the_bound_is_rejected(schema: Any) -> None:
+    """
+    `is_transform_active` parses the stored transform on every Explore load, so
+    an unbounded string would make that parse the expensive part of rendering a
+    chart. Every door into the field enforces the same bound.
+    """
+    with pytest.raises(ValidationError) as excinfo:
+        schema().load(
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "x" * (MAX_TRANSFORM_LENGTH + 1),
+            }
+        )
+
+    assert "partition_value_transform" in excinfo.value.messages
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [DatasetColumnsPutSchema, ImportV1ColumnSchema],
+    ids=["put", "import"],
+)
+def test_a_transform_at_the_bound_is_accepted(schema: Any) -> None:
+    transform = "x" * MAX_TRANSFORM_LENGTH
+    loaded = schema().load(
+        {"column_name": "event_time", "partition_value_transform": transform}
+    )
+    assert loaded["partition_value_transform"] == transform
 
 
 def test_import_schema_round_trips_the_mapping() -> None:
