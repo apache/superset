@@ -69,6 +69,7 @@ from superset.mcp_service.chart.schemas import (
     DataColumn,
     GenerateChartRequest,
     GetChartPreviewRequest,
+    TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     VegaLitePreview,
@@ -1417,7 +1418,7 @@ def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
     assert bar_layer["encoding"]["x"]["field"] == "Total Revenue"
-    assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_category"
+    assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_row"
     assert [item["field"] for item in bar_layer["encoding"]["tooltip"]] == [
         "__mcp_bullet_category",
         "Total Revenue",
@@ -1444,6 +1445,7 @@ def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> N
             {
                 "__mcp_bullet_category": "North",
                 "__mcp_bullet_category_1": "occupied",
+                "__mcp_bullet_row": "occupied",
                 "Metric": 10,
             }
         ],
@@ -1453,10 +1455,11 @@ def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> N
     bar = next(
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
     assert category_field == "__mcp_bullet_category_2"
     assert specification["data"]["values"][0][category_field] == "North"
-    assert bar["encoding"]["y"]["field"] == category_field
+    assert bar["encoding"]["y"]["field"] == "__mcp_bullet_row_1"
+    assert specification["data"]["values"][0]["__mcp_bullet_row_1"] == 0
     assert "transform" not in specification
 
 
@@ -1487,7 +1490,7 @@ def test_bullet_duration_categories_match_chart_data_wire_in_ascii_and_vega() ->
 
     vega = _generate_vega_lite_preview_from_data(data, form_data).specification
     bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
     assert [row[category_field] for row in vega["data"]["values"]] == expected
     assert [row["Duration"] for row in vega["data"]["values"]] == [
         None if value == "null" else value for value in expected
@@ -1595,7 +1598,7 @@ def test_bullet_number_category_boundaries_flow_through_ascii_and_vega() -> None
     vega = _generate_vega_lite_preview_from_data(data, form_data).specification
     category_field = next(
         layer for layer in vega["layer"] if layer["mark"]["type"] == "bar"
-    )["encoding"]["y"]["field"]
+    )["encoding"]["tooltip"][0]["field"]
     assert [row[category_field] for row in vega["data"]["values"]] == expected
     assert "transform" not in vega
     tooltip = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")[
@@ -1608,7 +1611,7 @@ def test_bullet_number_category_boundaries_flow_through_ascii_and_vega() -> None
     }
     assert all(item.get("field") != "Category" for item in tooltip)
     # Raw normalized dimensions stay available for inspection, while every
-    # category-bearing encoding uses the frontend-coerced derived value.
+    # category labels use the frontend-coerced derived value.
     assert vega["data"]["values"][0]["Category"] == 9007199254740993
     assert vega["data"]["values"][1]["Category"] == Decimal("1.0000000000000001")
 
@@ -1636,7 +1639,7 @@ def test_bullet_vega_tooltip_uses_joined_derived_numeric_category() -> None:
     bar = next(
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
 
     assert specification["data"]["values"][0][category_field] == ("9007199254740992, 1")
     assert bar["encoding"]["tooltip"][0] == {
@@ -1729,7 +1732,7 @@ def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() ->
 
     vega = _generate_vega_lite_preview_from_data(data, form_data).specification
     bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
     assert [row[category_field] for row in vega["data"]["values"]] == expected
     assert bar["encoding"]["tooltip"][0]["field"] == category_field
     assert bar["encoding"]["tooltip"][0]["title"] == "Category"
@@ -1811,7 +1814,7 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
 
     vega = _generate_vega_lite_preview_from_data(data, form_data).specification
     bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
     assert [row[category_field] for row in vega["data"]["values"]] == (
         expected_categories
     )
@@ -1930,7 +1933,8 @@ def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() 
         "12",
     ]
     # Null, string, boolean, integral-float, Decimal, and integer collisions
-    # are intentional because they are the same frontend category strings.
+    # are intentional display labels, but their row identities remain distinct.
+    assert len({row["__mcp_bullet_row"] for row in rows}) == len(rows)
     assert categories.count("null") == 2
     assert categories.count("true") == 2
     assert categories.count("12") == 3
@@ -2376,7 +2380,7 @@ def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None
     assert isinstance(saved, VegaLitePreview)
     for preview in (unsaved, saved):
         assert preview.specification["data"]["values"] == [
-            {"Revenue": 0.0, "__mcp_bullet_category": ""}
+            {"Revenue": 0.0, "__mcp_bullet_category": "", "__mcp_bullet_row": 0}
         ]
         assert preview.specification["usermeta"]["bullet"]["ranges"] == [0.0, 0.0]
 
@@ -2393,7 +2397,7 @@ def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None
     )
     specification = strategy._create_vega_lite_spec([])
     assert specification["data"]["values"] == [
-        {"SavedRevenue": 0.0, "__mcp_bullet_category": ""}
+        {"SavedRevenue": 0.0, "__mcp_bullet_category": "", "__mcp_bullet_row": 0}
     ]
 
 
@@ -2634,7 +2638,7 @@ def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
     assert bar_layer["encoding"]["x"]["field"] == "Total Revenue"
-    assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_category"
+    assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_row"
     range_layers = [
         layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
     ]
@@ -3405,9 +3409,11 @@ def test_bullet_null_dimension_alias_is_absent(
         assert "dimensions" not in config.model_fields_set
 
 
+@pytest.mark.parametrize("dataset_rebind", [False, True])
 @pytest.mark.parametrize("order_by", [[], [{"column": "Region", "ascending": True}]])
 def test_update_chart_preview_tool_preserves_omitted_bullet_state(
     order_by: list[dict[str, Any]],
+    dataset_rebind: bool,
 ) -> None:
     request = UpdateChartPreviewRequest(
         form_data_key="previous_bullet_key",
@@ -3416,7 +3422,8 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state(
         generate_preview=False,
     )
     dataset = _orm_dataset()
-    previous = {
+    previous: dict[str, Any] = {
+        "datasource": "6__table" if dataset_rebind else "7__table",
         "viz_type": "bullet",
         "metric": "old_metric",
         "groupby": ["Region", "Team"],
@@ -3445,6 +3452,8 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state(
             },
         ],
     }
+    if dataset_rebind:
+        previous["adhoc_filters"] = previous["adhoc_filters"][1:]
     link = MagicMock(
         return_value="http://localhost:8088/explore/?form_data_key=new_bullet_key"
     )
@@ -3848,3 +3857,171 @@ def test_bullet_schema_error_hint_does_not_require_matching_label_counts() -> No
         markers=[12],
         marker_labels=["Plan", "Ignored"],
     )
+
+
+@pytest.mark.parametrize(
+    "categories",
+    [
+        [None, "null"],
+        [True, "true"],
+        [12, "12"],
+        ["North, Blue", "North, Blue"],
+    ],
+)
+def test_bullet_vega_colliding_labels_keep_distinct_rows(categories: list[Any]) -> None:
+    """Display text must not collapse separate query rows onto one band."""
+    preview = _generate_vega_lite_preview_from_data(
+        [
+            {"Region": category, "Revenue": index + 1}
+            for index, category in enumerate(categories)
+        ],
+        {"viz_type": "bullet", "metric": "Revenue", "groupby": ["Region"]},
+    )
+    spec = preview.specification
+    bar = next(layer for layer in spec["layer"] if layer["mark"]["type"] == "bar")
+    row_field = bar["encoding"]["y"]["field"]
+    label_field = bar["encoding"]["tooltip"][0]["field"]
+    values = spec["data"]["values"]
+    assert len({row[row_field] for row in values}) == len(categories)
+    assert row_field != label_field
+    assert values[0][label_field] == values[1][label_field]
+    assert "labelExpr" in bar["encoding"]["y"]["axis"]
+    assert all(layer["encoding"]["y"]["field"] == row_field for layer in spec["layer"])
+
+
+def test_bullet_vega_translates_signed_smart_number_in_axis_and_tooltip() -> None:
+    """Explore pseudo-formats require valid D3 format projections."""
+    preview = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 1234}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "y_axis_format": "SMART_NUMBER_SIGNED",
+        },
+    )
+    bar = next(
+        layer
+        for layer in preview.specification["layer"]
+        if layer["mark"]["type"] == "bar"
+    )
+    assert bar["encoding"]["x"]["axis"]["format"] == "+~s"
+    assert bar["encoding"]["tooltip"][1]["format"] == "+~s"
+
+
+@pytest.mark.parametrize("replacement_time_column", [False, True])
+@pytest.mark.parametrize("chart_type", ["table", "bullet"])
+def test_saved_chart_rebind_discards_invalid_temporal_provenance(
+    chart_type: str, replacement_time_column: bool
+) -> None:
+    """Removing an inherited predicate must remove its subject marker too."""
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_replacement_form_data,
+    )
+
+    config = (
+        BulletChartConfig(metric=_simple_metric())
+        if chart_type == "bullet"
+        else TableChartConfig(columns=[{"name": "Revenue"}])
+    )
+    previous = {
+        "viz_type": chart_type,
+        "datasource": "6__table",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "RemovedDate",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "RemovedDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            }
+        ],
+    }
+    with (
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset() if replacement_time_column else None,
+        ),
+    ):
+        merged = _build_replacement_form_data(previous, config, 7, 7)
+    assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
+    assert not merged.get("adhoc_filters")
+    assert merged["datasource"] == "7__table"
+
+
+def test_cached_table_rebind_does_not_restore_invalid_query_roles() -> None:
+    """The preview's dataset and omitted roles must describe the new dataset."""
+    dataset = _orm_dataset()
+    config = TableChartConfig(columns=[{"name": "Revenue"}])
+    request = UpdateChartPreviewRequest(
+        dataset_id=7,
+        form_data_key="previous_table_key",
+        config=config,
+        generate_preview=False,
+    )
+    previous = {
+        "viz_type": "table",
+        "datasource": "6__table",
+        "datasource_id": 6,
+        "groupby": ["RemovedColumn"],
+        "groupby_b": ["RemovedColumn"],
+        "order_by_cols": ['["RemovedColumn", false]'],
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "RemovedColumn",
+                "operator": "==",
+                "comparator": "old",
+            }
+        ],
+    }
+    link = MagicMock(
+        return_value="http://localhost/explore/?form_data_key=new_table_key"
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request", return_value=_tool_user()
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
+            return_value=dataset,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview._get_previous_form_data",
+            return_value=previous,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile",
+            return_value=SimpleNamespace(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.generate_explore_link",
+            link,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.analyze_chart_capabilities",
+            return_value=None,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart_preview.analyze_chart_semantics",
+            return_value=None,
+        ),
+    ):
+        result = update_chart_preview(request, ctx=MagicMock())
+    assert result["success"] is True
+    merged = link.call_args.args[1]
+    assert merged["datasource"] == "7__table"
+    assert merged.get("datasource_id", 7) == 7
+    assert not merged.get("groupby")
+    assert not merged.get("groupby_b")
+    assert not merged.get("order_by_cols")
+    assert not merged.get("adhoc_filters")

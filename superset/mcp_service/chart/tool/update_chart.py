@@ -41,6 +41,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_same_viz_form_data,
@@ -149,6 +150,7 @@ def _canonicalize_form_data_datasource(
     """Bind operation form data to the effective datasource after all merges."""
     if dataset_id is not None:
         form_data["datasource"] = f"{dataset_id}__{datasource_type}"
+        form_data.pop("datasource_id", None)
 
 
 def _entry_key(entry: Any) -> str:
@@ -346,10 +348,12 @@ def _inherited_state_invalid_keys(
     preserved so the update does not silently reset the chart.
     """
     fields_set = parsed_config.model_fields_set
+    # Omitted filters are inherited even when mapping proposed a neutral time
+    # binding for the replacement dataset; merge_update_form_data owns that choice.
     inherited_keys = {
         key
         for key, config_field in _INHERITED_QUERY_ROLE_FIELDS.items()
-        if key not in new_form_data
+        if (key not in new_form_data or key == "adhoc_filters")
         and config_field not in fields_set
         and existing_form_data.get(key)
     }
@@ -394,6 +398,25 @@ def _inherited_state_invalid_keys(
     return invalid_keys
 
 
+def _prune_inherited_query_state(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: ChartConfig,
+    dataset_id: int,
+) -> dict[str, Any]:
+    """Discard incompatible inherited roles and their temporal provenance."""
+    invalid_keys = _inherited_state_invalid_keys(
+        existing_form_data, new_form_data, config, dataset_id
+    )
+    if "adhoc_filters" in invalid_keys:
+        invalid_keys.add(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    return {
+        key: value
+        for key, value in existing_form_data.items()
+        if key not in invalid_keys
+    }
+
+
 def _build_replacement_form_data(
     existing_form_data: dict[str, Any],
     parsed_config: ChartConfig,
@@ -421,17 +444,9 @@ def _build_replacement_form_data(
         # Drop only the inherited state the replacement dataset cannot
         # resolve, then merge as a same-dataset update. Plugins with a strict
         # rebind contract handle the rebind in merge_update_form_data.
-        invalid_keys = _inherited_state_invalid_keys(
-            existing_form_data,
-            new_form_data,
-            parsed_config,
-            replacement_dataset_id,
+        existing_form_data = _prune_inherited_query_state(
+            existing_form_data, new_form_data, parsed_config, replacement_dataset_id
         )
-        existing_form_data = {
-            key: value
-            for key, value in existing_form_data.items()
-            if key not in invalid_keys
-        }
         dataset_rebind = False
     merge_table_column_config(existing_form_data, new_form_data)
     merge_interactive_pivot_ui_config(existing_form_data, new_form_data)

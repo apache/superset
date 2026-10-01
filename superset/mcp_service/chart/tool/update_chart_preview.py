@@ -67,6 +67,10 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
 )
+from superset.mcp_service.chart.tool.update_chart import (
+    _canonicalize_form_data_datasource,
+    _prune_inherited_query_state,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
 )
@@ -237,6 +241,17 @@ def update_chart_preview(  # noqa: C901
                 bool(previous_datasource)
                 or bool(plugin and plugin.unbound_form_data_is_rebind)
             )
+            if (
+                dataset_rebind
+                and previous_form_data
+                and not (plugin is not None and plugin.strict_dataset_rebind)
+            ):
+                # Match saved-chart rebinds: retain only references that resolve
+                # against the replacement dataset before resolving omitted roles.
+                previous_form_data = _prune_inherited_query_state(
+                    previous_form_data, {}, config, dataset.id
+                )
+                dataset_rebind = False
             try:
                 if plugin is not None:
                     config = plugin.resolve_update_config(
@@ -324,6 +339,7 @@ def update_chart_preview(  # noqa: C901
                         ):
                             new_form_data.pop(form_data_field, None)
 
+            _canonicalize_form_data_datasource(new_form_data, dataset.id)
             merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
             try:
                 merged_config = (

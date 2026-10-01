@@ -1169,7 +1169,10 @@ Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
 breakdown. On updates, omission or `null` preserves the saved hierarchy; use
 `dimensions: []` to clear it explicitly. An `order_by` update can reference the
 saved dimensions without resending them; unknown targets are rejected after
-resolving the saved hierarchy.
+resolving the saved hierarchy. When replacing the dataset, saved-chart and
+cached-preview updates retain an omitted hierarchy only if its columns resolve
+in the replacement dataset; incompatible inherited roles and temporal-filter
+provenance are discarded.
 
 Dimension and metric output names are case-sensitive: quoted physical columns
 such as `Region` and `region` remain distinct. Reference lookup prefers exact
@@ -1191,7 +1194,9 @@ finite numbers; infinite native values and oversized controls remain errors.
 On same-dataset chart updates, `filters: []` clears both user filters and the
 generated dashboard-time binding. `temporal_column: null` clears only that
 generated binding, preserving user filters. Omitting those controls preserves
-the saved binding.
+the saved binding. Bullet Vega previews keep separate indexed rows even when
+dimension display labels are identical, and support both `SMART_NUMBER` and
+`SMART_NUMBER_SIGNED` number formats.
 
 ### Chart query result limits
 

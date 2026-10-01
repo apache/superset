@@ -44,6 +44,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.utils import json
 from superset.utils.core import get_column_name
 
 logger = logging.getLogger(__name__)
@@ -1163,6 +1164,9 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     model = resolve_bullet_render_model(data, form_data)
 
     category_field = _unique_bullet_category_field(model.rows)
+    row_field = _unique_bullet_derived_field(
+        model.rows, "__mcp_bullet_row", (category_field,)
+    )
     containing_range_labels = (
         [
             _containing_bullet_range_label(measure, model.ranges, model.range_labels)
@@ -1173,7 +1177,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     )
     range_tooltip_field = (
         _unique_bullet_derived_field(
-            model.rows, "__mcp_bullet_range", (category_field,)
+            model.rows, "__mcp_bullet_range", (category_field, row_field)
         )
         if any(label is not None for label in containing_range_labels)
         else None
@@ -1181,6 +1185,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     values = []
     for row_index, row in enumerate(model.rows):
         copied = dict.copy(row)
+        copied[row_field] = row_index
         copied[category_field] = (
             ", ".join(
                 _bullet_category_value(dict.get(row, field), field, row_index)[1]
@@ -1196,11 +1201,18 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             copied[range_tooltip_field] = containing_range_labels[row_index]
         values.append(copied)
 
+    # Explore uses indexed rows even when their display labels are identical.
+    category_labels = [row[category_field] for row in values]
+    vega_format = {
+        "SMART_NUMBER": "~s",
+        "SMART_NUMBER_SIGNED": "+~s",
+    }.get(model.y_axis_format, model.y_axis_format)
     y_encoding = {
-        "field": category_field,
+        "field": row_field,
         "type": "nominal",
         "title": ", ".join(model.dimensions) if model.dimensions else None,
         "sort": None,
+        "axis": {"labelExpr": f"{json.dumps(category_labels)}[datum.value]"},
     }
     tooltip = [
         {
@@ -1211,9 +1223,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         {
             "field": model.metric_field,
             "type": "quantitative",
-            "format": (
-                "~s" if model.y_axis_format == "SMART_NUMBER" else model.y_axis_format
-            ),
+            "format": vega_format,
         },
     ]
     if range_tooltip_field is not None:
@@ -1235,7 +1245,6 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     )
     if axis_min == axis_max:
         axis_max = axis_min + (abs(axis_min) or 1)
-    vega_format = "~s" if model.y_axis_format == "SMART_NUMBER" else model.y_axis_format
 
     def label_at(labels: list[str], index: int, value: float, prefix: str) -> str:
         if index < len(labels) and labels[index]:

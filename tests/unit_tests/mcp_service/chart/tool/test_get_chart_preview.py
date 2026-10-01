@@ -264,7 +264,7 @@ async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
         bar = next(
             layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
         )
-        category_field = bar["encoding"]["y"]["field"]
+        category_field = bar["encoding"]["tooltip"][0]["field"]
         assert [row[category_field] for row in specification["data"]["values"]] == [
             "9007199254740992",
             "1",
@@ -454,7 +454,7 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         bar = next(
             layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
         )
-        category_field = bar["encoding"]["y"]["field"]
+        category_field = bar["encoding"]["tooltip"][0]["field"]
         assert [row[category_field] for row in specification["data"]["values"]] == (
             expected
         )
@@ -614,7 +614,7 @@ async def test_transitionless_dateutil_dataframe_reaches_fastmcp_preview() -> No
     bar = next(
         layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
     )
-    category_field = bar["encoding"]["y"]["field"]
+    category_field = bar["encoding"]["tooltip"][0]["field"]
     assert [row["Category"] for row in specification["data"]["values"]] == (
         expected_numbers
     )
@@ -761,7 +761,7 @@ async def test_duration_dataframe_reaches_fastmcp_bullet_preview(
         bar = next(
             layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
         )
-        category_field = bar["encoding"]["y"]["field"]
+        category_field = bar["encoding"]["tooltip"][0]["field"]
         range_tooltip = next(
             item for item in bar["encoding"]["tooltip"] if item.get("title") == "Range"
         )
@@ -3003,7 +3003,7 @@ async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
     else:
         spec = payload["content"]["specification"]
         bar = next(layer for layer in spec["layer"] if layer["mark"]["type"] == "bar")
-        category = bar["encoding"]["y"]["field"]
+        category = bar["encoding"]["tooltip"][0]["field"]
         assert spec["data"]["values"][0][category] == "North, South"
         labels = {
             layer["encoding"]["x"]["datum"]: layer["encoding"]["text"]["value"]
