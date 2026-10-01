@@ -975,7 +975,15 @@ describe('Additional actions tests', () => {
       { result: [{ query: 'SELECT age FROM survey', language: 'sql' }] },
       { name: 'chart-data-query' },
     );
-    render(<ExploreHeader {...createProps()} />, { store: createShareStore() });
+    // The rendered chart's query form data diverges from the saved slice, so
+    // the request must carry the rendered values to match.
+    const props = createProps();
+    props.chart.latestQueryFormData = {
+      ...props.chart.latestQueryFormData,
+      time_range: 'Last week',
+      row_limit: 123,
+    };
+    render(<ExploreHeader {...props} />, { store: createShareStore() });
 
     await userEvent.click(screen.getByLabelText('Menu actions trigger'));
     await userEvent.click(screen.getByText('View query'));
@@ -987,7 +995,8 @@ describe('Additional actions tests', () => {
 
     const [chartDataCall] = fetchMock.callHistory.calls('chart-data-query');
     const requestBody = JSON.parse(String(chartDataCall.options?.body));
-    const { latestQueryFormData } = createProps().chart;
+    const { latestQueryFormData } = props.chart;
+    expect(props.slice?.form_data?.time_range).not.toBe('Last week');
     expect(requestBody).toMatchObject({
       result_type: 'query',
       datasource: { id: 49, type: 'table' },
@@ -996,6 +1005,8 @@ describe('Additional actions tests', () => {
         datasource: latestQueryFormData.datasource,
         slice_id: latestQueryFormData.slice_id,
         all_columns_x: latestQueryFormData.all_columns_x,
+        time_range: 'Last week',
+        row_limit: 123,
       },
     });
 
