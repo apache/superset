@@ -244,3 +244,16 @@ def test_settings_are_validated() -> None:
         "/settings/refresh/interval",
         "/settings/colors/theme",
     }
+
+
+def test_nesting_depth_is_not_capped() -> None:
+    nodes = {
+        f"g{level}": node(
+            f"group-{level}", children=[f"g{level + 1}"] if level < 29 else []
+        )
+        for level in range(30)
+    }
+
+    result = normalize(canvas(nodes, children=["g0"]))
+
+    assert len(result["nodes"]) == 30

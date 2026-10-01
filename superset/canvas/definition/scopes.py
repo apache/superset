@@ -62,15 +62,12 @@ SCOPE_RESULT_KEYS = {
 
 def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
     """Node ids under ``start`` (exclusive), depth first in children order."""
-    children = (
-        canvas["root"]["children"]
-        if start == ROOT_ID
-        else canvas["nodes"][start].get("children") or []
-    )
     ordered: list[str] = []
-    for child in children:
-        ordered.append(child)
-        ordered.extend(_reading_order(canvas, child))
+    stack = list(reversed(_children(canvas, start)))
+    while stack:
+        node_id = stack.pop()
+        ordered.append(node_id)
+        stack.extend(reversed(_children(canvas, node_id)))
     return ordered
 
 

@@ -53,9 +53,6 @@ from superset.canvas.definition.schemas import (
     SCOPE_FIELDS,
 )
 
-MAX_NODES = 500
-MAX_DEPTH = 8
-
 # The layout rule a node needs to own each kind of scope override.
 SCOPE_ROLES = {
     "filter": ("is_filter", "a filter"),
@@ -123,12 +120,9 @@ class _Validator:
             raise DefinitionValidationError(_pydantic_issues((), ex)) from ex
         doc = canvas.model_dump(mode="json", by_alias=True, exclude_none=True)
 
-        if len(doc["nodes"]) > MAX_NODES:
-            self.fail("/nodes", f"more than {MAX_NODES} nodes")
         self._check_tree(doc)
         self._check_widgets(doc)
         self._check_nesting()
-        self._check_depth(doc)
         self._check_interactions(doc)
         self._check_settings(doc)
         if not self.issues:
@@ -260,17 +254,6 @@ class _Validator:
                 self.fail(
                     pointer("settings", "refresh", "exempt", index),
                     f"unknown node {node_id!r}",
-                )
-
-    def _check_depth(self, doc: dict[str, Any]) -> None:
-        for node_id in doc["nodes"]:
-            depth, current = 1, node_id
-            while self.parents.get(current, ROOT_ID) != ROOT_ID and depth <= MAX_DEPTH:
-                current = self.parents[current]
-                depth += 1
-            if depth > MAX_DEPTH:
-                self.fail(
-                    pointer("nodes", node_id), f"nested deeper than {MAX_DEPTH} levels"
                 )
 
     def _resolve_layouts(self, doc: dict[str, Any]) -> None:

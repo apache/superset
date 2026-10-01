@@ -46,9 +46,9 @@ class _Model(BaseModel):
 
 
 class RootLayout(_Model):
-    columns: int = Field(default=24, ge=1, le=48)
-    gap: int = Field(default=16, ge=0, le=64)
-    row_unit: int = Field(default=40, ge=8, le=400)
+    columns: int = Field(default=24, ge=1)
+    gap: int = Field(default=16, ge=0)
+    row_unit: int = Field(default=40, ge=1)
 
 
 class Root(_Model):
@@ -58,7 +58,7 @@ class Root(_Model):
 
 class Node(_Model):
     # Id of the placed widget.
-    widget: str = Field(min_length=1, max_length=64)
+    widget: str = Field(min_length=1)
     # Placement within the parent, validated against the parent's rules.
     layout: dict[str, Any] = Field(default_factory=dict)
     # Present only when the widget is a container.
@@ -112,10 +112,10 @@ class Interactions(_Model):
 
 class RefreshSettings(_Model):
     # Seconds between automatic refreshes of every widget's data; 0 is off.
-    interval: int = Field(default=0, ge=0, le=7 * 24 * 60 * 60)
+    interval: int = Field(default=0, ge=0)
     # Milliseconds a refresh is spread over across widgets; 0 refreshes all at
     # once.
-    stagger: int = Field(default=0, ge=0, le=10 * 60 * 1000)
+    stagger: int = Field(default=0, ge=0)
     # Nodes left out of automatic refresh.
     exempt: list[str] = Field(default_factory=list)
 
@@ -124,9 +124,7 @@ class ColorSettings(_Model):
     # Categorical color scheme shared by every widget; the default when unset.
     scheme: str | None = Field(default=None, min_length=1, max_length=255)
     # Fixed colors for series labels across widgets, e.g. {"France": "#1f77b4"}.
-    label_colors: dict[str, Annotated[str, Field(max_length=64)]] = Field(
-        default_factory=dict, max_length=1000
-    )
+    label_colors: dict[str, str] = Field(default_factory=dict)
 
 
 class DisplaySettings(_Model):
@@ -171,7 +169,7 @@ class AddOp(_Model):
 
     op: Literal["add"]
     id: str | None = Field(default=None, pattern=NODE_ID_PATTERN)
-    widget: str = Field(min_length=1, max_length=64)
+    widget: str = Field(min_length=1)
     layout: dict[str, Any] = Field(default_factory=dict)
     parent: str = ROOT_ID
     # Position in the parent's children (reading order); appended when omitted.
@@ -235,4 +233,4 @@ class ApplyOperationsRequest(BaseModel):
 
     # The revision the caller's view of the canvas is based on.
     base_revision: int = Field(ge=0)
-    ops: list[Operation] = Field(min_length=1, max_length=200)
+    ops: list[Operation] = Field(min_length=1)
