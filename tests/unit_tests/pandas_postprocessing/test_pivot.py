@@ -20,6 +20,7 @@ import pandas as pd
 import pytest
 from pandas import DataFrame, to_datetime
 
+from superset.constants import NULL_STRING
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import flatten, pivot
 from tests.unit_tests.fixtures.dataframes import categories_df
@@ -871,3 +872,396 @@ def test_pivot_show_values_as_preserves_structural_nan() -> None:
     assert pd.isna(result.loc["r1", ("v", "c2")])
     # r1's row-total is just c1 (10.0), so c1 is 100%.
     assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
+
+
+# --- NULL index preservation tests (#43547) ----------------------------------
+#
+# pandas pivot_table() silently drops rows whose index columns contain NaN,
+# regardless of the dropna= setting (which only governs the column axis).
+# The fix fills index columns with NULL_STRING before calling pivot_table(),
+# mirroring the existing treatment of the columns= parameter.
+
+
+def test_pivot_preserves_null_index_value() -> None:
+    """A NULL value in a flat (no columns groupby) index column must appear
+    as a '<NULL>' row in the result rather than being silently dropped.
+
+    Regression for #43547: pivot_table() drops NaN index rows regardless of
+    dropna=; filling the index with NULL_STRING before the call preserves them.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label, not be dropped.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL group must be correct.
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_with_columns() -> None:
+    """A NULL value in an index column must survive as '<NULL>' even when a
+    columns= groupby is also active (MultiIndex column case).
+
+    Regression for #43547: the fix must work for both the flat pivot and the
+    MultiIndex pivot so that NULL row groups are never silently dropped.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "col": ["c1", "c1", "c1"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label in the MultiIndex pivot.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL-indexed group must be correct.
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical() -> None:
+    """A categorical index column with a NULL value must have NULL_STRING added
+    as a valid category first and be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: ensures fillna() on CategoricalDtype does not raise
+    and preserves the NULL index group.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_with_columns() -> None:
+    """Both index and column dimensions as categorical dtypes with NULL values
+    must properly add NULL_STRING to categories and preserve '<NULL>' rows and
+    columns in the MultiIndex output.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", NULL_STRING)] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime() -> None:
+    """A datetime index column containing NaT/NULL must not raise a TypeError
+    when filled and must be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: datetime64 columns cannot store strings directly;
+    converting NaT-containing datetime columns to string ensures NaT keys
+    survive pivot_table() without dtype/sort errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime_with_columns() -> None:
+    """A datetime index column containing NaT/NULL with a columns groupby
+    must preserve '<NULL>' in the MultiIndex output without type errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "col": ["c1", "c1", "c2"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime_timezone_aware() -> None:
+    """A timezone-aware datetime index containing NaT must preserve '<NULL>'
+    without dtype or timezone conversion errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"], utc=True),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_already_in_categories() -> None:
+    """A categorical index that already has NULL_STRING in its categories
+    must not fail or attempt duplicate category insertion and must fill NULLs.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(
+                ["r1", None, "r2"], categories=["r1", "r2", NULL_STRING]
+            ),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_column_with_null() -> None:
+    """A categorical groupby column containing NULL values must add the
+    column_fill_value to categories and preserve '<NULL>' in MultiIndex columns.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", NULL_STRING) in result.columns
+    assert result.loc["r2", ("v", NULL_STRING)] == 99
+
+
+def test_pivot_categorical_column_already_in_categories() -> None:
+    """A categorical groupby column that already includes the fill value in its
+    categories must properly fill NULLs without error.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(
+                ["c1", None, "c2"], categories=["c1", "c2", "CUSTOM_NULL"]
+            ),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        column_fill_value="CUSTOM_NULL",
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", "CUSTOM_NULL") in result.columns
+    assert result.loc["r2", ("v", "CUSTOM_NULL")] == 99
+
+
+def test_pivot_preserves_null_numeric_index_value() -> None:
+    """A numeric index containing NaN must be converted/filled with NULL_STRING
+    so that the NaN row is preserved through pivot_table().
+    """
+    df = DataFrame(
+        {
+            "num_idx": [1.0, np.nan, 2.0],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_no_null_does_not_add_spurious_category() -> None:
+    """A categorical index column with no missing values must not gain
+    NULL_STRING as a category at all, let alone a zero-value group for it.
+
+    Regression: unconditionally adding NULL_STRING to every categorical
+    dimension's categories -- even when nothing is actually missing --
+    created a spurious all-zero '<NULL>' group in pivots that never had one.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", "r2", "r1"]),
+            "v": [10, 20, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING not in result.index, (
+        f"Did not expect '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+
+
+def test_pivot_preserves_null_index_value_datetime_keeps_valid_values_as_objects() -> (
+    None
+):
+    """A datetime index with one NaT must fill only the missing entry with
+    NULL_STRING; the other, valid entries must remain real Timestamp objects
+    rather than being rewritten to their string representation.
+
+    Regression: casting the whole column to `str` to accommodate the NaT
+    sentinel also stringified every valid timestamp, changing their pivot
+    labels and bypassing the epoch serializer downstream.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    valid_labels = [label for label in result.index if label != NULL_STRING]
+    assert valid_labels, "Expected at least one non-NULL index label"
+    assert all(isinstance(label, pd.Timestamp) for label in valid_labels), (
+        f"Expected valid datetime labels to stay Timestamp objects; got "
+        f"{[type(label) for label in valid_labels]}"
+    )
+
+
+def test_pivot_preserves_null_index_value_timedelta() -> None:
+    """A timedelta64 index column containing NaT must not raise a TypeError
+    when filled and must be preserved as '<NULL>' in the pivot output.
+
+    Regression: the datetime special-case only matched dtype kind "M", so a
+    timedelta64 column (kind "m") fell through to the plain fillna() branch,
+    which raises TypeError trying to put a string into a timedelta64 array.
+    """
+    df = DataFrame(
+        {
+            "duration": pd.to_timedelta(["1 days", None, "3 days"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["duration"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_nullable_integer() -> None:
+    """An Int64 (pandas nullable) index column containing pd.NA must not
+    raise a TypeError when filled and must be preserved as '<NULL>'.
+
+    Regression: pandas' nullable extension dtypes (Int64, Float64, boolean)
+    enforce internal type homogeneity and reject a string sentinel via
+    fillna() the same way datetime64 does; only datetime64 was handled.
+    """
+    df = DataFrame(
+        {
+            "num_idx": pd.array([1, None, 2], dtype="Int64"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_nullable_boolean() -> None:
+    """A boolean (pandas nullable) index column containing pd.NA must not
+    raise a TypeError when filled and must be preserved as '<NULL>'.
+    """
+    df = DataFrame(
+        {
+            "flag": pd.array([True, None, False], dtype="boolean"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["flag"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99

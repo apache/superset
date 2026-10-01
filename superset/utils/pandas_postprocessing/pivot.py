@@ -190,6 +190,54 @@ def _restore_dropped_metric_columns(
     return df
 
 
+def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
+    """Fill missing values in a groupby dimension column before pivoting.
+
+    ``pivot_table()`` silently drops any row/column whose grouping key is
+    NaN/NaT/``pd.NA``, regardless of the ``dropna`` setting. Replacing missing
+    values with a string sentinel keeps those groups, but how a dtype accepts
+    that sentinel varies:
+
+    - Categorical: adding the sentinel as a category unconditionally would
+      create a spurious all-zero group even when nothing is actually missing
+      (the category exists whether or not any row uses it), so this is
+      gated on there being a real null to fill.
+    - Datetime/timedelta64 (naive or tz-aware): these reject a string scalar
+      via ``fillna()`` outright, and casting the whole column to ``str``
+      would rewrite every valid value's label too, not just the missing
+      ones, which also breaks the epoch serializer downstream. Casting to
+      ``object`` first keeps every valid entry as its real
+      ``Timestamp``/``Timedelta`` object; only the missing slots become the
+      sentinel.
+    - Nullable extension dtypes (``Int64``, ``Float64``, ``boolean``, ...):
+      pandas enforces internal type homogeneity on these and rejects a
+      string sentinel the same way datetime64 does, so they get the same
+      object-cast treatment.
+    - Anything else (plain numpy numeric/object dtypes): a direct
+      ``fillna()`` already accepts the sentinel.
+
+    Columns with no missing values are left untouched entirely, both to
+    avoid the categorical spurious-group problem above and to avoid an
+    unnecessary dtype cast on data that doesn't need one.
+    """
+    s = df[col]
+    if not s.isna().any():
+        return
+
+    if isinstance(s.dtype, pd.CategoricalDtype):
+        if fill_value not in s.cat.categories:
+            s = s.cat.add_categories([fill_value])
+        df[col] = s.fillna(value=fill_value)
+    elif (
+        pd.api.types.is_datetime64_any_dtype(s.dtype)
+        or pd.api.types.is_timedelta64_dtype(s.dtype)
+        or isinstance(s.dtype, pd.api.extensions.ExtensionDtype)
+    ):
+        df[col] = s.astype(object).fillna(value=fill_value)
+    else:
+        df[col] = s.fillna(value=fill_value)
+
+
 @validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
@@ -302,7 +350,15 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         percent_mode = show_values_as
 
     if columns and column_fill_value:
-        df[columns] = df[columns].fillna(value=column_fill_value)
+        for col in columns:
+            _fill_dimension_column(df, col, column_fill_value)
+
+    # Fill NULL/NaN/NaT values in the index columns with NULL_STRING so that
+    # NULL grouping keys survive as a real "<NULL>" row in the pivot output.
+    # Mirrors the column fill above; pivot_table() drops NaN index rows
+    # regardless of the dropna= setting (dropna only governs the column axis).
+    for col in index:
+        _fill_dimension_column(df, col, NULL_STRING)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
