@@ -1270,6 +1270,6 @@ def test_gauge_cached_preview_honors_null_binding(field: str) -> None:
         patch.object(module, "analyze_chart_capabilities", return_value=None),
         patch.object(module, "analyze_chart_semantics", return_value=None),
     ):
-        result = module.update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(module.update_chart_preview(request, ctx=MagicMock()))
     assert result["success"] is True
     assert field not in link.call_args.args[1]

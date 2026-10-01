@@ -1795,7 +1795,13 @@ async def test_query_dataset_returns_engine_time_bounds(
     # Freeze for the whole request, not temporarily inside the worker: changing
     # a process-wide clock mid-call also changes another thread's deadline clock.
     with (
-        freeze_time("2026-07-17 12:34:56", real_asyncio=True),
+        # The response validator matches exact stdlib types, so it must keep the
+        # real ``datetime`` class rather than freezegun's replacement.
+        freeze_time(
+            "2026-07-17 12:34:56",
+            real_asyncio=True,
+            ignore=["superset.mcp_service.chart.query_result"],
+        ),
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch.object(
             query_dataset_module, "execute_tabular_query", side_effect=execute

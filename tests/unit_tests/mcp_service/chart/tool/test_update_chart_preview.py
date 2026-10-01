@@ -21,6 +21,7 @@ Unit tests for update_chart_preview MCP tool
 
 import asyncio
 import importlib
+from contextlib import nullcontext
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -41,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     InteractivePivotChartConfig,
     LegendConfig,
     MixedTimeseriesChartConfig,
@@ -91,6 +93,99 @@ def _mock_dataset(id: int = 1) -> Mock:
     dataset.metrics = []
     dataset.database = database
     return dataset
+
+
+@patch.object(
+    update_chart_preview_module,
+    "event_logger",
+    new=Mock(log_context=lambda **kwargs: nullcontext()),
+)
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_gauge_update_preserves_controls_and_compiles(
+    mock_find_dataset,
+    mock_get_previous_form_data,
+    mock_generate_explore_link,
+    mock_capabilities,
+    mock_semantics,
+    mock_find_by_id,
+    unused_access_mock,
+    mock_validate_and_compile,
+    mock_auth,
+) -> None:
+    """Cached Gauge iteration preserves omissions and validates runtime output."""
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_find_by_id.return_value = _mock_dataset(id=3)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "gauge_chart",
+        "datasource": "3__table",
+        "metric": "old_sla",
+        "groupby": ["team"],
+        "font_size": 19,
+        "number_format": ",.1f",
+        "show_pointer": False,
+        "_mcp_dashboard_time_filter_subject": "event_time",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last week",
+            },
+        ],
+    }
+    cached_filters = mock_get_previous_form_data.return_value["adhoc_filters"]
+    cached_filters.insert(0, dict(cached_filters[0]))
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_capabilities.return_value = None
+    mock_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True, warnings=[])
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=3,
+        config=GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "new_sla", "saved_metric": True},
+            max_val=120,
+            temporal_column=None,
+        ),
+    )
+
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["metric"] == "new_sla"
+    assert generated["groupby"] == ["team"]
+    assert generated["font_size"] == 19
+    assert generated["show_pointer"] is False
+    assert generated["max_val"] == 120
+    assert result["form_data"] == generated
+    assert mock_validate_and_compile.call_args.kwargs["run_compile_check"] is True
+
+    assert [
+        f["comparator"]
+        for f in generated["adhoc_filters"]
+        if f["operator"] == "TEMPORAL_RANGE"
+    ] == ["Last week"]
 
 
 def test_update_chart_preview_entrypoint_exact_limit_and_plus_one() -> None:
@@ -1179,7 +1274,7 @@ class TestUpdateChartPreview:
             "http://localhost:8088/explore/?form_data_key=new_preview_key"
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=UpdateChartPreviewRequest(
                 form_data_key="valid_key_12345",
                 dataset_id=3,
@@ -1258,7 +1353,7 @@ class TestUpdateChartPreview:
             "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
             return_value=True,
         ):
-            result = update_chart_preview_module.update_chart_preview(
+            result = await update_chart_preview_module.update_chart_preview(
                 request=UpdateChartPreviewRequest(
                     form_data_key="valid_key_12345",
                     dataset_id=3,

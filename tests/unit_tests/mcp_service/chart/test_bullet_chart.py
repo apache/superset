@@ -17,6 +17,7 @@
 
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
+import asyncio
 import math
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
@@ -3500,7 +3501,7 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state(
             return_value=None,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(update_chart_preview(request, ctx=MagicMock()))
 
     assert result["success"] is True
     preview_form_data = link.call_args.args[1]
@@ -4016,7 +4017,7 @@ def test_cached_table_rebind_does_not_restore_invalid_query_roles() -> None:
             return_value=None,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(update_chart_preview(request, ctx=MagicMock()))
     assert result["success"] is True
     merged = link.call_args.args[1]
     assert merged["datasource"] == "7__table"
