@@ -47,6 +47,7 @@ from superset.canvas.definition.schemas import (
     RemoveOp,
     ROOT_ID,
     SetFilterScopeOp,
+    SetSettingsOp,
 )
 from superset.canvas.definition.validation import normalize_definition
 
@@ -57,6 +58,14 @@ class FieldGroup(str, Enum):
     LAYOUT = "layout"
     # A filter's scope override.
     SCOPE = "scope"
+    # Sections of the canvas settings, touched on ``SETTINGS_ID``.
+    REFRESH = "refresh"
+    COLORS = "colors"
+    DISPLAY = "display"
+
+
+# Stands in for the settings in touches; never a node id, which is a UUID.
+SETTINGS_ID = "settings"
 
 
 @dataclass(frozen=True)
@@ -112,6 +121,8 @@ def named_touches(ops: Iterable[Operation]) -> list[Touch]:
             touches.append(Touch(op.id, FieldGroup.LAYOUT))
         elif isinstance(op, SetFilterScopeOp):
             touches.append(Touch(op.id, FieldGroup.SCOPE))
+        elif isinstance(op, SetSettingsOp):
+            touches.append(Touch(SETTINGS_ID, FieldGroup(op.key)))
     return touches
 
 
@@ -194,7 +205,12 @@ class _Applier:
             for node_id in removed:
                 del self.nodes[node_id]
             touched = [Touch(node_id, FieldGroup.TREE) for node_id in removed]
-            return AppliedOperation(logged, touched + self._prune_scopes(set(removed)))
+            return AppliedOperation(
+                logged,
+                touched
+                + self._prune_scopes(set(removed))
+                + self._prune_settings(set(removed)),
+            )
         if isinstance(op, MoveOp):
             return self.move(op, logged)
         if isinstance(op, SetFilterScopeOp):
@@ -207,6 +223,13 @@ class _Applier:
                     mode="json", by_alias=True, exclude_none=True
                 )
             return AppliedOperation(logged, [Touch(op.id, FieldGroup.SCOPE)])
+        if isinstance(op, SetSettingsOp):
+            settings = self.canvas.setdefault("settings", {})
+            if op.value is None:
+                settings.pop(op.key, None)
+            else:
+                settings[op.key] = op.value
+            return AppliedOperation(logged, [Touch(SETTINGS_ID, FieldGroup(op.key))])
         assert isinstance(op, PlaceOp)  # noqa: S101
         self.node(op.id)["layout"] = op.layout
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
@@ -229,6 +252,16 @@ class _Applier:
                     scope[field_name] = kept
                     touched.append(Touch(filter_id, FieldGroup.SCOPE))
         return touched
+
+    def _prune_settings(self, removed: set[str]) -> list[Touch]:
+        """Drop removed nodes from the refresh exemptions."""
+        refresh = self.canvas.get("settings", {}).get("refresh", {})
+        exempt = refresh.get("exempt", [])
+        kept = [node_id for node_id in exempt if node_id not in removed]
+        if len(kept) == len(exempt):
+            return []
+        refresh["exempt"] = kept
+        return [Touch(SETTINGS_ID, FieldGroup.REFRESH)]
 
     def move(self, op: MoveOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)

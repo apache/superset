@@ -98,11 +98,45 @@ class Interactions(_Model):
     filters: dict[str, FilterScope] = Field(default_factory=dict)
 
 
+class RefreshSettings(_Model):
+    # Seconds between automatic refreshes of every widget's data; 0 is off.
+    interval: int = Field(default=0, ge=0, le=7 * 24 * 60 * 60)
+    # Milliseconds a refresh is spread over across widgets; 0 refreshes all at
+    # once.
+    stagger: int = Field(default=0, ge=0, le=10 * 60 * 1000)
+    # Nodes left out of automatic refresh.
+    exempt: list[str] = Field(default_factory=list)
+
+
+class ColorSettings(_Model):
+    # Categorical color scheme shared by every widget; the default when unset.
+    scheme: str | None = Field(default=None, min_length=1, max_length=255)
+    # Fixed colors for series labels across widgets, e.g. {"France": "#1f77b4"}.
+    label_colors: dict[str, Annotated[str, Field(max_length=64)]] = Field(
+        default_factory=dict, max_length=1000
+    )
+
+
+class DisplaySettings(_Model):
+    # Show when each widget's data was last refreshed.
+    show_timestamps: bool = False
+
+
+class Settings(_Model):
+    refresh: RefreshSettings = Field(default_factory=RefreshSettings)
+    colors: ColorSettings = Field(default_factory=ColorSettings)
+    display: DisplaySettings = Field(default_factory=DisplaySettings)
+
+
+SettingsKey = Literal["refresh", "colors", "display"]
+
+
 class CanvasDefinition(_Model):
     version: Literal[1] = 1
     root: Root = Field(default_factory=Root)
     nodes: dict[str, Node] = Field(default_factory=dict)
     interactions: Interactions = Field(default_factory=Interactions)
+    settings: Settings = Field(default_factory=Settings)
 
 
 def empty_definition() -> dict[str, Any]:
@@ -160,8 +194,16 @@ class SetFilterScopeOp(_Model):
     scope: FilterScope | None
 
 
+class SetSettingsOp(_Model):
+    """Replace one section of the canvas settings; ``value: null`` resets it."""
+
+    op: Literal["set_settings"]
+    key: SettingsKey
+    value: dict[str, Any] | None
+
+
 Operation = Annotated[
-    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetFilterScopeOp],
+    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetFilterScopeOp, SetSettingsOp],
     Field(discriminator="op"),
 ]
 

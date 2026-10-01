@@ -119,6 +119,7 @@ class _Validator:
         self._check_nesting()
         self._check_depth(doc)
         self._check_interactions(doc)
+        self._check_settings(doc)
         if not self.issues:
             self._resolve_layouts(doc)
         if self.issues:
@@ -237,6 +238,15 @@ class _Validator:
                             pointer(*path, field, index),
                             f"node {target!r} cannot be filtered",
                         )
+
+    def _check_settings(self, doc: dict[str, Any]) -> None:
+        exempt = doc["settings"]["refresh"]["exempt"]
+        for index, node_id in enumerate(exempt):
+            if node_id not in doc["nodes"]:
+                self.fail(
+                    pointer("settings", "refresh", "exempt", index),
+                    f"unknown node {node_id!r}",
+                )
 
     def _check_depth(self, doc: dict[str, Any]) -> None:
         for node_id in doc["nodes"]:

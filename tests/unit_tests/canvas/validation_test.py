@@ -47,6 +47,11 @@ def test_empty_canvas_is_valid() -> None:
         "root": {"layout": {"columns": 24, "gap": 16, "rowUnit": 40}, "children": []},
         "nodes": {},
         "interactions": {"filters": {}},
+        "settings": {
+            "refresh": {"interval": 0, "stagger": 0, "exempt": []},
+            "colors": {"labelColors": {}},
+            "display": {"showTimestamps": False},
+        },
     }
 
 
@@ -213,3 +218,28 @@ def test_containers_get_children_and_leaves_do_not() -> None:
 
     assert result["nodes"]["g"]["children"] == []
     assert "children" not in result["nodes"]["a"]
+
+
+def test_refresh_exemptions_must_be_nodes() -> None:
+    found = issues(
+        {
+            **canvas({"a": node("chart")}),
+            "settings": {"refresh": {"exempt": ["a", "b"]}},
+        }
+    )
+
+    assert found == [("/settings/refresh/exempt/1", "unknown node 'b'")]
+
+
+def test_settings_are_validated() -> None:
+    found = issues(
+        {
+            **empty_definition(),
+            "settings": {"refresh": {"interval": -1}, "colors": {"theme": "dark"}},
+        }
+    )
+
+    assert {path for path, _ in found} == {
+        "/settings/refresh/interval",
+        "/settings/colors/theme",
+    }

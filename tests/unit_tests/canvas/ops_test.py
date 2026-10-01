@@ -22,8 +22,10 @@ from superset.canvas.definition.ops import (
     AppliedOperation,
     apply_operations,
     FieldGroup,
+    named_touches,
     OperationError,
     overlapping,
+    SETTINGS_ID,
     Touch,
 )
 from superset.canvas.definition.registry import LayoutRulesRegistry
@@ -257,3 +259,43 @@ def test_overlapping(
     earlier: list[Touch], later: list[Touch], expected: set[str]
 ) -> None:
     assert overlapping(earlier, later) == expected
+
+
+def test_set_settings_replaces_one_section_and_null_resets_it() -> None:
+    doc = build(
+        add("chart-1"),
+        {"op": "set_settings", "key": "refresh", "value": {"interval": 300}},
+        {"op": "set_settings", "key": "colors", "value": {"scheme": "supersetColors"}},
+    )
+
+    assert doc["settings"]["refresh"] == {"interval": 300, "stagger": 0, "exempt": []}
+    assert doc["settings"]["colors"]["scheme"] == "supersetColors"
+
+    reset, applied = apply(doc, {"op": "set_settings", "key": "refresh", "value": None})
+
+    assert reset["settings"]["refresh"]["interval"] == 0
+    assert reset["settings"]["colors"]["scheme"] == "supersetColors"
+    assert applied[0].touched == [Touch(SETTINGS_ID, FieldGroup.REFRESH)]
+
+
+def test_settings_sections_do_not_overlap_each_other() -> None:
+    refresh = named_touches(
+        ops({"op": "set_settings", "key": "refresh", "value": {"interval": 60}})
+    )
+    colors = named_touches(ops({"op": "set_settings", "key": "colors", "value": {}}))
+
+    assert overlapping(refresh, colors) == set()
+    assert overlapping(refresh, refresh) == {SETTINGS_ID}
+
+
+def test_removing_a_node_drops_its_refresh_exemption() -> None:
+    doc = build(
+        add("chart-1"),
+        add("chart-2"),
+        {"op": "set_settings", "key": "refresh", "value": {"exempt": ["n0", "n1"]}},
+    )
+
+    result, applied = apply(doc, {"op": "remove", "id": "n0"})
+
+    assert result["settings"]["refresh"]["exempt"] == ["n1"]
+    assert Touch(SETTINGS_ID, FieldGroup.REFRESH) in applied[0].touched
