@@ -5910,6 +5910,8 @@
           },
           "partition_value_transform": {
             "description": "SQL expression containing a :value placeholder. Filters on this column are mirrored onto the dataset's partition column with the value passed through this transform.",
+            "maxLength": 1024,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
@@ -24997,11 +24999,26 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           },
           "429": {
-            "$ref": "#/components/responses/400"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many preview requests for this dataset"
           },
           "500": {
             "$ref": "#/components/responses/500"

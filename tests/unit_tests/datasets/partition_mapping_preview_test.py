@@ -371,43 +371,83 @@ def test_the_budget_is_spent_exactly_once_per_request(
     assert statuses == [200, 200, 200, 429, 429]
 
 
-def test_the_window_is_dated_by_its_first_request_not_its_last(
+def test_each_window_gets_a_fresh_budget(
     app: Flask, client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
-    Only `add` sets a lifetime. Re-stamping the key on every increment would
-    make this a sliding window, where sustained typing keeps the budget spent
-    indefinitely instead of recovering a minute after the burst began.
+    The window is carried by the *key*, not by the entry's lifetime, so a
+    counter that outlives its bucket is simply never read again.
+
+    Relying on the TTL could not deliver that on either supported backend.
+    cachelib's generic `inc` is a read-modify-write whose `set` restamps
+    `CACHE_DEFAULT_TIMEOUT` -- a day by default -- so on SimpleCache a spent
+    budget kept renewing a day-long lockout every time the owner retried. And
+    on Redis, a key that expires between a losing `add` and the `inc` is
+    recreated by `INCR` with no TTL at all, so past the limit the owner was
+    429'd permanently.
+    """
+    from superset.datasets.api import PREVIEW_RATE_LIMIT_WINDOW
+
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 1
+
+    payload = {
+        "mapped_column": "event_time",
+        "value_transform": "unix_timestamp(:value)",
+        "sample_value": "2026-01-15",
+    }
+    url = f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/"
+    start = 1_800_000_000
+
+    with patch(PROBE, return_value=[1]):
+        with patch("superset.datasets.api.time.time", return_value=start):
+            assert client.post(url, json=payload).status_code == 200
+            assert client.post(url, json=payload).status_code == 429
+        with patch(
+            "superset.datasets.api.time.time",
+            return_value=start + PREVIEW_RATE_LIMIT_WINDOW,
+        ):
+            assert client.post(url, json=payload).status_code == 200
+
+
+def test_a_restamping_backend_cannot_extend_the_lockout(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The concrete failure the bucketed key exists to rule out: a backend whose
+    `inc` rewrites the entry with its own default lifetime. Here that lifetime
+    is a day, and the next window still starts from zero because it is a
+    different key.
     """
     from superset.datasets.api import PREVIEW_RATE_LIMIT_WINDOW
     from superset.extensions import cache_manager
 
-    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 5
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 1
 
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
-    timeouts: list[Any] = []
+    url = f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/"
+    start = 1_900_000_000
     backend = cache_manager.cache.cache
-    original_add = backend.add
+    original_inc = backend.inc
 
-    def record(key: str, value: Any, timeout: Any = None) -> Any:
-        timeouts.append(timeout)
-        return original_add(key, value, timeout=timeout)
+    def restamping_inc(key: str, delta: int = 1) -> Any:
+        used = original_inc(key, delta)
+        backend.set(key, used, timeout=86400)
+        return used
 
-    with patch.object(backend, "add", side_effect=record):
-        with patch(PROBE, return_value=[1]):
-            for day in range(1, 4):
-                client.post(
-                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-                )
-
-    # Three requests, three `add` attempts, but only the first one takes -- and
-    # every later one is a no-op that leaves the original expiry alone.
-    assert timeouts == [PREVIEW_RATE_LIMIT_WINDOW] * 3
+    with patch(PROBE, return_value=[1]):
+        with patch.object(backend, "inc", side_effect=restamping_inc):
+            with patch("superset.datasets.api.time.time", return_value=start):
+                assert client.post(url, json=payload).status_code == 200
+                assert client.post(url, json=payload).status_code == 429
+            with patch(
+                "superset.datasets.api.time.time",
+                return_value=start + PREVIEW_RATE_LIMIT_WINDOW,
+            ):
+                assert client.post(url, json=payload).status_code == 200
 
 
 def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
@@ -502,3 +542,107 @@ def test_an_over_long_transform_is_rejected_before_the_engine(
 
     assert response.status_code == 400
     probe.assert_not_called()
+
+
+def test_preview_rejects_a_subquery_without_touching_the_engine(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    `build_probe_sql` binds `:value` and splices the rest of the transform in as
+    SQL text, so without the stored-expression gate a dataset editor who has no
+    SQL Lab access could read another table through the preview: the subquery
+    runs and its result comes back in `emitted_predicate`.
+
+    The save path has always applied this gate. Preview evaluates a transform
+    that has not been saved, so it has to apply it too.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": ("(SELECT password FROM ab_user LIMIT 1) || :value"),
+                "sample_value": "2026-01-15 00:00:00",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_renders_a_probed_value_read_from_a_dataframe(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The probe reads its results out of a pandas frame, so the canonical epoch
+    transform returns a `numpy.int64` and a temporal one a `pandas.Timestamp`.
+    SQLAlchemy has a literal renderer for neither -- `sa.literal` infers
+    `NullType` and raises `CompileError`, which the endpoint turns into a 500.
+
+    Patching `Database.get_df` rather than `evaluate_transform` is what makes
+    this a regression test: stubbing the evaluator hands back a plain Python
+    `int` and never exercises the frame at all.
+    """
+    import pandas as pd
+
+    frame = pd.DataFrame([[1768435200]], columns=["v0"])
+    with patch(
+        "superset.models.core.Database.get_df",
+        return_value=frame,
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_value": "2026-01-15 00:00:00",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {
+        "valid": True,
+        "emitted_predicate": "dt_epoch >= 1768435200",
+    }
+
+
+def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """A transform returning a date hits the same renderer gap as an integer."""
+    import pandas as pd
+
+    frame = pd.DataFrame([[pd.Timestamp("2026-01-15")]], columns=["v0"])
+    with patch(
+        "superset.models.core.Database.get_df",
+        return_value=frame,
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "date(:value)",
+                "sample_value": "2026-01-15 00:00:00",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is True
+    assert "2026-01-15" in response.json["result"]["emitted_predicate"]
+
+
+def test_preview_is_authorized_as_a_write() -> None:
+    """
+    Preview inspects a mapping the caller is entitled to *save*, so it is
+    authorized the way the PUT behind it is: ``can_write`` plus
+    ``raise_for_editorship``. Without the mapping, FAB's ``@protect()`` falls
+    back to ``can_partition_mapping_preview_Dataset``, which no stock role
+    carries -- so a custom role with ``can_write`` could store a mapping and not
+    preview it.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert DatasetRestApi.method_permission_name["partition_mapping_preview"] == (
+        "write"
+    )
