@@ -16,9 +16,11 @@
 # under the License.
 """Unit tests for tag models, specifically testing the MySQL fix for tag creation."""
 
+from contextlib import nullcontext
 from unittest.mock import MagicMock
 
 from markupsafe import Markup
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from superset.tags.models import get_tag, Tag, TaggedObject, TagType
@@ -167,6 +169,29 @@ def test_get_tag_returns_existing_tag() -> None:
     assert result.id == 42, "Should have the existing tag's ID"
     mock_session.add.assert_not_called()
     mock_session.commit.assert_not_called()
+
+
+def test_get_tag_reuses_tag_after_concurrent_insert() -> None:
+    """A unique-name conflict reloads the existing tag and keeps the session."""
+    mock_session = MagicMock(spec=Session)
+    mock_query = MagicMock()
+    mock_session.query.return_value = mock_query
+    mock_session.begin_nested.return_value = nullcontext()
+
+    existing_tag = Tag(name="editor:1", type=TagType.editor)
+    existing_tag.id = 7
+    mock_query.filter_by.return_value.one_or_none.side_effect = [None, existing_tag]
+    mock_session.flush.side_effect = IntegrityError(
+        "INSERT INTO tag",
+        {},
+        Exception("duplicate key value violates unique constraint"),
+    )
+
+    result = get_tag("editor:1", mock_session, TagType.editor)
+
+    assert result is existing_tag
+    mock_session.commit.assert_not_called()
+    mock_session.rollback.assert_not_called()
 
 
 def test_get_tag_creates_new_tag() -> None:
