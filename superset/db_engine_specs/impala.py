@@ -51,6 +51,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
     # Epoch-integer partition keys are the common Impala layout, and the
     # one-argument form takes the bound being mirrored rather than "now".
     partition_value_transform_default = "unix_timestamp(:value)"
+    # Impala tables are laid out as partition directories, so mirroring a filter
+    # onto the partition column lets the engine prune them.
+    supports_partition_filter_mapping = True
 
     metadata = {
         "description": (

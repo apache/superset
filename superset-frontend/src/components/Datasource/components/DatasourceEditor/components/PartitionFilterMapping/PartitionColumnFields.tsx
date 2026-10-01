@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import {
+  Divider,
   Flex,
   Icons,
   InfoTooltip,
@@ -69,15 +70,26 @@ export default function PartitionColumnFields({
     () =>
       columns.map(column => ({
         value: column.column_name,
-        label: column.column_name,
-        customLabel: (
+        // A rich `label` node is what this Select renders in both the open
+        // dropdown and the CLOSED/selected box (its `optionLabelProp` defaults
+        // to `label`), so the monospace name + type pill stays consistent
+        // across both. `value` remains the plain name so typed search still
+        // matches (`optionFilterProps` defaults to `['label', 'value']`). The
+        // previous `customLabel` field was ignored by this Select entirely.
+        label: (
           <Flex align="center" gap={theme.sizeUnit}>
-            <span>{column.column_name}</span>
+            <Typography.Text
+              css={css`
+                font-family: ${theme.fontFamilyCode};
+              `}
+            >
+              {column.column_name}
+            </Typography.Text>
             {column.type && <Label>{column.type}</Label>}
           </Flex>
         ),
       })),
-    [columns, theme.sizeUnit],
+    [columns, theme.sizeUnit, theme.fontFamilyCode],
   );
 
   const mappedColumn = resolveMappedColumn(datasource);
@@ -106,14 +118,18 @@ export default function PartitionColumnFields({
         data-test="partition-column-select"
       />
       <Typography.Text type="secondary">
-        {t(
-          "Column used for partition pruning on this table. Selecting one hides it from Explore's dimension and filter pickers by default.",
-        )}
+        {t('Column used for partition pruning on this table.')}
       </Typography.Text>
 
       {partitionColumn && (
         <Flex vertical gap={theme.sizeUnit} data-test="maps-to-partition">
-          <Flex align="center" gap={theme.sizeUnit}>
+          <Flex
+            align="center"
+            gap={theme.sizeUnit}
+            css={css`
+              padding-top: ${theme.sizeUnit * 3}px;
+            `}
+          >
             <Typography.Text type="secondary">
               {t('Maps to partition')}
             </Typography.Text>
@@ -127,12 +143,41 @@ export default function PartitionColumnFields({
           {mappedColumn ? (
             <>
               <Flex align="center" gap={theme.sizeUnit}>
-                <Label>{mappedColumn}</Label>
-                {isImplicit && (
+                {isImplicit ? (
                   <>
-                    <Typography.Text type="secondary">
-                      {t('Default datetime column')}
-                    </Typography.Text>
+                    {/* Two segments in one outlined box: the mapped column and
+                        the reason it is set. Only the implicit case has a second
+                        value to show, so the divider treatment is reserved for
+                        it -- an explicit mapping keeps the plain single pill. */}
+                    <Flex
+                      align="center"
+                      data-test="mapped-column-default"
+                      css={css`
+                        border: 1px solid ${theme.colorBorderSecondary};
+                        border-radius: ${theme.borderRadius}px;
+                        overflow: hidden;
+                        & > .ant-typography {
+                          padding: ${theme.sizeUnit / 2}px
+                            ${theme.sizeUnit * 2}px;
+                        }
+                        & .ant-divider {
+                          height: ${theme.sizeUnit * 4}px;
+                          margin: 0;
+                        }
+                      `}
+                    >
+                      <Typography.Text
+                        css={css`
+                          font-family: ${theme.fontFamilyCode};
+                        `}
+                      >
+                        {mappedColumn}
+                      </Typography.Text>
+                      <Divider type="vertical" />
+                      <Typography.Text type="secondary">
+                        {t('Default datetime column')}
+                      </Typography.Text>
+                    </Flex>
                     <Tooltip
                       title={t(
                         'Set from the default datetime column above, so re-pointing that column moves the mapping with it.',
@@ -144,6 +189,8 @@ export default function PartitionColumnFields({
                       />
                     </Tooltip>
                   </>
+                ) : (
+                  <Label>{mappedColumn}</Label>
                 )}
               </Flex>
               <Typography.Text type="secondary">

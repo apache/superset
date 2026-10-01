@@ -107,10 +107,10 @@ import {
 import {
   applyImplicitMappingMove,
   applyMappingMove,
-  applyPartitionColumnDefaults,
   clearMappingTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
 } from './components/PartitionFilterMapping/utils';
 import {
@@ -221,6 +221,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -471,9 +474,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -674,8 +679,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1226,7 +1230,7 @@ function DatasourceEditor({
       // `datasource.columns`, because the two only meet in `onChangeInternal`
       // when the payload is assembled -- `datasource.columns` does not carry the
       // transform the owner just typed.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, databaseColumns).map(
             issue => issue.message,
@@ -1370,11 +1374,11 @@ function DatasourceEditor({
           columnName,
         ),
       }));
-      if (columnName) {
-        setDatabaseColumns(prev =>
-          applyPartitionColumnDefaults(prev, columnName),
-        );
-      }
+      // Designating a partition column must not touch the column's own
+      // `filterable`/`groupby` flags: hiding it from Explore is a per-column
+      // decision the owner makes, not a side effect of the mapping, and
+      // toggling it here would silently change behavior for datasets that
+      // already expose their partition column.
     },
     [],
   );
@@ -1415,21 +1419,33 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- hidden from Explore, nothing mirrored onto it, and the
-    // panel's warning saying so.
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column.
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
   const handleMonotonicChange = useCallback(
     (columnName: string, isMonotonic: boolean) => {
-      setDatabaseColumns(prev =>
-        prev.map(column =>
+      setDatabaseColumns(prev => {
+        const target = prev.find(column => column.column_name === columnName);
+        // A no-op write still mints a new array, and a new array restarts the
+        // whole commit round trip -- which is the thing that resets a
+        // controlled input mid-keystroke. Returning `prev` lets React bail out.
+        if (
+          !target ||
+          Boolean(target.partition_transform_is_monotonic) === isMonotonic
+        ) {
+          return prev;
+        }
+        return prev.map(column =>
           column.column_name === columnName
             ? { ...column, partition_transform_is_monotonic: isMonotonic }
             : column,
-        ),
-      );
+        );
+      });
     },
     [],
   );
@@ -1437,20 +1453,20 @@ function DatasourceEditor({
   const handleMainDttmColChange = useCallback(
     (value?: string) => {
       // Without an override the mapped column *is* the default datetime column,
-      // so re-pointing it moves the mapping. The value transform stays behind
-      // and is cleared: it was written about the old column, and the mapping
-      // arrives inert rather than mirroring an expression nobody checked
-      // against its new home. Tested on the partition column plus the absent
-      // override rather than on `mappedColumnIsImplicit`, which needs a
-      // datetime column already set and so misses the transition that sets the
-      // first one.
+      // so re-pointing it moves the mapping rather than stranding it: the
+      // transform travels to the new column and is gone from the old one, where
+      // it would be invisible and still saved. Tested on the partition column
+      // plus the absent override rather than on `mappedColumnIsImplicit`, which
+      // needs a datetime column already set and so misses the transition that
+      // sets the first one.
       if (datasource.partition_column && !datasource.partition_mapped_column) {
         setDatabaseColumns(prev =>
           applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
         );
         // A calculated column can be the default datetime column but can never
-        // show a transform, and anything already stored on one still has to go
-        // either way, because it is saved and the query path reads it.
+        // show a transform, so the mapping never lands there -- but anything
+        // already stored on one still has to go, because it is saved and the
+        // query path reads it.
         setCalculatedColumns(prev => clearMappingTransforms(prev));
       }
       setDatasource(prev => ({ ...prev, main_dttm_col: value }));
@@ -1979,7 +1995,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}
