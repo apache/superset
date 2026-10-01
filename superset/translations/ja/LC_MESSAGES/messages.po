@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -134,19 +134,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -932,6 +925,9 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1336,6 +1332,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "フォルダーを追加"
 
+msgid "Add group"
+msgstr "グループを追加"
+
 msgid "Add item"
 msgstr "項目を追加"
 
@@ -1374,6 +1373,9 @@ msgstr "サービスの認証情報を追加する"
 
 msgid "Add sheet"
 msgstr "シートを追加"
+
+msgid "Add subgroup"
+msgstr "サブグループを追加"
 
 msgid "Add tag to entities"
 msgstr "エンティティにタグを追加"
@@ -1508,6 +1510,9 @@ msgstr "影響を受けるチャート"
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1593,6 +1598,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3067,6 +3076,9 @@ msgstr "セルの上限数"
 msgid "Cell title template"
 msgstr "セルのタイトルテンプレート"
 
+msgid "Center"
+msgstr "中央"
+
 msgid "Center value"
 msgstr ""
 
@@ -3700,6 +3712,9 @@ msgstr "データパネルを閉じる"
 msgid "Collapse row"
 msgstr "行を折りたたむ"
 
+msgid "Collapse settings"
+msgstr "設定を折りたたむ"
+
 msgid "Collapse tab content"
 msgstr "タブの内容を折りたたむ"
 
@@ -3822,6 +3837,9 @@ msgstr "経度データを含む列"
 
 msgid "Column data types"
 msgstr "列のデータ型"
+
+msgid "Column groups"
+msgstr "列グループ"
 
 msgid "Column header tooltip"
 msgstr "列ヘッダーのツールチップ"
@@ -4072,6 +4090,9 @@ msgstr "確認"
 msgid "Confirm Password"
 msgstr "パスワード(確認)"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "上書きの確認"
 
@@ -4080,6 +4101,9 @@ msgstr "パスワード(確認)"
 
 msgid "Confirm save"
 msgstr "保存の確認"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "ユーザーのパスワードを再入力してください"
@@ -4301,6 +4325,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
 
@@ -4452,6 +4482,9 @@ msgstr "当日"
 
 msgid "Current month"
 msgstr "当月"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "当四半期"
@@ -4680,6 +4713,9 @@ msgstr "ダッシュボードを復元できませんでした。"
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません"
 
@@ -4688,6 +4724,9 @@ msgstr "ダッシュボードの構成をエクスポートしました"
 
 msgid "Dashboard exported successfully"
 msgstr "ダッシュボードのエクスポートが完了しました"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "ダッシュボードをインポートしました"
@@ -5244,6 +5283,11 @@ msgstr "グループを削除"
 
 msgid "Delete item"
 msgstr "項目を削除"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6266,6 +6310,9 @@ msgstr "メインの認証情報を入力"
 msgid "Enter a name for this sheet"
 msgstr "シート名を入力してください"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
@@ -6277,6 +6324,9 @@ msgstr "所要時間を秒単位で入力"
 
 msgid "Enter fullscreen"
 msgstr "全画面表示"
+
+msgid "Enter group name"
+msgstr "グループ名を入力"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "範囲フィルターの最小値と最大値を入力してください"
@@ -6317,6 +6367,9 @@ msgstr "ユーザーのユーザー名を入力"
 
 msgid "Enter theme name"
 msgstr "テーマ名を入力"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "以下にユーザー名とパスワードを入力してください:"
@@ -6499,9 +6552,6 @@ msgstr "Excelエクスポート"
 msgid "Excel XML Export"
 msgstr "Excel XMLエクスポート"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excelファイルの形式を特定できません"
 
@@ -6552,6 +6602,9 @@ msgstr "行を展開"
 
 msgid "Expand row to edit"
 msgstr "行を展開して編集"
+
+msgid "Expand settings"
+msgstr "設定を展開"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -6663,6 +6716,11 @@ msgstr "基データCSVとしてエクスポート"
 
 msgid "Export to pivoted .CSV"
 msgstr "ピボット済みCSVとしてエクスポート"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7464,6 +7522,10 @@ msgstr ""
 msgid "Group"
 msgstr "グループ"
 
+#, python-format
+msgid "Group %s"
+msgstr "グループ %s"
+
 msgid "Group By"
 msgstr "グループ化"
 
@@ -7475,6 +7537,12 @@ msgstr "グループキー"
 
 msgid "Group by"
 msgstr "グループ化"
+
+msgid "Group columns"
+msgstr "列をグループ化"
+
+msgid "Group name"
+msgstr "グループ名"
 
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
@@ -8036,9 +8104,6 @@ msgstr "無効なタブID: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "ユーザー名またはパスワードが正しくありません"
-
 msgid "Inverse"
 msgstr ""
 
@@ -8372,6 +8437,9 @@ msgstr "ツリーのレイアウト形式"
 
 msgid "Least recently modified"
 msgstr "更新日が古い順"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9256,6 +9324,12 @@ msgstr "さらにフィルターを表示"
 msgid "MotherDuck token"
 msgstr "MotherDuckトークン"
 
+msgid "Move group left"
+msgstr "グループを左に移動"
+
+msgid "Move group right"
+msgstr "グループを右に移動"
+
 msgid "Move icon"
 msgstr "移動アイコン"
 
@@ -9287,6 +9361,9 @@ msgstr "マルチレベル"
 
 msgid "Multi-Variables"
 msgstr "マルチ変数"
+
+msgid "Multi-level header"
+msgstr "多階層ヘッダー"
 
 msgid "Multiple"
 msgstr "複数"
@@ -9433,6 +9510,9 @@ msgstr "新しいデータセット名"
 
 msgid "New header"
 msgstr "新しいヘッダー"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "新しいタブ"
@@ -9689,6 +9769,11 @@ msgstr "なし -> 矢印"
 msgid "None -> None"
 msgstr "なし -> なし"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "標準"
 
@@ -9712,6 +9797,15 @@ msgstr "等しくない (≠)"
 
 msgid "Not Time Series"
 msgstr "非時系列"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
@@ -10557,6 +10651,9 @@ msgstr "パスワードを再入力して確認してください"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テスト用の SQLAlchemy URI を入力してください"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
@@ -10696,6 +10793,9 @@ msgstr "ホスト「%(hostname)s」のポート %(port)s への接続が拒否�
 msgid "Port out of range 0-65535"
 msgstr "ポートが 0 ～ 65535 の範囲外です"
 
+msgid "Position"
+msgstr "位置"
+
 msgid "Position JSON"
 msgstr "位置JSON"
 
@@ -10740,6 +10840,12 @@ msgstr "接頭辞または接尾辞"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -11151,6 +11257,9 @@ msgstr "フィルターを削除"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "グループを削除"
+
 msgid "Remove item"
 msgstr "項目を削除"
 
@@ -11377,6 +11486,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "必須の制御値が削除されました"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "リサンプリング"
@@ -11998,6 +12110,9 @@ msgstr "スキーマ"
 msgid "Schema cache timeout"
 msgstr "スキーマキャッシュのタイムアウト"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "ファイルのアップロードが許可されているスキーマ"
 
@@ -12300,6 +12415,9 @@ msgstr "列を選択"
 
 msgid "Select column name"
 msgstr "列名を選択"
+
+msgid "Select columns"
+msgstr "列を選択"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -13567,6 +13685,10 @@ msgstr "サブカテゴリ"
 msgid "Subdomain"
 msgstr "サブドメイン"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "サブグループ %s"
+
 msgid "Subject"
 msgstr "サブジェクト"
 
@@ -13791,6 +13913,9 @@ msgstr "テーブル名が未定義です"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "テーブルまたはビュー「%(table)s」は存在しません。"
+
+msgid "Table side"
+msgstr "テーブルの側"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -14324,6 +14449,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -14713,6 +14844,10 @@ msgid ""
 msgstr "スキーマ「%(schema)s」が存在しません。クエリを実行するには有効なスキーマを使用してください。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14768,6 +14903,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "テーブル「%(table)s」が存在しません。クエリを実行するには有効なテーブルを使用してください。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15189,6 +15328,12 @@ msgstr "選択したクエリのプレビュー中に問題が発生しました
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -15207,6 +15352,12 @@ msgstr "このフィルターが適用されるデータセットです。"
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -15221,6 +15372,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -15332,6 +15488,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "このダッシュボードは存在しません"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "このダッシュボードは外部で管理されているため、Superset では編集できません"
@@ -16068,6 +16230,9 @@ msgstr "火曜日"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "種類"
@@ -16970,6 +17135,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "%(location)s 行目の列「%(column_name)s」を解決できません。"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -18062,6 +18231,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 
 msgid "by using"
 msgstr "以下を使用して"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "空にできません"

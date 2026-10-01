@@ -42,7 +42,9 @@ import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
+  ONE_DAY_MS,
   StackControlsValue,
+  TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
   WEEKLY_TIME_GRAINS,
 } from '../constants';
@@ -53,6 +55,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
+import { getXAxisDomain } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -71,12 +74,31 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-// Keyed on every distinct legend label and (since Gantt's category names
-// share this cache too) every distinct category name ever measured, so an
-// unbounded cache could grow with high-cardinality data over a long session.
-// Cap it and evict the least-recently-used entry once full.
+// Keyed on every distinct legend label ever measured, so an unbounded cache
+// could grow with high-cardinality data over a long session. Cap it and evict
+// the least-recently-used entry once full.
 const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
 const TEXT_WIDTH_CACHE = new Map<string, number>();
+// Approximate glyph width as a fraction of the font size, used to estimate
+// text width when canvas measurement is unavailable (e.g. SSR).
+const APPROX_CHAR_WIDTH_RATIO = 0.62;
+
+function getTextMeasureContext(
+  theme: SupersetTheme,
+): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const context = document.createElement('canvas').getContext('2d');
+  if (context) {
+    context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+  }
+  return context;
+}
+
+function estimateTextWidth(text: string, theme: SupersetTheme): number {
+  return text.length * theme.fontSizeSM * APPROX_CHAR_WIDTH_RATIO;
+}
 
 type LegendDataItem =
   | string
@@ -113,16 +135,10 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
     return cachedWidth;
   }
 
-  let width = text.length * theme.fontSizeSM * 0.62;
-
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      ({ width } = context.measureText(text));
-    }
-  }
+  const context = getTextMeasureContext(theme);
+  const width = context
+    ? context.measureText(text).width
+    : estimateTextWidth(text, theme);
 
   if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
     const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
@@ -132,6 +148,30 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
   }
   TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
+}
+
+/**
+ * Measures the horizontal space `text` occupies when rendered at the theme's
+ * small font size, taking the larger of the advance width and the painted ink
+ * extent. Glyphs such as italics, or glyphs whose ink overhangs the pen
+ * advance, can paint past the advance width, so reserving only the advance
+ * width can clip them. Falls back to an approximate width when canvas is
+ * unavailable (e.g. SSR), or to the advance width when the browser does not
+ * report bounding-box metrics.
+ */
+export function measureTextInkWidth(
+  text: string,
+  theme: SupersetTheme,
+): number {
+  const context = getTextMeasureContext(theme);
+  if (!context) {
+    return estimateTextWidth(text, theme);
+  }
+  const metrics = context.measureText(text);
+  const inkWidth =
+    (metrics.actualBoundingBoxLeft ?? 0) +
+    (metrics.actualBoundingBoxRight ?? 0);
+  return Math.max(metrics.width, inkWidth);
 }
 
 function hasLegendLabel(item: LegendDataItem): boolean {
@@ -1158,12 +1198,22 @@ export function capTickMarks(
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
  * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
  * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
- * thins from) uses the same capped set on a non-zoomable axis, so a label
- * surviving hideOverlap thinning always lands on a real tick and gridline
- * rather than a capped-away bucket. On a zoomable axis the full set is used
- * instead — zooming lets the user reach any bucket, but customValues never
- * recomputes on dataZoom, so a capped set there would freeze the visible
- * labels to the pre-zoom subset.
+ * thins from) uses the same capped set on a non-zoomable, non-"All" axis, so
+ * a label surviving hideOverlap thinning always lands on a real tick and
+ * gridline rather than a capped-away bucket.
+ *
+ * On a zoomable axis, axisLabel uses the full set instead — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * axisTick deliberately stays capped in that case; hideOverlap keeps thinning
+ * the (uncapped) labels dynamically, so gridlines don't need to track them
+ * 1:1, and a full weekly gridline set on a long zoomable range is its own
+ * source of clutter.
+ *
+ * When the user picks "All" (interval === 0), the tradeoff is different:
+ * every label is meant to be shown, so a label landing on a capped-away tick
+ * with no matching gridline would defeat the point. axisTick uncaps to match
+ * axisLabel in that case, on both zoomable and non-zoomable axes.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
@@ -1181,18 +1231,33 @@ export function getTemporalAxisTickConfig(
   const cappedTickValues = temporalTickValues
     ? capTickMarks(temporalTickValues)
     : undefined;
-  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  // When the user picks "All" (interval === 0), they want every label shown.
+  // Disable hideOverlap so ECharts never drops a label, and pin customValues
+  // to the full tick set so each label lands on a real gridline.
+  const showAllLabels = xAxisLabelInterval === 0;
+  // On a zoomable axis the full set is already used; for "All" we also bypass
+  // the cap so every tick gets a label rather than the 60-mark subset.
+  const labelCustomValues =
+    zoomable || showAllLabels ? temporalTickValues : cappedTickValues;
+  const tickCustomValues = showAllLabels
+    ? temporalTickValues
+    : cappedTickValues;
+
   return {
     axisLabel: {
       // Pinned ticks label every bucket, which does crowd, so thinning
-      // always wins there.
+      // wins there unless the user asked for every label.
       hideOverlap:
-        !!temporalTickValues ||
-        (showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+        !showAllLabels &&
+        (!!temporalTickValues ||
+          (showMaxLabel
+            ? false
+            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0))),
       formatter,
       rotate: xAxisLabelRotation,
+      // ECharts only honors axisLabel.interval on category axes. A time axis
+      // ignores it, so the "All" setting relies on showAllLabels disabling
+      // hideOverlap above rather than on interval: 0 here.
       interval: xAxisLabelInterval,
       // Force the boundary labels so the first and last dates stay visible:
       // hideOverlap can hide the last label, and a min date that falls
@@ -1213,7 +1278,7 @@ export function getTemporalAxisTickConfig(
         }),
       ...(labelCustomValues && { customValues: labelCustomValues }),
     },
-    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+    ...(tickCustomValues && { axisTick: { customValues: tickCustomValues } }),
   };
 }
 
@@ -1274,6 +1339,59 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+/**
+ * Computes a bar-width cap (px) sized to a temporal x-axis's own resolved
+ * time-grain bucket, instead of a flat constant that ignores how many
+ * pixels the grain actually spans on the rendered axis. Returns undefined
+ * when there isn't enough information to compute a grain-aware width (a
+ * non-temporal axis, no resolved grain outside TIMEGRAIN_TO_TIMESTAMP, or
+ * no data), so callers can fall back to their own default in that case.
+ *
+ * Uses getXAxisDomain — the same data-extent estimate the x-axis label
+ * spacing formatter already relies on — for the visible axis span. For two
+ * or more distinct x-values that's the real ECharts-rendered span (ECharts
+ * applies no padding there). For a single distinct value (domainMin ===
+ * domainMax), it falls back to 2 * ONE_DAY_MS, mirroring ECharts' own
+ * degenerate-domain padding for a time axis exactly (calcNiceForTimeScale
+ * in echarts/lib/scale/Time.js pads a single-point extent by ONE_DAY on
+ * each side, independent of grain) rather than guessing at a different
+ * span. This function does not change what range ECharts decides to
+ * render — only how wide a bar is drawn within whatever range that already
+ * is.
+ *
+ * `plotLengthPx` must already be the pixel length of whichever screen
+ * dimension the temporal axis actually renders along — callers are
+ * responsible for accounting for orientation (a horizontal bar chart swaps
+ * the temporal axis onto the chart's vertical/height dimension, not width;
+ * see the call sites in Timeseries/transformProps.ts and
+ * MixedTimeseries/transformProps.ts) before calling this.
+ */
+export function getGrainBarMaxWidth(
+  xAxisType: AxisType,
+  resolvedTimeGrain: string | undefined,
+  dataRecordArrays: Record<string, unknown>[][],
+  xAxisCol: string,
+  plotLengthPx: number,
+): number | undefined {
+  if (xAxisType !== AxisType.Time || !resolvedTimeGrain) {
+    return undefined;
+  }
+  const grainMs =
+    TIMEGRAIN_TO_TIMESTAMP[
+      resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+    ];
+  if (!grainMs) {
+    return undefined;
+  }
+  const [domainMin, domainMax] = getXAxisDomain(dataRecordArrays, xAxisCol);
+  if (domainMin === undefined || domainMax === undefined) {
+    return undefined;
+  }
+  const domainSpanMs =
+    domainMax > domainMin ? domainMax - domainMin : 2 * ONE_DAY_MS;
+  return (grainMs / domainSpanMs) * Math.max(plotLengthPx, 0);
 }
 
 /**
