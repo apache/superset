@@ -680,9 +680,7 @@ describe('ControlPanelsContainer', () => {
       datasource: mirroredDatasource,
     };
     const controlState = getControlStateFromControlConfig(
-      sharedControls.time_range as Parameters<
-        typeof getControlStateFromControlConfig
-      >[0],
+      sharedControls.time_range,
       controlPanelState as Parameters<
         typeof getControlStateFromControlConfig
       >[1],
