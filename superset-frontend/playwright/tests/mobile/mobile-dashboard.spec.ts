@@ -35,9 +35,13 @@ import { URL } from '../../utils/urls';
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
 
-/** Opens the sample dashboard with charts, independently of dashboard list order. */
+/** Opens the sample dashboard, skipping when the example fixture is absent. */
 async function openExampleDashboard(page: Page): Promise<void> {
-  await page.goto('dashboard/world_health/');
+  const response = await page.goto('dashboard/world_health/');
+  test.skip(
+    response?.status() === 404,
+    'world_health dashboard fixture is missing; run superset load_examples.',
+  );
   await page.waitForLoadState('networkidle');
 }
 
@@ -51,8 +55,7 @@ async function getMobileFilterButton(page: Page) {
   // spec's fixtures require, rather than an arbitrary first card from
   // the list. Whether it has native filters configured depends on the
   // fixture, so callers skip themselves when none are present.
-  await page.goto('dashboard/world_health/');
-  await page.waitForLoadState('networkidle');
+  await openExampleDashboard(page);
 
   // Give filters time to load
   await page.waitForTimeout(2000);
