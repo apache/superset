@@ -1860,7 +1860,11 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if schema:
             try:
                 table = DatasetDAO.get_table_by_catalog_schema_and_name(
-                    table_name, database_id, schema, catalog=catalog
+                    table_name,
+                    database_id,
+                    schema,
+                    catalog=catalog,
+                    skip_base_filter=True,
                 )
             except MultipleResultsFound:
                 return self.response_400(
