@@ -182,10 +182,12 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   // Track mouse position to distinguish clicks from drags
   let mousedownPos: { x: number; y: number } | null = null;
 
-  const sourceValue = (code: string) =>
-    sourceValues && Object.prototype.hasOwnProperty.call(sourceValues, code)
+  const sourceValue = (code: string) => {
+    if (!sourceValues) return code;
+    return Object.prototype.hasOwnProperty.call(sourceValues, code)
       ? sourceValues[code]
-      : code;
+      : undefined;
+  };
 
   // Cross-filter support
   const getCrossFilterDataMask = (
@@ -195,7 +197,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
 
     const selected = filterState?.selectedValues || [];
     const iso = source?.properties?.ISO;
-    if (!iso) return undefined;
+    if (!iso || sourceValue(iso) === undefined) return undefined;
 
     const isSelected = selected.includes(iso);
     const values = isSelected ? [] : [iso];
@@ -234,6 +236,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     if (!iso || typeof onContextMenu !== 'function' || !entity) return;
 
     const drillVal = sourceValue(iso);
+    if (drillVal === undefined) return;
     const drillToDetailFilters = [
       { col: entity, op: '==', val: drillVal, formattedVal: drillVal },
     ];

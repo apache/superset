@@ -225,3 +225,56 @@ test('a region with a blank metric still cross-filters on its source value', () 
     json.mockRestore();
   }
 });
+
+test('unmapped boundaries do not guess identifiers with an explicit region format', () => {
+  const loader = d3 as unknown as {
+    json: (
+      url: string,
+      callback: (error: Error | null, data: unknown) => void,
+    ) => void;
+  };
+  const json = jest
+    .spyOn(loader, 'json')
+    .mockImplementation((_url, callback) => {
+      callback(null, usa);
+    });
+  const setDataMask = jest.fn();
+  const onContextMenu = jest.fn();
+  try {
+    const props = transformProps(
+      new ChartProps({
+        theme: supersetTheme,
+        width: 800,
+        height: 600,
+        formData: {
+          entity: 'state',
+          metric: 'sales',
+          select_country: 'usa',
+          region_format: 'abbreviation',
+          linear_color_scheme: 'schemeBlues',
+        },
+        queriesData: [{ data: [{ state: 'CA', sales: 10 }] }],
+        datasource: { currencyFormats: {}, columnFormats: {} },
+        hooks: { setDataMask, onContextMenu },
+        emitCrossFilters: true,
+      }),
+    );
+    const { container } = render(<ReactCountryMap {...props} />);
+    const regions = container.querySelectorAll<SVGPathElement>('path.region');
+    expect(regions).toHaveLength(usa.features.length);
+    const texas = [...regions].find(
+      path =>
+        (d3.select(path).datum() as RegionFeature).properties.ISO === 'US-TX',
+    );
+    expect(texas).toBeDefined();
+    if (texas) {
+      fireEvent.mouseDown(texas);
+      fireEvent.click(texas);
+      fireEvent.contextMenu(texas);
+    }
+    expect(setDataMask).not.toHaveBeenCalled();
+    expect(onContextMenu).not.toHaveBeenCalled();
+  } finally {
+    json.mockRestore();
+  }
+});

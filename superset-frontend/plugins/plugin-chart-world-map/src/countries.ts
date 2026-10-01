@@ -2029,7 +2029,9 @@ const lookups: Record<CountryCodeField, Map<string, CountryInfo>> = {
 };
 (Object.keys(lookups) as CountryCodeField[]).forEach(field => {
   countries.forEach(country => {
-    lookups[field].set(country[field].toLowerCase(), country);
+    if (country[field]) {
+      lookups[field].set(country[field].toLowerCase(), country);
+    }
   });
 });
 countries.forEach(country => {
@@ -2043,6 +2045,7 @@ export function getCountry(
   field: string,
   symbol: string,
 ): CountryInfo | undefined {
+  if (!symbol.trim()) return undefined;
   if (field === 'name') {
     const exact = exactNames.get(symbol);
     if (exact) return exact;

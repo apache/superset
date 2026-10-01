@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getCountry } from '../src/countries';
 import transformData from '../src/transformData';
 
 const formData = {
@@ -163,5 +164,18 @@ test.each([
         strict: true,
       }),
     ).toThrow('Unrecognized');
+  },
+);
+
+test.each(['cca2', 'cca3', 'cioc', 'name'])(
+  'empty country values never resolve through %s lookup',
+  countryFieldtype => {
+    expect(getCountry(countryFieldtype, '')).toBeUndefined();
+    const options = { ...formData, countryFieldtype };
+    const records = [{ country_code: '', sum__num: 1 }];
+    expect(() => transformData(records, { ...options, strict: true })).toThrow(
+      'Unrecognized',
+    );
+    expect(transformData(records, options)[0].country).toBe('XXX');
   },
 );

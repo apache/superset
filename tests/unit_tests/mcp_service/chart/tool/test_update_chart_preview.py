@@ -1511,3 +1511,75 @@ def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> 
     assert result == (
         {"viz_type": "gantt_chart", "category": "task"} if allowed else None
     )
+
+
+@pytest.mark.parametrize("kind", ["country_map", "world_map", "deck_scatter"])
+@pytest.mark.parametrize("previous_type", [None, "expired", "table", "same"])
+def test_disabled_geographic_preview_requires_existing_same_type(
+    kind: str,
+    previous_type: str | None,
+    monkeypatch: pytest.MonkeyPatch,
+    mock_auth: Mock,
+) -> None:
+    """Disabled types allow same-type iteration, not fresh previews or conversions."""
+    from contextlib import ExitStack
+
+    import superset.mcp_service.chart.registry as registry_module
+    from superset.mcp_service.chart.registry import _PluginFilterConfig
+    from superset.mcp_service.chart.tool.get_chart_type_schema import _CHART_EXAMPLES
+
+    monkeypatch.setattr(
+        registry_module, "_filter_config", _PluginFilterConfig(frozenset({kind}))
+    )
+    dataset = _mock_dataset(id=3)
+    previous = (
+        None
+        if previous_type in {None, "expired"}
+        else {
+            "viz_type": kind if previous_type == "same" else previous_type,
+            "datasource": "3__table",
+        }
+    )
+    request = UpdateChartPreviewRequest.model_validate(
+        {
+            "dataset_id": 3,
+            "config": _CHART_EXAMPLES[kind][0],
+            "form_data_key": "old" if previous_type else None,
+            "generate_preview": False,
+        }
+    )
+    with ExitStack() as stack:
+        for target, value in (
+            ("_find_dataset", dataset),
+            ("_get_previous_form_data", previous),
+            ("generate_explore_link", "http://localhost/explore/?form_data_key=new"),
+            ("analyze_chart_capabilities", None),
+            ("analyze_chart_semantics", None),
+            ("has_dataset_access", True),
+            ("validate_and_compile", Mock(success=True)),
+        ):
+            stack.enter_context(
+                patch.object(update_chart_preview_module, target, return_value=value)
+            )
+        stack.enter_context(
+            patch.object(
+                update_chart_preview_module,
+                "event_logger",
+                Mock(log_context=lambda **kwargs: nullcontext()),
+            )
+        )
+        stack.enter_context(
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+        )
+        stack.enter_context(
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+                side_effect=lambda config, *args, **kwargs: config,
+            )
+        )
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+    assert result["success"] is (previous_type == "same"), result
+    if previous_type != "same":
+        assert "disabled" in str(result["error"]).lower(), result

@@ -22,6 +22,7 @@ import { getCountry } from './countries';
 
 export interface WorldMapDataRow {
   country: string;
+  sourceValue?: string;
   m1: unknown;
   m2?: unknown;
   code?: string;
@@ -97,6 +98,7 @@ export default function transformData(
       }
     }
     if (countryInfo) {
+      row.sourceValue = row.country;
       row.code = countryInfo[fieldtype as keyof typeof countryInfo] as string;
       row.country = countryInfo.cca3;
       row.latitude = countryInfo.lat;

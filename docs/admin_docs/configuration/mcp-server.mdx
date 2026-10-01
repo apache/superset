@@ -1337,6 +1337,18 @@ filters or limits. Saved and cached-preview updates preserve omitted controls;
 explicit null optional roles and empty filters clear them. Dataset rebinding
 requires a complete typed config and discards old dataset roles and filters.
 
+Geographic updates cap inherited native row limits at 10,000 so compilation
+validates the same rows the native query renders. Explicit
+`temporal_column: null` removes generated dashboard time bindings, including
+dataset defaults, while preserving user-authored predicates. Disabled types
+cannot be used for fresh previews or type conversions; an existing cached
+preview of the same type can still be updated.
+
+Country/world map interactions use original source identifiers rather than
+normalized rendering codes or names. With an explicit region format, boundaries
+absent from the result do not emit cross-filters or drill filters. Empty country
+identifiers are rejected rather than matched to a country with no code.
+
 ASCII/table previews show source data and do not reproduce geography. Vega
 previews return `UnsupportedGeographicPreview` rather than an unrelated chart.
 Use the returned Explore link for the native map. Point maps use a public

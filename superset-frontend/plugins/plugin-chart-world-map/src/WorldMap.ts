@@ -31,6 +31,7 @@ import { ColorBy } from './utils';
 
 interface WorldMapDataEntry {
   country: string;
+  sourceValue?: string;
   code: string;
   latitude: number;
   longitude: number;
@@ -97,6 +98,7 @@ const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      sourceValue: PropTypes.string,
       code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
@@ -191,7 +193,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
     const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+      mapData[key]?.sourceValue ??
+      (countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code);
 
     if (!country) {
       return undefined;
@@ -245,7 +248,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+      mapData[key]?.sourceValue ??
+      (countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {

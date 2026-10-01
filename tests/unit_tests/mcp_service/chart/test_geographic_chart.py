@@ -911,7 +911,19 @@ def test_explicit_temporal_binding_clear_preserves_user_filters(kind: str) -> No
     config = CHART_CONFIG_ADAPTER.validate_python(
         {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
     )
-    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    dataset = Mock(main_dttm_col="default_time")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    merged = merge_chart_form_data(old, mapped, config)
     assert merged["adhoc_filters"] == [user_filter]
     assert "_mcp_dashboard_time_filter_subject" not in merged
 
@@ -1248,3 +1260,27 @@ def test_region_names_still_fold_diacritics() -> None:
     assert resolve_region("Hokkaidō", "japan", "name") == "JP-01"
     assert resolve_region("Kochi", "japan", "name") == "JP-39"
     assert resolve_region("Kōchi", "japan", "name") == "JP-39"
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("saved_limit", [50000, 0, -1, "invalid", 12])
+def test_geographic_inherited_limit_matches_compilation(
+    kind: str, saved_limit: int | str
+) -> None:
+    """Native queries and geographic compilation consume the same bounded rows."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    config = config_for(kind)
+    old = {**form_for(kind), "row_limit": saved_limit}
+    old.pop("mcp_geographic")
+    merged = merge_chart_form_data(old, form_for(kind), config)
+    plugin = plugin_for_viz_type(kind)
+    assert plugin is not None
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+    assert merged["mcp_geographic"] is True
+    assert query["row_limit"] == plugin.compile_row_limit(merged)
+    assert 1 <= query["row_limit"] <= 10000

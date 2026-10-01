@@ -72,8 +72,8 @@ export default function transformProps(chartProps: ChartProps) {
       )
     : (rawData ?? []);
   // Every normalized region maps back to its source value, including regions
-  // whose metric is blank, so cross-filters and drills on any clickable
-  // region filter on the original identifier rather than the boundary ISO.
+  // whose metric is blank, so cross-filters and drills on returned regions
+  // filter on the original identifier rather than the boundary ISO.
   const sourceValues: Record<string, string> = {};
   if (formData.regionFormat) {
     displayData.forEach((row: Record<string, unknown>, index: number) => {
@@ -125,7 +125,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    sourceValues,
+    sourceValues: formData.regionFormat ? sourceValues : undefined,
     country: selectCountry ? country : null,
     linearColorScheme,
     numberFormat, // left for backward compatibility

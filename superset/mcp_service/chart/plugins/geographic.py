@@ -250,9 +250,12 @@ class GeographicChartPlugin(BaseChartPlugin):
         dataset_rebind: bool,
     ) -> dict[str, Any] | None:
         """Preserve omitted native controls; a rebind keeps presentation only."""
-        return merge_geographic_update_form_data(
+        merged = merge_geographic_update_form_data(
             existing_form_data, new_form_data, config, dataset_rebind=dataset_rebind
         )
+        # Native query and compile validation must cover the same bounded rows.
+        merged["row_limit"] = _typed_row_limit(merged)
+        return merged
 
     def extract_column_refs(self, config: GeographicConfig) -> list[ColumnRef]:
         """Include all spatial, metric, and filter references."""

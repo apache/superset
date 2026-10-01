@@ -2700,6 +2700,9 @@ def merge_geographic_update_form_data(  # noqa: C901
     }
     fields = config.model_fields_set
     patch = dict(mapped)
+    if "temporal_column" in fields and config.temporal_column is None:
+        patch["adhoc_filters"] = _without_generated_dashboard_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     # Native UI-only presentation controls are not part of this public config.
     for key in (
         "color_by",
