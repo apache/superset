@@ -30,6 +30,7 @@ from flask import Flask
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
+    build_probe_sql,
     contains_jinja,
     contains_value_placeholder,
     evaluate_transform,
@@ -47,6 +48,8 @@ from superset.connectors.sqla.partition_mapping import (
     validate_transform,
 )
 from superset.constants import TimeGrain
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
 
@@ -369,6 +372,27 @@ def test_resolve_returns_none_when_the_transform_lacks_the_placeholder(
         assert resolve_partition_mapping(table) is None
 
 
+def test_resolve_returns_none_for_a_non_deterministic_transform(app: Flask) -> None:
+    """
+    The query-time gate is `is_transform_active`, the same one the Explore
+    indicator reads. Anything narrower would let a transform that reached
+    storage without passing `UpdateDatasetCommand` -- through import, or a
+    hand-written bundle -- mirror a filter with a value frozen at probe time,
+    while the editor reported the mapping as inactive and nothing on screen
+    said otherwise.
+    """
+    table = _mapped_table(transform="unix_timestamp(:value) + rand()")
+    with app.app_context():
+        assert resolve_partition_mapping(table) is None
+
+
+def test_resolve_returns_none_for_a_multi_expression_transform(app: Flask) -> None:
+    """A select list is not an expression; the probe cannot align its columns."""
+    table = _mapped_table(transform="lower(:value), 'x'")
+    with app.app_context():
+        assert resolve_partition_mapping(table) is None
+
+
 def test_resolve_returns_none_for_an_unparseable_transform(app: Flask) -> None:
     table = _mapped_table(transform="unix_timestamp(:value")
     with app.app_context():
@@ -579,6 +603,39 @@ def test_evaluate_transform_fails_open_on_a_short_result_row(app: Flask) -> None
             evaluate_transform(database, None, None, "lower(:value)", ["US", "CA"])
             is None
         )
+
+
+def test_evaluate_transform_fails_open_on_a_wide_result_row(app: Flask) -> None:
+    """
+    Too many columns is the dangerous direction. A transform whose select list
+    holds two expressions returns 2N columns for N inputs, and reading the first
+    N interleaves the expressions instead of taking one per value -- a predicate
+    built from the wrong values rather than one that is merely short. Here
+    `lower('US'), 'x', lower('CA'), 'x'` would have yielded `('us', 'x')` and
+    dropped every CA row.
+    """
+    database = _database_returning(["us", "x", "ca", "x"])
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "lower(:value), 'x'", ["US", "CA"])
+            is None
+        )
+
+
+def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
+    """
+    A `SELECT` with no `FROM` is not universal SQL: Oracle and Db2 need a
+    one-row table to select from. Without this every probe on those engines
+    raises, which `evaluate_transform` swallows -- so the only symptom is a
+    correctly configured mapping that silently never prunes.
+    """
+    assert build_probe_sql("lower(:value)", ["US"]) == "SELECT lower('US') AS v0"
+    assert build_probe_sql("lower(:value)", ["US"], None, " FROM DUAL").endswith(
+        " FROM DUAL"
+    )
+    assert OracleEngineSpec.select_without_from_suffix == " FROM DUAL"
+    assert BaseEngineSpec.select_without_from_suffix == ""
 
 
 def test_evaluate_transform_pins_catalog_and_schema(app: Flask) -> None:

@@ -350,10 +350,19 @@ def _position_in_transform(transform: str, parsed_column: int) -> int:
 
 
 def is_parseable(transform: str | None, engine: str) -> bool:
-    """Whether the transform parses as a single select expression."""
+    """
+    Whether the transform parses as a single select expression.
+
+    "Single" is the load-bearing word. `SELECT lower(:value), 'x'` parses just
+    as happily as `SELECT lower(:value)`, but it returns two columns per input
+    value, and the probe reads one column per input -- so an `IN` filter would
+    get a predicate built from the wrong halves of the wrong rows. Rejecting the
+    list here is what lets the probe trust its own column count.
+    """
     if not transform or not transform.strip():
         return False
-    return _parse_skeleton(transform, engine) is not None
+    statement = _parse_skeleton(transform, engine)
+    return statement is not None and statement.count_select_expressions() == 1
 
 
 def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
@@ -396,6 +405,15 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     rejects most of these, but rows predating the validation can still violate
     the invariants, and a column sync can invalidate a mapping that was fine
     when it was written.
+
+    The transform gate is `is_transform_active`, the same function the Explore
+    indicator reads, which is `validate_transform` with the messages discarded.
+    Anything narrower here would be a second, weaker statement of the same rule:
+    a transform calling `now()` that reached storage without passing
+    `UpdateDatasetCommand` -- through import, or through a bundle written by hand
+    -- would be reported inactive by the editor and still mirrored by this
+    function, freezing a snapshot of probe time into the predicate with nothing
+    on screen to say so.
     """
     if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
         return None
@@ -421,7 +439,7 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
 
     mapped_column = columns_by_name[mapped_column_name]
     transform = getattr(mapped_column, "partition_value_transform", None)
-    if not _transform_is_usable(transform, datasource.database.backend):
+    if not is_transform_active(transform, datasource.database.backend):
         return None
 
     if has_active_advanced_data_type(mapped_column):
@@ -438,23 +456,6 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
             getattr(mapped_column, "partition_transform_is_monotonic", False)
         ),
     )
-
-
-def _transform_is_usable(transform: str | None, engine: str) -> bool:
-    """
-    Whether the transform is safe to evaluate and mirror through.
-
-    Mirrors the Tier-2 half of `validate_partition_mapping` plus the Jinja
-    block, so a mapping saved before a check existed -- or one whose engine
-    changed underneath it -- is still skipped at query time.
-    """
-    if not transform or not transform.strip():
-        return False
-    if not contains_value_placeholder(transform):
-        return False
-    if contains_jinja(transform):
-        return False
-    return is_parseable(transform, engine)
 
 
 def has_active_advanced_data_type(column: TableColumn) -> bool:
@@ -477,6 +478,7 @@ def build_probe_sql(
     transform: str,
     values: list[Any],
     dialect: Dialect | None = None,
+    from_suffix: str = "",
 ) -> str:
     """
     Compile a single ``SELECT`` that evaluates the transform at every value.
@@ -484,6 +486,12 @@ def build_probe_sql(
     Values are attacker-controlled (a Gamma user picks filter values), so they
     are bound as parameters and rendered by the dialect's own literal processor
     rather than interpolated into the SQL text.
+
+    ``from_suffix`` comes from the engine spec's ``select_without_from_suffix``.
+    A ``SELECT`` with no ``FROM`` is not universal SQL: Oracle and Db2 need a
+    one-row table to select from, and without it every probe on those engines
+    raises -- which `_run_probe` swallows, so the only symptom is a correctly
+    configured mapping that silently never prunes.
 
     Note this deliberately does *not* go through ``BaseEngineSpec``'s text
     helper, which escapes ``:`` on every engine but Athena and would destroy the
@@ -497,7 +505,7 @@ def build_probe_sql(
             compile_kwargs={"literal_binds": True},
         )
         selections.append(f"{compiled} AS v{index}")
-    return "SELECT " + ", ".join(selections)
+    return "SELECT " + ", ".join(selections) + from_suffix
 
 
 def evaluate_transform(
@@ -566,7 +574,12 @@ def _run_probe(
     errors: list[str] | None = None,
 ) -> list[Any] | None:
     try:
-        sql = build_probe_sql(transform, distinct, _dialect_for(database))
+        sql = build_probe_sql(
+            transform,
+            distinct,
+            _dialect_for(database),
+            database.db_engine_spec.select_without_from_suffix,
+        )
         frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
         if frame is None or frame.empty:
             logger.warning(
@@ -574,9 +587,17 @@ def _run_probe(
             )
             return None
         row = frame.iloc[0]
-        if len(row) < len(distinct):
+        if len(row) != len(distinct):
             # The results cannot be aligned back to their inputs; skipping
-            # beats guessing which value produced which column.
+            # beats guessing which value produced which column. Too *many*
+            # columns is the dangerous direction and the reason this is `!=`
+            # rather than `<`: a transform whose select list holds two
+            # expressions returns 2N columns for N inputs, and reading the
+            # first N of them interleaves the expressions instead of selecting
+            # one per value -- a predicate built from the wrong values rather
+            # than one that is merely short. `is_parseable` rejects that
+            # transform before it is ever stored; this is the backstop for one
+            # that predates the check.
             logger.warning(
                 "Partition transform probe returned %d values for %d inputs",
                 len(row),
