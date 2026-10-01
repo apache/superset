@@ -180,6 +180,15 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "created_by.id",
         "created_by.last_name",
     ]
+    _metadata_columns = [
+        "slug",
+        "css",
+        "theme_id",
+        "certified_by",
+        "certification_details",
+        "is_managed_externally",
+        "external_url",
+    ]
     show_columns = [
         "id",
         "uuid",
@@ -187,6 +196,10 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "description",
         "revision",
         "url",
+        *_metadata_columns,
+        "theme.id",
+        "theme.theme_name",
+        "theme.json_data",
         *_subject_columns,
         *_viewer_columns,
         *_audit_columns,
@@ -197,15 +210,25 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "title",
         "description",
         "url",
+        "slug",
+        "certified_by",
+        "certification_details",
         "changed_on",
         *_subject_columns,
         *_audit_columns,
     ]
     list_select_columns = list_columns + ["changed_by_fk", "created_on"]
-    add_columns = ["title", "description", "editors", "viewers", "definition"]
-    edit_columns = ["title", "description", "editors", "viewers"]
+    add_columns = [
+        "title",
+        "description",
+        "editors",
+        "viewers",
+        *_metadata_columns,
+        "definition",
+    ]
+    edit_columns = ["title", "description", "editors", "viewers", *_metadata_columns]
     order_columns = ["title", "changed_on"]
-    search_columns = ["title", "id"]
+    search_columns = ["title", "id", "slug"]
     search_filters = {"title": [CanvasAllTextFilter], "id": [CanvasEditableFilter]}
 
     add_model_schema = CanvasPostSchema()

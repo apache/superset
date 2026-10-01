@@ -31,6 +31,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
     CanvasUpdateFailedError,
 )
+from superset.commands.canvas.utils import validate_metadata
 from superset.commands.utils import compute_subjects
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
@@ -40,7 +41,7 @@ from superset.utils.decorators import on_error, transaction
 
 class UpdateCanvasCommand(UpdateMixin, BaseCommand):
     """
-    Update title, description, editors and viewers. The definition changes
+    Update the canvas' properties, metadata and sharing. The definition changes
     only through operations (``ApplyCanvasOperationsCommand``).
     """
 
@@ -67,5 +68,6 @@ class UpdateCanvasCommand(UpdateMixin, BaseCommand):
             raise CanvasForbiddenError() from ex
         exceptions: list[ValidationError] = []
         compute_subjects(self._model, self._properties, exceptions)
+        validate_metadata(self._properties, exceptions, self._model.id)
         if exceptions:
             raise CanvasInvalidError(exceptions=exceptions)

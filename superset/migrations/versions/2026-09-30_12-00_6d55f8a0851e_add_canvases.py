@@ -72,13 +72,32 @@ def upgrade() -> None:
         sa.Column("definition", MediumText(), nullable=False),
         sa.Column("definition_version", sa.Integer(), nullable=False),
         sa.Column("revision", sa.BigInteger(), nullable=False),
+        sa.Column("slug", sa.String(255), nullable=True),
+        sa.Column("css", MediumText(), nullable=True),
+        sa.Column("theme_id", sa.Integer(), nullable=True),
+        sa.Column("certified_by", sa.Text(), nullable=True),
+        sa.Column("certification_details", sa.Text(), nullable=True),
+        sa.Column(
+            "is_managed_externally",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.false(),
+        ),
+        sa.Column("external_url", sa.Text(), nullable=True),
         sa.ForeignKeyConstraint(
             ["created_by_fk"], ["ab_user.id"], name="fk_canvases_created_by_fk_ab_user"
         ),
         sa.ForeignKeyConstraint(
             ["changed_by_fk"], ["ab_user.id"], name="fk_canvases_changed_by_fk_ab_user"
         ),
+        sa.ForeignKeyConstraint(
+            ["theme_id"],
+            ["themes.id"],
+            name="fk_canvases_theme_id_themes",
+            ondelete="SET NULL",
+        ),
         sa.UniqueConstraint("uuid", name="uq_canvases_uuid"),
+        sa.UniqueConstraint("slug", name="uq_canvases_slug"),
     )
     _subject_table("canvas_editors")
     _subject_table("canvas_viewers")

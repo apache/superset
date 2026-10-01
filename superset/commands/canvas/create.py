@@ -38,6 +38,7 @@ from superset.commands.canvas.exceptions import (
     CanvasCreateFailedError,
     CanvasInvalidError,
 )
+from superset.commands.canvas.utils import validate_metadata
 from superset.commands.utils import populate_subjects
 from superset.daos.canvas import CanvasDAO
 from superset.models.canvas import Canvas
@@ -58,6 +59,7 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
         exceptions: list[ValidationError] = []
         # Defaults the editors to the requesting user, and resolves viewers.
         populate_subjects(self._properties, exceptions)
+        validate_metadata(self._properties, exceptions)
         self._validate_definition(exceptions)
         if exceptions:
             raise CanvasInvalidError(exceptions=exceptions)

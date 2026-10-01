@@ -46,6 +46,14 @@ class CanvasDAO(BaseDAO[Canvas]):
         )
 
     @staticmethod
+    def slug_in_use(slug: str, exclude_id: int | None = None) -> bool:
+        """Whether another canvas, visible to the caller or not, has ``slug``."""
+        query = db.session.query(Canvas).filter(Canvas.slug == slug)
+        if exclude_id is not None:
+            query = query.filter(Canvas.id != exclude_id)
+        return db.session.query(query.exists()).scalar()
+
+    @staticmethod
     def load(canvas: Canvas) -> dict[str, Any]:
         """The stored definition, upgraded to the current schema version."""
         return upgrade_definition(json.loads(canvas.definition))

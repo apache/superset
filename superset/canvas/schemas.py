@@ -17,7 +17,7 @@
 """Request schemas for the canvas REST API."""
 
 from marshmallow import fields, Schema
-from marshmallow.validate import Length
+from marshmallow.validate import Length, Regexp
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
@@ -28,6 +28,18 @@ editors_description = (
     "to the creating user."
 )
 viewers_description = "Subject ids (users, roles or groups) that can view the canvas."
+slug_description = (
+    "Readable key for the canvas URL, e.g. /canvas/sales-overview/. Unique, not "
+    "all digits, and not 'list'."
+)
+css_description = "Custom CSS applied to the canvas page."
+theme_id_description = "Theme applied to the canvas; the default theme when unset."
+certified_by_description = "Person or group that has certified this canvas."
+certification_details_description = "Details of the certification."
+is_managed_externally_description = (
+    "Whether the canvas is managed by an external system, e.g. as code."
+)
+external_url_description = "Where the canvas is managed when managed externally."
 definition_description = (
     "Initial canvas definition. Changed afterwards only through the "
     "definition operations endpoint."
@@ -45,6 +57,33 @@ class CanvasPostSchema(Schema):
     )
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    slug = fields.String(
+        allow_none=True,
+        validate=[
+            Length(1, 255),
+            Regexp(
+                r"^(?!\d+$)(?!list$)[\w-]+$",
+                error="Use letters, digits, - and _; not all digits, not 'list'.",
+            ),
+        ],
+        metadata={"description": slug_description},
+    )
+    css = fields.String(allow_none=True, metadata={"description": css_description})
+    theme_id = fields.Integer(
+        allow_none=True, metadata={"description": theme_id_description}
+    )
+    certified_by = fields.String(
+        allow_none=True, metadata={"description": certified_by_description}
+    )
+    certification_details = fields.String(
+        allow_none=True, metadata={"description": certification_details_description}
+    )
+    is_managed_externally = fields.Boolean(
+        allow_none=True, metadata={"description": is_managed_externally_description}
+    )
+    external_url = fields.String(
+        allow_none=True, metadata={"description": external_url_description}
+    )
     definition = fields.Dict(
         allow_none=True, metadata={"description": definition_description}
     )
@@ -59,3 +98,30 @@ class CanvasPutSchema(Schema):
     )
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
+    slug = fields.String(
+        allow_none=True,
+        validate=[
+            Length(1, 255),
+            Regexp(
+                r"^(?!\d+$)(?!list$)[\w-]+$",
+                error="Use letters, digits, - and _; not all digits, not 'list'.",
+            ),
+        ],
+        metadata={"description": slug_description},
+    )
+    css = fields.String(allow_none=True, metadata={"description": css_description})
+    theme_id = fields.Integer(
+        allow_none=True, metadata={"description": theme_id_description}
+    )
+    certified_by = fields.String(
+        allow_none=True, metadata={"description": certified_by_description}
+    )
+    certification_details = fields.String(
+        allow_none=True, metadata={"description": certification_details_description}
+    )
+    is_managed_externally = fields.Boolean(
+        allow_none=True, metadata={"description": is_managed_externally_description}
+    )
+    external_url = fields.String(
+        allow_none=True, metadata={"description": external_url_description}
+    )

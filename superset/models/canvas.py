@@ -24,6 +24,7 @@ from typing import Any
 from flask_appbuilder import Model
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -60,6 +61,17 @@ class Canvas(AuditMixinNullable, UUIDMixin, Model):
     # Bumped by every accepted definition write; the base for stale-edit
     # detection.
     revision = Column(BigInteger, nullable=False, default=1)
+    # Readable URL key; never all digits, so it can't be mistaken for an id.
+    slug = Column(String(255), unique=True)
+    css = Column(utils.MediumText())
+    theme_id = Column(
+        Integer, ForeignKey("themes.id", ondelete="SET NULL"), nullable=True
+    )
+    theme = relationship("Theme", foreign_keys=[theme_id])
+    certified_by = Column(Text)
+    certification_details = Column(Text)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
 
     editors = relationship(Subject, secondary=canvas_editors, passive_deletes=True)
     viewers = relationship(Subject, secondary=canvas_viewers, passive_deletes=True)
@@ -75,7 +87,7 @@ class Canvas(AuditMixinNullable, UUIDMixin, Model):
 
     @property
     def url(self) -> str:
-        return f"/canvas/{self.id}/"
+        return f"/canvas/{self.slug or self.id}/"
 
 
 class CanvasOp(Model):

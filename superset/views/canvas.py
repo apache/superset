@@ -38,10 +38,10 @@ class CanvasView(BaseSupersetView):
             return abort(404)
         return super().render_app_template()
 
-    @expose("/<int:pk>/")
+    @expose("/<id_or_slug>/")
     @has_access
     @permission_name("read")
-    def show(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+    def show(self, id_or_slug: str) -> FlaskResponse:  # pylint: disable=unused-argument
         if not feature_flag_manager.is_feature_enabled("CANVAS"):
             return abort(404)
         return super().render_app_template()

@@ -92,6 +92,41 @@ def test_create_and_read_a_canvas(
     assert definition["definition"]["nodes"] == {}
 
 
+def test_metadata_and_slug(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    from superset.models.canvas import Canvas
+
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+    metadata = {
+        "slug": "sales-overview",
+        "css": ".x { color: red; }",
+        "certified_by": "Data team",
+        "certification_details": "Reviewed weekly",
+        "external_url": "https://example.com/canvas.yaml",
+        "is_managed_externally": True,
+    }
+
+    response = client.post(BASE + "/", json={"title": "Sales", **metadata})
+
+    assert response.status_code == 201
+    created = session.get(Canvas, response.json["id"])
+    assert {key: getattr(created, key) for key in metadata} == metadata
+    assert created.url == "/canvas/sales-overview/"
+
+    taken = client.put(f"{BASE}/100", json={"slug": "sales-overview"})
+    assert taken.status_code == 422
+    assert taken.json["message"] == {"slug": ["Must be unique"]}
+    for slug in ("123", "list", "has space"):
+        assert client.put(f"{BASE}/100", json={"slug": slug}).status_code == 400
+    missing_theme = client.put(f"{BASE}/100", json={"theme_id": 999})
+    assert missing_theme.json["message"] == {"theme_id": ["Theme does not exist"]}
+
+
 def test_create_validates_the_body(
     client: Any, full_api_access: None, canvas: Any
 ) -> None:
