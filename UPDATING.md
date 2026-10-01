@@ -435,14 +435,25 @@ routes answer 404, and the "Reset Password" and "Reset my password" buttons on
 the legacy FAB user pages that led to them are gone. `superset init` no longer
 assigns their permissions (`can this form get/post on ResetPasswordView` and
 `ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
-`UserDBModelView`) to any role. Every flow they served lives in the SPA:
-administrators reset a user's password from the "New password" fields in the
-Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
-own from the "Reset my password" modal on their profile page (`PUT
-/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
-change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
-instead of the removed form. Deployments that link to either legacy route should
-point at `/user_info/` or the Users list instead.
+`UserDBModelView`) to the built-in Admin/Alpha/Gamma/sql_lab roles, and a data
+migration removes those same permissions from every other (operator-defined)
+role that already held them, so no role on any upgraded install retains them.
+Every flow they served lives in the SPA: administrators reset a user's
+password from the "New password" fields in the Users list edit modal (`PUT
+/api/v1/security/users/<id>`), users change their own from the "Reset my
+password" modal on their profile page (`PUT /api/v1/me/`, which requires
+`current_password` when the account already has one), and a pending forced
+password change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile
+page instead of the removed form. Deployments that link to either legacy route
+should point at `/user_info/` or the Users list instead.
+
+Reaching the profile page requires `can_read` on `user`, which the built-in
+Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
+to. A user whose only role lacks it and who gets redirected there by a forced
+password change is now redirected to logout with an explanatory message
+instead, so they are never trapped in a redirect loop; grant that permission
+to any custom role whose members may have `ENABLE_FORCE_PASSWORD_CHANGE`
+set on their account.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
