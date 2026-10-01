@@ -88,12 +88,27 @@ export class SaveChartModal extends Modal {
   }
 
   /**
-   * Adds the chart to a dashboard. When `dashboardTitle` matches an existing
-   * dashboard it is selected; otherwise the select's `allowNewOptions`
-   * affordance creates a new dashboard with that title.
+   * Adds the chart to a brand-new dashboard: the select's `allowNewOptions`
+   * affordance creates one with `dashboardTitle` when the chart is saved.
    */
   async selectDashboard(dashboardTitle: string): Promise<void> {
     await this.dashboardSelect.selectOption(dashboardTitle);
+  }
+
+  /**
+   * Adds the chart to an existing dashboard. Waits for the select's initial
+   * options to load before typing: the "create new" option is only offered
+   * when no loaded option has the typed title, so typing earlier leaves it as
+   * the sole match and picking it silently saves the chart to a duplicate
+   * dashboard. Relies on the workspace holding fewer dashboards than the
+   * select's page size, so the initial load contains the target and typing
+   * filters client-side without a server search.
+   */
+  async selectExistingDashboard(dashboardTitle: string): Promise<void> {
+    await this.dashboardSelect.open();
+    await this.dashboardSelect.getVisibleOptionTexts();
+    await this.dashboardSelect.type(dashboardTitle);
+    await this.dashboardSelect.clickOption(dashboardTitle);
   }
 
   /**
