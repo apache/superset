@@ -38,7 +38,7 @@
   ],
   "type": "module",
   "scripts": {
-    "_format": "oxfmt './{src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.scss,.sass,.json}'",
+    "_format": "oxfmt './{src,spec,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.scss,.sass,.json}'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --color --mode production",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
@@ -110,7 +110,7 @@
     "@fontsource/fira-code": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
-    "@googleapis/sheets": "^18.0.0",
+    "@googleapis/sheets": "^18.0.1",
     "@great-expectations/jsonforms-antd-renderers": "^2.2.10",
     "@jsonforms/core": "^3.7.0",
     "@jsonforms/react": "^3.7.0",
