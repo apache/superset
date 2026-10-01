@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
+
+`DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.
+The Doris engine spec's `default_driver` is `mysqldb` (the driver pydoris
+registers), so a deployment that hides Doris with `{"pydoris": {"pydoris"}}`
+sees it listed again; change the entry to `{"pydoris": {"mysqldb"}}`.
+
+The Doris connection form's SSL switch sets `ssl_mode=VERIFY_CA`. With MariaDB
+Connector/C this also verifies the server hostname, so the switch needs
+`ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
+host. A Doris FE on its default self-signed certificate fails to connect once
+the switch is on.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
