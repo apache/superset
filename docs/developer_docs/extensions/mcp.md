@@ -489,8 +489,9 @@ outright.
   is configured). The response's `warnings` reports when this happens.
 - ROLE- or GROUP-type editors already on the dashboard are left untouched.
 - A no-op request (e.g. "adding" an ID that's already an owner) returns an
-  empty `owners` list rather than the full current set, so the tool can't
-  be used as a disguised directory lookup.
+  empty `owners` list rather than the full current set. Requesting removal
+  of an ID that isn't an owner is rejected with an error that lists the
+  current owner IDs, so an editor can still read that list.
 
 ### `manage_dashboard_roles`
 
@@ -511,8 +512,9 @@ which is why `update_dashboard` dropped its `roles` field.
   such subjects left on the dashboard keep it restricted.
 - USER- or GROUP-type viewers already on the dashboard are left untouched.
 - Like `manage_dashboard_owners`, a no-op request returns an empty `roles`
-  list instead of the full current set, to avoid a disguised directory
-  lookup.
+  list instead of the full current set. Requesting removal of an unassigned
+  role ID is rejected with an error that lists the current role IDs, so an
+  editor can still read that list.
 
 ### `manage_dashboard_certification`
 
