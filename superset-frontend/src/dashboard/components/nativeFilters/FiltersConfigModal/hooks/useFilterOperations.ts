@@ -69,7 +69,7 @@ export interface FilterOperationsParams {
 }
 
 export interface FilterOperations {
-  addFilter: (type: NativeFilterType) => void;
+  addFilter: (type: NativeFilterType, defaultFilterType?: string) => void;
   handleRemoveFilter: (id: string) => void;
   restoreFilter: (id: string) => void;
   handleRearrangeFilters: (
@@ -97,15 +97,35 @@ export function useFilterOperations({
   setSaveAlertVisible,
 }: FilterOperationsParams): FilterOperations {
   const addFilter = useCallback(
-    (type: NativeFilterType) => {
+    (type: NativeFilterType, defaultFilterType?: string) => {
       const newFilterId = generateFilterId(type);
+      if (defaultFilterType) {
+        form.setFieldsValue({
+          filters: {
+            ...form.getFieldValue('filters'),
+            [newFilterId]: {
+              id: newFilterId,
+              type,
+              filterType: defaultFilterType,
+              name:
+                defaultFilterType === 'filter_parameter'
+                  ? t('New parameter')
+                  : t('New filter'),
+              controlValues:
+                defaultFilterType === 'filter_parameter'
+                  ? { parameter_type: 'string' }
+                  : {},
+            },
+          },
+        });
+      }
       filterState.setNewIds([...filterState.newIds, newFilterId]);
       handleModifyItem(newFilterId);
       setActiveItem(newFilterId);
       setSaveAlertVisible(false);
       filterState.setOrderedIds([...filterState.orderedIds, newFilterId]);
     },
-    [filterState, handleModifyItem, setActiveItem, setSaveAlertVisible],
+    [filterState, form, handleModifyItem, setActiveItem, setSaveAlertVisible],
   );
 
   const handleRemoveFilter = useCallback(

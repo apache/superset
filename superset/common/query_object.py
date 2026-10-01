@@ -119,6 +119,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
+    parameters: dict[str, Any]
 
     def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self,
@@ -154,6 +155,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.columns = columns or []
         self.datasource = datasource
         self.extras = extras or {}
+        self.parameters = (
+            kwargs.get("parameters") or self.extras.get("parameters") or {}
+        )
         self.filter = filters or []
         self.granularity = granularity
         self.is_rowcount = is_rowcount
@@ -537,6 +541,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "time_shift": self.time_shift,
             "time_compare_full_range": self.time_compare_full_range,
         }
+        if self.parameters:
+            query_object_dict["parameters"] = self.parameters
         return query_object_dict
 
     def __repr__(self) -> str:

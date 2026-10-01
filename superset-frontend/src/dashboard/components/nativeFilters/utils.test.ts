@@ -24,6 +24,7 @@ import {
   nativeFilterGate,
   findTabsWithChartsInScope,
   getFormData,
+  mergeExtraFormData,
 } from './utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -147,4 +148,50 @@ test('getFormData passes controlValues.displayFormat through to the filter plugi
   });
 
   expect((formData as any).displayFormat).toBe('%d-%m-%Y');
+});
+
+describe('mergeExtraFormData with parameters', () => {
+  test('should merge parameters dictionaries from original and new extraFormData', () => {
+    const original = {
+      parameters: {
+        cutoff: 100,
+        country: 'US',
+      },
+    };
+    const newExtra = {
+      parameters: {
+        country: 'CA',
+        segment: 'Retail',
+      },
+    };
+
+    const result = mergeExtraFormData(original, newExtra);
+    expect(result.parameters).toEqual({
+      cutoff: 100,
+      country: 'CA',
+      segment: 'Retail',
+    });
+  });
+
+  test('should handle when one side does not have parameters', () => {
+    const original = {
+      parameters: {
+        cutoff: 50,
+      },
+    };
+    const newExtra = {
+      time_range: 'Last week',
+    };
+
+    const result = mergeExtraFormData(original, newExtra);
+    expect(result.parameters).toEqual({
+      cutoff: 50,
+    });
+    expect(result.time_range).toEqual('Last week');
+  });
+
+  test('should handle empty extraFormData inputs without errors', () => {
+    const result = mergeExtraFormData({}, {});
+    expect(result).toEqual({});
+  });
 });

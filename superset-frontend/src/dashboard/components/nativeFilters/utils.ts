@@ -55,6 +55,7 @@ export const getFormData = ({
   controlValues,
   time_grains,
   filterType,
+  name,
   sortMetric,
   adhoc_filters,
   time_range,
@@ -73,6 +74,7 @@ export const getFormData = ({
   sortMetric?: string | null;
   granularity_sqla?: string;
   time_grains?: string[];
+  name?: string;
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -98,6 +100,7 @@ export const getFormData = ({
     ...controlValues,
     ...timeGrainsFormData,
     ...otherProps,
+    name,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
     extra_form_data: dependencies,
@@ -133,6 +136,9 @@ export function mergeExtraFormData(
     }
   });
   EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: keyof ExtraFormDataOverride) => {
+    if (key === 'parameters') {
+      return;
+    }
     const originalValue = originalExtra[key];
     if (originalValue !== undefined) {
       mergedExtra[key] = originalValue;
@@ -142,6 +148,12 @@ export function mergeExtraFormData(
       mergedExtra[key] = newValue;
     }
   });
+  if (originalExtra.parameters || newExtra.parameters) {
+    mergedExtra.parameters = {
+      ...(originalExtra.parameters || {}),
+      ...(newExtra.parameters || {}),
+    };
+  }
   return mergedExtra as ExtraFormData;
 }
 

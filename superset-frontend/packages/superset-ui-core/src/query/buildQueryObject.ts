@@ -138,5 +138,9 @@ export default function buildQueryObject<T extends QueryFormData>(
   // override extra form data used by native and cross filters
   queryObject = overrideExtraFormData(queryObject, overrides);
 
+  if (overrides.parameters) {
+    queryObject.parameters = overrides.parameters;
+  }
+
   return { ...queryObject, custom_form_data };
 }

@@ -16,9 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
-export { default as ParameterFilterPlugin } from './Parameter';
+import { t } from '@apache-superset/core/translation';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from '../Time/images/thumbnail.png';
+
+export default class ParameterFilterPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: t('Parameter'),
+      description: t('Dashboard parameter control for Jinja queries'),
+      behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: false,
+      thumbnail,
+      datasourceCount: 0,
+    });
+
+    super({
+      controlPanel,
+      loadChart: () => import('./ParameterFilterPlugin'),
+      metadata,
+      transformProps,
+    });
+  }
+}

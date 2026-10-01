@@ -77,6 +77,9 @@ export type QueryObjectExtras = Partial<{
 
   /** If true, WHERE/HAVING clauses need transpilation to target dialect */
   transpile_to_dialect?: boolean;
+
+  /** Dashboard parameters to interpolate in Jinja templates */
+  parameters?: Record<string, any>;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -109,6 +112,9 @@ export interface QueryObject
    * cleaned up in the future.
    */
   extras?: QueryObjectExtras;
+
+  /** Dashboard parameters */
+  parameters?: Record<string, any>;
 
   /** SIMPLE where filters */
   filters?: QueryObjectFilterClause[];

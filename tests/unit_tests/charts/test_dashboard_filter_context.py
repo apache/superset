@@ -286,6 +286,14 @@ def test_merge_extra_form_data_merges_custom_form_data_dicts() -> None:
     assert merged["custom_form_data"] == {"groupby": ["col1"], "foo": "bar"}
 
 
+def test_merge_extra_form_data_merges_parameters_dicts() -> None:
+    """parameters is a dict; multiple parameter filters' contributions are merged."""
+    base = {"parameters": {"cutoff": 100, "country": "US"}}
+    new = {"parameters": {"country": "CA", "category": "Tech"}}
+    merged = _merge_extra_form_data(base, new)
+    assert merged["parameters"] == {"cutoff": 100, "country": "CA", "category": "Tech"}
+
+
 # --- _get_filter_target_column ---
 
 

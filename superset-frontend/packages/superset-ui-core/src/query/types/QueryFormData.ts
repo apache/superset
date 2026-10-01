@@ -122,7 +122,11 @@ export type ExtraFormDataAppend = {
  * filter clauses can't be overridden */
 export type ExtraFormDataOverrideExtras = Pick<
   QueryObjectExtras,
-  'relative_start' | 'relative_end' | 'time_grain_sqla' | 'time_compare'
+  | 'relative_start'
+  | 'relative_end'
+  | 'time_grain_sqla'
+  | 'time_compare'
+  | 'parameters'
 >;
 
 /** These parameters override those already present in the form data/query object */
@@ -140,7 +144,10 @@ export type ExtraFormDataOverrideRegular = Partial<
 export type ExtraFormDataOverride = ExtraFormDataOverrideRegular &
   ExtraFormDataOverrideExtras;
 
-export type ExtraFormData = ExtraFormDataAppend & ExtraFormDataOverride;
+export type ExtraFormData = ExtraFormDataAppend &
+  ExtraFormDataOverride & {
+    parameters?: Record<string, any>;
+  };
 
 // Type signature for formData shared by all viz types
 // It will be gradually filled out as we build out the query object
