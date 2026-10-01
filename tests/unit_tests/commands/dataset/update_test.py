@@ -1380,6 +1380,8 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
 def _mapping_command(
     mocker: MockerFixture,
     transform: str | None,
+    *,
+    partition_mapped_column: str | None = None,
 ) -> UpdateDatasetCommand:
     """A command whose stored dataset maps `event_time` onto `dt_epoch`."""
     mapped_column = mocker.MagicMock()
@@ -1397,7 +1399,7 @@ def _mapping_command(
     mock_dataset.columns = [mapped_column, partition_column]
     mock_dataset.main_dttm_col = "event_time"
     mock_dataset.partition_column = "dt_epoch"
-    mock_dataset.partition_mapped_column = None
+    mock_dataset.partition_mapped_column = partition_mapped_column
 
     command = UpdateDatasetCommand(1, {})
     command._model = mock_dataset
@@ -1489,3 +1491,81 @@ def test_no_mapping_validation_runs_while_the_feature_is_off(
 
     assert exceptions == []
     gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_sync_that_drops_the_mapped_column_is_not_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `update_columns` clears a mapping whose columns the payload dropped, but
+    that runs later, during `run()`. Validating the pre-cleanup state would
+    reject the very sync the cleanup exists to absorb -- an `override_columns`
+    resync whose source table no longer has the mapped column.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    command._properties["columns"] = [{"column_name": "dt_epoch"}]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_sync_that_drops_the_partition_column_is_not_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Losing the partition column drops the whole mapping, not just the half."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_mapping_onto_a_column_the_same_request_omits_is_still_rejected(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only a *stored* reference is forgiven. Asking in this request to map onto a
+    column the same request does not define is a mistake worth reporting, not
+    something to quietly clean up.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [{"column_name": "dt_epoch"}]
+    command._properties["partition_mapped_column"] = "event_time"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_mapped_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
+    mocker: MockerFixture,
+) -> None:
+    """Forgiving a dropped column does not forgive the checks that remain."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [
+        {"column_name": "dt_epoch"},
+        {"column_name": "event_time"},
+    ]
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
