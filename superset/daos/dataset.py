@@ -35,6 +35,7 @@ from superset.connectors.sqla.models import (
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
+from superset.jinja_context import _UNSET, _Unset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -49,13 +50,6 @@ DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
     "database_name": ["eq", "like", "ilike"],
     "editor": ["eq", "in"],
 }
-
-
-class _Unset:
-    """Sentinel indicating that no filter should be applied."""
-
-
-_UNSET = _Unset()
 
 
 class DatasetDAO(BaseDAO[SqlaTable]):
@@ -687,6 +681,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         database_id: int | str | _Unset = _UNSET,
         schema: str | _Unset | None = _UNSET,
         catalog: str | _Unset | None = _UNSET,
+        skip_base_filter: bool = False,
     ) -> SqlaTable | None:
         # Filter by ``table_name`` and any additional identification attributes
         # provided (``database_id``, ``catalog``, ``schema``). The full
@@ -694,6 +689,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # to disambiguate datasets sharing the same ``table_name`` (#30377), while
         # partial criteria may match multiple datasets (#35662).
         query = db.session.query(SqlaTable).filter(SqlaTable.table_name == table_name)
+
+        if not skip_base_filter:
+            query = DatasetDAO._apply_base_filter(query)
 
         if database_id is not _UNSET:
             if isinstance(database_id, int):

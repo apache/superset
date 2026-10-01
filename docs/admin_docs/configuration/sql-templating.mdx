@@ -576,7 +576,7 @@ It's possible to query physical and virtual datasets using the `dataset` macro. 
 To use the macro, you can reference the dataset either by its numeric ID or by its name.
 
 - By ID: you need to find the dataset's ID. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
-- By name: just pass the dataset’s exact name
+- By name: pass the dataset’s exact name. If multiple datasets have the same name, you will need to provide additional qualifiers to avoid an ambiguous match error
 
 Once you have the ID you can query it as if it were a table:
 
@@ -588,6 +588,12 @@ If you prefer dataset's name:
 
 ```sql
 SELECT * FROM {{ dataset("my_dataset") }} LIMIT 10
+```
+
+If name is ambiguous, pass optional qualifiers (`catalog`, `schema`, or `database_id` as a numeric ID or string name) to narrow down the search:
+
+```sql
+SELECT * FROM {{ dataset("my_dataset", database_id=1, catalog=None, schema="datasets") }} LIMIT 10
 ```
 
 If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
