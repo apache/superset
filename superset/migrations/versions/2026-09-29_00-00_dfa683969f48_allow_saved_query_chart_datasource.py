@@ -22,11 +22,28 @@ Create Date: 2026-09-29 00:00:00.000000
 
 """
 
+import logging
+
+import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.orm import declarative_base
+
+from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "dfa683969f48"
 down_revision = "95d8a99c822e"
+
+Base = declarative_base()
+
+logger = logging.getLogger("alembic.env")
+
+
+class Slice(Base):  # type: ignore
+    __tablename__ = "slices"
+
+    id = sa.Column(sa.Integer, primary_key=True)
+    datasource_type = sa.Column(sa.String(200))
 
 
 def upgrade() -> None:
@@ -43,6 +60,21 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Any chart persisted with datasource_type == saved_query would violate
+    # the stricter constraint being restored below, so reassign those rows
+    # first (mirrors the cleanup in 7e67aecbf3f1_chart_ds_constraint.py).
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    for slc in session.query(Slice).filter(Slice.datasource_type == "saved_query"):
+        logger.warning(
+            "downgrading slice.id = %s from datasource_type saved_query to table",
+            slc.id,
+        )
+        slc.datasource_type = "table"
+        session.add(slc)
+    session.commit()
+    session.close()
+
     with op.batch_alter_table("slices") as batch_op:
         batch_op.drop_constraint("ck_chart_datasource", type_="check")
         batch_op.create_check_constraint(
