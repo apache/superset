@@ -25,6 +25,7 @@
  * the API to reach the SEARCH_THRESHOLD (10) search-input behavior.
  */
 import type { Page } from '@playwright/test';
+import rison from 'rison';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPutChart } from '../../helpers/api/chart';
 import { createTestDashboard } from '../dashboard/dashboard-test-helpers';
@@ -56,12 +57,30 @@ async function overwriteToDashboard(
   await dashboardSelect.open();
   const dashboardsResponse = await dashboardsLoaded;
   expect(dashboardsResponse.ok()).toBe(true);
-  // The target may be beyond the first page of unfiltered dashboards.
-  const dashboardsSearched = waitForGet(page, 'api/v1/dashboard/', {
-    pathMatch: true,
+  const { count, result }: { count: number; result: unknown[] } =
+    await dashboardsResponse.json();
+  // AsyncSelect filters locally when all options are loaded. Otherwise it
+  // debounces a GET with the dashboard_title filter encoded in Rison's q param.
+  const titleFilter = rison.encode({
+    col: 'dashboard_title',
+    opr: 'ct',
+    value: dashboardName,
   });
+  const dashboardsSearched =
+    count > result.length
+      ? page.waitForResponse(response => {
+          const url = new URL(response.url());
+          return (
+            response.request().method() === 'GET' &&
+            url.pathname.endsWith('/api/v1/dashboard/') &&
+            (url.searchParams.get('q') ?? '').includes(titleFilter)
+          );
+        })
+      : undefined;
   await dashboardSelect.type(dashboardName);
-  expect((await dashboardsSearched).ok()).toBe(true);
+  if (dashboardsSearched) {
+    expect((await dashboardsSearched).ok()).toBe(true);
+  }
   const dashboardOption = page
     .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
     .locator('.ant-select-item-option')
