@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -947,6 +947,12 @@ msgstr "< (menor que)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (menor o igual)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<introduzca la expresión SQL aquí>"
 
@@ -1752,6 +1758,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7645,6 +7655,9 @@ msgstr ""
 msgid "Extruded"
 msgstr "Extruido"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "FEB"
 
@@ -9124,10 +9137,6 @@ msgstr "ID de pestaña no válidos: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "El nombre de usuario o la contraseña son incorrectos."
-
 msgid "Inverse"
 msgstr ""
 
@@ -10581,6 +10590,9 @@ msgstr "NO AGRUPADO POR"
 
 msgid "NOV"
 msgstr "NOV"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "NUMÉRICO"
@@ -15564,6 +15576,9 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "JUE"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

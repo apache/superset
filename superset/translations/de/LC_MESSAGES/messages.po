@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -929,6 +929,12 @@ msgstr "< (Kleiner als)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Kleiner oder gleich)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<hier SQL-Ausdruck eingeben>"
 
@@ -1709,6 +1715,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7314,6 +7324,9 @@ msgstr "Zusätzliche URL-Parameter für die Verwendung in Jinja-Vorlagenabfragen
 msgid "Extruded"
 msgstr "Extrudiert"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "FEB"
 
@@ -8692,9 +8705,6 @@ msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Der Anmeldename oder das Kennwort ist falsch"
-
 msgid "Inverse"
 msgstr ""
 
@@ -10053,6 +10063,9 @@ msgstr "NICHT GRUPPIERT NACH"
 
 msgid "NOV"
 msgstr "NOV"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "NUMERISCH"
@@ -14774,6 +14787,9 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "DO"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1097,6 +1097,12 @@ msgstr "< (أصغر من)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (أصغر أو يساوي)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<enter SQL expression here>"
 
@@ -1933,6 +1939,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -8065,6 +8075,9 @@ msgstr "معلمات url إضافية للاستخدام في استعلامات
 msgid "Extruded"
 msgstr "مقذوف"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "فبراير"
 
@@ -9594,10 +9607,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "إما أن اسم المستخدم أو كلمة المرور خاطئين."
-
 msgid "Inverse"
 msgstr ""
 
@@ -11109,6 +11118,9 @@ msgstr "لم يتم تجميعها بواسطة"
 
 msgid "NOV"
 msgstr "نوفمبر"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "رقمية"
@@ -16233,6 +16245,9 @@ msgstr "نطاق_زمني"
 
 msgid "THU"
 msgstr "الخميس"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

@@ -27,8 +27,10 @@ import {
   TitleFormData,
 } from './types';
 
-// eslint-disable-next-line import/prefer-default-export
-export const NULL_STRING = '<NULL>';
+export const EMPTY_STRING = () => t('<empty string>');
+export const NULL_STRING = () => t('<NULL>');
+export const TRUE_STRING = () => t('TRUE');
+export const FALSE_STRING = () => t('FALSE');
 
 export const TIMESERIES_CONSTANTS = {
   gridOffsetRight: 20,

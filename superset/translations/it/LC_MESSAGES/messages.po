@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1163,6 +1163,12 @@ msgstr "< (Minore di)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Minore di o uguale a)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<immettere qui espressione SQL>"
 
@@ -2089,6 +2095,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -9049,6 +9059,9 @@ msgstr "Parametri URL aggiuntivi da utilizzare nelle query basate su modelli Jin
 msgid "Extruded"
 msgstr "Estruso"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "DEB"
 
@@ -10912,11 +10925,6 @@ msgstr "Id schede non validi: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
-# lv, ro, ru, sr, sr_Latn, tr, uk]
-msgid "Invalid username or password"
-msgstr "Nome utente o password non validi"
-
 msgid "Inverse"
 msgstr ""
 
@@ -12736,6 +12744,9 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "NOV"
 msgstr "NOV"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "NUMERICO"
@@ -18711,6 +18722,9 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "THU"
 msgstr "GIO"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr "Il TTL deve essere un numero intero positivo."

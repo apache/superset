@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -982,6 +982,12 @@ msgstr "小于（<）"
 msgid "<= (Smaller or equal)"
 msgstr "小于等于（<=）"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "输入SQL表达式"
 
@@ -1770,6 +1776,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7503,6 +7513,9 @@ msgstr "用于Jinja模板化查询的额外URL参数"
 msgid "Extruded"
 msgstr "拉伸"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "二月"
 
@@ -8991,10 +9004,6 @@ msgstr "无效的标签页ID：%(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "用户名或密码错误。"
-
 msgid "Inverse"
 msgstr ""
 
@@ -10470,6 +10479,9 @@ msgstr "未分组"
 
 msgid "NOV"
 msgstr "十一月"
+
+msgid "NULL"
+msgstr ""
 
 #, fuzzy
 msgid "NUMERIC"
@@ -15387,6 +15399,9 @@ msgstr "时间范围"
 
 msgid "THU"
 msgstr "星期四"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr "TTL 必须为正整数。"

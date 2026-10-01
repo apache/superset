@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -973,6 +973,12 @@ msgstr "کوچکتر از (۱)"
 msgid "<= (Smaller or equal)"
 msgstr "کوچکتر یا مساوی"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<عبارت SQL خود را اینجا وارد کنید>"
 
@@ -1790,6 +1796,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7765,6 +7775,9 @@ msgstr "پارامترهای اضافی URL برای استفاده در کوئ�
 msgid "Extruded"
 msgstr "برآمده"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "فوریه"
 
@@ -9273,10 +9286,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "نام کاربری یا رمز عبور اشتباه است."
-
 msgid "Inverse"
 msgstr ""
 
@@ -10770,6 +10779,9 @@ msgstr "غیر گروه‌بندی شده توسط"
 
 msgid "NOV"
 msgstr "نوامبر"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "عدد"
@@ -15815,6 +15827,9 @@ msgstr "محدوده_زمانی"
 
 msgid "THU"
 msgstr "پنج‌شنبه"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

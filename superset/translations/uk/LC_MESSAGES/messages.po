@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -999,6 +999,12 @@ msgstr "< (менше)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (менше або рівне)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<введіть тут вираз SQL>"
 
@@ -1771,6 +1777,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7359,6 +7369,9 @@ msgstr "Додаткові параметри в посиланні для за�
 msgid "Extruded"
 msgstr "Об'ємний"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "лют"
 
@@ -8728,9 +8741,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Неправильний користувач або його пароль"
 
 msgid "Inverse"
 msgstr ""
@@ -10123,6 +10133,9 @@ msgstr "Не згруповано"
 
 msgid "NOV"
 msgstr "лист"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "Числовий"
@@ -14882,6 +14895,9 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "ЧТ"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

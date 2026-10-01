@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -936,6 +936,12 @@ msgstr "< (சிறியது)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (சிறியது அல்லது சமம்)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<SQL எக்ஸ்பிரஷனை இங்கே உள்ளிடவும்>"
 
@@ -1709,6 +1715,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7276,6 +7286,9 @@ msgstr "Jinja டெம்ப்ளேட் வினவல்களில் �
 msgid "Extruded"
 msgstr "வெளித்தள்ளப்பட்ட (Extruded)"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "பிப்"
 
@@ -8639,9 +8652,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "தவறான பயனர் பெயர் அல்லது கடவுச்சொல்"
-
 msgid "Inverse"
 msgstr ""
 
@@ -9974,6 +9984,9 @@ msgstr "இதன்படி குழுவாக்கப்படவில�
 
 msgid "NOV"
 msgstr "நவ"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "எண் வகை (NUMERIC)"
@@ -14562,6 +14575,9 @@ msgstr "நேர_வரம்பு"
 
 msgid "THU"
 msgstr "வியா"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

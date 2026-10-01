@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -845,6 +845,12 @@ msgid "< (Smaller than)"
 msgstr ""
 
 msgid "<= (Smaller or equal)"
+msgstr ""
+
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
 msgstr ""
 
 msgid "<enter SQL expression here>"
@@ -6350,6 +6356,9 @@ msgstr ""
 msgid "Extruded"
 msgstr ""
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr ""
 
@@ -8820,6 +8829,9 @@ msgid "NOT GROUPED BY"
 msgstr ""
 
 msgid "NOV"
+msgstr ""
+
+msgid "NULL"
 msgstr ""
 
 msgid "NUMERIC"
@@ -12972,6 +12984,9 @@ msgid "TEMPORAL_RANGE"
 msgstr ""
 
 msgid "THU"
+msgstr ""
+
+msgid "TRUE"
 msgstr ""
 
 msgid "TTL must be a positive integer."

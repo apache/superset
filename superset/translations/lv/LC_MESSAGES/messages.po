@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -978,6 +978,12 @@ msgstr "< (Mazāk nekā)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Mazāk vai vienāds)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<ievadiet SQL izteiksmi šeit>"
 
@@ -1752,6 +1758,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7346,6 +7356,9 @@ msgstr "Papildu URL parametri izmantošanai Jinja veidņu vaicājumos"
 msgid "Extruded"
 msgstr "Izvirzīts"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "FEB"
 
@@ -8720,9 +8733,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Nepareizs lietotājvārds vai parole"
 
 msgid "Inverse"
 msgstr ""
@@ -10118,6 +10128,9 @@ msgstr "NAV GRUPĒTS PĒC"
 
 msgid "NOV"
 msgstr "NOV"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "SKAITLISKS"
@@ -14877,6 +14890,9 @@ msgstr "LAIKA_DIAPAZONS"
 
 msgid "THU"
 msgstr "CE"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

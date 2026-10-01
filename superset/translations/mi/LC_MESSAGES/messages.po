@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -972,6 +972,12 @@ msgstr "< (Iti ake i)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Iti ake, ōrite rānei)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<whakauru kīanga SQL ki konei>"
 
@@ -1774,6 +1780,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7664,6 +7674,9 @@ msgstr "Tawhā url taapiri mō te whakamahi i ngā pātai tauira Jinja"
 msgid "Extruded"
 msgstr "Kua whakaputaina"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "HUI"
 
@@ -9164,10 +9177,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Kua hē te ingoa kaiwhakamahi, te kupuhipa rānei."
-
 msgid "Inverse"
 msgstr ""
 
@@ -10617,6 +10626,9 @@ msgstr "KĀORE I RŌPŪNGIA MĀ"
 
 msgid "NOV"
 msgstr "WHI"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "TAU"
@@ -15623,6 +15635,9 @@ msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "PAR"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""
