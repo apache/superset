@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -165,26 +165,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standaard om ervoor te zorgen dat de lexicografische volgorde\n"
-"                      samenvalt met de chronologische volgorde. Als het "
-"tijdstempel\n"
-"                      niet overeenkomt met de ISO 8601 standaard\n"
-"                      dan moet u een expressie definiëren en typen voor\n"
-"                      om de tekenreeks om te zetten in een datum of "
-"tijdstempel. Note\n"
-"                      currently time zones are not supported Als de tijd "
-"wordt opgeslagen\n"
-"                      in epoch formaat, zet `epoch_s` of `epoch_ms`. Als "
-"er geen patroon\n"
-"                      is opgegeven, vallen we terug naar de optionele "
-"standaardwaarden op een\n"
-"                      database/kolom naam niveau via de extra parameter."
 
 msgid " to add calculated columns"
 msgstr " berekende kolommen toevoegen"
@@ -1041,6 +1027,9 @@ msgstr ""
 "title: { text: \"Mijn grafiek\" }, tooltip: { trigger: \"item\" } }). "
 "Details: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1054,8 +1043,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste waarden "
-"per periode. Wordt vaak gebruikt voor financiële en andere "
+"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste "
+"waarden per periode. Wordt vaak gebruikt voor financiële en andere "
 "tijdreeks-bereikanalyses."
 
 #, fuzzy
@@ -1720,6 +1709,9 @@ msgstr "Selecteer grafieken"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "Selecteer dashboards"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4414,8 +4406,7 @@ msgstr "Kleurenschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
+msgstr "Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kleur wanneer de slotwaarde kleiner is dan de openingswaarde."
@@ -4765,6 +4756,9 @@ msgstr "Opslaan bevestigen"
 msgid "Confirm Password"
 msgstr "Toon wachtwoord."
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Overschrijven bevestigen"
 
@@ -4774,6 +4768,9 @@ msgstr "Toon wachtwoord."
 
 msgid "Confirm save"
 msgstr "Opslaan bevestigen"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5025,6 +5022,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5192,6 +5195,9 @@ msgstr "Huidige dag"
 
 msgid "Current month"
 msgstr "Huidige maand"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Huidig kwartaal"
@@ -5480,6 +5486,9 @@ msgstr "Dashboard kon niet worden hersteld."
 msgid "Dashboard could not be updated."
 msgstr "Dashboard kon niet worden bijgewerkt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Het dashboard bestaat niet"
 
@@ -5490,6 +5499,9 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard geïmporteerd"
@@ -6165,6 +6177,11 @@ msgstr "verwijder"
 #, fuzzy
 msgid "Delete item"
 msgstr "Verwijder template"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7373,6 +7390,9 @@ msgstr "Voer primaire aanmeldgegevens in"
 msgid "Enter a name for this sheet"
 msgstr "Voer een naam in voor dit blad"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Of de objecten moeten worden gevuld"
@@ -7446,6 +7466,9 @@ msgstr "Voer de gebruikersnaam van de gebruiker in"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Naam van de waarschuwing"
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7652,9 +7675,6 @@ msgstr "Wekelijks Rapport"
 msgid "Excel XML Export"
 msgstr "Wekelijks Rapport"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7840,6 +7860,11 @@ msgstr "Exporteren naar origineel .CSV bestand"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporteren naar pivoted .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9851,6 +9876,9 @@ msgstr "Indeling type van boomstructuur"
 msgid "Least recently modified"
 msgstr "Meest recente wijziging"
 
+msgid "Leave blank to keep the current password"
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -11091,6 +11119,9 @@ msgstr "Nieuwe dataset naam"
 msgid "New header"
 msgstr "Nieuwe koptekst"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "Nieuw tabblad"
 
@@ -11374,6 +11405,11 @@ msgstr "Geen -> Pijl"
 msgid "None -> None"
 msgstr "Geen -> Geen"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normaal"
 
@@ -11400,6 +11436,15 @@ msgstr "Niet gelijk aan (≠)"
 
 msgid "Not Time Series"
 msgstr "Geen Tijdserie"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 #, fuzzy
 msgid "Not a valid ZIP file"
@@ -11958,8 +12003,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5, "
-"MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
+"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5,"
+" MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12390,6 +12435,9 @@ msgstr "Gelieve te bevestigen"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Voer een SQLAlchemy URI in om te testen"
 
+msgid "Please enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Please enter a valid email"
 msgstr "Voer een SQLAlchemy URI in om te testen"
@@ -12600,6 +12648,12 @@ msgstr "Voorvoegsel of achtervoegsel"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13307,6 +13361,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Vereiste controlewaarden zijn verwijderd"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
 
@@ -13992,6 +14049,9 @@ msgstr "Schema"
 
 msgid "Schema cache timeout"
 msgstr "Schema cache time-out"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Schemas toegestaan voor bestandsupload"
@@ -16837,6 +16897,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17370,6 +17436,10 @@ msgstr ""
 "gebruikt om deze query uit te voeren."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -17441,6 +17511,10 @@ msgid ""
 msgstr ""
 "De tabel \"%(table)s\" bestaat niet. Een geldige tabel moet worden "
 "gebruikt om deze query uit te voeren."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17950,6 +18024,12 @@ msgstr "Er was een probleem met het bekijken van de geselecteerde query. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17969,6 +18049,12 @@ msgstr "Dit zijn de datasets waarop dit filter zal worden toegepast."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17984,6 +18070,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18119,6 +18210,12 @@ msgstr ""
 "annotatie gegevens."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -19040,6 +19137,9 @@ msgstr "Dinsdag"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Type"
@@ -20155,6 +20255,10 @@ msgid ""
 msgstr ""
 "Het lijkt erop dat de kolom \"%(column_name)s\" op regel %(location)s "
 "niet kan worden opgelost."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -21435,6 +21539,12 @@ msgstr "knop (cmd + z) totdat je jouw wijzigingen opslaat."
 
 msgid "by using"
 msgstr "door te gebruiken"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "mag niet leeg zijn"
