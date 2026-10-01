@@ -1118,11 +1118,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # connector above; same native MEDIAN/STDDEV_SAMP/VAR_SAMP functions
     # apply here rather than the inherited (unimplemented) HiveEngineSpec/
     # PrestoEngineSpec default.
-    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
-        "MEDIAN": sa.func.median,
-        "STDDEV_SAMP": sa.func.stddev_samp,
-        "VAR_SAMP": sa.func.var_samp,
-    }
+    _extended_aggregations = DatabricksBaseEngineSpec._extended_aggregations
 
 
 # TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x
