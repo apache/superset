@@ -945,13 +945,10 @@ const baseAggregatorTemplates = {
             // metric alongside a "sales" category) flattens to the same key
             // as the substituted metric address and would silently return
             // that category's subtotal instead of the metric's total.
-            // `rowGroupMetricTotals`/`colGroupMetricTotals` are recorded at
-            // every enabled row/column depth (see `processResultRecord`), so
-            // they resolve regardless of whether the matching subtotal
-            // happens to be on. Metric-definition mode (`showValuesAs`)
-            // never populates any of these maps, so a non-substituted lookup
-            // (no metric on the collapsed axis) still falls through to the
-            // generic tree.
+            // `processRecord` (the DB-precomputed path `showValuesAs` drives)
+            // populates these same maps itself -- see its "Metric-collapse
+            // totals" section -- so they resolve there too, not just under
+            // `processResultRecord`'s result-aggregation reducer.
             let denominatorAggregator: any;
             if (metricSubstituted === 'col') {
               denominatorAggregator =
@@ -1812,15 +1809,54 @@ class PivotData {
     // pushed last.
     const metricKey = record.__metricKey as unknown as string | undefined;
     if (metricKey) {
+      const colMetricIndex = levelColumns.indexOf(metricKey);
+      const rowMetricIndex = levelRows.indexOf(metricKey);
       const realColCount = levelColumns.filter(c => c !== metricKey).length;
       const realRowCount = levelRows.filter(r => r !== metricKey).length;
-      if (levelColumns.includes(metricKey) && realColCount === 0) {
+      if (colMetricIndex !== -1 && realColCount === 0) {
         if (rowKey.length === 0) this.allTotal.push(record);
         else this.rowTotals[flatRowKey]?.push(record);
+        // This record's column axis holds only the metric (no other real col
+        // dims at this rollup level), so its value is also this metric's own
+        // total for whatever the row axis currently is: the pure grand total
+        // (`colMetricTotals`, `rowKey` empty) or this metric's own total for
+        // this particular row/row-subtotal (`rowGroupMetricTotals`, keyed by
+        // the row depth this record was tagged at). `fractionOf`'s
+        // metric-substituted lookup (above) reads these so a percent_total
+        // or percent_row denominator never has to mix this metric's value
+        // with another's, or fall back to a flat-keyed tree lookup that a
+        // same-named category could collide with.
+        const metricValue = colKey[colMetricIndex];
+        if (rowKey.length === 0) {
+          this.colMetricTotals[metricValue] ??= this.getFormattedAggregator(
+            record,
+            [metricValue],
+          )(this, [], [metricValue]);
+          this.colMetricTotals[metricValue].push(record);
+        } else {
+          this.rowGroupMetricTotals[flatRowKey] ??= Object.create(null);
+          this.rowGroupMetricTotals[flatRowKey][metricValue] ??=
+            this.getFormattedAggregator(record)(this, rowKey, [metricValue]);
+          this.rowGroupMetricTotals[flatRowKey][metricValue].push(record);
+        }
       }
-      if (levelRows.includes(metricKey) && realRowCount === 0) {
+      if (rowMetricIndex !== -1 && realRowCount === 0) {
         if (colKey.length === 0) this.allTotal.push(record);
         else this.colTotals[flatColKey]?.push(record);
+        // Mirror of the column case above, for a metric tagged onto rows.
+        const metricValue = rowKey[rowMetricIndex];
+        if (colKey.length === 0) {
+          this.rowMetricTotals[metricValue] ??= this.getFormattedAggregator(
+            record,
+            [metricValue],
+          )(this, [metricValue], []);
+          this.rowMetricTotals[metricValue].push(record);
+        } else {
+          this.colGroupMetricTotals[flatColKey] ??= Object.create(null);
+          this.colGroupMetricTotals[flatColKey][metricValue] ??=
+            this.getFormattedAggregator(record)(this, [metricValue], colKey);
+          this.colGroupMetricTotals[flatColKey][metricValue].push(record);
+        }
       }
     }
   }
