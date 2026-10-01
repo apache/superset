@@ -84,10 +84,13 @@ def test_missing_widgets_stay_as_placeholders() -> None:
     assert result["nodes"]["b"]["layout"] == {"anything": "kept"}
 
 
-def test_a_widget_is_placed_once() -> None:
-    assert issues(canvas({"a": node("chart-1"), "b": node("chart-1")})) == [
-        ("/nodes/b/widget", "widget 'chart-1' is already placed")
-    ]
+def test_a_widget_can_be_placed_more_than_once() -> None:
+    raw = canvas({"a": node("chart-1", layout={"colSpan": 8}), "b": node("chart-1")})
+
+    result = normalize(raw)
+
+    assert result["nodes"]["a"]["widget"] == result["nodes"]["b"]["widget"]
+    assert result["nodes"]["a"]["layout"] == {"colSpan": 8}
 
 
 def test_unknown_child_and_orphan() -> None:

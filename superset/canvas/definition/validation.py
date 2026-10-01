@@ -17,9 +17,8 @@
 """
 Whole-canvas validation and normalization.
 
-Checks the envelope, tree integrity, that every widget is placed only once, the
-nesting rules of widget types, each child's layout under its parent, and
-resolves grid collisions.
+Checks the envelope, tree integrity, the nesting rules of widget types and each
+child's layout under its parent, and resolves grid collisions.
 
 A node whose widget no longer exists, or whose container type is no longer
 registered (e.g. its extension was removed), is kept as an unresolved
@@ -170,14 +169,10 @@ class _Validator:
     def _check_widgets(self, doc: dict[str, Any]) -> None:
         nodes = doc["nodes"]
         types = self.resolver.widget_types({node["widget"] for node in nodes.values()})
-        placed: dict[str, str] = {}
+        # A widget may be placed more than once; everything the canvas tracks
+        # (placement, scopes, values) is keyed by node.
         for node_id, node in nodes.items():
             widget_id = node["widget"]
-            path = pointer("nodes", node_id, "widget")
-            if widget_id in placed:
-                self.fail(path, f"widget {widget_id!r} is already placed")
-                continue
-            placed[widget_id] = node_id
             widget_type = types.get(widget_id)
             if widget_type is None:
                 self.unresolved.add(node_id)
