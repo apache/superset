@@ -308,6 +308,36 @@ def test_changes_since_a_pruned_revision_are_stale(
     assert client.get(f"{URL}/changes?since=3").json["result"]["changes"] == []
 
 
+def test_definition_from_a_newer_superset_is_refused(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    canvas.definition = json.dumps({**json.loads(canvas.definition), "version": 99})
+
+    for response in (client.get(URL), patch_ops(client, 1, add("chart-1"))):
+        assert response.status_code == 422
+        assert "Upgrade Superset" in response.json["message"]
+    assert canvas.revision == 1
+
+
+def test_write_that_upgrades_the_definition_restarts_the_op_log(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    published: MagicMock,
+    session: Session,
+) -> None:
+    patch_ops(client, 1, add("chart-1"))
+    # Stored by an older schema version.
+    canvas.definition_version = 0
+    session.commit()
+
+    assert patch_ops(client, 1, add("chart-2")).json["stale"] is True
+    assert patch_ops(client, 2, add("chart-2")).status_code == 200
+    assert canvas.definition_version == 1
+    assert client.get(f"{URL}/changes?since=1").status_code == 409
+    assert client.get(f"{URL}/changes?since=2").status_code == 200
+
+
 def test_schema_is_published(
     client: Any, full_api_access: None, widgets: FakeResolver
 ) -> None:

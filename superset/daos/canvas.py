@@ -24,6 +24,7 @@ from sqlalchemy import func
 
 from superset import db
 from superset.canvas.definition.ops import AppliedOperation
+from superset.canvas.definition.upgrades import upgrade_definition
 from superset.canvas.filters import CanvasAccessFilter
 from superset.daos.base import BaseDAO
 from superset.models.canvas import Canvas, CanvasOp
@@ -46,7 +47,8 @@ class CanvasDAO(BaseDAO[Canvas]):
 
     @staticmethod
     def load(canvas: Canvas) -> dict[str, Any]:
-        return json.loads(canvas.definition)
+        """The stored definition, upgraded to the current schema version."""
+        return upgrade_definition(json.loads(canvas.definition))
 
     @staticmethod
     def ops_since(canvas_id: int, revision: int) -> list[CanvasOp]:
@@ -88,9 +90,9 @@ class CanvasDAO(BaseDAO[Canvas]):
         )
 
     @staticmethod
-    def prune(canvas_id: int, keep_after_revision: int) -> None:
-        """Drop logged operations at or before ``keep_after_revision``."""
-        db.session.query(CanvasOp).filter(
-            CanvasOp.canvas_id == canvas_id,
-            CanvasOp.revision <= keep_after_revision,
-        ).delete(synchronize_session=False)
+    def prune(canvas_id: int, keep_after_revision: int | None = None) -> None:
+        """Drop logged operations at or before ``keep_after_revision``, or all."""
+        query = db.session.query(CanvasOp).filter(CanvasOp.canvas_id == canvas_id)
+        if keep_after_revision is not None:
+            query = query.filter(CanvasOp.revision <= keep_after_revision)
+        query.delete(synchronize_session=False)

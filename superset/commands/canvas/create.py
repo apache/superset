@@ -25,6 +25,10 @@ from marshmallow import ValidationError
 
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.schemas import empty_definition
+from superset.canvas.definition.upgrades import (
+    DefinitionVersionError,
+    upgrade_definition,
+)
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
@@ -61,7 +65,12 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
     def _validate_definition(self, exceptions: list[ValidationError]) -> None:
         raw = self._properties.pop("definition", None) or empty_definition()
         try:
-            definition = normalize_definition(raw)
+            definition = normalize_definition(upgrade_definition(raw))
+        except DefinitionVersionError as ex:
+            exceptions.append(
+                ValidationError({"/version": [str(ex)]}, field_name="definition")
+            )
+            return
         except DefinitionValidationError as ex:
             exceptions.append(
                 ValidationError(

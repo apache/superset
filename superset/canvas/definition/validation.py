@@ -25,10 +25,16 @@ A node whose widget no longer exists, or whose container type is no longer
 registered (e.g. its extension was removed), is kept as an unresolved
 placeholder: it and its children stay as stored, so the rest of the canvas can
 still be edited. Whether a new widget may be placed is checked by the caller.
+
+Widget types' rules (nesting, sizes, child layouts, filter roles) can change
+after a canvas is saved. With ``strict_nodes`` given, only those nodes are
+checked against the rules; the others keep their stored placement, so a
+tightened rule never blocks edits elsewhere. Tree integrity is always checked.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -81,10 +87,12 @@ class _Validator:
         raw: dict[str, Any],
         rules: LayoutRulesRegistry,
         resolver: WidgetResolver,
+        strict_nodes: Iterable[str] | None,
     ) -> None:
         self.raw = raw
         self.rules = rules
         self.resolver = resolver
+        self.strict = None if strict_nodes is None else set(strict_nodes)
         self.issues: list[Issue] = []
         self.parents: dict[str, str] = {}
         self.node_rules: dict[str, type[CanvasLayoutRules]] = {}
@@ -93,6 +101,9 @@ class _Validator:
 
     def fail(self, path: str, message: str) -> None:
         self.issues.append(Issue(path, message))
+
+    def is_strict(self, node_id: str) -> bool:
+        return self.strict is None or node_id in self.strict
 
     def run(self) -> dict[str, Any]:
         try:
@@ -179,7 +190,7 @@ class _Validator:
     def _check_nesting(self) -> None:
         for node_id, parent_id in self.parents.items():
             rules = self.node_rules.get(node_id)
-            if rules is None:
+            if rules is None or not self.is_strict(node_id):
                 continue
             accepted: frozenset[str] | None = None
             if parent_id == ROOT_ID:
@@ -206,8 +217,9 @@ class _Validator:
             if filter_id not in nodes:
                 self.fail(pointer(*path), f"unknown node {filter_id!r}")
                 continue
+            strict = self.is_strict(filter_id)
             rules = self.node_rules.get(filter_id)
-            if rules is not None and not rules.is_filter:
+            if strict and rules is not None and not rules.is_filter:
                 self.fail(pointer(*path), f"node {filter_id!r} is not a filter")
             for field in ("targets", "exclude"):
                 for index, target in enumerate(scope[field]):
@@ -216,7 +228,11 @@ class _Validator:
                         self.fail(
                             pointer(*path, field, index), f"unknown node {target!r}"
                         )
-                    elif target_rules is not None and not target_rules.is_filterable:
+                    elif (
+                        strict
+                        and target_rules is not None
+                        and not target_rules.is_filterable
+                    ):
                         self.fail(
                             pointer(*path, field, index),
                             f"node {target!r} cannot be filtered",
@@ -255,16 +271,24 @@ class _Validator:
         model = GridPlacement if columns is not None else child_model
         assert model is not None  # noqa: S101
         layouts: list[dict[str, Any]] = []
+        # Children whose stored layout no longer fits a changed rule, kept as
+        # stored and auto-placed when resolving the grid.
+        kept: set[str] = set()
         for child_id in children:
             layout_path = ("nodes", child_id, "layout")
+            strict = self.is_strict(child_id)
             try:
                 layout = model.model_validate(
                     doc["nodes"][child_id]["layout"]
                 ).model_dump(mode="json", by_alias=True, exclude_none=True)
             except ValidationError as ex:
-                self.issues.extend(_pydantic_issues(layout_path, ex))
+                if strict:
+                    self.issues.extend(_pydantic_issues(layout_path, ex))
+                    continue
+                kept.add(child_id)
+                layouts.append({})
                 continue
-            if columns is not None:
+            if columns is not None and strict:
                 for message in [
                     *span_errors(layout, columns),
                     *self._size_errors(child_id, layout, columns),
@@ -276,7 +300,8 @@ class _Validator:
         if columns is not None and len(layouts) == len(children):
             _, stored = resolve_grid(layouts, columns)
             for child_id, layout in zip(children, stored, strict=True):
-                doc["nodes"][child_id]["layout"] = layout
+                if child_id not in kept:
+                    doc["nodes"][child_id]["layout"] = layout
 
     def _size_errors(
         self, node_id: str, layout: dict[str, Any], columns: int
@@ -309,13 +334,15 @@ def normalize_definition(
     raw: dict[str, Any],
     rules: LayoutRulesRegistry | None = None,
     resolver: WidgetResolver | None = None,
+    strict_nodes: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """
     Validate ``raw`` and return the normalized canvas to store.
 
-    Raises ``DefinitionValidationError`` listing every problem found, each with a
-    JSON-pointer path into the canvas.
+    ``strict_nodes`` limits the widget rule checks to those nodes; ``None``
+    checks every node. Raises ``DefinitionValidationError`` listing every
+    problem found, each with a JSON-pointer path into the canvas.
     """
     return _Validator(
-        raw, rules or layout_rules, resolver or get_widget_resolver()
+        raw, rules or layout_rules, resolver or get_widget_resolver(), strict_nodes
     ).run()

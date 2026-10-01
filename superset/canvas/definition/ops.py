@@ -277,4 +277,7 @@ def apply_operations(
             applied.append(applier.apply(op))
         except ValueError as ex:
             raise OperationError(index, str(ex)) from ex
-    return normalize_definition(applier.canvas, rules, resolver), applied
+    # Widget rules are enforced on what these operations touched; the rest of
+    # the canvas keeps its stored placement even if a rule changed since.
+    touched = {touch.node_id for op in applied for touch in op.touched}
+    return normalize_definition(applier.canvas, rules, resolver, touched), applied

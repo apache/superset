@@ -35,7 +35,7 @@ from superset.canvas.definition.ops import (
 )
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
-from superset.canvas.definition.schemas import AddOp, Operation
+from superset.canvas.definition.schemas import AddOp, DEFINITION_VERSION, Operation
 from superset.canvas.definition.scopes import resolve_filter_scopes
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
@@ -111,7 +111,12 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self.validate()
         canvas = CanvasDAO.lock(self._canvas_id)
         current = canvas.revision
+        # Logged operations predate the stored definition's upgrade, so they
+        # can't be checked for overlap; the log restarts with this write.
+        upgrading = canvas.definition_version != DEFINITION_VERSION
         if self._base_revision != current:
+            if upgrading:
+                raise DefinitionConflictError(current, [], stale=True)
             self._check_overlap(current, named_touches(self._ops))
 
         try:
@@ -130,6 +135,8 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         canvas.definition = json.dumps(definition)
         canvas.definition_version = definition["version"]
         canvas.revision = revision
+        if upgrading:
+            CanvasDAO.prune(canvas.id)
         CanvasDAO.log(canvas.id, revision, applied, get_user_id())
         CanvasDAO.prune(canvas.id, revision - OP_LOG_RETAINED_REVISIONS)
         return ApplyResult(

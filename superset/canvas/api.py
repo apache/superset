@@ -40,6 +40,7 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_filter_scopes
+from superset.canvas.definition.upgrades import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
     CanvasAllTextFilter,
@@ -94,6 +95,8 @@ def _handle_canvas_errors(
             return self.response_422(message=ex.normalized_messages())
         except (DefinitionConflictError, DefinitionInvalidError) as ex:
             return self.response(ex.status, **ex.to_payload())
+        except DefinitionVersionError as ex:
+            return self.response_422(message=str(ex))
         except (
             CanvasCreateFailedError,
             CanvasUpdateFailedError,

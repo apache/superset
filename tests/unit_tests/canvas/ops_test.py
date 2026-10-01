@@ -114,6 +114,56 @@ def test_add_into_a_leaf_is_rejected() -> None:
         build(add("chart-1"), add("chart-2", parent="n0"))
 
 
+def changed_rules(widget_type: str, **changes: Any) -> LayoutRulesRegistry:
+    """The test rules, with ``widget_type``'s rules changed after saving."""
+    rules = canvas_rules()
+    base = rules.get(widget_type)
+    rules.unregister(widget_type)
+    rules.register(type(f"Changed{base.__name__}", (base,), changes))
+    return rules
+
+
+def apply_with(
+    rules: LayoutRulesRegistry, doc: dict[str, Any], *raw: dict[str, Any]
+) -> dict[str, Any]:
+    return apply_operations(
+        doc, ops(*raw), rules=rules, resolver=FakeResolver(), new_id=sequential_ids()
+    )[0]
+
+
+def test_a_tightened_size_rule_only_applies_to_touched_nodes() -> None:
+    doc = build(add("chart-1", layout={"colSpan": 24}), add("chart-2"))
+    rules = changed_rules("chart", max_col_span=12)
+
+    result = apply_with(
+        rules, doc, {"op": "place", "id": "n1", "layout": {"colSpan": 6}}
+    )
+
+    assert result["nodes"]["n0"]["layout"]["colSpan"] == 24
+    with pytest.raises(DefinitionValidationError, match="above the maximum of 12"):
+        apply_with(rules, doc, {"op": "place", "id": "n0", "layout": {"colSpan": 24}})
+
+
+def test_a_tightened_nesting_rule_only_applies_to_touched_nodes() -> None:
+    doc = build(add("group"), add("chart-1", parent="n0"))
+    rules = changed_rules("group", accepted_children=frozenset({"filter"}))
+
+    result = apply_with(rules, doc, add("chart-2", id=GROUP_ID))
+
+    assert result["nodes"]["n0"]["children"] == ["n1"]
+    with pytest.raises(DefinitionValidationError, match="cannot be placed in group"):
+        apply_with(rules, doc, {"op": "move", "id": "n1", "parent": "n0", "index": 0})
+
+
+def test_a_layout_from_a_replaced_child_model_is_kept_as_stored() -> None:
+    doc = build(add("board"), add("chart-1", parent="n0", layout={"lane": "todo"}))
+    rules = changed_rules("board", child_layout_model=None, grid_columns=12)
+
+    result = apply_with(rules, doc, add("chart-2", id=GROUP_ID))
+
+    assert result["nodes"]["n1"]["layout"] == {"lane": "todo"}
+
+
 def test_unresolved_container_keeps_its_children_but_takes_no_new_ones() -> None:
     doc = build(add("group"), add("chart-1", parent="n0"), add("chart-2"))
     # The group's widget type is no longer registered.

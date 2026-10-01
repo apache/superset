@@ -30,7 +30,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.canvas import WidgetResolver
+from pydantic import ValidationError
+from superset_core.canvas import GridPlacement, WidgetResolver
 
 from superset.canvas.definition.grid import resolve_grid
 from superset.canvas.definition.registry import (
@@ -70,7 +71,8 @@ def render_context(
 
     placements: dict[str, dict[str, int]] = {}
     for children, columns in grids:
-        rects, _ = resolve_grid([nodes[c]["layout"] for c in children], columns)
+        layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
+        rects, _ = resolve_grid(layouts, columns)
         for child, rect in zip(children, rects, strict=True):
             placements[child] = {
                 "col": rect.col,
@@ -83,3 +85,14 @@ def render_context(
         "placements": placements,
         "gridColumns": grid_columns,
     }
+
+
+def _grid_layout(layout: dict[str, Any]) -> dict[str, Any]:
+    """A stored layout as grid placement; one kept from another layout model
+    after a container's rules changed is auto-placed instead."""
+    try:
+        return GridPlacement.model_validate(layout).model_dump(
+            mode="json", by_alias=True, exclude_none=True
+        )
+    except ValidationError:
+        return {}
