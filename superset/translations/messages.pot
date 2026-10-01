@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -11710,6 +11710,9 @@ msgstr ""
 msgid "Select column name"
 msgstr ""
 
+msgid "Select columns"
+msgstr ""
+
 msgid "Select columns that will be displayed in the table. You can multiselect columns."
 msgstr ""
 
@@ -13081,6 +13084,9 @@ msgstr ""
 
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
+msgstr ""
+
+msgid "Table side"
 msgstr ""
 
 msgid "Table that visualizes paired t-tests, which are used to understand statistical differences between groups."
