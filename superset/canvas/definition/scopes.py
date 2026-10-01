@@ -15,17 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Which widgets each filter on a canvas drives.
+Which widgets each filter, cross-filter source and customization drives.
 
-By default a filter drives every filterable widget under its nearest ancestor
-container that bounds filter scope, or the whole canvas when there is none. A
-filter in a tab drives that tab; a filter in a filter bar that does not bound
-scope drives the whole canvas. A per-filter override in
-``interactions.filters`` can make the scope global or name the targets, and
-can exclude nodes from an auto or global scope.
+By default a node drives every filterable widget under its nearest ancestor
+container that bounds filter scope, or the whole canvas when there is none,
+never itself. A filter in a tab drives that tab; a filter in a filter bar that
+does not bound scope drives the whole canvas. A per-node override in
+``interactions`` can make the scope global or name the targets, and can
+exclude nodes from an auto or global scope.
 
 Only filterable widgets are ever driven, and nodes whose widget or type no
-longer resolves are skipped.
+longer resolves are skipped. Cross-filter scopes are empty while cross-filters
+are turned off in the canvas settings.
 """
 
 from __future__ import annotations
@@ -39,7 +40,24 @@ from superset.canvas.definition.registry import (
     layout_rules,
     LayoutRulesRegistry,
 )
-from superset.canvas.definition.schemas import FilterScopeMode, ROOT_ID
+from superset.canvas.definition.schemas import (
+    FilterScopeMode,
+    ROOT_ID,
+    SCOPE_FIELDS,
+)
+
+# The layout rule that makes a node own each kind of scope.
+_ROLES = {
+    "filter": "is_filter",
+    "crossFilter": "is_cross_filter_source",
+    "customization": "is_customization",
+}
+# Response keys for each kind's resolved scopes.
+SCOPE_RESULT_KEYS = {
+    "filter": "filterScopes",
+    "crossFilter": "crossFilterScopes",
+    "customization": "customizationScopes",
+}
 
 
 def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
@@ -56,12 +74,15 @@ def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
     return ordered
 
 
-def resolve_filter_scopes(
+def resolve_scopes(
     canvas: dict[str, Any],
     rules: LayoutRulesRegistry | None = None,
     resolver: WidgetResolver | None = None,
-) -> dict[str, list[str]]:
-    """Map each filter node id to the node ids it drives, in reading order."""
+) -> dict[str, dict[str, list[str]]]:
+    """
+    Map each kind's response key (``filterScopes``, ``crossFilterScopes``,
+    ``customizationScopes``) to ``{node id: driven node ids}``, in reading order.
+    """
     rules = rules or layout_rules
     resolver = resolver or get_widget_resolver()
     nodes = canvas["nodes"]
@@ -77,29 +98,39 @@ def resolve_filter_scopes(
         for child in _children(canvas, parent)
     }
     filterable = {n for n, r in node_rules.items() if r.is_filterable}
-    overrides = canvas.get("interactions", {}).get("filters", {})
+    interactions = canvas.get("interactions", {})
+    cross_filters_on = (
+        canvas.get("settings", {}).get("crossFilters", {}).get("enabled", True)
+    )
 
-    scopes: dict[str, list[str]] = {}
-    for node_id, node_rule in node_rules.items():
-        if not node_rule.is_filter:
+    resolved: dict[str, dict[str, list[str]]] = {}
+    for kind, role in _ROLES.items():
+        scopes: dict[str, list[str]] = {}
+        resolved[SCOPE_RESULT_KEYS[kind]] = scopes
+        if kind == "crossFilter" and not cross_filters_on:
             continue
-        override = overrides.get(node_id, {})
-        mode = FilterScopeMode(override.get("mode", FilterScopeMode.AUTO))
-        if mode == FilterScopeMode.CUSTOM:
-            scopes[node_id] = [t for t in override["targets"] if t in filterable]
-            continue
-        boundary = (
-            ROOT_ID
-            if mode == FilterScopeMode.GLOBAL
-            else _scope_boundary(node_id, parents, node_rules)
-        )
-        excluded = set(override.get("exclude", []))
-        scopes[node_id] = [
-            n
-            for n in _reading_order(canvas, boundary)
-            if n in filterable and n not in excluded
-        ]
-    return scopes
+        overrides = interactions.get(SCOPE_FIELDS[kind], {})
+        for node_id, node_rule in node_rules.items():
+            if not getattr(node_rule, role):
+                continue
+            override = overrides.get(node_id, {})
+            mode = FilterScopeMode(override.get("mode", FilterScopeMode.AUTO))
+            if mode == FilterScopeMode.CUSTOM:
+                candidates = override["targets"]
+            else:
+                boundary = (
+                    ROOT_ID
+                    if mode == FilterScopeMode.GLOBAL
+                    else _scope_boundary(node_id, parents, node_rules)
+                )
+                excluded = set(override.get("exclude", []))
+                candidates = [
+                    n for n in _reading_order(canvas, boundary) if n not in excluded
+                ]
+            scopes[node_id] = [
+                n for n in candidates if n in filterable and n != node_id
+            ]
+    return resolved
 
 
 def _children(canvas: dict[str, Any], parent: str) -> list[str]:

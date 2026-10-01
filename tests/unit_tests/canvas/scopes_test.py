@@ -24,7 +24,7 @@ from superset.canvas.definition.ops import (
     overlapping,
     Touch,
 )
-from superset.canvas.definition.scopes import resolve_filter_scopes
+from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
@@ -38,11 +38,13 @@ from tests.unit_tests.canvas.fixtures import (
 )
 
 
-def scopes(raw: dict[str, Any]) -> dict[str, list[str]]:
+def all_scopes(raw: dict[str, Any]) -> dict[str, dict[str, list[str]]]:
     rules, resolver = canvas_rules(), FakeResolver()
-    return resolve_filter_scopes(
-        normalize_definition(raw, rules, resolver), rules, resolver
-    )
+    return resolve_scopes(normalize_definition(raw, rules, resolver), rules, resolver)
+
+
+def scopes(raw: dict[str, Any]) -> dict[str, list[str]]:
+    return all_scopes(raw)["filterScopes"]
 
 
 def analyst_view(**interactions: Any) -> dict[str, Any]:
@@ -148,7 +150,8 @@ def test_set_filter_scope_and_restore_auto() -> None:
     doc, applied = apply(
         analyst_view(),
         {
-            "op": "set_filter_scope",
+            "op": "set_scope",
+            "kind": "filter",
             "id": "f2",
             "scope": {"mode": "custom", "targets": ["c3"]},
         },
@@ -159,9 +162,11 @@ def test_set_filter_scope_and_restore_auto() -> None:
         "targets": ["c3"],
         "exclude": [],
     }
-    assert applied[0].touched == [Touch("f2", FieldGroup.SCOPE)]
+    assert applied[0].touched == [Touch("f2", FieldGroup.FILTER_SCOPE)]
 
-    doc, _ = apply(doc, {"op": "set_filter_scope", "id": "f2", "scope": None})
+    doc, _ = apply(
+        doc, {"op": "set_scope", "kind": "filter", "id": "f2", "scope": None}
+    )
 
     assert doc["interactions"]["filters"] == {}
 
@@ -177,7 +182,7 @@ def test_removing_nodes_prunes_scope_overrides() -> None:
 
     assert doc["interactions"]["filters"]["f1"]["targets"] == ["c1"]
     assert doc["interactions"]["filters"]["f2"]["exclude"] == []
-    assert Touch("f1", FieldGroup.SCOPE) in applied[0].touched
+    assert Touch("f1", FieldGroup.FILTER_SCOPE) in applied[0].touched
 
     doc, _ = apply(doc, {"op": "remove", "id": "section"})
 
@@ -185,7 +190,89 @@ def test_removing_nodes_prunes_scope_overrides() -> None:
 
 
 def test_scope_edits_conflict_only_with_scope_edits() -> None:
-    scope = [Touch("f1", FieldGroup.SCOPE)]
+    scope = [Touch("f1", FieldGroup.FILTER_SCOPE)]
 
     assert overlapping(scope, [Touch("f1", FieldGroup.LAYOUT)]) == set()
     assert overlapping(scope, scope) == {"f1"}
+
+
+def sales_view(**settings: Any) -> dict[str, Any]:
+    """Two cross-filtering charts and a group-by in a tab, plus a chart outside."""
+    raw = canvas(
+        {
+            "tabs": node("tabs", children=["tab"]),
+            "tab": node("tab", children=["x1", "x2", "g1"]),
+            "x1": node("xchart-1"),
+            "x2": node("xchart-2"),
+            "g1": node("groupby-1"),
+            "c1": node("chart-1"),
+        },
+        children=["tabs", "c1"],
+    )
+    return {**raw, "settings": settings}
+
+
+def test_cross_filters_and_customizations_scope_like_filters() -> None:
+    resolved = all_scopes(sales_view())
+
+    assert resolved["crossFilterScopes"] == {"x1": ["x2"], "x2": ["x1"]}
+    assert resolved["customizationScopes"] == {"g1": ["x1", "x2"]}
+    assert resolved["filterScopes"] == {}
+
+
+def test_cross_filter_scopes_are_empty_while_turned_off() -> None:
+    resolved = all_scopes(sales_view(crossFilters={"enabled": False}))
+
+    assert resolved["crossFilterScopes"] == {}
+    assert resolved["customizationScopes"] == {"g1": ["x1", "x2"]}
+
+
+def test_scope_kinds_are_set_and_merged_independently() -> None:
+    doc, applied = apply(
+        sales_view(),
+        {
+            "op": "set_scope",
+            "kind": "crossFilter",
+            "id": "x1",
+            "scope": {"mode": "global"},
+        },
+    )
+
+    assert doc["interactions"]["crossFilters"]["x1"]["mode"] == "global"
+    assert applied[0].touched == [Touch("x1", FieldGroup.CROSS_FILTER_SCOPE)]
+    assert (
+        overlapping(applied[0].touched, [Touch("x1", FieldGroup.FILTER_SCOPE)]) == set()
+    )
+    rules, resolver = canvas_rules(), FakeResolver()
+    assert resolve_scopes(doc, rules, resolver)["crossFilterScopes"]["x1"] == [
+        "x2",
+        "c1",
+    ]
+
+
+def test_scope_override_needs_the_matching_role() -> None:
+    with pytest.raises(DefinitionValidationError, match="is not a customization"):
+        apply(
+            sales_view(),
+            {
+                "op": "set_scope",
+                "kind": "customization",
+                "id": "x1",
+                "scope": {"mode": "global"},
+            },
+        )
+
+
+def test_removing_nodes_prunes_every_scope_kind() -> None:
+    raw = sales_view()
+    raw["interactions"] = {
+        "crossFilters": {"x1": {"mode": "custom", "targets": ["x2", "c1"]}},
+        "customizations": {"g1": {"mode": "auto", "exclude": ["x2"]}},
+    }
+
+    doc, applied = apply(raw, {"op": "remove", "id": "x2"})
+
+    assert doc["interactions"]["crossFilters"]["x1"]["targets"] == ["c1"]
+    assert doc["interactions"]["customizations"]["g1"]["exclude"] == []
+    assert Touch("x1", FieldGroup.CROSS_FILTER_SCOPE) in applied[0].touched
+    assert Touch("g1", FieldGroup.CUSTOMIZATION_SCOPE) in applied[0].touched

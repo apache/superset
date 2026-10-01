@@ -114,6 +114,8 @@ def test_get_definition(client: Any, full_api_access: None, canvas: Any) -> None
     assert response.json["result"]["revision"] == 1
     assert response.json["result"]["definition"]["nodes"] == {}
     assert response.json["result"]["filterScopes"] == {}
+    assert response.json["result"]["crossFilterScopes"] == {}
+    assert response.json["result"]["customizationScopes"] == {}
     assert response.json["result"]["placements"] == {}
     assert response.json["result"]["widgetTypes"] == {}
     assert response.json["result"]["gridColumns"] == {}

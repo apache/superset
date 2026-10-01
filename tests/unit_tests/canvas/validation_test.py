@@ -46,11 +46,12 @@ def test_empty_canvas_is_valid() -> None:
         "version": 1,
         "root": {"layout": {"columns": 24, "gap": 16, "rowUnit": 40}, "children": []},
         "nodes": {},
-        "interactions": {"filters": {}},
+        "interactions": {"filters": {}, "crossFilters": {}, "customizations": {}},
         "settings": {
             "refresh": {"interval": 0, "stagger": 0, "exempt": []},
             "colors": {"labelColors": {}},
             "display": {"showTimestamps": False},
+            "crossFilters": {"enabled": True},
         },
     }
 

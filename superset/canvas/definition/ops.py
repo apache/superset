@@ -46,7 +46,8 @@ from superset.canvas.definition.schemas import (
     PlaceOp,
     RemoveOp,
     ROOT_ID,
-    SetFilterScopeOp,
+    SCOPE_FIELDS,
+    SetScopeOp,
     SetSettingsOp,
 )
 from superset.canvas.definition.validation import normalize_definition
@@ -56,12 +57,22 @@ class FieldGroup(str, Enum):
     # Existence and position in the tree; overlaps with every other group.
     TREE = "tree"
     LAYOUT = "layout"
-    # A filter's scope override.
-    SCOPE = "scope"
+    # A node's scope override, per kind.
+    FILTER_SCOPE = "filterScope"
+    CROSS_FILTER_SCOPE = "crossFilterScope"
+    CUSTOMIZATION_SCOPE = "customizationScope"
     # Sections of the canvas settings, touched on ``SETTINGS_ID``.
     REFRESH = "refresh"
     COLORS = "colors"
     DISPLAY = "display"
+    CROSS_FILTERS = "crossFilters"
+
+
+SCOPE_GROUPS = {
+    "filter": FieldGroup.FILTER_SCOPE,
+    "crossFilter": FieldGroup.CROSS_FILTER_SCOPE,
+    "customization": FieldGroup.CUSTOMIZATION_SCOPE,
+}
 
 
 # Stands in for the settings in touches; never a node id, which is a UUID.
@@ -119,8 +130,8 @@ def named_touches(ops: Iterable[Operation]) -> list[Touch]:
             touches += [Touch(op.id, FieldGroup.TREE), Touch(op.id, FieldGroup.LAYOUT)]
         elif isinstance(op, PlaceOp):
             touches.append(Touch(op.id, FieldGroup.LAYOUT))
-        elif isinstance(op, SetFilterScopeOp):
-            touches.append(Touch(op.id, FieldGroup.SCOPE))
+        elif isinstance(op, SetScopeOp):
+            touches.append(Touch(op.id, SCOPE_GROUPS[op.kind]))
         elif isinstance(op, SetSettingsOp):
             touches.append(Touch(SETTINGS_ID, FieldGroup(op.key)))
     return touches
@@ -213,16 +224,16 @@ class _Applier:
             )
         if isinstance(op, MoveOp):
             return self.move(op, logged)
-        if isinstance(op, SetFilterScopeOp):
+        if isinstance(op, SetScopeOp):
             self.node(op.id)
-            filters = self.scopes()
+            overrides = self.scopes(op.kind)
             if op.scope is None:
-                filters.pop(op.id, None)
+                overrides.pop(op.id, None)
             else:
-                filters[op.id] = op.scope.model_dump(
+                overrides[op.id] = op.scope.model_dump(
                     mode="json", by_alias=True, exclude_none=True
                 )
-            return AppliedOperation(logged, [Touch(op.id, FieldGroup.SCOPE)])
+            return AppliedOperation(logged, [Touch(op.id, SCOPE_GROUPS[op.kind])])
         if isinstance(op, SetSettingsOp):
             settings = self.canvas.setdefault("settings", {})
             if op.value is None:
@@ -234,23 +245,26 @@ class _Applier:
         self.node(op.id)["layout"] = op.layout
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
 
-    def scopes(self) -> dict[str, Any]:
-        return self.canvas.setdefault("interactions", {}).setdefault("filters", {})
+    def scopes(self, kind: str) -> dict[str, Any]:
+        interactions = self.canvas.setdefault("interactions", {})
+        return interactions.setdefault(SCOPE_FIELDS[kind], {})
 
     def _prune_scopes(self, removed: set[str]) -> list[Touch]:
-        """Drop removed nodes from filter scope overrides."""
-        filters = self.scopes()
+        """Drop removed nodes from every kind of scope override."""
         touched = []
-        for filter_id in list(filters):
-            if filter_id in removed:
-                del filters[filter_id]
-                continue
-            scope = filters[filter_id]
-            for field_name in ("targets", "exclude"):
-                kept = [n for n in scope.get(field_name, []) if n not in removed]
-                if len(kept) != len(scope.get(field_name, [])):
-                    scope[field_name] = kept
-                    touched.append(Touch(filter_id, FieldGroup.SCOPE))
+        for kind, group in SCOPE_GROUPS.items():
+            overrides = self.scopes(kind)
+            for owner_id in list(overrides):
+                if owner_id in removed:
+                    del overrides[owner_id]
+                    continue
+                scope = overrides[owner_id]
+                for field_name in ("targets", "exclude"):
+                    listed = scope.get(field_name, [])
+                    kept = [n for n in listed if n not in removed]
+                    if len(kept) != len(listed):
+                        scope[field_name] = kept
+                        touched.append(Touch(owner_id, group))
         return touched
 
     def _prune_settings(self, removed: set[str]) -> list[Touch]:

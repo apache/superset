@@ -39,7 +39,7 @@ from superset.canvas.definition.schemas import (
     DEFINITION_VERSION,
     Operation,
 )
-from superset.canvas.definition.scopes import resolve_filter_scopes
+from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.upgrades import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
@@ -128,6 +128,8 @@ def describe_rules(rules: type[CanvasLayoutRules]) -> dict[str, Any]:
         if rules.child_layout_model is not None
         else None,
         "isFilter": rules.is_filter,
+        "isCrossFilterSource": rules.is_cross_filter_source,
+        "isCustomization": rules.is_customization,
         "isFilterable": rules.is_filterable,
         "boundsFilterScope": rules.bounds_filter_scope,
         "colSpan": {"min": rules.min_col_span, "max": rules.max_col_span},
@@ -447,6 +449,14 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               The node ids each filter drives, resolved from
                               the tree and the definition's scope overrides
+                          crossFilterScopes:
+                            type: object
+                            description: >-
+                              The node ids each cross-filter source drives;
+                              empty while cross-filters are turned off
+                          customizationScopes:
+                            type: object
+                            description: The node ids each customization drives
                           placements:
                             type: object
                             description: >-
@@ -471,7 +481,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "version": canvas.definition_version,
                 "revision": canvas.revision,
                 "definition": definition,
-                "filterScopes": resolve_filter_scopes(definition),
+                **resolve_scopes(definition),
                 **render_context(definition),
             },
         )
@@ -565,9 +575,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           description: >-
             Applies `ops` in order to the latest definition, atomically. Changes
             made since `base_revision` are merged unless they touched the same
-            node and field group (layout or filter scope), or moved or removed
-            an edited node; then the whole request is rejected with 409 and the
-            conflicting node ids.
+            node and field group (layout, a scope kind, or a settings
+            section), or moved or removed an edited node; then the whole
+            request is rejected with 409 and the conflicting node ids.
           parameters:
           - in: path
             schema:
@@ -613,7 +623,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             result={
                 "revision": result.revision,
                 "ops": result.ops,
-                "filterScopes": result.filter_scopes,
+                **result.scopes,
                 **result.render_context,
             },
         )

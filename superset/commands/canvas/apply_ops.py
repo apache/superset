@@ -36,7 +36,7 @@ from superset.canvas.definition.ops import (
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import AddOp, DEFINITION_VERSION, Operation
-from superset.canvas.definition.scopes import resolve_filter_scopes
+from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     Issue,
@@ -69,8 +69,9 @@ class ApplyResult:
     revision: int
     # Operations as applied; ``add`` entries carry the new node's id.
     ops: list[dict[str, Any]]
-    # Node ids each filter drives after the write.
-    filter_scopes: dict[str, list[str]]
+    # Node ids each filter, cross-filter source and customization drives
+    # after the write, keyed like the API response.
+    scopes: dict[str, dict[str, list[str]]]
     # Resolved placements and widget types after the write.
     render_context: dict[str, Any]
 
@@ -142,7 +143,7 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         return ApplyResult(
             revision=revision,
             ops=[a.op for a in applied],
-            filter_scopes=resolve_filter_scopes(definition),
+            scopes=resolve_scopes(definition),
             render_context=render_context(definition),
         )
 

@@ -83,12 +83,15 @@ class CanvasLayoutRules:
     grid_columns: ClassVar[int | None] = None
     child_layout_model: ClassVar[type[BaseModel] | None] = None
 
-    # Filters drive filterable widgets. By default a filter drives every
-    # filterable widget under its nearest container that bounds filter scope
-    # (or the whole canvas at the root); the canvas can override that per
-    # filter. A container that does not bound scope, e.g. a filter bar, lets
-    # its filters reach further up.
+    # Filters, cross-filter sources and customizations (e.g. dynamic group-by)
+    # drive filterable widgets. By default each drives every filterable widget
+    # under its nearest container that bounds filter scope (or the whole canvas
+    # at the root), never itself; the canvas can override that per node. A
+    # container that does not bound scope, e.g. a filter bar, lets its
+    # children reach further up.
     is_filter: ClassVar[bool] = False
+    is_cross_filter_source: ClassVar[bool] = False
+    is_customization: ClassVar[bool] = False
     is_filterable: ClassVar[bool] = False
     bounds_filter_scope: ClassVar[bool] = True
 

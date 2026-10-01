@@ -64,6 +64,21 @@ class ChartRules(CanvasLayoutRules):
     is_filterable = True
 
 
+class CrossFilterChartRules(CanvasLayoutRules):
+    """A chart that can also cross-filter others."""
+
+    widget_type = "xchart"
+    is_filterable = True
+    is_cross_filter_source = True
+
+
+class GroupByRules(CanvasLayoutRules):
+    """A customization, e.g. a dynamic group-by control."""
+
+    widget_type = "groupby"
+    is_customization = True
+
+
 class FilterRules(CanvasLayoutRules):
     widget_type = "filter"
     is_filter = True
@@ -87,6 +102,8 @@ def canvas_rules() -> LayoutRulesRegistry:
         TabRules,
         BoardRules,
         ChartRules,
+        CrossFilterChartRules,
+        GroupByRules,
         FilterRules,
         FilterBarRules,
     ):

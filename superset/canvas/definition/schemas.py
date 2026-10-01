@@ -93,9 +93,21 @@ class FilterScope(_Model):
         return self
 
 
+ScopeKind = Literal["filter", "crossFilter", "customization"]
+
+# Where each kind's scope overrides live in ``interactions``.
+SCOPE_FIELDS: dict[str, str] = {
+    "filter": "filters",
+    "crossFilter": "crossFilters",
+    "customization": "customizations",
+}
+
+
 class Interactions(_Model):
-    # Scope overrides, by filter node id. Filters without one use auto scope.
+    # Scope overrides by node id, per kind. Nodes without one use auto scope.
     filters: dict[str, FilterScope] = Field(default_factory=dict)
+    cross_filters: dict[str, FilterScope] = Field(default_factory=dict)
+    customizations: dict[str, FilterScope] = Field(default_factory=dict)
 
 
 class RefreshSettings(_Model):
@@ -122,13 +134,19 @@ class DisplaySettings(_Model):
     show_timestamps: bool = False
 
 
+class CrossFilterSettings(_Model):
+    # Whether clicking a cross-filter source filters other widgets.
+    enabled: bool = True
+
+
 class Settings(_Model):
     refresh: RefreshSettings = Field(default_factory=RefreshSettings)
     colors: ColorSettings = Field(default_factory=ColorSettings)
     display: DisplaySettings = Field(default_factory=DisplaySettings)
+    cross_filters: CrossFilterSettings = Field(default_factory=CrossFilterSettings)
 
 
-SettingsKey = Literal["refresh", "colors", "display"]
+SettingsKey = Literal["refresh", "colors", "display", "crossFilters"]
 
 
 class CanvasDefinition(_Model):
@@ -186,10 +204,14 @@ class PlaceOp(_Model):
     layout: dict[str, Any]
 
 
-class SetFilterScopeOp(_Model):
-    """Override which widgets a filter drives; ``scope: null`` restores auto."""
+class SetScopeOp(_Model):
+    """
+    Override which widgets a filter, cross-filter source or customization
+    drives; ``scope: null`` restores auto.
+    """
 
-    op: Literal["set_filter_scope"]
+    op: Literal["set_scope"]
+    kind: ScopeKind
     id: str
     scope: FilterScope | None
 
@@ -203,7 +225,7 @@ class SetSettingsOp(_Model):
 
 
 Operation = Annotated[
-    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetFilterScopeOp, SetSettingsOp],
+    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetScopeOp, SetSettingsOp],
     Field(discriminator="op"),
 ]
 

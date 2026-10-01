@@ -47,10 +47,21 @@ from superset.canvas.definition.registry import (
     layout_rules,
     LayoutRulesRegistry,
 )
-from superset.canvas.definition.schemas import CanvasDefinition, ROOT_ID
+from superset.canvas.definition.schemas import (
+    CanvasDefinition,
+    ROOT_ID,
+    SCOPE_FIELDS,
+)
 
 MAX_NODES = 500
 MAX_DEPTH = 8
+
+# The layout rule a node needs to own each kind of scope override.
+SCOPE_ROLES = {
+    "filter": ("is_filter", "a filter"),
+    "crossFilter": ("is_cross_filter_source", "a cross-filter source"),
+    "customization": ("is_customization", "a customization"),
+}
 
 
 @dataclass(frozen=True)
@@ -213,31 +224,34 @@ class _Validator:
 
     def _check_interactions(self, doc: dict[str, Any]) -> None:
         nodes = doc["nodes"]
-        for filter_id, scope in doc["interactions"]["filters"].items():
-            path = ("interactions", "filters", filter_id)
-            if filter_id not in nodes:
-                self.fail(pointer(*path), f"unknown node {filter_id!r}")
-                continue
-            strict = self.is_strict(filter_id)
-            rules = self.node_rules.get(filter_id)
-            if strict and rules is not None and not rules.is_filter:
-                self.fail(pointer(*path), f"node {filter_id!r} is not a filter")
-            for field in ("targets", "exclude"):
-                for index, target in enumerate(scope[field]):
-                    target_rules = self.node_rules.get(target)
-                    if target not in nodes:
-                        self.fail(
-                            pointer(*path, field, index), f"unknown node {target!r}"
-                        )
-                    elif (
-                        strict
-                        and target_rules is not None
-                        and not target_rules.is_filterable
-                    ):
-                        self.fail(
-                            pointer(*path, field, index),
-                            f"node {target!r} cannot be filtered",
-                        )
+        for kind, field_name in SCOPE_FIELDS.items():
+            role, noun = SCOPE_ROLES[kind]
+            for owner_id, scope in doc["interactions"][field_name].items():
+                path = ("interactions", field_name, owner_id)
+                if owner_id not in nodes:
+                    self.fail(pointer(*path), f"unknown node {owner_id!r}")
+                    continue
+                strict = self.is_strict(owner_id)
+                rules = self.node_rules.get(owner_id)
+                if strict and rules is not None and not getattr(rules, role):
+                    self.fail(pointer(*path), f"node {owner_id!r} is not {noun}")
+                for field in ("targets", "exclude"):
+                    for index, target in enumerate(scope[field]):
+                        target_rules = self.node_rules.get(target)
+                        if target not in nodes:
+                            self.fail(
+                                pointer(*path, field, index),
+                                f"unknown node {target!r}",
+                            )
+                        elif (
+                            strict
+                            and target_rules is not None
+                            and not target_rules.is_filterable
+                        ):
+                            self.fail(
+                                pointer(*path, field, index),
+                                f"node {target!r} cannot be filtered",
+                            )
 
     def _check_settings(self, doc: dict[str, Any]) -> None:
         exempt = doc["settings"]["refresh"]["exempt"]
