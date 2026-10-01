@@ -25,9 +25,7 @@ import { renderResultCell } from './utils';
 
 import type { FilterableTableProps, Datum, CellDataType } from './types';
 
-
 import { sortResults } from './sortResults';
-
 
 export const FilterableTable = ({
   orderedColumnKeys,
