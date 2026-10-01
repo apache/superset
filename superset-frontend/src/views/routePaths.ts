@@ -35,7 +35,7 @@ export const RoutePaths = {
   CSS_TEMPLATES: '/csstemplatemodelview/list/',
   THEMES: '/theme/list/',
   CANVAS_LIST: '/canvas/list/',
-  CANVAS: '/canvas/:canvasId/',
+  CANVAS: '/canvas/:idOrSlug/',
   ANNOTATION_LAYERS: '/annotationlayer/list/',
   ANNOTATION_LIST: '/annotationlayer/:annotationLayerId/annotation/',
   QUERY_HISTORY: '/sqllab/history/',

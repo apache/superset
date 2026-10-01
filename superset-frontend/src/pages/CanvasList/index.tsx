@@ -26,7 +26,11 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
-import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
+import {
+  CertifiedBadge,
+  ConfirmStatusChange,
+  DeleteModal,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   ListView,
@@ -132,9 +136,26 @@ function CanvasList({
       {
         Cell: ({
           row: {
-            original: { url, title },
+            original: {
+              url,
+              title,
+              certified_by: certifiedBy,
+              certification_details: certificationDetails,
+            },
           },
-        }: any) => <Link to={url}>{title}</Link>,
+        }: any) => (
+          <Link to={url}>
+            {certifiedBy && (
+              <>
+                <CertifiedBadge
+                  certifiedBy={certifiedBy}
+                  details={certificationDetails}
+                />{' '}
+              </>
+            )}
+            {title}
+          </Link>
+        ),
         Header: t('Title'),
         accessor: 'title',
         size: 'xxl',

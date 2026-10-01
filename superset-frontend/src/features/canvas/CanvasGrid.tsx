@@ -24,6 +24,35 @@ import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
 import { CanvasDefinitionResult, GridPlacement } from './types';
 
+/** Current values set by nodes, per scope kind, by node id. */
+export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
+
+export const emptyScopeValues = (): ScopeValues => ({
+  filter: {},
+  crossFilter: {},
+  customization: {},
+});
+
+const NO_VALUES: canvasApi.FilterValue[] = [];
+
+/** For each node, the values that reach it from the nodes whose scope includes it. */
+function valuesByNode(
+  scopes: Record<string, string[]>,
+  values: Record<string, unknown>,
+): Record<string, canvasApi.FilterValue[]> {
+  const byNode: Record<string, canvasApi.FilterValue[]> = {};
+  Object.entries(scopes).forEach(([filterNodeId, targets]) => {
+    if (values[filterNodeId] === undefined) return;
+    targets.forEach(nodeId => {
+      (byNode[nodeId] ??= []).push({
+        filterNodeId,
+        value: values[filterNodeId],
+      });
+    });
+  });
+  return byNode;
+}
+
 interface GridMetrics {
   columns: number;
   gap: number;
@@ -75,9 +104,14 @@ const Placeholder = styled.div`
 export interface CanvasGridProps {
   canvasId: number;
   result: CanvasDefinitionResult;
-  /** Current value of each filter node that has one. */
-  filterValues: Record<string, unknown>;
-  onFilterChange: (filterNodeId: string, value: unknown) => void;
+  values: ScopeValues;
+  onValueChange: (
+    kind: canvasApi.ScopeKind,
+    nodeId: string,
+    value: unknown,
+  ) => void;
+  /** Per node, how many automatic refreshes have reached it. */
+  refreshKeys?: Record<string, number>;
 }
 
 /**
@@ -88,27 +122,39 @@ export interface CanvasGridProps {
 export default function CanvasGrid({
   canvasId,
   result,
-  filterValues,
-  onFilterChange,
+  values,
+  onValueChange,
+  refreshKeys = {},
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
-  const { definition, placements, widgetTypes, gridColumns, filterScopes } =
-    result;
+  const {
+    definition,
+    placements,
+    widgetTypes,
+    gridColumns,
+    filterScopes,
+    crossFilterScopes,
+    customizationScopes,
+  } = result;
   const { gap, rowUnit, columns } = definition.root.layout;
+  const { colors, display, crossFilters } = definition.settings;
+  const sharedColors = useMemo<canvasApi.CanvasColors>(
+    () => ({ scheme: colors.scheme, labelColors: colors.labelColors }),
+    [colors.scheme, colors.labelColors],
+  );
 
-  const filtersByNode = useMemo(() => {
-    const byNode: Record<string, canvasApi.FilterValue[]> = {};
-    Object.entries(filterScopes).forEach(([filterNodeId, targets]) => {
-      if (filterValues[filterNodeId] === undefined) return;
-      targets.forEach(nodeId => {
-        (byNode[nodeId] ??= []).push({
-          filterNodeId,
-          value: filterValues[filterNodeId],
-        });
-      });
-    });
-    return byNode;
-  }, [filterScopes, filterValues]);
+  const filtersByNode = useMemo(
+    () => valuesByNode(filterScopes, values.filter),
+    [filterScopes, values.filter],
+  );
+  const crossFiltersByNode = useMemo(
+    () => valuesByNode(crossFilterScopes, values.crossFilter),
+    [crossFilterScopes, values.crossFilter],
+  );
+  const customizationsByNode = useMemo(
+    () => valuesByNode(customizationScopes, values.customization),
+    [customizationScopes, values.customization],
+  );
 
   const renderGrid = (
     childIds: string[],
@@ -172,8 +218,22 @@ export default function CanvasGrid({
           nodeId={nodeId}
           widgetId={node.widget}
           widgetType={widgetType}
-          filters={filtersByNode[nodeId] ?? []}
-          setFilterValue={value => onFilterChange(nodeId, value)}
+          filters={filtersByNode[nodeId] ?? NO_VALUES}
+          crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
+          customizations={customizationsByNode[nodeId] ?? NO_VALUES}
+          setFilterValue={value => onValueChange('filter', nodeId, value)}
+          setCrossFilter={value => {
+            if (crossFilters.enabled) {
+              onValueChange('crossFilter', nodeId, value);
+            }
+          }}
+          crossFiltersEnabled={crossFilters.enabled}
+          setCustomizationValue={value =>
+            onValueChange('customization', nodeId, value)
+          }
+          colors={sharedColors}
+          showTimestamp={display.showTimestamps}
+          refreshKey={refreshKeys[nodeId] ?? 0}
           childNodes={childNodes}
           renderGrid={() =>
             childGridColumns !== undefined ? (

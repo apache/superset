@@ -20,18 +20,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { EmptyState, Loading, Typography } from '@superset-ui/core/components';
+import type { canvas as canvasApi } from '@apache-superset/core';
+import {
+  CertifiedBadge,
+  EmptyState,
+  Loading,
+  Typography,
+} from '@superset-ui/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
+import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import CanvasGrid from 'src/features/canvas/CanvasGrid';
+import CanvasGrid, {
+  emptyScopeValues,
+  ScopeValues,
+} from 'src/features/canvas/CanvasGrid';
+import { CanvasMetadata } from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
-
-interface CanvasMetadata {
-  id: number;
-  title: string;
-  description?: string | null;
-}
+import { useCanvasId } from 'src/features/canvas/useCanvasId';
+import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 
 const Page = styled.div`
   ${({ theme }) => css`
@@ -65,23 +73,40 @@ function useOpenChatPanel() {
   }, [registeredChat]);
 }
 
-export default function CanvasPage() {
-  const { canvasId } = useParams<{ canvasId: string }>();
-  const id = Number(canvasId);
+const notFound = (
+  <EmptyState
+    size="large"
+    title={t('This canvas does not exist, or you do not have access to it')}
+  />
+);
+
+function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
   const { state } = useCanvasDefinition(id);
-  const [filterValues, setFilterValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  const refreshKeys = useCanvasRefresh(
+    state.status === 'complete' ? state.result.definition : undefined,
+  );
 
-  const onFilterChange = useCallback((filterNodeId: string, value: unknown) => {
-    setFilterValues(previous => {
-      const next = { ...previous };
-      if (value === undefined) delete next[filterNodeId];
-      else next[filterNodeId] = value;
-      return next;
-    });
-  }, []);
+  const onValueChange = useCallback(
+    (kind: canvasApi.ScopeKind, nodeId: string, value: unknown) => {
+      setValues(previous => {
+        const next = { ...previous[kind] };
+        if (value === undefined) delete next[nodeId];
+        else next[nodeId] = value;
+        return { ...previous, [kind]: next };
+      });
+    },
+    [],
+  );
 
   useOpenChatPanel();
+
+  const customCss = metadata.result?.css;
+  useEffect(
+    () => (customCss ? injectCustomCss(customCss) : undefined),
+    [customCss],
+  );
 
   const title = metadata.result?.title;
   const revision =
@@ -94,12 +119,7 @@ export default function CanvasPage() {
   useEffect(() => () => setActiveCanvas(undefined), [id]);
 
   if (metadata.status === ResourceStatus.Error || state.status === 'error') {
-    return (
-      <EmptyState
-        size="large"
-        title={t('This canvas does not exist, or you do not have access to it')}
-      />
-    );
+    return notFound;
   }
   if (
     metadata.status === ResourceStatus.Loading ||
@@ -109,30 +129,52 @@ export default function CanvasPage() {
   }
 
   const isEmpty = state.result.definition.root.children.length === 0;
+  const certifiedBy = metadata.result?.certified_by;
   return (
-    <Page data-test="canvas-page">
-      <Header>
-        <Typography.Title level={3}>{title}</Typography.Title>
-        {metadata.result?.description && (
-          <Typography.Text type="secondary">
-            {metadata.result.description}
-          </Typography.Text>
+    <CrudThemeProvider theme={metadata.result?.theme}>
+      <Page data-test="canvas-page">
+        <Header>
+          <Typography.Title level={3}>
+            {certifiedBy && (
+              <>
+                <CertifiedBadge
+                  certifiedBy={certifiedBy}
+                  details={metadata.result?.certification_details ?? undefined}
+                />{' '}
+              </>
+            )}
+            {title}
+          </Typography.Title>
+          {metadata.result?.description && (
+            <Typography.Text type="secondary">
+              {metadata.result.description}
+            </Typography.Text>
+          )}
+        </Header>
+        {isEmpty ? (
+          <EmptyState
+            size="medium"
+            title={t('This canvas is empty')}
+            description={t('Ask the chat to add widgets to it.')}
+          />
+        ) : (
+          <CanvasGrid
+            canvasId={id}
+            result={state.result}
+            values={values}
+            onValueChange={onValueChange}
+            refreshKeys={refreshKeys}
+          />
         )}
-      </Header>
-      {isEmpty ? (
-        <EmptyState
-          size="medium"
-          title={t('This canvas is empty')}
-          description={t('Ask the chat to add widgets to it.')}
-        />
-      ) : (
-        <CanvasGrid
-          canvasId={id}
-          result={state.result}
-          filterValues={filterValues}
-          onFilterChange={onFilterChange}
-        />
-      )}
-    </Page>
+      </Page>
+    </CrudThemeProvider>
   );
+}
+
+export default function CanvasPage() {
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  const canvasId = useCanvasId(idOrSlug);
+  if (canvasId.status === 'error') return notFound;
+  if (canvasId.status === 'loading') return <Loading />;
+  return <CanvasContent id={canvasId.id} />;
 }

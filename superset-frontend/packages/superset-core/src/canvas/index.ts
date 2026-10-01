@@ -36,12 +36,26 @@
 import { ComponentType, ReactNode } from 'react';
 import { Disposable, Event } from '../common';
 
-/** A filter value set by a filter widget, as it reaches the widgets it drives. */
+/**
+ * What can drive other widgets: filters, cross-filter sources (charts that
+ * filter others when clicked) and customizations (e.g. dynamic group-by).
+ */
+export type ScopeKind = 'filter' | 'crossFilter' | 'customization';
+
+/** A value set by a node, as it reaches the widgets its scope includes. */
 export interface FilterValue {
-  /** The node id of the filter that set the value. */
+  /** The node id of the filter, cross-filter source or customization. */
   filterNodeId: string;
-  /** The value, in the filter widget's own format. */
+  /** The value, in the setting widget's own format. */
   value: unknown;
+}
+
+/** Colors shared by every widget on a canvas. */
+export interface CanvasColors {
+  /** Categorical color scheme; the default scheme when unset. */
+  scheme?: string;
+  /** Fixed colors for series labels, e.g. `{ France: '#1f77b4' }`. */
+  labelColors: Record<string, string>;
 }
 
 /** A child node of a container, for containers that arrange children. */
@@ -63,11 +77,33 @@ export interface CanvasWidgetProps {
   widgetType: string;
   /** Values of the filters whose scope includes this node. */
   filters: FilterValue[];
+  /** Values of the cross-filter sources whose scope includes this node. */
+  crossFilters: FilterValue[];
+  /** Values of the customizations whose scope includes this node. */
+  customizations: FilterValue[];
   /**
    * For filter widgets: publish the filter's value to the widgets it drives.
    * Pass `undefined` to clear it.
    */
   setFilterValue: (value: unknown) => void;
+  /**
+   * For cross-filter sources: publish a cross-filter, or clear it with
+   * `undefined`. Ignored while cross-filters are turned off.
+   */
+  setCrossFilter: (value: unknown) => void;
+  /** Whether cross-filters are turned on for this canvas. */
+  crossFiltersEnabled: boolean;
+  /** For customization widgets: publish the value, or clear it. */
+  setCustomizationValue: (value: unknown) => void;
+  /** Colors shared across the canvas. */
+  colors: CanvasColors;
+  /** Whether to show when the widget's data was last refreshed. */
+  showTimestamp: boolean;
+  /**
+   * Increments on every automatic refresh that reaches this node; refetch
+   * data when it changes. Stays 0 for nodes exempt from refresh.
+   */
+  refreshKey: number;
   /** For containers: the child nodes, already rendered. */
   childNodes: CanvasChild[];
   /**

@@ -37,7 +37,19 @@ export interface CanvasDefinition {
     children: string[];
   };
   nodes: Record<string, CanvasNode>;
-  interactions: { filters: Record<string, unknown> };
+  interactions: {
+    filters: Record<string, unknown>;
+    crossFilters: Record<string, unknown>;
+    customizations: Record<string, unknown>;
+  };
+  settings: CanvasSettings;
+}
+
+export interface CanvasSettings {
+  refresh: { interval: number; stagger: number; exempt: string[] };
+  colors: { scheme?: string; labelColors: Record<string, string> };
+  display: { showTimestamps: boolean };
+  crossFilters: { enabled: boolean };
 }
 
 /** `GET /api/v1/canvas/<id>/definition` */
@@ -47,6 +59,10 @@ export interface CanvasDefinitionResult {
   definition: CanvasDefinition;
   /** Filter node id -> node ids it drives. */
   filterScopes: Record<string, string[]>;
+  /** Cross-filter source node id -> node ids it drives; empty when off. */
+  crossFilterScopes: Record<string, string[]>;
+  /** Customization node id -> node ids it drives. */
+  customizationScopes: Record<string, string[]>;
   /** Resolved grid placement of every node on a grid. */
   placements: Record<string, GridPlacement>;
   /** Node id -> widget type, for nodes whose widget resolves. */
@@ -62,7 +78,22 @@ export interface CanvasObject {
   title: string;
   description?: string | null;
   url: string;
+  slug?: string | null;
+  certified_by?: string | null;
+  certification_details?: string | null;
   changed_on_delta_humanized?: string;
   changed_by?: { id: number; first_name: string; last_name: string } | null;
   editors?: { id: number; label: string; type: number }[];
+}
+
+/** `GET /api/v1/canvas/<id>`. */
+export interface CanvasMetadata {
+  id: number;
+  title: string;
+  description?: string | null;
+  slug?: string | null;
+  css?: string | null;
+  certified_by?: string | null;
+  certification_details?: string | null;
+  theme?: { id: number; theme_name: string; json_data: string } | null;
 }

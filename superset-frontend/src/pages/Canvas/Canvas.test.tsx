@@ -24,7 +24,7 @@ import CanvasPage from '.';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useParams: () => ({ canvasId: '7' }),
+  useParams: () => ({ idOrSlug: '7' }),
 }));
 jest.mock('src/middleware/realtime', () => ({
   subscribeRealtime: jest.fn(() => jest.fn()),
@@ -44,9 +44,17 @@ const definition = (children: string[], revision = 1) => ({
       nodes: Object.fromEntries(
         children.map(nodeId => [nodeId, { widget: `w-${nodeId}`, layout: {} }]),
       ),
-      interactions: { filters: {} },
+      interactions: { filters: {}, crossFilters: {}, customizations: {} },
+      settings: {
+        refresh: { interval: 0, stagger: 0, exempt: [] },
+        colors: { labelColors: {} },
+        display: { showTimestamps: false },
+        crossFilters: { enabled: true },
+      },
     },
     filterScopes: {},
+    crossFilterScopes: {},
+    customizationScopes: {},
     placements: {},
     widgetTypes: {},
     gridColumns: {},
