@@ -17,7 +17,13 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 
 import SemanticViewEditModal from './SemanticViewEditModal';
@@ -534,6 +540,55 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+test.each([
+  [false, 'success'],
+  [false, 'failure'],
+  [true, 'success'],
+  [true, 'failure'],
+])(
+  'save outcome survives closing the editor (sync enabled: %s, outcome: %s)',
+  async (syncEnabled, outcome) => {
+    mockedGet.mockResolvedValue({
+      json: syncEnabled ? SYNC_STRUCTURE : MOCK_STRUCTURE,
+    });
+    const pending = deferred<object>();
+    mockedPut.mockReturnValue(pending.promise);
+    mockedGetClientErrorObject.mockResolvedValue({ error: 'Save failed' });
+    const props = createProps();
+    const { rerender } = render(<SemanticViewEditModal {...props} />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(mockedPut).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    rerender(<SemanticViewEditModal {...props} show={false} />);
+    rerender(<SemanticViewEditModal {...props} />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+    );
+
+    await act(async () => {
+      if (outcome === 'success') pending.resolve({});
+      else pending.reject(new Error('Save failed'));
+    });
+
+    if (outcome === 'success') {
+      expect(props.addSuccessToast).toHaveBeenCalledWith(
+        'Semantic view updated',
+      );
+      expect(props.onSave).toHaveBeenCalledTimes(1);
+      expect(props.addDangerToast).not.toHaveBeenCalled();
+    } else {
+      expect(props.addDangerToast).toHaveBeenCalledWith('Save failed');
+      expect(props.onSave).not.toHaveBeenCalled();
+      expect(props.addSuccessToast).not.toHaveBeenCalled();
+    }
+    expect(props.onHide).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  },
+);
+
 test('Sync metadata lives beside the tabs and preserves drafts and active tab without Save', async () => {
   mockedGet
     .mockResolvedValueOnce({ json: SYNC_STRUCTURE })
@@ -607,9 +662,11 @@ test('published metadata with failed reload retries only GET and keeps the modal
   await userEvent.click(
     await screen.findByRole('button', { name: 'Sync metadata' }),
   );
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'Metadata synced; unable to reload fields',
-  );
+  const warning = await screen.findByRole('alert');
+  expect(warning).toHaveTextContent('Metadata synced; unable to reload fields');
+  expect(
+    within(warning).queryByRole('button', { name: /close/i }),
+  ).not.toBeInTheDocument();
   expect(props.onMetadataSync).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: 'Reload fields' }));
   await screen.findByRole('tab', { name: 'Metrics (5)' });

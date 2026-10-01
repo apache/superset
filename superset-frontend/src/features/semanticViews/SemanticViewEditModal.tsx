@@ -201,14 +201,11 @@ export default function SemanticViewEditModal({
           cache_timeout: cacheTimeout,
         },
       });
-      if (!isCurrent()) return;
       addSuccessToast?.(t('Semantic view updated'));
       onSave();
-      handleHide();
+      if (isCurrent()) handleHide();
     } catch (error) {
-      if (!isCurrent()) return;
       const clientError = await getClientErrorObject(error);
-      if (!isCurrent()) return;
       addDangerToast?.(
         clientError.error ||
           t('An error occurred while saving the semantic view'),
@@ -326,6 +323,7 @@ export default function SemanticViewEditModal({
         {syncState.status === 'reload-error' && (
           <Alert
             type="warning"
+            closable={false}
             role="alert"
             message={t('Metadata synced; unable to reload fields')}
             action={
