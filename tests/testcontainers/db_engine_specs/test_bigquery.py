@@ -86,20 +86,28 @@ def _compiled_literal(expr: sa.ColumnElement) -> str:
 
 
 def _insert_and_find(engine: Engine, value: str) -> list[str]:
+    """Round-trips ``value`` through the exact call superset.db_engine_specs.
+    base.BaseEngineSpec.execute() makes: ``cursor.execute(query)`` on a raw
+    DBAPI cursor, with no separate ``parameters`` argument and no SQLAlchemy
+    ``Connection``/``text()`` layer in between. Going through ``conn.execute
+    (sa.text(...))`` instead (as this helper used to) lets SQLAlchemy's own
+    text-clause compiler double every literal ``%`` to ``%%`` before the
+    DBAPI's unconditional ``%%`` -> ``%`` de-escaping runs, which can mask or
+    alter percent-sign handling that the raw cursor path would not."""
     t = sa.table(TABLE, sa.column("name"))
-    with engine.connect() as conn:
-        conn.execute(sa.text(f"DELETE FROM {DATASET}.{TABLE} WHERE TRUE"))  # noqa: S608
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        cursor.execute(f"DELETE FROM {DATASET}.{TABLE} WHERE TRUE")  # noqa: S608
         insert_literal = _compiled_literal(sa.literal(value))
-        conn.execute(
-            sa.text(
-                f"INSERT INTO {DATASET}.{TABLE} (name) VALUES ({insert_literal})"  # noqa: S608
-            )
+        cursor.execute(
+            f"INSERT INTO {DATASET}.{TABLE} (name) VALUES ({insert_literal})"  # noqa: S608
         )
         where = _compiled_literal(t.c.name == value)
-        rows = conn.execute(
-            sa.text(f"SELECT name FROM {DATASET}.{TABLE} WHERE {where}")  # noqa: S608
-        ).fetchall()
-        return [row[0] for row in rows]
+        cursor.execute(f"SELECT name FROM {DATASET}.{TABLE} WHERE {where}")  # noqa: S608
+        return [row[0] for row in cursor.fetchall()]
+    finally:
+        raw_conn.close()
 
 
 def test_apostrophe_value_round_trips(engine: Engine) -> None:
@@ -128,6 +136,21 @@ def test_percent_sign_value_round_trips(engine: Engine) -> None:
 def test_combined_percent_and_apostrophe_round_trips(engine: Engine) -> None:
     """Round-trips a value containing both a percent sign and an apostrophe."""
     assert _insert_and_find(engine, "50% off for O'Brien") == ["50% off for O'Brien"]
+
+
+def test_doubled_percent_value_is_collapsed_by_bigquery_dbapi(engine: Engine) -> None:
+    """
+    Documents a BigQuery-DBAPI-level limitation, not something Superset's
+    literal_processor can fix: when a data value itself contains two
+    consecutive percent signs, google.cloud.bigquery.dbapi.cursor.
+    _format_operation unconditionally runs `operation.replace("%%", "%")`
+    whenever it is called with no `parameters` (which is always true for
+    Superset's cursor.execute(query) path), so one of the two percent signs
+    is silently lost. This is unrelated to the apostrophe/percent escaping
+    this module otherwise tests -- it exists only to pin the actually-shipped
+    (lossy) behavior rather than leave it undocumented.
+    """
+    assert _insert_and_find(engine, "a%%b") == ["a%b"]
 
 
 def test_doubled_single_quotes_are_rejected_by_bigquery(
