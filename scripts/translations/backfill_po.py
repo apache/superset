@@ -197,11 +197,16 @@ def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[
 
 DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
 
-# An explicit do-not-translate marker on an entry, matched in either the
-# extracted comment (`#. do-not-translate`, the standard propagated
-# from the .pot) or a translator comment (e.g. the ru catalog's legacy
-# "# Не переводить"). Honored so a human's deliberate decision is never
-# overridden even if a msgid is missing from the registry.
+# The extracted comment apply_do_not_translate.py stamps after extraction
+# (`#. do-not-translate`), propagated from the .pot to every catalog.
+_DO_NOT_TRANSLATE_MARKER = "do-not-translate"
+
+# A do-not-translate marker written by hand in a translator comment (e.g. the
+# ru catalog's legacy "# Не переводить"), in any phrasing. Honored so a human's
+# deliberate decision is never overridden even if a msgid is missing from the
+# registry. Matched only in translator comments: extracted comments also carry
+# free-text `i18n:` notes, where a phrase like "do not translate as the animal"
+# is guidance on meaning, not a marker.
 _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
     r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
     re.IGNORECASE,
@@ -211,20 +216,21 @@ _DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
 def _is_do_not_translate(entry: polib.POEntry) -> bool:
     """Return True if an entry must be left for a human (never machine-filled).
 
-    Either its msgid is in the do-not-translate registry, or the entry carries
-    an explicit do-not-translate marker in its extracted or translator comment.
+    Either its msgid is in the do-not-translate registry, its extracted comment
+    has the exact ``do-not-translate`` marker line, or its translator comment
+    carries an explicit do-not-translate marker.
     """
     if entry.msgid in DO_NOT_TRANSLATE:
         return True
-    return any(
-        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
-        for comment in (entry.comment, entry.tcomment)
-    )
+    if any(
+        line.strip() == _DO_NOT_TRANSLATE_MARKER
+        for line in (entry.comment or "").splitlines()
+    ):
+        return True
+    return bool(entry.tcomment and _DO_NOT_TRANSLATE_COMMENT.search(entry.tcomment))
 
 
 _I18N_COMMENT_TAG = "i18n:"
-# The extracted comment apply_do_not_translate.py stamps after extraction.
-_DO_NOT_TRANSLATE_MARKER = "do-not-translate"
 
 
 def _developer_note(entry: polib.POEntry) -> str | None:

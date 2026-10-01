@@ -2888,8 +2888,8 @@ msgstr "بازگشت"
 msgid "Back to all"
 msgstr "بازگشت به همه"
 
-#. i18n: the database engine behind a connection (PostgreSQL, MySQL),
-#. not a server tier or a driver
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "پشتیبان"
 

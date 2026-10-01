@@ -343,8 +343,8 @@ To attach context, put a comment tagged `i18n:` immediately above the string:
 ```
 
 ```tsx
-// i18n: the database engine behind a connection (PostgreSQL, MySQL), not
-// a server tier or a driver
+// i18n: the kind of system behind a connection: a database engine
+// (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 Header: t('Backend'),
 ```
 
@@ -362,7 +362,8 @@ msgstr ""
 Only `i18n:`-tagged comments are extracted, so ordinary code comments near a
 string are not published to translators. Write the comment for someone who
 cannot see the code: say what the term refers to, and where a translation would
-plausibly go wrong.
+plausibly go wrong. A note only guides the translation; to keep a string
+untranslated, add it to the do-not-translate registry described below.
 
 The comment also reaches machine translation: `scripts/translations/backfill_po.py`
 sends it to the model as a developer note that takes precedence over other

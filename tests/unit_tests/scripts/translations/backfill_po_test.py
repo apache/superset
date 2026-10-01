@@ -503,6 +503,33 @@ def test_is_do_not_translate_allows_normal_entry() -> None:
     assert not backfill_po._is_do_not_translate(entry)
 
 
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "i18n: the short identifier in a URL; do not translate as the animal",
+        "i18n: translate Slug as a URL identifier; do not translate as an animal",
+        "i18n: don't translate as a server tier",
+        "i18n: a URL identifier,\ndo not translate it as the animal",
+    ],
+)
+def test_is_do_not_translate_ignores_prose_in_an_i18n_note(comment: str) -> None:
+    """An ``i18n:`` note saying how *not* to translate a term is guidance on
+    meaning, not a do-not-translate marker: the entry still gets translated,
+    with the note in the prompt."""
+    entry = polib.POEntry(msgid="Slug", msgstr="", comment=comment)
+    assert not backfill_po._is_do_not_translate(entry)
+
+
+def test_is_do_not_translate_honors_marker_beside_an_i18n_note() -> None:
+    """The stamped marker line still counts when the entry also has a note."""
+    entry = polib.POEntry(
+        msgid="not-in-registry-token",
+        msgstr="",
+        comment="i18n: an API field name\ndo-not-translate",
+    )
+    assert backfill_po._is_do_not_translate(entry)
+
+
 def test_backfill_skips_do_not_translate_entries_end_to_end(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -514,11 +541,14 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     po_dir = tmp_path / lang / "LC_MESSAGES"
     po_dir.mkdir(parents=True)
     po_path = po_dir / "messages.po"
-    # One curated DNT msgid, one translator-marked DNT entry, one normal entry.
+    # One curated DNT msgid, one translator-marked DNT entry, one entry whose
+    # i18n note says "do not translate as ..." in prose, one normal entry.
     po_path.write_text(
         'msgid ""\nmsgstr ""\n\n'
         'msgid "bolt"\nmsgstr ""\n\n'
         '# Не переводить\nmsgid "Keep me literal"\nmsgstr ""\n\n'
+        "#. i18n: a URL identifier; do not translate as the animal\n"
+        'msgid "Slug"\nmsgstr ""\n\n'
         'msgid "Save dashboard"\nmsgstr ""\n',
         encoding="utf-8",
     )
@@ -545,20 +575,21 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     # DNT entries never reached the translator …
     assert "bolt" not in seen_msgids
     assert "Keep me literal" not in seen_msgids
-    assert seen_msgids == ["Save dashboard"]
+    assert seen_msgids == ["Slug", "Save dashboard"]
 
     # … and stay untranslated in the written file, while the normal one is filled.
     written = polib.pofile(str(po_path))
     assert written.find("bolt").msgstr == ""
     assert written.find("Keep me literal").msgstr == ""
+    assert written.find("Slug").msgstr == "T:Slug"
     assert written.find("Save dashboard").msgstr == "T:Save dashboard"
 
 
 # --- i18n: developer notes -------------------------------------------------
 
 _BACKEND_NOTE = (
-    "the database engine behind a connection (PostgreSQL, MySQL), "
-    "not a server tier or a driver"
+    "the kind of system behind a connection: a database engine "
+    "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver"
 )
 
 
@@ -567,8 +598,8 @@ _BACKEND_NOTE = (
     [
         ("i18n: a URL identifier, not the animal", "a URL identifier, not the animal"),
         (
-            "i18n: the database engine behind a connection (PostgreSQL, MySQL),\n"
-            "not a server tier or a driver",
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver",
             _BACKEND_NOTE,
         ),
         ("i18n: a URL identifier\ndo-not-translate", "a URL identifier"),
