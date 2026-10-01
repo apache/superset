@@ -183,12 +183,16 @@ describe('TextArea', () => {
     // matching role "button" with the same accessible name; target the
     // wrapper directly via its data-test id instead.
     fireEvent.click(screen.getByTestId('span-modal-trigger'));
+    // The underlying antd Modal (no `getContainer` override) portals its
+    // content to `document.body` rather than rendering inside RTL's
+    // `container`, so the modal's Ace instance has to be counted via
+    // `document`, not `container`, or this would never see it mount.
     await waitFor(() => {
-      expect(container.querySelectorAll('.ace_editor')).toHaveLength(2);
+      expect(document.querySelectorAll('.ace_editor')).toHaveLength(2);
     });
     fireEvent.click(screen.getByTestId('close-modal-btn'));
     await waitFor(() => {
-      expect(container.querySelectorAll('.ace_editor')).toHaveLength(1);
+      expect(document.querySelectorAll('.ace_editor')).toHaveLength(1);
     });
 
     fireEvent.click(screen.getByText('sync'));
