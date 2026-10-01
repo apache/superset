@@ -134,7 +134,11 @@ test('disables editing and resets while ranges has a blank token between numbers
   document.querySelectorAll('.ant-color-picker-trigger').forEach(trigger => {
     expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
   });
-  screen.getAllByText('Use default').forEach(button => {
+  // AntD's Button always wraps its text child in an inner <span>, so
+  // querying by text here would match that span -- which `toBeDisabled`
+  // never recognizes (it only supports actual form-control elements).
+  // Query by role to get the real <button>, where `disabled` lives.
+  screen.getAllByRole('button', { name: 'Use default' }).forEach(button => {
     expect(button).toBeDisabled();
   });
 });
