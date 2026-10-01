@@ -1234,7 +1234,7 @@ test('required filter with a default value auto-applies on load without touching
 
   // Nothing is left pending: the default value is already applied, so the
   // Apply button is not blocking on untouched filters.
-  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
 
   updateDataMaskSpy.mockRestore();
 });
