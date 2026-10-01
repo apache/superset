@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1235,6 +1235,12 @@ msgstr "< (보다 작음)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (보다 작거나 같음)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -2350,6 +2356,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10798,6 +10808,9 @@ msgstr "Jinja 템플릿 쿼리에서 사용하기 위한 추가 URL 매개변수
 msgid "Extruded"
 msgstr "돌출"
 
+msgid "FALSE"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12982,12 +12995,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
-# lv, ro, ru, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "잘못된 사용자 이름 또는 비밀번호"
 
 msgid "Inverse"
 msgstr ""
@@ -15222,6 +15229,9 @@ msgstr ""
 #, fuzzy
 msgid "NOV"
 msgstr "11월"
+
+msgid "NULL"
+msgstr ""
 
 #, fuzzy
 msgid "NUMERIC"
@@ -22580,6 +22590,9 @@ msgstr ""
 #, fuzzy
 msgid "THU"
 msgstr "목"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

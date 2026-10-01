@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1007,6 +1007,12 @@ msgstr "< (manjše kot)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (manjše ali enako)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<tukaj vnesite SQL-izraz>"
 
@@ -1774,6 +1780,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7451,6 +7461,9 @@ msgstr "Dodatni parametri za poizvedbe z Jinja predlogami"
 msgid "Extruded"
 msgstr "Relief"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "FEB"
 
@@ -8863,9 +8876,6 @@ msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Neveljavno uporabniško ime ali geslo"
-
 msgid "Inverse"
 msgstr ""
 
@@ -10274,6 +10284,9 @@ msgstr "NOT GROUPED BY"
 
 msgid "NOV"
 msgstr "NOV"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "NUMERIC"
@@ -15046,6 +15059,9 @@ msgstr "ČASOVNI_OBSEG"
 
 msgid "THU"
 msgstr "ČET"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

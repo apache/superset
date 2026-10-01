@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -971,6 +971,12 @@ msgstr "< (Menší než)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Menší alebo rovno)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<tu zadejte SQL výraz>"
 
@@ -1757,6 +1763,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7489,6 +7499,9 @@ msgstr "Ďalší parametre URL pre použití v dotazech sa šablonami Jinja"
 msgid "Extruded"
 msgstr "Extrudovaný"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "ÚNO"
 
@@ -8899,10 +8912,6 @@ msgstr "Neplatná ID karet: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Neplatné používateľské meno alebo heslo"
 
 msgid "Inverse"
 msgstr ""
@@ -10322,6 +10331,9 @@ msgstr "NESESKUPENO PODLE"
 
 msgid "NOV"
 msgstr "LIS"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "ČÍSELNÝ"
@@ -15181,6 +15193,9 @@ msgstr "ČASOVÝ_ROZSAH"
 
 msgid "THU"
 msgstr "ČT"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

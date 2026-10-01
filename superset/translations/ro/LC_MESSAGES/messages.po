@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1025,6 +1025,12 @@ msgstr "< (Mai mic decât)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Mai mic sau egal)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<introduceți expresia SQL aici>"
 
@@ -1858,6 +1864,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -7844,6 +7854,9 @@ msgstr "Parametri URL suplimentari pentru folosire în interogări șablon Jinja
 msgid "Extruded"
 msgstr "Extrus"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "FEB"
 
@@ -9351,9 +9364,6 @@ msgstr "ID-uri de file nevalide: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Nume de utilizator sau parolă invalidă"
-
 msgid "Inverse"
 msgstr ""
 
@@ -10826,6 +10836,9 @@ msgstr "NU GRUPAT DUPĂ"
 
 msgid "NOV"
 msgstr "NOI"
+
+msgid "NULL"
+msgstr ""
 
 msgid "NUMERIC"
 msgstr "NUMERIC"
@@ -15881,6 +15894,9 @@ msgstr "INTERVAL_TEMPORAL"
 
 msgid "THU"
 msgstr "JOI"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -1346,6 +1346,12 @@ msgstr "< (Pienempi kuin)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Pienempi tai yhtä suuri)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -2651,6 +2657,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12190,6 +12200,9 @@ msgstr "Lisä-URL-parametrit Jinja-mallipohjaisiin kyselyihin"
 msgid "Extruded"
 msgstr "Kohotettu"
 
+msgid "FALSE"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -14553,12 +14566,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Virheellinen käyttäjätunnus tai salasana"
 
 msgid "Inverse"
 msgstr ""
@@ -16953,6 +16960,9 @@ msgstr ""
 #, fuzzy
 msgid "NOV"
 msgstr "MARR"
+
+msgid "NULL"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -25086,6 +25096,9 @@ msgstr ""
 #, fuzzy
 msgid "THU"
 msgstr "TO"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""

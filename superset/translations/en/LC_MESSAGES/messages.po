@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -875,6 +875,12 @@ msgstr ""
 msgid "<= (Smaller or equal)"
 msgstr ""
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr ""
 
@@ -1571,6 +1577,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -6752,6 +6762,9 @@ msgstr ""
 msgid "Extruded"
 msgstr ""
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr ""
 
@@ -8044,9 +8057,6 @@ msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
-msgstr ""
-
-msgid "Invalid username or password"
 msgstr ""
 
 msgid "Inverse"
@@ -9352,6 +9362,9 @@ msgid "NOT GROUPED BY"
 msgstr ""
 
 msgid "NOV"
+msgstr ""
+
+msgid "NULL"
 msgstr ""
 
 msgid "NUMERIC"
@@ -13762,6 +13775,9 @@ msgid "TEMPORAL_RANGE"
 msgstr ""
 
 msgid "THU"
+msgstr ""
+
+msgid "TRUE"
 msgstr ""
 
 msgid "TTL must be a positive integer."

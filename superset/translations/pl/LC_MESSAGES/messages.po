@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 18:54+0200\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1000,6 +1000,12 @@ msgstr "< (Mniejsze niż)"
 msgid "<= (Smaller or equal)"
 msgstr "<= (Mniejsze lub równe)"
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr "<wpisz tutaj wyrażenie SQL>"
 
@@ -1857,6 +1863,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -8066,6 +8076,9 @@ msgstr "Dodatkowe parametry url do użycia w zapytaniach szablonów Jinja"
 msgid "Extruded"
 msgstr "Ekstrudowany"
 
+msgid "FALSE"
+msgstr ""
+
 msgid "FEB"
 msgstr "LUT"
 
@@ -9647,10 +9660,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Nazwa użytkownika lub hasło są nieprawidłowe."
-
 msgid "Inverse"
 msgstr ""
 
@@ -11160,6 +11169,9 @@ msgstr "NIE GRUPOWANO PRZEZ"
 
 msgid "NOV"
 msgstr "Lis."
+
+msgid "NULL"
+msgstr ""
 
 #, fuzzy
 msgid "NUMERIC"
@@ -16481,6 +16493,9 @@ msgstr "ZAKRES_CZASOWY"
 
 msgid "THU"
 msgstr "CZW"
+
+msgid "TRUE"
+msgstr ""
 
 msgid "TTL must be a positive integer."
 msgstr ""
