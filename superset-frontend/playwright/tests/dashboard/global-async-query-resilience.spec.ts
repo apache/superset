@@ -19,8 +19,8 @@
 
 /**
  * Global Async Queries (GAQ) under stress: a query that fails, a superseded
- * query racing a newer one, a lost channel token, and a page torn down
- * mid-flight.
+ * query racing a newer one, a programmatic request that must stay synchronous,
+ * and a page torn down mid-flight.
  *
  * GAQ's happy path is visually identical to a synchronous load, so these are
  * the cases where its machinery actually becomes observable -- or where it
@@ -31,7 +31,7 @@
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiGetChart, apiPutChart } from '../../helpers/api/chart';
-import { TIMEOUT } from '../../utils/constants';
+import { GAQ, TIMEOUT } from '../../utils/constants';
 import { apiPost } from '../../helpers/api/requests';
 import {
   BIG_NUMBER_COUNT_SPEC,
@@ -94,12 +94,20 @@ testWithAssets(
     await expect(errorAlert).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
     const signals = trackGaqSignals(page);
+    // The alert is already on screen from that initial load and the refresh
+    // re-runs the identical broken query, so its text proves nothing about the
+    // refresh. Require the failure to come back over the wire instead.
+    const responseBodies: string[] = [];
+    page.on('response', response => {
+      if (response.url().includes(GAQ.CHART_DATA_PATH)) {
+        void response
+          .text()
+          .then(body => responseBodies.push(body))
+          .catch(() => {});
+      }
+    });
 
     await dashboard.forceRefresh();
-
-    await expect(errorAlert).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
-    await expect(errorAlert).toContainText('Data error');
-    await expect(errorAlert).toContainText(BAD_COLUMN);
 
     await expect(() => {
       expect(
@@ -110,7 +118,15 @@ testWithAssets(
         signals.sawTaskStatusPoll,
         'the client should have polled /api/v1/task/status_changes while the broken query ran',
       ).toBe(true);
+      expect(
+        responseBodies.filter(body => body.includes(BAD_COLUMN)),
+        "the refresh's own chart-data response should carry the failure, rather than the alert being left over from the initial load",
+      ).not.toHaveLength(0);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+
+    await expect(errorAlert).toBeVisible();
+    await expect(errorAlert).toContainText('Data error');
+    await expect(errorAlert).toContainText(BAD_COLUMN);
 
     // Fix the config and confirm the chart recovers, rather than staying stuck.
     const chartResp = await apiGetChart(page, chart.id);
@@ -163,13 +179,10 @@ testWithAssets(
     await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
-    // Learn "girl"'s real count first, so the race can assert on that specific
-    // number. The chart keeps showing the unfiltered total while "girl"'s query
-    // is in flight, and that total already contains a digit -- so a bare /\d/
-    // would read the *pre-filter* value as the baseline whenever the query was
-    // slow. Wait for the round trip at the network level instead, as the race
-    // below does: a 200 straight away (cache hit) or 202 then 200, ending in
-    // 200 either way.
+    // Learn "girl"'s real count first, so the race can assert on that number.
+    // The chart still shows the unfiltered total while the query is in flight,
+    // and that already contains a digit -- so a bare /\d/ would capture the
+    // *pre-filter* value. Wait for the round trip at the network level instead.
     const baselineSignals = trackGaqSignals(page);
     await filterBar.selectOption('girl');
     await filterBar.apply();
@@ -194,61 +207,61 @@ testWithAssets(
     // Example queries settle in ~1-2s, too fast to race for real. Delaying only
     // the next request makes "boy" reliably still in flight when "girl" fires.
     let matchCount = 0;
+    // Set at interception, which is when the delay actually starts. Measuring
+    // from `apply()`'s return would overstate the remaining park time by
+    // however long the UI cycle took.
+    let boyParkedAt = 0;
+    let boyCancelled = false;
     const raceRoute = (url: URL) =>
       sliceIdFromChartDataUrl(url.toString()) === chartId;
     await page.route(raceRoute, async route => {
       matchCount += 1;
-      if (matchCount === 1) {
+      const isBoy = matchCount === 1;
+      if (isBoy) {
+        boyParkedAt = Date.now();
         await new Promise(resolve => {
           setTimeout(resolve, RACE_DELAY_MS);
         });
       }
-      await route.continue();
+      // Continuing a request the app already aborted rejects; that rejection is
+      // the expected outcome here, not a test failure.
+      await route.continue().catch(() => {
+        boyCancelled = boyCancelled || isBoy;
+      });
+    });
+    page.on('requestfailed', request => {
+      if (
+        sliceIdFromChartDataUrl(request.url()) === chartId &&
+        nativeFilterValuesIn(request.postData() ?? '', FILTER_COLUMN).includes(
+          'boy',
+        )
+      ) {
+        boyCancelled = true;
+      }
     });
 
-    // The chart keeps rendering its previous value while a query is in flight
-    // -- it does not blank or spinner over the number (confirmed by trace). So
-    // asserting the expected text alone would pass instantly against what is
-    // already on screen, proving nothing. Tracking from here gives a
-    // network-level proof instead: "boy" is parked in the artificial delay and
-    // has not reached the server, so any chart-data response seen inside the
-    // race window belongs to "girl".
+    // The chart keeps rendering its previous value while a query is in flight,
+    // so asserting the expected text alone would pass against what is already
+    // on screen. These signals give a network-level proof instead.
     const signals = trackGaqSignals(page);
 
     await filterBar.selectOption('boy');
     await filterBar.apply();
-    const boyAppliedAt = Date.now();
     // Deliberately no wait -- "boy" is still in flight as "girl" is applied.
     await filterBar.selectOption('girl');
     await filterBar.apply();
 
-    // Whatever is left of boy's artificial delay once girl has been applied.
-    // Measured rather than assumed: the UI cycle above is not instant, and
-    // hard-coding `RACE_DELAY_MS - 500` silently shrinks to nothing on a loaded
-    // runner, letting boy's response land inside the window below.
-    const remainingParkMs = RACE_DELAY_MS - (Date.now() - boyAppliedAt);
-    expect(
-      remainingParkMs,
-      'girl should have been applied while boy was still parked in the route delay',
-    ).toBeGreaterThan(0);
-
-    // Identify the response by the filter that produced it, not by arrival
-    // order: both requests are for this same slice, so "first status seen for
-    // the slice" can be boy's -- its delay is already running when girl is
-    // applied, so on a slow runner it can respond inside this window and
-    // satisfy the check without girl ever having completed.
+    // Identify a response by the filter that produced it: both requests are for
+    // this same slice, so "first status seen for the slice" could be either.
     const statusesFor = (value: string) =>
       signals.submitStatusesWhere(chartId, body =>
         nativeFilterValuesIn(body, FILTER_COLUMN).includes(value),
       );
 
-    // "girl" ran once already, so this repeat may be a synchronous cache hit
-    // rather than a fresh 202. Either proves the round-trip happened, which is
-    // all that is being established here -- but it has to be one of those two.
-    // Merely asserting a status was recorded would accept a 4xx/5xx, and since
-    // the chart keeps displaying the previous "girl" value while a query is in
-    // flight, the text assertion below would then pass on stale pixels and the
-    // test would be green without a successful round trip.
+    // "girl" ran once already, so this repeat may be a 200 cache hit rather
+    // than a fresh 202 -- but it has to be one of the two. Accepting any
+    // recorded status would accept a 4xx/5xx, and the text assertion below
+    // would then pass on the stale value still on screen.
     await expect(() => {
       const girlStatuses = statusesFor('girl');
       expect(
@@ -259,22 +272,38 @@ testWithAssets(
         [200, 202],
         '"girl"\'s fast chart-data submission should have succeeded (200 cache-hit or 202 async-accepted)',
       ).toContain(girlStatuses[0]);
-      // The race only exists if boy is still parked at this point. Asserted
-      // alongside girl's success so a run where the delay failed to hold boy
-      // back is reported as such, instead of quietly testing nothing.
-      expect(
-        statusesFor('boy'),
-        '"boy" should still be parked in the route delay while "girl" completes',
-      ).toHaveLength(0);
-    }).toPass({ timeout: remainingParkMs });
+    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+
+    // The race only exists if "boy" was still parked when "girl" was applied.
+    expect(
+      boyParkedAt,
+      '"boy"\'s request should have been intercepted and parked',
+    ).toBeGreaterThan(0);
+    expect(
+      RACE_DELAY_MS - (Date.now() - boyParkedAt),
+      '"girl" should have been applied while "boy" was still parked',
+    ).toBeGreaterThan(0);
 
     await expect(value).toHaveText(expectedGirlText ?? '', {
       timeout: TIMEOUT.UI_TRANSITION,
     });
     const raceResultText = await value.textContent();
 
-    // Give the superseded "boy" response every chance to arrive and clobber it.
-    await page.waitForTimeout(RACE_DELAY_MS + 2000);
+    // What actually protects the screen: the app cancels the superseded request
+    // (`chartAction.ts` aborts the previous controller), so "boy"'s result never
+    // arrives. Wait out the rest of its park -- the window a regressed
+    // cancellation would let a stale result land in.
+    await page.waitForTimeout(
+      Math.max(RACE_DELAY_MS - (Date.now() - boyParkedAt), 0) + 2000,
+    );
+    expect(
+      boyCancelled,
+      '"boy" should have been cancelled client-side when "girl" superseded it',
+    ).toBe(true);
+    expect(
+      statusesFor('boy'),
+      '"boy" was superseded, so its result should never have reached the client',
+    ).toHaveLength(0);
     await expect(value).toHaveText(raceResultText ?? '');
 
     await page.unroute(raceRoute);

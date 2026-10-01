@@ -20,23 +20,14 @@
 /**
  * Global Async Queries (GAQ): SQL Lab keeps working with the flag turned on.
  *
- * SQL Lab's own async execution (`ASynchronousSqlJsonExecutor`) is a separate,
- * older Celery mechanism that shares no code with GAQ. The only thing worth
- * confirming is that enabling GLOBAL_ASYNC_QUERIES instance-wide does not leak
- * into or break the unrelated system next to it -- so this is deliberately one
- * shallow smoke check, not a SQL Lab suite (see sqllab.spec.ts for that).
+ * SQL Lab's own async execution (`ASynchronousSqlJsonExecutor`) shares no code
+ * with GAQ, so this is one shallow smoke check that the flag does not leak into
+ * it -- not a SQL Lab suite (see sqllab.spec.ts). Needs only the feature flag.
  *
- * Requires only the `GLOBAL_ASYNC_QUERIES` feature flag; no Redis/Celery,
- * since nothing here should reach GAQ's pipeline at all.
- *
- * Lives in tests/sqllab/ because it is a SQL Lab test, but it does NOT run
- * under the `chromium-sqllab` project -- that project's `testIgnore` excludes
- * it deliberately. It needs GLOBAL_ASYNC_QUERIES on, which only the workflow's
- * GAQ step provides, so it runs under `chromium-gaq` alongside the dashboard
- * GAQ specs -- `playwright-run-gaq` selects that project with
- * `--project=chromium-gaq`. Without that exclusion it would sit in the
- * ordinary SQL Lab run and skip itself on every execution, reporting coverage
- * it never had.
+ * Runs under `chromium-gaq`, not `chromium-sqllab`: that project's `testIgnore`
+ * excludes it, because only the GAQ job turns the flag on. Without the
+ * exclusion it would sit in the ordinary SQL Lab run and skip itself every
+ * time, reporting coverage it never had.
  */
 import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';

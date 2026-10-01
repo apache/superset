@@ -433,24 +433,9 @@ interface SetupDashboardWithChartsResult {
 }
 
 /**
- * Combines {@link createDashboardWithCharts} with navigating to the result and
- * waiting for it to load -- the setup every GAQ test case that renders a plain
- * big-number dashboard needs before it starts recording its own signals or
- * assertions. Callers still assert on `valueLocators` themselves (a happy-path
- * test wants them visible; a broken-chart test wants an error alert instead),
- * so this only removes the identical creation/navigation boilerplate, not the
- * per-test assertions layered on top of it.
- *
- * @example
- * const { charts, dashboard, valueLocators } =
- *   await setupDashboardWithBigNumberCharts(page, testAssets, testInfo, {
- *     datasetName: 'birth_names',
- *     chartNamePrefix: 'gaq_tc1_cold_cache',
- *     chartSpecs: [BIG_NUMBER_COUNT_SPEC],
- *   });
- * const [chart] = charts;
- * const [value] = valueLocators;
- * await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+ * {@link createDashboardWithCharts} plus navigating to the result and waiting
+ * for it to load. Callers still assert on `valueLocators` themselves -- a
+ * happy-path test wants them visible, a broken-chart test wants an error alert.
  */
 export async function setupDashboardWithBigNumberCharts(
   page: Page,
@@ -555,19 +540,12 @@ export function nativeFilterValuesIn(
  * Records the GAQ lifecycle signals seen from now on.
  *
  * Under GTF the cycle is: `POST /api/v1/chart/data` with `async_mode` returns
- * **202** with task ids; the client observes completion via
- * `GET /api/v1/task/status_changes` (the poll transport, which is what runs
- * unless `WEBSOCKET_ENABLE` is on); it then **re-issues the same POST**, which
- * returns **200** from the per-query cache the tasks warmed. There is no
- * separate result-fetch endpoint any more -- the old `/chart/data/qc-<hash>`
- * replay route was removed with the GTF migration.
+ * **202**; the client polls `GET /api/v1/task/status_changes`, then re-issues
+ * the same POST and gets **200** from the cache those tasks warmed.
  *
- * Attach only once the traffic you care about is the *next* thing to happen --
- * an initial dashboard load fires the same signals, so tracking from before it
- * would attribute that load's cycle to whatever you trigger after.
- *
- * Reads are live getters rather than a snapshot, so callers can poll them from
- * inside an `expect(...).toPass()` retry block.
+ * Attach only once the traffic you care about is the *next* thing to happen: an
+ * initial dashboard load fires the same signals. Reads are live getters, so
+ * callers can poll them inside `expect(...).toPass()`.
  */
 export function trackGaqSignals(page: Page): GaqSignals {
   const submitStatuses = new Map<number | undefined, number[]>();

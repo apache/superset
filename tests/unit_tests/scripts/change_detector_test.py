@@ -188,11 +188,12 @@ def test_grype_config_changes_trigger_docker_build() -> None:
     )
 
 
-def test_composite_action_changes_trigger_frontend_tests() -> None:
-    """The Playwright jobs drive their whole setup through composite actions
-    (cached-dependencies, setup-backend), so a change to one can break them
-    while touching nothing under superset-frontend/."""
+@pytest.mark.parametrize("group", ["frontend", "python"])
+def test_composite_action_changes_trigger_tests(group: str) -> None:
+    """Composite actions are shared setup matched by nothing else, so a change
+    to one can break a job while touching neither superset-frontend/ nor
+    superset/. setup-backend is a backend action, so "python" needs it too."""
     assert change_detector.detect_changes(
-        [".github/actions/cached-dependencies"],
-        change_detector.PATTERNS["frontend"],
+        [".github/actions/setup-backend/action.yml"],
+        change_detector.PATTERNS[group],
     )

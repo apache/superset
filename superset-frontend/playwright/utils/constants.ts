@@ -107,6 +107,8 @@ export const GAQ = {
    * `/api/v1/async_event/` when GAQ moved onto the Global Task Framework.
    */
   TASK_STATUS_CHANGES_PATH: '/api/v1/task/status_changes',
+  /** Chart-data endpoint both chart and native-filter-value queries go to. */
+  CHART_DATA_PATH: '/api/v1/chart/data',
 } as const;
 
 /**
