@@ -969,6 +969,19 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 200
         assert b'id="app"' in resp.data
 
+    def test_extension_view_gamma_without_extension_permission_returns_spa_shell(
+        self,
+    ):
+        # Gamma isn't granted the FAB-generated `can_extension_view`
+        # permission (role sync doesn't backfill it onto existing roles);
+        # the route is a login-only shell page, so access shouldn't 403.
+        self.login(GAMMA_USERNAME)
+
+        resp = self.client.get("/extensions/view/my-ext.settings")
+
+        assert resp.status_code == 200
+        assert b'id="app"' in resp.data
+
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
