@@ -40,12 +40,21 @@ export const resolveLegacyIntervalColors = (
   legacyIntervalColorIndices: string | undefined,
   colorScheme: string | undefined,
 ): string[] => {
+  // strict: an explicitly-named but unregistered scheme should resolve to
+  // "no colors" here, not silently fall back to the registry's default
+  // scheme -- that fallback belongs to the display layer (index.tsx), not
+  // to this migration helper.
   const schemeColors =
-    getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
+    getCategoricalSchemeRegistry().get(colorScheme, true)?.colors ?? [];
   const indices = (legacyIntervalColorIndices ?? '')
     .split(',')
     .map(part => part.trim())
     .map(part => (part === '' ? NaN : Number(part)));
+  // Bounds without an explicit legacy index cycle through the scheme on
+  // their own counter, independent of their position among the bounds that
+  // *do* have one -- e.g. indices "2,3" for 3 bounds should leave the third
+  // (uncovered) bound on the first scheme color, not the third.
+  let missingCount = 0;
   return bounds.map((_, index) => {
     const legacyIndex = indices[index];
     if (schemeColors.length === 0) return '';
@@ -55,6 +64,8 @@ export const resolveLegacyIntervalColors = (
           schemeColors.length
       ];
     }
-    return schemeColors[index % schemeColors.length];
+    const fallbackColor = schemeColors[missingCount % schemeColors.length];
+    missingCount += 1;
+    return fallbackColor;
   });
 };
