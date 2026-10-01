@@ -38,6 +38,17 @@ from superset.views.utils import _deserialize_results_payload
 logger = logging.getLogger(__name__)
 
 
+def _format_decimal_columns(df: pd.DataFrame) -> None:
+    """Format decimal object columns without changing other values or dtypes."""
+    for name, column in df.items():
+        if pd.api.types.is_object_dtype(column.dtype) and any(
+            isinstance(value, Decimal) and value.is_finite() for value in column
+        ):
+            # A finite decimal becomes a string, keeping map's result object-typed
+            # so mixed floats, integers and None do not undergo dtype inference.
+            df[name] = column.map(csv.format_decimal)
+
+
 class SqlExportResult(TypedDict):
     query: Query
     count: int
@@ -141,11 +152,7 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.schema,
             )[:limit]
 
-        # Preserve exact decimals without scientific notation in CSV output.
-        for name, column in df.items():
-            for label, value in column.items():
-                if isinstance(value, Decimal) and value.is_finite():
-                    df.at[label, name] = format(value, "f")
+        _format_decimal_columns(df)
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
         csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])

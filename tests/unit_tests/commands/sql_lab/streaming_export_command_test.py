@@ -19,6 +19,7 @@
 import csv
 import io
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -919,20 +920,24 @@ def test_streaming_csv_preserves_fixed_point_decimals(
     decimal_separator: str | None,
 ) -> None:
     """Streaming CSV retains decimal digits and honors the decimal separator."""
-    command = StreamingSqlResultExportCommand("client_id")
-    result = MagicMock()
+    command: StreamingSqlResultExportCommand = StreamingSqlResultExportCommand(
+        "client_id"
+    )
+    result: MagicMock = MagicMock()
     result.fetchmany.side_effect = [
         [(Decimal("0E-18"), Decimal("-1E-7"), Decimal("1E+30"), Decimal("12.3400"))],
         [],
     ]
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, delimiter=";")
+    buffer: io.StringIO = io.StringIO()
+    writer: Any = csv.writer(buffer, delimiter=";")
 
-    chunks = list(
+    chunks: list[tuple[str, int, int]] = list(
         command._process_rows(result, writer, buffer, None, decimal_separator)
     )
 
-    expected = "0.000000000000000000;-0.0000001;1000000000000000000000000000000;12.3400"
+    expected: str = (
+        "0.000000000000000000;-0.0000001;1000000000000000000000000000000;12.3400"
+    )
     if decimal_separator == ",":
         expected = expected.replace(".", ",")
     assert "".join(chunk[0] for chunk in chunks) == expected + "\r\n"
@@ -940,8 +945,10 @@ def test_streaming_csv_preserves_fixed_point_decimals(
 
 def test_streaming_decimal_formatting_leaves_other_values_unchanged() -> None:
     """Non-finite decimals and non-decimal values retain their representations."""
-    command = StreamingSqlResultExportCommand("client_id")
-    values = (
+    command: StreamingSqlResultExportCommand = StreamingSqlResultExportCommand(
+        "client_id"
+    )
+    values: tuple[Any, ...] = (
         Decimal("NaN"),
         Decimal("Infinity"),
         Decimal("-Infinity"),
@@ -951,8 +958,29 @@ def test_streaming_decimal_formatting_leaves_other_values_unchanged() -> None:
         True,
     )
 
-    formatted = command._format_row_values(values, None)
+    formatted: list[Any] = command._format_row_values(values, None)
 
     assert all(
         actual is original for actual, original in zip(formatted, values, strict=True)
     )
+
+
+@pytest.mark.parametrize("decimal_separator", [None, ".", ",", "::"])
+def test_streaming_non_finite_decimal_csv(decimal_separator: str | None) -> None:
+    """Non-finite decimal CSV stays unchanged with custom decimal separators."""
+    command: StreamingSqlResultExportCommand = StreamingSqlResultExportCommand(
+        "client_id"
+    )
+    values: tuple[Decimal, ...] = (
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        Decimal("12.3400"),
+    )
+    buffer: io.StringIO = io.StringIO()
+    writer: Any = csv.writer(buffer, delimiter=";")
+    writer.writerow(command._format_row_values(values, decimal_separator))
+    expected: str = "NaN;Infinity;-Infinity;12.3400\r\n"
+    if decimal_separator:
+        expected = expected.replace(".", decimal_separator)
+    assert buffer.getvalue() == expected
