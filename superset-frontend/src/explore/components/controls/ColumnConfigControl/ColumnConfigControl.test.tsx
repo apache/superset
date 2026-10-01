@@ -255,8 +255,8 @@ test('shows a hidden-column icon on child columns configured as not visible', ()
 });
 
 // The time column is reported as `__timestamp` by the query but displayed as
-// "Time". The control currently keys edits by the displayed name, while the
-// table plugins look a column's config up by the raw query column name.
+// "Time". The table plugins look a column's config up by the raw query
+// column name.
 const timestampProps = (
   value: ControlProps['value'] = {},
 ): Partial<ControlProps> => ({
