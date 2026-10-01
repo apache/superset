@@ -1372,10 +1372,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     )
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = dataset
-    mocker.patch(
-        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
+    DatasetDAO.get_table_by_catalog_schema_and_name.return_value = dataset
 
     space = " "
 
@@ -1390,7 +1387,7 @@ FROM my_schema.old_dataset
     assert (
         dataset_macro("old_dataset")
         == f"""(
-SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit{space}
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
 FROM my_schema.old_dataset
 ) AS dataset_1"""  # noqa: S608, E501
     )
@@ -1398,7 +1395,7 @@ FROM my_schema.old_dataset
     assert (
         dataset_macro("old_dataset", alias="my_alias")
         == f"""(
-SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit{space}
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
 FROM my_schema.old_dataset
 ) AS my_alias"""  # noqa: S608, E501
     )
