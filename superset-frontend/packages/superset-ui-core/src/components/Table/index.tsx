@@ -439,7 +439,9 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
-          scroll={bodyHeight ? { y: bodyHeight, x: true } : { x: true }}
+          // scroll.x splits the table into header and body copies. Only do that
+          // when a measured height needs an internal scroller (drill-to-detail).
+          scroll={bodyHeight ? { y: bodyHeight, x: true } : undefined}
           {...rest}
         />
       )}
