@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from "@superset-ui/core/spec";
-import type { ColumnsType } from "antd/es/table";
-import { Table, TableSize } from "./index";
+import { render, screen, waitFor } from '@superset-ui/core/spec';
+import type { ColumnsType } from 'antd/es/table';
+import { Table, TableSize } from './index';
 
 interface BasicData {
   columnName: string;
@@ -28,67 +28,65 @@ interface BasicData {
 
 const testData: BasicData[] = [
   {
-    columnName: "Number",
-    columnType: "Numerical",
-    dataType: "number",
+    columnName: 'Number',
+    columnType: 'Numerical',
+    dataType: 'number',
   },
   {
-    columnName: "String",
-    columnType: "Physical",
-    dataType: "string",
+    columnName: 'String',
+    columnType: 'Physical',
+    dataType: 'string',
   },
   {
-    columnName: "Date",
-    columnType: "Virtual",
-    dataType: "date",
+    columnName: 'Date',
+    columnType: 'Virtual',
+    dataType: 'date',
   },
 ];
 
 const testColumns: ColumnsType<BasicData> = [
   {
-    title: "Column Name",
-    dataIndex: "columnName",
-    key: "columnName",
+    title: 'Column Name',
+    dataIndex: 'columnName',
+    key: 'columnName',
   },
   {
-    title: "Column Type",
-    dataIndex: "columnType",
-    key: "columnType",
+    title: 'Column Type',
+    dataIndex: 'columnType',
+    key: 'columnType',
   },
   {
-    title: "Data Type",
-    dataIndex: "dataType",
-    key: "dataType",
+    title: 'Data Type',
+    dataIndex: 'dataType',
+    key: 'dataType',
   },
 ];
 
-test("renders with default props", async () => {
+test('renders with default props', async () => {
   render(
     <Table size={TableSize.Middle} columns={testColumns} data={testData} />,
   );
   await waitFor(() =>
-    testColumns.forEach((column) =>
+    testColumns.forEach(column =>
       expect(
         screen
           .getAllByText(column.title as string)
-          .find((el) => el.closest("th")),
+          .find(el => el.closest('th')),
       ).toBeInTheDocument(),
     ),
   );
-  testData.forEach((row) => {
+  testData.forEach(row => {
     expect(screen.getByText(row.columnName)).toBeInTheDocument();
     expect(screen.getByText(row.columnType)).toBeInTheDocument();
     expect(screen.getByText(row.dataType)).toBeInTheDocument();
   });
 });
 
-test("renders sticky non-virtual table headers and cells", async () => {
-  const columnsWithWidth: ColumnsType<BasicData> = testColumns.map(
-    (column) => ({
-      ...column,
-      width: 150,
-    }),
-  );
+test('renders sticky non-virtual table headers and cells', async () => {
+  const columnsWithWidth: ColumnsType<BasicData> = testColumns.map(column => ({
+    ...column,
+    width: 150,
+  }));
 
   render(
     <Table
@@ -102,15 +100,15 @@ test("renders sticky non-virtual table headers and cells", async () => {
   );
 
   await waitFor(() =>
-    columnsWithWidth.forEach((column) =>
+    columnsWithWidth.forEach(column =>
       expect(
         screen
           .getAllByText(column.title as string)
-          .find((el) => el.closest("th")),
+          .find(el => el.closest('th')),
       ).toBeInTheDocument(),
     ),
   );
 
-  expect(screen.getByText("Number")).toBeInTheDocument();
-  expect(screen.getByText("String")).toBeInTheDocument();
+  expect(screen.getByText('Number')).toBeInTheDocument();
+  expect(screen.getByText('String')).toBeInTheDocument();
 });

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, useTheme } from "@apache-superset/core/theme";
-import { useState } from "react";
-import { Icons, Popover, Radio } from "../..";
+import { css, useTheme } from '@apache-superset/core/theme';
+import { useState } from 'react';
+import { Icons, Popover, Radio } from '../..';
 
 export interface HeaderWithRadioGroupProps {
   headerTitle: string;
@@ -57,13 +57,13 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
             </div>
             <Radio.GroupWrapper
               spaceConfig={{
-                direction: "vertical",
+                direction: 'vertical',
                 size: 4,
                 wrap: false,
-                align: "start",
+                align: 'start',
               }}
               value={value}
-              onChange={(e) => {
+              onChange={e => {
                 onChange(e.target.value);
                 setPopoverVisible(false);
               }}

@@ -17,23 +17,23 @@
  * under the License.
  */
 
-import { styled, SupersetTheme, useTheme } from "@apache-superset/core/theme";
-import { safeHtmlSpan } from "@superset-ui/core";
-import { Table as AntTable } from "antd";
+import { styled, SupersetTheme, useTheme } from '@apache-superset/core/theme';
+import { safeHtmlSpan } from '@superset-ui/core';
+import { Table as AntTable } from 'antd';
 import {
   TableProps as AntTableProps,
   TablePaginationConfig,
-} from "antd/es/table";
-import classNames from "classnames";
-import { useCallback, useRef, useState, type UIEvent } from "react";
-import { useResizeDetector } from "react-resize-detector";
+} from 'antd/es/table';
+import classNames from 'classnames';
+import { useCallback, useRef, useState, type UIEvent } from 'react';
+import { useResizeDetector } from 'react-resize-detector';
 import {
   Grid,
   type CellComponentProps,
   type GridImperativeAPI,
-} from "react-window";
+} from 'react-window';
 
-import { ETableAction, TableSize } from "./index";
+import { ETableAction, TableSize } from './index';
 
 export interface VirtualTableProps<
   RecordType,
@@ -42,7 +42,7 @@ export interface VirtualTableProps<
   allowHTML?: boolean;
 }
 
-const StyledCell = styled("div")<{ height?: number }>(
+const StyledCell = styled('div')<{ height?: number }>(
   ({ theme, height }) => `
   white-space: nowrap;
   overflow: hidden;
@@ -81,7 +81,7 @@ const SMALL = 39;
 const MIDDLE = 47;
 
 interface VirtualGridCellProps {
-  mergedColumns: AntTableProps<any>["columns"];
+  mergedColumns: AntTableProps<any>['columns'];
   rawData: readonly object[];
   cellSize: number;
   allowHTML: boolean;
@@ -108,23 +108,23 @@ const VirtualGridCell = ({
   let content = data?.[(mergedColumns as any)?.[columnIndex]?.dataIndex];
   // Check if the column has a render function
   const render = mergedColumns?.[columnIndex]?.render;
-  if (typeof render === "function") {
+  if (typeof render === 'function') {
     // Use render function to generate formatted content using column's render function
     content = render(content, data, rowIndex);
   }
 
-  if (allowHTML && typeof content === "string") {
+  if (allowHTML && typeof content === 'string') {
     content = safeHtmlSpan(content);
   }
 
   return (
     <StyledCell
-      className={classNames("virtual-table-cell", {
-        "virtual-table-cell-last":
+      className={classNames('virtual-table-cell', {
+        'virtual-table-cell-last':
           columnIndex === (mergedColumns?.length ?? 0) - 1,
       })}
       style={style}
-      title={typeof content === "string" ? content : undefined}
+      title={typeof content === 'string' ? content : undefined}
       theme={theme}
       height={cellSize}
     >
@@ -156,7 +156,7 @@ const VirtualTable = <RecordType extends object>(
   const DEFAULT_COL_WIDTH = theme?.sizeUnit * 37 || 150;
   const widthColumnCount = columns!.filter(({ width }) => !width).length;
   let staticColWidthTotal = 0;
-  columns?.forEach((column) => {
+  columns?.forEach(column => {
     if (column.width) {
       staticColWidthTotal += column.width as number;
     }
@@ -169,7 +169,7 @@ const VirtualTable = <RecordType extends object>(
   );
 
   const mergedColumns =
-    columns?.map?.((column) => {
+    columns?.map?.(column => {
       const modifiedColumn = { ...column };
       if (!column.width) {
         modifiedColumn.width = defaultWidth;
@@ -191,7 +191,7 @@ const VirtualTable = <RecordType extends object>(
   const gridRef = useRef<GridImperativeAPI>(null);
   const [connectObject] = useState<any>(() => {
     const obj = {};
-    Object.defineProperty(obj, "scrollLeft", {
+    Object.defineProperty(obj, 'scrollLeft', {
       get: () => gridRef.current?.element?.scrollLeft ?? 0,
       set: (scrollLeft: number) => {
         const element = gridRef.current?.element;
