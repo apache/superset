@@ -27,8 +27,13 @@ from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     map_gauge_config,
 )
-from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, GaugeChartConfig
+from superset.mcp_service.chart.plugin import BaseChartPlugin, capped_compile_row_limit
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    GaugeChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
@@ -40,10 +45,16 @@ class GaugeChartPlugin(BaseChartPlugin):
     """Plugin for gauge chart type."""
 
     chart_type = "gauge"
+    allows_empty_result = True
     display_name = "Gauge Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",
     }
+    requires_compile_check = True
+    strict_dataset_rebind = True
+    requires_config_for_dataset_rebind = True
+    invalid_result_error_code = "INVALID_GAUGE_RESULT"
+    invalid_result_message = "Gauge metric query returned invalid values"
 
     def pre_validate(
         self,
@@ -192,4 +203,52 @@ class GaugeChartPlugin(BaseChartPlugin):
                 "'metric': {'name': 'progress', 'aggregate': 'AVG'}}",
             ],
             error_code="GAUGE_VALIDATION_ERROR",
+        )
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        from superset.mcp_service.chart.query_result import (
+            normalize_gauge_query_result,
+        )
+
+        return normalize_gauge_query_result(result, form_data)
+
+    def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
+        return capped_compile_row_limit(form_data)
+
+    def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
+        value = form_data.get("row_limit", 10)
+        return value if isinstance(value, int) and 1 <= value <= 10 else 10
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int
+    ) -> str | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_gauge_ascii_preview,
+        )
+
+        return generate_gauge_ascii_preview(data, form_data, width)
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_gauge_vega_lite_preview,
+        )
+
+        return generate_gauge_vega_lite_preview(data, form_data)
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        from superset.mcp_service.chart.chart_utils import merge_gauge_update_form_data
+
+        if not isinstance(config, GaugeChartConfig):
+            return None
+        return merge_gauge_update_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
         )

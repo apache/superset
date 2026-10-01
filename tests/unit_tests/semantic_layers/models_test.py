@@ -1601,6 +1601,181 @@ def test_semantic_view_before_update_updates_perm(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_view_before_update_syncs_dependent_slice_perms(app: Any) -> None:
+    """Renaming a view also updates dependent charts' denormalized perm.
+
+    The chart-list access filter matches no-viewer semantic-view charts on
+    ``Slice.perm``, so a rename must propagate the new perm to the chart or the
+    chart loses visibility in lists even for entitled users.
+    """
+    from superset import security_manager
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Sync Layer"
+    layer.uuid = uuid.UUID("bbbb1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Old Sync View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Old Sync View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.perm == view.perm
+
+        view.name = "New Sync View"
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(view)
+
+        new_perm = view.perm
+        assert chart.perm == new_perm
+
+        # The chart stays discoverable through the chart-list access filter
+        # (ChartFilter._apply_viewers) that matches by Slice.perm.
+        with (
+            patch("superset.charts.filters.get_user_id", return_value=None),
+            patch.object(
+                security_manager, "user_view_menu_names", return_value={new_perm}
+            ),
+            patch.object(security_manager, "get_accessible_databases", return_value=[]),
+        ):
+            filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+            filt.model = Slice
+            visible = filt._apply_viewers(db.session.query(Slice)).all()
+            assert chart.id in {slc.id for slc in visible}
+    finally:
+        db.session.rollback()
+
+
+def test_chart_filter_no_viewer_semantic_view_layer_perm_grants_visibility(
+    app: Any,
+) -> None:
+    """A datasource_access grant on the parent layer makes a no-viewer
+    semantic-view chart discoverable through the chart-list access filter
+    (mirrors SemanticView.raise_for_access)."""
+    from superset import security_manager
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Layer Grant Layer"
+    layer.uuid = uuid.UUID("cccc1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Layer Grant View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the layer-granted view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Layer Grant View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        # The insert listener stamps the computed perms on flush.
+        layer_perm = layer.perm
+        assert layer_perm
+        assert chart.perm == view.perm
+
+        with (
+            patch("superset.charts.filters.get_user_id", return_value=None),
+            patch.object(
+                security_manager, "user_view_menu_names", return_value={layer_perm}
+            ),
+            patch.object(security_manager, "get_accessible_databases", return_value=[]),
+        ):
+            filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+            filt.model = Slice
+            visible = filt._apply_viewers(db.session.query(Slice)).all()
+            assert chart.id in {slc.id for slc in visible}
+    finally:
+        db.session.rollback()
+
+
+def test_chart_filter_no_viewer_semantic_view_unrelated_perm_denies_visibility(
+    app: Any,
+) -> None:
+    """An unrelated datasource_access grant does not expose a no-viewer
+    semantic-view chart through the chart-list access filter."""
+    from superset import security_manager
+    from superset.charts.filters import ChartFilter
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Unrelated Perm Layer"
+    layer.uuid = uuid.UUID("dddd1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Unrelated Perm View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the unrelated-perm view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Unrelated Perm View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        with (
+            patch("superset.charts.filters.get_user_id", return_value=None),
+            patch.object(
+                security_manager,
+                "user_view_menu_names",
+                return_value={"[someone][else](id:98765)"},
+            ),
+            patch.object(security_manager, "get_accessible_databases", return_value=[]),
+        ):
+            filt: ChartFilter = ChartFilter.__new__(ChartFilter)
+            filt.model = Slice
+            visible = filt._apply_viewers(db.session.query(Slice)).all()
+            assert chart.id not in {slc.id for slc in visible}
+    finally:
+        db.session.rollback()
+
+
 def test_semantic_layer_after_delete_calls_security_manager() -> None:
     """Test SemanticLayer.after_delete delegates to security manager."""
     from superset import security_manager
@@ -1655,6 +1830,56 @@ def test_semantic_layer_rename_cascades_to_view_perms(app: Any) -> None:
         # Cascade update is via raw SQL, so refresh the ORM object
         db.session.refresh(view)
         assert view.perm == f"[New Layer].[Cascade View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
+def test_semantic_layer_rename_cascades_to_slice_perms(app: Any) -> None:
+    """Renaming a layer updates dependent charts' denormalized perm.
+
+    The chart-list access filter matches no-viewer semantic-view charts on
+    ``Slice.perm`` (mirroring ``set_related_perm``), so a layer rename that
+    rewrites the view perms must also rewrite the perm of charts pinned to
+    those views or the charts lose list visibility for entitled users.
+    """
+    from superset.extensions import db
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    layer = SemanticLayer()
+    layer.name = "Old Slice Layer"
+    layer.uuid = uuid.UUID("dddd1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Slice View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On cascade view",
+        datasource_type=DatasourceType.SEMANTIC_VIEW,
+        datasource_id=view.id,
+        datasource_name="Slice View",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    assert chart.perm == view.perm
+
+    try:
+        layer.name = "New Slice Layer"
+        db.session.flush()
+
+        # Cascade update is via raw SQL, so refresh the ORM objects
+        db.session.refresh(view)
+        db.session.refresh(chart)
+        assert chart.perm == f"[New Slice Layer].[Slice View](id:{view.id})"
     finally:
         db.session.rollback()
 
