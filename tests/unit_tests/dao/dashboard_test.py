@@ -24,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
 from superset.commands.dashboard.exceptions import DashboardInvalidError
+from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
     _layout_chart_id,
@@ -328,6 +329,7 @@ def test_reconcile_position_json_ignores_non_dict_layout() -> None:
     return 0, not raise (sc-115325 python-review regression guard: the old
     ``json.dumps(json.loads(...))`` round-trip accepted any JSON value)."""
     non_dict_layouts: list[Any] = [[], None, 5, "just a string"]
+    payload: Any
     for payload in non_dict_layouts:
         assert reconcile_position_json(payload) == 0
 
@@ -574,6 +576,7 @@ def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
         },
     }
 
+    excinfo: pytest.ExceptionInfo[DashboardInvalidError]
     with pytest.raises(DashboardInvalidError) as excinfo:
         DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
 
@@ -981,3 +984,120 @@ def test_reconcile_empty_chart_slot_without_resolvable_ids(
         "type": "MARKDOWN",
         "meta": {"width": 4, "height": 50, "code": "This chart no longer exists."},
     }
+
+
+def _save_review_layout(
+    dashboard: Dashboard, positions: dict[str, Any], field: str
+) -> None:
+    """Exercise either update payload after the separately tested access validation."""
+    payload: dict[str, Any] = (
+        {"positions": positions} if field == "json_metadata" else positions
+    )
+    command: UpdateDashboardCommand = UpdateDashboardCommand(
+        dashboard.id, {field: json.dumps(payload)}
+    )
+    command._model = dashboard  # noqa: SLF001
+    with patch.object(command, "validate"):
+        command.run()
+    db.session.flush()
+    db.session.expire(dashboard, ["position_json"])
+
+
+@pytest.mark.parametrize("field", ["json_metadata", "position_json"])
+@pytest.mark.parametrize("duplicate_id", [987654321, "987654321", 987654321.0])
+def test_save_deduplicates_missing_chart_before_placeholder_conversion(
+    session: Session, field: str, duplicate_id: int | str | float
+) -> None:
+    """A detached duplicate must not be rescued as a second missing-chart tile."""
+    Dashboard.metadata.create_all(session.get_bind())
+    dashboard: Dashboard = Dashboard(dashboard_title="missing duplicate", slices=[])
+    db.session.add(dashboard)
+    db.session.flush()
+    positions: dict[str, Any] = _position_with_trapped_chart(987654321, 987654321)
+    positions["CHART-trapped"]["meta"]["chartId"] = duplicate_id
+
+    _save_review_layout(dashboard, positions, field)
+
+    saved: dict[str, Any] = json.loads(dashboard.position_json)
+    placeholders: list[str] = [
+        key
+        for key, node in saved.items()
+        if isinstance(node, dict) and node.get("type") == "MARKDOWN"
+    ]
+    assert placeholders == ["CHART-placed"]
+    assert saved["CHART-placed"]["meta"]["code"] == "This chart no longer exists."
+    assert "CHART-trapped" not in saved
+    assert dashboard.slices == []
+
+
+@pytest.mark.parametrize("field", ["json_metadata", "position_json"])
+@pytest.mark.parametrize("numeric_form", ["string", "float"])
+def test_save_normalizes_chart_ids_for_native_and_cross_filter_scopes(
+    session: Session, field: str, numeric_form: str
+) -> None:
+    """Saved IDs must be integers usable by both filter-scope readers."""
+    placed: Slice
+    trapped: Slice
+    placed, trapped = _make_charts(session)
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="numeric scopes", slices=[placed, trapped]
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    positions: dict[str, Any] = _position_with_trapped_chart(placed.id, trapped.id)
+    positions["CHART-trapped"]["meta"]["chartId"] = (
+        str(trapped.id) if numeric_form == "string" else float(trapped.id)
+    )
+    scope: dict[str, Any] = {"rootPath": ["ROOT_ID"], "excluded": []}
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {"id": "NATIVE_FILTER-test", "scope": scope}
+            ],
+            "chart_configuration": {
+                str(placed.id): {"id": placed.id, "crossFilters": {"scope": scope}}
+            },
+        }
+    )
+
+    _save_review_layout(dashboard, positions, field)
+
+    saved: dict[str, Any] = json.loads(dashboard.position_json)
+    derived: dict[str, Any] = derive_metadata_scopes(dashboard, dashboard.params_dict)
+    assert type(saved["CHART-trapped"]["meta"]["chartId"]) is int
+    assert saved["CHART-trapped"]["meta"]["chartId"] == trapped.id
+    assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
+    assert trapped.id in derived["native_filter_configuration"][0]["chartsInScope"]
+    assert (
+        trapped.id
+        in derived["chart_configuration"][str(placed.id)]["crossFilters"][
+            "chartsInScope"
+        ]
+    )
+
+
+@pytest.mark.parametrize("field", ["json_metadata", "position_json"])
+@pytest.mark.parametrize("missing_id", [False, True])
+def test_save_preserves_detached_empty_copy_slot(
+    session: Session, field: str, missing_id: bool
+) -> None:
+    """An empty legacy slot has no chart identity to deduplicate or discard."""
+    Dashboard.metadata.create_all(session.get_bind())
+    dashboard: Dashboard = Dashboard(dashboard_title="empty legacy slot", slices=[])
+    db.session.add(dashboard)
+    db.session.flush()
+    positions: dict[str, Any] = _position_with_trapped_chart(987654321, 987654322)
+    positions["CHART-trapped"]["meta"]["chartId"] = None
+    if missing_id:
+        del positions["CHART-trapped"]["meta"]["chartId"]
+
+    _save_review_layout(dashboard, positions, field)
+
+    saved: dict[str, Any] = json.loads(dashboard.position_json)
+    assert saved["CHART-trapped"]["type"] == "MARKDOWN"
+    assert saved["CHART-trapped"]["meta"] == {
+        "width": 4,
+        "height": 50,
+        "code": "This chart no longer exists.",
+    }
+    assert saved["CHART-trapped"]["parents"][:2] == ["ROOT_ID", "GRID_ID"]

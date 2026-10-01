@@ -164,6 +164,8 @@ def _chart_slot_placeholder(node: dict[str, Any], message: str) -> dict[str, Any
 
 def _replace_archived_copy_slots(positions: object, archived_ids: set[int]) -> None:
     """Replace archived member slots only in the copy-with-charts layout."""
+    key: str
+    node: Any
     if isinstance(positions, dict):
         for key, node in positions.items():
             if _layout_chart_id(node) in archived_ids:
@@ -177,7 +179,7 @@ def _repair_dangling_chart_nodes(
     valid_chart_ids: set[int],
     dashboard_id: int | None = None,
 ) -> int:
-    """Replace dangling chart nodes with markdown placeholders.
+    """Normalize chart IDs and repair topology before replacing dangling tiles.
 
     Swap every ``CHART`` layout node whose ``chartId`` is absent from
     *valid_chart_ids* for a markdown placeholder, in place, and return how
@@ -207,11 +209,29 @@ def _repair_dangling_chart_nodes(
     ``MissingChart`` render path), which is request-scoped.
     """
     repaired: int = 0
+    key: str
+    node: Any
     for key, node in positions.items():
         chart_id: int | None = _layout_chart_id(node)
-        if _is_empty_chart_slot(node) or (
-            chart_id is not None and chart_id not in valid_chart_ids
-        ):
+        if chart_id is not None:
+            # Persist canonical IDs for topology deduplication and filter scopes.
+            node["meta"]["chartId"] = chart_id
+        elif _is_empty_chart_slot(node):
+            # Empty copy slots have no chart identity to deduplicate. Preserve
+            # their content through the layout repair's markdown rescue.
+            positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
+            repaired += 1
+
+    # Deduplicate detached CHART references before replacing missing charts with
+    # markdown, which the topology repair preserves independently of identity.
+    repaired_positions: dict[str, Any] = repair_position(positions, dashboard_id)
+    if repaired_positions is not positions:
+        positions.clear()
+        positions.update(repaired_positions)
+
+    for key, node in positions.items():
+        chart_id = _layout_chart_id(node)
+        if chart_id is not None and chart_id not in valid_chart_ids:
             positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
             repaired += 1
     if repaired:
@@ -654,10 +674,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             for obj in positions.values():
                 if (chart_id := _layout_chart_id(obj)) is not None:
                     obj["meta"]["uuid"] = uuid_map.get(chart_id)
-
-            # Repair the layout before it is persisted; detached charts are
-            # reattached so their membership and cross-filter config survive.
-            positions = repair_position(positions, dashboard.id)
 
             # remove leading and trailing white spaces in the dumped json
             dashboard.position_json = json.dumps(

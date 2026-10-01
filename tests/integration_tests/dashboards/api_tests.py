@@ -2435,6 +2435,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         admin: User = self.get_user("admin")
         dataset_id: int = db.session.query(SqlaTable.id).first()[0]
         self.login(ADMIN_USERNAME)
+        missing_id: bool
+        payload_field: str
         for missing_id in (False, True):
             for payload_field in ("json_metadata", "position_json"):
                 dashboard: Dashboard = self.insert_dashboard(
@@ -2559,6 +2561,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             },
         }
         uri: str = f"api/v1/dashboard/{dashboard_id}"
+        raw_reconcile: MagicMock
+        update: MagicMock
         with (
             patch(
                 "superset.commands.dashboard.update.reconcile_position_json",
@@ -2707,6 +2711,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         where tab-diff processing runs before reconciliation."""
         admin: User = self.get_user("admin")
         self.login(ADMIN_USERNAME)
+        payload: str
         for payload in ("[]", "null", "5", '"just a string"'):
             dashboard_id: int = self.insert_dashboard(
                 f"nonobj-{payload!r}", None, [admin.id]

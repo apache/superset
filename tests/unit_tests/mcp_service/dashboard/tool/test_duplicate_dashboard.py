@@ -66,6 +66,7 @@ async def test_malformed_chart_node_does_not_request_another_title(
         )
 
     mock_command.return_value.run.side_effect = reject_layout
+    client: Client
     async with Client(mcp_server) as client:
         result: Any = await client.call_tool(
             "duplicate_dashboard",
@@ -88,6 +89,7 @@ async def test_invalid_copy_parameters_keep_title_guidance(
 
     mock_source.return_value = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
     mock_command.return_value.run.side_effect = DashboardInvalidError()
+    client: Client
     async with Client(mcp_server) as client:
         result: Any = await client.call_tool(
             "duplicate_dashboard",

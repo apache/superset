@@ -18,7 +18,7 @@
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm import Session
@@ -65,6 +65,7 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
     positions["CHART-empty"] = empty_node
     source.position_json = json.dumps(positions)
     source_layout: str = source.position_json
+    mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
         patch("superset.daos.dashboard.g") as mock_g,
@@ -151,6 +152,7 @@ def test_copy_archived_slot_policy_and_restore(
     }
     if mcp_payload:
         payload = _build_copy_payload(source, "copy", duplicate_slices)[0]
+    mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
         patch("superset.daos.dashboard.g") as mock_g,
