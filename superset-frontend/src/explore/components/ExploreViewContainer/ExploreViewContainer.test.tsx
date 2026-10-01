@@ -43,6 +43,8 @@ import {
 import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as chartActions from 'src/components/Chart/chartAction';
+import * as datasourceActions from 'src/dashboard/actions/datasources';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -153,25 +155,41 @@ jest.mock('../ControlPanelsContainer', () => ({
   __esModule: true,
   default: ({
     onQuery,
+    onStop,
     buttonErrorMessage,
     errorMessage,
     chartIsStale,
+    canStopQuery,
   }: {
     onQuery: () => void;
+    onStop: () => void;
     buttonErrorMessage?: ReactNode;
     errorMessage?: ReactNode;
     chartIsStale?: boolean;
+    canStopQuery?: boolean;
   }) => {
+    const { RunQueryButton } = jest.requireActual('../RunQueryButton');
     const message = buttonErrorMessage ?? errorMessage;
 
     return (
       <div
         data-test="control-panels-container"
         data-stale={String(!!chartIsStale)}
+        data-has-button-error={String(!!buttonErrorMessage)}
+        data-has-data-tab-error={String(!!errorMessage)}
       >
-        <button type="button" onClick={onQuery}>
-          Update chart
-        </button>
+        {/* The real button, wired like ControlPanelsContainer wires it. It is
+            never in the loading state here: mounting queues a query and no
+            chart panel exists to resolve it, so the store stays 'loading'. */}
+        <RunQueryButton
+          onQuery={onQuery}
+          onStop={onStop}
+          errorMessage={buttonErrorMessage || errorMessage}
+          loading={false}
+          isNewChart={false}
+          canStopQuery={!!canStopQuery}
+          chartIsStale={!!chartIsStale}
+        />
         {message && (
           <>
             <button type="button" data-test="query-error-tooltip-trigger">
@@ -1307,5 +1325,291 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
+  }
+});
+
+const getChart = (store: Store) =>
+  (
+    store.getState() as {
+      charts: Record<number, { triggerQuery?: boolean }>;
+    }
+  ).charts[1];
+
+test.each([
+  ['Ctrl', '{Control>}{Enter}{/Control}'],
+  ['Cmd', '{Meta>}{Enter}{/Meta}'],
+])('%s+Enter anywhere on the page queues the chart query', async (_, keys) => {
+  setupTableChartControlPanel();
+  try {
+    const store = createStore(reduxState, reducerIndex);
+    renderWithRouter({ initialState: reduxState, store: store as Store });
+    await screen.findByTestId('control-panels-container');
+
+    // Mounting queues a query; clear it so only the shortcut can set it again.
+    act(() => {
+      store.dispatch(chartActions.triggerQuery(false, 1));
+    });
+    expect(getChart(store as Store).triggerQuery).toBe(false);
+
+    await userEvent.keyboard(keys);
+
+    await waitFor(() =>
+      expect(getChart(store as Store).triggerQuery).toBe(true),
+    );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test.each([
+  ['Enter without a modifier', '{Enter}'],
+  ['Ctrl with another key', '{Control>}a{/Control}'],
+])('%s does not queue the chart query', async (_, keys) => {
+  setupTableChartControlPanel();
+  try {
+    const store = createStore(reduxState, reducerIndex);
+    renderWithRouter({ initialState: reduxState, store: store as Store });
+    await screen.findByTestId('control-panels-container');
+    act(() => {
+      store.dispatch(chartActions.triggerQuery(false, 1));
+    });
+
+    await userEvent.keyboard(keys);
+
+    expect(getChart(store as Store).triggerQuery).toBe(false);
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+const stateWithControls = (controls: object) => ({
+  ...reduxState,
+  explore: {
+    ...reduxState.explore,
+    controls: { ...reduxState.explore.controls, ...controls },
+  },
+});
+
+test('keeps the Run button enabled when no control has validation errors', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        metric: { value: 'count', label: 'Metric' },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'false');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeEnabled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('disables the Run button and reports the error when a control fails validation', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        metric: {
+          value: '',
+          label: 'Metric',
+          validationErrors: ['Metric is required'],
+        },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'true');
+    expect(panel).toHaveAttribute('data-has-data-tab-error', 'true');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeDisabled();
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Control labeled Metric: Metric is required',
+    );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('disables the Run button for a matrixify control error without flagging the Data tab', async () => {
+  setupTableChartControlPanel();
+  try {
+    renderWithRouter({
+      initialState: stateWithControls({
+        matrixify_rows: {
+          value: '',
+          label: 'Rows',
+          tabOverride: 'matrixify',
+          validationErrors: ['Rows are required'],
+        },
+      }),
+    });
+
+    const panel = await screen.findByTestId('control-panels-container');
+    expect(panel).toHaveAttribute('data-has-button-error', 'true');
+    expect(panel).toHaveAttribute('data-has-data-tab-error', 'false');
+    expect(screen.getByRole('button', { name: 'Update chart' })).toBeDisabled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+const tooltipState = (vizType: string, template = '') => ({
+  ...reduxState,
+  charts: {
+    1: {
+      ...reduxState.charts[1],
+      latestQueryFormData: {
+        ...reduxState.charts[1].latestQueryFormData,
+        viz_type: vizType,
+      },
+    },
+  },
+  explore: {
+    ...reduxState.explore,
+    form_data: { datasource: '1__table', viz_type: vizType, metrics: [] },
+    controls: {
+      ...reduxState.explore.controls,
+      viz_type: { value: vizType },
+      tooltip_contents: { value: [] },
+      tooltip_template: { value: template },
+    },
+  },
+});
+
+// Renders the container and returns a function that selects tooltip contents
+// the way the control would and reports the template the container wrote back.
+const renderTooltipChart = (vizType: string, template = '') => {
+  getChartControlPanelRegistry().registerValue(vizType, {
+    controlPanelSections: [],
+  });
+  const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+  const initialState = tooltipState(vizType, template);
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+  setControlValueSpy.mockClear();
+  return {
+    selectTooltipContents: (contents: unknown[]) => {
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue('tooltip_contents', contents),
+        );
+      });
+    },
+    templateWrites: () =>
+      setControlValueSpy.mock.calls
+        .filter(([controlName]) => controlName === 'tooltip_template')
+        .map(([, value]) => value),
+    cleanup: () => getChartControlPanelRegistry().remove(vizType),
+  };
+};
+
+test('appends a {{ field }} variable to the tooltip template for a selected column', () => {
+  const chart = renderTooltipChart('deck_scatter');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['{{ name }}']);
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends after the existing tooltip template text', () => {
+  const chart = renderTooltipChart('deck_scatter', 'Details:');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['Details: {{ name }}']);
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends a limited variable for a column on an aggregated chart', () => {
+  const chart = renderTooltipChart('heatmap');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual(['{{ limit name 10 }}']);
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('appends a plain variable for a metric even on an aggregated chart', () => {
+  const chart = renderTooltipChart('heatmap');
+  try {
+    chart.selectTooltipContents([
+      { item_type: 'metric', metric_name: 'count' },
+    ]);
+
+    expect(chart.templateWrites()).toEqual(['{{ count }}']);
+  } finally {
+    chart.cleanup();
+  }
+});
+
+test('leaves the tooltip template alone when it already references the field', () => {
+  const chart = renderTooltipChart('deck_scatter', 'Name: {{ name }}');
+  try {
+    chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
+
+    expect(chart.templateWrites()).toEqual([]);
+  } finally {
+    chart.cleanup();
+  }
+});
+
+const datasourceState = {
+  ...reduxState,
+  explore: {
+    ...reduxState.explore,
+    form_data: { datasource: '1__table', viz_type: VizType.Table, metrics: [] },
+    controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+  },
+};
+
+test('requests the datasource metadata for the new datasource when the datasource control changes', () => {
+  setupTableChartControlPanel();
+  try {
+    const fetchMetadataSpy = jest.spyOn(
+      datasourceActions,
+      'fetchDatasourceMetadata',
+    );
+    const store = createStore(datasourceState, reducerIndex);
+    renderWithRouter({ initialState: datasourceState, store: store as Store });
+    fetchMetadataSpy.mockClear();
+
+    act(() => {
+      store.dispatch(exploreActions.setControlValue('datasource', '2__table'));
+    });
+
+    expect(fetchMetadataSpy).toHaveBeenCalledTimes(1);
+    expect(fetchMetadataSpy).toHaveBeenCalledWith('2__table');
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('does not request datasource metadata when an unrelated control changes', () => {
+  setupTableChartControlPanel();
+  try {
+    const fetchMetadataSpy = jest.spyOn(
+      datasourceActions,
+      'fetchDatasourceMetadata',
+    );
+    const store = createStore(datasourceState, reducerIndex);
+    renderWithRouter({ initialState: datasourceState, store: store as Store });
+    fetchMetadataSpy.mockClear();
+
+    act(() => {
+      store.dispatch(exploreActions.setControlValue('row_limit', 200));
+    });
+
+    expect(fetchMetadataSpy).not.toHaveBeenCalled();
+  } finally {
+    getChartControlPanelRegistry().remove('table');
   }
 });

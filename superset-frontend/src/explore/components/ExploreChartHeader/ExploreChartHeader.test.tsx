@@ -19,6 +19,7 @@
 
 import {
   configure,
+  createStore,
   render,
   screen,
   userEvent,
@@ -26,6 +27,9 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import type { Store } from '@reduxjs/toolkit';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { ToastType, ToastMeta } from 'src/components/MessageToasts/types';
 import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
@@ -164,6 +168,50 @@ fetchMock.post(
   'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
   { body: {} },
 );
+const PERMALINK_ENDPOINT = 'glob:*/api/v1/explore/permalink*';
+const PERMALINK_URL = 'http://localhost/superset/explore/p/k1/';
+const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
+const SHARE_ERROR_TEXT = 'Sorry, something went wrong. Try again later.';
+const SEEDED_CHART_STATE = { sorting: [{ id: 'age', desc: true }] };
+
+// Redux store whose explore slice carries a persisted chart state for the
+// chart the header renders, so the permalink payload has a chartState to send.
+const createShareStore = () =>
+  createStore(
+    {
+      explore: {
+        slice: { slice_id: 318 },
+        chartStates: { 318: { state: SEEDED_CHART_STATE } },
+      },
+    },
+    reducerIndex,
+  );
+
+const permalinkRequestBodies = () =>
+  fetchMock.callHistory
+    .calls(/api\/v1\/explore\/permalink/)
+    .map(call => JSON.parse(String(call.options?.body)));
+
+const toastsOfType = (store: Store, toastType: ToastType) =>
+  (store.getState() as { messageToasts: ToastMeta[] }).messageToasts.filter(
+    toast => toast.toastType === toastType,
+  );
+
+const stubClipboard = () => {
+  const writeText = jest.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText },
+    configurable: true,
+    writable: true,
+  });
+  return writeText;
+};
+
+const openShareSubmenu = async () => {
+  await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  await userEvent.hover(await screen.findByText('Share'));
+};
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
@@ -619,6 +667,25 @@ describe('ExploreChartHeader', () => {
 describe('Additional actions tests', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
+  const originalClipboard = Object.getOwnPropertyDescriptor(
+    navigator,
+    'clipboard',
+  );
+  const originalFeatureFlags = window.featureFlags;
+
+  afterEach(() => {
+    if (originalClipboard) {
+      Object.defineProperty(navigator, 'clipboard', originalClipboard);
+    } else {
+      Reflect.deleteProperty(navigator, 'clipboard');
+    }
+    window.featureFlags = originalFeatureFlags;
+    fetchMock.removeRoutes({
+      names: ['permalink-create', 'chart-data-query'],
+    });
+    fetchMock.clearHistory();
+  });
+
   beforeEach(() => {
     (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
       showModal: false,
@@ -730,6 +797,204 @@ describe('Additional actions tests', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('Embed code')).toBeInTheDocument();
     expect(await screen.findByText('Share chart by email')).toBeInTheDocument();
+  });
+
+  test('Copy permalink requests a permalink with the chart state, copies it, and shows a success toast', async () => {
+    fetchMock.post(
+      PERMALINK_ENDPOINT,
+      { key: 'k1', url: PERMALINK_URL },
+      { name: 'permalink-create' },
+    );
+    const writeText = stubClipboard();
+    const store = createShareStore();
+    render(<ExploreHeader {...createProps()} />, { store });
+
+    await openShareSubmenu();
+    await userEvent.click(
+      await screen.findByText('Copy permalink to clipboard'),
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(PERMALINK_URL));
+    await waitFor(() =>
+      expect(toastsOfType(store, ToastType.Success)).toEqual([
+        expect.objectContaining({ text: 'Copied to clipboard!' }),
+      ]),
+    );
+    const [body] = permalinkRequestBodies();
+    expect(body.formData.datasource).toBe('49__table');
+    expect(body.chartState).toEqual(SEEDED_CHART_STATE);
+    expect(toastsOfType(store, ToastType.Danger)).toHaveLength(0);
+  });
+
+  test('Copy permalink shows a danger toast and copies nothing when the permalink request fails', async () => {
+    fetchMock.post(PERMALINK_ENDPOINT, 500, { name: 'permalink-create' });
+    const writeText = stubClipboard();
+    const store = createShareStore();
+    render(<ExploreHeader {...createProps()} />, { store });
+
+    await openShareSubmenu();
+    await userEvent.click(
+      await screen.findByText('Copy permalink to clipboard'),
+    );
+
+    await waitFor(() =>
+      expect(toastsOfType(store, ToastType.Danger)).toEqual([
+        expect.objectContaining({ text: SHARE_ERROR_TEXT }),
+      ]),
+    );
+    expect(writeText).not.toHaveBeenCalled();
+    expect(toastsOfType(store, ToastType.Success)).toHaveLength(0);
+  });
+
+  test('Copy permalink shows a danger toast without calling the API when there is no datasource', async () => {
+    fetchMock.post(
+      PERMALINK_ENDPOINT,
+      { key: 'k1', url: PERMALINK_URL },
+      { name: 'permalink-create' },
+    );
+    const writeText = stubClipboard();
+    const store = createShareStore();
+    const props = createProps();
+    props.chart.latestQueryFormData = {
+      ...props.chart.latestQueryFormData,
+      datasource: undefined,
+    } as unknown as typeof props.chart.latestQueryFormData;
+    render(<ExploreHeader {...props} />, { store });
+
+    await openShareSubmenu();
+    await userEvent.click(
+      await screen.findByText('Copy permalink to clipboard'),
+    );
+
+    await waitFor(() =>
+      expect(toastsOfType(store, ToastType.Danger)).toEqual([
+        expect.objectContaining({ text: SHARE_ERROR_TEXT }),
+      ]),
+    );
+    expect(permalinkRequestBodies()).toHaveLength(0);
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  test('Share chart by email opens a mailto link containing the permalink', async () => {
+    fetchMock.post(
+      PERMALINK_ENDPOINT,
+      { key: 'k1', url: PERMALINK_URL },
+      { name: 'permalink-create' },
+    );
+    const mockedLocation = {
+      href: '',
+      search: '',
+      origin: 'http://localhost',
+      pathname: '/explore/',
+    };
+    const locationSpy = jest
+      .spyOn(window, 'location', 'get')
+      .mockReturnValue(mockedLocation as unknown as Location);
+    try {
+      render(<ExploreHeader {...createProps()} />, {
+        store: createShareStore(),
+      });
+
+      await openShareSubmenu();
+      await userEvent.click(await screen.findByText('Share chart by email'));
+
+      await waitFor(() => expect(mockedLocation.href).not.toBe(''));
+      expect(mockedLocation.href.startsWith('mailto:?Subject=')).toBe(true);
+      expect(decodeURIComponent(mockedLocation.href)).toContain(
+        `Check out this chart: ${PERMALINK_URL}`,
+      );
+    } finally {
+      locationSpy.mockRestore();
+    }
+  });
+
+  test('Share chart by email shows a danger toast and no mailto link when the permalink request fails', async () => {
+    fetchMock.post(PERMALINK_ENDPOINT, 500, { name: 'permalink-create' });
+    const mockedLocation = {
+      href: '',
+      search: '',
+      origin: 'http://localhost',
+      pathname: '/explore/',
+    };
+    const locationSpy = jest
+      .spyOn(window, 'location', 'get')
+      .mockReturnValue(mockedLocation as unknown as Location);
+    try {
+      const store = createShareStore();
+      render(<ExploreHeader {...createProps()} />, { store });
+
+      await openShareSubmenu();
+      await userEvent.click(await screen.findByText('Share chart by email'));
+
+      await waitFor(() =>
+        expect(toastsOfType(store, ToastType.Danger)).toEqual([
+          expect.objectContaining({ text: SHARE_ERROR_TEXT }),
+        ]),
+      );
+      expect(mockedLocation.href).toBe('');
+    } finally {
+      locationSpy.mockRestore();
+    }
+  });
+
+  test('Embed code opens a modal whose textarea holds the chart iframe', async () => {
+    fetchMock.post(
+      PERMALINK_ENDPOINT,
+      { key: 'k1', url: PERMALINK_URL },
+      { name: 'permalink-create' },
+    );
+    render(<ExploreHeader {...createProps()} />, { store: createShareStore() });
+
+    await openShareSubmenu();
+    await userEvent.click(await screen.findByTestId('embed-code-button'));
+
+    const textarea = await screen.findByTestId('embed-code-textarea');
+    await waitFor(() =>
+      expect((textarea as HTMLTextAreaElement).value).toContain('<iframe'),
+    );
+    expect((textarea as HTMLTextAreaElement).value).toContain(
+      `src="${PERMALINK_URL}?standalone=1&height=400"`,
+    );
+  });
+
+  test('Embed code is not offered when the EmbeddableCharts feature flag is off', async () => {
+    window.featureFlags = { [FeatureFlag.EmbeddableCharts]: false };
+    render(<ExploreHeader {...createProps()} />, { store: createShareStore() });
+
+    await openShareSubmenu();
+
+    expect(
+      await screen.findByText('Copy permalink to clipboard'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+  });
+
+  test('View query renders the generated SQL and Close dismisses the modal', async () => {
+    fetchMock.post(
+      CHART_DATA_ENDPOINT,
+      { result: [{ query: 'SELECT age FROM survey', language: 'sql' }] },
+      { name: 'chart-data-query' },
+    );
+    render(<ExploreHeader {...createProps()} />, { store: createShareStore() });
+
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('View query'));
+
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() =>
+      expect(dialog).toHaveTextContent('SELECT age FROM survey'),
+    );
+
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: /close/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText(/SELECT age FROM survey/),
+    ).not.toBeInTheDocument();
   });
 
   test('Should call onOpenPropertiesModal when click on "Edit chart properties"', async () => {
