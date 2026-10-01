@@ -252,3 +252,41 @@ class GaugeChartPlugin(BaseChartPlugin):
         return merge_gauge_update_form_data(
             existing_form_data, new_form_data, config, dataset_rebind
         )
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        # An omitted group_by keeps the cached breakdown; an explicit value,
+        # including [], is already the mapper's replacement.
+        if (
+            isinstance(config, GaugeChartConfig)
+            and "groupby" not in config.model_fields_set
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and "groupby" in existing_form_data
+        ):
+            merged = {**merged, "groupby": existing_form_data["groupby"]}
+        if (
+            isinstance(config, GaugeChartConfig)
+            and "filters" not in config.model_fields_set
+            and "temporal_column" in config.model_fields_set
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and isinstance(existing_form_data.get("adhoc_filters"), list)
+        ):
+            # Cached non-generated filters survive a temporal-column change;
+            # only the generated time binding is replaced.
+            from superset.mcp_service.chart.chart_utils import (
+                merge_gauge_update_form_data,
+            )
+
+            gauge_merged = merge_gauge_update_form_data(
+                existing_form_data, new_form_data, config, False
+            )
+            merged = {**merged, "adhoc_filters": gauge_merged.get("adhoc_filters", [])}
+            for key in set(existing_form_data) - set(gauge_merged):
+                if key.startswith("_mcp_"):
+                    merged.pop(key, None)
+        return merged

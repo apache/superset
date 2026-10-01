@@ -311,8 +311,10 @@ class TestUpdateChartPreview:
             generate_preview=False,
         )
 
-        result = update_chart_preview_module.update_chart_preview(
-            request=request, ctx=Mock()
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
         )
 
         assert result["success"] is True
@@ -382,8 +384,10 @@ class TestUpdateChartPreview:
             "DatasetValidator.normalize_column_names",
             side_effect=lambda config, *_args, **_kwargs: config,
         ):
-            result = update_chart_preview_module.update_chart_preview(
-                request=request, ctx=Mock()
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request, ctx=Mock()
+                )
             )
 
         assert result["success"] is True

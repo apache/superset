@@ -461,6 +461,7 @@ def update_chart_preview(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
+            "form_data": new_form_data,
             "previous_form_data_key": request.form_data_key,  # For reference
             "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts

@@ -17,6 +17,7 @@
 
 """Product-path coverage for typed MCP Sunburst support."""
 
+import asyncio
 from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from decimal import Decimal
@@ -4184,7 +4185,9 @@ def test_cached_update_preview_rejects_orphan_grain_before_recaching() -> None:
             generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is False
     assert result["error"]["error_code"] == "INVALID_TEMPORAL_STATE"
@@ -4257,7 +4260,9 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
             generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert compile_calls == [generate_link.call_args.args[1]]
@@ -4365,7 +4370,9 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
             side_effect=generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert {
@@ -4491,7 +4498,9 @@ def test_cached_sunburst_cross_viz_rebind_discards_stale_identity(
             side_effect=generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert captured["datasource"] == "99__table"
@@ -4660,7 +4669,9 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
             return_value=command,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert result["previews"]["table"]["row_count"] == 1
@@ -4751,7 +4762,9 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
             side_effect=generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert captured["time_compare"] == ["1 year ago"]
@@ -4832,7 +4845,9 @@ def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:
             side_effect=generate_link,
         ),
     ):
-        result = update_chart_preview(request, ctx=MagicMock())
+        result = asyncio.run(
+            update_chart_preview(request, ctx=MagicMock())
+        )
 
     assert result["success"] is True
     assert {
@@ -5306,7 +5321,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
             return_value="http://localhost/explore/?form_data_key=updated-key",
         ),
     ):
-        updated_preview = update_chart_preview(
+        updated_preview = await update_chart_preview(
             request=UpdateChartPreviewRequest(
                 form_data_key="cross-viz-key",
                 dataset_id=7,
