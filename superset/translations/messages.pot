@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 13:30+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -238,6 +238,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
+msgstr ""
+
+#, python-format
+msgid "%(partition)s is hidden from Explore, but no filter is mirrored onto it — queries will scan every partition until a column is mapped."
 msgstr ""
 
 #, python-format
@@ -878,11 +882,18 @@ msgstr ""
 msgid "@import is blocked to prevent a dashboard from loading arbitrary remote CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid "A %(operator)s filter is only mirrored when the transform preserves ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr ""
 
 #, python-brace-format
 msgid "A JavaScript object that adheres to the ECharts options specification, overriding other control options with higher precedence. (i.e. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: https://echarts.apache.org/en/option.html. "
+msgstr ""
+
+msgid "A SQL expression evaluated against the engine, with :value standing for the filter bound being mirrored."
 msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
@@ -2730,6 +2741,9 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr ""
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr ""
 
@@ -3613,6 +3627,9 @@ msgstr ""
 msgid "Column type"
 msgstr ""
 
+msgid "Column used for partition pruning on this table. Selecting one hides it from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr ""
 
@@ -4292,6 +4309,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -5756,6 +5776,9 @@ msgstr ""
 msgid "Embedding deactivated."
 msgstr ""
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr ""
 
@@ -6705,7 +6728,23 @@ msgid "Filters for values less than or equal."
 msgstr ""
 
 #, python-format
+msgid "Filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s."
+msgstr ""
+
+msgid "Filters on the mapped column are mirrored onto this column so the engine can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
+msgstr ""
+
+msgid "Filters will not be mirrored"
 msgstr ""
 
 msgid "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."
@@ -8304,6 +8343,12 @@ msgstr ""
 msgid "Map Style"
 msgstr ""
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr ""
 
@@ -8318,6 +8363,9 @@ msgstr ""
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -8729,6 +8777,9 @@ msgstr ""
 msgid "Monday"
 msgstr ""
 
+msgid "Monotonicity is a property of the transform, not of the column type: hour(:value) and dayofweek(:value) are reasonable transforms on a timestamp and neither preserves ordering, so Superset asks rather than guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr ""
 
@@ -8752,6 +8803,9 @@ msgid "MotherDuck token"
 msgstr ""
 
 msgid "Move icon"
+msgstr ""
+
+msgid "Move mapping to this column →"
 msgstr ""
 
 msgid "Move only"
@@ -9077,6 +9131,9 @@ msgstr ""
 msgid "No items"
 msgstr ""
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr ""
 
@@ -9161,6 +9218,10 @@ msgstr ""
 msgid "No validator named %(validator_name)s found (configured for the %(engine_spec)s engine)"
 msgstr ""
 
+#, python-format
+msgid "No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition."
+msgstr ""
+
 msgid "No value transform is set, so no filter will be mirrored onto the partition column."
 msgstr ""
 
@@ -9200,6 +9261,9 @@ msgstr ""
 msgid "Normalized"
 msgstr ""
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr ""
 
@@ -9223,6 +9287,9 @@ msgid "Not all required fields are complete. Please provide the following:"
 msgstr ""
 
 msgid "Not available"
+msgstr ""
+
+msgid "Not currently mapped to the partition column."
 msgstr ""
 
 msgid "Not defined"
@@ -9684,7 +9751,13 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
+msgstr ""
+
+msgid "PREVIEW"
 msgstr ""
 
 msgid "Page"
@@ -9742,8 +9815,17 @@ msgstr ""
 msgid "Partition Threshold"
 msgstr ""
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid "Partitions whose height to parent height proportions are below this value are pruned"
@@ -10577,6 +10659,9 @@ msgstr ""
 msgid "Remove item"
 msgstr ""
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -10794,7 +10879,13 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr ""
 
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
 msgid "Required if your account already has a password"
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
@@ -11206,6 +11297,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -12046,6 +12140,9 @@ msgid "Set auto-refresh"
 msgstr ""
 
 msgid "Set filter mapping"
+msgstr ""
+
+msgid "Set from the default datetime column above, so re-pointing that column moves the mapping with it."
 msgstr ""
 
 msgid "Set local theme for testing"
@@ -13343,6 +13440,9 @@ msgstr ""
 msgid "The column was deleted or renamed in the database."
 msgstr ""
 
+msgid "The column whose filters are mirrored. It follows the default datetime column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr ""
 
@@ -13674,6 +13774,9 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid "The physical column the engine partitions on. Filters on the mapped column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr ""
 
@@ -13684,6 +13787,9 @@ msgid "The port is closed."
 msgstr ""
 
 msgid "The port number is invalid."
+msgstr ""
+
+msgid "The preview could not be loaded."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
@@ -13872,6 +13978,10 @@ msgstr ""
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr ""
 
@@ -13920,6 +14030,10 @@ msgid "The value transform calls %(functions)s, whose result depends on when and
 msgstr ""
 
 msgid "The value transform could not be parsed. The mapping is saved but stays inactive until it does."
+msgstr ""
+
+#, python-format
+msgid "The value transform could not be parsed: %(detail)s The mapping is saved but stays inactive until it does."
 msgstr ""
 
 msgid "The value transform must contain the :value placeholder, which stands for the filter value being mirrored."
@@ -14329,6 +14443,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -14891,6 +15008,9 @@ msgstr ""
 msgid "Track job"
 msgstr ""
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr ""
 
@@ -15381,6 +15501,9 @@ msgstr ""
 msgid "Use %s to open in a new tab."
 msgstr ""
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr ""
 
@@ -15498,6 +15621,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr ""
 
@@ -15565,6 +15691,9 @@ msgid "Value must be 0 or greater"
 msgstr ""
 
 msgid "Value must be greater than 0"
+msgstr ""
+
+msgid "Value transform"
 msgstr ""
 
 #, python-format
@@ -17431,6 +17560,10 @@ msgstr ""
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr ""
 
@@ -17471,6 +17604,9 @@ msgid "top"
 msgstr ""
 
 msgid "undo"
+msgstr ""
+
+msgid "unix_timestamp(:value)"
 msgstr ""
 
 msgid "unknown type icon"
@@ -17547,6 +17683,9 @@ msgid "zoom area"
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "— set in Default Column Settings · one per dataset"
 msgstr ""
 
 #, python-format
