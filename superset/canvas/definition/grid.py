@@ -26,7 +26,8 @@ Children are resolved in reading order (their order in ``children``):
   fits its span, scanning row by row from a cursor that only moves forward.
   Its layout keeps ``col``/``row`` omitted.
 
-The frontend renderer must resolve placement with the same rules.
+Clients don't re-implement these rules: the definition response carries every
+node's resolved placement (see ``render``).
 """
 
 from __future__ import annotations
