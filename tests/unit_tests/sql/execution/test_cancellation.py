@@ -146,3 +146,20 @@ def test_without_execution_hooks_restores_context(fail: bool) -> None:
         assert cancellation.check_deadline.get() is check
         assert cancellation.after_execute.get() is refresh
         assert cancellation._engine_scope.get() is engine_scope
+
+
+def test_engine_admits_before_opening_a_connection() -> None:
+    """An execution owner is asked to admit warehouse access before connecting."""
+    admit = Mock()
+    engine = create_engine("sqlite://")
+    with ExitStack() as stack:
+        stack.callback(
+            cancellation.cursor_scope.reset, cancellation.cursor_scope.set(Mock())
+        )
+        stack.callback(
+            cancellation.before_warehouse_access.reset,
+            cancellation.before_warehouse_access.set(admit),
+        )
+        stack.callback(engine.dispose)
+        with cancellation.cancellable_engine(Mock(), engine, None, None):
+            admit.assert_called_once_with()
