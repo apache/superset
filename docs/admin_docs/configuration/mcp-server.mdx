@@ -165,6 +165,8 @@ While a scope with active filters is present:
   no temporal target, conflicting targets, or a dataset outside the dashboard
   with an applicable time window causes a refusal; the dataset's main datetime
   column and a model-supplied column are never used to guess the dashboard target.
+  Malformed saved chart filter lists also cause an explicit scope refusal before
+  dashboard overrides are merged; no query is run.
   Without an applicable dashboard time window, no chart temporal target is
   required, and model-supplied time filtering behaves as before.
 - Writes that change what charts or datasets query (adding a chart to a

@@ -582,6 +582,26 @@ def _dataset_chart_filters(
     }
 
 
+def _validate_saved_chart_filters(
+    form_data: Mapping[str, Any], *, chart_id: int, append_filters: bool
+) -> None:
+    """Refuse malformed saved filter lists used by the dashboard override merge."""
+    # The merge reads adhoc_filters and appends dashboard filters to every
+    # saved adhoc_filter* list. Validate those lists before it touches them.
+    for key, saved_filters in form_data.items():
+        if key == "adhoc_filters" or (
+            append_filters and key.startswith("adhoc_filter")
+        ):
+            if not isinstance(saved_filters, list) or any(
+                not isinstance(clause, dict) for clause in saved_filters
+            ):
+                raise MCPDashboardScopeError(
+                    f"chart {chart_id} has malformed saved filters in {key!r} "
+                    "that cannot be mapped to a time-filter column.",
+                    _USE_CHART_TOOLS,
+                )
+
+
 def _chart_time_column(chart: Slice | None, efd: Mapping[str, Any]) -> str:
     """Resolve the temporal target after the chart's dashboard overrides."""
     from superset.utils.core import merge_extra_form_data
@@ -593,6 +613,9 @@ def _chart_time_column(chart: Slice | None, efd: Mapping[str, Any]) -> str:
             _USE_CHART_TOOLS,
         )
     form_data = deepcopy(chart.form_data)
+    _validate_saved_chart_filters(
+        form_data, chart_id=chart.id, append_filters=bool(efd.get("filters"))
+    )
     form_data["extra_form_data"] = deepcopy(dict(efd))
     merge_extra_form_data(form_data)
     columns: set[str] = set()

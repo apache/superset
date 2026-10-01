@@ -725,6 +725,58 @@ def test_chart_temporal_resolution_honors_overrides_without_mutation() -> None:
     assert form_data == temporal_form_data("other_ds")
 
 
+@pytest.mark.parametrize(
+    "saved_filters",
+    [
+        None,
+        False,
+        1,
+        "invalid",
+        {},
+        {"operator": "TEMPORAL_RANGE"},
+        [None],
+        [False],
+        [1],
+        ["invalid"],
+        [[]],
+    ],
+)
+@pytest.mark.parametrize(
+    "overrides",
+    [{}, {"granularity_sqla": "ds"}, {"filters": [CLIENT_A]}],
+)
+def test_chart_temporal_resolution_refuses_malformed_saved_filters(
+    saved_filters: Any, overrides: dict[str, Any]
+) -> None:
+    """Malformed saved filters must refuse before merging dashboard overrides."""
+    form_data = {"granularity_sqla": "ds", "adhoc_filters": saved_filters}
+    original = json.dumps(form_data)
+    scope = make_scope({11: {"time_range": "Last week", **overrides}})
+    with (
+        dashboard([11], chart_form_data={11: form_data}),
+        pytest.raises(
+            MCPDashboardScopeError, match="malformed saved filters"
+        ) as excinfo,
+    ):
+        dashboard_constraints(scope, dataset_ids={3})
+    assert "No query was run." in str(excinfo.value)
+    assert json.dumps(form_data) == original
+
+
+@pytest.mark.parametrize("saved_filters", [None, False, 1, "invalid", {}, [None]])
+def test_chart_temporal_resolution_refuses_malformed_secondary_saved_filters(
+    saved_filters: Any,
+) -> None:
+    """Dashboard filter appends also require well-formed secondary filter lists."""
+    form_data = {**temporal_form_data("ds"), "adhoc_filters_b": saved_filters}
+    scope = make_scope({11: {"time_range": "Last week", "filters": [CLIENT_A]}})
+    with (
+        dashboard([11], chart_form_data={11: form_data}),
+        pytest.raises(MCPDashboardScopeError, match="malformed saved filters"),
+    ):
+        dashboard_constraints(scope, dataset_ids={3})
+
+
 def test_legacy_chart_time_column_is_resolved() -> None:
     scope = make_scope({11: {"time_range": "Last week"}})
     with dashboard([11], chart_form_data={11: {"granularity_sqla": "other_ds"}}):
