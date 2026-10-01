@@ -27,8 +27,6 @@ import {
   TitleFormData,
 } from './types';
 
-// ATTENTION: If you change any constants, make sure to also change constants.py
-
 export const EMPTY_STRING = () => t('<empty string>');
 export const NULL_STRING = () => t('<NULL>');
 export const TRUE_STRING = () => t('TRUE');

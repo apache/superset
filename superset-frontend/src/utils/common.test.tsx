@@ -20,6 +20,7 @@ import {
   applyFormattingToTabularData,
   optionFromValue,
   prepareCopyToClipboardTabularData,
+  EMPTY_STRING,
   NULL_STRING,
   TRUE_STRING,
   FALSE_STRING,
@@ -42,7 +43,7 @@ test('converts values as expected', () => {
   });
   expect(optionFromValue('')).toEqual({
     value: '',
-    label: '<empty string>',
+    label: EMPTY_STRING(),
   });
   expect(optionFromValue('foo')).toEqual({ value: 'foo', label: 'foo' });
   expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });

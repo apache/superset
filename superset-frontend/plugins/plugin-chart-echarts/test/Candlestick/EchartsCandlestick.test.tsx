@@ -283,7 +283,7 @@ test('drills the series by index when two series share the null placeholder', ()
             },
             {
               date: '2017-10-24',
-              symbol: NULL_STRING,
+              symbol: NULL_STRING(),
               open: 40,
               close: 35,
               low: 30,
@@ -307,7 +307,7 @@ test('drills the series by index when two series share the null placeholder', ()
     event: { stop, event: { clientX: 12, clientY: 34 } },
     dataIndex: 0,
     seriesIndex: 1,
-    seriesName: NULL_STRING,
+    seriesName: NULL_STRING(),
     seriesType: 'candlestick',
   });
 
@@ -318,7 +318,7 @@ test('drills the series by index when two series share the null placeholder', ()
     expect.objectContaining({
       drillToDetail: [
         expect.objectContaining({ col: 'date', val: '2017-10-24' }),
-        expect.objectContaining({ col: 'symbol', val: NULL_STRING }),
+        expect.objectContaining({ col: 'symbol', val: NULL_STRING() }),
       ],
     }),
   );

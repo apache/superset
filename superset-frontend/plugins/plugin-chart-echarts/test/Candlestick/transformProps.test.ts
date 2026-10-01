@@ -775,11 +775,11 @@ test('keeps series and x-axis values distinct when they contain the same charact
 test('keeps a SQL null x value distinct from a literal <NULL> category', () => {
   const props = transform([
     { date: null, open: 20, close: 34, low: 10, high: 38 },
-    { date: NULL_STRING, open: 40, close: 35, low: 30, high: 50 },
+    { date: NULL_STRING(), open: 40, close: 35, low: 30, high: 50 },
   ]);
   expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([
-    NULL_STRING,
-    NULL_STRING,
+    NULL_STRING(),
+    NULL_STRING(),
   ]);
   expect(extractSeries(props)[0].data).toEqual([
     [20, 34, 10, 38],
@@ -801,7 +801,7 @@ test('keeps a SQL null series value distinct from a literal <NULL> series', () =
         },
         {
           date: '2017-10-24',
-          symbol: NULL_STRING,
+          symbol: NULL_STRING(),
           open: 40,
           close: 35,
           low: 30,

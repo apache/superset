@@ -153,7 +153,7 @@ test('formats null categories and missing metric values', () => {
   );
   const { yAxis } = getEchartOptions(transformedProps);
 
-  expect(yAxis?.data).toEqual([NULL_STRING]);
+  expect(yAxis?.data).toEqual([NULL_STRING()]);
   const [leftValues, rightValues] = extractSeriesValues(transformedProps);
   expect(Math.abs(leftValues[0] as number)).toBe(0);
   expect(rightValues).toEqual([7]);

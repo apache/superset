@@ -21,12 +21,13 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as __
 
 from superset.utils.backports import StrEnum
 
 DEFAULT_USER_AGENT = "Apache Superset"
 
+# Keep in sync with superset-frontend/plugins/plugin-chart-echarts/src/constants.ts
 NULL_STRING = __("<NULL>")
 EMPTY_STRING = __("<empty string>")
 
