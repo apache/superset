@@ -18,14 +18,19 @@
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import LayerConfigsControl from './LayerConfigsControl';
-import { LayerConf } from './types';
+import { LayerConf, WmsLayerConf } from './types';
 
-const wms = (title: string, url: string): LayerConf => ({
+const wms = (
+  title: string,
+  url: string,
+  overrides: Partial<WmsLayerConf> = {},
+): LayerConf => ({
   type: 'WMS',
   version: '1.3.0',
   title,
   url,
   layersParam: 'roads',
+  ...overrides,
 });
 
 const existing = [wms('Roads', 'https://maps.example.com/wms')];
@@ -103,9 +108,13 @@ test('adding a layer opens the form and prepends the saved layer', async () => {
 });
 
 test('editing a layer prefills the form and replaces the layer in place', async () => {
+  // Rivers differs from the defaults so the save must carry its own fields.
   const { onChange } = setup([
     wms('Roads', 'https://a.example.com'),
-    wms('Rivers', 'https://b.example.com'),
+    wms('Rivers', 'https://b.example.com', {
+      version: '1.1.1',
+      layersParam: 'rivers',
+    }),
   ]);
   await userEvent.click(screen.getByRole('button', { name: 'Rivers' }));
   const title = await screen.findByPlaceholderText('Insert Layer title');
@@ -121,10 +130,10 @@ test('editing a layer prefills the form and replaces the layer in place', async 
   expect(saved[0].title).toBe('Roads');
   expect(saved[1]).toMatchObject({
     type: 'WMS',
-    version: '1.3.0',
     title: 'Lakes',
     url: 'https://b.example.com',
-    layersParam: 'roads',
+    version: '1.1.1',
+    layersParam: 'rivers',
   });
 });
 

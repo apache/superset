@@ -60,15 +60,12 @@ test('a decrease key at the max bound emits max minus one', () => {
   expect(onChange).toHaveBeenCalledWith(9);
 });
 
-test('an increase key at the max bound never emits a value above max', () => {
+test('an increase key at the max bound does not emit a value above max', () => {
   const { onChange } = setup({ value: 10 });
   const slider = screen.getByRole('slider');
-  fireEvent.keyDown(slider, { key: 'ArrowLeft', keyCode: 37 });
-  expect(onChange).toHaveBeenCalledTimes(1);
-  onChange.mockClear();
 
   fireEvent.keyDown(slider, { key: 'ArrowRight', keyCode: 39 });
 
-  expect(onChange.mock.calls.flat()).toEqual(expect.not.arrayContaining([11]));
-  expect(slider).toHaveAttribute('aria-valuemax', '10');
+  expect(onChange).not.toHaveBeenCalled();
+  expect(slider).toHaveAttribute('aria-valuenow', '10');
 });
