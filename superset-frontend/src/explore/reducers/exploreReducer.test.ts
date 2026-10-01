@@ -17,9 +17,32 @@
  * under the License.
  */
 
-import { QueryFormData } from '@superset-ui/core';
-import { sections, CustomControlItem } from '@superset-ui/chart-controls';
-import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
+import {
+  QueryFormData,
+  VizType,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
+import {
+  sections,
+  sharedControls,
+  ControlPanelConfig,
+  CustomControlItem,
+} from '@superset-ui/chart-controls';
+import { controlPanel as timeTableControlPanel } from 'src/visualizations/TimeTable/config/controlPanel/controlPanel';
+import {
+  getControlConfig,
+  getControlStateFromControlConfig,
+} from 'src/explore/controlUtils';
+// Reached through the plugins' source rather than as `@superset-ui/plugin-chart-*`
+// subpaths: `tsc` maps those package names as a whole and cannot resolve a
+// subpath within one, so it rejects the import that jest and webpack accept.
+// `VizTypeControl.test.tsx` reaches the plugins themselves the same way.
+import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
+import horizonControlPanel from '../../../plugins/plugin-chart-horizon/src/controlPanel';
+import roseControlPanel from '../../../plugins/plugin-chart-echarts/src/Rose/controlPanel';
+import timePivotControlPanel from '../../../plugins/plugin-chart-echarts/src/TimePivot/controlPanel';
+import pairedTTestControlPanel from '../../../plugins/plugin-chart-paired-t-test/src/controlPanel';
+import partitionControlPanel from '../../../plugins/plugin-chart-partition/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -168,3 +191,166 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
   );
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
 });
+
+// Regression guards for the standalone Time Range control.
+//
+// `time_range`'s mapStateToProps decides whether the range is mirrored onto a
+// partition column, and its two inputs are handled by two different mechanisms.
+// The temporal column lives on another control, so `validationDependencies`
+// covers it here. The range itself is recomputed at render from the live
+// explore state (`ControlPanelsContainer`), because a control that named itself
+// as a dependency would be rebuilt by the reducer from its own superseded
+// value -- which silently dropped every Time Range change on the charts that
+// still carry this control. That transition is covered in
+// `src/explore/components/ControlPanelsContainer.test.tsx`.
+const PARTITION_FILTER_MAPPING = {
+  partition_column: 'dt_epoch',
+  mapped_column: 'event_time',
+  active: true,
+  is_monotonic: true,
+  mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+};
+
+function mirroredTimeRangeState(): ExploreState {
+  const datasource = {
+    main_dttm_col: 'event_time',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'event_time', is_dttm: true }],
+    metrics: [],
+    partition_filter_mapping: PARTITION_FILTER_MAPPING,
+  } as unknown as ExploreState['datasource'];
+  const form_data = {
+    granularity_sqla: 'event_time',
+    time_range: '2026-01-01 : 2026-02-01',
+  } as unknown as QueryFormData;
+  const controlPanelState = { controls: {}, form_data, datasource };
+
+  return {
+    form_data,
+    datasource,
+    controls: {
+      time_range: getControlStateFromControlConfig(
+        sharedControls.time_range,
+        controlPanelState,
+        form_data.time_range,
+      )!,
+      granularity_sqla: getControlStateFromControlConfig(
+        sharedControls.granularity_sqla,
+        controlPanelState,
+        form_data.granularity_sqla,
+      )!,
+    },
+  } as ExploreState;
+}
+
+test('SET_FIELD_VALUE drops the time range partition mapping when the temporal column is not the mapped one', () => {
+  const initialState = mirroredTimeRangeState();
+
+  const afterColumnSwitch = exploreReducer(
+    initialState,
+    setControlValue('granularity_sqla', 'ingested_at') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterColumnSwitch.controls.time_range.partitionMapping).toBeNull();
+});
+
+test('SET_FIELD_VALUE applies the new time range to the control, not just the form data', () => {
+  const initialState = mirroredTimeRangeState();
+
+  const afterRealRange = exploreReducer(
+    initialState,
+    setControlValue('time_range', '2026-03-01 : 2026-04-01') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+
+  expect(afterRealRange.form_data.time_range).toBe('2026-03-01 : 2026-04-01');
+  // The query is built from the controls, not from `form_data`, so a control
+  // left holding the superseded range sends the superseded range.
+  expect(afterRealRange.controls.time_range.value).toBe(
+    '2026-03-01 : 2026-04-01',
+  );
+});
+
+test('SET_FIELD_VALUE ignores a control that names itself as a dependency', () => {
+  // `validationDependencies` names *other* controls. The rebuild it triggers
+  // reuses the value held before the action, so a self-naming control would
+  // overwrite the value just set. Nothing in the tree does this, and the
+  // reducer makes sure nothing can.
+  const selfDependentState = {
+    form_data: { row_limit: 100 } as unknown as QueryFormData,
+    controls: {
+      row_limit: {
+        type: 'SelectControl',
+        value: 100,
+        validationDependencies: ['row_limit'],
+      },
+    },
+  } as unknown as ExploreState;
+
+  const afterChange = exploreReducer(
+    selfDependentState,
+    setControlValue('row_limit', 500) as Parameters<typeof exploreReducer>[1],
+  );
+
+  expect(afterChange.controls.row_limit.value).toBe(500);
+});
+
+// Every chart that still carries the standalone Time Range control, resolved
+// through the registry the reducer itself reads. These are the charts the
+// self-referencing dependency broke, so this is the list that has to stay
+// fixed -- modern charts express the range as a TEMPORAL_RANGE clause in
+// `adhoc_filters` and never dispatch SET_FIELD_VALUE for `time_range`.
+const CHARTS_WITH_A_TIME_RANGE_CONTROL: [VizType, ControlPanelConfig][] = [
+  [VizType.Calendar, calendarControlPanel],
+  [VizType.Horizon, horizonControlPanel],
+  [VizType.Rose, roseControlPanel],
+  [VizType.TimePivot, timePivotControlPanel],
+  [VizType.PairedTTest, pairedTTestControlPanel],
+  [VizType.Partition, partitionControlPanel],
+  [VizType.TimeTable, timeTableControlPanel],
+];
+
+test.each(CHARTS_WITH_A_TIME_RANGE_CONTROL)(
+  'a new time range reaches the control on %s',
+  (vizType, controlPanelConfig) => {
+    getChartControlPanelRegistry().registerValue(vizType, controlPanelConfig);
+    try {
+      const form_data = {
+        viz_type: vizType,
+        time_range: 'Last week',
+      } as unknown as QueryFormData;
+      // Resolved the way the app resolves it: through the chart's own control
+      // panel, so a per-chart override would show up here rather than be
+      // assumed away.
+      const controlConfig = getControlConfig('time_range', vizType);
+      const state = {
+        form_data,
+        controls: {
+          time_range: getControlStateFromControlConfig(
+            controlConfig as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            { controls: {}, form_data } as Parameters<
+              typeof getControlStateFromControlConfig
+            >[1],
+            'Last week',
+          )!,
+        },
+      } as unknown as ExploreState;
+
+      const afterChange = exploreReducer(
+        state,
+        setControlValue('time_range', 'Last quarter') as Parameters<
+          typeof exploreReducer
+        >[1],
+      );
+
+      expect(afterChange.controls.time_range.value).toBe('Last quarter');
+      expect(afterChange.form_data.time_range).toBe('Last quarter');
+    } finally {
+      getChartControlPanelRegistry().remove(vizType);
+    }
+  },
+);

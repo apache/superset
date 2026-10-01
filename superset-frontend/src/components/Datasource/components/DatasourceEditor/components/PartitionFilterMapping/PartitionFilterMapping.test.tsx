@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -351,4 +353,241 @@ test('removing the mapping is reported to the editor', async () => {
   await userEvent.click(screen.getByText('Remove mapping'));
 
   expect(onRemoveMapping).toHaveBeenCalled();
+});
+
+/**
+ * The editor's commit path in miniature: `onChange` advances the parent's state
+ * inside the event (the editor's own `setDatabaseColumns`), and the same value
+ * is replayed a tick later by the prop-sync effect, which re-seeds the whole
+ * column array from a snapshot one render cycle old (DatasourceEditor's
+ * `propsDatasource` effect, DatasourceModal's `setCurrentDatasource`). Any
+ * keystroke landing inside that window is destroyed by the replay, and
+ * Fieldset's itemRef then merges the next keystroke onto the reverted string --
+ * which is how typing yields interleaved garbage rather than a clean prefix.
+ */
+function EchoingEditor({
+  onCommit,
+  echoDelay = 50,
+}: {
+  onCommit: (value: string | null) => void;
+  echoDelay?: number;
+}) {
+  const [value, setValue] = useState('');
+  return (
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value={value}
+      onChange={next => {
+        onCommit(next);
+        setValue(next ?? '');
+        const replayed = next ?? '';
+        setTimeout(() => setValue(replayed), echoDelay);
+      }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />
+  );
+}
+
+test('typing a transform keeps every keystroke through the editor round trip', async () => {
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onCommit = jest.fn();
+
+  render(<EchoingEditor onCommit={onCommit} />);
+  const input = screen.getByLabelText('Value transform');
+
+  // 40ms/char: slower than the round trip, faster than the commit debounce --
+  // the rate QA reproduced the drop at.
+  await userEvent.type(input, 'extract(epoch from cast(:value as timestamp))', {
+    delay: 40,
+  });
+
+  expect(input).toHaveValue('extract(epoch from cast(:value as timestamp))');
+
+  // ...and what is committed upward -- the only thing DatasourceModal saves.
+  await waitFor(() => {
+    expect(onCommit).toHaveBeenLastCalledWith(
+      'extract(epoch from cast(:value as timestamp))',
+    );
+  });
+  // The echo of that commit must not walk the box backwards afterwards.
+  expect(input).toHaveValue('extract(epoch from cast(:value as timestamp))');
+});
+
+test('clearing a transform and retyping keeps the first character', async () => {
+  // QA saw the character typed immediately after a clear disappear: clearing
+  // widens the echo window, because it also resets the preview.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onCommit = jest.fn();
+
+  render(<EchoingEditor onCommit={onCommit} />);
+  const input = screen.getByLabelText('Value transform');
+
+  await userEvent.type(input, 'lower(:value)', { delay: 40 });
+  await userEvent.clear(input);
+  await userEvent.type(input, ':value', { delay: 40 });
+
+  expect(input).toHaveValue(':value');
+  await waitFor(() => {
+    expect(onCommit).toHaveBeenLastCalledWith(':value');
+  });
+});
+
+test('blurring the transform commits it without waiting for the debounce', async () => {
+  // DatasourceModal's buildPayload reads committed state only, so the debounce
+  // has to be flushed when focus leaves -- clicking Save blurs this input
+  // before the click lands, and an unflushed edit would be silently dropped.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onChange = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=""
+      onChange={onChange}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  const input = screen.getByLabelText('Value transform');
+  fireEvent.change(input, { target: { value: 'unix_timestamp(:value)' } });
+  expect(onChange).not.toHaveBeenCalled();
+
+  fireEvent.blur(input);
+
+  // Synchronous: the commit has already happened by the time Save reads state.
+  expect(onChange).toHaveBeenCalledWith('unix_timestamp(:value)');
+});
+
+test('an unmapped column that takes the mapping over starts from the prop', async () => {
+  // Local state must not shadow a transform arriving from outside the input --
+  // "Move mapping to this column" pre-fills one, and the box has to show it.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+
+  const { rerender } = render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=""
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText('Value transform')).toHaveValue('');
+
+  rerender(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value="unix_timestamp(:value)"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText('Value transform')).toHaveValue(
+    'unix_timestamp(:value)',
+  );
+});
+
+test('typing Jinja into the transform says so at the field', async () => {
+  // Blocking issues never reach the preview -- `transformCanPreview` declines to
+  // send them -- so without a message of their own they show nothing at all,
+  // and the only clue would be a disabled Save button somewhere above.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=":value"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  await userEvent.clear(screen.getByLabelText('Value transform'));
+  // Pasted rather than typed: userEvent reads `{{` as its own escape for a
+  // literal brace, so typing this would never produce a Jinja delimiter.
+  await userEvent.click(screen.getByLabelText('Value transform'));
+  await userEvent.paste("unix_timestamp('{{ ds }}')");
+
+  // As it is typed: the commit back into the editor is debounced, so a message
+  // keyed off the committed value would lag the box it describes.
+  expect(
+    await screen.findByTestId('partition-value-transform-error'),
+  ).toHaveTextContent(/Jinja templating is not supported/);
+});
+
+test('an empty transform on a non-temporal column says the field is required', () => {
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value=""
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('partition-value-transform-error'),
+  ).toHaveTextContent(/A value transform is required on country/);
+});
+
+test('an empty transform on a temporal column is inactive, not an error', () => {
+  // Tier 2 on the backend, and the dataset-level warning already covers it.
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=""
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByTestId('partition-value-transform-error'),
+  ).not.toBeInTheDocument();
 });
