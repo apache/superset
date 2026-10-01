@@ -23,7 +23,7 @@
  */
 
 import { ComponentType, ReactNode } from 'react';
-import { CellValue, HeaderGroup, Row } from 'react-table';
+import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
 
 import { SortOrder } from '../Table';
 
@@ -62,7 +62,7 @@ type ColumnRenderer =
 export interface ListViewColumn<T extends object = any> {
   id?: string;
   Header?: ColumnRenderer;
-  accessor?: keyof T | string | ((row: T) => unknown);
+  accessor?: keyof T | string | Accessor<T>;
   Cell?: ColumnRenderer;
   disableSortBy?: boolean;
   hidden?: boolean;
