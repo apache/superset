@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from sqlalchemy.orm.session import Session
 
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
@@ -1528,6 +1529,77 @@ def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
 
     assert queries[0]["is_timeseries"] is False
     assert queries[0]["extras"]["time_grain_sqla"] == "P1D"
+
+
+@pytest.mark.parametrize("viz_type", ["histogram_v2", "gantt_chart"])
+@pytest.mark.parametrize(
+    ("temporal_override", "expected_column"),
+    [
+        ({}, "other_date"),
+        ({"granularity": "end_time"}, "end_time"),
+        ({"granularity": None}, None),
+    ],
+    ids=["legacy", "normalized-override", "normalized-clear"],
+)
+def test_plugin_query_preserves_temporal_granularity_filter(
+    monkeypatch: pytest.MonkeyPatch,
+    session: Session,
+    viz_type: str,
+    temporal_override: dict[str, str | None],
+    expected_column: str | None,
+) -> None:
+    """Plugin queries must apply the time range to the selected date column."""
+    from flask import current_app
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "sqlite",
+    )
+    SqlaTable.metadata.create_all(session.get_bind())
+    table = SqlaTable(
+        table_name="observations",
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        main_dttm_col="start_time",
+        columns=[
+            TableColumn(column_name="value", type="FLOAT"),
+            TableColumn(column_name="task", type="TEXT"),
+            TableColumn(column_name="start_time", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="end_time", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="other_date", type="DATETIME", is_dttm=True),
+        ],
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": viz_type,
+            "column": "value",
+            "start_time": "start_time",
+            "end_time": "end_time",
+            "y_axis": "task",
+            "granularity_sqla": "other_date",
+            "time_range": "Last week",
+            **temporal_override,
+        },
+        1,
+        "table",
+    )[0]
+    query_object = QueryObjectFactory(current_app.config, MagicMock()).create(
+        parent_result_type=ChartDataResultType.FULL,
+        datasource_model_instance=table,
+        **query,
+    )
+    sql = table.get_query_str(query_object.to_dict())
+
+    if expected_column is None:
+        assert "WHERE" not in sql, sql
+    else:
+        assert f"WHERE {expected_column} >= " in sql, sql
+        assert f"{expected_column} < " in sql, sql
+    assert query.get("granularity") == expected_column
 
 
 @pytest.mark.parametrize("groupby", [[], ["region"]])

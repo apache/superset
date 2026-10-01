@@ -1081,6 +1081,9 @@ def build_single_query_dict(
         )
         qd["orderby"] = [(sort_metric, not descending)]
     apply_form_data_filters_to_query(qd, form_data)
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity is not None:
+        qd["granularity"] = granularity
     return qd
 
 
