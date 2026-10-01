@@ -309,11 +309,6 @@ def _scope_header_values() -> list[str]:
     return request.headers.getlist(HEADER_NAME)
 
 
-def has_dashboard_scope_header() -> bool:
-    """True when the current request carries a scope header, valid or not."""
-    return bool(_scope_header_values())
-
-
 def get_request_dashboard_scope() -> DashboardScope | None:
     """The scope of the current request, or None when it carries none."""
     values = _scope_header_values()
@@ -635,16 +630,22 @@ def _chart_time_column(chart: Slice | None, efd: Mapping[str, Any]) -> str:
                 _USE_CHART_TOOLS,
             )
         columns.add(subject)
-    # Legacy charts carry their temporal target directly in form data.
-    for key in ("granularity_sqla", "time_column"):
-        if column := form_data.get(key):
-            if isinstance(column, str):
-                columns.add(column)
-            else:
-                raise MCPDashboardScopeError(
-                    f"chart {chart.id} has a non-column temporal target.",
-                    _USE_CHART_TOOLS,
-                )
+    # Legacy charts carry their temporal target directly in form data. The
+    # merge writes a granularity_sqla override to ``granularity``, which the
+    # query object reads before the saved ``granularity_sqla``; that override
+    # also supersedes a saved ``time_column`` unless the dashboard sets one.
+    legacy_targets = [form_data.get("granularity") or form_data.get("granularity_sqla")]
+    if efd.get("granularity_sqla") is None or efd.get("time_column") is not None:
+        legacy_targets.append(form_data.get("time_column"))
+    for column in legacy_targets:
+        if not column:
+            continue
+        if not isinstance(column, str):
+            raise MCPDashboardScopeError(
+                f"chart {chart.id} has a non-column temporal target.",
+                _USE_CHART_TOOLS,
+            )
+        columns.add(column)
     if len(columns) != 1:
         raise MCPDashboardScopeError(
             f"chart {chart.id} has no single time-filter column for the "
@@ -662,7 +663,10 @@ def dashboard_constraints(
     Every chart that filters a column must filter it identically; otherwise
     the dashboard shows that column filtered differently in different places
     and there is no single dataset-level answer, so the call is refused.
-    Cross-filters stay consistent: the emitting chart simply has no clause.
+    A chart with no clause for a column does not count against it: a
+    cross-filter's emitting chart and a chart a native filter is scoped away
+    from both lack the clause, and the clause is still applied. A dataset-level
+    answer therefore narrows to the filtered charts' view and never widens.
     When datasets back dashboard charts, only those charts contribute filters;
     otherwise all charts contribute, including for datasets outside the dashboard.
     Time windows require an unambiguous temporal target on every affected chart

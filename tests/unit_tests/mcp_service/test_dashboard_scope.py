@@ -778,6 +778,59 @@ def test_chart_temporal_resolution_refuses_malformed_secondary_saved_filters(
         dashboard_constraints(scope, dataset_ids={3})
 
 
+@pytest.mark.parametrize(
+    "saved_form_data",
+    [
+        {"granularity_sqla": "ds"},
+        {"granularity_sqla": "ds", "time_range": "Last year"},
+        {"time_column": "ds"},
+        {**temporal_form_data("ds"), "granularity_sqla": "ds"},
+        temporal_form_data("ds"),
+    ],
+)
+def test_time_column_override_supersedes_saved_legacy_target(
+    saved_form_data: dict[str, Any],
+) -> None:
+    """A Time column native filter overrides granularity_sqla, which the merge
+    writes to ``granularity``; the chart's query uses that column, so the saved
+    legacy key must not count as a second time column."""
+    original = json.dumps(saved_form_data)
+    scope = make_scope(
+        {11: {"time_range": "Last week", "granularity_sqla": "other_ts"}}
+    )
+    with dashboard([11], chart_form_data={11: saved_form_data}):
+        assert dashboard_constraints(scope, dataset_ids={3}).time_column == "other_ts"
+    assert json.dumps(saved_form_data) == original
+
+
+def test_saved_granularity_takes_precedence_over_granularity_sqla() -> None:
+    """The query object reads ``granularity`` before ``granularity_sqla``."""
+    scope = make_scope({11: {"time_range": "Last week"}})
+    form_data = {"granularity": "other_ts", "granularity_sqla": "ds"}
+    with dashboard([11], chart_form_data={11: form_data}):
+        assert dashboard_constraints(scope, dataset_ids={3}).time_column == "other_ts"
+
+
+@pytest.mark.parametrize(
+    ("saved_form_data", "overrides"),
+    [
+        # A time_column override names a column other than the saved target.
+        ({"granularity_sqla": "ds"}, {"time_column": "shipped_ds"}),
+        # Two saved legacy targets that no override supersedes.
+        ({"granularity_sqla": "ds", "time_column": "shipped_ds"}, {}),
+    ],
+)
+def test_legacy_time_targets_that_disagree_are_refused(
+    saved_form_data: dict[str, Any], overrides: dict[str, Any]
+) -> None:
+    scope = make_scope({11: {"time_range": "Last week", **overrides}})
+    with (
+        dashboard([11], chart_form_data={11: saved_form_data}),
+        pytest.raises(MCPDashboardScopeError, match="no single time-filter column"),
+    ):
+        dashboard_constraints(scope, dataset_ids={3})
+
+
 def test_legacy_chart_time_column_is_resolved() -> None:
     scope = make_scope({11: {"time_range": "Last week"}})
     with dashboard([11], chart_form_data={11: {"granularity_sqla": "other_ds"}}):
@@ -990,6 +1043,29 @@ def test_dashboard_data_for_another_dashboard_is_refused() -> None:
         pytest.raises(MCPDashboardScopeError, match="not the scoped dashboard"),
     ):
         _rewrite("get_dashboard_data", GetDashboardDataRequest(identifier=8))
+
+
+@pytest.mark.parametrize("both_charts_filtered", [False, True])
+def test_dataset_query_keeps_a_clause_one_dataset_chart_lacks(
+    both_charts_filtered: bool,
+) -> None:
+    """A chart on the queried dataset with no clause for a column (a native
+    filter scoped away from it, or a cross-filter emitter) never removes that
+    clause: the dataset answer narrows to the filtered charts, never widens."""
+    chart_filters: dict[str, Any] = {"11": {"filters": [CLIENT_A]}}
+    if both_charts_filtered:
+        chart_filters["12"] = {"filters": [CLIENT_A]}
+    request = QueryDatasetRequest(dataset_id=3, metrics=["count"])
+    with (
+        scope_header(encode(scope_payload(chart_filters))),
+        dashboard([11, 12], chart_datasets={11: 3, 12: 3}),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=_dataset(),
+        ),
+    ):
+        rewritten = _rewrite("query_dataset", request)
+    assert [f.model_dump() for f in rewritten.filters] == [CLIENT_A]
 
 
 def test_query_dataset_receives_the_dashboard_constraints() -> None:
@@ -1313,6 +1389,54 @@ async def test_response_cache_is_bypassed_for_scoped_calls() -> None:
             assert (await client.call_tool("rows", {})).data != scoped  # nor stored
         assert (await client.call_tool("rows", {})).data == first
     assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_response_cache_is_kept_for_a_scope_without_constraints() -> None:
+    """A dashboard with no active filters is a no-op scope, so caching stays."""
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+    from superset.mcp_service.caching import _bypass_dashboard_scoped_calls
+
+    server = FastMCP("cache-test")
+    calls: list[int] = []
+
+    @server.tool
+    def rows() -> int:
+        calls.append(1)
+        return len(calls)
+
+    server.add_middleware(_bypass_dashboard_scoped_calls(ResponseCachingMiddleware()))
+    async with Client(server) as client:
+        first = (await client.call_tool("rows", {})).data
+        with scope_header(encode(scope_payload({"11": {"time_range": "No filter"}}))):
+            assert (await client.call_tool("rows", {})).data == first
+    assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_response_cache_is_bypassed_for_a_malformed_scope() -> None:
+    """An undecodable header never reads the cache, so the tool call refuses."""
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+    from superset.mcp_service.caching import _bypass_dashboard_scoped_calls
+
+    server = FastMCP("cache-test")
+
+    @server.tool
+    def rows() -> int:
+        apply_call_dashboard_scope("get_chart_info", inspect.Signature(), (), {})
+        return 1
+
+    server.add_middleware(_bypass_dashboard_scoped_calls(ResponseCachingMiddleware()))
+    async with Client(server) as client:
+        assert (await client.call_tool("rows", {})).data == 1
+        with scope_header("not-a-scope"):
+            with pytest.raises(ToolError, match="malformed"):
+                await client.call_tool("rows", {})
+            with scope_header("not-a-scope", "not-a-scope"):
+                with pytest.raises(ToolError, match="malformed"):
+                    await client.call_tool("rows", {})
 
 
 def test_scoped_query_has_a_different_query_cache_key() -> None:

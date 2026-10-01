@@ -59,18 +59,28 @@ def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
     FastMCP keys cached tool results on the tool name and arguments only. A
     dashboard filter scope arrives in a request header instead, so without
     this a result computed without the scope could be served to a call that
-    carries one (or the reverse). Scoped calls are neither read from nor
-    written to the cache; every other call is cached as before.
+    carries one (or the reverse). Calls whose scope restricts rows, or whose
+    header cannot be decoded, are neither read from nor written to the cache.
+    A scope with no active filters changes nothing, so those calls are cached
+    as before.
 
     FastMCP resolves ``on_call_tool`` on the instance at dispatch time, so
     wrapping the bound method is enough.
     """
-    from superset.mcp_service.dashboard_scope import has_dashboard_scope_header
+    from superset.mcp_service.dashboard_scope import (
+        get_request_dashboard_scope,
+        MCPDashboardScopeError,
+    )
 
     cached_call_tool = middleware.on_call_tool
 
     async def on_call_tool(context: Any, call_next: Any) -> Any:
-        if has_dashboard_scope_header():
+        try:
+            scope = get_request_dashboard_scope()
+        except MCPDashboardScopeError:
+            # Never serve a cached result; the tool call refuses the header.
+            return await call_next(context)
+        if scope is not None and scope.has_constraints:
             return await call_next(context)
         return await cached_call_tool(context, call_next)
 
