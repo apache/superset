@@ -48,6 +48,7 @@ from tests.unit_tests.mcp_service.test_dashboard_scope import (
     encode,
     scope_header,
     scope_payload,
+    temporal_form_data,
 )
 
 CLIENT_A = {"col": "client", "op": "IN", "val": ["A"]}
@@ -328,15 +329,117 @@ def test_null_aware_in_list_matches_the_dataset_path(
     ) == [(1030,)]
 
 
-def test_time_range_is_applied_to_the_main_datetime_column(
+def test_time_range_is_applied_to_the_resolved_datetime_column(
     database: Any, warehouse: sa.engine.Engine
 ) -> None:
     january = DashboardConstraints(
-        (CLIENT_A,), "2024-01-01T00:00:00 : 2024-02-01T00:00:00", None
+        (CLIENT_A,), "2024-01-01T00:00:00 : 2024-02-01T00:00:00", "ds"
     )
     assert run(
         warehouse, scoped(database, "SELECT SUM(amount) FROM orders", january)
     ) == [(10,)]
+
+
+def test_sql_time_window_uses_chart_temporal_column(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """execute_sql filters the chart's ds, not its dataset's created_at default."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    dataset = db.session.query(SqlaTable).filter_by(table_name="orders").one()
+    dataset.columns.append(
+        TableColumn(column_name="created_at", type="DATETIME", is_dttm=True)
+    )
+    dataset.main_dttm_col = "created_at"
+    db.session.flush()
+    with warehouse.begin() as conn:
+        conn.execute(sa.text("ALTER TABLE orders ADD COLUMN created_at DATETIME"))
+        conn.execute(sa.text("UPDATE orders SET created_at = '2024-03-01 00:00:00'"))
+    scope = DashboardScope(
+        7,
+        {
+            chart_id: {
+                "filters": [CLIENT_A],
+                "time_range": "2024-01-01T00:00:00 : 2024-02-01T00:00:00",
+            }
+            for chart_id in (11, 12)
+        },
+    )
+    request = ExecuteSqlRequest(
+        database_id=database.id,
+        schema_name="main",
+        sql="SELECT SUM(amount) FROM orders",
+    )
+    with (
+        dashboard([11, 12], chart_datasets={11: dataset.id, 12: dataset.id}),
+        patch("superset.security_manager.raise_for_access"),
+    ):
+        rewritten = scope_execute_sql_request(request, scope)
+    assert run(warehouse, rewritten.sql) == [(10,)]
+    assert "created_at" not in rewritten.sql
+
+
+@pytest.mark.parametrize(
+    "chart_form_data",
+    [
+        {11: temporal_form_data("ds"), 12: temporal_form_data("created_at")},
+        {11: temporal_form_data(), 12: temporal_form_data()},
+        {11: temporal_form_data("ds"), 12: temporal_form_data()},
+        {11: temporal_form_data("ds", "created_at"), 12: temporal_form_data("ds")},
+    ],
+)
+def test_sql_time_window_refuses_ambiguous_chart_targets(
+    database: Any, chart_form_data: dict[int, dict[str, Any]]
+) -> None:
+    """SQL uses the same missing/conflicting-target refusal as dataset tools."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = db.session.query(SqlaTable).filter_by(table_name="orders").one()
+    scope = DashboardScope(
+        7, {11: {"time_range": "Last week"}, 12: {"time_range": "Last week"}}
+    )
+    request = ExecuteSqlRequest(
+        database_id=database.id,
+        schema_name="main",
+        sql="SELECT SUM(amount) FROM orders",
+    )
+    with (
+        dashboard(
+            [11, 12],
+            chart_datasets={11: dataset.id, 12: dataset.id},
+            chart_form_data=chart_form_data,
+        ),
+        patch("superset.security_manager.raise_for_access"),
+        pytest.raises(MCPDashboardScopeError, match="time.*column") as excinfo,
+    ):
+        scope_execute_sql_request(request, scope)
+    assert "No query was run." in str(excinfo.value)
+
+
+def test_sql_without_dashboard_time_window_needs_no_chart_temporal_target(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """Row-only scope remains applicable to charts without temporal filters."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = db.session.query(SqlaTable).filter_by(table_name="orders").one()
+    scope = DashboardScope(7, {11: {"filters": [CLIENT_A]}})
+    with dashboard(
+        [11],
+        chart_datasets={11: dataset.id},
+        chart_form_data={11: temporal_form_data()},
+    ):
+        rewritten = scope_sql(
+            database,
+            "SELECT SUM(amount) FROM orders",
+            catalog=None,
+            schema="main",
+            constraints=scope,
+        )
+    assert run(warehouse, rewritten) == [(30,)]
 
 
 def test_statement_without_tables_is_left_alone(
@@ -465,9 +568,18 @@ def test_calculated_columns_cannot_carry_the_filter(database: Any) -> None:
 
 
 def test_time_range_without_a_datetime_column_is_refused(database: Any) -> None:
-    window = DashboardConstraints((CLIENT_A,), "Last week", None)
-    with pytest.raises(MCPDashboardScopeError, match="no main datetime column"):
+    window = DashboardConstraints((CLIENT_A,), "Last week", "ds")
+    with pytest.raises(MCPDashboardScopeError, match="no datetime column"):
         scoped(database, "SELECT COUNT(*) FROM refunds", window)
+
+
+def test_unresolved_sql_time_column_never_uses_dataset_default(database: Any) -> None:
+    with pytest.raises(MCPDashboardScopeError, match="no resolved time-filter column"):
+        scoped(
+            database,
+            "SELECT COUNT(*) FROM orders",
+            DashboardConstraints((), "Last week", None),
+        )
 
 
 @pytest.mark.parametrize(

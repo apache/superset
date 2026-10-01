@@ -105,6 +105,7 @@ def dashboard(
     chart_ids: list[int],
     dashboard_id: int = DASHBOARD_ID,
     chart_datasets: dict[int, int] | None = None,
+    chart_form_data: dict[int, dict[str, Any]] | None = None,
 ) -> Iterator[Any]:
     """Resolve a dashboard with each chart's dataset identity."""
     board = SimpleNamespace(
@@ -114,6 +115,9 @@ def dashboard(
                 id=chart_id,
                 datasource_id=(chart_datasets or {}).get(chart_id, 3),
                 datasource_type="table",
+                form_data=(chart_form_data or {}).get(
+                    chart_id, temporal_form_data("ds")
+                ),
             )
             for chart_id in chart_ids
         ],
@@ -122,6 +126,22 @@ def dashboard(
         "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug", return_value=board
     ) as lookup:
         yield lookup
+
+
+def temporal_form_data(*columns: str) -> dict[str, Any]:
+    """Build chart state with named temporal filters, including inactive ones."""
+    return {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": column,
+                "comparator": "No filter",
+            }
+            for column in columns
+        ]
+    }
 
 
 @contextmanager
@@ -512,7 +532,7 @@ def _dataset_query(
 
 
 def test_dataset_query_ands_scope_after_model_filters() -> None:
-    constraints = DashboardConstraints((CLIENT_A,), "Last week", None)
+    constraints = DashboardConstraints((CLIENT_A,), "Last week", "ds")
     filters, time_range, time_column = _dataset_query(
         constraints, filters=[REGION_EU], time_range="Last month"
     )
@@ -527,7 +547,6 @@ def test_dataset_query_ands_scope_after_model_filters() -> None:
     [
         ({"columns": {"region", "ds"}}, "no column 'client'"),
         ({"temporal_columns": set()}, "no datetime column"),
-        ({"main_dttm_col": None}, "no main datetime column"),
         ({"time_column": "other_ds", "time_range": "Last year"}, "cannot be combined"),
         (
             {"filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "Last year"}]},
@@ -538,7 +557,7 @@ def test_dataset_query_ands_scope_after_model_filters() -> None:
 def test_dataset_query_refuses_what_it_cannot_apply(
     overrides: dict[str, Any], message: str
 ) -> None:
-    constraints = DashboardConstraints((CLIENT_A,), "Last week", None)
+    constraints = DashboardConstraints((CLIENT_A,), "Last week", "ds")
     with pytest.raises(MCPDashboardScopeError, match=message):
         _dataset_query(constraints, **overrides)
 
@@ -609,6 +628,161 @@ def test_malformed_header_refuses_even_neutral_tools() -> None:
 # ---------------------------------------------------------------------------
 
 CHART_SCOPE = scope_payload({"11": {"filters": [CLIENT_A], "time_range": "Last week"}})
+
+
+@pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+def test_dataset_time_window_uses_chart_temporal_column(tool_name: str) -> None:
+    """A time-only native filter must retain the chart's temporal target."""
+    dataset = _dataset(main_dttm_col="created_at")
+    dataset.columns.extend(
+        [_column("created_at", is_dttm=True), _column("order_date", is_dttm=True)]
+    )
+    request = (
+        QueryDatasetRequest(dataset_id=3, metrics=["count"])
+        if tool_name == "query_dataset"
+        else GetTableRequest(dataset_id=3, metrics=["count"])
+    )
+    with (
+        scope_header(
+            encode(
+                scope_payload(
+                    {
+                        "11": {"time_range": "Last week"},
+                        "12": {"time_range": "Last week"},
+                    }
+                )
+            )
+        ),
+        dashboard(
+            [11, 12],
+            chart_form_data={
+                11: temporal_form_data("order_date"),
+                12: temporal_form_data("order_date"),
+            },
+        ),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=dataset,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+    ):
+        rewritten = _rewrite(tool_name, request)
+    assert rewritten.time_column == "order_date"
+
+
+@pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+@pytest.mark.parametrize(
+    "chart_form_data",
+    [
+        {11: temporal_form_data("ds"), 12: temporal_form_data("other_ds")},
+        {11: temporal_form_data(), 12: temporal_form_data()},
+        {11: temporal_form_data("ds"), 12: temporal_form_data()},
+        {11: temporal_form_data("ds", "other_ds"), 12: temporal_form_data("ds")},
+    ],
+)
+def test_dataset_time_window_refuses_ambiguous_chart_targets(
+    tool_name: str, chart_form_data: dict[int, dict[str, Any]]
+) -> None:
+    """Missing targets, including on just one affected chart, never use defaults."""
+    request = (
+        QueryDatasetRequest(dataset_id=3, metrics=["count"], time_column="ds")
+        if tool_name == "query_dataset"
+        else GetTableRequest(dataset_id=3, metrics=["count"], time_column="ds")
+    )
+    with (
+        scope_header(
+            encode(
+                scope_payload(
+                    {
+                        "11": {"time_range": "Last week"},
+                        "12": {"time_range": "Last week"},
+                    }
+                )
+            )
+        ),
+        dashboard([11, 12], chart_form_data=chart_form_data),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=_dataset(),
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
+        pytest.raises(MCPDashboardScopeError, match="time.*column") as excinfo,
+    ):
+        _rewrite(tool_name, request)
+    assert "No query was run." in str(excinfo.value)
+
+
+def test_unresolved_constraint_time_column_never_uses_dataset_default() -> None:
+    with pytest.raises(MCPDashboardScopeError, match="no resolved time-filter column"):
+        _dataset_query(DashboardConstraints((), "Last week", None))
+
+
+def test_chart_temporal_resolution_honors_overrides_without_mutation() -> None:
+    form_data = temporal_form_data("other_ds")
+    scope = make_scope({11: {"time_range": "Last week", "granularity_sqla": "ds"}})
+    with dashboard([11], chart_form_data={11: form_data}):
+        assert dashboard_constraints(scope, dataset_ids={3}).time_column == "ds"
+    assert form_data == temporal_form_data("other_ds")
+
+
+def test_legacy_chart_time_column_is_resolved() -> None:
+    scope = make_scope({11: {"time_range": "Last week"}})
+    with dashboard([11], chart_form_data={11: {"granularity_sqla": "other_ds"}}):
+        assert dashboard_constraints(scope, dataset_ids={3}).time_column == "other_ds"
+
+
+def test_time_window_cannot_be_mapped_to_dataset_outside_dashboard() -> None:
+    with (
+        dashboard([11], chart_datasets={11: 4}),
+        pytest.raises(MCPDashboardScopeError, match="no chart"),
+    ):
+        dashboard_constraints(
+            make_scope({11: {"time_range": "Last week"}}), dataset_ids={3}
+        )
+
+
+@pytest.mark.parametrize("tool_name", ["query_dataset", "get_table"])
+def test_no_dashboard_time_window_needs_no_chart_temporal_target(
+    tool_name: str,
+) -> None:
+    """Row-only dashboard filters leave the model's time filtering unchanged."""
+    request = (
+        QueryDatasetRequest(dataset_id=3, metrics=["count"], time_range="Last week")
+        if tool_name == "query_dataset"
+        else GetTableRequest(dataset_id=3, metrics=["count"], time_range="Last week")
+    )
+    with (
+        scope_header(encode(scope_payload({"11": {"filters": [CLIENT_A]}}))),
+        dashboard([11], chart_form_data={11: temporal_form_data()}),
+        patch(
+            "superset.mcp_service.dataset.dataset_utils.resolve_dataset",
+            return_value=_dataset(),
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=_dataset()),
+    ):
+        rewritten = _rewrite(tool_name, request)
+    assert rewritten.time_range == "Last week"
+    assert rewritten.time_column is None
+    assert [(f.col, f.op, f.val) for f in rewritten.filters] == [
+        ("client", "IN", ["A"])
+    ]
+
+
+def test_time_column_resolution_ignores_unaffected_charts() -> None:
+    """Time-filter exclusions and charts on other datasets do not create conflicts."""
+    scope = make_scope(
+        {11: {"time_range": "Last week"}, 13: {"time_range": "Last week"}}
+    )
+    with dashboard(
+        [11, 12, 13],
+        chart_datasets={11: 3, 12: 3, 13: 4},
+        chart_form_data={
+            11: temporal_form_data("ds"),
+            12: temporal_form_data(),
+            13: temporal_form_data("other_ds"),
+        },
+    ):
+        assert dashboard_constraints(scope, dataset_ids={3}).time_column == "ds"
 
 
 @pytest.mark.parametrize(

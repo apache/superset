@@ -50,6 +50,7 @@ import binascii
 import logging
 import zlib
 from collections.abc import Callable, Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, TYPE_CHECKING, TypeGuard
@@ -167,8 +168,8 @@ class DashboardConstraints:
 
     ``clauses`` are ``{"col", "op", "val"}`` dicts AND-ed into the query.
     ``time_range`` is the dashboard time window; ``time_column`` names the
-    column it applies to, or None for the queried dataset's main datetime
-    column.
+    column it applies to. A time window without a resolved column must be
+    refused by dataset and SQL queries.
     """
 
     clauses: tuple[dict[str, Any], ...]
@@ -564,12 +565,12 @@ def _validate_clause(clause: dict[str, Any]) -> None:
 
 
 def _dataset_chart_filters(
-    scope: DashboardScope, dataset_ids: set[int]
+    scope: DashboardScope, dataset_ids: set[int], charts: list[Slice]
 ) -> Mapping[int, Mapping[str, Any]]:
     """Select filters for charts on these datasets, or all charts if none match."""
     chart_ids = {
         chart.id
-        for chart in _dashboard_slices(scope)
+        for chart in charts
         if chart.datasource_type == "table" and chart.datasource_id in dataset_ids
     }
     if not chart_ids:
@@ -579,6 +580,55 @@ def _dataset_chart_filters(
         for chart_id, efd in scope.chart_filters.items()
         if chart_id in chart_ids
     }
+
+
+def _chart_time_column(chart: Slice | None, efd: Mapping[str, Any]) -> str:
+    """Resolve the temporal target after the chart's dashboard overrides."""
+    from superset.utils.core import merge_extra_form_data
+
+    if chart is None:
+        raise MCPDashboardScopeError(
+            "the queried dataset has no chart in the dashboard scope "
+            "from which to resolve the time-filter column.",
+            _USE_CHART_TOOLS,
+        )
+    form_data = deepcopy(chart.form_data)
+    form_data["extra_form_data"] = deepcopy(dict(efd))
+    merge_extra_form_data(form_data)
+    columns: set[str] = set()
+    for clause in form_data.get("adhoc_filters") or []:
+        if clause.get("operator") != TEMPORAL_RANGE:
+            continue
+        subject = clause.get("subject")
+        if (
+            clause.get("expressionType") != "SIMPLE"
+            or clause.get("clause") != "WHERE"
+            or not isinstance(subject, str)
+            or not subject
+        ):
+            raise MCPDashboardScopeError(
+                f"chart {chart.id} has a temporal filter that cannot be mapped "
+                "to a dataset column.",
+                _USE_CHART_TOOLS,
+            )
+        columns.add(subject)
+    # Legacy charts carry their temporal target directly in form data.
+    for key in ("granularity_sqla", "time_column"):
+        if column := form_data.get(key):
+            if isinstance(column, str):
+                columns.add(column)
+            else:
+                raise MCPDashboardScopeError(
+                    f"chart {chart.id} has a non-column temporal target.",
+                    _USE_CHART_TOOLS,
+                )
+    if len(columns) != 1:
+        raise MCPDashboardScopeError(
+            f"chart {chart.id} has no single time-filter column for the "
+            "dashboard time range.",
+            _USE_CHART_TOOLS,
+        )
+    return next(iter(columns))
 
 
 def dashboard_constraints(
@@ -592,12 +642,21 @@ def dashboard_constraints(
     Cross-filters stay consistent: the emitting chart simply has no clause.
     When datasets back dashboard charts, only those charts contribute filters;
     otherwise all charts contribute, including for datasets outside the dashboard.
+    Time windows require an unambiguous temporal target on every affected chart
+    backed by the queried datasets; the dataset's main datetime is not a fallback.
     """
+    charts = _dashboard_slices(scope) if dataset_ids is not None else []
     chart_filters = (
         scope.chart_filters
         if dataset_ids is None
-        else _dataset_chart_filters(scope, dataset_ids)
+        else _dataset_chart_filters(scope, dataset_ids, charts)
     )
+    dataset_charts = {
+        chart.id: chart
+        for chart in charts
+        if chart.datasource_type == "table"
+        and chart.datasource_id in (dataset_ids or set())
+    }
 
     by_column: dict[str, tuple[str, ...]] = {}
     clauses: dict[str, dict[str, Any]] = {}
@@ -641,7 +700,11 @@ def dashboard_constraints(
                     f"chart {chart_id} names two different time columns.",
                     _USE_CHART_TOOLS,
                 )
-            windows.add((time_range, granularity or time_column))
+            if dataset_ids is not None:
+                time_column = _chart_time_column(dataset_charts.get(chart_id), efd)
+            else:
+                time_column = granularity or time_column
+            windows.add((time_range, time_column))
 
     if len(windows) > 1:
         raise MCPDashboardScopeError(
@@ -914,13 +977,13 @@ def scoped_dataset_query(
 
     scope_filters = [dict(clause) for clause in constraints.clauses]
     if constraints.time_range is not None:
-        scope_column = constraints.time_column or main_dttm_col
+        scope_column = constraints.time_column
         if not scope_column or scope_column not in temporal_columns:
             raise MCPDashboardScopeError(
                 f"{subject} has no datetime column "
                 f"{scope_column!r} to apply the dashboard time range to."
                 if scope_column
-                else f"{subject} has no main datetime column to apply the "
+                else f"{subject} has no resolved time-filter column to apply the "
                 "dashboard time range to.",
                 "Query a dataset with a datetime column, or ask the user to "
                 "clear the dashboard time filter.",

@@ -159,6 +159,14 @@ While a scope with active filters is present:
   the SQL parser does not model, and table functions. For `execute_sql`, template
   syntax in SQL or dashboard filter values is refused rather than rendered after
   scoping.
+  For all three tools, the time-filter column is resolved from the affected
+  dashboard charts' temporal filters (or legacy chart time-column settings),
+  after dashboard overrides. The charts must agree on one column. A chart with
+  no temporal target, conflicting targets, or a dataset outside the dashboard
+  with an applicable time window causes a refusal; the dataset's main datetime
+  column and a model-supplied column are never used to guess the dashboard target.
+  Without an applicable dashboard time window, no chart temporal target is
+  required, and model-supplied time filtering behaves as before.
 - Writes that change what charts or datasets query (adding a chart to a
   dashboard, saving a chart, defining a virtual dataset, editing a dataset or
   metric, restoring a chart or dataset) are refused while the scope is

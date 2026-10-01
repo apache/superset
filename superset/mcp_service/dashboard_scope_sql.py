@@ -469,13 +469,8 @@ def _time_clause(
     _check_template_markers(constraints.time_range)
     name = constraints.time_column
     for dataset in datasets:
-        candidate = name or dataset.main_dttm_col
         for column in dataset.columns:
-            if (
-                column.column_name == candidate
-                and column.is_dttm
-                and not column.expression
-            ):
+            if column.column_name == name and column.is_dttm and not column.expression:
                 since, until = get_since_until_from_time_range(
                     time_range=constraints.time_range
                 )
@@ -489,7 +484,7 @@ def _time_clause(
         f"table {table} has no datetime column "
         f"{name!r} to apply the dashboard time range to."
         if name
-        else f"table {table} has no main datetime column to apply the dashboard "
+        else f"table {table} has no resolved time-filter column to apply the dashboard "
         "time range to.",
         _SQL_GUIDANCE,
     )
