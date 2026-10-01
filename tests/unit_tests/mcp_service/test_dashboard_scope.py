@@ -20,6 +20,7 @@
 import base64
 import importlib
 import inspect
+import re
 import zlib
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -1325,3 +1326,53 @@ def test_scoped_query_has_a_different_query_cache_key() -> None:
     unscoped = cache_key([])
     scoped_filters, _, _ = _dataset_query(DashboardConstraints((CLIENT_A,), None, None))
     assert cache_key(scoped_filters) != unscoped
+
+
+def _refusal_texts(module: Any) -> list[str]:
+    """Literal text of every MCPDashboardScopeError built in ``module``."""
+    import ast
+
+    tree = ast.parse(inspect.getsource(module))
+    constants = {
+        target.id: node.value.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    texts = []
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "MCPDashboardScopeError"
+        ):
+            continue
+        parts = []
+        for arg in ast.walk(node):
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                parts.append(arg.value)
+            elif isinstance(arg, ast.Name) and arg.id in constants:
+                parts.append(constants[arg.id])
+        texts.append(" ".join(parts))
+    return texts
+
+
+def test_refusals_never_suggest_clearing_dashboard_filters() -> None:
+    """A refusal keeps the request within the filters, never around them."""
+    from superset.mcp_service import dashboard_scope, dashboard_scope_sql
+
+    texts = [
+        *_refusal_texts(dashboard_scope),
+        *_refusal_texts(dashboard_scope_sql),
+    ]
+    assert len(texts) > 20
+    forbidden = re.compile(
+        r"\b(clear|remov|disabl|bypass|turn\w* off|lift|reset|ignor)\w*"
+        r"|change the dashboard filter|outside the filtered dashboard",
+        re.IGNORECASE,
+    )
+    offending = [text for text in texts if forbidden.search(text)]
+    assert offending == []

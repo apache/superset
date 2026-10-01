@@ -90,8 +90,8 @@ READ_FREE_BUILTINS = frozenset(
 )
 
 _SQL_GUIDANCE = (
-    "Query only registered datasets that have the filtered columns, use "
-    "query_dataset, or ask the user to clear the dashboard filter."
+    "Query only registered datasets that have the filtered columns, or use "
+    "query_dataset; the request must stay within the active dashboard filters."
 )
 
 

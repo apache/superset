@@ -136,8 +136,8 @@ class MCPDashboardScopeError(ToolError):
 
 _USE_CHART_TOOLS = (
     "Use get_chart_data or get_dashboard_data on the dashboard's charts, which "
-    "apply the filters each chart shows, or ask the user to change the "
-    "dashboard filters."
+    "apply the filters each chart shows. The request must stay within the "
+    "active dashboard filters."
 )
 _ASK_USER = (
     "Explain that the active dashboard filters cannot be applied to this "
@@ -994,8 +994,8 @@ def scoped_dataset_query(
         raise MCPDashboardScopeError(
             f"{subject} has no column {', '.join(repr(c) for c in missing)} "
             "that the dashboard filters, so the filter cannot be applied.",
-            "Query a dataset that has the filtered columns, use the dashboard's "
-            "charts, or ask the user to clear that filter.",
+            "Query a dataset that has the filtered columns or use the dashboard's "
+            "charts; the request must stay within the active dashboard filters.",
         )
 
     scope_filters = [dict(clause) for clause in constraints.clauses]
@@ -1008,8 +1008,9 @@ def scoped_dataset_query(
                 if scope_column
                 else f"{subject} has no resolved time-filter column to apply the "
                 "dashboard time range to.",
-                "Query a dataset with a datetime column, or ask the user to "
-                "clear the dashboard time filter.",
+                "Query a dataset with a datetime column or use the dashboard's "
+                "charts; the request must stay within the active dashboard "
+                "time filter.",
             )
         if time_column and time_column != scope_column:
             raise MCPDashboardScopeError(
@@ -1189,8 +1190,8 @@ def _refuse_definition_change(tool_name: str) -> MCPDashboardScopeError:
     return MCPDashboardScopeError(
         f"{tool_name} changes what charts or datasets query, which could put "
         "data on the dashboard that its captured filters do not cover.",
-        "Ask the user to make this change outside the filtered dashboard "
-        "conversation, or to clear the dashboard filters first.",
+        "Definition changes are restricted while the conversation is scoped "
+        "to the active dashboard filters.",
     )
 
 
