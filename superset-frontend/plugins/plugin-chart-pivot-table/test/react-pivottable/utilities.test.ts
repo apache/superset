@@ -134,6 +134,25 @@ const SINGLE_METRIC_DATA = [
   { Metric: 'sales', value: 300, __rows: [], __columns: [] },
 ];
 
+type TaggedRecord = Record<string, unknown>;
+
+/**
+ * Drop the explicit grand-total record -- the one tagged with an empty row *and*
+ * column rollup. Selecting on those tags rather than a position keeps the
+ * metric-collapse test correct if records are appended to or reordered in the
+ * shared fixture.
+ */
+const withoutGrandTotalRecord = (records: TaggedRecord[]): TaggedRecord[] =>
+  records.filter(
+    record =>
+      (record.__rows as string[]).length > 0 ||
+      (record.__columns as string[]).length > 0,
+  );
+
+const isGrandTotalRecord = (record: TaggedRecord) =>
+  (record.__rows as string[]).length === 0 &&
+  (record.__columns as string[]).length === 0;
+
 test('grand total uses the metric formatter, not the default formatter', () => {
   const pivotData = buildPivot(SINGLE_METRIC_DATA);
 
@@ -148,9 +167,13 @@ test('grand total uses the metric formatter, not the default formatter', () => {
 test('metric-collapse total uses the metric formatter', () => {
   // No rollup level produces an empty key on the metric axis, so the collapsed
   // total is mirrored into rowTotals/allTotal from the metric-only records.
-  // Dropping the trailing grand-total record from the shared fixture is exactly
-  // that case.
-  const pivotData = buildPivot(SINGLE_METRIC_DATA.slice(0, -1));
+  // Removing the grand-total record from the shared fixture is exactly that case.
+  const fixture = withoutGrandTotalRecord(SINGLE_METRIC_DATA);
+  // The whole point of this test is that the grand total arrives via the mirror
+  // and not from a record, so assert the fixture really is in that shape --
+  // otherwise dropping the wrong record would leave the test silently green.
+  expect(fixture.some(isGrandTotalRecord)).toBe(false);
+  const pivotData = buildPivot(fixture);
 
   // There is no explicit rows=[]/columns=[] record here, so the grand total is
   // fed purely by the metric-collapse mirror -- and it still has to pick up the
