@@ -18843,3 +18843,51 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+#: superset/semantic_layers/api.py:289
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
+#: superset/semantic_layers/api.py:315
+msgid "Send an empty JSON object to invalidate metadata."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:36
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:41
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:46
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:52
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:59
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:63
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:65
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:68
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:74
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:101
+msgid "Metadata database is unavailable. Try again later."
+msgstr ""

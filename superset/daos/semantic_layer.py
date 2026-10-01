@@ -20,8 +20,8 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
-from sqlalchemy.exc import StatementError
 from superset_core.semantic_layers.daos import (
     AbstractSemanticLayerDAO,
     AbstractSemanticViewDAO,
@@ -44,13 +44,14 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
     @staticmethod
     def find_by_uuid(uuid_str: str) -> SemanticLayer | None:
         try:
-            return (
-                db.session.query(SemanticLayer)
-                .filter(SemanticLayer.uuid == uuid_str)
-                .one_or_none()
-            )
-        except (ValueError, StatementError):
+            identifier: UUID = UUID(uuid_str)
+        except (ValueError, TypeError, AttributeError):
             return None
+        return (
+            db.session.query(SemanticLayer)
+            .filter(SemanticLayer.uuid == identifier)
+            .one_or_none()
+        )
 
     @classmethod
     def find_all(
@@ -122,6 +123,19 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
     """Data Access Object for SemanticView model."""
 
     model_cls = SemanticView
+
+    @staticmethod
+    def find_by_uuid(uuid_str: str) -> SemanticView | None:
+        """Reject malformed identifiers without concealing database failures."""
+        try:
+            identifier: UUID = UUID(uuid_str)
+        except (ValueError, TypeError, AttributeError):
+            return None
+        return (
+            db.session.query(SemanticView)
+            .filter(SemanticView.uuid == identifier)
+            .one_or_none()
+        )
 
     @staticmethod
     def _as_configuration_dict(value: Any) -> dict[str, Any]:

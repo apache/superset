@@ -52,6 +52,7 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.result_inspection import capture_result_identity
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -446,6 +447,8 @@ class QueryContextProcessor:
             if query_obj
             else None
         )
+        if cache_key is not None:
+            capture_result_identity(self._query_context, query_obj, cache_key)
         return cache_key
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:

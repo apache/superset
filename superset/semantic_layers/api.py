@@ -17,7 +17,10 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
+from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -26,7 +29,13 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.metadata import (
+    MetadataRefreshAdapter,
+    MetadataRefreshError,
+    MetadataRefreshResult,
+)
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -52,6 +61,14 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.commands.semantic_layer.refresh_metadata import (
+    can_refresh_metadata,
+    InspectCatalogCommand,
+    InspectCompatibilityCommand,
+    InvalidateCatalogCommand,
+    InvalidateCompatibilityCommand,
+    RefreshMetadataCommand,
+)
 from superset.commands.semantic_layer.update import (
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
@@ -62,10 +79,17 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers.cache_inspection import CacheEntryInfo
 from superset.semantic_layers.masking import mask_configuration
+from superset.semantic_layers.metadata_binding import participates
+from superset.semantic_layers.metadata_errors import (
+    metadata_api_errors,
+    metadata_database_errors,
+)
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
+    MetadataInspectionSchema,
     SemanticLayerPostSchema,
     SemanticLayerPutSchema,
     SemanticViewPostSchema,
@@ -196,8 +220,22 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "structure": "read",
+        "refresh_metadata": "read",
+        "cache_metadata": "read",
+        "invalidate_catalog": "read",
+        "invalidate_compatibility": "read",
     }
-    include_route_methods = {"put", "post", "delete", "bulk_delete", "structure"}
+    include_route_methods: set[str] = {
+        "put",
+        "post",
+        "delete",
+        "bulk_delete",
+        "structure",
+        "refresh_metadata",
+        "invalidate_catalog",
+        "invalidate_compatibility",
+        "cache_metadata",
+    }
     # SemanticViewRestApi exposes only write endpoints, but can_read must be
     # declared explicitly so that FAB registers the permission. It is used by
     # DatasourceRestApi.combined_list to gate access to semantic views in the
@@ -205,6 +243,264 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     base_permissions = ["can_read", "can_write"]
 
     edit_model_schema = SemanticViewPutSchema()
+
+    @expose("/<uuid:view_uuid>/refresh_metadata/", methods=("POST",))
+    @protect()
+    @safe
+    @metadata_api_errors
+    @metadata_database_errors
+    @statsd_metrics
+    @requires_json
+    def refresh_metadata(self, view_uuid: UUID) -> Response:
+        """Sync the authorized view's owning connection from stored configuration.
+        ---
+        post:
+          summary: Sync semantic metadata
+          parameters:
+          - in: path
+            name: view_uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          responses:
+            200:
+              description: Metadata publication confirmed
+            400:
+              description: Only an empty JSON object is accepted
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Refresh already running or configuration changed
+            422:
+              description: Unsupported provider or incomplete configuration
+            502:
+              description: Upstream catalog failed validation
+            503:
+              description: Coordination unavailable or publication unconfirmed
+            504:
+              description: Refresh deadline exceeded
+        """
+        if request.get_json(silent=True) != {}:
+            return self.response(
+                400, message=str(t("Send an empty JSON object to sync metadata."))
+            )
+        try:
+            result: MetadataRefreshResult = RefreshMetadataCommand(view_uuid).run()
+        except (SemanticViewNotFoundError, SemanticLayerNotFoundError):
+            return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
+        return self.response(
+            200,
+            result={
+                "status": result.status,
+                "observed_at": result.snapshot.observed_at,
+            },
+        )
+
+    @expose("/<uuid:view_uuid>/invalidate_catalog/", methods=("POST",))
+    @protect()
+    @safe
+    @metadata_api_errors
+    @metadata_database_errors
+    @statsd_metrics
+    @requires_json
+    def invalidate_catalog(self, view_uuid: UUID) -> Response:
+        """Invalidate the stored connection catalog without provider discovery.
+        ---
+        post:
+          summary: Invalidate the stored connection catalog
+          parameters:
+          - in: path
+            name: view_uuid
+            required: true
+            schema: {type: string, format: uuid}
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          responses:
+            200:
+              description: Authorized operation completed
+            400:
+              description: Invalid request body
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Stored binding changed
+            422:
+              description: Unsupported provider or incomplete configuration
+            503:
+              description: Metadata service unavailable
+            504:
+              description: Operation deadline exceeded
+        """
+        if request.get_json(silent=True) != {}:
+            return self.response(
+                400, message=str(t("Send an empty JSON object to invalidate metadata."))
+            )
+        try:
+            InvalidateCatalogCommand(view_uuid).run()
+        except (SemanticViewNotFoundError, SemanticLayerNotFoundError):
+            return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
+        return self.response(200, result={"status": "invalidated"})
+
+    @expose("/<uuid:view_uuid>/invalidate_compatibility/", methods=("POST",))
+    @protect()
+    @safe
+    @metadata_api_errors
+    @metadata_database_errors
+    @statsd_metrics
+    @requires_json
+    def invalidate_compatibility(self, view_uuid: UUID) -> Response:
+        """Invalidate compatibility without provider discovery.
+        ---
+        post:
+          summary: Invalidate compatibility for the stored connection
+          parameters:
+          - in: path
+            name: view_uuid
+            required: true
+            schema: {type: string, format: uuid}
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          responses:
+            200:
+              description: Authorized operation completed
+            400:
+              description: Invalid request body
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Stored binding changed
+            422:
+              description: Unsupported provider or incomplete configuration
+            503:
+              description: Metadata service unavailable
+            504:
+              description: Operation deadline exceeded
+        """
+        if request.get_json(silent=True) != {}:
+            return self.response(
+                400, message=str(t("Send an empty JSON object to invalidate metadata."))
+            )
+        try:
+            InvalidateCompatibilityCommand(view_uuid).run()
+        except (SemanticViewNotFoundError, SemanticLayerNotFoundError):
+            return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
+        return self.response(200, result={"status": "invalidated"})
+
+    @expose("/<uuid:view_uuid>/cache_metadata/", methods=("POST",))
+    @protect()
+    @safe
+    @metadata_api_errors
+    @metadata_database_errors
+    @statsd_metrics
+    @requires_json
+    def cache_metadata(self, view_uuid: UUID) -> Response:
+        """Inspect catalog or compatibility entry timing without provider discovery.
+        ---
+        post:
+          summary: Inspect catalog or compatibility entry timing
+          parameters:
+          - in: path
+            name: view_uuid
+            required: true
+            schema: {type: string, format: uuid}
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+                  required: [kind]
+                  properties:
+                    kind:
+                      type: string
+                      enum: [catalog, compatibility]
+                    selected_metrics:
+                      type: array
+                      items: {type: string}
+                    selected_dimensions:
+                      type: array
+                      items: {type: string}
+          responses:
+            200:
+              description: Authorized operation completed
+            400:
+              description: Invalid request body
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Stored binding changed
+            422:
+              description: Unsupported provider or incomplete configuration
+            503:
+              description: Metadata service unavailable
+            504:
+              description: Operation deadline exceeded
+        """
+        try:
+            body: dict[str, Any] = MetadataInspectionSchema().load(
+                request.get_json(silent=True)
+            )
+        except ValidationError:
+            return self.response_400()
+        kind: str = body["kind"]
+        metrics: list[str] = body["selected_metrics"]
+        dimensions: list[str] = body["selected_dimensions"]
+        try:
+            info: CacheEntryInfo = (
+                InspectCatalogCommand(view_uuid).run()
+                if kind == "catalog"
+                else InspectCompatibilityCommand(view_uuid, metrics, dimensions).run()
+            )
+        except (SemanticViewNotFoundError, SemanticLayerNotFoundError):
+            return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
+        return self.response(
+            200,
+            result={
+                key: value.isoformat() if isinstance(value, datetime) else value
+                for key, value in asdict(info).items()
+            },
+        )
 
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
@@ -214,6 +510,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.structure",
         log_to_statsd=False,
     )
+    @metadata_api_errors
+    @metadata_database_errors
     def structure(self, pk: int) -> Response:
         """Get a semantic view's editable fields and its structure.
 
@@ -276,6 +574,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+        except (MetadataRefreshError, SQLAlchemyError):
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching structure for semantic view %d: %s",
@@ -289,6 +589,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             200,
             result={
                 "name": view.name,
+                "uuid": str(view.uuid),
+                "can_refresh_metadata": can_refresh_metadata(view),
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,
@@ -680,6 +982,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
+    @metadata_api_errors
+    @metadata_database_errors
     def runtime_schema(self, uuid: str) -> FlaskResponse:
         """Get runtime schema for a stored semantic layer.
         ---
@@ -727,12 +1031,26 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if not cls:
             return self.response_400(message=f"Unknown type: {layer.type}")
 
+        schema: dict[str, Any]
+        bound: bool = participates(layer)
         try:
-            schema = cls.get_runtime_schema(
-                layer.implementation.configuration,  # type: ignore[attr-defined]
-                runtime_data,
-            )
+            if bound:
+                adapter: MetadataRefreshAdapter | None = (
+                    layer.implementation.metadata_refresh
+                )
+                if adapter is None:
+                    raise MetadataRefreshError("configuration")
+                schema = adapter.get_runtime_schema(runtime_data)
+            else:
+                schema = cls.get_runtime_schema(
+                    layer.implementation.configuration,  # type: ignore[attr-defined]
+                    runtime_data,
+                )
+        except (MetadataRefreshError, SQLAlchemyError):
+            raise
         except Exception as ex:  # pylint: disable=broad-except
+            if bound:
+                raise MetadataRefreshError("upstream") from None
             return self.response_400(message=str(ex))
 
         return self.response(200, result=schema)
@@ -741,6 +1059,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
+    @metadata_api_errors
+    @metadata_database_errors
     def views(self, uuid: str) -> FlaskResponse:
         """List available views from a semantic layer.
         ---
@@ -786,6 +1106,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+        except (MetadataRefreshError, SQLAlchemyError):
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching semantic views for layer %s: %s",

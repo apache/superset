@@ -36,7 +36,6 @@ from superset.security.manager import SupersetSecurityManager
 from superset.semantic_layers.models import SemanticView
 from superset.semantic_layers.registry import registry
 from tests.unit_tests.semantic_layers.metadata_identity_test import (
-    context_for,
     RefreshLayer,
     ResultView,
     view_for,
@@ -44,15 +43,19 @@ from tests.unit_tests.semantic_layers.metadata_identity_test import (
 
 
 @pytest.mark.parametrize("principal", ["guest", "viewer", "editor", "denied"])
-def test_enabled_chart_read_keeps_canonical_authorization(
+def test_enabled_chart_read_keeps_canonical_policy_with_resolved_chart_fixture(
     app: Flask, monkeypatch: pytest.MonkeyPatch, principal: str
 ) -> None:
+    """Exercise policy with a resolved-chart fixture, not real embedded chart support.
+
+    Slice.datasource remains table-only; this guest case verifies the policy seam
+    with a supplied semantic datasource and does not prove persisted guest charts.
+    """
     provider: ResultView = ResultView("scope:authorized", 17)
     view: SemanticView = view_for(provider)
     context: QueryContext
     query: QueryObject
-    context, query = context_for(view)
-    context.form_data = {
+    form_data: dict[str, Any] = {
         "slice_id": 2,
         **({"dashboardId": 1} if principal == "guest" else {}),
     }
@@ -101,14 +104,35 @@ def test_enabled_chart_read_keeps_canonical_authorization(
         ),
         patch("superset.security_manager", sm),
         patch("superset.common.query_context_processor.security_manager", sm),
+        patch("superset.common.query_context_factory.security_manager", sm),
         patch("superset.security.manager.query_context_modified", return_value=False),
+        patch(
+            "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+            return_value=view,
+        ),
+        patch(
+            "superset.common.query_context_factory.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
     ):
+        from superset.common.query_context_factory import QueryContextFactory
+
         if principal == "denied":
             with pytest.raises(SupersetSecurityException):
-                context.raise_for_access()
+                QueryContextFactory().create(
+                    datasource={"id": 11, "type": "semantic_view"},
+                    queries=[{"metrics": ["orders"], "row_limit": 10}],
+                    form_data=form_data,
+                )
             construct.assert_not_called()
             assert provider.calls == 0
         else:
+            context = QueryContextFactory().create(
+                datasource={"id": 11, "type": "semantic_view"},
+                queries=[{"metrics": ["orders"], "row_limit": 10}],
+                form_data=form_data,
+            )
+            query = context.queries[0]
             context.raise_for_access()
             payload: dict[str, Any] = context.get_df_payload(query)
             assert payload["df"].to_dict("list") == {"orders": [17]}
@@ -116,10 +140,10 @@ def test_enabled_chart_read_keeps_canonical_authorization(
 
 
 @pytest.mark.parametrize("warm", [False, True])
-def test_factory_acquisition_precedes_denial_until_pr3_gate(
+def test_factory_denial_precedes_catalog_acquisition(
     app: Flask, monkeypatch: pytest.MonkeyPatch, warm: bool
 ) -> None:
-    """Document the pre-enablement gap; PR3 must invert this acquisition oracle."""
+    """Denied cold and warm requests never construct a provider or touch its store."""
     from superset.common.query_context_factory import QueryContextFactory
     from superset.semantic_layers.metadata import ScopedMetadataStore
     from superset.semantic_layers.metadata_binding import (
@@ -166,6 +190,8 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
             return_value=view,
         ),
         patch("superset.common.query_context_processor.security_manager", sm),
+        patch("superset.common.query_context_factory.security_manager", sm),
+        patch("superset.security_manager", sm),
         patch.object(SnapshotView, "get_table") as execute,
     ):
         request_metadata_budget()
@@ -176,14 +202,82 @@ def test_factory_acquisition_precedes_denial_until_pr3_gate(
         if warm:
             store.read(lambda deadline: '["orders"]', deadline=store_deadline)
         resolve_store.return_value = store
-        context: QueryContext = QueryContextFactory().create(
-            datasource={"id": 11, "type": "semantic_view"},
-            queries=[{"metrics": ["orders"], "row_limit": 10}],
-        )
-        # This is an ordinary cold read, not an explicit refresh. It can publish
-        # before chart authorization; warm observations do not fetch again.
-        assert provider.adapter.fetches == (0 if warm else 1)
-        assert store.peek() is not None
         with pytest.raises(SupersetSecurityException):
-            context.raise_for_access()
+            QueryContextFactory().create(
+                datasource={"id": 11, "type": "semantic_view"},
+                queries=[{"metrics": ["orders"], "row_limit": 10}],
+            )
+        assert provider.adapter.fetches == 0
+        resolve_store.assert_not_called()
         execute.assert_not_called()
+
+
+@pytest.mark.parametrize("stage", ["payload", "membership"])
+def test_denied_native_filter_does_not_discover(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, stage: str
+) -> None:
+    from superset import db
+    from superset.utils import json
+
+    view: SemanticView = view_for(ResultView("unused", 17))
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+
+    context: QueryContext = QueryContext(
+        slice_=None,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        cache_values={},
+        datasource=view,
+        queries=[QueryObject(columns=["forbidden"], row_limit=10)],
+        form_data={
+            "type": "NATIVE_FILTER",
+            "native_filter_id": "filter",
+            "dashboardId": 1,
+        },
+    )
+    dashboard: MagicMock = MagicMock()
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "filter",
+                    "targets": [{"datasetId": view.id, "column": {"name": "country"}}],
+                }
+            ]
+        }
+    )
+    sm: MagicMock = MagicMock(spec=SupersetSecurityManager)
+    sm.is_guest_user.return_value = True
+    sm.can_access_schema.return_value = False
+    sm.can_access.return_value = False
+    sm._semantic_layer_grant_allows.return_value = False
+    sm.is_editor.return_value = False
+    sm.can_access_dashboard.return_value = False
+    sm.session.query.return_value.filter.return_value.one_or_none.return_value = (
+        dashboard
+    )
+    construct: Mock = Mock(side_effect=AssertionError("Unauthorized discovery"))
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation", construct
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(app.config, "VIEWER_PROMISCUOUS_MODE", False)
+    monkeypatch.setitem(app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", None)
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    with (
+        app.test_request_context(),
+        patch("superset.is_feature_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch.object(db.session, "query", return_value=sm.session.query.return_value),
+    ):
+        if stage == "membership":
+            monkeypatch.setattr(
+                "superset.security.manager.query_context_modified",
+                lambda context: False,
+            )
+        with pytest.raises(SupersetSecurityException):
+            SupersetSecurityManager.raise_for_access(sm, query_context=context)
+        construct.assert_not_called()
