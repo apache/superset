@@ -83,7 +83,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
-from superset.commands.dashboard.export_example import ExportExampleCommand
+from superset.commands.dashboard.export_example import (
+    ExportExampleCommand,
+    ExportExampleSemanticViewError,
+)
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
@@ -1757,6 +1760,7 @@ class DashboardRestApi(
             Exports a dashboard with its charts and datasets in the example
             format used by the Superset example loading system. The export
             includes Parquet data files and YAML configuration files.
+            Semantic-view charts and native-filter targets are not supported.
           parameters:
           - in: path
             schema:
@@ -1788,6 +1792,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              description: The dashboard contains unsupported semantic-view assets
             500:
               $ref: '#/components/responses/500'
         """
@@ -1809,6 +1815,8 @@ class DashboardRestApi(
                     bundle.writestr(filename, content_fn())
         except DashboardNotFoundError:
             return self.response_404()
+        except ExportExampleSemanticViewError as ex:
+            return self.response_422(message=str(ex))
 
         buf.seek(0)
 
