@@ -135,6 +135,35 @@ def test_legacy_alias_keeps_explicit_family(
     assert request.dataset_id == (7 if source_type == "table" else None)
 
 
+@pytest.mark.parametrize(
+    "request_cls",
+    [GenerateChartRequest, GenerateExploreLinkRequest, UpdateChartRequest],
+)
+@pytest.mark.parametrize("explicit_table_type", [False, True])
+def test_explicit_dataset_wins_over_legacy_table_alias(
+    request_cls: type[GenerateChartRequest]
+    | type[GenerateExploreLinkRequest]
+    | type[UpdateChartRequest],
+    explicit_table_type: bool,
+) -> None:
+    """Preserve table precedence without changing the caller's target fields."""
+    data: dict[str, object] = {
+        "identifier": 12,
+        "dataset_id": 7,
+        "datasource_id": 23,
+        "config": _config(),
+    }
+    if explicit_table_type:
+        data["datasource_type"] = "table"
+    request: GenerateChartRequest | GenerateExploreLinkRequest | UpdateChartRequest = (
+        request_cls.model_validate(data)
+    )
+    assert request.dataset_id == 7
+    assert request.view_id is None
+    assert data["dataset_id"] == 7
+    assert data["datasource_id"] == 23
+
+
 @pytest.mark.parametrize("source_type", ["query", "saved_query", "unknown", None])
 def test_legacy_alias_rejects_unsupported_family(source_type: str | None) -> None:
     """Unsupported explicit families cannot be silently reinterpreted as tables."""

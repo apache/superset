@@ -3803,10 +3803,14 @@ def _normalize_chart_target_alias(data: dict[str, Any]) -> dict[str, Any]:
         other_key: str = "dataset_id" if target_key == "view_id" else "view_id"
         source_id: object = data.pop("datasource_id")
         if data.get(other_key) is not None or (
-            data.get(target_key) is not None and data[target_key] != source_id
+            source_type == "semantic_view"
+            and data.get(target_key) is not None
+            and data[target_key] != source_id
         ):
             raise ValueError("datasource_id conflicts with the explicit chart target")
-        data[target_key] = source_id
+        # Legacy table requests give the explicit dataset_id precedence.
+        if data.get(target_key) is None:
+            data[target_key] = source_id
     return data
 
 

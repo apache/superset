@@ -125,7 +125,8 @@ dataset ID must not be reused as a view ID.
 
 The legacy `datasource_id` alias defaults to a table when `datasource_type` is
 omitted. With `datasource_type: "semantic_view"`, it selects a view instead.
-Unsupported types and conflicting explicit selectors are rejected.
+For table-only requests, an explicit `dataset_id` takes precedence over
+`datasource_id`. Unsupported types and conflicting semantic selectors are rejected.
 
 Semantic configurations use saved metric names, for example
 `{"name": "revenue", "saved_metric": true}`, and dimensions published by the view.
@@ -814,6 +815,14 @@ MCP_TOOL_SEARCH_CONFIG = {
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
 :::
+
+With either the `bm25` or `regex` strategy, a query matching a tool name is
+promoted ahead of other matches before the `max_results` limit is applied. Matching
+ignores case and treats underscores and whitespace as equivalent separators
+(including leading, trailing, or repeated whitespace). Only tools visible to
+the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
+rather than search results; non-exact queries retain BM25 ranking or regex
+catalog ordering.
 
 Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
 

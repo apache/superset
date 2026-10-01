@@ -604,6 +604,19 @@ class SQLExecutor:
                 )
             )
 
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if file_transfer_commands := script.get_client_file_transfer_commands():
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=(
+                        "Disallowed client-side file-transfer command(s): "
+                        f"{', '.join(file_transfer_commands)}"
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         # Check DML permission
         if script.has_mutation() and not self.database.allow_dml:
             raise SupersetSecurityException(

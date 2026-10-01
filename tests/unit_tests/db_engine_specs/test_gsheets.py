@@ -23,11 +23,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time, timedelta, timezone, UTC
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
+import numpy as np
 import pandas as pd
 import pytest
 import sqlalchemy
@@ -200,6 +201,7 @@ def test_validate_parameters_catalog(
     ]
 
     properties: GSheetsPropertiesType = {
+        "impersonate_user": True,
         "parameters": {"service_account_info": "", "catalog": None},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
@@ -268,7 +270,7 @@ def test_validate_parameters_catalog(
             "adapter_kwargs": {
                 "gsheetsapi": {
                     "service_account_info": {},
-                    "subject": "admin@example.com",
+                    "subject": None,
                 }
             }
         },
@@ -342,7 +344,7 @@ def test_validate_parameters_catalog_and_credentials(
             "adapter_kwargs": {
                 "gsheetsapi": {
                     "service_account_info": {},
-                    "subject": "admin@example.com",
+                    "subject": None,
                 }
             }
         },
@@ -1272,6 +1274,257 @@ def test_convert_dttm(
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)
+
+
+def test_upload_dates(mocker: MockerFixture) -> None:
+    """
+    Test that date and numpy values are uploaded as JSON values.
+    """
+    from datetime import date
+    from decimal import Decimal
+
+    import numpy as np
+
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch("superset.db_engine_specs.gsheets.db")
+    get_adapter_for_table_name = mocker.patch(
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
+    )
+    session = get_adapter_for_table_name()._get_session()
+    session.post().json.return_value = {
+        "spreadsheetId": 1,
+        "spreadsheetUrl": "https://docs.example.org",
+        "sheets": [{"properties": {"title": "sample_data"}}],
+    }
+
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+
+    df = pd.DataFrame(
+        {
+            "i": np.array([1, 2], dtype="int64"),
+            "f": [1.5, np.nan],
+            "d": [date(2024, 2, 29), None],
+            "ts": pd.to_datetime(["2024-02-29 23:59:58", None]),
+            "dec": [Decimal("1.10"), None],
+        }
+    )
+    GSheetsEngineSpec.df_to_sql(database, Table("sample_data"), df, {})
+
+    body = session.post.call_args_list[-1].kwargs["json"]
+    assert json.loads(json.dumps(body["values"])) == [
+        ["i", "f", "d", "ts", "dec"],
+        [1, 1.5, "2024-02-29", "2024-02-29 23:59:58", "1.10"],
+        [2, "", "", "", ""],
+    ]
+
+
+@pytest.mark.parametrize(
+    "column, expected",
+    [
+        (
+            pd.Series(pd.to_datetime(["2024-03-01 00:30:00.123456+02:00", None])),
+            ["2024-02-29 22:30:00.123456", ""],
+        ),
+        (
+            pd.Series(pd.to_datetime(["2024-02-29 23:30:00-05:00", None])),
+            ["2024-03-01 04:30:00", ""],
+        ),
+        (
+            pd.Series([1, None, 9007199254740993], dtype="Int64"),
+            [1, "", 9007199254740993],
+        ),
+        (
+            pd.Series([time(12, 34, 56, 123456), None, time(0, 0)]),
+            ["12:34:56.123456", "", "00:00:00"],
+        ),
+        (
+            pd.Series(pd.to_timedelta([5, 90_000_000_000, None], unit="ns")),
+            ["0:00:00", "0:01:30", ""],
+        ),
+    ],
+    ids=["positive-offset", "negative-offset", "nullable-int", "time", "ns-duration"],
+)
+def test_upload_cell_types(
+    mocker: MockerFixture,
+    column: pd.Series,
+    expected: list[str | int],
+) -> None:
+    """Serialize cells without offsets or pandas' integer-to-float inference."""
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch("superset.db_engine_specs.gsheets.db")
+    get_adapter = mocker.patch(
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
+    )
+    session = get_adapter.return_value._get_session.return_value
+    session.post.return_value.json.return_value = {
+        "spreadsheetId": 1,
+        "spreadsheetUrl": "https://docs.example.org",
+        "sheets": [{"properties": {"title": "sample_data"}}],
+    }
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+    df = pd.DataFrame({"value": column})
+    original = df.copy(deep=True)
+
+    GSheetsEngineSpec.df_to_sql(database, Table("sample_data"), df, {})
+
+    request = session.post.call_args.kwargs
+    assert request["params"] == {"valueInputOption": "USER_ENTERED"}
+    values = json.loads(json.dumps(request["json"]["values"]))
+    assert values == [["value"], *[[value] for value in expected]]
+    # Numeric equality alone would accept 1.0 in place of 1.
+    assert [type(row[0]) for row in values[1:]] == [type(value) for value in expected]
+    pd.testing.assert_frame_equal(df, original)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (datetime(2024, 3, 1, 0, 30, tzinfo=UTC), "2024-03-01 00:30:00"),
+        (
+            datetime(2024, 3, 1, 0, 30, tzinfo=timezone(timedelta(hours=2))),
+            "2024-02-29 22:30:00",
+        ),
+        (pd.Timestamp("2024-03-01 00:30:00", tz="Asia/Kolkata"), "2024-02-29 19:00:00"),
+        (datetime(2024, 3, 1, 0, 30), "2024-03-01 00:30:00"),
+    ],
+)
+def test_to_json_value_datetime_utc(value: datetime, expected: str) -> None:
+    """Aware timestamps become naive UTC; naive timestamps retain their clock time."""
+    from superset.db_engine_specs.gsheets import to_json_value
+
+    assert to_json_value(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.datetime64("2024-02-29T23:59:58", "us"), "2024-02-29 23:59:58"),
+        (np.datetime64("2024-02-29T23:59:58", "ns"), "2024-02-29 23:59:58"),
+        (np.datetime64("2024-02-29", "D"), "2024-02-29 00:00:00"),
+        (np.datetime64("NaT"), None),
+        (np.timedelta64(90, "s"), "0:01:30"),
+        (np.timedelta64(90_000_000_000, "ns"), "0:01:30"),
+        (np.timedelta64(5, "ns"), "0:00:00"),
+        (np.timedelta64("NaT", "ns"), None),
+        (pd.Timedelta(seconds=90), "0:01:30"),
+        (timedelta(hours=1), "1:00:00"),
+        (timedelta(days=2, seconds=61), "48:01:01"),
+        (timedelta(seconds=-90), "-0:01:30"),
+        (timedelta(days=-2), "-48:00:00"),
+        (timedelta(microseconds=1), "0:00:00.000001"),
+        (timedelta(microseconds=-1), "-0:00:00.000001"),
+        (pd.Timedelta(days=2, microseconds=123456), "48:00:00.123456"),
+        (np.int64(3), 3),
+        (time(12, 34, 56, 123456), "12:34:56.123456"),
+    ],
+)
+def test_to_json_value_numpy_dates_and_durations(value: Any, expected: Any) -> None:
+    """
+    Test that numpy dates and durations become JSON-serializable values.
+    """
+    from superset.db_engine_specs.gsheets import to_json_value
+
+    result = to_json_value(value)
+    assert result == expected
+    json.dumps(result)
+
+
+@pytest.mark.parametrize("impersonate_user", [None, False, True])
+@pytest.mark.parametrize(
+    "serialized_credentials", [False, True], ids=["edit", "create"]
+)
+@pytest.mark.parametrize("catalog_in_parameters", [False, True])
+def test_validate_parameters_service_account_subject(
+    mocker: MockerFixture,
+    impersonate_user: bool | None,
+    serialized_credentials: bool,
+    catalog_in_parameters: bool,
+) -> None:
+    """Create and edit validate as the service account, even with the modal flag."""
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.com"
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
+    credentials = {"client_email": "service@example.com", "private_key": "KEY"}
+    sheet_url = "https://docs.google.com/spreadsheets/d/1/edit"
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": (
+                json.dumps(credentials) if serialized_credentials else credentials
+            ),
+        },
+    }
+    if catalog_in_parameters:
+        properties["parameters"]["catalog"] = {"sheet": sheet_url}
+    else:
+        properties["catalog"] = {"sheet": sheet_url}
+    if impersonate_user is not None:
+        properties["impersonate_user"] = impersonate_user
+
+    assert GSheetsEngineSpec.validate_parameters(properties) == []
+
+    create_engine.assert_called_once_with(
+        "gsheets://",
+        connect_args={
+            "adapter_kwargs": {
+                "gsheetsapi": {"service_account_info": credentials, "subject": None},
+            },
+        },
+    )
+    conn = create_engine.return_value.connect.return_value
+    assert str(conn.execute.call_args.args[0]) == (
+        'SELECT * FROM "https://docs.google.com/spreadsheets/d/1/edit" LIMIT 1'
+    )
+    conn.execute.return_value.fetchall.assert_called_once()
+
+
+@pytest.mark.parametrize("impersonate_user", [False, True])
+def test_query_service_account_subject(
+    mocker: MockerFixture,
+    impersonate_user: bool,
+) -> None:
+    """Exercise SQLAlchemy's final DBAPI arguments, not just the URL subject."""
+    from superset.models.core import Database
+
+    user = mocker.MagicMock(email="admin@example.com")
+    mocker.patch("superset.models.core.get_username", return_value="admin")
+    mocker.patch(
+        "superset.extensions.security_manager.find_user",
+        return_value=user,
+    )
+    credentials = {"client_email": "service@example.com", "private_key": "KEY"}
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit"}
+    database = Database(
+        database_name="sheets",
+        sqlalchemy_uri="gsheets://",
+        impersonate_user=impersonate_user,
+        encrypted_extra=json.dumps({"service_account_info": credentials}),
+        extra=json.dumps({"engine_params": {"catalog": catalog}}),
+    )
+    engine = database._get_sqla_engine()
+    connect = mocker.spy(engine.dialect.dbapi, "connect")
+    try:
+        # No network or Google credentials are needed for a literal query.
+        with engine.connect() as conn:
+            assert conn.exec_driver_sql("SELECT 1").scalar() == 1
+        adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+        assert adapter_kwargs["service_account_info"] == credentials
+        assert adapter_kwargs["catalog"] == catalog
+        assert adapter_kwargs.get("subject") is None
+        # Without the delegation opt-in the subject is removed from the URL too,
+        # since connect_args replaces the URL-derived adapter_kwargs.
+        assert "subject" not in engine.url.query
+    finally:
+        engine.dispose()
 
 
 def _service_account_adapter_kwargs(
