@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -148,20 +148,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" стандарта для обеспечения того, чтобы лексикографический порядок "
-"совпадал с хронологическим порядком. Если формат временной метки не "
-"соответствует стандарту ISO 8601, вам нужно будет определить выражение и "
-"тип для преобразования строки в дату или временную метку. В настоящее "
-"время часовые пояса не поддерживаются. Если время хранится в формате "
-"эпохи, введите \\`epoch_s\\` или \\`epoch_ms\\`. Если шаблон не указан, "
-"будут использованы необязательные значения по умолчанию на уровне имен "
-"для каждой базы данных/столбца с помощью дополнительного параметра."
 
 msgid " to add calculated columns"
 msgstr " для добавления вычисляемых столбцов"
@@ -1017,6 +1009,9 @@ msgstr ""
 " (например, { title: { text: \"Моя диаграмма\" }, tooltip: { trigger: "
 "\"item\" } }). Подробности: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1447,6 +1442,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Добавить папку"
 
+msgid "Add group"
+msgstr "Добавить группу"
+
 msgid "Add item"
 msgstr "Добавить запись"
 
@@ -1486,6 +1484,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Добавить лист"
+
+msgid "Add subgroup"
+msgstr "Добавить подгруппу"
 
 msgid "Add tag to entities"
 msgstr "Добавить тег к объектам"
@@ -1626,6 +1627,9 @@ msgstr "Связанные диаграммы"
 msgid "Affected Dashboards"
 msgstr "Связанные дашборды"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1717,6 +1721,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3312,6 +3320,9 @@ msgstr "Лимит ячеек"
 msgid "Cell title template"
 msgstr "Шаблон заголовка ячейки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -3975,6 +3986,9 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
+msgid "Collapse settings"
+msgstr "Свернуть настройки"
+
 msgid "Collapse tab content"
 msgstr "Свернуть содержимое вкладки"
 
@@ -4111,6 +4125,9 @@ msgstr "Столбец, содержащий данные о долготе"
 
 msgid "Column data types"
 msgstr "Типы данных столбцов"
+
+msgid "Column groups"
+msgstr "Группы столбцов"
 
 msgid "Column header tooltip"
 msgstr "Всплывающая подсказка заголовка столбца"
@@ -4376,6 +4393,9 @@ msgstr "Подтвердить"
 msgid "Confirm Password"
 msgstr "Подтверждение пароля"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Подтвердить перезапись"
 
@@ -4384,6 +4404,9 @@ msgstr "Подтвердите пароль"
 
 msgid "Confirm save"
 msgstr "Подтвердить сохранение"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Подтвердите пароль пользователя"
@@ -4607,6 +4630,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не удалось обнаружить хост: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Не удалось проверить пользователя в текущей сессии."
 
@@ -4761,6 +4790,9 @@ msgstr "Текущий день"
 
 msgid "Current month"
 msgstr "Текущий месяц"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Текущий квартал"
@@ -5003,6 +5035,9 @@ msgstr "Не удалось восстановить дашборд"
 msgid "Dashboard could not be updated."
 msgstr "Не удалось обновить дашборд"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Дашборд не существует"
 
@@ -5011,6 +5046,9 @@ msgstr "Дашборд успешно экспортирован как прим
 
 msgid "Dashboard exported successfully"
 msgstr "Дашборд успешно экспортирован"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Дашборд импортирован"
@@ -5616,6 +5654,11 @@ msgstr "Удалить группу"
 
 msgid "Delete item"
 msgstr "Удалить элемент"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6722,6 +6765,9 @@ msgstr "Введите основные учетные данные"
 msgid "Enter a name for this sheet"
 msgstr "Введите название для этого листа"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Введите часть имени объекта"
 
@@ -6733,6 +6779,9 @@ msgstr "Введите время в секундах"
 
 msgid "Enter fullscreen"
 msgstr "Полноэкранный режим"
+
+msgid "Enter group name"
+msgstr "Введите имя группы"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введите минимальное и максимальное значения для диапазона"
@@ -6773,6 +6822,9 @@ msgstr "Введите имя пользователя"
 
 msgid "Enter theme name"
 msgstr "Введите имя темы"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Введите ваш логин и пароль ниже:"
@@ -6957,9 +7009,6 @@ msgstr "Экспорт в Excel (.xlsx)"
 msgid "Excel XML Export"
 msgstr "Экспорт в XML (.xml)"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Не удалось определить формат Excel-файла"
 
@@ -7011,6 +7060,9 @@ msgstr "Развернуть строку"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Развернуть строку"
+
+msgid "Expand settings"
+msgstr "Развернуть настройки"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7123,6 +7175,11 @@ msgstr "Экспорт исходных данных в CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Экспорт сводной таблицы в CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7970,6 +8027,10 @@ msgstr ""
 msgid "Group"
 msgstr "Группа"
 
+#, python-format
+msgid "Group %s"
+msgstr "Группа %s"
+
 msgid "Group By"
 msgstr "Группировать по"
 
@@ -7981,6 +8042,12 @@ msgstr "Группа"
 
 msgid "Group by"
 msgstr "Группировать по"
+
+msgid "Group columns"
+msgstr "Группировать столбцы"
+
+msgid "Group name"
+msgstr "Имя группы"
 
 msgid "Group remaining as \"Others\""
 msgstr "Группировать остальное в \"Другое\""
@@ -8559,9 +8626,6 @@ msgstr "Некорректные ID вкладок: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Неверное имя пользователя или пароль"
-
 msgid "Inverse"
 msgstr ""
 
@@ -8903,6 +8967,9 @@ msgstr "Способ отрисовки дерева"
 
 msgid "Least recently modified"
 msgstr "Измененные давно"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9838,6 +9905,12 @@ msgstr "Еще фильтры"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Переместить группу влево"
+
+msgid "Move group right"
+msgstr "Переместить группу вправо"
+
 msgid "Move icon"
 msgstr "Переместить иконку"
 
@@ -9869,6 +9942,9 @@ msgstr "Многоуровневый"
 
 msgid "Multi-Variables"
 msgstr "Несколько переменных"
+
+msgid "Multi-level header"
+msgstr "Многоуровневый заголовок"
 
 msgid "Multiple"
 msgstr "Несколько"
@@ -10022,6 +10098,9 @@ msgstr "Новое имя датасета"
 
 msgid "New header"
 msgstr "Новый заголовок"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Новая вкладка"
@@ -10288,6 +10367,11 @@ msgstr "Ничего -> Стрелка"
 msgid "None -> None"
 msgstr "Ничего -> Ничего"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Обычный"
 
@@ -10311,6 +10395,15 @@ msgstr "Не равно"
 
 msgid "Not Time Series"
 msgstr "Не временные ряды"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Недопустимый ZIP-файл"
@@ -10836,8 +10929,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...). "
-"Введите свой период, чтобы добавить его."
+"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...)."
+" Введите свой период, чтобы добавить его."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11222,6 +11315,9 @@ msgstr "Пожалуйста, подтвердите ваш пароль"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Введите SQLAlchemy URI для проверки"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Пожалуйста, введите корректный email"
 
@@ -11369,6 +11465,9 @@ msgstr "Порт %(port)s хоста \"%(hostname)s\" отказал в подк
 msgid "Port out of range 0-65535"
 msgstr "Порт должен быть в диапазоне 0-65535"
 
+msgid "Position"
+msgstr "Положение"
+
 msgid "Position JSON"
 msgstr "Позиция (JSON)"
 
@@ -11413,6 +11512,12 @@ msgstr "Префикс или суффикс"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -11826,6 +11931,9 @@ msgstr "Удалить фильтр"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Удалить группу"
+
 msgid "Remove item"
 msgstr "Удалить элемент"
 
@@ -12064,6 +12172,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Обязательные значения были удалены"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Ресемплирование (изменение частоты данных)"
@@ -12699,6 +12810,9 @@ msgstr "Схема"
 msgid "Schema cache timeout"
 msgstr "Время жизни кэша схемы"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Схемы, в которые разрешена загрузка файлов"
 
@@ -13004,6 +13118,9 @@ msgstr "Выберите столбец"
 
 msgid "Select column name"
 msgstr "Выберите имя столбца"
+
+msgid "Select columns"
+msgstr "Выберите столбцы"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14365,6 +14482,10 @@ msgstr "Подкатегории"
 msgid "Subdomain"
 msgstr "Подблок"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгруппа %s"
+
 msgid "Subject"
 msgstr "Субъект"
 
@@ -14600,6 +14721,9 @@ msgstr "Имя таблицы не определено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблица или представление \"%(table)s\" не существует"
+
+msgid "Table side"
+msgstr "Сторона таблицы"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15182,6 +15306,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15658,6 +15788,10 @@ msgstr ""
 "выполнить запрос."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -15719,6 +15853,10 @@ msgid ""
 msgstr ""
 "Таблица \"%(table)s\" не существует. Для выполнения запроса используйте "
 "существующую таблицу."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16177,6 +16315,12 @@ msgstr "Произошла ошибка при предпросмотре выб
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16197,6 +16341,12 @@ msgstr "Фильтр будет применен к этим датасетам"
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16213,6 +16363,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16338,6 +16493,12 @@ msgstr ""
 "содержащую аннотации"
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17157,6 +17318,9 @@ msgstr "Вторник"
 # Это не ошибка перевода. Джон Тьюки - математик из США.
 msgid "Tukey"
 msgstr "Оценка Тьюки"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Тип"
@@ -18148,6 +18312,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "Не удалось обнаружить столбец \"%(column_name)s\" в строке %(location)s"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -19346,6 +19514,13 @@ msgstr "(CTRL + Z), пока вы не сохраните изменения."
 
 msgid "by using"
 msgstr ", используя"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "не может быть пустым"
