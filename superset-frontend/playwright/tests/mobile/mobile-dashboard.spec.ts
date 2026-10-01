@@ -35,25 +35,10 @@ import { URL } from '../../utils/urls';
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
 
-/**
- * Navigates to the dashboard list, clicks the first available dashboard
- * card, and waits for navigation into that dashboard. Skips the current
- * test when no dashboards are available to open.
- */
-async function openFirstDashboard(page: Page): Promise<void> {
-  await page.goto(URL.DASHBOARD_LIST);
+/** Opens the sample dashboard with charts, independently of dashboard list order. */
+async function openExampleDashboard(page: Page): Promise<void> {
+  await page.goto('dashboard/world_health/');
   await page.waitForLoadState('networkidle');
-
-  const cards = page.locator('[data-test="styled-card"]');
-  const cardCount = await cards.count();
-
-  test.skip(cardCount === 0, 'No dashboards available to open on mobile');
-
-  await cards.first().click();
-
-  await page.waitForURL(url => /\/dashboard\/(?!list)/.test(url.pathname), {
-    timeout: TIMEOUT.PAGE_LOAD,
-  });
 }
 
 /**
@@ -189,7 +174,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard loads and shows charts on mobile', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Dashboard content should be visible
     await expect(
@@ -210,7 +195,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Look for the hamburger menu / more actions button
     const menuButton = page
@@ -223,7 +208,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
-    await openFirstDashboard(page);
+    await openExampleDashboard(page);
 
     // Open the actions menu
     const menuButton = page

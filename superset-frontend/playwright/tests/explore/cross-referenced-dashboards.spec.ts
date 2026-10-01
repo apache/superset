@@ -28,7 +28,8 @@ import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPutChart } from '../../helpers/api/chart';
 import { createTestDashboard } from '../dashboard/dashboard-test-helpers';
-import { waitForPut } from '../../helpers/api/intercepts';
+import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
+import { Select } from '../../components/core/Select';
 import { ExplorePage } from '../../pages/ExplorePage';
 import { TIMEOUT } from '../../utils/constants';
 import { createExploreTestChart } from './explore-test-helpers';
@@ -42,9 +43,31 @@ async function overwriteToDashboard(
   chartId: number,
   dashboardName: string,
 ): Promise<void> {
+  // Wait for the existing options before typing, or the select can offer
+  // a new dashboard with the same name instead.
+  const dashboardsLoaded = waitForGet(page, 'api/v1/dashboard/', {
+    pathMatch: true,
+  });
   const saveModal = await explorePage.openSaveModal();
   await saveModal.selectSaveAction('overwrite');
-  await saveModal.selectDashboard(dashboardName);
+  const dashboardSelect = new Select(
+    page,
+    saveModal.body.locator('[data-test="Select a dashboard"]'),
+  );
+  await dashboardSelect.open();
+  const dashboardsResponse = await dashboardsLoaded;
+  expect(dashboardsResponse.ok()).toBe(true);
+  expect((await dashboardsResponse.json()).result).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ dashboard_title: dashboardName }),
+    ]),
+  );
+  await dashboardSelect.type(dashboardName);
+  await page
+    .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
+    .locator('.ant-select-item-option')
+    .getByText(dashboardName, { exact: true })
+    .click();
   const updated = waitForPut(page, `api/v1/chart/${chartId}`, {
     pathMatch: true,
   });
