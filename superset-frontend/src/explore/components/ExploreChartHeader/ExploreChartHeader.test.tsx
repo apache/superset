@@ -985,6 +985,20 @@ describe('Additional actions tests', () => {
       expect(dialog).toHaveTextContent('SELECT age FROM survey'),
     );
 
+    const [chartDataCall] = fetchMock.callHistory.calls('chart-data-query');
+    const requestBody = JSON.parse(String(chartDataCall.options?.body));
+    const { latestQueryFormData } = createProps().chart;
+    expect(requestBody).toMatchObject({
+      result_type: 'query',
+      datasource: { id: 49, type: 'table' },
+      form_data: {
+        viz_type: latestQueryFormData.viz_type,
+        datasource: latestQueryFormData.datasource,
+        slice_id: latestQueryFormData.slice_id,
+        all_columns_x: latestQueryFormData.all_columns_x,
+      },
+    });
+
     await userEvent.click(
       within(dialog).getByRole('button', { name: /close/i }),
     );

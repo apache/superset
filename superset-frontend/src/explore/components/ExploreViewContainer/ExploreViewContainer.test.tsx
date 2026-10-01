@@ -45,6 +45,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as chartActions from 'src/components/Chart/chartAction';
 import * as datasourceActions from 'src/dashboard/actions/datasources';
+import type { ExplorePageState } from 'src/explore/types';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -1501,6 +1502,9 @@ const renderTooltipChart = (vizType: string, template = '') => {
       setControlValueSpy.mock.calls
         .filter(([controlName]) => controlName === 'tooltip_template')
         .map(([, value]) => value),
+    storedTemplate: () =>
+      ((store as Store).getState() as ExplorePageState).explore.controls
+        .tooltip_template?.value,
     cleanup: () => getChartControlPanelRegistry().remove(vizType),
   };
 };
@@ -1511,6 +1515,7 @@ test('appends a {{ field }} variable to the tooltip template for a selected colu
     chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
 
     expect(chart.templateWrites()).toEqual(['{{ name }}']);
+    expect(chart.storedTemplate()).toBe('{{ name }}');
   } finally {
     chart.cleanup();
   }
@@ -1522,6 +1527,7 @@ test('appends after the existing tooltip template text', () => {
     chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
 
     expect(chart.templateWrites()).toEqual(['Details: {{ name }}']);
+    expect(chart.storedTemplate()).toBe('Details: {{ name }}');
   } finally {
     chart.cleanup();
   }
@@ -1533,6 +1539,7 @@ test('appends a limited variable for a column on an aggregated chart', () => {
     chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
 
     expect(chart.templateWrites()).toEqual(['{{ limit name 10 }}']);
+    expect(chart.storedTemplate()).toBe('{{ limit name 10 }}');
   } finally {
     chart.cleanup();
   }
@@ -1546,6 +1553,7 @@ test('appends a plain variable for a metric even on an aggregated chart', () => 
     ]);
 
     expect(chart.templateWrites()).toEqual(['{{ count }}']);
+    expect(chart.storedTemplate()).toBe('{{ count }}');
   } finally {
     chart.cleanup();
   }
@@ -1557,6 +1565,7 @@ test('leaves the tooltip template alone when it already references the field', (
     chart.selectTooltipContents([{ item_type: 'column', column_name: 'name' }]);
 
     expect(chart.templateWrites()).toEqual([]);
+    expect(chart.storedTemplate()).toBe('Name: {{ name }}');
   } finally {
     chart.cleanup();
   }
