@@ -31,6 +31,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.models.core import Database
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _validate_virtual_dataset(
@@ -595,3 +596,76 @@ def test_create_dataset_run_succeeds_when_metadata_fetch_works(
 
     assert command.run() is dataset
     dataset.fetch_metadata.assert_called_once()
+
+
+def _create_command_with_mapping(
+    partition_column: str | None,
+    partition_mapped_column: str | None = None,
+) -> CreateDatasetCommand:
+    """Validate a physical dataset carrying a partition mapping."""
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.backend = "hive"
+    mock_database.db_engine_spec.engine = "hive"
+    mock_database.get_default_catalog.return_value = None
+
+    with (
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+            return_value=mock_database,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_table_exists",
+            return_value=True,
+        ),
+        patch("superset.commands.dataset.create.security_manager.raise_for_access"),
+        patch("superset.commands.dataset.create.populate_subjects"),
+    ):
+        command = CreateDatasetCommand(
+            {
+                "database": 1,
+                "schema": "default",
+                "table_name": "web_events",
+                "partition_column": partition_column,
+                "partition_mapped_column": partition_mapped_column,
+            }
+        )
+        command.validate()
+
+    return command
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_create_rejects_a_self_mapping() -> None:
+    """
+    Update has validated this since the mapping landed and create did not, so
+    the same mapping was accepted on POST and rejected on PUT -- and once
+    stored, only the editor reported it, which an API-only caller never opens.
+    """
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        _create_command_with_mapping("dt_epoch", "dt_epoch")
+
+    assert [exc.field_name for exc in excinfo.value._exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_create_accepts_a_well_formed_mapping() -> None:
+    """
+    The dataset's columns are synced by `fetch_metadata` after validation, so
+    "is that a real column?" has no answer yet and must not be guessed at.
+    """
+    command = _create_command_with_mapping("dt_epoch", "event_time")
+
+    assert command._properties["partition_column"] == "dt_epoch"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_create_skips_mapping_validation_while_the_feature_is_off() -> None:
+    """Same bargain as the save path: nothing reads a mapping with the flag off."""
+    command = _create_command_with_mapping("dt_epoch", "dt_epoch")
+
+    assert command._properties["partition_mapped_column"] == "dt_epoch"
