@@ -18,7 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Button } from '@superset-ui/core/components';
-import { tokenizeToNumericArray } from '@superset-ui/plugin-chart-echarts';
+import {
+  tokenizeToNumericArray,
+  isRangesInputComplete,
+} from '@superset-ui/plugin-chart-echarts';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import type { ColorPickerValue } from '../ColorPickerControl';
@@ -47,15 +50,21 @@ export default function BulletRangeColorsControl({
   ...headerProps
 }: BulletRangeColorsControlProps) {
   const rangeValues = tokenizeToNumericArray(ranges) ?? [];
+  // While `ranges` is mid-edit (e.g. "20,,60"), tokenizeToNumericArray's
+  // leniency silently compacts it to a shorter list, which would otherwise
+  // shift colors to the wrong positions. Block commits until it's complete
+  // again so no edit can be positionally misaligned once it is.
+  const rangesComplete = isRangesInputComplete(ranges);
 
   const colorAt = (index: number): string => value?.[index] || '';
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
-    if (typeof color !== 'string') return;
+    if (typeof color !== 'string' || !rangesComplete) return;
     onChange?.(replaceColorAtIndex(rangeValues.length, index, color, colorAt));
   };
 
   const handleReset = (index: number) => {
+    if (!rangesComplete) return;
     onChange?.(replaceColorAtIndex(rangeValues.length, index, '', colorAt));
   };
 
@@ -78,11 +87,13 @@ export default function BulletRangeColorsControl({
               value={colorAt(index) || undefined}
               onChange={handleColorChange(index)}
               outputFormat="hex"
+              disabled={!rangesComplete}
             />
             {colorAt(index) && (
               <Button
                 buttonSize="small"
                 buttonStyle="link"
+                disabled={!rangesComplete}
                 onClick={() => handleReset(index)}
               >
                 {t('Use default')}

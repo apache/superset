@@ -27,48 +27,10 @@ import {
   replaceColorAtIndex,
 } from '../shared/RangeColorRow';
 import { IntervalColorsControlProps } from './types';
-
-const parseBounds = (intervals?: string): number[] =>
-  (intervals ?? '')
-    .split(',')
-    .map(part => part.trim())
-    .filter(part => part !== '')
-    .map(Number)
-    .filter(bound => Number.isFinite(bound));
-
-/**
- * Resolves the legacy `interval_color_indices` control (comma-separated,
- * 1-indexed positions into the chosen categorical color scheme) into real
- * hex colors, positionally matched to `bounds`. This exists purely so the
- * control panel shows sensible colors the first time an admin opens a Gauge
- * chart that was saved before `interval_colors` existed -- it doesn't
- * persist anything on its own. Chart rendering for charts that are *never*
- * reopened for editing is handled independently by the equivalent fallback
- * in `Gauge/transformProps.ts`'s `getIntervalBoundsAndColors`.
- */
-const resolveLegacyColors = (
-  bounds: number[],
-  legacyIntervalColorIndices: string | undefined,
-  colorScheme: string | undefined,
-): string[] => {
-  const schemeColors =
-    getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
-  const indices = (legacyIntervalColorIndices ?? '')
-    .split(',')
-    .map(part => part.trim())
-    .map(part => (part === '' ? NaN : Number(part)));
-  return bounds.map((_, index) => {
-    const legacyIndex = indices[index];
-    if (schemeColors.length === 0) return '';
-    if (Number.isFinite(legacyIndex)) {
-      return schemeColors[
-        (((legacyIndex - 1) % schemeColors.length) + schemeColors.length) %
-          schemeColors.length
-      ];
-    }
-    return schemeColors[index % schemeColors.length];
-  });
-};
+import {
+  parseIntervalBounds as parseBounds,
+  resolveLegacyIntervalColors as resolveLegacyColors,
+} from './legacyColors';
 
 /**
  * Per-interval color editor for the Gauge chart. Row *count* is driven by

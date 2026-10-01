@@ -122,11 +122,29 @@ test('getComparisonColorTokens strips an existing alpha channel from an 8-digit 
   });
 });
 
-test('getComparisonColorTokens passes a non-hex theme token (e.g. rgba) through unchanged instead of tinting it', () => {
+test('getComparisonColorTokens tints an rgba() theme token using its own r/g/b components', () => {
   const rgbaToken = 'rgba(255, 255, 255, 0.85)';
   expect(getComparisonColorTokens(rgbaToken, supersetTheme)).toEqual({
     text: rgbaToken,
-    background: rgbaToken,
+    background: 'rgba(255, 255, 255, 0.1)',
     strongText: rgbaToken,
+  });
+});
+
+test('getComparisonColorTokens tints an rgb() theme token using its own r/g/b components', () => {
+  const rgbToken = 'rgb(51, 102, 153)';
+  expect(getComparisonColorTokens(rgbToken, supersetTheme)).toEqual({
+    text: rgbToken,
+    background: 'rgba(51, 102, 153, 0.1)',
+    strongText: rgbToken,
+  });
+});
+
+test('getComparisonColorTokens passes an unrecognized color format through unchanged', () => {
+  const namedColor = 'papayawhip';
+  expect(getComparisonColorTokens(namedColor, supersetTheme)).toEqual({
+    text: namedColor,
+    background: namedColor,
+    strongText: namedColor,
   });
 });

@@ -117,3 +117,24 @@ test('resets a single row back to "no custom color" without touching the others'
     expect(onChange).toHaveBeenCalledWith(['', '#00ff00']);
   });
 });
+
+test('disables editing and resets while ranges has a blank token between numbers', () => {
+  const onChange = jest.fn();
+  render(
+    <BulletRangeColorsControl
+      onChange={onChange}
+      ranges="20,,60"
+      value={['#ff0000', '#00ff00', '#0000ff']}
+    />,
+  );
+
+  // The blank middle token means the list is still being edited; don't
+  // collapse row count or allow commits that would misalign colors once
+  // the blank is filled back in.
+  document.querySelectorAll('.ant-color-picker-trigger').forEach(trigger => {
+    expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
+  });
+  screen.getAllByText('Use default').forEach(button => {
+    expect(button).toBeDisabled();
+  });
+});
