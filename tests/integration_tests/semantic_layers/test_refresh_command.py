@@ -97,6 +97,8 @@ def refresh_race(app_context: AppContext) -> Iterator[RefreshRace]:
     connection: Connection
     request_session: Session
     engine: Engine = db.engine
+    if engine.dialect.name == "sqlite":
+        pytest.skip("SQLite cannot exercise a REPEATABLE READ request snapshot")
     assert engine.dialect.name in {"postgresql", "mysql"}, (
         "Metadata revalidation requires a PostgreSQL or MySQL integration lane"
     )
