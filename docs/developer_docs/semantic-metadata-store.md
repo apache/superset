@@ -29,6 +29,12 @@ Both `SEMANTIC_LAYERS` and `SEMANTIC_LAYER_METADATA_REFRESH_ENABLED` remain off
 by default. A provider must explicitly declare support and supply the adapter
 and captured view token. Legacy providers retain their existing behavior.
 
+For participating stored layers, the runtime-schema endpoint uses the bound
+adapter's catalog, so its choices follow refreshed metadata just like view
+discovery. Participation classification normalizes invalid stored provider types
+and configurations to the stable metadata configuration error. The runtime-schema
+endpoint retains its existing unknown-type response.
+
 Before enabling, configure `DISTRIBUTED_COORDINATION_CONFIG` with Redis or Redis
 Sentinel, and `SEMANTIC_LAYER_METADATA_NAMESPACE` with a trusted, nonempty
 string or zero-argument callable returning the deployment and tenant namespace.
@@ -58,6 +64,9 @@ random generation: clearing compatibility retires all its selection variants
 without fetching metadata or invalidating query results. Late fills retain their
 old captured key. Existing query/RLS identity and selected-query force refresh
 remain in the query-cache path. No global key scan or upstream cache purge occurs.
+The compatibility endpoint captures its generation before resolving the provider
+view. A clear during that resolution cannot relabel the endpoint's old answer with
+the new generation. Callers must not pre-resolve the view before this capture.
 
 Bounds are a 30-second metadata I/O budget, a non-renewing lease capped by the
 owner’s remaining budget (and at most 60 seconds), a
