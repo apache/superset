@@ -69,6 +69,13 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   columnCornerCells.forEach(cell => {
     expect((cell as HTMLTableCellElement).colSpan).toBe(rowLabelSpan);
   });
+  // The row-header corner cell(s) must cover the same columns as the body
+  // label below them too: removing their colSpan would leave part of the
+  // frozen block uncovered even though the columnCornerCells check above
+  // still passes.
+  rowHeaderCornerCells.forEach(cell => {
+    expect((cell as HTMLTableCellElement).colSpan).toBe(rowLabelSpan);
+  });
   cornerCells.forEach(cell => {
     const style = getComputedStyle(cell);
     expect(style.position).toBe('sticky');
@@ -251,7 +258,7 @@ test('does not leak sticky positioning onto the totals label from its row with m
   expect(getComputedStyle(totalsLabel as Element).position).toBe('static');
 });
 
-test('does not sticky-position the row-label column or corner cell(s) in dashboard edit mode', () => {
+test('does not sticky-position the row-label column, corner cell(s), or totals label in dashboard edit mode', () => {
   // TableRenderers detects dashboard edit mode by looking for this class
   // on the document, rather than via a prop.
   const editingMarker = document.createElement('div');
@@ -259,8 +266,13 @@ test('does not sticky-position the row-label column or corner cell(s) in dashboa
   document.body.appendChild(editingMarker);
 
   try {
+    // Uses the totals-enabled fixture (single row dim, single column dim)
+    // rather than withoutColTotals so the corner-cell and totals-label
+    // guards are actually exercised here too -- a regression in either
+    // one that only shows up with totals enabled would otherwise leave
+    // an orphan frozen cell during editing without failing this test.
     const transformedProps = {
-      ...transformProps(testData.withoutColTotals),
+      ...transformProps(testData.withColTotals),
       margin: 32,
       legacy_order_by: null,
       order_desc: false,
@@ -276,6 +288,28 @@ test('does not sticky-position the row-label column or corner cell(s) in dashboa
     expect(getComputedStyle(rowLabelCell as Element).position).not.toBe(
       'sticky',
     );
+
+    // Asserted as two separate non-empty groups, mirroring the other
+    // corner-cell tests above, so that if either selector stops matching,
+    // that group's absence fails the test instead of silently leaving
+    // only the other group's cells checked.
+    const columnCornerCells = container.querySelectorAll(
+      'thead th.pvtCornerLabel',
+    );
+    const rowHeaderCornerCells = container.querySelectorAll(
+      'thead tr.pvtRowHeaderRow th.pvtAxisLabel',
+    );
+    expect(columnCornerCells.length).toBeGreaterThan(0);
+    expect(rowHeaderCornerCells.length).toBeGreaterThan(0);
+    [...columnCornerCells, ...rowHeaderCornerCells].forEach(cell => {
+      expect(getComputedStyle(cell).position).not.toBe('sticky');
+    });
+
+    const totalsLabel = container.querySelector(
+      'tbody tr.pvtRowTotals th.pvtRowTotalLabel',
+    );
+    expect(totalsLabel).toBeInTheDocument();
+    expect(getComputedStyle(totalsLabel as Element).position).toBe('static');
   } finally {
     editingMarker.remove();
   }
