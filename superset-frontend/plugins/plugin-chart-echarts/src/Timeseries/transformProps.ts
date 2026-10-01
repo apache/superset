@@ -477,7 +477,11 @@ export default function transformProps(
       .filter(
         ([column, parts]) =>
           column !== metricLabel &&
-          parts.length > 1 &&
+          // a metric-prefixed column carries the metric plus one part per
+          // dimension; a truncated dimension tuple has no metric part and
+          // must not be mistaken for one when a dimension value reads like
+          // the metric label
+          parts.length === groupBy.length + 1 &&
           parts[0] === metricLabel &&
           !derivedComparisonSeries.has(column),
       )
