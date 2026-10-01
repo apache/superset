@@ -35,13 +35,10 @@ import { URL } from '../../utils/urls';
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
 
-/** Opens the sample dashboard, skipping when the example fixture is absent. */
+/** Opens the required sample dashboard and asserts navigation succeeds. */
 async function openExampleDashboard(page: Page): Promise<void> {
   const response = await page.goto('dashboard/world_health/');
-  test.skip(
-    response?.status() === 404,
-    'world_health dashboard fixture is missing; run superset load_examples.',
-  );
+  expect(response?.ok()).toBe(true);
   await page.waitForLoadState('networkidle');
 }
 

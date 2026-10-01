@@ -43,8 +43,7 @@ async function overwriteToDashboard(
   chartId: number,
   dashboardName: string,
 ): Promise<void> {
-  // Wait for the existing options before typing, or the select can offer
-  // a new dashboard with the same name instead.
+  // Wait for the initial options to load before triggering a search.
   const dashboardsLoaded = waitForGet(page, 'api/v1/dashboard/', {
     pathMatch: true,
   });
@@ -57,17 +56,21 @@ async function overwriteToDashboard(
   await dashboardSelect.open();
   const dashboardsResponse = await dashboardsLoaded;
   expect(dashboardsResponse.ok()).toBe(true);
-  expect((await dashboardsResponse.json()).result).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ dashboard_title: dashboardName }),
-    ]),
-  );
+  // The target may be beyond the first page of unfiltered dashboards.
+  const dashboardsSearched = waitForGet(page, 'api/v1/dashboard/', {
+    pathMatch: true,
+  });
   await dashboardSelect.type(dashboardName);
-  await page
+  expect((await dashboardsSearched).ok()).toBe(true);
+  const dashboardOption = page
     .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
     .locator('.ant-select-item-option')
-    .getByText(dashboardName, { exact: true })
-    .click();
+    .getByText(dashboardName, { exact: true });
+  await expect(dashboardOption).toBeVisible();
+  await dashboardOption.click();
+  await expect(
+    dashboardSelect.element.getByText(dashboardName, { exact: true }),
+  ).toBeVisible();
   const updated = waitForPut(page, `api/v1/chart/${chartId}`, {
     pathMatch: true,
   });
