@@ -458,11 +458,17 @@ def execute_with_oauth2_retry(  # noqa: C901
             db.session.expire(token)
 
         stats_logger.incr("oauth2.forced_refresh.exchange_success")
-        try:
-            result = operation()
-        except Exception:
-            stats_logger.incr("oauth2.forced_refresh.query_retry_failure")
-            raise
+        # Connection creation inside the retry must still defer to this operation.
+        # Restore the outer guard before handling a second rejection as sign-in.
+        with check_for_oauth2(database):
+            retry_context = _oauth2_retry_active.set(True)
+            try:
+                result = operation()
+            except Exception:
+                stats_logger.incr("oauth2.forced_refresh.query_retry_failure")
+                raise
+            finally:
+                _oauth2_retry_active.reset(retry_context)
         stats_logger.incr("oauth2.forced_refresh.query_retry_success")
         return result
 

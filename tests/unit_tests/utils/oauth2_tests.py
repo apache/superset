@@ -21,6 +21,7 @@ import base64
 import hashlib
 import logging
 import traceback
+from contextvars import ContextVar
 from datetime import datetime
 from typing import cast
 
@@ -50,6 +51,7 @@ from superset.utils.oauth2 import (
     generate_code_verifier,
     get_oauth2_access_token,
     get_oauth2_redirect_uri,
+    is_oauth2_retry_active,
     OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     refresh_oauth2_token,
 )
@@ -241,6 +243,50 @@ def test_execute_with_oauth2_retry_forces_refresh_once(
         rejected_access_token="stale-token",  # noqa: S106
     )
     db.session.expire.assert_called_once_with(token)
+
+
+@pytest.mark.parametrize("retry_fails", [False, True])
+@pytest.mark.parametrize("outer_active", [False, True])
+def test_execute_with_oauth2_retry_guards_both_attempts(
+    mocker: MockerFixture,
+    retry_fails: bool,
+    outer_active: bool,
+) -> None:
+    """Both attempts own connection recovery, and every exit restores the guard."""
+    mocker.patch(
+        "superset.utils.oauth2._oauth2_retry_active",
+        ContextVar("test_oauth2_retry_active", default=outer_active),
+    )
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    attempts = 0
+
+    def operation() -> str:
+        """Observe the retry boundary from inside each operation invocation."""
+        nonlocal attempts
+        attempts += 1
+        assert is_oauth2_retry_active()
+        if attempts == 1 or retry_fails:
+            raise RuntimeError("token rejected")
+        return "result"
+
+    assert is_oauth2_retry_active() is outer_active
+    if retry_fails:
+        with pytest.raises(RuntimeError, match="token rejected"):
+            execute_with_oauth2_retry(database, operation)
+    else:
+        assert execute_with_oauth2_retry(database, operation) == "result"
+    assert attempts == 2
+    refresh.assert_called_once()
+    assert is_oauth2_retry_active() is outer_active
 
 
 def test_execute_with_oauth2_retry_expires_token_from_ambient_session(

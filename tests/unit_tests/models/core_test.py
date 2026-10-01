@@ -16,6 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Callable
 
@@ -2625,6 +2626,96 @@ def test_get_raw_connection_asks_to_sign_in_when_the_new_token_is_rejected(
 
     assert engine.raw_connection.call_count == 2
     refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_outer_oauth2_retry_does_not_refresh_again_when_login_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Re-entering connection creation cannot exchange twice for one query."""
+    from superset.utils.oauth2 import execute_with_oauth2_retry, is_oauth2_retry_active
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    def operation() -> None:
+        """Open the connection inside the logical query's retry boundary."""
+        with database.get_raw_connection():
+            pytest.fail("A rejected token must not open a connection")
+
+    with pytest.raises(OAuth2RedirectError):
+        execute_with_oauth2_retry(database, operation)
+
+    refresh.assert_called_once()
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_called_once_with(database)
+    assert not is_oauth2_retry_active()
+
+
+def test_get_inspector_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A second inspector login rejection redirects instead of leaking the error."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    # Isolate inspector creation from get_sqla_engine's broader error handling.
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=RuntimeError("token rejected"),
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            pytest.fail("A rejected token must not create an inspector")
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_inspector_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inspector errors after login trigger sign-in without replaying metadata work."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch("superset.models.core.sqla.inspect", return_value=inspector)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            raise RuntimeError("token rejected")
+
+    inspect.assert_called_once_with(engine)
+    refresh.assert_not_called()
     start_dance.assert_called_once_with(database)
 
 

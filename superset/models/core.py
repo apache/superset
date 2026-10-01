@@ -1306,7 +1306,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         @contextmanager
         def open_inspector() -> Iterator[Inspector]:
             with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-                yield sqla.inspect(engine)
+                with check_for_oauth2(self):
+                    yield sqla.inspect(engine)
 
         with self._open_with_oauth2_retry(open_inspector) as inspector:
             yield inspector
