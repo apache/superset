@@ -69,12 +69,12 @@ def compatibility_identity(
             return None
         token, observed = snapshot.cache_token, snapshot.observed_at
     else:
+        generation = store.compatibility_generation()
         captured: str | None = view.implementation.metadata_cache_token
         if not captured:
             raise MetadataRefreshError("configuration")
         token = captured
         observed = store.observed_at(token)
-        generation = store.compatibility_generation()
     key: str = (
         "compatible:"
         + hashlib.sha256(

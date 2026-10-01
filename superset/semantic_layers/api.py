@@ -81,7 +81,10 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.cache_inspection import CacheEntryInfo
 from superset.semantic_layers.masking import mask_configuration
-from superset.semantic_layers.metadata_binding import participates
+from superset.semantic_layers.metadata_binding import (
+    metadata_refresh_enabled,
+    participates,
+)
 from superset.semantic_layers.metadata_errors import (
     metadata_api_errors,
     metadata_database_errors,
@@ -211,6 +214,16 @@ def _parse_partial_config(
         return None
 
 
+def bound_runtime_schema(
+    layer: SemanticLayer, runtime_data: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Resolve runtime choices from the stored connection's bound adapter."""
+    adapter: MetadataRefreshAdapter | None = layer.implementation.metadata_refresh
+    if adapter is None:
+        raise MetadataRefreshError("configuration")
+    return adapter.get_runtime_schema(runtime_data)
+
+
 class SemanticViewRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SemanticView)
 
@@ -247,6 +260,12 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     @expose("/<uuid:view_uuid>/refresh_metadata/", methods=("POST",))
     @protect()
     @safe
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.refresh_metadata",
+        log_to_statsd=False,
+    )
     @metadata_api_errors
     @metadata_database_errors
     @statsd_metrics
@@ -311,6 +330,12 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     @expose("/<uuid:view_uuid>/invalidate_catalog/", methods=("POST",))
     @protect()
     @safe
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.invalidate_catalog",
+        log_to_statsd=False,
+    )
     @metadata_api_errors
     @metadata_database_errors
     @statsd_metrics
@@ -367,6 +392,12 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     @expose("/<uuid:view_uuid>/invalidate_compatibility/", methods=("POST",))
     @protect()
     @safe
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.invalidate_compatibility",
+        log_to_statsd=False,
+    )
     @metadata_api_errors
     @metadata_database_errors
     @statsd_metrics
@@ -423,6 +454,12 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     @expose("/<uuid:view_uuid>/cache_metadata/", methods=("POST",))
     @protect()
     @safe
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.cache_metadata",
+        log_to_statsd=False,
+    )
     @metadata_api_errors
     @metadata_database_errors
     @statsd_metrics
@@ -574,9 +611,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
-        except (MetadataRefreshError, SQLAlchemyError):
+        except MetadataRefreshError:
             raise
         except Exception as ex:  # pylint: disable=broad-except
+            if isinstance(ex, SQLAlchemyError) and metadata_refresh_enabled():
+                raise
             logger.error(
                 "Error fetching structure for semantic view %d: %s",
                 pk,
@@ -1035,21 +1074,18 @@ class SemanticLayerRestApi(BaseSupersetApi):
         bound: bool = participates(layer)
         try:
             if bound:
-                adapter: MetadataRefreshAdapter | None = (
-                    layer.implementation.metadata_refresh
-                )
-                if adapter is None:
-                    raise MetadataRefreshError("configuration")
-                schema = adapter.get_runtime_schema(runtime_data)
+                schema = bound_runtime_schema(layer, runtime_data)
             else:
                 schema = cls.get_runtime_schema(
                     layer.implementation.configuration,  # type: ignore[attr-defined]
                     runtime_data,
                 )
-        except (MetadataRefreshError, SQLAlchemyError):
+        except MetadataRefreshError:
             raise
         except Exception as ex:  # pylint: disable=broad-except
             if bound:
+                if isinstance(ex, SQLAlchemyError):
+                    raise
                 raise MetadataRefreshError("upstream") from None
             return self.response_400(message=str(ex))
 
@@ -1106,9 +1142,11 @@ class SemanticLayerRestApi(BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
-        except (MetadataRefreshError, SQLAlchemyError):
+        except MetadataRefreshError:
             raise
         except Exception as ex:  # pylint: disable=broad-except
+            if isinstance(ex, SQLAlchemyError) and metadata_refresh_enabled():
+                raise
             logger.error(
                 "Error fetching semantic views for layer %s: %s",
                 uuid,

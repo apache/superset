@@ -413,7 +413,7 @@ def test_inspection_timestamps_preserve_utc_precision(
         assert response.json["result"][name] == observed.isoformat()
 
 
-def test_disabled_discovery_keeps_legacy_database_failure(
+def test_disabled_metadata_mapping_leaves_dao_failure_to_global_handler(
     app: Flask,
     client: FlaskClient,
     full_api_access: None,
@@ -434,3 +434,86 @@ def test_disabled_discovery_keeps_legacy_database_failure(
         record.name == "superset.semantic_layers.metadata_errors"
         for record in caplog.records
     )
+
+
+@pytest.mark.parametrize(
+    "route,status", [("structure", 422), ("runtime", 400), ("views", 400)]
+)
+def test_disabled_provider_database_error_keeps_route_response(
+    app: Flask,
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str,
+    status: int,
+) -> None:
+    """Legacy provider failures retain each route's original response contract."""
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", False)
+    model: Mock = Mock(type="test")
+    error: OperationalError = OperationalError("statement", {}, Exception("provider"))
+    response: TestResponse
+    if route == "structure":
+        mocker.patch(
+            "superset.semantic_layers.api.db.session.query"
+        ).return_value.filter_by.return_value.first.return_value = model
+        model.implementation.get_dimensions.side_effect = error
+        response = client.get("/api/v1/semantic_view/1/structure")
+    else:
+        mocker.patch(
+            "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+            return_value=model,
+        )
+        if route == "runtime":
+            provider: Mock = Mock()
+            provider.get_runtime_schema.side_effect = error
+            mocker.patch.dict(
+                "superset.semantic_layers.api.registry", {"test": provider}
+            )
+            response = client.post(
+                f"/api/v1/semantic_layer/{VIEW_UUID}/schema/runtime", json={}
+            )
+        else:
+            model.implementation.get_semantic_views.side_effect = error
+            response = client.post(f"/api/v1/semantic_layer/{VIEW_UUID}/views", json={})
+    assert response.status_code == status
+
+
+@pytest.mark.parametrize(
+    "route,command_name,payload",
+    [
+        ("refresh_metadata", "RefreshMetadataCommand", {}),
+        ("invalidate_catalog", "InvalidateCatalogCommand", {}),
+        ("invalidate_compatibility", "InvalidateCompatibilityCommand", {}),
+        ("cache_metadata", "InspectCatalogCommand", {"kind": "catalog"}),
+    ],
+)
+def test_metadata_operations_record_audit_action(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    route: str,
+    command_name: str,
+    payload: dict[str, str],
+) -> None:
+    """Privileged metadata operations reach the configured event logger."""
+    from datetime import datetime, timezone
+
+    from superset import event_logger
+    from superset.semantic_layers.cache_inspection import CacheEntryInfo
+
+    command: Mock = mocker.patch(f"superset.semantic_layers.api.{command_name}")
+    command.return_value.run.return_value = (
+        CacheEntryInfo("catalog", "missing", datetime.now(timezone.utc))
+        if route == "cache_metadata"
+        else MetadataRefreshResult(
+            "changed", CatalogSnapshot("[]", "token", "2026-10-01T12:00:00Z")
+        )
+    )
+    log: Mock = mocker.patch.object(event_logger, "log")
+    response: TestResponse = client.post(
+        f"/api/v1/semantic_view/{VIEW_UUID}/{route}/", json=payload
+    )
+    assert response.status_code == 200
+    log.assert_called_once()
+    assert log.call_args.args[1] == f"SemanticViewRestApi.{route}"

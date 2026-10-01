@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
-from flask import current_app, g
+from flask import current_app, g, has_request_context, Request, request
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.layer import SemanticLayer as SemanticLayerABC
@@ -50,6 +50,7 @@ from superset.semantic_layers.metadata_binding import (
     connection_metadata_scope,
     metadata_refresh_enabled,
     operation_deadline,
+    participates,
 )
 from superset.semantic_layers.metadata_cache import (
     compatibility_identity,
@@ -91,17 +92,9 @@ def authorize_metadata_refresh(view: SemanticView) -> None:
         raise SemanticLayerForbiddenError() from None
     if not current_user_can_modify_object(layer):
         raise SemanticLayerForbiddenError()
-    provider: type[SemanticLayerABC[Any, SemanticViewABC]] | None = registry.get(
-        layer.type
-    )
-    if provider is None:
+    if layer.type not in registry:
         raise MetadataRefreshError("unsupported")
-    try:
-        configuration: dict[str, Any] = json.loads(layer.configuration)
-        supported: bool = provider.supports_metadata_refresh(configuration)
-    except (ValueError, TypeError):
-        raise MetadataRefreshError("configuration") from None
-    if not supported:
+    if not participates(layer):
         raise MetadataRefreshError("unsupported")
     connection_metadata_scope(layer)
 
@@ -147,13 +140,29 @@ def fresh_refresh_authority(session: Session) -> Iterator[None]:
     user: User | None = session.get(security_manager.user_model, original_user.id)
     if user is None or not user.is_active:
         raise SemanticLayerForbiddenError()
+    current_request: Request | None = (
+        request._get_current_object() if has_request_context() else None
+    )
+    had_subject_cache: bool = current_request is not None and hasattr(
+        current_request, "_user_subject_ids"
+    )
+    original_subject_cache: dict[int, list[int]] | None = getattr(
+        current_request, "_user_subject_ids", None
+    )
     try:
+        if current_request is not None:
+            current_request._user_subject_ids = {}
         db.session.registry.set(session)
         g.user = user
         g._login_user = user
         with session.no_autoflush:
             yield
     finally:
+        if current_request is not None:
+            if had_subject_cache:
+                current_request._user_subject_ids = original_subject_cache
+            else:
+                current_request.__dict__.pop("_user_subject_ids", None)
         g.user = original_user
         if had_login_user:
             g._login_user = original_login_user

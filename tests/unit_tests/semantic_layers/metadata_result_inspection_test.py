@@ -123,6 +123,7 @@ def test_result_inspection_does_not_refill_after_concurrent_invalidation(
     manager: Mock = Mock()
     provider: OptedInLayer = OptedInLayer()
     resolve_provider: Mock
+    inspect_entry: Mock
     view: SemanticView = view_for(ResultView("unused", 17))
     context: QueryContext
     query: QueryObject
@@ -147,7 +148,9 @@ def test_result_inspection_does_not_refill_after_concurrent_invalidation(
         ) as resolve_provider,
         patch(
             "superset.commands.semantic_layer.inspect_query_result.inspect_derived_entry"
-        ),
+        ) as inspect_entry,
+        patch("superset.semantic_layers.result_inspection.security_manager", manager),
+        patch("superset.common.query_context_processor.security_manager", manager),
         patch.object(OptedInLayer, "from_configuration", return_value=provider),
     ):
         manager.get_rls_cache_key.return_value = []
@@ -157,12 +160,17 @@ def test_result_inspection_does_not_refill_after_concurrent_invalidation(
             MemoryBackend(), "inspection", deadline=deadline
         )
         store.read(lambda budget: '["orders"]', deadline=deadline)
-        # Catalog was visible to the diagnostic, but another authorized caller
-        # retired it before this request resolves the provider-defined uid.
-        store.invalidate_catalog()
         resolve_provider.return_value = store
+        key: str | None = context.query_cache_key(query)
+        assert key is not None
+        resolve_provider.assert_called()
+        resolve_provider.reset_mock()
+        # The normal query captured its key before another caller retired the
+        # catalog. Inspection must use that key without resolving a new uid.
+        store.invalidate_catalog()
         result: CacheEntryInfo = InspectQueryResultCommand(context, 0).run()
-        assert result.state == "unsupported"
+        assert result is inspect_entry.return_value
+        inspect_entry.assert_called_once_with(key, "query_result")
         assert provider.adapter.fetches == 0
         resolve_provider.assert_not_called()
 
