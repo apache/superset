@@ -50,19 +50,34 @@ import transformProps from '../src/transformProps';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
-// The bar's width is written as an inline `style` percentage by the cell
-// renderer, so reading it back off the element is what tells a scaled bar
-// apart from the full-width fallback band.
+// The bar's width is written into the rule its styled component emits, so
+// reading that rule back is what tells a scaled bar apart from the full-width
+// fallback band. Reading `style` instead would not work: the width is
+// deliberately kept out of an inline style so dashboard CSS can still
+// override the bar.
 const barWidth = (bar: Element): number => {
-  const width = getComputedStyle(bar).width;
-  if (width.endsWith('%')) {
-    return parseFloat(width);
-  }
-  // jsdom reports px for anything it cannot resolve against a layout box; the
-  // rule under test only ever emits percentages, so a pixel value means the
-  // width declaration never reached the element.
+  const rules = Array.from(document.styleSheets)
+    .flatMap(sheet => {
+      try {
+        return Array.from(sheet.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .filter(
+      rule =>
+        rule instanceof CSSStyleRule &&
+        Array.from((bar as HTMLElement).classList).some(cls =>
+          rule.selectorText.split(/[\s,>]+/).includes(`.${cls}`),
+        ),
+    );
+  const width = rules
+    .map(rule => (rule as CSSStyleRule).style.width)
+    .find(value => value && value.endsWith('%'));
+  // The rule under test only ever emits percentages, so a missing one means
+  // the width declaration never reached the element.
   expect(width).toMatch(/%$/);
-  return NaN;
+  return parseFloat(width!);
 };
 
 // Shared scaffolding for the cell-bar cases below: they all render one column
@@ -1371,6 +1386,32 @@ describe('plugin-chart-table', () => {
         // bar to 0%. Excluding both leaves [10, 20].
         expect(barWidth(rows[0].querySelector('div.cell-bar')!)).toBe(50);
         expect(barWidth(rows[2].querySelector('div.cell-bar')!)).toBe(100);
+      });
+
+      test('the bar keeps its color and geometry in an overridable stylesheet', () => {
+        const { bars } = renderCellBars(
+          cellBarProps({
+            values: [1234, 10000],
+            showCellBars: true,
+            rule: cellBarRule({
+              operator: Comparator.Equal,
+              targetValue: 1234,
+            }),
+          }),
+        );
+        // The `cell-bar` classes exist so saved dashboard CSS can restyle the
+        // bar. An inline style outranks every stylesheet, which would make
+        // rules like `.cell-bar.positive { background-color: red; }` dead
+        // weight unless the user added `!important`, so the bar must carry no
+        // inline style at all.
+        bars.forEach(bar => {
+          expect(bar).toBeTruthy();
+          expect(bar!.getAttribute('style')).toBeNull();
+        });
+        // The geometry still has to reach the bar, and from a rule rather than
+        // an attribute — otherwise the width assertions above would be
+        // asserting on nothing.
+        expect(barWidth(bars[1]!)).toBe(100);
       });
 
       test('render cell bars even when column contains NULL values', () => {

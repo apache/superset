@@ -266,6 +266,33 @@ const VisuallyHidden = styled.label`
   border: 0;
 `;
 
+/**
+ * The bar a cell draws for a CELL_BAR rule, or for the global cell-bar toggle.
+ *
+ * Its geometry arrives as transient props rather than an inline `style` so
+ * that the `cell-bar` classes stay meaningful: an inline style outranks every
+ * stylesheet, which would make saved dashboard CSS such as
+ * `.cell-bar.positive { background-color: red; }` stop working. Interpolating
+ * the values into a rule keeps them overridable and still leaves a test able
+ * to read the width back.
+ */
+const StyledCellBar = styled.div<{
+  $width?: string;
+  $left?: string;
+  $backgroundColor?: string;
+}>`
+  position: absolute;
+  height: 100%;
+  display: block;
+  top: 0;
+  ${p => (p.$width === undefined ? '' : `width: ${p.$width};`)}
+  ${p => (p.$left === undefined ? '' : `left: ${p.$left};`)}
+  ${p =>
+    p.$backgroundColor === undefined
+      ? ''
+      : `background-color: ${p.$backgroundColor};`}
+`;
+
 function SearchInput({
   value,
   onChange,
@@ -1246,11 +1273,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             (generalShowCellBars ? !!valueRange : false) ||
             !!backgroundColorCellBar;
 
-          // Inline style for the same reason as the arrow below: the `css` prop
-          // needs the emotion JSX pragma, which this codebase's own Jest/Babel
-          // config does not wire up. As a `css` block the bar's geometry was
-          // silently dropped under test, so bar presence was the only thing
-          // any assertion could see — including for a bar that had no width.
+          // A styled component rather than the `css` prop or an inline
+          // `style`: the `css` prop needs the emotion JSX pragma, which this
+          // codebase's own Jest/Babel config does not wire up, and an inline
+          // style would outrank every dashboard stylesheet. Both matter here —
+          // the `cell-bar` classes exist precisely so saved custom CSS can
+          // restyle the bar, and a `styled` div keeps that override working
+          // while still emitting a real rule a test can read back.
           // A background rule paints the cell itself, so the bar the global
           // toggle would draw over that background is dropped. A CELL_BAR rule
           // matching the same cell is a separate instruction and keeps its own
@@ -1261,39 +1290,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             !!valueRange &&
             numericValue !== undefined &&
             (valueRangeFlag || !!backgroundColorCellBar);
-          const cellBarStyles: CSSProperties = {
-            position: 'absolute',
-            height: '100%',
-            display: 'block',
-            top: 0,
-            ...(barHasGeometry
+          const barGeometry = barHasGeometry
+            ? {
+                width: `${cellWidth({
+                  value: numericValue!,
+                  valueRange: valueRange!,
+                  alignPositiveNegative,
+                })}%`,
+                left: `${cellOffset({
+                  value: numericValue!,
+                  valueRange: valueRange!,
+                  alignPositiveNegative,
+                })}%`,
+                backgroundColor:
+                  backgroundColorCellBar ||
+                  cellBackground({
+                    value: numericValue!,
+                    colorPositiveNegative,
+                    theme,
+                  }),
+              }
+            : backgroundColorCellBar
               ? {
-                  width: `${cellWidth({
-                    value: numericValue!,
-                    valueRange: valueRange!,
-                    alignPositiveNegative,
-                  })}%`,
-                  left: `${cellOffset({
-                    value: numericValue!,
-                    valueRange: valueRange!,
-                    alignPositiveNegative,
-                  })}%`,
-                  backgroundColor:
-                    backgroundColorCellBar ||
-                    cellBackground({
-                      value: numericValue!,
-                      colorPositiveNegative,
-                      theme,
-                    }),
+                  width: '100%',
+                  left: 0,
+                  backgroundColor: backgroundColorCellBar,
                 }
-              : backgroundColorCellBar
-                ? {
-                    width: '100%',
-                    left: 0,
-                    backgroundColor: backgroundColorCellBar,
-                  }
-                : {}),
-          };
+              : {};
 
           // Plain inline style (rather than the `css` prop) so the arrow's
           // color is guaranteed to apply regardless of whether the consuming
@@ -1392,7 +1415,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           return (
             <StyledCell {...cellProps}>
               {cellDrawsBar ? (
-                <div
+                <StyledCellBar
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
@@ -1400,7 +1423,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                       ? 'negative'
                       : 'positive',
                   )}
-                  style={cellBarStyles}
+                  $width={barGeometry.width}
+                  $left={
+                    barGeometry.left === undefined
+                      ? undefined
+                      : String(barGeometry.left)
+                  }
+                  $backgroundColor={barGeometry.backgroundColor}
                   role="presentation"
                 />
               ) : null}
