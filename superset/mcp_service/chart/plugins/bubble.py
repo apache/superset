@@ -28,7 +28,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_bubble_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import BubbleChartConfig, ColumnRef
+from superset.mcp_service.chart.schemas import (
+    BubbleChartConfig,
+    ChartError,
+    ColumnRef,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
@@ -37,10 +42,13 @@ class BubbleChartPlugin(BaseChartPlugin):
     """Plugin for bubble chart type."""
 
     chart_type = "bubble_v2"
+    allows_empty_result = True
     display_name = "Bubble Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "bubble_v2": "Bubble Chart",
     }
+    # Legacy saved Bubble charts share the x/y/size metric roles.
+    additional_viz_types = frozenset({"bubble"})
 
     def pre_validate(
         self,
@@ -147,3 +155,20 @@ class BubbleChartPlugin(BaseChartPlugin):
             ],
             error_code="BUBBLE_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import resolve_groupby
+
+        metrics = [m for field in ("x", "y", "size") if (m := form_data.get(field))]
+        return metrics, resolve_groupby(dict(form_data))
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_bubble_vega_lite_preview,
+        )
+
+        return generate_bubble_vega_lite_preview(data, form_data)
