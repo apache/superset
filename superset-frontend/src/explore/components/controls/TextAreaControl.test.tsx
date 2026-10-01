@@ -32,6 +32,26 @@ const defaultProps = {
   onChange: jest.fn(),
 };
 
+function SyncWrapper({ onChange }: { onChange: (value: string) => void }) {
+  const [initialValue, setInitialValue] = useState('first');
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setInitialValue('synced-from-source')}
+      >
+        sync
+      </button>
+      <TextAreaControl
+        name="expr"
+        language="sql"
+        initialValue={initialValue}
+        onChange={onChange}
+      />
+    </>
+  );
+}
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TextArea', () => {
   test('renders a FormControl', () => {
@@ -64,26 +84,7 @@ describe('TextArea', () => {
   });
 
   test('picks up an externally changed initialValue without remounting the AceEditor', async () => {
-    function Wrapper() {
-      const [initialValue, setInitialValue] = useState('first');
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => setInitialValue('synced-from-source')}
-          >
-            sync
-          </button>
-          <TextAreaControl
-            name="expr"
-            language="sql"
-            initialValue={initialValue}
-            onChange={() => {}}
-          />
-        </>
-      );
-    }
-    const { container } = render(<Wrapper />);
+    const { container } = render(<SyncWrapper onChange={() => {}} />);
     await waitFor(() => {
       expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
     });
@@ -107,26 +108,7 @@ describe('TextArea', () => {
 
   test('does not re-notify onChange when an external sync sets the editor value', async () => {
     const onChange = jest.fn();
-    function Wrapper() {
-      const [initialValue, setInitialValue] = useState('first');
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => setInitialValue('synced-from-source')}
-          >
-            sync
-          </button>
-          <TextAreaControl
-            name="expr"
-            language="sql"
-            initialValue={initialValue}
-            onChange={onChange}
-          />
-        </>
-      );
-    }
-    const { container } = render(<Wrapper />);
+    const { container } = render(<SyncWrapper onChange={onChange} />);
     await waitFor(() => {
       expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
     });
@@ -145,26 +127,7 @@ describe('TextArea', () => {
   });
 
   test('keeps syncing the inline editor after the edit-in-modal dialog is opened and closed', async () => {
-    function Wrapper() {
-      const [initialValue, setInitialValue] = useState('first');
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => setInitialValue('synced-from-source')}
-          >
-            sync
-          </button>
-          <TextAreaControl
-            name="expr"
-            language="sql"
-            initialValue={initialValue}
-            onChange={() => {}}
-          />
-        </>
-      );
-    }
-    const { container } = render(<Wrapper />);
+    const { container } = render(<SyncWrapper onChange={() => {}} />);
     await waitFor(() => {
       expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
     });

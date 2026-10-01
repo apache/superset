@@ -72,8 +72,21 @@ test('preserves an edit made while sorted after the sort is cleared', () => {
   expect(editedInput).toBeInTheDocument();
   fireEvent.change(editedInput, { target: { value: 'EDITED' } });
 
-  // Cycle the sort back to unsorted (ascend -> descend -> cancel).
+  // Descending sort puts b_col (id 1) first and a_col (id 2) second; the
+  // edit must still be displayed on the active-sort rows.
   fireEvent.click(sorter!);
+  const rowsDescending = container.querySelectorAll('.ant-table-tbody tr');
+  expect(rowsDescending[0].textContent).toContain('b_col');
+  expect(rowsDescending[1].textContent).toContain('a_col');
+  expect(
+    (
+      container.querySelector(
+        '[data-test="type-input-2"]',
+      ) as HTMLInputElement
+    ).value,
+  ).toBe('EDITED');
+
+  // Cycle the sort back to unsorted (descend -> cancel).
   fireEvent.click(sorter!);
 
   const inputAfterReset = container.querySelector(
