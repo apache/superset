@@ -936,37 +936,39 @@ const baseAggregatorTemplates = {
                 metricSubstituted = 'row';
               }
             }
-            let denominatorAggregator: any = data.getAggregator(selRow, selCol);
-            // The depth-gated tree only has a node at the substituted
-            // position above when the corresponding axis's subtotals happen
-            // to be on -- e.g. `type: 'row'` with Metric on columns needs a
-            // (row, metric) tree node that only exists if column subtotals
-            // are enabled. `rowGroupMetricTotals`/`colGroupMetricTotals` (see
-            // PivotData) track exactly that scope independently of subtotal
-            // visibility, so they're the fallback for 'row'/'col'.
-            // `rowMetricTotals`/`colMetricTotals` are the dataset-wide
-            // equivalent, for 'total'. Metric-definition mode
-            // (`showValuesAs`) never populates any of these maps regardless.
-            if (
-              (!denominatorAggregator || !denominatorAggregator.inner) &&
-              this.metricAxis
-            ) {
-              if (type === 'total') {
-                denominatorAggregator =
-                  this.metricAxis.axis === 'col'
-                    ? data.colMetricTotals[this.metricAxis.value]
-                    : data.rowMetricTotals[this.metricAxis.value];
-              } else if (metricSubstituted === 'col') {
-                denominatorAggregator =
-                  data.rowGroupMetricTotals[flatKey(selRow)]?.[
-                    this.metricAxis.value
-                  ];
-              } else if (metricSubstituted === 'row') {
-                denominatorAggregator =
-                  data.colGroupMetricTotals[flatKey(selCol)]?.[
-                    this.metricAxis.value
-                  ];
-              }
+            // A metric-substituted lookup must go straight to the per-metric
+            // maps (`rowMetricTotals`/`colMetricTotals` for 'total',
+            // `rowGroupMetricTotals`/`colGroupMetricTotals` for 'row'/'col'),
+            // never through the generic keyed tree below: the tree's flat
+            // keys aren't namespaced by dimension, so a real category value
+            // that happens to equal the metric's own name (e.g. a "sales"
+            // metric alongside a "sales" category) flattens to the same key
+            // as the substituted metric address and would silently return
+            // that category's subtotal instead of the metric's total.
+            // `rowGroupMetricTotals`/`colGroupMetricTotals` are recorded at
+            // every enabled row/column depth (see `processResultRecord`), so
+            // they resolve regardless of whether the matching subtotal
+            // happens to be on. Metric-definition mode (`showValuesAs`)
+            // never populates any of these maps, so a non-substituted lookup
+            // (no metric on the collapsed axis) still falls through to the
+            // generic tree.
+            let denominatorAggregator: any;
+            if (metricSubstituted === 'col') {
+              denominatorAggregator =
+                type === 'total'
+                  ? data.colMetricTotals[this.metricAxis!.value]
+                  : data.rowGroupMetricTotals[flatKey(selRow)]?.[
+                      this.metricAxis!.value
+                    ];
+            } else if (metricSubstituted === 'row') {
+              denominatorAggregator =
+                type === 'total'
+                  ? data.rowMetricTotals[this.metricAxis!.value]
+                  : data.colGroupMetricTotals[flatKey(selCol)]?.[
+                      this.metricAxis!.value
+                    ];
+            } else {
+              denominatorAggregator = data.getAggregator(selRow, selCol);
             }
             if (!denominatorAggregator || !denominatorAggregator.inner) {
               return null;
@@ -1253,8 +1255,6 @@ class PivotData {
     );
 
     const vals = this.props.vals as string[];
-    const fractionType =
-      FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
     // Result aggregation (see resultAggregation.ts): a second aggregation pass
     // over a metric's own grouped results (e.g. the median of a set of
     // per-store SUM(sales) values), restoring the pre-SIP-216 "Aggregation
@@ -1268,6 +1268,19 @@ class PivotData {
     const resultAggregation = getResultAggregation(
       this.props.aggregateFunction,
     );
+    // `showValuesAs`'s control is hidden once a result aggregation is active
+    // (see controlPanel.tsx) because a result aggregation has its own
+    // "... as Fraction of ..." choices and takes over the computation
+    // entirely -- but hiding the control doesn't reset its stored value, so
+    // a percent choice selected before switching to e.g. "Average" stays in
+    // `this.props.showValuesAs`. Gate `fractionType` on `resultAggregation`
+    // being unset so that stale value can't leak in: left ungated, a leaf
+    // cell would wrap in `fractionOf` and look up a denominator built from
+    // the (non-fraction) result aggregator, which has no `.inner`, and
+    // render blank instead of its actual value.
+    const fractionType = resultAggregation
+      ? undefined
+      : FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
     const resultFactory = resultAggregation
       ? (...args: unknown[]): Aggregator => {
           const build = aggregators[resultAggregation] as (

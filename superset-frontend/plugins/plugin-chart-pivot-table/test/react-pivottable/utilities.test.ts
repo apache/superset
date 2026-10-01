@@ -19,6 +19,7 @@
 
 import { aggregators, PivotData } from '../../src/react-pivottable/utilities';
 import type { PivotRecord } from '../../src/react-pivottable/utilities';
+import { ShowValuesAsEnum } from '../../src/types';
 
 // Records may legitimately carry null values for an attribute; PivotRecord only
 // models the non-null cell types, so loosen the type at the test boundary.
@@ -220,6 +221,30 @@ test('result aggregation never reduces a true leaf cell, only subtotals and the 
   // leaves).
   expect(pivotData.getAggregator(['North'], []).value()).toBe(2);
   expect(pivotData.getAggregator([], []).value()).toBe(3);
+});
+
+test('a stale "Show values as" percent choice does not blank leaf cells once a result aggregation is selected', () => {
+  // `showValuesAs`'s control panel entry hides once `aggregateFunction` is
+  // anything but "Metric" (see controlPanel.tsx), but hiding a control
+  // doesn't clear its stored value -- a percent choice picked before
+  // switching to "Average" stays on `showValuesAs` in the chart's saved
+  // state. Leaf cells must still render their actual value, not wrap in the
+  // now-irrelevant percent transform.
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Average',
+      showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+    },
+    { rowEnabled: true },
+  );
+
+  expect(pivotData.getAggregator(['North', 'A'], []).value()).toBe(10);
+  expect(pivotData.getAggregator(['North', 'B'], []).value()).toBe(20);
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(15);
 });
 
 test('result aggregation blanks a shared total slot that would mix two different metrics', () => {
@@ -551,6 +576,42 @@ test('per-metric totals survive a metric literally named "constructor"', () => {
     5,
   );
   expect(pivotData.getAggregator([], ['constructor', 'B']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
+});
+
+test('"... as Fraction of Total" stays scoped to the metric when a category value equals a metric name', () => {
+  // cols: [category, Metric], column subtotals on. The category-only
+  // subtotal slot (depth 1) and a metric-substituted lookup both flatten to
+  // the same key when a category value equals a metric's own name -- here
+  // category "sales" and metric "sales" both flatten to "sales". The
+  // metric-substituted denominator must come from `colMetricTotals` (keyed
+  // purely by metric value) rather than the generic keyed tree, or it
+  // silently returns the category "sales" subtotal (10 + 90 = 100, an
+  // unrelated cost value) instead of the "sales" metric's own total
+  // (10 + 20 = 30).
+  const leaves: PivotRecord[] = [
+    { category: 'sales', Metric: 'sales', value: 10, __metricKey: 'Metric' },
+    { category: 'other', Metric: 'sales', value: 20, __metricKey: 'Metric' },
+    { category: 'sales', Metric: 'cost', value: 90, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: [],
+      cols: ['category', 'Metric'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Total',
+    },
+    { colEnabled: true },
+  );
+
+  expect(pivotData.getAggregator([], ['sales', 'sales']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['other', 'sales']).value()).toBeCloseTo(
     20 / 30,
     5,
   );

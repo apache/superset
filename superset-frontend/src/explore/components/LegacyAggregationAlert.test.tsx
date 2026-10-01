@@ -86,6 +86,63 @@ test('surfaces the legacy-aggregation notice and removes the tag on Accept', asy
   );
 });
 
+test('a delayed tag-removal response does not clear a newer tag after switching charts', async () => {
+  // Chart 1's Accept button fires a DELETE that is still in flight when the
+  // user switches to chart 2, which has its own (different) legacy tag.
+  fetchMock.get('glob:*/api/v1/chart/1', {
+    result: { tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }] },
+  });
+  fetchMock.get('glob:*/api/v1/chart/2', {
+    result: { tags: [{ id: 8, name: LEGACY_AGGREGATION_TAG, type: 1 }] },
+  });
+  let resolveDelete: () => void = () => {};
+  const deleteResponse = new Promise(resolve => {
+    resolveDelete = () => resolve({});
+  });
+  fetchMock.delete(
+    `glob:*/api/v1/tag/2/1/${LEGACY_AGGREGATION_TAG}`,
+    () => deleteResponse,
+  );
+
+  const { rerender } = render(<LegacyAggregationAlert sliceId={1} />, {
+    useRedux: true,
+  });
+
+  expect(
+    await screen.findByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Accept' }));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(
+        `glob:*/api/v1/tag/2/1/${LEGACY_AGGREGATION_TAG}`,
+      ).length,
+    ).toBe(1),
+  );
+
+  rerender(<LegacyAggregationAlert sliceId={2} />);
+  expect(
+    await screen.findByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).toBeInTheDocument();
+
+  resolveDelete();
+
+  // Chart 2's own tag (id 8) must survive chart 1's stale DELETE response
+  // (which only ever targeted tag id 7).
+  await waitFor(() =>
+    expect(
+      screen.getByText(
+        'This chart was updated to use the restored aggregation',
+      ),
+    ).toBeInTheDocument(),
+  );
+});
+
 test('re-fetches and drops the notice after a same-slice save clears the tag server-side', async () => {
   // First fetch (initial mount) still finds the tag; second fetch (after the
   // save) reflects saveModalActions.ts's own server-side deletion on save --

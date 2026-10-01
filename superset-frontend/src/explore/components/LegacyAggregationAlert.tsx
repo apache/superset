@@ -77,10 +77,15 @@ export const LegacyAggregationAlert = ({
     if (!sliceId || !tag) {
       return;
     }
+    const deletedTagId = tag.id;
     deleteTaggedObjects(
       { objectType: 'chart', objectId: sliceId },
       tag,
-      () => setTag(null),
+      // A functional update guards against a chart switch (or a same-slice
+      // re-fetch) completing while this DELETE is still in flight: only
+      // clear the tag this call actually deleted, never whatever tag is
+      // showing by the time the response comes back.
+      () => setTag(current => (current?.id === deletedTagId ? null : current)),
       error => logging.warn('Failed to remove legacy aggregation tag', error),
     );
   }, [sliceId, tag]);
