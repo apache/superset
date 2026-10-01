@@ -17,6 +17,7 @@
 
 """Tests for MCP user resolution priority and stale g.user prevention."""
 
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -349,7 +350,7 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
                 side_effect=lambda: _assert_cleared_then_return(),
             ),
         ):
-            result = wrapped()
+            result = asyncio.run(wrapped())
 
     assert result == "fresh"
 
@@ -360,8 +361,6 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
     Uses a side_effect that asserts g.user was cleared before user
     resolution runs, so the test fails if g.pop("user") is removed.
     """
-    import asyncio
-
     stale_user = _make_mock_user("stale")
     fresh_user = _make_mock_user("fresh")
 
@@ -421,17 +420,20 @@ def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
 
     with app.test_request_context():
         g.user = middleware_user
-        with patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            side_effect=lambda: _assert_preserved_then_return(),
+        with (
+            patch("superset.db.session.get", return_value=middleware_user),
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                side_effect=lambda: _assert_preserved_then_return(),
+            ),
         ):
-            result = wrapped()
+            result = asyncio.run(wrapped())
 
     assert result == "middleware_user"
 
 
-def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
-    """sync_wrapper calls db.session.remove() BEFORE get_user_from_request().
+def test_mcp_auth_hook_cleans_worker_session_before_user_lookup(app) -> None:
+    """The worker calls db.session.remove() BEFORE get_user_from_request().
 
     Thread pool workers reuse threads across requests; db.session is
     thread-local and may be bound to a different tenant's DB engine from a
@@ -451,7 +453,11 @@ def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
 
     with app.test_request_context():
         g.user = fresh_user
-        with patch("superset.extensions.db") as mock_db:
+        with (
+            patch("superset.extensions.db") as mock_db,
+            patch("superset.db", mock_db),
+        ):
+            mock_db.session.get.return_value = fresh_user
 
             def _assert_remove_already_called() -> MagicMock:
                 """Verify remove() was called before user resolution runs."""
@@ -462,13 +468,13 @@ def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
                 "superset.mcp_service.auth.get_user_from_request",
                 side_effect=_assert_remove_already_called,
             ):
-                result = wrapped()
+                result = asyncio.run(wrapped())
 
     assert result == "fresh"
 
 
-def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
-    """sync_wrapper tolerates OperationalError from db.session.remove() before the call.
+def test_worker_handles_ssl_error_on_pre_call_remove(app) -> None:
+    """Worker setup tolerates OperationalError from pre-call db.session.remove().
 
     If the underlying DBAPI connection died between requests (e.g. RDS SSL
     idle-timeout), the rollback implicit in session.close() raises
@@ -490,25 +496,31 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
 
     with app.test_request_context():
         g.user = fresh_user
-        with patch("superset.extensions.db") as mock_db:
+        with (
+            patch("superset.extensions.db") as mock_db,
+            patch("superset.db", mock_db),
+        ):
+            mock_db.session.get.return_value = fresh_user
             mock_db.session.remove.side_effect = [
                 SAOperationalError(
                     "SSL connection has been closed unexpectedly", None, None
                 ),
                 None,  # retry succeeds
-                None,  # exit-path cleanup in _request_tool_call_context
+                None,  # worker-owned cleanup
             ]
 
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=fresh_user,
             ):
-                result = wrapped()
+                result = asyncio.run(wrapped())
 
     assert result == "fresh"
-    assert mock_db.session.invalidate.called, "invalidate() must be called on SSL error"
+    assert mock_db.session.return_value.invalidate.called, (
+        "invalidate() must be called on the actual Session on SSL error"
+    )
     assert mock_db.session.remove.call_count == 3, (
-        "remove() must be retried after SSL error, plus once more on exit"
+        "remove() must be retried after SSL error and cleaned up at worker teardown"
     )
 
 
