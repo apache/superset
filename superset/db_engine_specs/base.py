@@ -578,6 +578,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
+    # Appended to a ``SELECT`` that has no ``FROM`` -- evaluating expressions
+    # and nothing else. Most engines accept a bare ``SELECT 1``; Oracle, DB2
+    # and Db2 for i require a one-row table to select it from.
+    select_without_from_suffix: str = ""
     allows_alias_in_orderby = True
     allows_sql_comments = True
     allows_escaped_colons = True

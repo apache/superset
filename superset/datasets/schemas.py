@@ -31,7 +31,10 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.partition_mapping import MIRRORABLE_OPERATORS
+from superset.connectors.sqla.partition_mapping import (
+    MAX_TRANSFORM_LENGTH,
+    MIRRORABLE_OPERATORS,
+)
 from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
@@ -105,6 +108,7 @@ class DatasetColumnsPutSchema(Schema):
     )
     partition_value_transform = fields.String(
         allow_none=True,
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
         metadata={
             "description": (
                 "SQL expression containing a :value placeholder. Filters on "
@@ -369,7 +373,9 @@ class ImportV1ColumnSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
-    partition_value_transform = fields.String(allow_none=True)
+    partition_value_transform = fields.String(
+        allow_none=True, validate=Length(1, MAX_TRANSFORM_LENGTH)
+    )
     # Bundles predating the field must not claim their transform preserves
     # ordering, which would silently enable range mirroring on import.
     partition_transform_is_monotonic = fields.Boolean(load_default=False)
