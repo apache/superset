@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import asyncio
 import logging
 import re
 import secrets
@@ -82,6 +81,7 @@ from superset.mcp_service.worker import (
     _worker_context,
     get_context_user_id as get_user_id,
     run_in_metadata_thread,
+    run_in_transport_thread,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,7 +233,7 @@ async def _invoke_error_hook_off_loop(
 ) -> None:
     """Keep hook I/O and context-setup failures outside the error boundary."""
     try:
-        await asyncio.to_thread(_invoke_error_hook, error, hook_context)
+        await run_in_transport_thread(_invoke_error_hook, error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("Could not run MCP_ERROR_HOOK: %s", hook_error)
 

@@ -180,9 +180,13 @@ class CompositeTokenVerifier(TokenVerifier):
         """
         if any(token.startswith(prefix) for prefix in self._api_key_prefixes):
             if self._app is not None:
+                from superset.mcp_service.worker import transport_executor
+
                 loop = asyncio.get_running_loop()
+                # Metadata I/O on the transport side shares a bounded,
+                # pool-budgeted executor with audit writes and RBAC filtering.
                 result = await loop.run_in_executor(
-                    None, self._validate_api_key_sync, token
+                    transport_executor(self._app), self._validate_api_key_sync, token
                 )
                 if result is None:
                     logger.debug(

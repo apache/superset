@@ -49,33 +49,36 @@ context and metadata database session. Warehouse I/O does not run on the
 transport event loop. This includes SQL execution, chart data and previews,
 chart compilation, dataset queries, and tools that discover warehouse metadata.
 
-`MCP_TOOL_WORKERS` sets the maximum admitted calls per application/process.
-A full pool immediately returns an **MCP server busy** error; it does not queue
-requests behind slow queries.
-
-An admitted call can hold a metadata database connection for the whole of its
-warehouse query, and cancelling it needs another. Admission is therefore capped
-at `(capacity - 1) // 2`, where capacity is the metadata pool's
-`pool_size + max_overflow`, so cancellations and the server's own metadata
-lookups (tool-list filtering, audit logging) always find a connection. By
-default (`None`) up to 16 calls are admitted within that cap. With SQLAlchemy's
-default pool (5 + 10 connections), that is 7 calls. To admit 16, raise the
-pool for the MCP process, for example
-`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}`. A larger
-explicit `MCP_TOOL_WORKERS` is reduced to the cap with a startup warning, and
-a pool with fewer than 3 connections is rejected at startup. The server never
-waits for a metadata connection on its event loop.
+`MCP_TOOL_WORKERS` sets the maximum admitted warehouse-capable calls per
+application/process. A full pool immediately returns an **MCP server busy**
+error; it does not queue requests behind slow queries.
 
 Tools that only read Superset's metadata database (the `list_*` and
 `get_*_info` tools, `get_schema`, `get_instance_info`, `health_check`, and
-similar) are admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`
-(default 16). They hold a metadata connection only for their own short
-queries, so they keep answering while slow warehouse queries fill
-`MCP_TOOL_WORKERS`; they wait briefly for a connection on a worker thread. A
+similar) are admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`, so
+they keep answering while slow warehouse queries fill `MCP_TOOL_WORKERS`. A
 metadata-only tool that does reach a warehouse must first take a
 `MCP_TOOL_WORKERS` slot, and reports **MCP server busy** if none is free.
 Setting `MCP_METADATA_TOOL_WORKERS = 0` admits every tool under
 `MCP_TOOL_WORKERS`.
+
+Both bounds come out of one budget: the metadata pool's capacity,
+`pool_size + max_overflow`. A warehouse-capable call can hold a metadata
+connection for the whole of its warehouse query and cancelling it needs
+another; a metadata-only call holds at most one; and the server's own
+metadata I/O (tool-list filtering, audit writes, error hooks, API-key
+lookups) runs on one bounded thread. Admission keeps
+`2 * MCP_TOOL_WORKERS + MCP_METADATA_TOOL_WORKERS + 1` within the capacity,
+so even with every slot in use no metadata connection checkout waits for
+another holder. By default (`None`) warehouse-capable calls get about a third
+of the connections left after the transport thread, and metadata-only calls
+what remains, each up to 16. With SQLAlchemy's default pool (5 + 10
+connections) that is 4 warehouse-capable and 6 metadata-only calls. To admit
+more, raise the pool for the MCP process, for example
+`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}` (13 and
+13). Explicit values above the budget are reduced with a startup warning, and
+a pool with fewer than 3 connections is rejected at startup. The server never
+waits for a metadata connection on its event loop.
 
 Tool-list and search permission checks, success/error audit writes, response-size
 audits, and error hooks run in metadata threads with independent Flask contexts

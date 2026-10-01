@@ -17,7 +17,9 @@
 
 """Tests for CompositeTokenVerifier."""
 
-from unittest.mock import AsyncMock, MagicMock
+from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp.server.auth import AccessToken
@@ -27,6 +29,17 @@ from superset.mcp_service.composite_token_verifier import (
     API_KEY_VALIDATED_USERNAME_CLAIM,
     CompositeTokenVerifier,
 )
+
+
+@pytest.fixture(autouse=True)
+def transport_executor() -> Iterator[MagicMock]:
+    """Mock apps cannot size the real pool; run transport I/O on a plain thread."""
+    executor = ThreadPoolExecutor(1)
+    with patch(
+        "superset.mcp_service.worker.transport_executor", return_value=executor
+    ) as resolve:
+        yield resolve
+    executor.shutdown()
 
 
 @pytest.fixture
@@ -271,6 +284,20 @@ async def test_transport_validation_valid_key_returns_access_token() -> None:
     assert result.client_id == "api_key"
     assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
     assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_uses_bounded_metadata_executor(
+    transport_executor: MagicMock,
+) -> None:
+    """API key lookups count against the transport side's metadata budget."""
+    mock_app = _make_app_with_api_key("alice")
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    assert await verifier.verify_token("sst_valid_key") is not None
+    transport_executor.assert_called_once_with(mock_app)
 
 
 @pytest.mark.asyncio

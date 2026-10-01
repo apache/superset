@@ -31,7 +31,7 @@ from fastmcp.exceptions import ToolError
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import NullPool, QueuePool
 
 from superset.extensions import db
 from superset.mcp_service.auth import mcp_auth_hook
@@ -162,16 +162,20 @@ async def test_saturated_workers_holding_metadata_pool_do_not_freeze_loop(
 
 
 @pytest.mark.parametrize(
-    ("pool_options", "configured", "expected"),
+    ("pool_options", "configured", "configured_metadata", "expected"),
     [
         # SQLAlchemy's default QueuePool lends 5 + 10 connections.
-        ({}, None, 7),
-        ({}, 16, 7),
-        ({}, 4, 4),
-        ({"pool_size": 20, "max_overflow": 20}, None, 16),
-        ({"pool_size": 20, "max_overflow": 20}, 19, 19),
-        ({"max_overflow": -1}, 32, 32),
-        ({"poolclass": NullPool}, None, 16),
+        ({}, None, None, (4, 6)),
+        ({}, 16, None, (7, 0)),
+        ({}, 4, None, (4, 6)),
+        ({}, None, 2, (4, 2)),
+        ({}, None, 16, (4, 6)),
+        ({}, 5, 0, (5, 0)),
+        ({"pool_size": 20, "max_overflow": 20}, None, None, (13, 13)),
+        ({"pool_size": 20, "max_overflow": 20}, 19, None, (19, 1)),
+        ({"pool_size": 2, "max_overflow": 1}, None, None, (1, 0)),
+        ({"max_overflow": -1}, 32, None, (32, 16)),
+        ({"poolclass": NullPool}, None, None, (16, 16)),
     ],
 )
 def test_tool_workers_leave_metadata_connections_for_cancellation(
@@ -179,21 +183,45 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
     tmp_path: Path,
     pool_options: dict[str, Any],
     configured: int | None,
-    expected: int,
+    configured_metadata: int | None,
+    expected: tuple[int, int],
 ) -> None:
-    """Each call and its cancellation get a connection, with one to spare."""
-    from superset.mcp_service.worker import tool_worker_count
+    """Every bounded holder of a metadata connection fits the pool at once.
+
+    Each warehouse call and its cancellation, each metadata-only call and each
+    transport-side metadata thread can hold one connection simultaneously.
+    """
+    from superset.mcp_service.worker import (
+        admission_counts,
+        metadata_tool_worker_count,
+        tool_worker_count,
+        TRANSPORT_METADATA_THREADS,
+    )
 
     engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}", **pool_options)
-    previous = app.config.get("MCP_TOOL_WORKERS")
-    app.config["MCP_TOOL_WORKERS"] = configured
     try:
-        with patch.object(
-            type(db), "engine", new_callable=PropertyMock, return_value=engine
+        with (
+            patch.dict(
+                app.config,
+                {
+                    "MCP_TOOL_WORKERS": configured,
+                    "MCP_METADATA_TOOL_WORKERS": configured_metadata,
+                },
+            ),
+            patch.object(
+                type(db), "engine", new_callable=PropertyMock, return_value=engine
+            ),
         ):
-            assert tool_worker_count(app) == expected
+            workers, metadata_workers = admission_counts(app)
+            assert (workers, metadata_workers) == expected
+            assert tool_worker_count(app) == workers
+            assert metadata_tool_worker_count(app) == metadata_workers
+        if isinstance(engine.pool, QueuePool) and engine.pool._max_overflow >= 0:
+            capacity = engine.pool.size() + engine.pool._max_overflow
+            assert (
+                2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS <= capacity
+            )
     finally:
-        app.config["MCP_TOOL_WORKERS"] = previous
         engine.dispose()
 
 
@@ -637,10 +665,10 @@ async def test_execute_sql_reports_missing_table_as_query_error(
 
 
 @pytest.mark.parametrize(("configured", "expected"), [(None, 16), (3, 3), (0, 0)])
-def test_metadata_only_tools_have_their_own_bound(
+def test_metadata_only_bound_without_a_waiting_pool(
     app: Any, configured: int | None, expected: int
 ) -> None:
-    """The metadata-only bound does not depend on warehouse reservations."""
+    """Pools that never make a checkout wait need no budget; negatives fail."""
     from superset.mcp_service.worker import metadata_tool_worker_count
 
     with patch.dict(app.config, {"MCP_METADATA_TOOL_WORKERS": configured}):
@@ -666,23 +694,126 @@ def test_metadata_only_tools_are_registered_tools() -> None:
     )
 
 
-METADATA_CALLS = 12
+@pytest.fixture
+def default_pool_engine(app: Any, tmp_path: Path) -> Iterator[Engine]:
+    """SQLAlchemy's default 5 + 10 metadata pool, failing fast if exhausted."""
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'metadata.db'}",
+        pool_size=5,
+        max_overflow=10,
+        # Any checkout that has to wait for another holder fails the test.
+        pool_timeout=1,
+        connect_args={"check_same_thread": False},
+    )
+    install_mcp_session_scoping()
+    db.session.remove()
+    try:
+        with (
+            patch.dict(
+                app.config,
+                {
+                    "MCP_TOOL_WORKERS": None,
+                    "MCP_METADATA_TOOL_WORKERS": None,
+                    "SQLLAB_TIMEOUT": 10,
+                },
+            ),
+            patch.object(
+                type(db),
+                "engines",
+                new_callable=PropertyMock,
+                return_value={None: engine},
+            ),
+            patch.object(
+                type(db), "engine", new_callable=PropertyMock, return_value=engine
+            ),
+        ):
+            yield engine
+    finally:
+        db.session.remove()
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_saturated_default_pool_never_waits_for_a_connection(
+    app: Any, default_pool_engine: Engine
+) -> None:
+    """All warehouse slots, their cancellations, all metadata-only slots and
+    the transport thread hold a connection at once without any checkout
+    waiting, and admission refuses the next call instead of overdrawing.
+    """
+    from superset.mcp_service.worker import (
+        admission_counts,
+        run_in_metadata_thread,
+        run_in_worker,
+        TRANSPORT_METADATA_THREADS,
+        WorkerPool,
+    )
+
+    workers, metadata_workers = admission_counts(app)
+    assert (workers, metadata_workers) == (4, 6)
+    holders = 2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS
+    assert holders == 15
+    pool = WorkerPool(workers, metadata_workers, TRANSPORT_METADATA_THREADS)
+    holding = threading.Barrier(workers + metadata_workers + 2)
+    release = threading.Event()
+
+    def hold() -> int:
+        """Check out a metadata connection and keep it until released."""
+        value = db.session.execute(text("SELECT 1")).scalar()
+        holding.wait(timeout=5)
+        release.wait(timeout=5)
+        return value
+
+    async def tool() -> int:
+        """A tool call holding its connection, as across warehouse I/O."""
+        return hold()
+
+    try:
+        with patch("superset.mcp_service.worker._get_pool", return_value=pool):
+            calls = [
+                asyncio.create_task(run_in_worker(tool, (), {}, 10))
+                for _ in range(workers)
+            ] + [
+                asyncio.create_task(run_in_worker(tool, (), {}, 10, metadata_only=True))
+                for _ in range(metadata_workers)
+            ]
+            calls.append(asyncio.create_task(run_in_metadata_thread(hold)))
+            # What each warehouse call's cancellation can hold.
+            cancellations = [default_pool_engine.connect() for _ in range(workers)]
+            try:
+                await asyncio.to_thread(holding.wait, 5)
+                assert default_pool_engine.pool.checkedout() == holders
+                for metadata_only in (False, True):
+                    with pytest.raises(ToolError, match="server busy"):
+                        await run_in_worker(
+                            tool, (), {}, 10, metadata_only=metadata_only
+                        )
+            finally:
+                release.set()
+                for connection in cancellations:
+                    connection.close()
+            assert await asyncio.gather(*calls) == [1] * (len(calls))
+    finally:
+        pool.executor.shutdown()
+        pool.cancellations.shutdown()
+        pool.transport.shutdown()
+    assert default_pool_engine.pool.checkedout() == 0
 
 
 @pytest.mark.asyncio
 async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
-    metadata_engine: Engine,
+    app: Any, default_pool_engine: Engine
 ) -> None:
     """Slow warehouse calls fill their bound; listing tools keep succeeding.
 
     Each warehouse call holds a metadata connection across its (blocked)
-    warehouse I/O, as a real query does. Metadata-only calls share what is
-    left of the pool for their short queries.
+    warehouse I/O, as a real query does.
     """
-    from superset.mcp_service.worker import WorkerPool
+    from superset.mcp_service.worker import admission_counts, WorkerPool
 
-    pool = WorkerPool(WORKERS, METADATA_CALLS)
-    holding = threading.Barrier(WORKERS + 1)
+    workers, metadata_workers = admission_counts(app)
+    pool = WorkerPool(workers, metadata_workers)
+    holding = threading.Barrier(workers + 1)
     release = threading.Event()
 
     def slow_query() -> str:
@@ -706,7 +837,7 @@ async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
         async with Client(mcp) as client:
             slow = [
                 asyncio.create_task(client.call_tool("slow_query", {}))
-                for _ in range(WORKERS)
+                for _ in range(workers)
             ]
             try:
                 await asyncio.to_thread(holding.wait, 5)
@@ -715,17 +846,17 @@ async def test_metadata_only_tools_answer_while_warehouse_bound_is_full(
                 listed = await asyncio.gather(
                     *(
                         client.call_tool("list_charts", {})
-                        for _ in range(METADATA_CALLS)
+                        for _ in range(metadata_workers)
                     )
                 )
             finally:
                 release.set()
             assert [result.data for result in await asyncio.gather(*slow)] == [
                 "slow"
-            ] * WORKERS
+            ] * workers
 
-    assert [result.data for result in listed] == [1] * METADATA_CALLS
-    assert metadata_engine.pool.checkedout() == 0
+    assert [result.data for result in listed] == [1] * metadata_workers
+    assert default_pool_engine.pool.checkedout() == 0
     pool.executor.shutdown()
     pool.cancellations.shutdown()
 

@@ -118,7 +118,12 @@ METADATA_ONLY_TOOLS = frozenset(
 class WorkerPool:
     """Bound submissions, including abandoned work; never queue behind a query."""
 
-    def __init__(self, size: int, metadata_size: int = 0) -> None:
+    def __init__(
+        self,
+        size: int,
+        metadata_size: int = 0,
+        transport_size: int = 1,
+    ) -> None:
         if size < 1:
             raise ValueError("MCP_TOOL_WORKERS must be positive")
         if metadata_size < 0:
@@ -134,6 +139,13 @@ class WorkerPool:
         # Only calls holding a warehouse slot register cancellation.
         self.cancel_slots = threading.BoundedSemaphore(size)
         self.cancellations = ThreadPoolExecutor(size, thread_name_prefix="mcp-cancel")
+        # Transport-side metadata I/O (tools/list filtering, audit writes,
+        # error hooks) is bounded too, so it cannot overdraw the connections
+        # budgeted for tool workers. Callers wait for it on the event loop
+        # without blocking it.
+        self.transport = ThreadPoolExecutor(
+            transport_size, thread_name_prefix="mcp-metadata"
+        )
 
     def admission(self, metadata_only: bool) -> threading.BoundedSemaphore:
         """Choose the bound a call is admitted under."""
@@ -180,6 +192,8 @@ class WorkerPool:
 
 DEFAULT_TOOL_WORKERS = 16
 DEFAULT_METADATA_TOOL_WORKERS = 16
+# Threads, and so metadata connections, for transport-side metadata I/O.
+TRANSPORT_METADATA_THREADS = 1
 
 
 def _metadata_pool_capacity(app: Flask) -> int | None:
@@ -199,69 +213,103 @@ def _metadata_pool_capacity(app: Flask) -> int | None:
     return None if max_overflow < 0 else pool.size() + max_overflow
 
 
-def tool_worker_count(app: Flask) -> int:
-    """Admit only as many calls as the metadata pool can always serve.
+def admission_counts(app: Flask) -> tuple[int, int]:
+    """Split the metadata pool between warehouse and metadata-only calls.
 
-    An admitted call can hold one metadata connection for the whole of its
-    warehouse I/O, and its cancellation needs another. ``2 * workers + 1``
-    connections therefore always leave one that is only held by short metadata
-    lookups, so cancellation and transport-side lookups (tools/list filtering,
-    audit logging) never wait for a warehouse query to end on its own.
+    Every holder of a metadata connection is bounded and budgeted:
+
+    - each warehouse-capable call can hold one for the whole of its warehouse
+      I/O, and its cancellation needs another (``2 * workers``);
+    - each metadata-only call holds at most one (``metadata_workers``);
+    - transport-side metadata I/O runs on ``TRANSPORT_METADATA_THREADS``.
+
+    ``2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS`` never
+    exceeds the pool's capacity, so with every slot admitted no checkout
+    waits for another holder. Unless configured, warehouse calls get about
+    two thirds of the remaining connections and metadata-only calls the
+    rest, each up to 16. Explicit settings above the budget are reduced
+    with a warning. ``0`` metadata-only workers admits those tools under
+    the warehouse bound.
+
+    Returns ``(workers, metadata_workers)``.
     """
     configured = app.config.get("MCP_TOOL_WORKERS")
+    configured_metadata = app.config.get("MCP_METADATA_TOOL_WORKERS")
+    if configured_metadata is not None and configured_metadata < 0:
+        raise ValueError("MCP_METADATA_TOOL_WORKERS must not be negative")
     capacity = _metadata_pool_capacity(app)
     if capacity is None:
-        return DEFAULT_TOOL_WORKERS if configured is None else configured
-    limit = (capacity - 1) // 2
+        return (
+            DEFAULT_TOOL_WORKERS if configured is None else configured,
+            DEFAULT_METADATA_TOOL_WORKERS
+            if configured_metadata is None
+            else configured_metadata,
+        )
+    available = capacity - TRANSPORT_METADATA_THREADS
+    limit = available // 2
     if limit < 1:
         raise ValueError(
             f"The metadata database pool allows {capacity} connections; "
-            "MCP tool execution needs at least 3"
+            "MCP tool execution needs at least "
+            f"{2 + TRANSPORT_METADATA_THREADS}"
         )
     if configured is None:
-        return min(DEFAULT_TOOL_WORKERS, limit)
-    if configured > limit:
+        workers = min(DEFAULT_TOOL_WORKERS, max(1, available // 3))
+    elif configured > limit:
         logger.warning(
             "MCP_TOOL_WORKERS=%s needs %s metadata database connections, but the "
             "pool allows %s; admitting %s concurrent tool calls. Raise the pool's "
             "pool_size/max_overflow in SQLALCHEMY_ENGINE_OPTIONS to admit more.",
             configured,
-            2 * configured + 1,
+            2 * configured + TRANSPORT_METADATA_THREADS,
             capacity,
             limit,
         )
-        return limit
-    return configured
+        workers = limit
+    else:
+        workers = configured
+    remaining = available - 2 * workers
+    if configured_metadata is None:
+        metadata_workers = min(DEFAULT_METADATA_TOOL_WORKERS, remaining)
+    elif configured_metadata > remaining:
+        logger.warning(
+            "MCP_METADATA_TOOL_WORKERS=%s exceeds the %s metadata database "
+            "connections left after %s warehouse-capable tool calls; admitting "
+            "%s metadata-only tool calls.",
+            configured_metadata,
+            remaining,
+            workers,
+            remaining,
+        )
+        metadata_workers = remaining
+    else:
+        metadata_workers = configured_metadata
+    return workers, metadata_workers
+
+
+def tool_worker_count(app: Flask) -> int:
+    """Admit only as many warehouse-capable calls as the pool can always serve."""
+    return admission_counts(app)[0]
 
 
 def metadata_tool_worker_count(app: Flask) -> int:
-    """Admit metadata-only calls independently of warehouse capacity.
-
-    They hold a metadata connection only for their own short metadata queries,
-    never across warehouse I/O, so they cannot keep the connections reserved
-    for warehouse calls and their cancellation from cycling. They only wait
-    briefly for a connection, on a worker thread rather than the event loop.
-    """
-    configured = app.config.get("MCP_METADATA_TOOL_WORKERS")
-    count = DEFAULT_METADATA_TOOL_WORKERS if configured is None else configured
-    if count < 0:
-        raise ValueError("MCP_METADATA_TOOL_WORKERS must not be negative")
-    return count
+    """Admit metadata-only calls from what warehouse calls leave of the pool."""
+    return admission_counts(app)[1]
 
 
 def _get_pool(app: Flask) -> WorkerPool:
     """Lazily create a pool for this application, without import-time threads."""
     with _pools_lock:
         if app not in _pools:
-            size = tool_worker_count(app)
-            metadata_size = metadata_tool_worker_count(app)
+            size, metadata_size = admission_counts(app)
             logger.info(
                 "MCP tool calls admitted concurrently: %s warehouse-capable, "
-                "%s metadata-only",
+                "%s metadata-only; %s transport metadata thread(s)",
                 size,
                 metadata_size,
+                TRANSPORT_METADATA_THREADS,
             )
-            _pools[app] = WorkerPool(size, metadata_size)
+            _pools[app] = WorkerPool(size, metadata_size, TRANSPORT_METADATA_THREADS)
         return _pools[app]
 
 
@@ -463,7 +511,42 @@ async def run_in_metadata_thread(
             _metadata_context_owned.reset(owner_token)
             _active_call.reset(active_token)
 
-    return await asyncio.to_thread(execute)
+    return await _run_on_transport_thread(app, execute)
+
+
+def _current_app() -> Flask:
+    """Resolve the application for work started on the transport loop."""
+    if has_app_context():
+        return current_app._get_current_object()
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    return get_flask_app()
+
+
+def transport_executor(app: Flask) -> ThreadPoolExecutor:
+    """Bounded threads for transport-side metadata I/O, within the pool budget."""
+    return _get_pool(app).transport
+
+
+async def _run_on_transport_thread(app: Flask, fn: Callable[[], _T]) -> _T:
+    """Run blocking transport-side work on the bounded metadata threads.
+
+    Like ``asyncio.to_thread``, contextvars are copied and the work keeps
+    running if its awaiter is cancelled.
+    """
+    context = copy_context()
+    return await asyncio.get_running_loop().run_in_executor(
+        transport_executor(app), context.run, fn
+    )
+
+
+async def run_in_transport_thread(
+    fn: Callable[_P, _T], *args: _P.args, **kwargs: _P.kwargs
+) -> _T:
+    """Run code that owns its own Flask context on a transport metadata thread."""
+    return await _run_on_transport_thread(
+        _current_app(), functools.partial(fn, *args, **kwargs)
+    )
 
 
 async def run_in_worker(
