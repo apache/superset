@@ -311,6 +311,72 @@ test('parseErrorJson with HTML message and status code', () => {
   });
 });
 
+test('parseErrorJson keeps a server message that only quotes an HTML tag', () => {
+  // A database driver echoes the offending fragment back in its syntax error.
+  // The message is prose, not an HTML error page, so it must survive intact
+  // instead of collapsing into the status-code message.
+  const message =
+    'Error: HTTPDriver received ClickHouse error code 62. DB::Exception: ' +
+    "Syntax error: failed at position 37 ('<') (line 1, col 37): <a> AS " +
+    '`My column_b77020` FROM (select number from numbers(10)) AS ' +
+    '`virtual_table` LIMIT 1000 FORMAT Native.';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+
+  // An actual error page still collapses, even when the server pads it with
+  // leading whitespace.
+  const page = '\n  <!doctype html><title>502 Bad Gateway</title>';
+  expect(parseErrorJson({ status: 502, message: page })).toEqual({
+    status: 502,
+    message: page,
+    error: 'Bad gateway',
+  });
+});
+
+test('parseErrorJson keeps a server message that opens with an unclosed HTML tag', () => {
+  // The tag itself is never closed anywhere in the string, unlike a real
+  // fragment such as `<div>...</div>`, so this isn't an HTML error page —
+  // just a message that happens to start by quoting the offending markup.
+  const message = '<a> is not valid syntax';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
+test('parseErrorJson keeps a message that starts with < but is not a tag', () => {
+  // No leading tag name to match at all, so this never reaches the
+  // closing-tag check; it must still be treated as plain prose.
+  const message = '<3 is not an HTML tag';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
+test('parseErrorJson keeps a message that itself parses as JSON', () => {
+  // isJsonString() short-circuits checkForHtml before the tag checks ever
+  // run: a message that happens to parse as JSON on its own is never
+  // treated as an HTML error page, whatever text it contains — otherwise
+  // isProbablyHTML()'s full-string scan would flag the embedded tag below
+  // and incorrectly collapse this into a generic status message.
+  const message = '{"detail": "<div>not actually markup</div>"}';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),

@@ -174,3 +174,13 @@ def test_schema_cache_compiles_once_and_isolates_response_mutation(
     assert "groupby" in second["schema"]["properties"]
     assert calls == 1
     _compiled_chart_schema.cache_clear()
+
+
+@pytest.mark.parametrize("chart_type", VALID_CHART_TYPES)
+def test_discovery_examples_conform_to_advertised_json_schema(chart_type: str) -> None:
+    """Clients can submit examples using the advertised schema without coercion."""
+    from jsonschema import validate
+
+    response = _call_schema(chart_type)
+    for example in response["examples"]:
+        validate(example, response["schema"])

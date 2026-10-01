@@ -467,6 +467,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["uuid"] = new_model.uuid
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    new_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
@@ -566,6 +572,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    changed_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
@@ -2079,7 +2091,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             errors = [
                 SupersetError(
-                    message="\n".join(messages),
+                    message="\n".join(str(m) for m in messages),
                     error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
