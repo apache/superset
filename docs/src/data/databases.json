@@ -686,6 +686,7 @@
         "pypi_packages": ["pydoris"],
         "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "default_port": 9030,
+        "notes": "The SSL switch sets ssl_mode=VERIFY_CA. With MariaDB Connector/C, which mysqlclient uses in the Superset image, this also verifies the server hostname. Add ssl_ca=<path to the CA certificate> in Additional parameters and use a Doris FE certificate that matches the host. A Doris FE on its default self-signed certificate fails to connect once the switch is on.",
         "parameters": {
           "username": "User name",
           "password": "Password",

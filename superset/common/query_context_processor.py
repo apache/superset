@@ -592,6 +592,7 @@ class QueryContextProcessor:
         # QueryObject post-processing has completed before this materialization
         # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
         # while downstream envelope validation still rejects injected infinity.
+        # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
         return df_to_records(df)
 
     @staticmethod

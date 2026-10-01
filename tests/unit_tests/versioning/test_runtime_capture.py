@@ -221,12 +221,14 @@ def test_runtime_denial_refuses_restore_before_mutation(
     dashboard: Dashboard = Dashboard(dashboard_title="preserved")
     capture_session.add(dashboard)
     capture_session.commit()
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
     before: dict[str, int] = history_counts(capture_session)
     monkeypatch.setitem(
         app.config, "VERSIONING_CAPTURE_PREDICATE", lambda session: False
     )
     with pytest.raises(DashboardNotFoundError):
-        RestoreDashboardVersionCommand(dashboard.uuid, uuid4()).run()
+        RestoreDashboardVersionCommand(dashboard_uuid, uuid4()).run()
     assert dashboard.dashboard_title == "preserved"
     assert history_counts(capture_session) == before
 
@@ -250,7 +252,8 @@ def test_restore_capture_decision_covers_persisted_mutation(
     dashboard: Dashboard = Dashboard(dashboard_title="original")
     capture_session.add(dashboard)
     capture_session.commit()
-    entity_uuid: UUID = dashboard.uuid
+    entity_uuid = dashboard.uuid
+    assert entity_uuid is not None
     shadow: Any = version_class(Dashboard)
     transaction_id: int = capture_session.scalar(
         sa.select(shadow.transaction_id).where(shadow.id == dashboard.id)

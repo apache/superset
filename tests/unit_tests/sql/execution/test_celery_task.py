@@ -896,7 +896,7 @@ def test_serialize_result_set_json_normalizes_decimal_nonfinite(
 
     data, _ = _serialize_result_set(mock_result_set)
     assert isinstance(data, list)
-    assert [row["value"] for row in data] == [None, None, None, None, finite]
+    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
 
     payload = _serialize_payload({"data": data})
     payload_text = payload.decode() if isinstance(payload, bytes) else payload
