@@ -27,6 +27,7 @@
 import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPutChart } from '../../helpers/api/chart';
+import { getDashboardsByName } from '../../helpers/api/dashboard';
 import { createTestDashboard } from '../dashboard/dashboard-test-helpers';
 import { waitForPut } from '../../helpers/api/intercepts';
 import { ExplorePage } from '../../pages/ExplorePage';
@@ -44,12 +45,15 @@ async function overwriteToDashboard(
 ): Promise<void> {
   const saveModal = await explorePage.openSaveModal();
   await saveModal.selectSaveAction('overwrite');
-  await saveModal.selectDashboard(dashboardName);
+  await saveModal.selectExistingDashboard(dashboardName);
   const updated = waitForPut(page, `api/v1/chart/${chartId}`, {
     pathMatch: true,
   });
   await saveModal.clickSave();
   expect((await updated).ok()).toBe(true);
+  // A duplicate here means the save created a new dashboard instead of
+  // picking the existing one; it would also escape testAssets cleanup.
+  expect((await getDashboardsByName(page, dashboardName)).count).toBe(1);
   await explorePage.waitForPageLoad();
 }
 

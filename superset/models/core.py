@@ -26,12 +26,19 @@ import logging
 import textwrap
 import threading
 from ast import literal_eval
-from contextlib import closing, contextmanager, nullcontext, suppress
+from contextlib import (
+    AbstractContextManager,
+    closing,
+    contextmanager,
+    ExitStack,
+    nullcontext,
+    suppress,
+)
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING, TypeVar
 
 import numpy
 import pandas as pd
@@ -91,12 +98,15 @@ from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.database import find_user_for_impersonation
 from superset.utils.oauth2 import (
     check_for_oauth2,
+    execute_with_oauth2_retry,
     get_oauth2_access_token,
+    is_oauth2_retry_active,
     OAuth2ClientConfigSchema,
 )
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 # Per-process SQLAlchemy engine cache (#27897). Key is
 # (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
@@ -813,15 +823,48 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
     ) -> Connection:
-        with self.get_sqla_engine(
-            catalog=catalog,
-            schema=schema,
-            nullpool=nullpool,
-            source=source,
-        ) as engine:
-            with check_for_oauth2(self):
-                with closing(engine.raw_connection()) as conn:
-                    yield conn
+        @contextmanager
+        def open_connection() -> Iterator[Connection]:
+            with self.get_sqla_engine(
+                catalog=catalog,
+                schema=schema,
+                nullpool=nullpool,
+                source=source,
+            ) as engine:
+                with check_for_oauth2(self):
+                    with closing(engine.raw_connection()) as conn:
+                        yield conn
+
+        with self._open_with_oauth2_retry(open_connection) as conn:
+            yield conn
+
+    @contextmanager
+    def _open_with_oauth2_retry(
+        self,
+        open_context: Callable[[], AbstractContextManager[T]],
+    ) -> Iterator[T]:
+        """
+        Enter ``open_context()``, refreshing a rejected OAuth2 token once.
+
+        Some databases (Snowflake, for example) reject an access token when the
+        connection logs in. If the token store still holds that token as unexpired,
+        the valid refresh token is never used and the user is asked to sign in
+        again. Only entering the context is retried: the caller's block has not run,
+        so nothing has been executed on the database. Errors raised by the caller's
+        block are not retried here.
+        """
+        user_id = getattr(getattr(g, "user", None), "id", None)
+        if user_id is None or not self.is_oauth2_enabled() or is_oauth2_retry_active():
+            # No user token to refresh, or an outer operation owns the recovery.
+            with open_context() as value:
+                yield value
+            return
+
+        with ExitStack() as stack:
+            yield execute_with_oauth2_retry(
+                self,
+                lambda: stack.enter_context(open_context()),
+            )
 
     def get_default_catalog(self) -> str | None:
         """
@@ -1260,8 +1303,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            yield sqla.inspect(engine)
+        @contextmanager
+        def open_inspector() -> Iterator[Inspector]:
+            with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+                # Defensive: redundant with get_sqla_engine's own check_for_oauth2.
+                with check_for_oauth2(self):
+                    yield sqla.inspect(engine)
+
+        with self._open_with_oauth2_retry(open_inspector) as inspector:
+            yield inspector
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog:{catalog}:schema_list",
