@@ -214,11 +214,11 @@ DEFAULT_METADATA_TOOL_WORKERS = 16
 # Threads, and so metadata connections, for transport-side metadata I/O.
 TRANSPORT_METADATA_THREADS = 1
 # Threads, and so metadata connections, for transport-side API-key lookups.
-API_KEY_AUTH_THREADS = 1
+API_KEY_CHECK_POOL_SIZE = 1
 # API-key lookups admitted at once, running or waiting; more are rejected.
 API_KEY_AUTH_PENDING = 32
 # Metadata connections held by transport-side threads rather than tool calls.
-RESERVED_METADATA_THREADS = TRANSPORT_METADATA_THREADS + API_KEY_AUTH_THREADS
+METADATA_POOL_HEADROOM = TRANSPORT_METADATA_THREADS + API_KEY_CHECK_POOL_SIZE
 
 
 def _metadata_pool_capacity(app: Flask) -> int | None:
@@ -258,9 +258,9 @@ def admission_counts(app: Flask) -> tuple[int, int]:
       I/O, and its cancellation needs another (``2 * workers``);
     - each metadata-only call holds at most one (``metadata_workers``);
     - transport-side metadata I/O runs on ``TRANSPORT_METADATA_THREADS`` and
-      API-key lookups on ``API_KEY_AUTH_THREADS``.
+      API-key lookups on ``API_KEY_CHECK_POOL_SIZE``.
 
-    ``2 * workers + metadata_workers + RESERVED_METADATA_THREADS`` never
+    ``2 * workers + metadata_workers + METADATA_POOL_HEADROOM`` never
     exceeds the pool's capacity, so with every slot admitted no checkout
     waits for another holder. Unless configured, warehouse calls get about
     two thirds of the remaining connections and metadata-only calls the
@@ -282,13 +282,13 @@ def admission_counts(app: Flask) -> tuple[int, int]:
             if configured_metadata is None
             else configured_metadata,
         )
-    available = capacity - RESERVED_METADATA_THREADS
+    available = capacity - METADATA_POOL_HEADROOM
     limit = available // 2
     if limit < 1:
         raise ValueError(
             f"The metadata database pool allows {capacity} connections; "
             "MCP tool execution needs at least "
-            f"{2 + RESERVED_METADATA_THREADS}"
+            f"{2 + METADATA_POOL_HEADROOM}"
         )
     if configured is None:
         workers = min(DEFAULT_TOOL_WORKERS, max(1, available // 3))
@@ -298,7 +298,7 @@ def admission_counts(app: Flask) -> tuple[int, int]:
             "pool allows %s; admitting %s concurrent tool calls. Raise the pool's "
             "pool_size/max_overflow in SQLALCHEMY_ENGINE_OPTIONS to admit more.",
             configured,
-            2 * configured + RESERVED_METADATA_THREADS,
+            2 * configured + METADATA_POOL_HEADROOM,
             capacity,
             limit,
         )
@@ -346,13 +346,13 @@ def _get_pool(app: Flask) -> WorkerPool:
                 size,
                 metadata_size,
                 TRANSPORT_METADATA_THREADS,
-                API_KEY_AUTH_THREADS,
+                API_KEY_CHECK_POOL_SIZE,
             )
             _pools[app] = WorkerPool(
                 size,
                 metadata_size,
                 TRANSPORT_METADATA_THREADS,
-                API_KEY_AUTH_THREADS,
+                API_KEY_CHECK_POOL_SIZE,
                 API_KEY_AUTH_PENDING,
             )
         return _pools[app]

@@ -289,6 +289,29 @@ async def test_transport_validation_valid_key_returns_access_token() -> None:
 
 
 @pytest.mark.asyncio
+async def test_transport_validation_logs_user_id_only(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Successful validation logs the user id, not the username or token."""
+    mock_app = _make_app_with_api_key("alice")
+    mock_app.appbuilder.sm.validate_api_key.return_value.id = 42
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    with caplog.at_level(
+        logging.DEBUG, logger="superset.mcp_service.composite_token_verifier"
+    ):
+        result = await verifier.verify_token("sst_valid_key")
+
+    assert result is not None
+    assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+    assert "API key validated at transport layer for user_id=42" in caplog.text
+    assert "alice" not in caplog.text
+    assert "sst_valid_key" not in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_transport_validation_runs_on_its_own_thread() -> None:
     """API key lookups use the dedicated lookup thread, not the shared
     transport thread that audit writes and RBAC filtering run on."""

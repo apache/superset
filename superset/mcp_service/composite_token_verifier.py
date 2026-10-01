@@ -152,6 +152,9 @@ class CompositeTokenVerifier(TokenVerifier):
                     else []
                 )
                 token = ""  # noqa: S105 -- unbind raw token, defense-in-depth
+                logger.debug(
+                    "API key validated at transport layer for user_id=%s", user.id
+                )
                 return username, scopes
         except Exception:  # noqa: BLE001 — catch-all: DB errors, FAB internals, etc.
             logger.warning(
@@ -202,9 +205,6 @@ class CompositeTokenVerifier(TokenVerifier):
                     )
                     return None
                 username, key_scopes = result
-                logger.debug(
-                    "API key validated at transport layer for user=%s", username
-                )
                 return AccessToken(
                     token=token,
                     client_id="api_key",

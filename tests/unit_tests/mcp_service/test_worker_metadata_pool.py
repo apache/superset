@@ -195,8 +195,8 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
     """
     from superset.mcp_service.worker import (
         admission_counts,
+        METADATA_POOL_HEADROOM,
         metadata_tool_worker_count,
-        RESERVED_METADATA_THREADS,
         tool_worker_count,
     )
 
@@ -220,9 +220,7 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
             assert metadata_tool_worker_count(app) == metadata_workers
         if isinstance(engine.pool, QueuePool) and engine.pool._max_overflow >= 0:
             capacity = engine.pool.size() + engine.pool._max_overflow
-            assert (
-                2 * workers + metadata_workers + RESERVED_METADATA_THREADS <= capacity
-            )
+            assert 2 * workers + metadata_workers + METADATA_POOL_HEADROOM <= capacity
     finally:
         engine.dispose()
 
@@ -776,8 +774,8 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
     """
     from superset.mcp_service.worker import (
         admission_counts,
-        API_KEY_AUTH_THREADS,
-        RESERVED_METADATA_THREADS,
+        API_KEY_CHECK_POOL_SIZE,
+        METADATA_POOL_HEADROOM,
         run_api_key_lookup,
         run_in_metadata_thread,
         run_in_worker,
@@ -787,10 +785,10 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
 
     workers, metadata_workers = admission_counts(app)
     assert (workers, metadata_workers) == (4, 5)
-    holders = 2 * workers + metadata_workers + RESERVED_METADATA_THREADS
+    holders = 2 * workers + metadata_workers + METADATA_POOL_HEADROOM
     assert holders == 15
     pool = WorkerPool(
-        workers, metadata_workers, TRANSPORT_METADATA_THREADS, API_KEY_AUTH_THREADS
+        workers, metadata_workers, TRANSPORT_METADATA_THREADS, API_KEY_CHECK_POOL_SIZE
     )
     holding = threading.Barrier(workers + metadata_workers + 3)
     release = threading.Event()

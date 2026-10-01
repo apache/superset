@@ -81,6 +81,9 @@ more, raise the pool for the MCP process, for example
 a pool with fewer than 4 connections is rejected at startup. The server never
 waits for a metadata connection on its event loop.
 
+Pool logs report thread and connection counts. Successful transport-layer API-key
+validation logs the user id rather than the username or API key.
+
 Tool-list and search permission checks, success/error audit writes, response-size
 audits, and error hooks run in metadata threads with independent Flask contexts
 and scoped sessions. These sessions are cleaned up when the operation finishes,
