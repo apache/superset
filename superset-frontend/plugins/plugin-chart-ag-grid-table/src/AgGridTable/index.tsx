@@ -59,7 +59,9 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
-import reconcileColumnState from '../utils/reconcileColumnState';
+import reconcileColumnState, {
+  getLeafColumnIds,
+} from '../utils/reconcileColumnState';
 import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS, ROW_NUMBER_COL_ID } from '../consts';
 import {
@@ -120,6 +122,7 @@ export interface AgGridTableProps {
   chartState?: AgGridChartState;
   onClientViewChange?: (snapshot: ClientViewSnapshot) => void;
   zebraStriping: boolean;
+  resetColumnOrder?: boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -143,6 +146,22 @@ function getMinWidthSignature(colDefs: MinWidthColDef[]): string {
       return `${id}:${def.minWidth ?? ''}:${children}`;
     })
     .join('|');
+}
+
+function applyColDefOrder(
+  api: {
+    applyColumnState?: (params: {
+      state: { colId: string }[];
+      applyOrder: boolean;
+    }) => void;
+  },
+  colDefs: ColDef[],
+): void {
+  const state = getLeafColumnIds(colDefs).map(colId => ({ colId }));
+  if (state.length === 0) {
+    return;
+  }
+  api.applyColumnState?.({ state, applyOrder: true });
 }
 
 const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
@@ -181,6 +200,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     chartState,
     onClientViewChange,
     zebraStriping,
+    resetColumnOrder = false,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -608,11 +628,29 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       () => getMinWidthSignature(colDefsFromProps),
       [colDefsFromProps],
     );
+    const columnOrderSignature = useMemo(
+      () => getLeafColumnIds(colDefsFromProps).join('|'),
+      [colDefsFromProps],
+    );
     useEffect(() => {
       if (gridRef.current?.api) {
         gridRef.current.api.sizeColumnsToFit();
       }
     }, [width, minWidthSignature]);
+
+    // Header-group order comes from Explore, but AG Grid keeps the previous
+    // visual order while maintainColumnOrder is on. Mirror Table V1's
+    // resetColumnOrder: drop saved order and apply the new colDef sequence.
+    useEffect(() => {
+      if (!resetColumnOrder || !columnOrderSignature) {
+        return;
+      }
+      const api = gridRef.current?.api;
+      if (!api) {
+        return;
+      }
+      applyColDefOrder(api, colDefsFromProps as ColDef[]);
+    }, [resetColumnOrder, columnOrderSignature]);
 
     // Row highlighting must reflect the active cross filter regardless of how
     // it was applied (cell click, context menu, or an external dashboard
@@ -657,12 +695,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           if (reconciledColumnState) {
             params.api.applyColumnState?.({
               state: reconciledColumnState.columnState,
-              applyOrder: reconciledColumnState.applyOrder,
+              applyOrder: resetColumnOrder
+                ? false
+                : reconciledColumnState.applyOrder,
             });
           }
         } catch {
           // Silently fail if state restoration fails
         }
+      }
+      if (resetColumnOrder) {
+        applyColDefOrder(params.api, colDefsFromProps as ColDef[]);
       }
     };
 
@@ -729,7 +772,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             onModelUpdated={handleModelUpdated}
             onStateUpdated={handleGridStateChange}
             initialState={gridInitialState}
-            maintainColumnOrder
+            maintainColumnOrder={!resetColumnOrder}
             suppressAggFuncInHeader
             // Clicking a cell should select (focus) the cell rather than select
             // its text content (#106389). enableCellTextSelection forces browser

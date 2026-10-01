@@ -170,6 +170,55 @@ test('AgGridTableChart nests columns in header groups', async () => {
   }
 });
 
+test('AgGridTableChart reorders header groups without a chart refresh', async () => {
+  const base = transformProps(testData.basic);
+  const namesGroup = { id: 'names', label: 'Names', columns: ['name'] };
+  const metricsGroup = {
+    id: 'metrics',
+    label: 'Metrics',
+    columns: ['sum__num'],
+  };
+
+  const renderChart = (headerGroups: (typeof namesGroup)[]) =>
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...base}
+          headerGroups={headerGroups}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    });
+
+  const groupLabels = (): string[] =>
+    Array.from(document.querySelectorAll('.ag-header-group-cell')).map(
+      cell => cell.textContent ?? '',
+    );
+
+  const { rerender } = render(renderChart([namesGroup, metricsGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.some(label => label.includes('Names'))).toBe(true);
+    expect(labels.some(label => label.includes('Metrics'))).toBe(true);
+  });
+
+  const initialLabels = groupLabels();
+  expect(
+    initialLabels.findIndex(label => label.includes('Names')),
+  ).toBeLessThan(initialLabels.findIndex(label => label.includes('Metrics')));
+
+  rerender(renderChart([metricsGroup, namesGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.findIndex(label => label.includes('Metrics'))).toBeLessThan(
+      labels.findIndex(label => label.includes('Names')),
+    );
+  });
+});
+
 test('AgGridTableChart renders basic data', async () => {
   const props = transformProps(testData.basic);
   render(

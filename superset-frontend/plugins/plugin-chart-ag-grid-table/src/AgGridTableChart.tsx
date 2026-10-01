@@ -42,6 +42,7 @@ import {
   CellContextMenuEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { hasRenderableHeaderGroups } from '@superset-ui/chart-controls';
 import {
   AgGridTableChartTransformedProps,
   InputColumn,
@@ -736,6 +737,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         chartState={chartState}
         onClientViewChange={handleClientViewChange}
         zebraStriping={!!zebraStriping}
+        resetColumnOrder={hasRenderableHeaderGroups(headerGroups, columns)}
       />
     </StyledChartContainer>
   );
