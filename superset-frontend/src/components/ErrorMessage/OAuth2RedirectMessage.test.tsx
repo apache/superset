@@ -88,10 +88,16 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 const mockDispatch = jest.fn();
 jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
+type OAuthMessage = { tabId?: string };
+
+const globalWithBroadcastChannel = global as unknown as {
+  BroadcastChannel: jest.Mock;
+};
+
 // Capture the channel instance created by the component so tests can drive its
 // onmessage handler and assert it gets closed on unmount.
 let capturedChannel: {
-  onmessage: ((event: any) => void) | null;
+  onmessage: ((event: { data: OAuthMessage }) => void) | null;
   close: jest.Mock;
 };
 const channelCloseMock = jest.fn();
@@ -99,16 +105,16 @@ const channelCloseMock = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks();
   capturedChannel = { onmessage: null, close: channelCloseMock };
-  (global as any).BroadcastChannel = jest
+  globalWithBroadcastChannel.BroadcastChannel = jest
     .fn()
     .mockImplementation(() => capturedChannel);
 });
 
-function simulateBroadcastMessage(data: any) {
+function simulateBroadcastMessage(data: OAuthMessage) {
   capturedChannel.onmessage?.({ data });
 }
 
-function simulateStorageMessage(data: any) {
+function simulateStorageMessage(data: OAuthMessage) {
   window.dispatchEvent(
     new StorageEvent('storage', {
       key: 'oauth2_auth_complete',
@@ -168,7 +174,9 @@ describe('OAuth2RedirectMessage Component', () => {
   test('closes the BroadcastChannel on unmount', () => {
     const { unmount } = render(setup());
 
-    expect((global as any).BroadcastChannel).toHaveBeenCalledWith('oauth');
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledWith(
+      'oauth',
+    );
     unmount();
     expect(channelCloseMock).toHaveBeenCalled();
   });
@@ -317,9 +325,11 @@ describe('OAuth2RedirectMessage Component', () => {
   });
 
   test('falls back to storage events when BroadcastChannel construction throws', async () => {
-    (global as any).BroadcastChannel = jest.fn().mockImplementation(() => {
-      throw new Error('blocked');
-    });
+    globalWithBroadcastChannel.BroadcastChannel = jest
+      .fn()
+      .mockImplementation(() => {
+        throw new Error('blocked');
+      });
 
     render(setup());
 
@@ -341,8 +351,10 @@ describe('OAuth2RedirectMessage Component', () => {
       charts: { '1': {}, '2': {} },
       dashboardInfo: { id: 'dashboard-id' },
     };
+    type DynamicStoreState = typeof initialState;
+    type DynamicStoreAction = { type: string };
     const dynamicStore = createStore(
-      (state: any = initialState, action: any) => {
+      (state: DynamicStoreState = initialState, action: DynamicStoreAction) => {
         if (action.type === 'SET_READY') {
           return {
             ...state,
