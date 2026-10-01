@@ -36,6 +36,7 @@ import {
 import { cloneDeep } from 'lodash-es';
 import {
   type DataMask,
+  type DataRecordValue,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
@@ -91,7 +92,7 @@ const cellBarProps = ({
   rule,
   base = testData.raw,
 }: {
-  values: unknown[];
+  values: DataRecordValue[];
   showCellBars: boolean;
   rule: Record<string, unknown> | Record<string, unknown>[];
   base?: typeof testData.raw;
