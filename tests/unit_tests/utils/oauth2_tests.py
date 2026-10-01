@@ -285,7 +285,14 @@ def test_execute_with_oauth2_retry_guards_both_attempts(
     else:
         assert execute_with_oauth2_retry(database, operation) == "result"
     assert attempts == 2
-    refresh.assert_called_once()
+    refresh.assert_called_once_with(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        database.db_engine_spec,
+        force=True,
+        rejected_access_token=None,
+    )
     assert is_oauth2_retry_active() is outer_active
 
 
