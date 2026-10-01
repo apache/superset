@@ -19,6 +19,7 @@
 
 import { Page } from '@playwright/test';
 import { Input, Modal, Radio, Select } from '../core';
+import { waitForGet } from '../../helpers/api/intercepts';
 
 /**
  * Save actions offered by the modal's radio group, keyed to their labels.
@@ -92,7 +93,15 @@ export class SaveChartModal extends Modal {
    * affordance creates one with `dashboardTitle` when the chart is saved.
    */
   async selectDashboard(dashboardTitle: string): Promise<void> {
-    await this.dashboardSelect.selectOption(dashboardTitle);
+    // The select offers the typed title as a "create" option immediately.
+    // Typing before the dashboard list has loaded can therefore create a
+    // second dashboard with an existing title instead of selecting it. The
+    // list is fetched when the dropdown first opens (the modal remounts on
+    // every open), so wait for it before typing.
+    const dashboardsLoaded = waitForGet(this.page, '/api/v1/dashboard/?q=');
+    await this.dashboardSelect.selectOption(dashboardTitle, {
+      afterOpen: dashboardsLoaded,
+    });
   }
 
   /**
