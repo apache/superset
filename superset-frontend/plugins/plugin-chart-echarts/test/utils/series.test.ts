@@ -44,6 +44,7 @@ import {
   getMinAndMaxFromBounds,
   capTickMarks,
   getTemporalTickValues,
+  measureTextInkWidth,
   measureTextWidth,
   sanitizeHtml,
   sortAndFilterSeries,
@@ -2208,5 +2209,74 @@ describe('measureTextWidth caching', () => {
     // A more recently used entry is still cached.
     measureTextWidth('label-1999', theme);
     expect(measureText).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('measureTextInkWidth', () => {
+  let getContext: jest.SpyInstance;
+
+  afterEach(() => {
+    getContext.mockRestore();
+  });
+
+  test('uses the ink extent when it exceeds the advance width', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 10,
+          actualBoundingBoxLeft: 5,
+          actualBoundingBoxRight: 45,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(50);
+  });
+
+  test('keeps the advance width when it exceeds the ink extent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 30,
+          actualBoundingBoxLeft: 0,
+          actualBoundingBoxRight: 20,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(30);
+  });
+
+  test('falls back to the advance width when bounding-box metrics are absent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({ measureText: () => ({ width: 42 }) } as never);
+    const width = measureTextInkWidth('label', theme);
+    expect(width).not.toBeNaN();
+    expect(width).toBe(42);
+  });
+
+  test('falls back to an approximate width when canvas is unavailable', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    expect(measureTextInkWidth('label', theme)).toBeCloseTo(
+      'label'.length * theme.fontSizeSM * 0.62,
+    );
+  });
+
+  test('measures with the theme small font', () => {
+    let capturedFont = '';
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        set font(value: string) {
+          capturedFont = value;
+        },
+        get font() {
+          return capturedFont;
+        },
+        measureText: () => ({ width: 1 }),
+      } as never);
+    measureTextInkWidth('label', theme);
+    expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
   });
 });

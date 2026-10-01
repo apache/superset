@@ -54,8 +54,6 @@
     - 'superset-embedded-sdk/package-lock.json'
     - 'superset-websocket/package.json'
     - 'superset-websocket/package-lock.json'
-    - 'superset-frontend/cypress-base/package.json'
-    - 'superset-frontend/cypress-base/package-lock.json'
     - 'superset-frontend/packages/**/package.json'
     - 'superset-frontend/plugins/**/package.json'
 
