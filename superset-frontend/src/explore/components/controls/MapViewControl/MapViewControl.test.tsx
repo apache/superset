@@ -77,7 +77,13 @@ test('shows the fixed extent in custom mode', () => {
 });
 
 test('shows unset for missing extent values', () => {
-  setup(makeValue({ fixedZoom: 0, fixedLatitude: 0, fixedLongitude: 0 }));
+  // Saved configs may omit the fixed extent entirely, which the type forbids.
+  setup({
+    ...makeValue(),
+    fixedZoom: undefined,
+    fixedLatitude: undefined,
+    fixedLongitude: undefined,
+  } as unknown as MapViewConfigs);
   expect(screen.getByText(/Zoom:/)).toHaveTextContent(
     'Zoom: unset | Lat: unset | Lon: unset',
   );

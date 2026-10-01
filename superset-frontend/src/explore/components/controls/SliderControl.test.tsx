@@ -51,11 +51,24 @@ test('calls onChange with the new value on keyboard interaction', () => {
   expect(onChange).toHaveBeenCalledWith(6);
 });
 
-test('respects the max bound', () => {
+test('a decrease key at the max bound emits max minus one', () => {
   const { onChange } = setup({ value: 10 });
   fireEvent.keyDown(screen.getByRole('slider'), {
-    key: 'ArrowRight',
-    keyCode: 39,
+    key: 'ArrowLeft',
+    keyCode: 37,
   });
-  expect(onChange).not.toHaveBeenCalledWith(11);
+  expect(onChange).toHaveBeenCalledWith(9);
+});
+
+test('an increase key at the max bound never emits a value above max', () => {
+  const { onChange } = setup({ value: 10 });
+  const slider = screen.getByRole('slider');
+  fireEvent.keyDown(slider, { key: 'ArrowLeft', keyCode: 37 });
+  expect(onChange).toHaveBeenCalledTimes(1);
+  onChange.mockClear();
+
+  fireEvent.keyDown(slider, { key: 'ArrowRight', keyCode: 39 });
+
+  expect(onChange.mock.calls.flat()).toEqual(expect.not.arrayContaining([11]));
+  expect(slider).toHaveAttribute('aria-valuemax', '10');
 });

@@ -37,11 +37,25 @@ const value: ZoomConfigs = {
   },
 };
 
+// Pixel space is an invertible transform of axis space so a drag handler that
+// forwards the wrong coordinate, or skips the conversion, yields a different
+// size than the one dragged to.
+const PIXEL_OFFSET = 10;
+const PIXEL_SCALE = 2;
+const toPixel = (value: number) => value * PIXEL_SCALE + PIXEL_OFFSET;
+const fromPixel = (pixel: number) => (pixel - PIXEL_OFFSET) / PIXEL_SCALE;
+
 const setup = () => {
   const chart = {
     setOption: jest.fn(),
-    convertToPixel: jest.fn(() => [50, 60]),
-    convertFromPixel: jest.fn(() => [77.4, 1]),
+    convertToPixel: jest.fn((_finder: string, [x, y]: number[]) => [
+      toPixel(x),
+      y * 3,
+    ]),
+    convertFromPixel: jest.fn((_finder: string, [x, y]: number[]) => [
+      fromPixel(x),
+      y / 3,
+    ]),
   };
   (init as jest.Mock).mockReturnValue(chart);
   return chart;
@@ -82,7 +96,7 @@ test('adds a width and a height drag handle for every zoom level', () => {
   expect(graphicCall?.[0].graphic).toHaveLength(4);
 });
 
-test('reports new sizes through onChange after dragging a width handle', () => {
+test('reports the dragged width through onChange', () => {
   const chart = setup();
   const onChange = jest.fn();
   render(
@@ -92,21 +106,23 @@ test('reports new sizes through onChange after dragging a width handle', () => {
     ([option]) => option.graphic,
   )[0];
 
-  graphic[0].ondrag.call({ x: 77, y: 0 });
+  // Dragging the first width handle to pixel 90 lands on size 40.
+  graphic[0].ondrag.call({ x: toPixel(40), y: 0 });
   expect(onChange).not.toHaveBeenCalled();
   act(() => {
     jest.advanceTimersByTime(250);
   });
 
+  expect(chart.convertFromPixel).toHaveBeenCalledWith('grid', [toPixel(40), 0]);
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange.mock.calls[0][0].values).toEqual({
-    0: { width: 77, height: 20 },
+    0: { width: 40, height: 20 },
     1: { width: 11, height: 21 },
   });
   expect(onChange.mock.calls[0][0].type).toBe('FIXED');
 });
 
-test('reports new sizes through onChange after dragging a height handle', () => {
+test('reports the dragged height through onChange', () => {
   const chart = setup();
   const onChange = jest.fn();
   render(
@@ -116,13 +132,47 @@ test('reports new sizes through onChange after dragging a height handle', () => 
     ([option]) => option.graphic,
   )[0];
 
-  graphic[3].ondrag.call({ x: 77, y: 0 });
+  graphic[3].ondrag.call({ x: toPixel(60), y: 0 });
   act(() => {
     jest.advanceTimersByTime(250);
   });
 
   expect(onChange.mock.calls[0][0].values[1]).toEqual({
     width: 11,
-    height: 77,
+    height: 60,
   });
+});
+
+test('places each drag handle at the pixel position of its bar end', () => {
+  const chart = setup();
+  render(<ZoomConfigsChart name="zoomlevels" value={value} />);
+  const [{ graphic }] = chart.setOption.mock.calls.filter(
+    ([option]) => option.graphic,
+  )[0];
+
+  // Handles are ordered width then height per zoom level.
+  expect(graphic.map((handle: { x: number }) => handle.x)).toEqual([
+    toPixel(10),
+    toPixel(20),
+    toPixel(11),
+    toPixel(21),
+  ]);
+});
+
+test('clamps a width dragged left of the axis to zero', () => {
+  const chart = setup();
+  const onChange = jest.fn();
+  render(
+    <ZoomConfigsChart name="zoomlevels" value={value} onChange={onChange} />,
+  );
+  const [{ graphic }] = chart.setOption.mock.calls.filter(
+    ([option]) => option.graphic,
+  )[0];
+
+  graphic[0].ondrag.call({ x: 0, y: 0 });
+  act(() => {
+    jest.advanceTimersByTime(250);
+  });
+
+  expect(onChange.mock.calls[0][0].values[0].width).toBe(0);
 });

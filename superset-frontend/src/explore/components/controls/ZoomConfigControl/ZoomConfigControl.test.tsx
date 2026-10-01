@@ -87,6 +87,10 @@ test('switching the shape emits a config of that type built from the base values
     slope: 2,
     zoom: 5,
   });
+  // Linear sizes grow by `slope` per zoom level, keeping the aspect ratio.
+  expect(emitted.values[5]).toEqual({ width: 40, height: 20 });
+  expect(emitted.values[6]).toEqual({ width: 42, height: 21 });
+  expect(emitted.values[4]).toEqual({ width: 38, height: 19 });
 });
 
 test('does not emit when the shape changes without a value', () => {

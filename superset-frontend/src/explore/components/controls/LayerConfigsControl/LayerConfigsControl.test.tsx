@@ -120,8 +120,11 @@ test('editing a layer prefills the form and replaces the layer in place', async 
   expect(saved).toHaveLength(2);
   expect(saved[0].title).toBe('Roads');
   expect(saved[1]).toMatchObject({
+    type: 'WMS',
+    version: '1.3.0',
     title: 'Lakes',
     url: 'https://b.example.com',
+    layersParam: 'roads',
   });
 });
 
