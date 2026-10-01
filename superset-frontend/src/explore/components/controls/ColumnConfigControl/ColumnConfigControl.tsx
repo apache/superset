@@ -23,6 +23,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
+  normalizeColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
@@ -82,6 +83,10 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+  const normalizedValue = useMemo(
+    () => normalizeColumnConfigKeys(value, colnames),
+    [colnames, value],
+  );
 
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
@@ -89,14 +94,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       configs[col] = {
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
-        config: value?.[col] || {},
+        config: normalizedValue[col] || {},
         isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
         isTimeComparisonColumn:
           columnsPropsObject?.timeComparisonColumnMap?.[col] ?? false,
       };
     });
     return configs;
-  }, [value, colnames, coltypes, columnsPropsObject?.childColumnMap]);
+  }, [colnames, coltypes, columnsPropsObject?.childColumnMap, normalizedValue]);
 
   const [showAllColumns, setShowAllColumns] = useState(false);
 
@@ -104,13 +109,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
 
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
-      // Only keep configs for known columns
-      const validConfigs: Record<string, T> =
-        colnames && value
-          ? Object.fromEntries(
-              Object.entries(value).filter(([key]) => colnames.includes(key)),
-            )
-          : { ...value };
+      const colnamesSet = colnames ? new Set(colnames) : undefined;
+      const validConfigs = colnamesSet
+        ? Object.fromEntries(
+            Object.entries(normalizedValue).filter(([key]) =>
+              colnamesSet.has(key),
+            ),
+          )
+        : normalizedValue;
       onChange({
         ...validConfigs,
         [col]: config,

@@ -81,7 +81,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange?: () => void;
-  renderGroupingHeaders?: () => JSX.Element;
+  resetColumnOrder?: boolean;
+  renderGroupingHeaders?: () => ReactNode;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
@@ -161,6 +162,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  resetColumnOrder = false,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
   handleSortByChange,
@@ -300,6 +302,13 @@ export default typedMemo(function DataTable<D extends object>({
     },
     ...tableHooks,
   );
+
+  const columnOrderKey = columnNames.join('\0');
+  useEffect(() => {
+    if (resetColumnOrder) {
+      setColumnOrder(columnOrderKey ? columnOrderKey.split('\0') : []);
+    }
+  }, [columnOrderKey, resetColumnOrder, setColumnOrder]);
 
   const rowSignature = useMemo(
     // sort the rows by id to ensure the total is not recalculated when the rows are only reordered

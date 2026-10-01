@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { validateNumber } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   ControlFormItemSpec,
   D3_FORMAT_DOCS,
@@ -104,7 +105,7 @@ const horizontalAlign: ControlFormItemSpec<'RadioButtonControl'> & {
   controlType: 'RadioButtonControl',
   label: t('Text align'),
   description: t('Horizontal alignment'),
-  width: 130,
+  width: supersetTheme.sizeUnit * 42,
   debounceDelay: 50,
   defaultValue: 'left',
   options: [
