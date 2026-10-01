@@ -33,6 +33,19 @@ affects `get_chart_data`, `get_dashboard_data`, `query_dataset`, `get_table`, an
 `execute_sql`. Clients requiring numeric arithmetic should parse these strings
 with a decimal-aware type. Non-finite Decimal values remain JSON `null`.
 
+### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
+
+`DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.
+The Doris engine spec's `default_driver` is `mysqldb` (the driver pydoris
+registers), so a deployment that hides Doris with `{"pydoris": {"pydoris"}}`
+sees it listed again; change the entry to `{"pydoris": {"mysqldb"}}`.
+
+The Doris connection form's SSL switch sets `ssl_mode=VERIFY_CA`. With MariaDB
+Connector/C this also verifies the server hostname, so the switch needs
+`ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
+host. A Doris FE on its default self-signed certificate fails to connect once
+the switch is on.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
@@ -375,6 +388,24 @@ requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
+
+### Legacy FAB password reset pages are removed
+
+The Flask-AppBuilder server-rendered password reset pages at
+`/resetpassword/form` (admin reset of another account) and
+`/resetmypassword/form` (self-service reset) are no longer registered; both
+routes answer 404, and the "Reset Password" and "Reset my password" buttons on
+the legacy FAB user pages that led to them are gone. `superset init` no longer
+assigns their permissions (`can this form get/post on ResetPasswordView` and
+`ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
+`UserDBModelView`) to any role. Every flow they served lives in the SPA:
+administrators reset a user's password from the "New password" fields in the
+Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
+own from the "Reset my password" modal on their profile page (`PUT
+/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
+change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
+instead of the removed form. Deployments that link to either legacy route should
+point at `/user_info/` or the Users list instead.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
