@@ -20,6 +20,7 @@ import { render, waitFor, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { ToastType } from 'src/components/MessageToasts/types';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsLoader from './ExtensionsLoader';
 
@@ -49,12 +50,17 @@ const originalInitializeExtensions =
 
 // Shared by the toast-assertion tests below so the store's message-toast
 // shape and text-matching logic only need to be kept in sync in one place.
-const getToastTexts = (store: ReturnType<typeof createStore>): string[] => {
+const getToasts = (
+  store: ReturnType<typeof createStore>,
+): { text: string; toastType: ToastType }[] => {
   const { messageToasts } = store.getState() as unknown as {
-    messageToasts: { text: string }[];
+    messageToasts: { text: string; toastType: ToastType }[];
   };
-  return messageToasts.map(({ text }) => text);
+  return messageToasts;
 };
+
+const getToastTexts = (store: ReturnType<typeof createStore>): string[] =>
+  getToasts(store).map(({ text }) => text);
 
 // Clean up global state before each test
 beforeEach(() => {
@@ -293,11 +299,11 @@ test('surfaces a warning toast naming the extensions that failed to initialize',
   );
 
   await waitFor(() => {
-    expect(
-      getToastTexts(store).some(text =>
-        /Some extensions failed to load: Broken Extension/.test(text),
-      ),
-    ).toBe(true);
+    const toast = getToasts(store).find(({ text }) =>
+      /Some extensions failed to load: Broken Extension/.test(text),
+    );
+    expect(toast).toBeDefined();
+    expect(toast?.toastType).toBe(ToastType.Warning);
   });
 });
 
@@ -331,9 +337,11 @@ test('renders children and surfaces a warning toast when init fails', async () =
   // The failure must reach the user as a warning toast rather than being
   // swallowed silently.
   await waitFor(() => {
-    expect(
-      getToastTexts(store).some(text => /Extensions failed to load/.test(text)),
-    ).toBe(true);
+    const toast = getToasts(store).find(({ text }) =>
+      /Extensions failed to load/.test(text),
+    );
+    expect(toast).toBeDefined();
+    expect(toast?.toastType).toBe(ToastType.Warning);
   });
 });
 
