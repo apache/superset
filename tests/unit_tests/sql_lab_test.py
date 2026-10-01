@@ -80,7 +80,7 @@ def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
         result_set, BaseEngineSpec()
     )
     assert isinstance(data, list)
-    assert [row["value"] for row in data] == [None, None, None, None, finite]
+    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
 
     payload = {
         "data": data,

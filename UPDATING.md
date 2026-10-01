@@ -126,6 +126,26 @@ get the same handling. With MariaDB Connector/Python
 ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
 StarRocks keep their existing SSL handling.
 
+### SQL Lab decimal results use exact strings
+
+SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
+of JSON numbers, preserving precision and trailing zeros in the results grid
+and exports. The strings use fixed-point notation, and non-finite `NaN` and
+`Infinity` decimals are returned as `null`. Numeric sorting still compares
+their exact values. API consumers performing arithmetic should parse these
+strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
+extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
+carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
+`AVG` or `ROUND` results), so adding them with `+` concatenates instead of
+summing. The `sqleditor.extension.resultTable` override, which replaces
+`FilterableTable` in both SQL Lab results and table previews, also receives
+string rows but not the built-in exact-decimal comparator; extensions must
+implement their own decimal sorting. Chart and dataset queries also use fixed-point strings for Decimal
+columns that fall back to string conversion (for example, Decimals mixed with
+floats), and non-finite Decimals in those columns become null. Other chart
+result serialization and chart number formatting are unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
+
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
