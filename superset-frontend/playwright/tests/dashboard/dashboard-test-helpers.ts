@@ -716,3 +716,54 @@ export async function createCacheColdVirtualDataset(
 
   return { datasetId, uniqueSuffix };
 }
+
+/** Column {@link createQueryClockDataset} stamps every query with. */
+export const QUERIED_AT_COLUMN = 'queried_at_ms';
+
+/**
+ * A chart showing the latest {@link QUERIED_AT_COLUMN} stamp.
+ *
+ * `,d` rather than the default SMART_NUMBER, which rounds two stamps seconds
+ * apart to the same "1.76T".
+ */
+export const BIG_NUMBER_QUERY_CLOCK_SPEC: DashboardChartSpec = {
+  viz_type: 'big_number_total',
+  params: {
+    metric: {
+      expressionType: 'SIMPLE',
+      column: { column_name: QUERIED_AT_COLUMN },
+      aggregate: 'MAX',
+      label: `MAX(${QUERIED_AT_COLUMN})`,
+    },
+    y_axis_format: ',d',
+  },
+};
+
+/**
+ * {@link createCacheColdVirtualDataset} over `birth_names`, with every query
+ * also stamped with the server clock.
+ *
+ * The example data is static, so a correct re-execution reproduces the same
+ * numbers -- which means "the value is what it was" cannot tell a genuine
+ * re-render from a DOM that never updated. Pair this with
+ * {@link BIG_NUMBER_QUERY_CLOCK_SPEC} and {@link readQueryClock} for a value
+ * that *must* move whenever the query really ran again.
+ */
+export async function createQueryClockDataset(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+  options: { namePrefix: string },
+): Promise<{ datasetId: number; uniqueSuffix: string }> {
+  return createCacheColdVirtualDataset(page, testAssets, testInfo, {
+    namePrefix: options.namePrefix,
+    select:
+      `SELECT name, CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000 AS BIGINT) ` +
+      `AS ${QUERIED_AT_COLUMN} FROM birth_names`,
+  });
+}
+
+/** The number rendered by a {@link BIG_NUMBER_QUERY_CLOCK_SPEC} chart. */
+export async function readQueryClock(locator: Locator): Promise<number> {
+  return Number((await locator.textContent())?.replace(/,/g, ''));
+}

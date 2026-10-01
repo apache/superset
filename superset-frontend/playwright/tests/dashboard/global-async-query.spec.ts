@@ -38,9 +38,12 @@ import {
   ADHOC_COUNT_NAME_METRIC,
   BIG_NUMBER_ADHOC_COUNT_SPEC,
   BIG_NUMBER_COUNT_SPEC,
+  BIG_NUMBER_QUERY_CLOCK_SPEC,
   bigNumberValueLocator,
   createCacheColdVirtualDataset,
   createDashboardWithCharts,
+  createQueryClockDataset,
+  readQueryClock,
   setupDashboardWithBigNumberCharts,
   setupDashboardWithSelectFilter,
   trackGaqSignals,
@@ -59,20 +62,31 @@ testWithAssets.beforeEach(async ({ page }) => {
 testWithAssets(
   'forced dashboard refresh goes through the GAQ 202 -> poll -> done cycle',
   async ({ page, testAssets }) => {
+    // The chart renders the server clock rather than a count: example data is
+    // static, so "still shows a number" after a refresh holds whether the DOM
+    // re-rendered or never changed at all. A stamp that must advance does not.
+    const { datasetId } = await createQueryClockDataset(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      { namePrefix: 'gaq_tc1_cold_cache' },
+    );
     const { dashboard, charts, valueLocators } =
       await setupDashboardWithBigNumberCharts(
         page,
         testAssets,
         testWithAssets.info(),
         {
-          datasetName: 'birth_names',
+          datasetId,
           chartNamePrefix: 'gaq_tc1_cold_cache',
-          chartSpecs: [BIG_NUMBER_COUNT_SPEC],
+          chartSpecs: [BIG_NUMBER_QUERY_CLOCK_SPEC],
         },
       );
     const [chart] = charts;
     const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+    const clockBefore = await readQueryClock(value);
+    expect(clockBefore, 'the chart should render a stamp').toBeGreaterThan(0);
 
     // Track only after the initial load settles, so these signals describe the
     // forced refresh rather than the load that preceded it.
@@ -82,8 +96,6 @@ testWithAssets(
     // suite already cached, so force the refresh: forced requests take the
     // async path regardless of cache state.
     await dashboard.forceRefresh();
-    await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
-    await expect(value).toHaveText(/\d/);
 
     await expect(() => {
       expect(
@@ -99,6 +111,16 @@ testWithAssets(
         'the client should re-issue chart-data once the tasks finish and be served 200 from the warmed cache',
       ).toEqual([202, 200]);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+
+    // Render-level proof, which the signals above cannot give: the refresh
+    // re-executed the query, so the stamp on screen has to be newer.
+    await expect
+      .poll(() => readQueryClock(value), {
+        message:
+          'the forced refresh should repaint the chart with its new result',
+        timeout: TIMEOUT.CHART_RENDER,
+      })
+      .toBeGreaterThan(clockBefore);
   },
 );
 
@@ -187,6 +209,8 @@ testWithAssets(
     const [chart] = charts;
     const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+    await expect(value).toHaveText(/\d/);
+    const cachedText = await value.textContent();
 
     const signals = trackGaqSignals(page);
 
@@ -195,7 +219,10 @@ testWithAssets(
     await page.reload();
     await dashboard.waitForLoad();
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
-    await expect(value).toHaveText(/\d/);
+    // The exact value, not just "a digit": a cache hit must reproduce the
+    // cached result, and the reload rebuilds the DOM so this cannot pass on
+    // what was already on screen.
+    await expect(value).toHaveText(cachedText ?? '');
 
     await expect(() => {
       expect(
@@ -228,20 +255,15 @@ testWithAssets(
       'Barbara',
     ];
 
-    // `birth_names` is static, so a correct refresh reproduces every count
-    // exactly -- which means "same number as before" cannot tell a genuine
-    // re-render from a DOM that never updated. The dataset therefore also
-    // stamps each query with the server clock, and one extra chart shows the
-    // latest stamp: a value that *must* move on a correct refresh.
-    const QUERIED_AT = 'queried_at_ms';
-    const { datasetId } = await createCacheColdVirtualDataset(
+    // Static example data means a correct refresh reproduces every count
+    // exactly, so "same number as before" cannot tell a genuine re-render from
+    // a DOM that never updated. One extra chart shows the query clock, which
+    // must move on a correct refresh.
+    const { datasetId } = await createQueryClockDataset(
       page,
       testAssets,
       testWithAssets.info(),
-      {
-        namePrefix: 'gaq_tc5_busy_dashboard',
-        select: `SELECT name, CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000 AS BIGINT) AS ${QUERIED_AT} FROM birth_names`,
-      },
+      { namePrefix: 'gaq_tc5_busy_dashboard' },
     );
 
     const { dashboard, charts, valueLocators } =
@@ -268,20 +290,7 @@ testWithAssets(
                 ],
               },
             })),
-            {
-              viz_type: 'big_number_total',
-              params: {
-                metric: {
-                  expressionType: 'SIMPLE',
-                  column: { column_name: QUERIED_AT },
-                  aggregate: 'MAX',
-                  label: `MAX(${QUERIED_AT})`,
-                },
-                // Plain digits: the default SMART_NUMBER would round two stamps
-                // seconds apart to the same "1.76T".
-                y_axis_format: ',d',
-              },
-            },
+            BIG_NUMBER_QUERY_CLOCK_SPEC,
           ],
           // 9 charts at the default width (4) would exceed the 12-column grid.
           chartWidth: 1,
@@ -291,8 +300,7 @@ testWithAssets(
     const nameCharts = charts.slice(0, NAMES.length);
     const nameValues = valueLocators.slice(0, NAMES.length);
     const clockValue = valueLocators[NAMES.length];
-    const readClock = async () =>
-      Number((await clockValue.textContent())?.replace(/,/g, ''));
+    const readClock = () => readQueryClock(clockValue);
 
     await Promise.all(
       valueLocators.map(locator =>

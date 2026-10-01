@@ -416,6 +416,8 @@ testWithAssets(
       );
     const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+    await expect(value).toHaveText(/\d/);
+    const valueBeforeLeaving = await value.textContent();
 
     // forceRefresh() only awaits the menu click, so wait for the request to
     // actually ship -- otherwise navigation wins the race and nothing was ever
@@ -438,7 +440,9 @@ testWithAssets(
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad();
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
-    await expect(value).toHaveText(/\d/);
+    // The value it had before, not merely "a digit": returning must re-fetch
+    // the same result rather than leave a stuck spinner or a different number.
+    await expect(value).toHaveText(valueBeforeLeaving ?? '');
 
     const unexpectedConsoleErrors = consoleErrors.filter(
       text => !BENIGN_CONSOLE_NOISE.some(pattern => pattern.test(text)),
