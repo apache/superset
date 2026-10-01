@@ -112,6 +112,13 @@ class PinotEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            + "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')"
+        )
+
+    @classmethod
     def column_datatype_to_string(
         cls, sqla_column_type: TypeEngine, dialect: Dialect
     ) -> str:

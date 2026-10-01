@@ -24,6 +24,197 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
+
+`DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.
+The Doris engine spec's `default_driver` is `mysqldb` (the driver pydoris
+registers), so a deployment that hides Doris with `{"pydoris": {"pydoris"}}`
+sees it listed again; change the entry to `{"pydoris": {"mysqldb"}}`.
+
+The Doris connection form's SSL switch sets `ssl_mode=VERIFY_CA`. With MariaDB
+Connector/C this also verifies the server hostname, so the switch needs
+`ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
+host. A Doris FE on its default self-signed certificate fails to connect once
+the switch is on.
+
+### Empty MCP chart previews
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews. Clients
+should handle empty specifications rather than relying on that error.
+
+### MCP chart tools advertise a compact chart config schema
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` no longer inline every chart type's JSON Schema in
+their tool input schemas. Their `config` parameter is advertised as an object
+whose `chart_type` is one of the supported chart types. The fields and
+examples for each chart type come from `get_chart_type_schema(chart_type)`,
+which returns the same per-type schema as before.
+
+Server-side validation is unchanged: requests are still validated against the
+complete chart configuration model and invalid fields are rejected with the
+same errors. MCP clients that built chart configs only from the tool input
+schema should call `get_chart_type_schema` first.
+
+### DynamoDB timestamp string format
+
+DynamoDB time-filter bounds use ISO 8601 with a `T` separator, preserving
+fractional seconds (for example, `2019-01-02T04:00:00.500000`).
+Tables storing space-separated timestamps such as `str(datetime)` must normalize
+their stored strings to the same ISO format before using these time filters.
+Otherwise both sub-day and whole-day ranges can return incorrect rows: a
+January 2–3 range can exclude January 2 and include January 3 instead.
+boto3 does not serialize Python datetime objects; applications choose the string
+format. Use a consistent timezone and precision for stored strings and bounds.
+
+- The `/register/` self-registration page and the login page's "Register" button
+  are only served for the auth types that support self-registration
+  (`AUTH_DB`, and `AUTH_OAUTH` for the page), and only when
+  `AUTH_USER_REGISTRATION` is enabled. LDAP, SAML and `AUTH_REMOTE_USER`
+  deployments have to set `AUTH_USER_REGISTRATION = True` so Flask-AppBuilder
+  provisions users on first login, which used to publish a public registration
+  form that Flask-AppBuilder has no handler for (submitting it returned a 404).
+  First-login provisioning is unchanged. This also closes
+  `GET /register/activation/<hash>`, which previously stayed reachable and
+  able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
+  requires the same gate as `/register/`.
+
+### Doris SSL requests require TLS
+
+The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and
+`ssl=1` URLs also require TLS and follow the mysqlclient rules below: `REQUIRED`
+is kept with Oracle libmysqlclient 5.7/8.x/9.x and upgraded to `VERIFY_CA` with
+MariaDB Connector/C or an unrecognized client, which can otherwise fall back to
+cleartext. Supply the trusted `ssl_ca` (or `connect_args.ssl.ca`) and a
+certificate valid for the connection hostname. Conflicting advanced settings
+fail closed. This shares MySQL's TLS normalization without changing Doris
+catalog/schema handling.
+
+### MySQL SSL requests require TLS
+
+The SSL toggle (or ssl=1 in the URI) requires TLS, and so does a saved
+ssl_mode of REQUIRED, VERIFY_CA or VERIFY_IDENTITY without ssl=1. With
+mysqlclient, Oracle libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB
+Connector/C and unrecognized client versions use VERIFY_CA to prevent cleartext
+fallback. Explicit VERIFY_CA and VERIFY_IDENTITY are retained. Contradictory
+options such as ssl_mode=DISABLED or ssl_disabled=True fail rather than
+cancelling the SSL request.
+
+Existing saved connections with the toggle on are affected at upgrade, without a
+feature flag. Verification can fail for self-signed/default server certificates
+or missing trust roots. MySQL does not use the connection form's Root
+certificate field (server_cert). Set ssl_ca to a trusted CA file path available
+on every web and worker node, for example in the URI
+(?ssl=1&ssl_ca=/path/to/ca.pem).
+
+Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL requires
+version 1.2 or newer; use individual ssl_ca, ssl_cert and ssl_key options
+instead of a nested ssl dictionary with the toggle. Options that disable TLS or
+required verification are rejected.
+
+Standard Aurora MySQL connections intentionally follow the same rules, including
+IAM connections. For certificate verification, install the Amazon RDS CA bundle
+on every web and worker node and set ssl_ca to that file. IAM authentication
+does not supply a CA. The Aurora Data API uses HTTPS and needs no MySQL TLS
+arguments.
+
+SSH tunnels rewrite the connection host to the local bind address (typically
+127.0.0.1). MariaDB Connector/C also checks hostname identity with VERIFY_CA, so
+a certificate for the remote database hostname will fail. For SSH-only
+transport, turn off the SSL toggle and remove ssl=1; this removes the TLS
+guarantee on the SSH endpoint-to-database leg. If end-to-end TLS is required,
+use a driver/native TLS configuration compatible with the tunnel and validate it
+separately.
+
+Operators using native TLS settings can turn off the toggle, remove ssl=1 and
+configure extra.engine_params.connect_args (for example a driver-supported
+native ssl dictionary). Superset passes those settings through without enforcing
+TLS; ensure the chosen driver configuration does not silently fall back to
+cleartext.
+
+Connections using the separate MariaDB engine (mariadb:// URIs and its drivers)
+get the same handling. With MariaDB Connector/Python
+(mariadb+mariadbconnector://), the toggle keeps ssl=True and enables
+ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
+StarRocks keep their existing SSL handling.
+
+### SQL Lab decimal results use exact strings
+
+SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
+of JSON numbers, preserving precision and trailing zeros in the results grid
+and exports. The strings use fixed-point notation, and non-finite `NaN` and
+`Infinity` decimals are returned as `null`. Numeric sorting still compares
+their exact values. API consumers performing arithmetic should parse these
+strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
+extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
+carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
+`AVG` or `ROUND` results), so adding them with `+` concatenates instead of
+summing. The `sqleditor.extension.resultTable` override, which replaces
+`FilterableTable` in both SQL Lab results and table previews, also receives
+string rows but not the built-in exact-decimal comparator; extensions must
+implement their own decimal sorting. Chart and dataset queries also use fixed-point strings for Decimal
+columns that fall back to string conversion (for example, Decimals mixed with
+floats), and non-finite Decimals in those columns become null. Other chart
+result serialization and chart number formatting are unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
+
+### Version history retention setting
+
+Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
+environment variable. `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` shipped in 7.0
+and remains a deprecated compatibility alias when the new setting is absent.
+Existing positive windows are preserved; existing zero or negative values still
+disable pruning. Migrate those deployments to `VERSION_HISTORY_RETENTION_DAYS=0`.
+Set the new environment variable to take precedence over a legacy value. In a
+custom config that star-imports defaults, an inherited new 30-day value cannot
+be distinguished from an explicit 30-day override; when the old key is also
+present, the safer disable or longer window is retained. Remove the old key
+when setting the new value in such a config. **Do not copy
+an old `-1` value to the new key:** the new `-1` makes history immediately
+eligible on the next scheduled run instead of disabling pruning. Startup logs
+a warning when the new `-1` is active. The default remains 30 days when neither
+key is set; zero disables pruning.
+For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
+eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
+future cutoff). Live/current data and normal purge guards remain protected.
+An absent environment value retains the 30-day default. Invalid or oversized
+supplied environment values defer scheduled cleanup with 0 for both settings.
+Host policy failures also defer. Malformed or oversized standalone soft-delete
+runtime config and stored CLI windows likewise defer purge with 0 instead of
+falling back to a shorter retention window, and a malformed version-history
+value in the live `app.config` defers the scheduled prune with 0 and a warning
+rather than failing the run. Only absent values use the fallback.
+
+### Version history API access follows `VERSION_HISTORY`
+
+`VERSION_HISTORY` controls the UI and all chart, dashboard, and dataset
+version-list, version-snapshot, activity, and version-restore endpoints.
+With the flag disabled, callers who pass the existing route permissions receive
+404 instead of being able to use those APIs directly. When enabled, existing
+route permissions and object-level editorship checks still apply.
+
+The default remains enabled. API consumers that disabled the flag to hide only
+the panel must enable it to retain history API access. Capture and retention
+remain independently configured; ordinary entity CRUD and soft-delete recovery
+are unaffected. With only `ENABLE_VERSIONING_CAPTURE` disabled, existing history
+is readable if `VERSION_HISTORY` is enabled, but version restore returns 404.
+
+An optional `VERSIONING_CAPTURE_PREDICATE(session)` lets hosts restrict capture
+at save time without changing process-global listeners. `None` preserves existing
+behavior. A false result skips history capture but not the live ORM save, and
+refuses version restore with 404. Hosts must supply tenant context for request,
+import, and background writes and keep the decision stable within a transaction;
+version reads (ETag and version info on the chart, dashboard and dataset APIs)
+consult the predicate with the same request session as the save they accompany.
+Existing history and independent retention are unchanged; skipped edits are not
+reconstructed. The first enabled edit of an entity without history may create
+the existing baseline of its then-current state. Expected service failures must
+be handled by the host predicate; programming/database errors are not suppressed.
+Parent and child snapshots are rebuilt in the save transaction after a captured
+edit. If that rebuild fails, the save fails and must be rolled back, so an
+incomplete snapshot is not exposed as restorable history.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such
@@ -150,6 +341,15 @@ upgrading. See the two migrations' docstrings (`superset/migrations/versions/
 `..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
 per-permission mapping and reasoning.
 
+- Snowflake stage file-management statements (`PUT`, `GET`, `REMOVE` and its
+  `RM` alias) are rejected in user-submitted SQL (SQL Lab, the cost-estimate
+  path and alert queries), regardless of the database's `allow_dml` setting.
+  `PUT`/`GET` perform file I/O on the host running the
+  query, and `REMOVE`/`RM` delete files within a stage; none of them read or
+  write table data, so `allow_dml` does not govern them. Deployments that ran
+  these through SQL Lab should manage stage files with Snowflake's own clients
+  instead. `LIST`/`LS`, which only enumerate staged files, are unaffected.
+
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
 Superset has always *intended* to default the metadata-database isolation
@@ -179,6 +379,24 @@ requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
+
+### Legacy FAB password reset pages are removed
+
+The Flask-AppBuilder server-rendered password reset pages at
+`/resetpassword/form` (admin reset of another account) and
+`/resetmypassword/form` (self-service reset) are no longer registered; both
+routes answer 404, and the "Reset Password" and "Reset my password" buttons on
+the legacy FAB user pages that led to them are gone. `superset init` no longer
+assigns their permissions (`can this form get/post on ResetPasswordView` and
+`ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
+`UserDBModelView`) to any role. Every flow they served lives in the SPA:
+administrators reset a user's password from the "New password" fields in the
+Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
+own from the "Reset my password" modal on their profile page (`PUT
+/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
+change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
+instead of the removed form. Deployments that link to either legacy route should
+point at `/user_info/` or the Users list instead.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
@@ -622,6 +840,14 @@ theme editor picker.
 - The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
+- The `d1` extra (`pip install apache-superset[d1]`) installs only
+  `sqlalchemy-d1`, 0.2.0 or later. That release supports SQLAlchemy 2 and is
+  built on `sqlalchemy-cloudflare-d1`. The `superset-engine-d1` and `dbapi-d1`
+  packages are retired: the engine spec ships with Superset, and their only
+  releases do not install on Python 3.12 or later. Existing environments
+  should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
+  `d1://` connection strings are unchanged. File upload is now off for D1:
+  D1 has no transactions, so a failed upload could leave a half-written table.
 
 ### Native Value filter "Select all" always targets the whole column
 
@@ -732,8 +958,8 @@ string-keyed `Row` access, and `MetaData(bind=)` are removed outright.
 SQLAlchemy-2.0-only releases**, either because that bump is a separate
 follow-up ([#42891](https://github.com/apache/superset/pull/42891): dremio,
 exasol, firebird, redshift, risingwave) or because the upstream dialect
-package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, d1,
-kusto, solr; ocient's 2.0 compatibility is unverified). Installing one of
+package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, kusto,
+solr; ocient's 2.0 compatibility is unverified). Installing one of
 these extras continues to pull a SQLAlchemy-1.4-line version of that
 dialect; each package's constraint in `pyproject.toml` documents why.
 
@@ -798,7 +1024,7 @@ misrepresents the entity as unchanged.
 - **Storage growth.** Capture writes shadow rows per save, so the metadata
   database grows with edit volume. The `version_history.prune_old_versions`
   beat task removes rows whose transaction is older than
-  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30).
+  `VERSION_HISTORY_RETENTION_DAYS` (default 30).
 - **Check a replaced `CELERY_CONFIG`.** Carry both the
   `superset.tasks.version_history_retention` import and the
   `version_history.prune_old_versions` beat entry; see
@@ -812,10 +1038,10 @@ misrepresents the entity as unchanged.
 kill-switch — not removed with the rollout toggles. Setting it to a falsy value
 stops capture within a restart, without a revert-and-redeploy. Unlike the
 soft-delete toggle, turning it off is a clean stop: existing version rows remain
-readable and no entity state is altered. Restore is unavailable (404) while
-capture is off. A full rollback also sets
-`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
-with the panel left on shows an empty or stale history.
+readable if `VERSION_HISTORY` is enabled and no entity state is altered. Restore
+is unavailable (404) while capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to disable the panel and history
+APIs — capture off with the panel left on shows an empty or stale history.
 
 ### Scheduled report execution now enforces one application deadline
 
@@ -1329,7 +1555,7 @@ ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 
 ### Entity version-history infrastructure
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only if `VERSION_HISTORY` is enabled. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 
@@ -1358,13 +1584,24 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 | Key | Default | Purpose |
 |---|---|---|
-| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+| `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. `0` disables pruning; `-1` makes historical rows eligible on the next scheduled run. Other negative values are invalid and skip pruning. |
 
 The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
-Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+`SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
+-1 through 36500, defaulting to 30 when absent. Invalid or oversized supplied
+values defer scheduled purge with 0. An optional
+`SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
+stored CLI value and config seed. It must return a nonboolean integer in that
+range; invalid results or callback failure defer scheduled purge with 0, without
+falling back to stored values. The client recovery-window display and CLI
+`show-window` use this same policy. Without a callback, stored CLI values retain
+their precedence over the config seed. This callback does not gate explicit
+force-purge or provide downgrade grace protection.
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence when no host retention callback is installed). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
 Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
 
