@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, ClassVar
@@ -176,15 +177,27 @@ def _consume_preview_rate_limit(dataset_id: int) -> bool:
     handful of owners with the editor open, becomes sustained load on a
     production cluster. Returns False once the window's budget is spent.
 
-    Counting is `add` then `inc` rather than read-then-write, which buys two
-    things a `get`/`set` pair cannot. It is atomic where it matters -- on Redis
-    those are `SETNX` and `INCR`, so concurrent previews cannot each read the
-    same sub-limit value and all be let through. And the window is genuinely
-    fixed: only `add` sets a lifetime, so the budget expires a minute after the
-    *first* request rather than a minute after the most recent one, which is
-    what the name promises. (`INCR` leaves the TTL alone; a backend whose `inc`
-    is a read-modify-write may restore its own default lifetime instead, which
-    throttles for longer rather than shorter.)
+    Counting is `add` then `inc` rather than read-then-write so it is atomic
+    where it matters: on Redis those are `SETNX` and `INCR`, so concurrent
+    previews cannot each read the same sub-limit value and all be let through.
+
+    The window comes from the *key*, not from the entry's lifetime. Each
+    `PREVIEW_RATE_LIMIT_WINDOW`-second bucket gets its own key, so a counter
+    that outlives its bucket is simply never read again, and the next request
+    starts from zero. Keying it this way is what makes "fixed window" true
+    rather than aspirational, because the TTL alone cannot carry that promise on
+    either supported backend:
+
+    - cachelib's generic `inc` is a read-modify-write whose `set` restamps
+      `CACHE_DEFAULT_TIMEOUT` -- a day, by default. On SimpleCache or
+      FileSystemCache, retrying after the budget was spent kept renewing a
+      day-long lockout.
+    - on Redis `INCR` leaves the TTL alone, but if the key expires between a
+      losing `add` and the `inc`, `INCR` recreates it with *no* TTL at all. That
+      counter never resets, so past the limit the owner was 429'd permanently.
+
+    The entry still carries a lifetime, now twice the window, purely so spent
+    buckets are evicted rather than accumulating.
 
     Both calls go to the cachelib backend rather than the Flask-Caching wrapper
     around it, which proxies `add` but not `inc`.
@@ -194,11 +207,12 @@ def _consume_preview_rate_limit(dataset_id: int) -> bool:
         return True
 
     user_id = get_user_id() or 0
-    key = f"partition_mapping_preview:{user_id}:{dataset_id}"
+    bucket = int(time.time()) // PREVIEW_RATE_LIMIT_WINDOW
+    key = f"partition_mapping_preview:{user_id}:{dataset_id}:{bucket}"
     backend = cache_manager.cache.cache
     try:
-        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW):
-            # First request of a fresh window, and the only one that dates it.
+        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW * 2):
+            # First request in this bucket.
             return True
         used = backend.inc(key)
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
@@ -244,6 +258,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "restore_version": "write",
         "purge": "write",
         "purge_impact": "write",
+        # Preview reads a mapping the caller is entitled to *save*, so it is
+        # authorized the same way the PUT behind it is: ``can_write`` plus
+        # ``raise_for_editorship``. Without this entry a custom role holding
+        # ``can_write`` on Dataset -- enough to store the mapping -- is denied
+        # the preview of it unless an operator grants a second permission.
+        "partition_mapping_preview": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -2206,10 +2226,19 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             429:
-              $ref: '#/components/responses/400'
+              description: Too many preview requests for this dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             500:
               $ref: '#/components/responses/500'
         """

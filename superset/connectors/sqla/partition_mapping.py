@@ -95,6 +95,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
+import numpy as np
+import pandas as pd
 import sqlalchemy as sa
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
@@ -103,7 +105,11 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import LRU_CACHE_MAX_SIZE, TimeGrain
-from superset.exceptions import SupersetParseError
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLStatement
 from superset.utils import json
@@ -604,7 +610,7 @@ def _run_probe(
                 len(distinct),
             )
             return None
-        return [row.iloc[index] for index in range(len(distinct))]
+        return [_to_python_scalar(row.iloc[index]) for index in range(len(distinct))]
     except Exception as ex:  # pylint: disable=broad-except
         logger.warning(
             "Partition transform probe failed; queries will not prune",
@@ -613,6 +619,38 @@ def _run_probe(
         if errors is not None:
             errors.append(str(ex))
         return None
+
+
+def _to_python_scalar(value: Any) -> Any:
+    """
+    A probed value as a type SQLAlchemy can render and bind.
+
+    The probe reads its results out of a pandas frame, so a numeric column
+    arrives as a `numpy.int64` and a temporal one as a `pandas.Timestamp`.
+    SQLAlchemy has no literal renderer for either: `sa.literal(np.int64(...))`
+    infers `NullType` and raises `CompileError`, which is a 500 from the preview
+    endpoint for the canonical epoch transform -- the most ordinary mapping
+    there is.
+
+    Pandas' missing-value sentinels are folded into `None` on the way through.
+    `NaT` is not a `Timestamp` and has no renderer either, and a transform that
+    returns nothing for an input it cannot convert is exactly the NULL case the
+    mirror already admits.
+    """
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        # Not something `isna` can judge (a list, a dict); pass it through and
+        # let the dialect decide.
+        pass
+    if isinstance(value, pd.Timestamp):
+        return value.to_pydatetime()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
 
 
 def _probe_cache_key(
@@ -951,6 +989,38 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
                 else "validation"
             ),
             "error": str(issue.message),
+        }
+
+    # The same subquery, function-denylist and RLS policy every other stored
+    # expression goes through. The save path applies it in
+    # `UpdateDatasetCommand._validate_partition_mapping`, but preview evaluates
+    # a candidate transform that has not been saved, so without this the gate
+    # had a door around it: `build_probe_sql` binds only `:value` and splices
+    # the rest of the transform in as SQL text, so a dataset editor without SQL
+    # Lab could submit `(SELECT secret FROM protected_table LIMIT 1) || :value`
+    # and read the answer back out of `emitted_predicate`.
+    #
+    # Imported here rather than at module scope: `connectors.sqla.models`
+    # imports this module, so the dependency only runs one way at import time.
+    from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel,cyclic-import
+        validate_stored_expression,
+    )
+
+    try:
+        validate_stored_expression(
+            datasource.database,
+            datasource.catalog,
+            datasource.schema,
+            parse_skeleton(cast(str, value_transform)),
+        )
+    except (SupersetSecurityException, QueryClauseValidationException) as ex:
+        return {
+            "valid": False,
+            "error": (
+                ex.error.message
+                if isinstance(ex, SupersetSecurityException)
+                else ex.message
+            ),
         }
 
     mapping = PartitionMapping(
