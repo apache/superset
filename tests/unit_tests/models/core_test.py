@@ -2697,7 +2697,10 @@ def test_get_inspector_does_not_replay_the_callers_block(
     app_context: None,
     mocker: MockerFixture,
 ) -> None:
-    """Inspector errors after login trigger sign-in without replaying metadata work."""
+    """Inspector errors after login trigger sign-in without replaying metadata work.
+
+    Stubbing get_sqla_engine pins the defensive guard, not the real path.
+    """
     engine = mocker.MagicMock()
     database = _login_rejecting_database(mocker, engine)
     mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))

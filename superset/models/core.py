@@ -1306,6 +1306,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         @contextmanager
         def open_inspector() -> Iterator[Inspector]:
             with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+                # Defensive: redundant with get_sqla_engine's own check_for_oauth2.
                 with check_for_oauth2(self):
                     yield sqla.inspect(engine)
 
