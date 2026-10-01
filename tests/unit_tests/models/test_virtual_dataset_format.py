@@ -331,6 +331,7 @@ class TestApplyRlsReturnValue:
 
         statement = MagicMock()
         statement.tables = [mock_table]
+        statement.apply_rls.return_value = True
         result = apply_rls(
             database=database,
             catalog=None,
@@ -338,7 +339,7 @@ class TestApplyRlsReturnValue:
             parsed_statement=statement,
         )
         assert result is True
-        assert "user_id = 42" in statement.format()
+        statement.apply_rls.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

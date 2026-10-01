@@ -2389,7 +2389,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         if method == RLSMethod.AS_PREDICATE_SPLICE:
             self._apply_rls_splice(catalog, schema, predicates)
-            return
+            return any(predicates.values())
 
         parsed_predicates: dict[Table, list[exp.Expression]] = {
             table: [self.parse_predicate(predicate) for predicate in table_predicates]

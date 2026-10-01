@@ -7416,11 +7416,11 @@ def test_rls_subquery_predicates(sql: str, expected: str) -> None:
     statement.apply_rls(
         None,
         None,
-        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        {Table("a"): ["r = 1"], Table("b"): ["r = 1"]},
         RLSMethod.AS_PREDICATE,
         subquery_predicates={
-            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
-            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("a"): ["r = 1", "g = 1"],
+            Table("b"): ["r = 1", "g = 1"],
         },
     )
     assert _compact_sql(statement) == expected
@@ -7434,9 +7434,9 @@ def test_rls_subquery_predicates_as_subquery() -> None:
     statement.apply_rls(
         None,
         None,
-        {Table("a"): [parse_one("r = 1")]},
+        {Table("a"): ["r = 1"]},
         RLSMethod.AS_SUBQUERY,
-        subquery_predicates={Table("a"): [parse_one("r = 1"), parse_one("g = 1")]},
+        subquery_predicates={Table("a"): ["r = 1", "g = 1"]},
     )
     assert _compact_sql(statement) == (
         "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM a WHERE r = 1 AND g = 1) "
@@ -7468,11 +7468,11 @@ def test_rls_subquery_predicates_skip_lateral(sql: str, engine: str) -> None:
     statement.apply_rls(
         None,
         None,
-        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        {Table("a"): ["r = 1"], Table("b"): ["r = 1"]},
         RLSMethod.AS_PREDICATE,
         subquery_predicates={
-            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
-            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("a"): ["r = 1", "g = 1"],
+            Table("b"): ["r = 1", "g = 1"],
         },
     )
     sql = _compact_sql(statement)
@@ -7484,18 +7484,18 @@ def test_rls_subquery_predicates_skip_lateral(sql: str, engine: str) -> None:
     "predicates, subquery_predicates, expected",
     [
         pytest.param({Table("a"): []}, None, False, id="no-rules"),
-        pytest.param({Table("a"): [parse_one("r = 1")]}, None, True, id="rule"),
+        pytest.param({Table("a"): ["r = 1"]}, None, True, id="rule"),
         pytest.param(
             {Table("a"): []},
-            {Table("a"): [parse_one("g = 1")]},
+            {Table("a"): ["g = 1"]},
             False,
             id="subquery-rule-without-subquery",
         ),
     ],
 )
 def test_rls_returns_whether_applied(
-    predicates: dict[Table, list[sqlglot.exp.Expression]],
-    subquery_predicates: dict[Table, list[sqlglot.exp.Expression]] | None,
+    predicates: dict[Table, list[str]],
+    subquery_predicates: dict[Table, list[str]] | None,
     expected: bool,
 ) -> None:
     """
