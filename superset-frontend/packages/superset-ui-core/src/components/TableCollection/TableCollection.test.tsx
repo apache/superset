@@ -398,8 +398,9 @@ test('should only mark the clicked header as sorted when columns have no explici
 
   fireEvent.click(screen.getAllByText('Alpha')[0]);
 
-  expect(alphaHeader?.getAttribute('aria-sort')).not.toBe('none');
-  expect(betaHeader?.getAttribute('aria-sort')).toBe('none');
+  // Ant Design only sets `aria-sort` on the header that is actually sorted.
+  expect(alphaHeader?.getAttribute('aria-sort')).toBe('ascending');
+  expect(betaHeader?.getAttribute('aria-sort')).toBeNull();
 });
 
 test('should render a static Cell node alongside an ordinary accessor value', () => {
