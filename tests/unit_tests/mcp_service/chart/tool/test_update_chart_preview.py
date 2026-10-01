@@ -1580,8 +1580,10 @@ def test_disabled_geographic_preview_requires_existing_same_type(
                 side_effect=lambda config, *args, **kwargs: config,
             )
         )
-        result = update_chart_preview_module.update_chart_preview(
-            request=request, ctx=Mock()
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
         )
     assert result["success"] is (previous_type == "same"), result
     if previous_type != "same":
