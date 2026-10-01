@@ -300,12 +300,16 @@ function TextAreaControl({
                 minLines={effectiveMinLines}
                 maxLines={inModal ? 1000 : maxLines}
                 editorProps={{ $blockScrolling: true }}
-                onLoad={editor => onEditorLoad(editor, inModal)}
+                onLoad={(editor: AceEditorHandle) =>
+                  onEditorLoad(editor, inModal)
+                }
                 defaultValue={initialValue ?? value}
                 readOnly={readOnly}
                 key={name}
                 {...restProps}
-                onChange={val => handleChange(val, inModal)}
+                onChange={(val: string | { target: { value: string } }) =>
+                  handleChange(val, inModal)
+                }
               />
             </div>
           </EditorUnmountGuard>

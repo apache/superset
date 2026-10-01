@@ -178,7 +178,11 @@ describe('TextArea', () => {
     // mounts and is destroyed (destroyOnHidden) in the process; this used
     // to leave the single shared editor ref pointing at that destroyed
     // instance instead of the still-visible inline editor.
-    fireEvent.click(screen.getByRole('button', { name: /edit.*in modal/i }));
+    // ModalTrigger wraps its triggerNode in its own role="button" element,
+    // so a <Button> triggerNode (as used here) yields two nested elements
+    // matching role "button" with the same accessible name; target the
+    // wrapper directly via its data-test id instead.
+    fireEvent.click(screen.getByTestId('span-modal-trigger'));
     await waitFor(() => {
       expect(container.querySelectorAll('.ace_editor')).toHaveLength(2);
     });
