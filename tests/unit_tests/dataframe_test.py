@@ -188,10 +188,11 @@ def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
     ]
     frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
 
-    records = df_to_records(frame)
+    records = df_to_records(frame, convert_decimals=True)
 
     assert [records[index]["value"] for index in range(4)] == [None] * 4
-    assert records[4]["value"] is finite
+    # SQL Lab quotes finite decimals so the browser keeps every digit.
+    assert records[4]["value"] == str(finite)
     assert records[5]["value"] is hostile
     strict_json = superset_json.dumps(records[:5], ignore_nan=False)
     assert superset_json.loads(strict_json) == [
@@ -199,7 +200,7 @@ def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
         {"value": None},
         {"value": None},
         {"value": None},
-        {"value": 0.10000000000000000001},
+        {"value": "0.10000000000000000001"},
     ]
 
 
@@ -538,3 +539,79 @@ def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
     )
     parsed_no_flag = superset_json.loads(json_str_no_flag)
     assert parsed_no_flag == parsed  # Same result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "12345678901234567890.123456789012345678",
+        "-12345678901234567890.123456789012345678",
+        "0.000000000000000001",
+        "10.50",
+        "0.00",
+        "1E+30",
+        "0.000000000000000000",
+        "-0.000000100000000000",
+    ],
+)
+def test_decimal_records_keep_all_digits(value: str) -> None:
+    """Decimals become exact strings that survive a JSON round trip unchanged."""
+    decimal_value: Decimal = Decimal(value)
+    frame = pd.DataFrame({"value": [decimal_value, None]})
+    records = df_to_records(frame, convert_decimals=True)
+    assert records == [{"value": format(decimal_value, "f")}, {"value": None}]
+    # Both the HTTP JSON and JSON cache must quote decimals for JavaScript.
+    assert superset_json.loads(superset_json.dumps(records)) == records
+    # SQL Lab conversion must not modify DataFrames used for chart arithmetic.
+    assert frame.iloc[0, 0] == decimal_value
+    assert isinstance(frame.iloc[0, 0], Decimal)
+
+
+def test_nested_decimal_records() -> None:
+    """Decimals nested inside dicts, lists and tuples also become exact strings."""
+    value = Decimal("12345678901234567890.123456789012345678")
+    frame = pd.DataFrame({"value": [{"a": [value, None]}, (value,)]})
+    assert df_to_records(frame, convert_decimals=True) == [
+        {"value": {"a": [str(value), None]}},
+        {"value": (str(value),)},
+    ]
+
+
+def test_decimal_conversion_does_not_change_other_numbers() -> None:
+    """Ints, floats and bools pass through, and chart JSON still emits numbers."""
+    frame = pd.DataFrame({"i": [2], "f": [0.5], "b": [True]})
+    assert df_to_records(frame, convert_decimals=True) == [
+        {"i": 2, "f": 0.5, "b": True}
+    ]
+    # Do not change the shared chart JSON serializer to emit decimal strings.
+    assert superset_json.loads(superset_json.dumps({"x": Decimal("10.50")})) == {
+        "x": 10.5
+    }
+
+
+def test_decimal_conversion_is_disabled_by_default_for_chart_records() -> None:
+    """Chart records keep Decimal objects so the chart encoder emits numbers."""
+    value = Decimal("10.50")
+    frame = pd.DataFrame({"value": [value, {"a": [value]}]})
+    records = df_to_records(frame)
+    assert records == [{"value": value}, {"value": {"a": [value]}}]
+    assert type(records[0]["value"]) is Decimal
+    assert superset_json.loads(superset_json.dumps(records)) == [
+        {"value": 10.5},
+        {"value": {"a": [10.5]}},
+    ]
+
+
+def test_high_scale_negative_decimal_csv() -> None:
+    """Small negative decimals export in fixed notation without formula escaping."""
+    from superset.utils.csv import df_to_escaped_csv
+
+    records = df_to_records(
+        pd.DataFrame({"value": [Decimal("-0.000000100000000000")]}),
+        convert_decimals=True,
+    )
+    assert records == [{"value": "-0.000000100000000000"}]
+    assert (
+        df_to_escaped_csv(pd.DataFrame(records), index=False, lineterminator="\n")
+        == "value\n-0.000000100000000000\n"
+    )
