@@ -91,6 +91,134 @@ test('transformProps handles null/undefined timestamp values correctly', () => {
   expect(transformedProps.isRawRecords).toBe(true);
 });
 
+test('AgGridTableChart defaults header groups to an empty list', async () => {
+  const props = { ...transformProps(testData.basic) };
+  delete (props as { headerGroups?: unknown }).headerGroups;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+  expect(
+    document.querySelector('.ag-header-group-cell'),
+  ).not.toBeInTheDocument();
+});
+
+test('AgGridTableChart nests columns in header groups', async () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'metrics',
+        label: 'Metrics',
+        columns: ['sum__num'],
+      },
+    ],
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const groupCell = Array.from(
+    document.querySelectorAll('.ag-header-group-cell'),
+  ).find(cell => cell.textContent?.includes('Metrics'));
+  expect(groupCell).toBeDefined();
+
+  const nestedColumnHeader = Array.from(
+    groupCell?.querySelectorAll('.ag-header-cell-text') ?? [],
+  ).find(cell => cell.textContent === 'sum__num');
+  const leafCell = Array.from(
+    document.querySelectorAll('.ag-header-cell'),
+  ).find(
+    cell =>
+      cell.querySelector('.ag-header-cell-text')?.textContent === 'sum__num',
+  );
+  expect(leafCell).toBeDefined();
+
+  if (nestedColumnHeader) {
+    expect(groupCell?.contains(nestedColumnHeader)).toBe(true);
+  } else {
+    const groupColIndex = Number(groupCell?.getAttribute('aria-colindex'));
+    const groupColSpan = Number(groupCell?.getAttribute('aria-colspan') ?? 1);
+    const leafColIndex = Number(leafCell?.getAttribute('aria-colindex'));
+    expect(leafColIndex).toBeGreaterThanOrEqual(groupColIndex);
+    expect(leafColIndex).toBeLessThan(groupColIndex + groupColSpan);
+  }
+});
+
+test('AgGridTableChart reorders header groups without a chart refresh', async () => {
+  const base = transformProps(testData.basic);
+  const namesGroup = { id: 'names', label: 'Names', columns: ['name'] };
+  const metricsGroup = {
+    id: 'metrics',
+    label: 'Metrics',
+    columns: ['sum__num'],
+  };
+
+  const renderChart = (headerGroups: (typeof namesGroup)[]) =>
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...base}
+          headerGroups={headerGroups}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    });
+
+  const groupLabels = (): string[] =>
+    Array.from(document.querySelectorAll('.ag-header-group-cell')).map(
+      cell => cell.textContent ?? '',
+    );
+
+  const { rerender } = render(renderChart([namesGroup, metricsGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.some(label => label.includes('Names'))).toBe(true);
+    expect(labels.some(label => label.includes('Metrics'))).toBe(true);
+  });
+
+  const initialLabels = groupLabels();
+  expect(
+    initialLabels.findIndex(label => label.includes('Names')),
+  ).toBeLessThan(initialLabels.findIndex(label => label.includes('Metrics')));
+
+  rerender(renderChart([metricsGroup, namesGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.findIndex(label => label.includes('Metrics'))).toBeLessThan(
+      labels.findIndex(label => label.includes('Names')),
+    );
+  });
+});
+
 test('AgGridTableChart renders basic data', async () => {
   const props = transformProps(testData.basic);
   render(
@@ -465,6 +593,53 @@ test('AgGridTableChart renders with time comparison', async () => {
   expect(headerTexts).toContain('#');
   expect(headerTexts).toContain('△');
   expect(headerTexts).toContain('%');
+});
+
+test('AgGridTableChart keeps Main columns when a comparison type is selected', async () => {
+  const props = transformProps(testData.comparison);
+  props.isUsingTimeComparison = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelector(
+      '.time-comparison-dropdown .ant-dropdown-trigger',
+    ) as HTMLElement,
+  );
+  const dropdownMenu = await waitFor(() => {
+    const menu = document.querySelector(
+      '.ant-dropdown:not(.ant-dropdown-hidden)',
+    );
+    if (!menu) {
+      throw new Error('expected time comparison dropdown menu');
+    }
+    return menu;
+  });
+  await userEvent.click(within(dropdownMenu as HTMLElement).getByText('#'));
+
+  await waitFor(() => {
+    const headerTexts = Array.from(
+      document.querySelectorAll('.ag-header-cell-text'),
+    ).map(el => el.textContent);
+    expect(headerTexts).toContain('#');
+    expect(headerTexts).toContain('metric_1');
+    expect(headerTexts).not.toContain('△');
+    expect(headerTexts).not.toContain('%');
+  });
 });
 
 test('AgGridTableChart handles raw records mode', async () => {
