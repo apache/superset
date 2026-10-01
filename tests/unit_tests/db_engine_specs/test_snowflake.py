@@ -695,6 +695,53 @@ def test_impersonate_user_email_prefix_uses_username_directly(
     find_user.assert_not_called()
 
 
+def test_impersonate_user_without_email_prefix_uses_full_email(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    With IMPERSONATE_WITH_EMAIL_PREFIX disabled, connect as the full email.
+
+    ``Database._get_sqla_engine()`` performs no substitution when the flag is
+    off, so the username passed in is still the login and the address has to be
+    resolved here. It comes from the database rather than a lookup of that
+    login, so the one guarded metadata-DB read serves both branches.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database: Database = Database(sqlalchemy_uri="snowflake://abc")
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.is_feature_enabled",
+        return_value=False,
+    )
+    mocker.patch.object(
+        Database,
+        "get_impersonation_email",
+        return_value="jdoe@example.org",
+    )
+
+    with app.test_request_context("/some/place/"):
+        result = SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username="jdoe123",
+            user_token="test_token",  # noqa: S106
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={},
+        )
+
+    assert result == (
+        make_url(
+            "snowflake://jdoe%40example.org:pass@account/database_name/default?authenticator=oauth&token=test_token"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+
+
 def test_impersonate_user_outside_request_context(mocker: MockerFixture) -> None:
     """
     Background executions (alerts/reports) have no per-user token, so OAuth

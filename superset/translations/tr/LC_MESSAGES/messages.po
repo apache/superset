@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-28 01:20+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -146,23 +146,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"lexicografik siparişin olmasını sağlamak için standart\n"
-"kronolojik sipariş ile çakıştı. Eğer\n"
-"Zaman çizelgesi ISO 8601 standardına uymaz\n"
-"Bir ifade ve türü tanımlamanız gerekecek\n"
-"dizeyi bir tarih veya zamana dönüştürme. Not NotNote\n"
-"Şu anda zaman bölgeleri desteklenmez. Zaman depolanırsa\n"
-"Dönem formatında, \"epoch s\" veya \"epoch ms\" koymak. Eğer hiçbir desen"
-" değilse\n"
-"Seçmeli varsayılan varsayılanları bir per başına kullanmaya geri "
-"döndüğümüz belirtilmiştir.\n"
-"veritabanı/column name level via the extra parameter."
 
 msgid " to add calculated columns"
 msgstr "Hesaplamalı sütunlar eklemek için"
@@ -1004,6 +993,9 @@ msgstr ""
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Ayrıntılar: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1676,6 +1668,9 @@ msgstr "Grafikleri seç"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "Gösterim Paneli seç"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -2648,9 +2643,8 @@ msgstr "Seçilen grafikleri silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected dashboards?"
 msgstr "Seçilmiş panoları silmek istediğinizden emin misiniz?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected groups?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Seçilen tabakaları silmek istediğinizden emin misiniz?"
@@ -2658,9 +2652,8 @@ msgstr "Seçilen tabakaları silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected rules?"
 msgstr "Seçilen kuralları silmek istediğinizden emin misiniz?"
@@ -2671,13 +2664,11 @@ msgstr "Seçilmiş etiketleri silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected templates?"
 msgstr "Seçilen şablonları silmek istediğinizden emin misiniz?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected themes?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected users?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "Bu veri setini yazmak istediğinizden emin misiniz?"
@@ -3875,9 +3866,8 @@ msgstr "Kaynak seçin"
 msgid "Choose a target"
 msgstr "Hedef seçin"
 
-#, fuzzy
 msgid "Choose already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "Choose chart type"
 msgstr "Grafik tipini seçin"
@@ -4612,6 +4602,9 @@ msgstr "Şifreyi göster."
 msgid "Confirm Password"
 msgstr "Şifreyi göster."
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Find over write"
 
@@ -4621,6 +4614,9 @@ msgstr "Şifreyi göster."
 
 msgid "Confirm save"
 msgstr "Onay Kaydet"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Kullanıcının şifresini doğrulayın"
@@ -4859,6 +4855,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "hostnameyi çözemez: \"  %(host)s \"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Mevcut oturumdaki kullanıcıyı doğrulamayabilir."
 
@@ -5032,6 +5034,9 @@ msgstr "Geçerli sayfayı seç"
 #, fuzzy
 msgid "Current month"
 msgstr "son ay"
+
+msgid "Current password"
+msgstr ""
 
 #, fuzzy
 msgid "Current quarter"
@@ -5979,6 +5984,11 @@ msgstr "sil"
 msgid "Delete item"
 msgstr "Şablonu sil"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -6007,9 +6017,8 @@ msgstr "Bu konteyneri temizleyin ve bu mesajı kaldırmak için tasarruf edin."
 msgid "Delete user"
 msgstr "Sorguyu sil"
 
-#, fuzzy
 msgid "Delete user registration"
-msgstr "Silindi: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Delete user registration?"
@@ -7135,6 +7144,9 @@ msgstr "İlk Credentials girin"
 msgid "Enter a name for this sheet"
 msgstr "Bu sayfa için bir isim girin"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Rapor ismi"
@@ -7199,6 +7211,9 @@ msgstr "Kullanıcının adı girin"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Alarm adı"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Girişinizi ve şifrenizi aşağıda girin:"
@@ -8730,9 +8745,8 @@ msgstr ""
 "Boş kalırsa, kurtarılamaz ve listeden kaldırılacaktır. klasörleri "
 "kaldırmak için, metrikleri ve sütunları diğer klasörlere taşıyın."
 
-#, fuzzy
 msgid "If table already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
 msgstr ""
@@ -9505,6 +9519,9 @@ msgstr "Layout type of tree"
 
 msgid "Least recently modified"
 msgstr "Least son zamanlarda değiştirilmiş"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10709,6 +10726,9 @@ msgstr "Yeni veriseti ismi"
 msgid "New header"
 msgstr "Yeni başlık"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "Yeni sekme"
 
@@ -11030,6 +11050,15 @@ msgstr "Sonuç bulunamadı"
 
 msgid "Not Time Series"
 msgstr "Zaman Serisi Değil"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 #, fuzzy
 msgid "Not a valid ZIP file"
@@ -11975,6 +12004,9 @@ msgstr "Lütfen şifrenizi onaylayın"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Lütfen test etmek için bir SQLAlchemy URI girin"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Lütfen geçerli bir e-posta girin"
 
@@ -12863,6 +12895,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Gerekli kontrol değerleri kaldırıldı"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Resample"
 
@@ -12892,13 +12927,11 @@ msgstr "Tüm klasörleri varsayılan olarak resetleyin"
 msgid "Reset columns"
 msgstr "Kolon seç"
 
-#, fuzzy
 msgid "Reset my password"
-msgstr "%s ŞİFRE"
+msgstr ""
 
-#, fuzzy
 msgid "Reset password"
-msgstr "%s ŞİFRE"
+msgstr ""
 
 msgid "Reset state"
 msgstr "Sıfır devlet"
@@ -13540,6 +13573,9 @@ msgstr "Şema"
 
 msgid "Schema cache timeout"
 msgstr "Schema önbelli zamanout"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Schemas File upload için izin verdi"
@@ -16775,6 +16811,10 @@ msgstr ""
 "geçerli bir şema kullanılmalıdır."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16835,6 +16875,10 @@ msgid ""
 msgstr ""
 "Masa \"  %(table)s \" mevcut değil. Bu sorguyu çalıştırmak için geçerli "
 "bir masa kullanılmalıdır."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17345,6 +17389,12 @@ msgstr "Seçilmiş sorguyu gösteren bir sorun vardı.   %s "
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17363,6 +17413,12 @@ msgstr "Bunlar, bu filtrenin uygulanan veri setleri."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17377,6 +17433,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18360,6 +18421,9 @@ msgstr "Salı"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipi"
@@ -19409,6 +19473,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "\"  %(column_name)s \" sütunu satır   %(location)s 'da çözemiyoruz."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20638,6 +20706,11 @@ msgstr "Değişikliklerinizi kurtarıncaya kadar düğme (cmd + z)."
 
 msgid "by using"
 msgstr "kullanarak"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "boş bırakılamaz"

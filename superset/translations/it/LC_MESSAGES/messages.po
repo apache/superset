@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 01:20+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -151,9 +151,6 @@ msgstr " per dettagli."
 msgid " near '%(highlight)s'"
 msgstr " vicino a '%(highlight)s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -164,27 +161,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard per garantire che l'ordinamento lessicografico\n"
-"                      coincida con l'ordinamento cronologico. Se il\n"
-"                      formato del timestamp non è conforme allo standard "
-"ISO 8601\n"
-"                      sarà necessario definire un'espressione e un tipo "
-"per\n"
-"                      trasformare la stringa in una data o timestamp. "
-"Nota:\n"
-"                      le zone orarie non sono attualmente supportate. Se "
-"il tempo è memorizzato\n"
-"                      in formato epoch, inserire `epoch_s` o `epoch_ms`. "
-"Se non viene\n"
-"                      specificato alcun pattern, si utilizzano i valori "
-"predefiniti opzionali a livello di\n"
-"                      nome database/colonna tramite il parametro extra."
 
 msgid " to add calculated columns"
 msgstr "aggiungere colonne calcolate"
@@ -1232,6 +1214,9 @@ msgstr ""
 "es. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Dettagli: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr "È richiesto un TTL per lo stato temporaneo."
 
@@ -1984,6 +1969,9 @@ msgstr "Grafici impattati"
 
 msgid "Affected Dashboards"
 msgstr "Dashboard Impattate"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -5527,6 +5515,9 @@ msgstr "Conferma"
 msgid "Confirm Password"
 msgstr "Conferma Password"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Conferma sovrascrittura"
 
@@ -5538,6 +5529,9 @@ msgstr "Conferma password"
 # uk, zh, zh_TW]
 msgid "Confirm save"
 msgstr "Conferma il salvataggio"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5839,6 +5833,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Impossibile risolvere il nome host: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -6017,6 +6017,9 @@ msgstr "Giorno corrente"
 
 msgid "Current month"
 msgstr "Mese corrente"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Quarto corrente"
@@ -7090,6 +7093,11 @@ msgstr "Cancella gruppo"
 
 msgid "Delete item"
 msgstr "Cancella elemento"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr "Elimina definitivamente"
@@ -8439,6 +8447,9 @@ msgstr "Immettere Credenziali Primarie"
 msgid "Enter a name for this sheet"
 msgstr "Immettere un nome per questo foglio"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
@@ -8498,6 +8509,9 @@ msgstr "Immettere lo username dell'utente"
 
 msgid "Enter theme name"
 msgstr "Immettere il nome del tema"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Immettere username e password qua sotto:"
@@ -11396,6 +11410,9 @@ msgstr "Tipo di layout dell'albero"
 msgid "Least recently modified"
 msgstr "Modificato più di recente"
 
+msgid "Leave blank to keep the current password"
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -12877,6 +12894,9 @@ msgstr "Nome del nuovo dataset"
 msgid "New header"
 msgstr "Nuova intestazione"
 
+msgid "New password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -13220,6 +13240,15 @@ msgstr "Non uguale"
 
 msgid "Not Time Series"
 msgstr "Non Serie Temporale"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Non è un file ZIP valido"
@@ -14458,6 +14487,9 @@ msgstr "Per cortesia confermare la password"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Inserisci un nome per la slice"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Inserire un'email valida"
 
@@ -15571,6 +15603,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "I valori di controllo richiesti sono stati rimossi"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -16376,6 +16411,9 @@ msgstr "Schema"
 
 msgid "Schema cache timeout"
 msgstr "Timeout cache dello schema"
+
+msgid "Schema not found."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -20181,6 +20219,10 @@ msgstr ""
 "Lo schema \"%(schema)s\" non esiste. Per eseguire questa query è "
 "necessario utilizzare uno schema valido."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20255,6 +20297,10 @@ msgid ""
 msgstr ""
 "La tabella \"%(table)s\" non esiste. Per eseguire questa query è "
 "necessario utilizzare una tabella valida."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20810,6 +20856,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -20831,6 +20883,12 @@ msgstr "Questi sono i set di dati a cui verrà applicato questo filtro."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -20846,6 +20904,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -22139,6 +22202,9 @@ msgstr "Martedì"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipo"
@@ -23464,6 +23530,10 @@ msgid ""
 msgstr ""
 "Sembra che non riusciamo a risolvere la colonna \"%(column_name)s\" alla "
 "riga %(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25100,6 +25170,12 @@ msgstr "pulsante (cmd + z) finché non salvi le modifiche."
 # uk, zh, zh_TW]
 msgid "by using"
 msgstr "utilizzando"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,

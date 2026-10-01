@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 01:20+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -142,21 +142,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Standard entsprechen muss, um sicherzustellen, dass die lexikographische"
-" Reihenfolge mit der chronologischen Reihenfolge übereinstimmt. Wenn das "
-"Zeitstempelformat nicht dem ISO 8601-Standard entspricht, müssen Sie "
-"einen Ausdruck und einen Typ definieren, um die Zeichenfolge in ein Datum"
-" oder einen Zeitstempel umzuwandeln. Hinweis: Derzeit werden Zeitzonen "
-"nicht unterstützt. Wenn Zeit im Epochenformat gespeichert ist, Geben Sie "
-"\"epoch_s\" oder \"epoch_ms\" ein. Wenn kein Muster angegeben ist, "
-"greifen wir die extra Parameter auf die optionalen Standardwerte auf "
-"Datenbank-/Spaltennamenebene zurück."
 
 msgid " to add calculated columns"
 msgstr ", um berechnete Spalten hinzuzufügen"
@@ -982,6 +973,9 @@ msgstr ""
 "B. { title: { text: \"Mein Diagramm\" }, tooltip: { trigger: \"item\" } "
 "}). Details: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1626,6 +1620,9 @@ msgstr "Betroffene Diagramme"
 
 msgid "Affected Dashboards"
 msgstr "Betroffene Dashboards"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4434,6 +4431,9 @@ msgstr "Bestätigen"
 msgid "Confirm Password"
 msgstr "Passwort bestätigen"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Überschreiben bestätigen"
 
@@ -4442,6 +4442,9 @@ msgstr "Passwort bestätigen"
 
 msgid "Confirm save"
 msgstr "Speichern bestätigen"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Passwort bestätigen"
@@ -4681,6 +4684,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Hostname konnte nicht aufgelöst werden: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 "Der/Die Benutzer*in konnte in der aktuellen Sitzung nicht authentifiziert"
@@ -4839,6 +4848,9 @@ msgstr "Aktueller Tag"
 
 msgid "Current month"
 msgstr "Aktueller Monat"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Aktuelles Quartal"
@@ -5716,6 +5728,11 @@ msgstr "Gruppe löschen"
 
 msgid "Delete item"
 msgstr "Element löschen"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6829,6 +6846,9 @@ msgstr "Primäre Anmeldeinformationen eingeben"
 msgid "Enter a name for this sheet"
 msgstr "Geben Sie einen neuen Titel für die Registerkarte ein"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
@@ -6883,6 +6903,9 @@ msgstr "Anmeldenamen eingeben"
 
 msgid "Enter theme name"
 msgstr "Designnamen eingeben"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Geben Sie unten Ihren Anmeldenamen und Ihr Passwort ein:"
@@ -9045,6 +9068,9 @@ msgstr "Layouttyp des Baums"
 msgid "Least recently modified"
 msgstr "Zuletzt geändert"
 
+msgid "Leave blank to keep the current password"
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -10164,6 +10190,9 @@ msgstr "Name des neuen Datensatzes"
 msgid "New header"
 msgstr "Neue Überschrift"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "Neuer Tab"
 
@@ -10461,6 +10490,15 @@ msgstr "Ist nicht gleich (≠)"
 
 msgid "Not Time Series"
 msgstr "Keine Zeitreihen"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Keine gültige ZIP-Datei"
@@ -11389,6 +11427,9 @@ msgstr "Bitte bestätigen Sie Ihr Passwort"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Bitten geben Sie eine SQL Alchemy URI zum Testen ein"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein"
 
@@ -12258,6 +12299,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Erforderliche Steuerwerte wurden entfernt"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Resample"
 
@@ -12899,6 +12943,9 @@ msgstr "Schema"
 
 msgid "Schema cache timeout"
 msgstr "Zeitüberschreitung Schema-Zwischenspeicher"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Zulässige Schemata für den Datei-Upload"
@@ -15963,6 +16010,10 @@ msgstr ""
 "muss ein gültiges Schema verwendet werden."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16026,6 +16077,10 @@ msgid ""
 msgstr ""
 "Die Tabelle \"%(table)s\" existiert nicht. Zum Ausführen dieser Abfrage "
 "muss eine gültige Tabelle verwendet werden."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16511,6 +16566,12 @@ msgstr "Bei der Vorschau der ausgewählten Abfrage ist ein Problem aufgetreten. 
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16530,6 +16591,12 @@ msgstr "Dies sind die Datensätze, auf die dieser Filter angewendet wird."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16545,6 +16612,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17528,6 +17600,9 @@ msgstr "Dienstag"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Typ"
@@ -18545,6 +18620,10 @@ msgid ""
 msgstr ""
 "Wir können die Spalte \"%(column_name)s\" in Zeile %(location)s nicht "
 "auflösen."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -19776,6 +19855,12 @@ msgstr "Schaltfläche drücken (cmd + z), bevor Sie Ihre Änderungen speichern."
 
 msgid "by using"
 msgstr "durch die Verwendung von"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "darf nicht leer sein"

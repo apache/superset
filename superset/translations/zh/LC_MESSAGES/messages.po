@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-28 01:20+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -142,15 +142,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"来确保字符的表达顺序与时间顺序一致的标准。如果时间戳格式不符合 ISO 8601 "
-"标准，则需要定义表达式和类型，以便将字符串转换为日期或时间戳。注意：当前不支持时区。如果时间以epoch格式存储，请输入 `epoch_s` or"
-" `epoch_ms` 。如果没有指定任何模式，我们可以通过额外的参数在每个数据库/列名级别上使用可选的默认值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -1033,6 +1030,9 @@ msgstr ""
 "Chart\" }, tooltip: { trigger: \"item\" } "
 "}）。详情：https://echarts.apache.org/en/option.html。"
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr "临时状态需要 TTL。"
 
@@ -1681,6 +1681,9 @@ msgstr "受影响的图表"
 
 msgid "Affected Dashboards"
 msgstr "受影响的看板"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -3677,9 +3680,8 @@ msgstr "图表名称"
 msgid "Chart name is required"
 msgstr "需要图表名称"
 
-#, fuzzy
 msgid "Chart not found"
-msgstr "图表 %(id)s 没有找到"
+msgstr ""
 
 msgid "Chart options"
 msgstr "图表选项"
@@ -4515,6 +4517,9 @@ msgstr "确认"
 msgid "Confirm Password"
 msgstr "确认密码"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "确认覆盖"
 
@@ -4523,6 +4528,9 @@ msgstr "确认密码"
 
 msgid "Confirm save"
 msgstr "确认保存"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4776,6 +4784,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "无法解析主机名：\"%(host)s\"。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -4944,6 +4958,9 @@ msgstr "当前日期"
 
 msgid "Current month"
 msgstr "本月"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "当前季度"
@@ -5852,6 +5869,11 @@ msgstr "删除组"
 msgid "Delete item"
 msgstr "删除项目"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr "永久删除"
 
@@ -6208,13 +6230,13 @@ msgstr "显示控件类型"
 msgid "Display controls"
 msgstr "显示配置"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%d)"
-msgstr "显示配置"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%s)"
-msgstr "显示配置"
+msgstr ""
 
 msgid "Display cumulative total at end"
 msgstr "在末尾显示累计总计"
@@ -6970,6 +6992,9 @@ msgstr "输入主凭据"
 msgid "Enter a name for this sheet"
 msgstr "输入此工作表的名称"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "输入对象名称的一部分"
 
@@ -7036,6 +7061,9 @@ msgstr "输入用户的用户名"
 
 msgid "Enter theme name"
 msgstr "输入主题名称"
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7690,9 +7718,8 @@ msgstr "设置系统默认主题失败：%s"
 msgid "Failed to start remote query on a worker."
 msgstr "无法在 worker 上启动远程查询。"
 
-#, fuzzy
 msgid "Failed to stop query."
-msgstr "停止查询失败。 %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8947,9 +8974,9 @@ msgstr "错误的经纬度配置。"
 msgid "Invalid longitude/latitude"
 msgstr "无效的经度/纬度"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "无效的指标对象"
+msgstr ""
 
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -9363,6 +9390,9 @@ msgstr "树的布局类型"
 
 msgid "Least recently modified"
 msgstr "最近修改时间最久"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10162,9 +10192,9 @@ msgstr "如果存在序列或行限制，则用于定义顶部序列的排序方
 msgid "Metrics"
 msgstr "指标"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "指标"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10580,6 +10610,9 @@ msgstr "新数据集名称"
 msgid "New header"
 msgstr "新标题"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "新选项卡"
 
@@ -10609,9 +10642,8 @@ msgstr "还没有 %s"
 msgid "No Data"
 msgstr "没有数据"
 
-#, fuzzy
 msgid "No Logs yet"
-msgstr "还没有 %s"
+msgstr ""
 
 msgid "No Results"
 msgstr "无结果"
@@ -10898,6 +10930,15 @@ msgstr "不等于（≠）"
 msgid "Not Time Series"
 msgstr "非时间序列"
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 msgid "Not a valid ZIP file"
 msgstr "不是有效的 ZIP 文件"
 
@@ -10930,9 +10971,8 @@ msgstr "不在"
 msgid "Not null"
 msgstr "非空"
 
-#, fuzzy
 msgid "Not set"
-msgstr "还没有 %s"
+msgstr ""
 
 msgid "Not triggered"
 msgstr "没有触发"
@@ -11838,6 +11878,9 @@ msgstr "请确认您的密码"
 
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "请输入要测试的SQLAlchemy URI"
+
+msgid "Please enter a new password"
+msgstr ""
 
 msgid "Please enter a valid email"
 msgstr "请输入有效的邮箱地址"
@@ -12773,6 +12816,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "必需的控件值已被移除"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "重新采样"
 
@@ -13434,6 +13480,9 @@ msgstr "架构"
 
 msgid "Schema cache timeout"
 msgstr "模式缓存超时"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "允许用于文件上传的模式"
@@ -16497,6 +16546,10 @@ msgid ""
 msgstr "模式 \"%(schema)s\" 不存在。必须使用有效的模式来运行此查询。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16562,6 +16615,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "表 \"%(table)s\" 不存在。必须使用有效的表来运行此查询。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16797,21 +16854,18 @@ msgstr "创建用户时出错，请重试。"
 msgid "There was an error duplicating the role. Please, try again."
 msgstr "复制角色时出现问题。请重试。"
 
-#, fuzzy
 msgid "There was an error fetching dataset"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
-#, fuzzy
 msgid "There was an error fetching dataset's related objects"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
 msgstr "获取收藏状态时出错：%s"
 
-#, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "获取此看板的收藏夹状态时出现问题：%s。"
+msgstr ""
 
 msgid "There was an error generating the permalink."
 msgstr "生成永久链接时出错"
@@ -16859,9 +16913,8 @@ msgstr "获取群组时出错"
 msgid "There was an error while fetching permissions"
 msgstr "获取权限时出错"
 
-#, fuzzy
 msgid "There was an error while fetching users"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
 msgid "There was an error with your request"
 msgstr "您的请求有错误"
@@ -16962,9 +17015,8 @@ msgstr "导出 %s 时出现问题"
 msgid "There was an issue exporting the selected %s"
 msgstr "导出所选 %s 时出现问题"
 
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
-msgstr "删除所选图表时出现问题：%s"
+msgstr ""
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "导出所选看板时出现问题"
@@ -16978,9 +17030,8 @@ msgstr "导出所选主题时出现问题"
 msgid "There was an issue favoriting this dashboard."
 msgstr "收藏此看板时出现问题。"
 
-#, fuzzy
 msgid "There was an issue fetching reports."
-msgstr "获取您的图表时出现问题：%s"
+msgstr ""
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr "获取此看板的收藏夹状态时出现问题。"
@@ -17011,6 +17062,12 @@ msgstr "预览所选查询时出现问题。%s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17029,6 +17086,12 @@ msgstr "这些是此筛选器将应用到的数据集。"
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17043,6 +17106,11 @@ msgid ""
 msgstr "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它。"
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18028,6 +18096,9 @@ msgstr "星期二"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Tukey"
 msgstr "图基"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "类型"
@@ -19044,9 +19115,8 @@ msgstr "无法检查你的查询语句"
 msgid "Waterfall Chart"
 msgstr "瀑布图"
 
-#, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "不能连接到数据库\"%(database)s\""
+msgstr ""
 
 msgid "We are working on your query"
 msgstr "我们正在处理您的查询"
@@ -19064,6 +19134,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20278,6 +20352,11 @@ msgstr "按钮（cmd + z）直到你保存更改。"
 msgid "by using"
 msgstr "通过使用"
 
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+
 msgid "cannot be empty"
 msgstr "不能为空"
 
@@ -21169,9 +21248,8 @@ msgstr "未知类型图标"
 msgid "unset"
 msgstr "未设置"
 
-#, fuzzy
 msgid "updated"
-msgstr "上次更新 %s"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

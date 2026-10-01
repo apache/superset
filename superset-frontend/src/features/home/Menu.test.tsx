@@ -334,6 +334,25 @@ test('should render the navigation', async () => {
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
+test('hides the navigation when the standalone url param is set', async () => {
+  const originalLocationHref = window.location.href;
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  window.history.replaceState(null, '', '/superset/dashboard/1/?standalone=1');
+
+  try {
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  } finally {
+    window.history.replaceState(null, '', originalLocationHref);
+  }
+});
+
 test.each(['', '/myapp'])(
   'should render the brand, including app_root "%s"',
   async app_root => {

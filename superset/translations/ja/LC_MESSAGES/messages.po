@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 01:20+0300\n"
+"POT-Creation-Date: 2026-09-30 19:36-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -134,19 +134,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -932,6 +925,9 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1513,6 +1509,9 @@ msgstr "影響を受けるチャート"
 
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4087,6 +4086,9 @@ msgstr "確認"
 msgid "Confirm Password"
 msgstr "パスワード(確認)"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "上書きの確認"
 
@@ -4095,6 +4097,9 @@ msgstr "パスワード(確認)"
 
 msgid "Confirm save"
 msgstr "保存の確認"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "ユーザーのパスワードを再入力してください"
@@ -4316,6 +4321,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
 
@@ -4467,6 +4478,9 @@ msgstr "当日"
 
 msgid "Current month"
 msgstr "当月"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "当四半期"
@@ -5265,6 +5279,11 @@ msgstr "グループを削除"
 
 msgid "Delete item"
 msgstr "項目を削除"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6287,6 +6306,9 @@ msgstr "メインの認証情報を入力"
 msgid "Enter a name for this sheet"
 msgstr "シート名を入力してください"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "オブジェクト名の一部を入力"
 
@@ -6341,6 +6363,9 @@ msgstr "ユーザーのユーザー名を入力"
 
 msgid "Enter theme name"
 msgstr "テーマ名を入力"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "以下にユーザー名とパスワードを入力してください:"
@@ -8412,6 +8437,9 @@ msgstr "ツリーのレイアウト形式"
 msgid "Least recently modified"
 msgstr "更新日が古い順"
 
+msgid "Leave blank to keep the current password"
+msgstr ""
+
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
@@ -9482,6 +9510,9 @@ msgstr "新しいデータセット名"
 msgid "New header"
 msgstr "新しいヘッダー"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "新しいタブ"
 
@@ -9765,6 +9796,15 @@ msgstr "等しくない (≠)"
 
 msgid "Not Time Series"
 msgstr "非時系列"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
@@ -10610,6 +10650,9 @@ msgstr "パスワードを再入力して確認してください"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テスト用の SQLAlchemy URI を入力してください"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "有効なメールアドレスを入力してください"
 
@@ -11443,6 +11486,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "必須の制御値が削除されました"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "リサンプリング"
 
@@ -12062,6 +12108,9 @@ msgstr "スキーマ"
 
 msgid "Schema cache timeout"
 msgstr "スキーマキャッシュのタイムアウト"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "ファイルのアップロードが許可されているスキーマ"
@@ -14794,6 +14843,10 @@ msgid ""
 msgstr "スキーマ「%(schema)s」が存在しません。クエリを実行するには有効なスキーマを使用してください。"
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14849,6 +14902,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "テーブル「%(table)s」が存在しません。クエリを実行するには有効なテーブルを使用してください。"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15270,6 +15327,12 @@ msgstr "選択したクエリのプレビュー中に問題が発生しました
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -15288,6 +15351,12 @@ msgstr "このフィルターが適用されるデータセットです。"
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -15302,6 +15371,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16155,6 +16229,9 @@ msgstr "火曜日"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "種類"
@@ -17057,6 +17134,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "%(location)s 行目の列「%(column_name)s」を解決できません。"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -18149,6 +18230,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 
 msgid "by using"
 msgstr "以下を使用して"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "空にできません"
