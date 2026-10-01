@@ -70,6 +70,7 @@ from superset.mcp_service.utils.response_size_utils import (
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    RESPONSE_AWARE_SUGGESTION_TOOLS,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
@@ -2116,7 +2117,11 @@ class ResponseSizeGuardMiddleware(Middleware):
                 params=params,
                 actual_bytes=actual_bytes,
                 max_bytes=self.max_bytes,
-                response=None,
+                response=(
+                    self._extract_payload_from_tool_result(response)
+                    if tool_name in RESPONSE_AWARE_SUGGESTION_TOOLS
+                    else None
+                ),
             )
         )
 
