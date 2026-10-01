@@ -272,6 +272,7 @@ describe('BigNumberViz alignment', () => {
     const container = renderViz();
 
     const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({ alignItems: 'flex-start' });
     expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
     const headerLine = container.querySelector('.header-line');
     expect(headerLine).toHaveStyle({ justifyContent: 'flex-start' });
@@ -281,6 +282,7 @@ describe('BigNumberViz alignment', () => {
     const container = renderViz('center');
 
     const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({ alignItems: 'center' });
     expect(textContainer).toHaveStyle({ alignItems: 'center' });
     const headerLine = container.querySelector('.header-line');
     expect(headerLine).toHaveStyle({ justifyContent: 'center' });
@@ -290,10 +292,46 @@ describe('BigNumberViz alignment', () => {
     const container = renderViz('right');
 
     const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({ alignItems: 'flex-end' });
     expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
     const headerLine = container.querySelector('.header-line');
     expect(headerLine).toHaveStyle({ justifyContent: 'flex-end' });
   });
+
+  test.each([
+    ['center', 'center'],
+    ['right', 'flex-end'],
+  ] as const)(
+    'aligns the outer chart and text container for "%s" with a trendline',
+    (headerAlignment, alignItems) => {
+      const { container } = render(
+        <BigNumberVis
+          width={200}
+          height={100}
+          bigNumber={42}
+          headerFormatter={getNumberFormatter()}
+          headerFontSize={0.3}
+          subheaderFontSize={0.125}
+          subtitleFontSize={0.125}
+          subheader="subheader text"
+          subtitle=""
+          refs={{}}
+          headerAlignment={headerAlignment}
+          showTrendLine
+          trendLineData={[
+            [1577836800000, 10],
+            [1577923200000, 20],
+          ]}
+          echartOptions={{}}
+        />,
+      );
+
+      expect(container.firstElementChild).toHaveStyle({ alignItems });
+      expect(container.querySelector('.text-container')).toHaveStyle({
+        alignItems,
+      });
+    },
+  );
 
   test('keeps the value and subheader centered when the trendline layout overflows', async () => {
     const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
