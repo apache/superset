@@ -126,6 +126,25 @@ ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
 
 const isSearchFocused = new Map<string, boolean>();
 
+type MinWidthColDef = {
+  colId?: string;
+  field?: string;
+  minWidth?: number;
+  children?: MinWidthColDef[];
+};
+
+function getMinWidthSignature(colDefs: MinWidthColDef[]): string {
+  return colDefs
+    .map(def => {
+      const id = def.colId ?? def.field ?? '';
+      const children = def.children?.length
+        ? getMinWidthSignature(def.children)
+        : '';
+      return `${id}:${def.minWidth ?? ''}:${children}`;
+    })
+    .join('|');
+}
+
 const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
   ({
     data = [],
@@ -584,12 +603,16 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     }, [hasServerPageLengthChanged]);
 
     // AG Grid grows a column when its minWidth increases but keeps that
-    // width when minWidth drops, so refit whenever the column defs change.
+    // width when minWidth drops, so refit when those widths actually change.
+    const minWidthSignature = useMemo(
+      () => getMinWidthSignature(colDefsFromProps),
+      [colDefsFromProps],
+    );
     useEffect(() => {
       if (gridRef.current?.api) {
         gridRef.current.api.sizeColumnsToFit();
       }
-    }, [width, colDefsFromProps]);
+    }, [width, minWidthSignature]);
 
     // Row highlighting must reflect the active cross filter regardless of how
     // it was applied (cell click, context menu, or an external dashboard

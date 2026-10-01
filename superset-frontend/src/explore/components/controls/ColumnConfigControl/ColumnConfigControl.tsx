@@ -109,11 +109,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
 
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
-      const validConfigs = Object.fromEntries(
-        Object.entries(normalizedValue).filter(([key]) =>
-          colnames.includes(key),
-        ),
-      );
+      const colnamesSet = colnames ? new Set(colnames) : undefined;
+      const validConfigs = colnamesSet
+        ? Object.fromEntries(
+            Object.entries(normalizedValue).filter(([key]) =>
+              colnamesSet.has(key),
+            ),
+          )
+        : normalizedValue;
       onChange({
         ...validConfigs,
         [col]: config,

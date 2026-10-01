@@ -127,7 +127,7 @@ const renderDataTable = (
   </ProviderWrapper>
 );
 
-function getHeaderOrder() {
+function getHeaderOrder(): (string | null)[] {
   return Array.from(
     document.querySelectorAll('thead th[data-column-name]'),
   ).map(header => header.getAttribute('data-column-name'));
