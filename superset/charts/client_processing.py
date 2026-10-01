@@ -707,7 +707,14 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 inserted_rows.append(subtotal.name)
                 row_prefix_depth[subtotal.name] = level
 
-    if percent_mode and rollup_levels:
+    # A non-additive metric's totals come from the database rollups the chart
+    # computed, in Actual Values mode as in the percent modes: reducing the
+    # already-aggregated leaf cells again (mean of means, distinct-count of
+    # counts, ...) is not the same number, and it is the number the browser
+    # shows. A total the database did not compute keeps its leaf-derived
+    # value. The currency-context pass holds sets of currency codes rather
+    # than metric values, so it keeps its leaf-derived unions.
+    if rollup_levels and aggfunc != CURRENCY_CONTEXT_AGGREGATION:
         df = _apply_rollup_totals(
             df,
             rows,

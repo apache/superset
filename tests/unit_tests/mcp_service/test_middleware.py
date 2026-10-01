@@ -2356,7 +2356,9 @@ class TestSanitizeParams:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch("superset.mcp_service.middleware.logger"),
-            pytest.raises(ToolError, match="Validation error in execute_sql") as exc,
+            pytest.raises(
+                ToolError, match="Request validation failed: arguments:"
+            ) as exc,
         ):
             await middleware.on_message(context, call_next)
 
@@ -2419,6 +2421,27 @@ class TestRBACToolVisibilityMiddleware:
         with patch(
             "superset.mcp_service.middleware._get_app_context_manager",
             side_effect=RuntimeError("no app"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_metadata_thread_setup_raises(self) -> None:
+        """Returns all tools when run_in_metadata_thread's own setup fails.
+
+        Unlike test_fails_open_on_exception, this failure happens before
+        _visible_tools ever runs -- e.g. the metadata pool is exhausted while
+        run_in_metadata_thread reloads the caller's ORM user -- so
+        _visible_tools's own try/except never gets a chance to fail open.
+        """
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            side_effect=RuntimeError("metadata pool exhausted"),
         ):
             result = await middleware.on_list_tools(MagicMock(), call_next)
 
