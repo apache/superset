@@ -127,3 +127,49 @@ test('keeps the hook order stable when the columns appear', () => {
   expect(screen.queryByTestId('render-error')).not.toBeInTheDocument();
   expect(screen.getByText('Michael')).toBeInTheDocument();
 });
+
+const renderPaginatedDataTable = (tableData: DataRow[], pageIndex?: number) => (
+  <ProviderWrapper>
+    <DataTable<DataRow>
+      columns={columns}
+      data={tableData}
+      rowCount={tableData.length}
+      pageSize={1}
+      initialState={pageIndex === undefined ? undefined : { pageIndex }}
+      serverPagination={false}
+      serverPaginationData={{}}
+      onServerPaginationChange={jest.fn()}
+      handleSortByChange={jest.fn()}
+      sortByFromParent={[]}
+      onSearchColChange={jest.fn()}
+      searchOptions={[]}
+      sticky={false}
+      // disable react-table's post-commit auto page reset so these tests
+      // exercise the render-time clamp in isolation
+      autoResetPage={false}
+    />
+  </ProviderWrapper>
+);
+
+describe('pagination clamp (#31403)', () => {
+  test('clamps pageIndex to the last page when it exceeds pageCount', () => {
+    render(renderPaginatedDataTable(data, 5));
+
+    // 2 rows at pageSize 1 => 2 pages; index 5 is out of range and must be
+    // clamped to the last page instead of rendering an empty page
+    expect(screen.getByText('Jordan')).toBeInTheDocument();
+    expect(screen.queryByText('No data found')).not.toBeInTheDocument();
+  });
+
+  test('resets pageIndex to 0 when data becomes empty (pageCount === 0)', () => {
+    const { rerender } = render(renderPaginatedDataTable([], 5));
+
+    // zero rows => pageCount === 0; the empty state renders without errors
+    expect(screen.getByText('No data found')).toBeInTheDocument();
+
+    // pageIndex was reset to 0, so restoring data lands on the first page
+    // rather than resuming from the stale index
+    rerender(renderPaginatedDataTable(data));
+    expect(screen.getByText('Michael')).toBeInTheDocument();
+  });
+});
