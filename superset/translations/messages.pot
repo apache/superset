@@ -203,6 +203,10 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -9082,6 +9086,9 @@ msgstr ""
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr ""
 
@@ -13626,6 +13633,9 @@ msgstr[1] ""
 msgid "The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
@@ -13857,6 +13867,9 @@ msgid "The time unit for each block. Should be a smaller unit than domain_granul
 msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
+msgstr ""
+
+msgid "The transform could not be evaluated against the database."
 msgstr ""
 
 msgid "The two passwords that you entered do not match!"
@@ -14804,6 +14817,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Token Request URI"
+msgstr ""
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 
 #, python-format
