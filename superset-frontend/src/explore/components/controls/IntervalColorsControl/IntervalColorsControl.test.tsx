@@ -98,6 +98,22 @@ test('resolves legacy interval_color_indices against the color scheme for displa
   expect(screen.getByText('#2CA02C')).toBeInTheDocument();
 });
 
+test('disables editing while intervals has a blank token between numbers', () => {
+  render(
+    <IntervalColorsControl
+      onChange={jest.fn()}
+      intervals="20,,60"
+      colorScheme="testScheme"
+    />,
+  );
+
+  // The blank middle token means the list is still being edited; don't
+  // allow commits that would misalign colors once the blank is filled in.
+  document.querySelectorAll('.ant-color-picker-trigger').forEach(trigger => {
+    expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
+  });
+});
+
 test('explicit value takes precedence over legacy indices', () => {
   render(
     <IntervalColorsControl

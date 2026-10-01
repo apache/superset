@@ -28,6 +28,14 @@ test('tokenizeToNumericArray drops blank tokens, including an embedded one', () 
   expect(tokenizeToNumericArray(undefined)).toBeNull();
 });
 
+test('tokenizeToNumericArray trims whitespace and drops non-numeric and non-finite tokens', () => {
+  expect(tokenizeToNumericArray(' 20 , 40 ')).toEqual([20, 40]);
+  expect(tokenizeToNumericArray('20,abc,60')).toEqual([20, 60]);
+  // Number('Infinity') is a finite-looking string that parses to a
+  // non-finite number -- must be dropped like any other unusable token.
+  expect(tokenizeToNumericArray('20,Infinity,60')).toEqual([20, 60]);
+});
+
 test('isRangesInputComplete is true for an empty or fully numeric list', () => {
   expect(isRangesInputComplete(undefined)).toBe(true);
   expect(isRangesInputComplete('')).toBe(true);
@@ -46,4 +54,12 @@ test('isRangesInputComplete is false for a blank token between two numbers', () 
 test('isRangesInputComplete is false for a non-numeric token anywhere', () => {
   expect(isRangesInputComplete('20,abc,60')).toBe(false);
   expect(isRangesInputComplete('abc')).toBe(false);
+});
+
+test('isRangesInputComplete is false when a blank token precedes the tolerated trailing one', () => {
+  // '20,,' -- the embedded blank isn't the (tolerated) trailing token.
+  expect(isRangesInputComplete('20,,')).toBe(false);
+  // ',' -- after dropping the tolerated trailing blank, the only
+  // remaining token is itself blank.
+  expect(isRangesInputComplete(',')).toBe(false);
 });
