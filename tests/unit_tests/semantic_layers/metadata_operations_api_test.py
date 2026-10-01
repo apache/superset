@@ -437,9 +437,16 @@ def test_disabled_metadata_mapping_leaves_dao_failure_to_global_handler(
 
 
 @pytest.mark.parametrize(
-    "route,status", [("structure", 422), ("runtime", 400), ("views", 400)]
+    "route,status,enabled",
+    [
+        ("structure", 422, False),
+        ("runtime", 400, False),
+        ("views", 400, False),
+        ("structure", 503, True),
+        ("views", 503, True),
+    ],
 )
-def test_disabled_provider_database_error_keeps_route_response(
+def test_provider_database_error_respects_metadata_error_mapping(
     app: Flask,
     client: FlaskClient,
     full_api_access: None,
@@ -447,9 +454,10 @@ def test_disabled_provider_database_error_keeps_route_response(
     monkeypatch: pytest.MonkeyPatch,
     route: str,
     status: int,
+    enabled: bool,
 ) -> None:
-    """Legacy provider failures retain each route's original response contract."""
-    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", False)
+    """Provider failures use safe mapping only when metadata refresh is enabled."""
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", enabled)
     model: Mock = Mock(type="test")
     error: OperationalError = OperationalError("statement", {}, Exception("provider"))
     response: TestResponse
@@ -477,6 +485,9 @@ def test_disabled_provider_database_error_keeps_route_response(
             model.implementation.get_semantic_views.side_effect = error
             response = client.post(f"/api/v1/semantic_layer/{VIEW_UUID}/views", json={})
     assert response.status_code == status
+    if enabled:
+        assert response.json["error"] == "unavailable"
+        assert "provider" not in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(
