@@ -77,6 +77,38 @@ def test_add_into_a_container_added_in_the_same_batch() -> None:
     assert result["nodes"]["n0"]["children"] == ["n2", "n1"]
 
 
+GROUP_ID = "6f1c2b7e-2d4a-4c1e-9a53-0f3b8d2e7a10"
+
+
+def test_add_takes_a_caller_id_that_later_ops_can_reference() -> None:
+    result, applied = apply(
+        empty_definition(),
+        add("group", id=GROUP_ID),
+        add("chart-1", parent=GROUP_ID),
+        {"op": "place", "id": GROUP_ID, "layout": {"colSpan": 12}},
+    )
+
+    assert result["root"]["children"] == [GROUP_ID]
+    assert result["nodes"][GROUP_ID]["children"] == ["n0"]
+    assert result["nodes"][GROUP_ID]["layout"]["colSpan"] == 12
+    assert applied[0].op["id"] == GROUP_ID
+
+
+def test_add_rejects_an_id_already_in_use() -> None:
+    doc = build(add("group", id=GROUP_ID))
+
+    with pytest.raises(OperationError, match="already exists"):
+        apply(doc, add("chart-1", id=GROUP_ID))
+
+
+@pytest.mark.parametrize(
+    "node_id", ["root", "n0", GROUP_ID.upper(), GROUP_ID.replace("-", "")]
+)
+def test_add_rejects_ids_that_are_not_canonical_uuids(node_id: str) -> None:
+    with pytest.raises(ValueError, match="should match pattern"):
+        ops(add("chart-1", id=node_id))
+
+
 def test_add_into_a_leaf_is_rejected() -> None:
     with pytest.raises(OperationError, match="'n0' cannot hold children"):
         build(add("chart-1"), add("chart-2", parent="n0"))
@@ -147,11 +179,11 @@ def test_place_updates_layout_and_resolves_collisions() -> None:
 
 
 def test_all_operations_apply_or_none_do() -> None:
-    doc = build(add("chart-1"))
+    doc = build(add("chart-1", id=GROUP_ID))
 
     with pytest.raises(DefinitionValidationError):
-        apply(doc, add("chart-2"), add("missing-1"))
-    assert list(doc["nodes"]) == ["n0"]
+        apply(doc, add("chart-2"), add("tab"))
+    assert list(doc["nodes"]) == [GROUP_ID]
 
 
 def test_unknown_node() -> None:

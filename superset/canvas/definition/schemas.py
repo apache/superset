@@ -18,7 +18,7 @@
 The dashboard canvas and the operations that change it.
 
 A canvas is where a dashboard's widgets sit: a flat ``nodes`` map keyed by
-server-generated ids, with the tree expressed through ``children`` id lists.
+UUID node ids, with the tree expressed through ``children`` id lists.
 A node references a widget by id and holds only its placement; widget
 configuration lives with the widget. The root is not a node: it always
 exists, is always a grid, and is addressed as ``"root"`` in operations.
@@ -34,6 +34,9 @@ from pydantic.alias_generators import to_camel
 
 DEFINITION_VERSION = 1
 ROOT_ID = "root"
+# Caller-chosen node ids must be canonical lowercase UUIDs, like the ones the
+# server generates, so every reference to a node spells it the same way.
+NODE_ID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 
 class _Model(BaseModel):
@@ -107,9 +110,15 @@ def empty_definition() -> dict[str, Any]:
 
 
 class AddOp(_Model):
-    """Place a widget under ``parent``; the server assigns the node id."""
+    """
+    Place a widget under ``parent``.
+
+    The node id is the caller's ``id`` when given, so later operations in the
+    same request can reference the new node; otherwise the server assigns one.
+    """
 
     op: Literal["add"]
+    id: str | None = Field(default=None, pattern=NODE_ID_PATTERN)
     widget: str = Field(min_length=1, max_length=64)
     layout: dict[str, Any] = Field(default_factory=dict)
     parent: str = ROOT_ID

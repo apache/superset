@@ -67,7 +67,7 @@ class Touch:
 
 @dataclass
 class AppliedOperation:
-    # The operation as logged; ``add`` carries the node id the server assigned.
+    # The operation as logged; ``add`` always carries the new node's id.
     op: dict[str, Any]
     touched: list[Touch] = field(default_factory=list)
 
@@ -179,7 +179,9 @@ class _Applier:
     def apply(self, op: Operation) -> AppliedOperation:
         logged = op.model_dump(mode="json", by_alias=True, exclude_none=True)
         if isinstance(op, AddOp):
-            node_id = self.new_id()
+            node_id = op.id or self.new_id()
+            if node_id in self.nodes:
+                raise ValueError(f"node {node_id!r} already exists")
             self.insert(self.children(op.parent), node_id, op.index)
             self.nodes[node_id] = {"widget": op.widget, "layout": op.layout}
             return AppliedOperation(

@@ -193,6 +193,30 @@ def test_write_from_the_future_is_stale(
     assert response.json["stale"] is True
 
 
+def test_caller_ids_let_one_request_build_a_nested_layout(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    group_id = "6f1c2b7e-2d4a-4c1e-9a53-0f3b8d2e7a10"
+
+    response = patch_ops(
+        client,
+        1,
+        add("group", id=group_id),
+        add("chart-1", parent=group_id),
+        add("chart-2", parent=group_id),
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"]["revision"] == 2
+    assert response.json["result"]["ops"][0]["id"] == group_id
+    nodes = json.loads(canvas.definition)["nodes"]
+    assert len(nodes[group_id]["children"]) == 2
+
+    retried = patch_ops(client, 2, add("group", id=group_id))
+    assert retried.status_code == 422
+    assert canvas.revision == 2
+
+
 def test_invalid_operation_reports_its_index(
     client: Any, full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
