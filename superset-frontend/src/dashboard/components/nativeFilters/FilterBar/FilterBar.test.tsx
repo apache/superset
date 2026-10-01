@@ -29,7 +29,7 @@ import {
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset, makeApi } from '@superset-ui/core';
+import { Preset, makeApi, fetchTimeRange } from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
@@ -47,9 +47,14 @@ jest.useFakeTimers({ advanceTimers: true });
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   makeApi: jest.fn(),
+  fetchTimeRange: jest.fn(),
 }));
 
 const mockedMakeApi = makeApi as jest.Mock;
+
+const mockedFetchTimeRange = fetchTimeRange as jest.MockedFunction<
+  typeof fetchTimeRange
+>;
 
 // Register preset once for all tests
 class MainPreset extends Preset {
@@ -203,6 +208,7 @@ function setupTimeRangeMocks() {
     noFilter: 'glob:*/api/v1/time_range/?q=%27No%20filter%27',
     lastDay: 'glob:*/api/v1/time_range/?q=%27Last%20day%27',
     lastWeek: 'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+    currentMonth: 'glob:*/api/v1/time_range/?q=%27Current%20month%27',
   };
 
   fetchMock.removeRoute(urls.noFilter);
@@ -236,6 +242,19 @@ function setupTimeRangeMocks() {
       },
     },
     { name: urls.lastWeek },
+  );
+
+  fetchMock.removeRoute(urls.currentMonth);
+  fetchMock.get(
+    urls.currentMonth,
+    {
+      result: {
+        since: '2021-04-01T00:00:00',
+        until: '2021-05-01T00:00:00',
+        timeRange: 'Current month',
+      },
+    },
+    { name: urls.currentMonth },
   );
 }
 
@@ -1414,38 +1433,46 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   ).not.toBeInTheDocument();
 });
 
-test('FilterBar keeps a configured filter selected when its applied data mask is removed', async () => {
-  fetchMock.post(
-    'glob:*/api/v1/chart/data',
-    {
-      result: [
-        {
-          data: [{ region: 'East' }, { region: 'West' }],
-          colnames: ['region'],
-          coltypes: [1],
-          applied_filters: [],
-        },
-      ],
-    },
-    { name: 'configured-filter-selected-chart-data' },
-  );
+test('FilterBar preserves a selected time range when its applied data mask is removed', async () => {
+  setupTimeRangeMocks();
 
-  const filterId = 'NATIVE_FILTER-keep-selected';
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2021-04-07T00:00:00 ≤ ds < 2021-04-14T00:00:00',
+  });
+
+  fetchMock.post('glob:*/api/v1/chart/data', {
+    result: [
+      {
+        data: [{ ds: '2021-04-14T00:00:00' }],
+        colnames: ['ds'],
+        coltypes: [2],
+        applied_filters: [],
+      },
+    ],
+  });
+
+  const filterId = 'NATIVE_FILTER-keep-time-range';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
   const filter = createFilter({
     id: filterId,
-    name: 'Region',
-    filterType: 'filter_select',
-    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    name: 'Time range',
+    filterType: 'filter_time',
+    targets: [{ datasetId: 7, column: { name: 'ds' } }],
+    defaultDataMask: {
+      filterState: { value: 'Last week' },
+      extraFormData: { time_range: 'Last week' },
+    },
     chartsInScope: [18],
   });
 
   const state = createStateWithFilter(
     filter,
-    createDataMask(filterId, ['East'], {
-      filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+    createDataMask(filterId, 'Last week', {
+      time_range: 'Last week',
     }),
     {
-      filterBarOrientation: FilterBarOrientation.Vertical,
+      filterBarOrientation: FilterBarOrientation.Horizontal,
       metadata: {
         native_filter_configuration: [filter],
         chart_configuration: {},
@@ -1455,31 +1482,97 @@ test('FilterBar keeps a configured filter selected when its applied data mask is
 
   const store = createStore(state, reducerIndex);
 
-  render(
-    <FilterBar
-      orientation={FilterBarOrientation.Vertical}
-      verticalConfig={{
-        width: 280,
-        height: 400,
-        offset: 0,
-        ...createOpenedBarProps(),
-      }}
-    />,
-    { store, useDnd: true, useRouter: true },
-  );
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    store,
+    useDnd: true,
+    useRouter: true,
+  });
 
   await act(async () => {
     jest.advanceTimersByTime(1000);
   });
 
-  expect(screen.getByText('Region')).toBeInTheDocument();
-  expect(screen.getByTitle('East')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByText('Last week')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Last week'));
+
+  const rangeType = screen.getByLabelText('Range type');
+  await userEvent.click(rangeType);
+  await userEvent.click(screen.getByText('Current'));
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Current month' }));
+
+  const timeFilterApply = screen.getByTestId(
+    'date-filter-control__apply-button',
+  );
+  expect(timeFilterApply).not.toBeNull();
+  expect(timeFilterApply).not.toBeDisabled();
+
+  await userEvent.click(timeFilterApply!);
+
+  const filterBarApply = screen.getByTestId(getTestId('apply-button'));
+  expect(filterBarApply).toBeEnabled();
+
+  await userEvent.click(filterBarApply);
+
+  expect(updateDataMaskSpy).toHaveBeenCalledWith(
+    filterId,
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: 'Current month',
+      }),
+      extraFormData: {
+        time_range: 'Current month',
+      },
+    }),
+  );
+
+  expect(store.getState().dataMask[filterId]).toEqual(
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: 'Current month',
+      }),
+      extraFormData: {
+        time_range: 'Current month',
+      },
+    }),
+  );
+
+  expect(screen.getByText('Current month')).toBeInTheDocument();
 
   await act(async () => {
     store.dispatch(dataMaskActions.removeDataMask(filterId));
     jest.advanceTimersByTime(300);
   });
 
-  expect(screen.getByText('Region')).toBeInTheDocument();
-  expect(screen.getByTitle('East')).toBeInTheDocument();
+  expect(screen.getByText('Current month')).toBeInTheDocument();
+
+  const clearAllButton = screen.getByText('Clear all');
+  await userEvent.click(clearAllButton);
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+
+  await userEvent.click(screen.getByTestId(getTestId('apply-button')));
+
+  expect(updateDataMaskSpy).toHaveBeenLastCalledWith(
+    filterId,
+    expect.objectContaining({
+      id: filterId,
+      filterState: {
+        value: undefined,
+        validateStatus: undefined,
+      },
+      extraFormData: {},
+    }),
+  );
+
+  updateDataMaskSpy.mockRestore();
 });
