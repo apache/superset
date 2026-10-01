@@ -96,6 +96,21 @@ describe('Timeseries buildQuery', () => {
     ).not.toContain('sort');
   });
 
+  test('should not repeat the dot size metric when it is also the sort-only metric', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['A'],
+      size: 'B',
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'B',
+      x_axis_sort: 'B',
+      x_axis_sort_asc: false,
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['A', 'B']);
+  });
+
   test('should not query the limit metric with dimensions when the axis is sorted by a series aggregate', () => {
     const queryContext = buildQuery({
       ...formData,
