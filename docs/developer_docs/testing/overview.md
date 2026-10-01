@@ -169,7 +169,7 @@ npm run test:coverage
 
 - **Jest** - Unit and integration testing framework
 - **React Testing Library** - Component testing utilities
-- **Playwright** - End-to-end testing (replacing Cypress)
+- **Playwright** - End-to-end testing
 - **Storybook** - Component development and testing
 
 ---

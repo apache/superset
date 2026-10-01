@@ -175,6 +175,7 @@ export type InternalControlType =
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
+  | 'HeaderGroupsControl'
   | 'HiddenControl'
   | 'JSEditorControl'
   | 'SelectAsyncControl'
