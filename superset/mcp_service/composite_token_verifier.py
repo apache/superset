@@ -27,7 +27,6 @@ Routes Bearer tokens to the appropriate verifier based on prefix:
   rejected at the transport layer.
 """
 
-import asyncio
 import logging
 from typing import Any
 
@@ -180,14 +179,23 @@ class CompositeTokenVerifier(TokenVerifier):
         """
         if any(token.startswith(prefix) for prefix in self._api_key_prefixes):
             if self._app is not None:
-                from superset.mcp_service.worker import transport_executor
-
-                loop = asyncio.get_running_loop()
-                # Metadata I/O on the transport side shares a bounded,
-                # pool-budgeted executor with audit writes and RBAC filtering.
-                result = await loop.run_in_executor(
-                    transport_executor(self._app), self._validate_api_key_sync, token
+                from superset.mcp_service.worker import (
+                    ApiKeyLookupBusyError,
+                    run_api_key_lookup,
                 )
+
+                # Lookups get their own bounded, pool-budgeted thread so that
+                # unauthenticated requests cannot delay audit writes or RBAC
+                # filtering on the shared transport thread.
+                try:
+                    result = await run_api_key_lookup(
+                        self._app, self._validate_api_key_sync, token
+                    )
+                except ApiKeyLookupBusyError:
+                    logger.warning(
+                        "Too many API key lookups in flight; rejecting token"
+                    )
+                    return None
                 if result is None:
                     logger.debug(
                         "API key rejected at transport layer (invalid or expired)"

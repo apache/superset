@@ -66,18 +66,19 @@ Both bounds come out of one budget: the metadata pool's capacity,
 `pool_size + max_overflow`. A warehouse-capable call can hold a metadata
 connection for the whole of its warehouse query and cancelling it needs
 another; a metadata-only call holds at most one; and the server's own
-metadata I/O (tool-list filtering, audit writes, error hooks, API-key
-lookups) runs on one bounded thread. Admission keeps
-`2 * MCP_TOOL_WORKERS + MCP_METADATA_TOOL_WORKERS + 1` within the capacity,
+metadata I/O (tool-list filtering, audit writes, error hooks) runs on one
+bounded thread, and API-key lookups on another of their own, so requests
+with unknown keys cannot delay audit writes or RBAC filtering. Admission keeps
+`2 * MCP_TOOL_WORKERS + MCP_METADATA_TOOL_WORKERS + 2` within the capacity,
 so even with every slot in use no metadata connection checkout waits for
 another holder. By default (`None`) warehouse-capable calls get about a third
-of the connections left after the transport thread, and metadata-only calls
+of the connections left after those two threads, and metadata-only calls
 what remains, each up to 16. With SQLAlchemy's default pool (5 + 10
-connections) that is 4 warehouse-capable and 6 metadata-only calls. To admit
+connections) that is 4 warehouse-capable and 5 metadata-only calls. To admit
 more, raise the pool for the MCP process, for example
-`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}` (13 and
-13). Explicit values above the budget are reduced with a startup warning, and
-a pool with fewer than 3 connections is rejected at startup. The server never
+`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}` (12 and
+14). Explicit values above the budget are reduced with a startup warning, and
+a pool with fewer than 4 connections is rejected at startup. The server never
 waits for a metadata connection on its event loop.
 
 Tool-list and search permission checks, success/error audit writes, response-size

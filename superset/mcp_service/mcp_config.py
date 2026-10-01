@@ -77,9 +77,9 @@ MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
 # Both bounds come out of one metadata-pool budget (capacity is pool_size +
 # max_overflow): 2 * MCP_TOOL_WORKERS (each call plus its cancellation) +
 # MCP_METADATA_TOOL_WORKERS + 1 transport-side metadata thread (tools/list
-# filtering, audit writes, error hooks, API-key lookups) never exceeds it, so
-# no checkout waits for another holder even with every slot admitted. None
-# admits about a third of the remaining connections, up to 16 (4 with the
+# filtering, audit writes, error hooks) + 1 API-key lookup thread never exceeds
+# it, so no checkout waits for another holder even with every slot admitted.
+# None admits about a third of the remaining connections, up to 16 (4 with the
 # default 5 + 10 pool); larger values are reduced with a startup warning.
 MCP_TOOL_WORKERS: int | None = None
 
@@ -88,7 +88,7 @@ MCP_TOOL_WORKERS: int | None = None
 # of MCP_TOOL_WORKERS. They never hold a metadata connection across warehouse
 # I/O, so they keep answering while slow queries fill MCP_TOOL_WORKERS. One
 # that reaches a warehouse must also take an MCP_TOOL_WORKERS slot. None admits
-# what the budget above leaves, up to 16 (6 with the default 5 + 10 pool);
+# what the budget above leaves, up to 16 (5 with the default 5 + 10 pool);
 # larger values are reduced with a startup warning. 0 admits them under
 # MCP_TOOL_WORKERS instead.
 MCP_METADATA_TOOL_WORKERS: int | None = None

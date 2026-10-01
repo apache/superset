@@ -123,6 +123,8 @@ class WorkerPool:
         size: int,
         metadata_size: int = 0,
         transport_size: int = 1,
+        auth_size: int = 1,
+        auth_pending: int = 32,
     ) -> None:
         if size < 1:
             raise ValueError("MCP_TOOL_WORKERS must be positive")
@@ -146,6 +148,12 @@ class WorkerPool:
         self.transport = ThreadPoolExecutor(
             transport_size, thread_name_prefix="mcp-metadata"
         )
+        # API-key lookups run before a caller is authenticated, so they get
+        # their own thread: a flood of bad keys or a slow lookup must not
+        # delay audit writes and RBAC filtering. Pending lookups are capped;
+        # past the cap a key is rejected rather than queued.
+        self.auth = ThreadPoolExecutor(auth_size, thread_name_prefix="mcp-auth")
+        self.auth_slots = threading.BoundedSemaphore(auth_pending)
 
     def admission(self, metadata_only: bool) -> threading.BoundedSemaphore:
         """Choose the bound a call is admitted under."""
@@ -205,6 +213,12 @@ DEFAULT_TOOL_WORKERS = 16
 DEFAULT_METADATA_TOOL_WORKERS = 16
 # Threads, and so metadata connections, for transport-side metadata I/O.
 TRANSPORT_METADATA_THREADS = 1
+# Threads, and so metadata connections, for transport-side API-key lookups.
+API_KEY_AUTH_THREADS = 1
+# API-key lookups admitted at once, running or waiting; more are rejected.
+API_KEY_AUTH_PENDING = 32
+# Metadata connections held by transport-side threads rather than tool calls.
+RESERVED_METADATA_THREADS = TRANSPORT_METADATA_THREADS + API_KEY_AUTH_THREADS
 
 
 def _metadata_pool_capacity(app: Flask) -> int | None:
@@ -237,9 +251,10 @@ def admission_counts(app: Flask) -> tuple[int, int]:
     - each warehouse-capable call can hold one for the whole of its warehouse
       I/O, and its cancellation needs another (``2 * workers``);
     - each metadata-only call holds at most one (``metadata_workers``);
-    - transport-side metadata I/O runs on ``TRANSPORT_METADATA_THREADS``.
+    - transport-side metadata I/O runs on ``TRANSPORT_METADATA_THREADS`` and
+      API-key lookups on ``API_KEY_AUTH_THREADS``.
 
-    ``2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS`` never
+    ``2 * workers + metadata_workers + RESERVED_METADATA_THREADS`` never
     exceeds the pool's capacity, so with every slot admitted no checkout
     waits for another holder. Unless configured, warehouse calls get about
     two thirds of the remaining connections and metadata-only calls the
@@ -261,13 +276,13 @@ def admission_counts(app: Flask) -> tuple[int, int]:
             if configured_metadata is None
             else configured_metadata,
         )
-    available = capacity - TRANSPORT_METADATA_THREADS
+    available = capacity - RESERVED_METADATA_THREADS
     limit = available // 2
     if limit < 1:
         raise ValueError(
             f"The metadata database pool allows {capacity} connections; "
             "MCP tool execution needs at least "
-            f"{2 + TRANSPORT_METADATA_THREADS}"
+            f"{2 + RESERVED_METADATA_THREADS}"
         )
     if configured is None:
         workers = min(DEFAULT_TOOL_WORKERS, max(1, available // 3))
@@ -277,7 +292,7 @@ def admission_counts(app: Flask) -> tuple[int, int]:
             "pool allows %s; admitting %s concurrent tool calls. Raise the pool's "
             "pool_size/max_overflow in SQLALCHEMY_ENGINE_OPTIONS to admit more.",
             configured,
-            2 * configured + TRANSPORT_METADATA_THREADS,
+            2 * configured + RESERVED_METADATA_THREADS,
             capacity,
             limit,
         )
@@ -320,12 +335,20 @@ def _get_pool(app: Flask) -> WorkerPool:
             size, metadata_size = admission_counts(app)
             logger.info(
                 "MCP tool calls admitted concurrently: %s warehouse-capable, "
-                "%s metadata-only; %s transport metadata thread(s)",
+                "%s metadata-only; %s transport metadata thread(s), "
+                "%s API-key lookup thread(s)",
                 size,
                 metadata_size,
                 TRANSPORT_METADATA_THREADS,
+                API_KEY_AUTH_THREADS,
             )
-            _pools[app] = WorkerPool(size, metadata_size, TRANSPORT_METADATA_THREADS)
+            _pools[app] = WorkerPool(
+                size,
+                metadata_size,
+                TRANSPORT_METADATA_THREADS,
+                API_KEY_AUTH_THREADS,
+                API_KEY_AUTH_PENDING,
+            )
         return _pools[app]
 
 
@@ -550,6 +573,29 @@ def _current_app() -> Flask:
 def transport_executor(app: Flask) -> ThreadPoolExecutor:
     """Bounded threads for transport-side metadata I/O, within the pool budget."""
     return _get_pool(app).transport
+
+
+class ApiKeyLookupBusyError(Exception):
+    """Every API-key lookup slot is taken; the key was not checked."""
+
+
+async def run_api_key_lookup(app: Flask, fn: Callable[[str], _T], token: str) -> _T:
+    """Check an API key on its own bounded thread, apart from other metadata I/O.
+
+    Raises ``ApiKeyLookupBusyError`` instead of queueing past the pending cap. The
+    slot is released when the lookup finishes, or when it is cancelled before
+    it starts, never merely because its awaiter went away.
+    """
+    pool = _get_pool(app)
+    if not pool.auth_slots.acquire(blocking=False):
+        raise ApiKeyLookupBusyError
+    try:
+        future = pool.auth.submit(fn, token)
+    except BaseException:
+        pool.auth_slots.release()
+        raise
+    future.add_done_callback(lambda _: pool.auth_slots.release())
+    return await asyncio.wrap_future(future)
 
 
 async def _run_on_transport_thread(app: Flask, fn: Callable[[], _T]) -> _T:

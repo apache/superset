@@ -41,8 +41,9 @@ from superset.utils import json
 
 WORKERS = 2
 # The smallest pool that admits WORKERS tool calls: one connection per tool
-# worker, one per cancellation worker, and one for transport-side lookups.
-POOL_SIZE = 2 * WORKERS + 1
+# worker, one per cancellation worker, one for transport-side metadata I/O and
+# one for API-key lookups.
+POOL_SIZE = 2 * WORKERS + 2
 
 
 @pytest.fixture
@@ -165,15 +166,15 @@ async def test_saturated_workers_holding_metadata_pool_do_not_freeze_loop(
     ("pool_options", "configured", "configured_metadata", "expected"),
     [
         # SQLAlchemy's default QueuePool lends 5 + 10 connections.
-        ({}, None, None, (4, 6)),
-        ({}, 16, None, (7, 0)),
-        ({}, 4, None, (4, 6)),
+        ({}, None, None, (4, 5)),
+        ({}, 16, None, (6, 1)),
+        ({}, 4, None, (4, 5)),
         ({}, None, 2, (4, 2)),
-        ({}, None, 16, (4, 6)),
+        ({}, None, 16, (4, 5)),
         ({}, 5, 0, (5, 0)),
-        ({"pool_size": 20, "max_overflow": 20}, None, None, (13, 13)),
-        ({"pool_size": 20, "max_overflow": 20}, 19, None, (19, 1)),
-        ({"pool_size": 2, "max_overflow": 1}, None, None, (1, 0)),
+        ({"pool_size": 20, "max_overflow": 20}, None, None, (12, 14)),
+        ({"pool_size": 20, "max_overflow": 20}, 19, None, (19, 0)),
+        ({"pool_size": 2, "max_overflow": 2}, None, None, (1, 0)),
         ({"max_overflow": -1}, 32, None, (32, 16)),
         ({"poolclass": NullPool}, None, None, (16, 16)),
     ],
@@ -188,14 +189,15 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
 ) -> None:
     """Every bounded holder of a metadata connection fits the pool at once.
 
-    Each warehouse call and its cancellation, each metadata-only call and each
-    transport-side metadata thread can hold one connection simultaneously.
+    Each warehouse call and its cancellation, each metadata-only call, the
+    transport-side metadata thread and the API-key lookup thread can hold one
+    connection simultaneously.
     """
     from superset.mcp_service.worker import (
         admission_counts,
         metadata_tool_worker_count,
+        RESERVED_METADATA_THREADS,
         tool_worker_count,
-        TRANSPORT_METADATA_THREADS,
     )
 
     engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}", **pool_options)
@@ -219,7 +221,7 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
         if isinstance(engine.pool, QueuePool) and engine.pool._max_overflow >= 0:
             capacity = engine.pool.size() + engine.pool._max_overflow
             assert (
-                2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS <= capacity
+                2 * workers + metadata_workers + RESERVED_METADATA_THREADS <= capacity
             )
     finally:
         engine.dispose()
@@ -238,7 +240,7 @@ def test_metadata_pool_too_small_for_cancellation_is_rejected(
         patch.object(
             type(db), "engine", new_callable=PropertyMock, return_value=engine
         ),
-        pytest.raises(ValueError, match="needs at least 3"),
+        pytest.raises(ValueError, match="needs at least 4"),
     ):
         tool_worker_count(app)
     engine.dispose()
@@ -737,12 +739,16 @@ def default_pool_engine(app: Any, tmp_path: Path) -> Iterator[Engine]:
 async def test_saturated_default_pool_never_waits_for_a_connection(
     app: Any, default_pool_engine: Engine
 ) -> None:
-    """All warehouse slots, their cancellations, all metadata-only slots and
-    the transport thread hold a connection at once without any checkout
-    waiting, and admission refuses the next call instead of overdrawing.
+    """All warehouse slots, their cancellations, all metadata-only slots, the
+    transport thread and the API-key lookup thread hold a connection at once
+    without any checkout waiting, and admission refuses the next call instead
+    of overdrawing.
     """
     from superset.mcp_service.worker import (
         admission_counts,
+        API_KEY_AUTH_THREADS,
+        RESERVED_METADATA_THREADS,
+        run_api_key_lookup,
         run_in_metadata_thread,
         run_in_worker,
         TRANSPORT_METADATA_THREADS,
@@ -750,11 +756,13 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
     )
 
     workers, metadata_workers = admission_counts(app)
-    assert (workers, metadata_workers) == (4, 6)
-    holders = 2 * workers + metadata_workers + TRANSPORT_METADATA_THREADS
+    assert (workers, metadata_workers) == (4, 5)
+    holders = 2 * workers + metadata_workers + RESERVED_METADATA_THREADS
     assert holders == 15
-    pool = WorkerPool(workers, metadata_workers, TRANSPORT_METADATA_THREADS)
-    holding = threading.Barrier(workers + metadata_workers + 2)
+    pool = WorkerPool(
+        workers, metadata_workers, TRANSPORT_METADATA_THREADS, API_KEY_AUTH_THREADS
+    )
+    holding = threading.Barrier(workers + metadata_workers + 3)
     release = threading.Event()
 
     def hold() -> int:
@@ -778,6 +786,16 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
                 for _ in range(metadata_workers)
             ]
             calls.append(asyncio.create_task(run_in_metadata_thread(hold)))
+
+            def lookup(token: str) -> int:
+                """An API-key lookup, which owns its app context like FAB's."""
+                with app.app_context():
+                    try:
+                        return hold()
+                    finally:
+                        db.session.remove()
+
+            calls.append(asyncio.create_task(run_api_key_lookup(app, lookup, "k")))
             # What each warehouse call's cancellation can hold.
             cancellations = [default_pool_engine.connect() for _ in range(workers)]
             try:
@@ -797,6 +815,7 @@ async def test_saturated_default_pool_never_waits_for_a_connection(
         pool.executor.shutdown()
         pool.cancellations.shutdown()
         pool.transport.shutdown()
+        pool.auth.shutdown()
     assert default_pool_engine.pool.checkedout() == 0
 
 
@@ -924,3 +943,4 @@ def test_lazy_pool_creation_keeps_callers_session(
             pool.executor.shutdown()
             pool.cancellations.shutdown()
             pool.transport.shutdown()
+            pool.auth.shutdown()
