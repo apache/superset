@@ -66,7 +66,8 @@ class RuntimeLayer(OptedInLayer):
     indirect=True,
 )
 @pytest.mark.parametrize(
-    "outcome", ["refreshed", "denied", "invalid", "missing_adapter"]
+    "outcome",
+    ["refreshed", "denied", "invalid", "missing_adapter", "missing_bound_adapter"],
 )
 def test_runtime_endpoint_returns_refreshed_bound_choices(
     app: Flask,
@@ -119,6 +120,12 @@ def test_runtime_endpoint_returns_refreshed_bound_choices(
             new_callable=PropertyMock,
             return_value=None,
         )
+        if outcome == "missing_bound_adapter":
+            # Exercise the endpoint's guard independently of the binding guard.
+            mocker.patch(
+                "superset.semantic_layers.metadata_binding.layer_implementation",
+                return_value=RuntimeLayer(),
+            )
     response: TestResponse = client.post(
         f"/api/v1/semantic_layer/{layer.uuid}/schema/runtime",
         json={"runtime_data": {"database": "warehouse"}},
