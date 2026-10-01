@@ -42,9 +42,9 @@ def test_version_cache_prefix_preserves_callable_partitioning() -> None:
 
 
 def test_build_caching_settings_empty_config():
-    """Empty config returns empty settings."""
+    """Empty config only carries the always-excluded tools."""
     result = _build_caching_settings({})
-    assert result == {}
+    assert result == {"call_tool_settings": {"excluded_tools": ["get_catalog"]}}
 
 
 def test_build_caching_settings_list_ttls():
@@ -83,8 +83,16 @@ def test_build_caching_settings_call_tool_with_exclusions():
 
     assert result["call_tool_settings"] == {
         "ttl": 3600,
-        "excluded_tools": ["execute_sql", "generate_chart"],
+        "excluded_tools": ["execute_sql", "generate_chart", "get_catalog"],
     }
+
+
+def test_build_caching_settings_always_excludes_catalog():
+    """The per-user catalog is never cached, even if the operator's
+    excluded_tools list omits it or is empty."""
+    for config in ({}, {"call_tool_ttl": 60}, {"excluded_tools": []}):
+        result = _build_caching_settings(config)
+        assert "get_catalog" in result["call_tool_settings"]["excluded_tools"]
 
 
 def test_create_response_caching_middleware_returns_none_when_disabled():
@@ -281,3 +289,56 @@ async def test_excluded_tools_covers_every_mutating_tool():
         f"These mutating tools are cacheable because they're missing from "
         f"MCP_CACHE_CONFIG['excluded_tools']: {sorted(missing)}"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("proxy_name", [None, "call_tool", "invoke_tool"])
+async def test_catalog_cache_exclusion_survives_revocation(
+    proxy_name: str | None,
+) -> None:
+    """Neither direct calls nor the search proxy may replay a catalog page."""
+    from fastmcp import Client, FastMCP
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    search_config = {"enabled": True, "call_tool_name": proxy_name or "call_tool"}
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+        "MCP_TOOL_SEARCH_CONFIG": search_config,
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("catalog-cache-test", middleware=[middleware])
+    visible_names = ["Sales"]
+    calls = 0
+
+    @server.tool
+    def get_catalog() -> list[str]:
+        """Simulate a live catalog projection after a grant lookup."""
+        nonlocal calls
+        calls += 1
+        return list(visible_names)
+
+    if proxy_name:
+        _apply_tool_search_transform(server, search_config)
+    arguments = {"name": "get_catalog", "arguments": {}} if proxy_name else {}
+    async with Client(server) as client:
+        first = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert first.data == ["Sales"]
+        visible_names.clear()
+        second = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert second.data == []
+    assert calls == 2

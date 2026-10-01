@@ -26,12 +26,19 @@ import logging
 import textwrap
 import threading
 from ast import literal_eval
-from contextlib import closing, contextmanager, nullcontext, suppress
+from contextlib import (
+    AbstractContextManager,
+    closing,
+    contextmanager,
+    ExitStack,
+    nullcontext,
+    suppress,
+)
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING, TypeVar
 
 import numpy
 import pandas as pd
@@ -88,14 +95,18 @@ from superset.superset_typing import (
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_query_source_from_request, get_username
+from superset.utils.database import find_user_for_impersonation
 from superset.utils.oauth2 import (
     check_for_oauth2,
+    execute_with_oauth2_retry,
     get_oauth2_access_token,
+    is_oauth2_retry_active,
     OAuth2ClientConfigSchema,
 )
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 # Per-process SQLAlchemy engine cache (#27897). Key is
 # (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
@@ -537,6 +548,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             else None
         )
 
+    def get_impersonation_email(self, object_url: URL | None = None) -> str | None:
+        """
+        Get the email address of the user being impersonated.
+
+        Resolves the effective login against the metadata database. DB engine
+        specs that need the email (or a part of it) to build a connection must
+        call this rather than looking the login up themselves: the lookup is a
+        metadata-DB read that can inherit a failed transaction from earlier in
+        the request, and centralising it keeps that handling in one place.
+
+        :param object_url: URL to read the login from; defaults to this
+            database's own URL
+        :return: The impersonated user's email, or ``None`` if there is no
+            effective user or the login has no email on record
+        """
+        username = self.get_effective_user(object_url or self.url_object)
+        if not username:
+            return None
+
+        user = find_user_for_impersonation(username)
+        return user.email if user and user.email else None
+
+    def get_impersonation_username(self, object_url: URL | None = None) -> str | None:
+        """
+        Get the username to impersonate on the analytic database.
+
+        With ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled this is the local part of
+        the user's email address; otherwise it is the effective login. Falls
+        back to the login when the flag is on but the user has no email on
+        record, matching the behaviour of a connection made without the flag.
+
+        :param object_url: URL to read the login from; defaults to this
+            database's own URL
+        :return: The username to connect as, or ``None`` if there is no
+            effective user
+        """
+        username = self.get_effective_user(object_url or self.url_object)
+        if not username or not is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+            return username
+
+        email = self.get_impersonation_email(object_url)
+        return email.split("@")[0] if email else username
+
     @contextmanager
     def get_sqla_engine(  # pylint: disable=too-many-arguments
         self,
@@ -603,35 +657,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         sqlalchemy_uri=sqlalchemy_uri,
                         cacheable=not prequeries,
                     )
-                    if prequeries:
-                        # SQLAlchemy connect event: runs prequeries on every new
-                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
-                        def run_prequeries(
-                            dbapi_connection: Any,
-                            connection_record: Any,  # pylint: disable=unused-argument
-                        ) -> None:
-                            cursor = dbapi_connection.cursor()
-                            try:
-                                for prequery in prequeries:
-                                    cursor.execute(prequery)
-                            finally:
-                                cursor.close()
+                    from superset.sql.execution.cancellation import cancellable_engine
 
-                        sqla.event.listen(engine, "connect", run_prequeries)
-                        try:
+                    with cancellable_engine(self, engine, catalog, schema):
+                        if prequeries:
+                            # SQLAlchemy connect event: runs prequeries on every new
+                            # DBAPI connection (e.g. SET search_path for PostgreSQL).
+                            def run_prequeries(
+                                dbapi_connection: Any,
+                                connection_record: Any,  # pylint: disable=unused-argument
+                            ) -> None:
+                                cursor = dbapi_connection.cursor()
+                                try:
+                                    from superset.sql.execution.cancellation import (
+                                        cancellable_cursor,
+                                        check_query_deadline,
+                                        query_executed,
+                                    )
+
+                                    with cancellable_cursor(
+                                        self, cursor, catalog, schema
+                                    ):
+                                        for prequery in prequeries:
+                                            check_query_deadline()
+                                            cursor.execute(prequery)
+                                            query_executed()
+                                finally:
+                                    cursor.close()
+
+                            sqla.event.listen(engine, "connect", run_prequeries)
+                            try:
+                                yield engine
+                            finally:
+                                sqla.event.remove(engine, "connect", run_prequeries)
+                                # The engine is private (cacheable=False above), so
+                                # nothing else can hold a reference: dispose it to
+                                # release its pool immediately. With the default
+                                # nullpool=True this is a no-op safety net; it
+                                # matters if a caller ever passes nullpool=False,
+                                # where each private engine would otherwise keep a
+                                # short-lived QueuePool alive until GC.
+                                engine.dispose()
+                        else:
                             yield engine
-                        finally:
-                            sqla.event.remove(engine, "connect", run_prequeries)
-                            # The engine is private (cacheable=False above), so
-                            # nothing else can hold a reference: dispose it to
-                            # release its pool immediately. With the default
-                            # nullpool=True this is a no-op safety net; it
-                            # matters if a caller ever passes nullpool=False,
-                            # where each private engine would otherwise keep a
-                            # short-lived QueuePool alive until GC.
-                            engine.dispose()
-                    else:
-                        yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -662,11 +730,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         )
         engine_kwargs["connect_args"] = connect_args
 
-        effective_username = self.get_effective_user(sqlalchemy_url)
-        if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-            user = security_manager.find_user(username=effective_username)
-            if user and user.email:
-                effective_username = user.email.split("@")[0]
+        effective_username = self.get_impersonation_username(sqlalchemy_url)
 
         oauth2_config = self.get_oauth2_config()
         access_token = (
@@ -773,15 +837,48 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
     ) -> Connection:
-        with self.get_sqla_engine(
-            catalog=catalog,
-            schema=schema,
-            nullpool=nullpool,
-            source=source,
-        ) as engine:
-            with check_for_oauth2(self):
-                with closing(engine.raw_connection()) as conn:
-                    yield conn
+        @contextmanager
+        def open_connection() -> Iterator[Connection]:
+            with self.get_sqla_engine(
+                catalog=catalog,
+                schema=schema,
+                nullpool=nullpool,
+                source=source,
+            ) as engine:
+                with check_for_oauth2(self):
+                    with closing(engine.raw_connection()) as conn:
+                        yield conn
+
+        with self._open_with_oauth2_retry(open_connection) as conn:
+            yield conn
+
+    @contextmanager
+    def _open_with_oauth2_retry(
+        self,
+        open_context: Callable[[], AbstractContextManager[T]],
+    ) -> Iterator[T]:
+        """
+        Enter ``open_context()``, refreshing a rejected OAuth2 token once.
+
+        Some databases (Snowflake, for example) reject an access token when the
+        connection logs in. If the token store still holds that token as unexpired,
+        the valid refresh token is never used and the user is asked to sign in
+        again. Only entering the context is retried: the caller's block has not run,
+        so nothing has been executed on the database. Errors raised by the caller's
+        block are not retried here.
+        """
+        user_id = getattr(getattr(g, "user", None), "id", None)
+        if user_id is None or not self.is_oauth2_enabled() or is_oauth2_retry_active():
+            # No user token to refresh, or an outer operation owns the recovery.
+            with open_context() as value:
+                yield value
+            return
+
+        with ExitStack() as stack:
+            yield execute_with_oauth2_retry(
+                self,
+                lambda: stack.enter_context(open_context()),
+            )
 
     def get_default_catalog(self) -> str | None:
         """
@@ -943,33 +1040,43 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
             notify_cursor(cursor)
 
-            for i, statement in enumerate(script.statements):
-                # For a single statement, execute the original SQL as-is. Re-rendering
-                # via statement.format() would round-trip through sqlglot
-                rendered = sql if len(script.statements) == 1 else statement.format()
-                sql_ = self.mutate_sql_based_on_config(
-                    rendered,
-                    is_split=True,
-                )
-                _log_query(sql_)
+            from superset.sql.execution.cancellation import (
+                cancellable_cursor,
+                check_query_deadline,
+                query_executed,
+            )
 
-                with event_logger.log_context(
-                    action="execute_sql",
-                    database=self,
-                    object_ref=__name__,
-                ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+            with cancellable_cursor(self, cursor, catalog, schema):
+                for i, statement in enumerate(script.statements):
+                    check_query_deadline()
+                    # Execute a single statement as-is; statement.format()
+                    # would round-trip through sqlglot.
+                    rendered = (
+                        sql if len(script.statements) == 1 else statement.format()
+                    )
+                    sql_ = self.mutate_sql_based_on_config(
+                        rendered,
+                        is_split=True,
+                    )
+                    _log_query(sql_)
 
-                # Fetch results from last statement if requested
-                if fetch_last_result and i == len(script.statements) - 1:
-                    rows = self.db_engine_spec.fetch_data(cursor)
-                    # Some asynchronous DB-API drivers expose placeholder metadata
-                    # until fetching waits for the operation to finish.
-                    description = cursor.description
-                else:
-                    # Consume results without storing
-                    cursor.fetchall()
+                    with event_logger.log_context(
+                        action="execute_sql",
+                        database=self,
+                        object_ref=__name__,
+                    ):
+                        self.db_engine_spec.execute(cursor, sql_, self)
+                        query_executed()
 
+                    # Fetch results from last statement if requested
+                    if fetch_last_result and i == len(script.statements) - 1:
+                        rows = self.db_engine_spec.fetch_data(cursor)
+                        # Some asynchronous DB-API drivers expose placeholder metadata
+                        # until fetching waits for the operation to finish.
+                        description = cursor.description
+                    else:
+                        # Consume results without storing
+                        cursor.fetchall()
             return cursor, rows, description
 
     def execute_sql_statements(
@@ -1220,8 +1327,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            yield sqla.inspect(engine)
+        @contextmanager
+        def open_inspector() -> Iterator[Inspector]:
+            with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+                # Defensive: redundant with get_sqla_engine's own check_for_oauth2.
+                with check_for_oauth2(self):
+                    yield sqla.inspect(engine)
+
+        with self._open_with_oauth2_retry(open_inspector) as inspector:
+            yield inspector
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog:{catalog}:schema_list",
@@ -1515,6 +1629,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             logger.error(ex, exc_info=True)
             raise SupersetGenericDBErrorException(message=str(ex)) from ex
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
+            # Let the engine spec fill values it can derive (e.g. endpoints from
+            # the connection host) before the schema requires them.
+            oauth2_client_info = self.db_engine_spec.resolve_oauth2_client_info(
+                self, oauth2_client_info
+            )
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
             if "request_content_type" not in oauth2_client_info:
