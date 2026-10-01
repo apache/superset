@@ -4343,6 +4343,11 @@ msgstr "Stĺpce ke čtenie"
 msgid "Columns to show in the tooltip."
 msgstr "Stĺpce k zobrazenie v tooltipu."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Kombinovať metriky"
 
@@ -8333,6 +8338,9 @@ msgstr "Názov skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zostávajúce riadky zoskupiť do skupiny \"Ostatné\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

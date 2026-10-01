@@ -96,6 +96,7 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import { ChartCustomizationPlugins } from 'src/constants';
 import {
   filterSupportsDependencies,
   getFiltersConfigModalTestId,
@@ -395,6 +396,12 @@ const FiltersConfigForm = (
     // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
 
+  // The Dynamic Group By customization lets builders curate which columns
+  // viewers may group by via a column allowlist (stored in controlValues).
+  const isDynamicGroupBy =
+    isChartCustomization &&
+    itemTypeField === ChartCustomizationPlugins.DynamicGroupBy;
+
   const getDatasetId = () => {
     if (isChartCustomization) {
       if (formFilter?.dataset?.value) {
@@ -585,6 +592,46 @@ const FiltersConfigForm = (
       if (triggerFormChange) formChanged();
     },
     [filterId, form, formChanged],
+  );
+
+  // Seed a Dynamic Group By control's allowlist with every groupable column so
+  // it defaults to "all selected" (builders can then deselect to restrict).
+  // Only seeds when no allowlist is set yet: a freshly created control, a
+  // legacy control that never stored one, or one whose dataset just changed
+  // (which clears the allowlist). An existing selection, including a
+  // deliberately narrowed or emptied one, is never overwritten. The column
+  // names come from the same source that populates the multi-select options,
+  // so the default matches exactly what the builder can choose from.
+  //
+  // The full groupable set is also recorded in the form-only
+  // `groupableColumns` field. On save, an allowlist that still selects every
+  // groupable column collapses back to unset (see
+  // collapseFullColumnsAllowlist), so the seed never freezes a snapshot of
+  // the dataset's columns into the saved config.
+  const seedGroupByAllowlist = useCallback(
+    (columnNames: string[]) => {
+      if (!isDynamicGroupBy) {
+        return;
+      }
+      const currentControlValues =
+        form.getFieldValue(['filters', filterId, 'controlValues']) || {};
+      const shouldSeed =
+        columnNames.length > 0 &&
+        currentControlValues.columnsAllowlist === undefined;
+      setNativeFilterFieldValues(form, filterId, {
+        groupableColumns: columnNames,
+        ...(shouldSeed
+          ? {
+              controlValues: {
+                ...currentControlValues,
+                columnsAllowlist: columnNames,
+              },
+            }
+          : {}),
+      });
+      forceUpdate();
+    },
+    [isDynamicGroupBy, form, filterId, forceUpdate],
   );
 
   const hasPreFilter =
@@ -1173,6 +1220,21 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                // Columns are dataset-specific, so clear the
+                                // Group By allowlist when the dataset changes to
+                                // avoid stale entries. Clearing it to undefined
+                                // lets seedGroupByAllowlist re-seed the default
+                                // (all groupable columns) once the new dataset's
+                                // columns load.
+                                ...(isDynamicGroupBy
+                                  ? {
+                                      controlValues: {
+                                        ...formFilter?.controlValues,
+                                        columnsAllowlist: undefined,
+                                      },
+                                      groupableColumns: undefined,
+                                    }
+                                  : {}),
                               });
                             }
                             forceUpdate();
@@ -1214,6 +1276,72 @@ const FiltersConfigForm = (
                               : FilterPanels.configuration.name,
                             children: (
                               <>
+                                {isDynamicGroupBy &&
+                                  hasDataset &&
+                                  showDataset && (
+                                    <>
+                                      {/* Registers the form-only groupableColumns
+                                        field so validateFields returns it to the
+                                        save transform. */}
+                                      <FormItem
+                                        hidden
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'groupableColumns',
+                                        ]}
+                                      />
+                                      <StyledRowFormItem
+                                        expanded={expanded}
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'controlValues',
+                                          'columnsAllowlist',
+                                        ]}
+                                        initialValue={
+                                          customizationToEdit?.controlValues
+                                            ?.columnsAllowlist
+                                        }
+                                        label={
+                                          <>
+                                            <StyledLabel>
+                                              {t('Groupable columns')}
+                                            </StyledLabel>
+                                            &nbsp;
+                                            <InfoTooltip
+                                              placement="top"
+                                              tooltip={t(
+                                                'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                                              )}
+                                            />
+                                          </>
+                                        }
+                                        data-test="groupby-columns-allowlist"
+                                      >
+                                        <ColumnSelect
+                                          mode="multiple"
+                                          allowClear
+                                          form={form}
+                                          filterId={filterId}
+                                          datasetId={datasetId}
+                                          datasourceType={datasourceType}
+                                          // Match the viewer, which offers every
+                                          // column not explicitly marked
+                                          // non-filterable (filterable can be
+                                          // null for legacy columns).
+                                          filterValues={(column: Column) =>
+                                            column?.filterable !== false
+                                          }
+                                          onColumnsLoaded={seedGroupByAllowlist}
+                                          onChange={() => {
+                                            forceUpdate();
+                                            formChanged();
+                                          }}
+                                        />
+                                      </StyledRowFormItem>
+                                    </>
+                                  )}
                                 {canDependOnOtherFilters &&
                                   (hasAvailableFilters ||
                                     dependencies.length > 0) && (

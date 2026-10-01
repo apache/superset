@@ -4487,6 +4487,11 @@ msgstr "Columnes a llegir"
 msgid "Columns to show in the tooltip."
 msgstr "Informació d'ajuda de l'encapçalament de columna"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Combinar mètriques"
 
@@ -8633,6 +8638,9 @@ msgstr "Nom del grup"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Agrupa la resta com a \"Altres\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
