@@ -782,6 +782,14 @@ MCP_TOOL_SEARCH_CONFIG = {
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
 :::
 
+With either the `bm25` or `regex` strategy, a query matching a tool name is
+promoted ahead of other matches before the `max_results` limit is applied. Matching
+ignores case and treats underscores and whitespace as equivalent separators
+(including leading, trailing, or repeated whitespace). Only tools visible to
+the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
+rather than search results; non-exact queries retain BM25 ranking or regex
+catalog ordering.
+
 Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
 
 ### Session & CSRF

@@ -22,6 +22,7 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
+import inspect
 import logging
 import os
 from collections.abc import Sequence
@@ -304,7 +305,17 @@ def _truncate_description(text: str, max_length: int) -> str:
 
     Cuts at the last sentence boundary before *max_length*, or at
     *max_length* with an ellipsis if no sentence boundary is found.
+
+    Dedents first: Python 3.13 has the compiler strip a docstring's common
+    leading whitespace at compile time (``__doc__`` comes out already
+    cleaned), while 3.11/3.12 store it raw and leave that to the caller. A
+    multi-line tool docstring's raw, un-dedented form is longer per line, so
+    the same character budget lands at a different point in the text
+    depending on which Python compiled it. Cleaning here first makes the cut
+    point (and this function's callers' byte budgets) consistent regardless
+    of interpreter version.
     """
+    text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
     # Try to cut at the last sentence boundary
@@ -650,6 +661,31 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
+    def _promote_exact_name(
+        tools: Sequence[Tool],
+        query: str,
+        ranked: Sequence[Tool],
+        max_results: int,
+    ) -> Sequence[Tool]:
+        """Promote caller-visible exact names without duplicating ranked matches."""
+        normalized_query = " ".join(query.casefold().replace("_", " ").split())
+        exact = [
+            tool
+            for tool in tools
+            if " ".join(tool.name.casefold().replace("_", " ").split())
+            == normalized_query
+        ]
+        if not exact:
+            return ranked
+        # Only inspect the caller-filtered candidates, never the full catalog.
+        # The upstream top-N contains enough non-exact results to fill the
+        # remaining slots, without changing upstream ordering or shared limits.
+        exact_names = {tool.name for tool in exact}
+        return [
+            *exact,
+            *(tool for tool in ranked if tool.name not in exact_names),
+        ][:max_results]
+
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
@@ -660,6 +696,13 @@ def _create_search_transform(  # noqa: C901
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
                 return _filter_tools_by_current_user_permission(tools)
+
+            async def _search(
+                self, tools: Sequence[Tool], query: str
+            ) -> Sequence[Tool]:
+                """Promote visible exact names before applying the result limit."""
+                ranked = await super()._search(tools, query)
+                return _promote_exact_name(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -680,6 +723,11 @@ def _create_search_transform(  # noqa: C901
             """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
             return _filter_tools_by_current_user_permission(tools)
+
+        async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
+            """Promote visible exact names before applying the final result limit."""
+            ranked = await super()._search(tools, query)
+            return _promote_exact_name(tools, query, ranked, self._max_results)
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
