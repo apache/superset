@@ -1185,7 +1185,11 @@ response; pass `untabbed_only=true` (without `tab` or `tabs_only`) to list only
 those charts. The `scope` field echoes the applied `tabs_only`, resolved
 `tab_id`, and `untabbed_only` values, and is `null` for the full layout.
 Scoping only removes tabs and chart placements from the layout the caller can
-already retrieve.
+already retrieve. Conflicting scope options return an actionable
+`invalid_scope` error naming the options to remove; blank tab selectors return
+`tab_not_found` rather than widening the scope. On dashboards without tabs,
+`tabs_only=true` returns `tab_not_found` with guidance to use
+`untabbed_only=true` or request the full layout instead.
 
 Permalink active-tab and filter state remain unchanged; only an explicit `tab`
 scopes the response. Oversized layout errors suggest the next narrower scope:

@@ -53,6 +53,12 @@ def _resolve_tab(
     tabs: list[DashboardTab], selector: str
 ) -> DashboardTab | DashboardError:
     """Match a tab by ID first, then by exact title."""
+    if not selector.strip():
+        return DashboardError.create(
+            "tab must not be blank. Omit tab for the full layout or use "
+            "tabs_only=true to discover tab IDs and titles.",
+            "tab_not_found",
+        )
     if not tabs:
         return DashboardError.create(
             "This dashboard has no tabs. Omit tab to get the full layout.",
@@ -119,6 +125,14 @@ def _scope_layout(
     Scoping only ever removes tabs and chart placements from the parsed layout,
     so a scoped response never contains a chart the full layout would not.
     """
+    if request.untabbed_only and (request.tabs_only or request.tab is not None):
+        return DashboardError.create(
+            "untabbed_only cannot be combined with tab or tabs_only. "
+            "Drop tab and tabs_only to retrieve charts outside every tab, "
+            "or drop untabbed_only to use a tab scope.",
+            "invalid_scope",
+        )
+
     if not request.tabs_only and request.tab is None and not request.untabbed_only:
         return layout
 
@@ -132,6 +146,13 @@ def _scope_layout(
         )
 
     tabs = layout.tabs
+    if request.tabs_only and not tabs:
+        return DashboardError.create(
+            "This dashboard has no tabs. Use untabbed_only=true without tab "
+            "or tabs_only to get charts outside every tab, or omit the scope "
+            "options to get the full layout.",
+            "tab_not_found",
+        )
     children: dict[str | None, list[str]] = {}
     for tab in tabs:
         children.setdefault(tab.parent_tab_id, []).append(tab.id)
@@ -142,8 +163,8 @@ def _scope_layout(
         if isinstance(selected, DashboardError):
             return selected
         selected_tab_id = selected.id
-        selected_ids = _subtree_ids(selected.id, children)
-        tabs = [tab for tab in tabs if tab.id in selected_ids]
+        subtree_ids = _subtree_ids(selected.id, children)
+        tabs = [tab for tab in tabs if tab.id in subtree_ids]
 
     scope = DashboardLayoutScope(tabs_only=request.tabs_only, tab_id=selected_tab_id)
     if request.tabs_only:
@@ -156,6 +177,7 @@ def _scope_layout(
             }
         )
 
+    selected_ids: set[str] = {tab.id for tab in tabs}
     return layout.model_copy(
         update={
             "tabs": tabs,

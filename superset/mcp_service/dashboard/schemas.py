@@ -368,16 +368,10 @@ class GetDashboardLayoutRequest(BaseModel):
     )
     untabbed_only: bool = Field(
         default=False,
-        description="Only charts outside every tab.",
+        description=(
+            "Only charts outside every tab; cannot combine with tab or tabs_only."
+        ),
     )
-
-    @field_validator("tab")
-    @classmethod
-    def validate_tab(cls, value: str | None) -> str | None:
-        """Reject blank selectors rather than silently returning the full layout."""
-        if value is not None and not value.strip():
-            raise ValueError("tab must not be blank")
-        return value
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardLayoutRequest":
@@ -389,8 +383,6 @@ class GetDashboardLayoutRequest(BaseModel):
         )
         if identifier_is_blank and permalink_is_blank:
             raise ValueError("Provide identifier or permalink_key")
-        if self.untabbed_only and (self.tabs_only or self.tab is not None):
-            raise ValueError("untabbed_only cannot be combined with tab or tabs_only")
         return self
 
 

@@ -701,29 +701,37 @@ async def test_layout_tab_id_precedes_title_and_filters_placements(
 async def test_layout_tabs_only_without_tabs(
     mock_find: Mock, mcp_server: FastMCP, position: str | None
 ) -> None:
-    """Untabbed and malformed layouts have no summary entries or positions."""
+    """Tab discovery without tabs offers recovery instead of an empty layout."""
     mock_find.return_value = _build_dashboard_mock(position_json=position)
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "get_dashboard_layout", {"request": {"identifier": 1, "tabs_only": True}}
         )
     data = json.loads(result.content[0].text)
-    assert data["tabs"] == []
-    assert data["tab_tree"] == []
-    assert data["charts"] == []
-    assert data["scope"]["tabs_only"] is True
-    assert data["untabbed_chart_count"] == (1 if position == _simple_layout() else 0)
+    assert data["error_type"] == "tab_not_found"
+    assert "no tabs" in data["error"]
+    assert "untabbed_only=true" in data["error"]
+    assert "full layout" in data["error"]
+    assert "charts" not in data
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.parametrize("tab", ["", "   "])
-def test_layout_rejects_blank_tab(tab: str) -> None:
-    """A blank tab selector is not an implicit full-layout request."""
-    from pydantic import ValidationError
-
-    from superset.mcp_service.dashboard.schemas import GetDashboardLayoutRequest
-
-    with pytest.raises(ValidationError, match="tab must not be blank"):
-        GetDashboardLayoutRequest(identifier=1, tab=tab)
+@pytest.mark.asyncio
+async def test_layout_rejects_blank_tab(
+    mock_find: Mock, mcp_server: FastMCP, tab: str
+) -> None:
+    """Blank selectors return actionable errors through the MCP client."""
+    mock_find.return_value = _build_dashboard_mock(position_json=_tabbed_layout())
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout", {"request": {"identifier": 1, "tab": tab}}
+        )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "tab_not_found"
+    assert "tab must not be blank" in data["error"]
+    assert "tabs_only=true" in data["error"]
+    assert "charts" not in data
 
 
 def _mixed_layout() -> str:
@@ -886,19 +894,27 @@ async def test_layout_tab_on_untabbed_dashboard_does_not_loop(
     assert "tabs_only" not in data["error"]
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.parametrize(
     "options", [{"tabs_only": True}, {"tab": "TAB-1"}, {"tab": "X", "tabs_only": True}]
 )
-def test_layout_rejects_untabbed_only_with_tab_options(
-    options: dict[str, Any],
+@pytest.mark.asyncio
+async def test_layout_rejects_untabbed_only_with_tab_options(
+    mock_find: Mock, mcp_server: FastMCP, options: dict[str, Any]
 ) -> None:
-    """untabbed_only selects charts outside every tab, so tab scopes conflict."""
-    from pydantic import ValidationError
-
-    from superset.mcp_service.dashboard.schemas import GetDashboardLayoutRequest
-
-    with pytest.raises(ValidationError, match="untabbed_only cannot be combined"):
-        GetDashboardLayoutRequest(identifier=1, untabbed_only=True, **options)
+    """Conflicting scopes reach the client as actionable errors, not validation text."""
+    mock_find.return_value = _build_dashboard_mock(position_json=_mixed_layout())
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 1, "untabbed_only": True, **options}},
+        )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "invalid_scope"
+    assert "untabbed_only cannot be combined" in data["error"]
+    assert "Drop tab and tabs_only" in data["error"]
+    assert "drop untabbed_only" in data["error"]
+    assert "charts" not in data
 
 
 def _scoped_payload(position_json: str, **options: Any) -> dict[str, Any]:
