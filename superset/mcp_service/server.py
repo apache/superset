@@ -32,6 +32,7 @@ from typing import Annotated, Any, Callable
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from pydantic.fields import FieldInfo
 from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
@@ -301,8 +302,25 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+# A list item, an IMPORTANT marker, or a first line ending in a colon (heading).
+_STRUCTURED_PARAGRAPH = re.compile(
+    r"^\s*(?:[-*+]|\d+[.)])\s|^\W*IMPORTANT\b|\A[^\n]*:[ \t]*$", re.MULTILINE
+)
+
+
+def _complete_sentences(text: str, max_length: int) -> str:
+    """Return the longest prefix of *text* made of complete sentences."""
+    if max_length <= 0:
+        return ""
+    # Look one character past the budget so a boundary exactly at the limit counts.
+    boundaries = re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1])
+    ends = [match.end() for match in boundaries if match.end() <= max_length]
+    return text[: ends[-1]].strip() if ends else ""
+
+
 def _truncate_description(text: str, max_length: int) -> str:
-    """Keep whole paragraphs, or sentences in single-paragraph prose, within budget.
+    """Keep whole paragraphs, then whole sentences of the next one, within budget.
 
     Clean docstring indentation before applying the budget so the cut point
     is consistent across Python versions that store docstrings differently.
@@ -312,19 +330,43 @@ def _truncate_description(text: str, max_length: int) -> str:
     text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
-    # Do not leave a heading or a numbered/bulleted workflow partly advertised.
-    if paragraphs := list(re.finditer(r"\n\s*\n", text)):
-        ends = [match.start() for match in paragraphs if match.start() <= max_length]
-        return text[: ends[-1]].strip() if ends else ""
-    # Calling constraints belong in request schema metadata, not truncated prose.
-    boundaries = list(re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1]))
-    ends = [match.end() for match in boundaries if match.end() <= max_length]
-    return text[: ends[-1]].strip() if ends else ""
+    kept, rest = "", text
+    for match in _PARAGRAPH_BREAK.finditer(text):
+        if match.start() > max_length:
+            break
+        kept, rest = text[: match.start()].strip(), text[match.end() :]
+    following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
+    # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
+    if kept and _STRUCTURED_PARAGRAPH.search(following):
+        return kept
+    separator = "\n\n" if kept else ""
+    extra = _complete_sentences(following, max_length - len(kept) - len(separator))
+    return f"{kept}{separator}{extra}" if extra else kept
 
 
-def _request_instructions(input_schema: dict[str, Any]) -> str:
-    """Read unabridged calling instructions from the request wrapper's schema."""
-    return input_schema.get("properties", {}).get("request", {}).get("description", "")
+def _request_instructions(tool: Any) -> str:
+    """Return calling instructions authored on the tool's ``request`` parameter.
+
+    Only ``Field(description=...)`` on the parameter itself counts. Schema
+    dereferencing also copies the request model's docstring onto the served
+    ``request`` property; that is model documentation, not calling instructions,
+    and must not be advertised or deducted from the prose budget.
+    """
+    try:
+        signature = inspect.signature(tool.fn)
+    except (AttributeError, TypeError, ValueError):
+        return ""
+    if (parameter := signature.parameters.get("request")) is None:
+        return ""
+    fields = (*getattr(parameter.annotation, "__metadata__", ()), parameter.default)
+    return next(
+        (
+            field.description
+            for field in fields
+            if isinstance(field, FieldInfo) and field.description
+        ),
+        "",
+    )
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -379,9 +421,8 @@ def _build_summary_serializer(max_desc: int) -> Any:
                 mode="json", exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
-            instructions = ""
+            instructions = _request_instructions(tool)
             if input_schema := data.pop("inputSchema", None):
-                instructions = _request_instructions(input_schema)
                 hint = _extract_parameter_names(input_schema)
                 if hint:
                     data["parameters_hint"] = (
@@ -474,9 +515,9 @@ def _create_search_result_serializer(
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
-        for data in results:
+        for tool, data in zip(tools, results, strict=True):
             if desc := data.get("description"):
-                instructions = _request_instructions(data.get("inputSchema", {}))
+                instructions = _request_instructions(tool)
                 data["description"] = _truncate_description(
                     desc, max(0, max_desc - len(instructions))
                 )

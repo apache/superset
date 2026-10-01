@@ -475,8 +475,9 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # each tool's inputSchema. Inlining references duplicates shared chart models.
 # The legacy compact_schemas setting only selects the default description limit
 # (300 when True, 0 when False) if max_description_length is omitted.
-# Request-property descriptions carry untruncated calling instructions. Their
-# length is deducted from the prose budget; small limits omit prose instead.
+# Field descriptions on a tool's request parameter carry untruncated calling
+# instructions. Their length is deducted from the prose budget; small limits
+# omit prose instead. Request-model docstrings are not deducted.
 #
 # Rollback:
 # ---------

@@ -23,7 +23,12 @@ import re
 import pytest
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.server import _create_search_result_serializer
+from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+from superset.mcp_service.server import (
+    _create_search_result_serializer,
+    _request_instructions,
+    _truncate_description,
+)
 
 CONSTRAINTS = {
     "list_dashboards": ("Do NOT pass", "top-level", '{"request": {'),
@@ -119,13 +124,19 @@ async def test_oversized_registered_description_keeps_calling_constraints(
 
 @pytest.mark.asyncio
 async def test_direct_inventory_keeps_bounded_calling_metadata() -> None:
-    """Direct tools/list also carries instructions without relying on search."""
-    for tool in await mcp.list_tools(run_middleware=False):
+    """Served tools/list carries bounded instructions, measured after middleware.
+
+    The list_tools middleware inlines each request model, copying its docstring
+    onto ``properties.request``. Only authored request-parameter instructions
+    count toward the 300-character cap and the prose deduction.
+    """
+    for tool in await mcp.list_tools(run_middleware=True):
         schema = tool.to_mcp_tool().inputSchema
-        instructions = (
-            schema.get("properties", {}).get("request", {}).get("description", "")
-        )
+        served = schema.get("properties", {}).get("request", {})
+        instructions = _request_instructions(tool)
         assert len(instructions) <= 300, tool.name
+        if instructions:
+            assert served["description"] == instructions, tool.name
         if tool.name in CONSTRAINTS:
             assert all(part in instructions for part in CONSTRAINTS[tool.name])
 
@@ -439,8 +450,6 @@ async def test_docstring_constraints_survive_default_discovery(
     name: str, include_schemas: bool
 ) -> None:
     """Default compact and summary results keep each constraint the docstring states."""
-    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
-
     tool = await mcp.get_tool(name)
     assert tool is not None
     docstring = re.sub(r"\s+", " ", tool.description or "")
@@ -466,8 +475,6 @@ async def test_default_discovery_keeps_purpose_line(
     name: str, include_schemas: bool
 ) -> None:
     """Request guidance must leave room for the docstring's first purpose sentence."""
-    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
-
     tool = await mcp.get_tool(name)
     assert tool is not None
     docstring = re.sub(r"\s+", " ", tool.description or "").strip()
@@ -521,7 +528,6 @@ async def test_direct_no_query_catalog_preserves_priority_guidance(
     """Reporter cases use real registrations and no-query search, without writes."""
     from unittest.mock import AsyncMock, MagicMock, patch
 
-    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
     from superset.mcp_service.server import _apply_tool_search_transform
     from superset.utils import json
 
@@ -577,8 +583,6 @@ async def test_direct_catalog_oversized_prose_keeps_bounded_guidance(name: str) 
 @pytest.mark.parametrize("name", DIRECT_CATALOG_CONSTRAINTS)
 async def test_reported_descriptions_truncate_at_whole_paragraphs(name: str) -> None:
     """The reported 300-char cut cannot leave a partial IMPORTANT block or step 1."""
-    from superset.mcp_service.server import _truncate_description
-
     tool = await mcp.get_tool(name)
     assert tool is not None
     description = inspect.cleandoc(tool.description or "")
@@ -589,3 +593,63 @@ async def test_reported_descriptions_truncate_at_whole_paragraphs(name: str) -> 
         description[: match.start()].strip()
         for match in re.finditer(r"\n\s*\n", description)
     ]
+
+
+TOOLS_WITH_REQUEST_INSTRUCTIONS = {*CONSTRAINTS, *DIRECT_CATALOG_CONSTRAINTS}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include_schemas", [True, False])
+async def test_served_discovery_keeps_untouched_tool_descriptions(
+    include_schemas: bool,
+) -> None:
+    """Inlined request-model docstrings never shrink other tools' served prose."""
+    tools = await mcp.list_tools(run_middleware=True)
+    config = {**MCP_TOOL_SEARCH_CONFIG, "include_schemas": include_schemas}
+    max_desc = config.get("max_description_length", 300)
+    entries = _create_search_result_serializer(config)(tools)
+    assert {tool.name for tool in tools} >= TOOLS_WITH_REQUEST_INSTRUCTIONS
+    for tool, entry in zip(tools, entries, strict=True):
+        assert entry["description"], tool.name
+        assert len(entry["description"]) <= max_desc, tool.name
+        if tool.name in TOOLS_WITH_REQUEST_INSTRUCTIONS:
+            continue
+        assert _request_instructions(tool) == "", tool.name
+        assert entry["description"] == _truncate_description(
+            tool.description or "", max_desc
+        ), tool.name
+        if not include_schemas and (hint := entry.get("parameters_hint")):
+            properties = tool.to_mcp_tool().inputSchema.get("properties", {})
+            assert hint == ", ".join(properties), tool.name
+
+
+# Tools whose served description was empty or lost a calling rule when the
+# request-model docstring was deducted, or when the next paragraph was dropped.
+UNTOUCHED_DESCRIPTION_PHRASES = {
+    "manage_dashboard_owners": "Owners can edit the dashboard",
+    "manage_dashboard_roles": "Dashboard access roles restrict who can view",
+    "get_chart_preview": "Returns preview URL or formatted content",
+    "get_chart_data": "Returns the actual data behind a chart",
+    "generate_bug_report": "Generate a copy-pasteable bug report",
+    "manage_dashboard_certification": "Set or clear a dashboard's certification",
+    "update_dashboard": "Patch an existing dashboard's layout",
+    "get_chart_sql": "Returns the SQL that a chart would execute",
+    "find_users": "Resolve a person's name to user IDs",
+    "delete_chart": "Identify the chart by numeric ID or UUID string (NOT chart name)",
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", UNTOUCHED_DESCRIPTION_PHRASES)
+@pytest.mark.parametrize("include_schemas", [True, False])
+async def test_served_discovery_regressions_keep_prose(
+    name: str, include_schemas: bool
+) -> None:
+    """Reported tools keep their default-limit prose in served search results."""
+    tools = await mcp.list_tools(run_middleware=True)
+    tool = next(item for item in tools if item.name == name)
+    config = {**MCP_TOOL_SEARCH_CONFIG, "include_schemas": include_schemas}
+    entry = _create_search_result_serializer(config)([tool])[0]
+    assert UNTOUCHED_DESCRIPTION_PHRASES[name] in re.sub(
+        r"\s+", " ", entry["description"]
+    ), (name, entry["description"])

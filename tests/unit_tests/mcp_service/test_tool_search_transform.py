@@ -429,6 +429,38 @@ def test_truncate_description_important_block_sentence(marker: str) -> None:
     assert _truncate_description(text, 100) == "Summary."
 
 
+def test_truncate_description_spends_budget_on_next_paragraph_sentences() -> None:
+    """A following prose paragraph contributes the complete sentences that fit."""
+    text = (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name). "
+        + "A long trailing sentence that cannot fit in the budget. " * 5
+    )
+    assert _truncate_description(text, 70) == (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name)."
+    )
+
+
+@pytest.mark.parametrize(
+    "following",
+    [
+        "Workflow:\n1. First step.\n2. Second step that is far too long " + "x" * 80,
+        "Steps follow.\n- First item.\n- Second item " + "x" * 80,
+        "Parameters:\n    None. Long text " + "x" * 80,
+    ],
+)
+def test_truncate_description_never_starts_structured_paragraph(
+    following: str,
+) -> None:
+    """Lists and headings after the kept paragraphs are never partly advertised."""
+    assert _truncate_description(f"Summary.\n\n{following}", 60) == "Summary."
+
+
+def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
+    """An overlong first paragraph still yields its complete leading sentences."""
+    text = "Purpose line. " + "More detail here. " * 20 + "\n\nSecond paragraph."
+    assert _truncate_description(text, 40) == "Purpose line. More detail here."
+
+
 # -- _create_search_result_serializer tests --
 
 
