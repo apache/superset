@@ -438,7 +438,7 @@ class DatasetValidator:
             from superset.mcp_service.auth import has_dataset_access
 
             if isinstance(dataset_id, int) or (
-                isinstance(dataset_id, str) and dataset_id.isdigit()
+                isinstance(dataset_id, str) and dataset_id.isdecimal()
             ):
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:
@@ -474,7 +474,7 @@ class DatasetValidator:
         if chart_type is None:
             return []
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
@@ -621,7 +621,7 @@ class DatasetValidator:
         if chart_type is None:
             return config
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning(
                 "No plugin for chart_type=%r; skipping column normalization", chart_type

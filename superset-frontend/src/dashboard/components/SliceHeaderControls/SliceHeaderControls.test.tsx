@@ -402,6 +402,49 @@ test('Should "Force refresh"', async () => {
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
+test('"Force refresh" is disabled while the chart is loading', async () => {
+  const props = createProps();
+  props.chartStatus = 'loading';
+  renderWrapper(props);
+  await openMenu();
+  const refreshItem = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItem).toHaveAttribute('aria-disabled', 'true');
+  await userEvent.click(screen.getByText('Force refresh'));
+  expect(props.forceRefresh).not.toHaveBeenCalled();
+});
+
+test('"Force refresh" becomes enabled after the chart transitions from loading to done', async () => {
+  const props = createProps();
+  props.chartStatus = 'loading';
+  const { rerender } = renderWrapper(props);
+  await openMenu();
+  expect(
+    screen.getByText('Force refresh').closest('[role="menuitem"]'),
+  ).toHaveAttribute('aria-disabled', 'true');
+
+  rerender(<SliceHeaderControls {...props} chartStatus="success" />);
+
+  const refreshItemAfterLoad = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItemAfterLoad).not.toHaveAttribute('aria-disabled', 'true');
+  await userEvent.click(screen.getByText('Force refresh'));
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('"Force refresh" is enabled once the chart is done loading', async () => {
+  const props = createProps();
+  props.chartStatus = 'rendered';
+  renderWrapper(props);
+  await openMenu();
+  const refreshItem = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItem).not.toHaveAttribute('aria-disabled', 'true');
+});
+
 test('Should sync local state after entering fullscreen', async () => {
   const mockDiv = document.createElement('div');
   let fullscreenElement: Element | null = null;

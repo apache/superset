@@ -439,6 +439,29 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
+class OAuth2RejectedError(SupersetErrorException):
+    """
+    Exception for when the OAuth2 callback itself can't be completed.
+
+    Raised when the provider denies authorization or the callback request
+    can't be trusted (missing/invalid state, no authenticated session).
+    These are conditions the caller could correct by retrying the OAuth2
+    flow, so unlike ``OAuth2Error`` this maps to a 4xx response instead of
+    a 500.
+    """
+
+    status = 400
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message=error,
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.WARNING,
+            )
+        )
+
+
 class SupersetDisallowedSQLFunctionException(SupersetErrorException):
     """
     Disallowed function found on SQL statement
@@ -463,6 +486,24 @@ class SupersetDisallowedSQLTableException(SupersetErrorException):
         super().__init__(
             SupersetError(
                 message=f"SQL statement references disallowed table(s): {tables}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class SupersetDisallowedClientFileTransferException(SupersetErrorException):
+    """
+    Client-side file-transfer command found in SQL statement
+    """
+
+    def __init__(self, commands: list[str]):
+        super().__init__(
+            SupersetError(
+                message=(
+                    "SQL statement contains disallowed client-side "
+                    f"file-transfer command(s): {', '.join(commands)}"
+                ),
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
             )
