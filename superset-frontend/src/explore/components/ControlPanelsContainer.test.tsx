@@ -27,11 +27,13 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
+import { getStandardizedControls } from '@superset-ui/chart-controls';
 import {
   DatasourceType,
   getChartControlPanelRegistry,
   isFeatureEnabled,
   FeatureFlag,
+  QueryFormData,
 } from '@superset-ui/core';
 import {
   defaultControls,
@@ -153,8 +155,30 @@ describe('ControlPanelsContainer', () => {
     ],
   };
 
+  // Consumes the standardized metrics/columns under field names the source viz
+  // never had, so values can only arrive through the StandardizedFormData
+  // transform and not by copying same-named form_data keys.
+  const switchMappedConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['size'], ['series_columns']],
+      },
+    ],
+    formDataOverrides: (formData: QueryFormData) => ({
+      ...formData,
+      size: getStandardizedControls().shiftMetric(),
+      series_columns: getStandardizedControls().popAllColumns(),
+    }),
+  };
+
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
+    getChartControlPanelRegistry().registerValue(
+      'switch-mapped',
+      switchMappedConfig,
+    );
     getChartControlPanelRegistry().registerValue(
       'switch-target',
       switchTargetConfig,
@@ -167,6 +191,7 @@ describe('ControlPanelsContainer', () => {
   afterEach(() => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().remove('switch-target');
+    getChartControlPanelRegistry().remove('switch-mapped');
     jest.clearAllMocks();
   });
 
@@ -737,19 +762,24 @@ describe('ControlPanelsContainer', () => {
       await screen.findByRole('button', { name: /group by/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/series limit/i)).not.toBeInTheDocument();
+    expect(
+      (store.getState() as ExplorePageState).explore.controls.limit,
+    ).toBeUndefined();
 
     act(() => {
       store.dispatch(setControlValue('viz_type', 'switch-target'));
     });
 
-    // `limit` exists only in the target viz, so its control is rendered from
-    // the control state the reducer built for that viz.
     expect(
       (await screen.findAllByText(/series limit/i)).length,
     ).toBeGreaterThan(0);
     expect(
       screen.queryByRole('button', { name: /group by/i }),
     ).not.toBeInTheDocument();
+    // The label above comes from the registered panel config, so also check the
+    // reducer built control state for `limit`, which only the target viz has.
+    const { controls } = (store.getState() as ExplorePageState).explore;
+    expect(controls.limit).toMatchObject({ label: 'Series limit' });
   });
 
   test('switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks', async () => {
@@ -774,5 +804,21 @@ describe('ControlPanelsContainer', () => {
     });
     expect(controls.all_columns).toBeUndefined();
     expect(formData.all_columns).toBeUndefined();
+  });
+
+  test('switching viz_type hands standardized metrics and columns to the target formDataOverrides', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-mapped'));
+    });
+
+    const { form_data: formData } = (store.getState() as ExplorePageState)
+      .explore;
+    expect(formData.viz_type).toBe('switch-mapped');
+    expect(formData.size).toBe('count');
+    expect(formData.series_columns).toEqual(['name', 'gender']);
   });
 });

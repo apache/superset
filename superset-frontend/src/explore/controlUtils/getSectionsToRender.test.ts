@@ -20,7 +20,10 @@ import {
   DatasourceType,
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import { getSectionsToRender } from './getSectionsToRender';
 
 const VIZ_TYPE = 'sections-to-render-test-viz';
@@ -54,6 +57,31 @@ function namesInSection(datasourceType: DatasourceType): string[] {
     .map(item => (typeof item === 'string' ? item : item?.name))
     .filter((name): name is string => Boolean(name));
 }
+
+const OBJECT_FORM_SECTION_LABEL = 'Object form controls';
+
+// Mix of string references (filtered by datasource type) and the object form
+// that real chart plugins use for the same controls.
+const objectFormConfig: ControlPanelConfig = {
+  controlPanelSections: [
+    {
+      label: OBJECT_FORM_SECTION_LABEL,
+      expanded: true,
+      controlSetRows: [
+        ['granularity'],
+        ['granularity_sqla'],
+        [{ name: 'granularity', config: sharedControls.granularity }],
+        [
+          {
+            name: 'granularity_sqla',
+            config: sharedControls.granularity_sqla,
+          },
+          { name: 'time_grain_sqla', config: sharedControls.time_grain_sqla },
+        ],
+      ],
+    },
+  ],
+};
 
 beforeEach(() => {
   getChartControlPanelRegistry().registerValue(VIZ_TYPE, controlConfig);
@@ -119,3 +147,33 @@ test('returns only the default sections for an unregistered viz type', () => {
   expect(sections.map(section => section?.label)).not.toContain(SECTION_LABEL);
   expect(sections.length).toBeGreaterThan(0);
 });
+
+test.each([
+  [
+    DatasourceType.Table,
+    ['granularity_sqla', 'granularity', 'granularity_sqla', 'time_grain_sqla'],
+  ],
+  [
+    DatasourceType.SemanticView,
+    ['granularity_sqla', 'granularity', 'granularity_sqla', 'time_grain_sqla'],
+  ],
+  [
+    DatasourceType.Dataset,
+    ['granularity', 'granularity', 'granularity_sqla', 'time_grain_sqla'],
+  ],
+])(
+  'documents that only string control references are filtered, object-form controls pass through, for %s datasources',
+  (datasourceType, expectedNames) => {
+    getChartControlPanelRegistry().registerValue(VIZ_TYPE, objectFormConfig);
+
+    const section = getSectionsToRender(VIZ_TYPE, datasourceType).find(
+      item => item?.label === OBJECT_FORM_SECTION_LABEL,
+    );
+    const rows = (section?.controlSetRows ?? []) as ExpandedRow[];
+    const names = rows
+      .flat()
+      .map(item => (typeof item === 'string' ? item : item?.name));
+
+    expect(names).toEqual(expectedNames);
+  },
+);
