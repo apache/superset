@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { Icons, Radio, Popover } from '../..';
+import { useState } from 'react';
+import { Icons, Popover, Radio } from '../..';
 
 export interface HeaderWithRadioGroupProps {
   headerTitle: string;
@@ -38,6 +38,8 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
       css={css`
         display: flex;
         align-items: center;
+        min-width: 0;
+        max-width: 100%;
       `}
     >
       <Popover
@@ -78,11 +80,22 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
           css={css`
             margin-top: ${theme.sizeUnit * 0.75}px;
             margin-right: ${theme.sizeUnit}px;
+            flex-shrink: 0;
           `}
           onClick={() => setPopoverVisible(true)}
         />
       </Popover>
-      {headerTitle}
+      <span
+        title={headerTitle}
+        css={css`
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          min-width: 0;
+        `}
+      >
+        {headerTitle}
+      </span>
     </div>
   );
 }

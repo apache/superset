@@ -35,7 +35,7 @@ export class DrillDetailModal extends Modal {
     FILTER_VALUE: '[data-test="filter-val"]',
     PAGE_ITEM: '.ant-pagination-item',
     ACTIVE_PAGE_ITEM: '.ant-pagination-item-active',
-    GRID_CELL: '.virtual-table-cell',
+    GRID_CELL: '.ant-table-tbody td.ant-table-cell',
   } as const;
 
   private readonly specificLocator: Locator;
@@ -88,7 +88,7 @@ export class DrillDetailModal extends Modal {
     return this.element.locator(DrillDetailModal.SELECTORS.ACTIVE_PAGE_ITEM);
   }
 
-  /** Cells of the virtualized results grid. */
+  /** Cells of the results table. */
   get gridCells(): Locator {
     return this.element.locator(DrillDetailModal.SELECTORS.GRID_CELL);
   }

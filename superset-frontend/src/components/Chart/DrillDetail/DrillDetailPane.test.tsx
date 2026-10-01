@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fetchMock from 'fetch-mock';
 import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
+import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import {
   fireEvent,
   render,
@@ -30,8 +32,6 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
-import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import DrillDetailPane from './DrillDetailPane';
 
@@ -193,7 +193,7 @@ test('should render loading indicator', async () => {
 test('should render the table with results', async () => {
   fetchWithData();
   await waitForRender();
-  expect(screen.getByRole('table')).toBeInTheDocument();
+  expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
   expect(screen.getByText('1996')).toBeInTheDocument();
   expect(screen.getByText('11.27')).toBeInTheDocument();
   expect(screen.getByText('1989')).toBeInTheDocument();

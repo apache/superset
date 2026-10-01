@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef, Key, FC } from 'react';
+import { FC, Key, useEffect, useRef, useState } from 'react';
 
-import { Table as AntTable } from 'antd';
-import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
-import { PaginationProps } from 'antd/es/pagination';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { useTheme, styled } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
+import { Table as AntTable } from 'antd';
+import { PaginationProps } from 'antd/es/pagination';
+import { TableProps as AntTableProps, ColumnsType } from 'antd/es/table';
 import { RowSelectionType } from 'antd/es/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable, { VirtualTableProps } from './VirtualTable';
@@ -45,9 +45,9 @@ export enum ETableAction {
   Filter = 'filter',
 }
 
-export type { ColumnsType };
 export type { TablePaginationConfig } from 'antd/es/table';
 export type { SorterResult } from 'antd/es/table/interface';
+export type { ColumnsType };
 export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
@@ -439,6 +439,9 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
+          // scroll.x splits the table into header and body copies. Only do that
+          // when a measured height needs an internal scroller (drill-to-detail).
+          scroll={bodyHeight ? { y: bodyHeight, x: true } : undefined}
           {...rest}
         />
       )}
@@ -446,8 +449,10 @@ export function Table<RecordType extends object>(
         <StyledVirtualTable
           {...sharedProps}
           scroll={{
-            y: 300,
-            x: '100vw',
+            // Use measured body height; a fixed 300px diverges from the Grid.
+            // Prefer content-based width over `100vw`, which breaks alignment in modals.
+            y: bodyHeight || 300,
+            x: true,
             // To avoid jest failure by scrollTo
             ...(process.env.WEBPACK_MODE === 'test' && {
               scrollToFirstRowOnChange: false,

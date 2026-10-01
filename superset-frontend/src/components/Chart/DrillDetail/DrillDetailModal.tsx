@@ -17,22 +17,22 @@
  * under the License.
  */
 
-import { useCallback, useContext, useEffect, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Modal } from '@superset-ui/core/components';
+import { useCallback, useContext, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import { RootState } from 'src/dashboard/types';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED } from 'src/logger/LogUtils';
 import { Slice } from 'src/types/Chart';
-import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Dataset } from '../types';
 import DrillDetailPane from './DrillDetailPane';
@@ -141,6 +141,10 @@ export default function DrillDetailModal({
         .ant-modal-body {
           display: flex;
           flex-direction: column;
+          /* Keep body height stable so the drill table can fill remaining space
+             without expanding to content height first. */
+          min-height: 0;
+          overflow: hidden;
         }
       `}
       name={t('Drill to detail: %s', chartName)}

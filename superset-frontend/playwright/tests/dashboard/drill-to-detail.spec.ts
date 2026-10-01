@@ -21,15 +21,14 @@
  * Regression coverage for the Drill to Detail modal's results table.
  *
  * The drill pane measures its available height with a resize detector and
- * hands it to a virtualized table, so the rows only render if the modal's
- * internal height chain (resizable wrapper -> modal container -> modal body ->
- * flex pane) actually resolves to a real height. That chain is wired together
- * with CSS selectors targeting Ant Design's internal modal classes, which
- * TypeScript cannot see and unit tests do not exercise: when the antd v6
- * upgrade renamed `.ant-modal-content` to `.ant-modal-container`, the chain
- * silently broke, the pane measured ~0, and the table briefly flashed its rows
- * before collapsing to an empty body with only the header and pagination
- * visible.
+ * sizes the results table from that measurement. The body keeps a stable
+ * height only if the modal's internal height chain (resizable wrapper ->
+ * modal container -> modal body -> flex pane) resolves to a real height.
+ * That chain is wired together with CSS selectors targeting Ant Design's
+ * internal modal classes, which TypeScript cannot see and unit tests do not
+ * exercise: when the antd v6 upgrade renamed `.ant-modal-content` to
+ * `.ant-modal-container`, the chain silently broke, the pane measured ~0,
+ * and the table body collapsed to the header and pagination.
  *
  * Only a real browser sees layout, so this is pinned here rather than in the
  * DOM-contract unit suite. Because the failure mode is
@@ -117,9 +116,8 @@ testWithAssets(
     const modal = page.locator('.ant-modal:visible');
     await expect(modal).toBeVisible({ timeout: TIMEOUT.FORM_LOAD });
 
-    // Wait for the samples request to resolve into a rendered table: the row
-    // count pill and the virtualized body both come from the loaded page.
-    const tableBody = modal.locator('.virtual-grid');
+    // Wait for the samples request to resolve into a rendered table body.
+    const tableBody = modal.locator('.ant-table-body');
     await expect(tableBody).toBeAttached({ timeout: TIMEOUT.CHART_RENDER });
 
     // The regression collapses the body *after* first paint, so first let the

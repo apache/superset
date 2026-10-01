@@ -33,6 +33,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
@@ -146,12 +147,31 @@ def get_tag(
     session: orm.Session,  # pylint: disable=disallowed-name
     type_: TagType,
 ) -> Tag:
+    """Return the tag for ``name``, creating it when missing.
+
+    The insert runs inside a SAVEPOINT. ``Tag.name`` is unique, so two requests
+    creating the same implicit tag (for example ``editor:1`` while charts are
+    created in parallel) would otherwise raise ``IntegrityError`` and poison the
+    surrounding transaction. On that conflict the savepoint rolls back and the
+    row the other request wrote is reloaded. The outer session is left intact.
+    """
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
-    if tag is None:
-        tag = Tag(name=tag_name, type=type_)
-        session.add(tag)
-        session.commit()
+    if tag is not None:
+        return tag
+
+    try:
+        with session.begin_nested():
+            tag = Tag(name=tag_name, type=type_)
+            session.add(tag)
+            session.flush()
+    except IntegrityError:
+        tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
+        if tag is None:
+            raise
+        return tag
+
+    session.commit()
     return tag
 
 

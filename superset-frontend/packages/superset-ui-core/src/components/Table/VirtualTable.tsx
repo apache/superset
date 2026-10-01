@@ -17,23 +17,23 @@
  * under the License.
  */
 
+import { styled, SupersetTheme, useTheme } from '@apache-superset/core/theme';
+import { safeHtmlSpan } from '@superset-ui/core';
 import { Table as AntTable } from 'antd';
 import {
-  TablePaginationConfig,
   TableProps as AntTableProps,
+  TablePaginationConfig,
 } from 'antd/es/table';
 import classNames from 'classnames';
+import { useCallback, useRef, useState, type UIEvent } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { useRef, useState, useCallback, type UIEvent } from 'react';
 import {
   Grid,
   type CellComponentProps,
   type GridImperativeAPI,
 } from 'react-window';
-import { safeHtmlSpan } from '@superset-ui/core';
-import { useTheme, styled, SupersetTheme } from '@apache-superset/core/theme';
 
-import { TableSize, ETableAction } from './index';
+import { ETableAction, TableSize } from './index';
 
 export interface VirtualTableProps<
   RecordType,
@@ -63,6 +63,11 @@ const StyledTable = styled(AntTable)(
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    /* Keep header scroll range aligned with the virtual body (scrollbar gutter). */
+    .ant-table-header {
+      overflow: hidden !important;
     }
 
     .ant-spin .ant-spin-dot {
@@ -177,7 +182,7 @@ const VirtualTable = <RecordType extends object>(
    * There are cases where a user could set the width of each column and the total width is less than width of
    * the table.  In this case we will stretch the last column to use the extra space
    */
-  if (totalWidth < tableWidth) {
+  if (totalWidth < tableWidth && mergedColumns.length > 0) {
     const lastColumn = mergedColumns[mergedColumns.length - 1];
     lastColumn.width =
       (lastColumn.width as number) + Math.floor(tableWidth - totalWidth);
@@ -238,7 +243,8 @@ const VirtualTable = <RecordType extends object>(
 
   const renderVirtualList = (
     rawData: readonly object[],
-    { ref, onScroll }: any,
+    // antd/rc-table CustomizeScrollBody info; keep loose for RefObject assignment
+    { scrollbarSize = 0, ref, onScroll }: any,
   ) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
@@ -250,7 +256,14 @@ const VirtualTable = <RecordType extends object>(
         columnCount={mergedColumns.length}
         columnWidth={(index: number) => {
           const { width = DEFAULT_COL_WIDTH } = mergedColumns[index];
-          return width as number;
+          const columnWidth = width as number;
+          // rc-table shrinks the last header column by scrollbarSize when a
+          // custom body is used (and adds a scrollbar gutter column). Mirror
+          // that reduction here so body cells stay aligned with headers.
+          if (index === mergedColumns.length - 1 && scrollbarSize > 0) {
+            return Math.max(columnWidth - scrollbarSize, 0);
+          }
+          return columnWidth;
         }}
         rowCount={rawData.length}
         rowHeight={() => cellSize}
