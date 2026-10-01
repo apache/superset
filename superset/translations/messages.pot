@@ -3733,9 +3733,6 @@ msgstr ""
 msgid "Combine metrics"
 msgstr ""
 
-msgid "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds."
-msgstr ""
-
 msgid "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. Last number should match the value provided for MAX."
 msgstr ""
 
