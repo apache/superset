@@ -583,11 +583,13 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    // AG Grid grows a column when its minWidth increases but keeps that
+    // width when minWidth drops, so refit whenever the column defs change.
     useEffect(() => {
       if (gridRef.current?.api) {
         gridRef.current.api.sizeColumnsToFit();
       }
-    }, [width]);
+    }, [width, colDefsFromProps]);
 
     // Row highlighting must reflect the active cross filter regardless of how
     // it was applied (cell click, context menu, or an external dashboard
