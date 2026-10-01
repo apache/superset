@@ -760,6 +760,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
 
+    # Can another thread read ``get_cancel_query_id`` from the live cursor
+    # while ``execute`` is still blocked? Clients that block until results are
+    # ready (e.g. Trino's) expose the id only then, which lets an execution
+    # owner cancel a query whose caller has given up.
+    has_query_id_during_execute = False
+
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
         """Build the bounded-read retry form of system-authored sampling SQL.
