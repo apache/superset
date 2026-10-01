@@ -104,4 +104,93 @@ describe('TextArea', () => {
     // Same editor instance picked up the new value; it was not remounted.
     expect(container.querySelector('.ace_editor')).toBe(editorNode);
   });
+
+  test('does not re-notify onChange when an external sync sets the editor value', async () => {
+    const onChange = jest.fn();
+    function Wrapper() {
+      const [initialValue, setInitialValue] = useState('first');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setInitialValue('synced-from-source')}
+          >
+            sync
+          </button>
+          <TextAreaControl
+            name="expr"
+            language="sql"
+            initialValue={initialValue}
+            onChange={onChange}
+          />
+        </>
+      );
+    }
+    const { container } = render(<Wrapper />);
+    await waitFor(() => {
+      expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
+    });
+    const editorNode = container.querySelector('.ace_editor') as HTMLElement & {
+      env: { editor: { getValue: () => string } };
+    };
+
+    fireEvent.click(screen.getByText('sync'));
+
+    await waitFor(() => {
+      expect(editorNode.env.editor.getValue()).toBe('synced-from-source');
+    });
+    // Ace's setValue() fires its own change event; that echo must not be
+    // mistaken for the user typing and bounced back up through onChange.
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('keeps syncing the inline editor after the edit-in-modal dialog is opened and closed', async () => {
+    function Wrapper() {
+      const [initialValue, setInitialValue] = useState('first');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setInitialValue('synced-from-source')}
+          >
+            sync
+          </button>
+          <TextAreaControl
+            name="expr"
+            language="sql"
+            initialValue={initialValue}
+            onChange={() => {}}
+          />
+        </>
+      );
+    }
+    const { container } = render(<Wrapper />);
+    await waitFor(() => {
+      expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
+    });
+    const inlineEditorNode = container.querySelector(
+      '.ace_editor',
+    ) as HTMLElement & {
+      env: { editor: { getValue: () => string } };
+    };
+
+    // Open, then close, the "edit in modal" dialog. Its own Ace instance
+    // mounts and is destroyed (destroyOnHidden) in the process; this used
+    // to leave the single shared editor ref pointing at that destroyed
+    // instance instead of the still-visible inline editor.
+    fireEvent.click(screen.getByRole('button', { name: /edit.*in modal/i }));
+    await waitFor(() => {
+      expect(container.querySelectorAll('.ace_editor')).toHaveLength(2);
+    });
+    fireEvent.click(screen.getByTestId('close-modal-btn'));
+    await waitFor(() => {
+      expect(container.querySelectorAll('.ace_editor')).toHaveLength(1);
+    });
+
+    fireEvent.click(screen.getByText('sync'));
+
+    await waitFor(() => {
+      expect(inlineEditorNode.env.editor.getValue()).toBe('synced-from-source');
+    });
+  });
 });

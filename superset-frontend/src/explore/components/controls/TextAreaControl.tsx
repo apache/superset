@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react';
 import { debounce } from 'lodash-es';
 import {
   Input,
@@ -51,6 +58,28 @@ interface AceEditorHandle {
   getCursorPosition: () => { row: number; column: number };
   moveCursorToPosition: (pos: { row: number; column: number }) => void;
   clearSelection: () => void;
+}
+
+// The inline editor and the "edit in modal" editor are two Ace instances
+// showing the same value; the modal one is unmounted (destroyOnHidden) each
+// time the modal closes. Clearing the matching ref on unmount stops a later
+// external sync from calling methods on that destroyed instance.
+function EditorUnmountGuard({
+  targetRef,
+  children,
+}: {
+  targetRef: MutableRefObject<AceEditorHandle | null>;
+  children: ReactNode;
+}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- targetRef is a
+  // stable useRef object; run only on mount/unmount, not on every render.
+  useEffect(
+    () => () => {
+      targetRef.current = null;
+    },
+    [],
+  );
+  return <>{children}</>;
 }
 
 interface TextAreaControlProps {
@@ -110,14 +139,26 @@ function TextAreaControl({
 }: TextAreaControlProps) {
   const theme = useTheme();
 
-  const editorRef = useRef<AceEditorHandle | null>(null);
-  // Tracks the value the Ace editor's own buffer currently holds, so an
+  // The inline editor and the "edit in modal" editor are tracked separately:
+  // both can be mounted at once (modal open), and the modal instance is
+  // unmounted/remounted independently of the inline one, so a single shared
+  // ref would end up pointing at whichever loaded last (see
+  // EditorUnmountGuard above for the unmount half of this).
+  const inlineEditorRef = useRef<AceEditorHandle | null>(null);
+  const modalEditorRef = useRef<AceEditorHandle | null>(null);
+  // Tracks the value each Ace editor's own buffer currently holds, so an
   // `initialValue` prop change caused by the user's own typing (echoed back
   // through onChange) can be told apart from a genuinely external update
   // (e.g. a "sync from source" action elsewhere). Only the latter should
   // push an imperative setValue(); doing it unconditionally would reset the
   // cursor to the end of the document on every keystroke.
-  const lastEditorValueRef = useRef<string | undefined>(initialValue ?? value);
+  const lastInlineValueRef = useRef<string | undefined>(initialValue ?? value);
+  const lastModalValueRef = useRef<string | undefined>(initialValue ?? value);
+  // Ace's setValue() fires its normal change event, so the imperative sync
+  // below would otherwise echo straight back out through onChange and look
+  // like the user just typed the synced value. Set while that call is in
+  // flight so handleChange can tell the echo apart from a real edit.
+  const isSyncingRef = useRef(false);
 
   const debouncedOnChangeRef = useRef<ReturnType<
     typeof debounce<(value: string) => void>
@@ -148,10 +189,20 @@ function TextAreaControl({
     [],
   );
 
+  // `inModal` tells us which editor's buffer this edit came from, so only
+  // that editor's "last known value" is marked as seen — the other editor
+  // (inline or modal) still looks stale to the sync effect below and picks
+  // the edit up too, keeping both presentations of the same value in sync.
   const handleChange = useCallback(
-    (val: string | { target: { value: string } }) => {
+    (val: string | { target: { value: string } }, inModal = false) => {
       const finalValue = typeof val === 'object' ? val.target.value : val;
-      lastEditorValueRef.current = finalValue;
+      (inModal ? lastModalValueRef : lastInlineValueRef).current = finalValue;
+      if (isSyncingRef.current) {
+        // This change event is the echo of our own imperative setValue()
+        // during an external sync, not the user typing; don't re-notify
+        // the parent with the value it just sent down.
+        return;
+      }
       if (debouncedOnChangeRef.current) {
         debouncedOnChangeRef.current(finalValue);
       } else {
@@ -162,8 +213,15 @@ function TextAreaControl({
   );
 
   const onEditorLoad = useCallback(
-    (editor: AceEditorHandle) => {
-      editorRef.current = editor;
+    (editor: AceEditorHandle, inModal = false) => {
+      const ref = inModal ? modalEditorRef : inlineEditorRef;
+      const lastValueRef = inModal ? lastModalValueRef : lastInlineValueRef;
+      ref.current = editor;
+      // Loading the Ace module is async, so by the time this fires
+      // `initialValue`/`value` may have already moved past whatever was
+      // captured when this ref was created; read the buffer's actual
+      // mounted content instead of trusting that stale snapshot.
+      lastValueRef.current = editor.getValue();
       hotkeys?.forEach(keyConfig => {
         editor.commands.addCommand({
           name: keyConfig.name,
@@ -175,25 +233,37 @@ function TextAreaControl({
     [hotkeys],
   );
 
-  // Pick up an `initialValue` change that didn't originate from this
-  // editor's own typing (handleChange above would have already updated
-  // lastEditorValueRef for that case), without remounting the Ace instance
-  // or losing the user's current cursor position.
+  // Pick up an `initialValue` change that didn't originate from either
+  // editor's own typing (handleChange above would have already updated the
+  // relevant lastValueRef for that case), without remounting the Ace
+  // instance or losing the user's current cursor position. Runs against
+  // both editors independently since either, both, or neither may be
+  // mounted at a given time.
   useEffect(() => {
     const nextValue = initialValue ?? value;
-    const editor = editorRef.current;
-    if (
-      editor &&
-      nextValue !== undefined &&
-      nextValue !== lastEditorValueRef.current &&
-      nextValue !== editor.getValue()
-    ) {
-      const cursorPos = editor.getCursorPosition();
-      editor.setValue(nextValue, 1);
-      editor.clearSelection();
-      editor.moveCursorToPosition(cursorPos);
-      lastEditorValueRef.current = nextValue;
+    if (nextValue === undefined) {
+      return;
     }
+    const syncEditor = (
+      editor: AceEditorHandle | null,
+      lastValueRef: MutableRefObject<string | undefined>,
+    ) => {
+      if (
+        editor &&
+        nextValue !== lastValueRef.current &&
+        nextValue !== editor.getValue()
+      ) {
+        const cursorPos = editor.getCursorPosition();
+        isSyncingRef.current = true;
+        editor.setValue(nextValue, 1);
+        isSyncingRef.current = false;
+        editor.clearSelection();
+        editor.moveCursorToPosition(cursorPos);
+        lastValueRef.current = nextValue;
+      }
+    };
+    syncEditor(inlineEditorRef.current, lastInlineValueRef);
+    syncEditor(modalEditorRef.current, lastModalValueRef);
   }, [initialValue, value]);
 
   const renderEditor = useCallback(
@@ -220,21 +290,25 @@ function TextAreaControl({
         }
 
         const codeEditor = (
-          <div>
-            <TextAreaEditor
-              mode={language}
-              style={style}
-              minLines={effectiveMinLines}
-              maxLines={inModal ? 1000 : maxLines}
-              editorProps={{ $blockScrolling: true }}
-              onLoad={onEditorLoad}
-              defaultValue={initialValue ?? value}
-              readOnly={readOnly}
-              key={name}
-              {...restProps}
-              onChange={handleChange}
-            />
-          </div>
+          <EditorUnmountGuard
+            targetRef={inModal ? modalEditorRef : inlineEditorRef}
+          >
+            <div>
+              <TextAreaEditor
+                mode={language}
+                style={style}
+                minLines={effectiveMinLines}
+                maxLines={inModal ? 1000 : maxLines}
+                editorProps={{ $blockScrolling: true }}
+                onLoad={editor => onEditorLoad(editor, inModal)}
+                defaultValue={initialValue ?? value}
+                readOnly={readOnly}
+                key={name}
+                {...restProps}
+                onChange={val => handleChange(val, inModal)}
+              />
+            </div>
+          </EditorUnmountGuard>
         );
 
         if (tooltipOptions && Object.keys(tooltipOptions).length > 0) {

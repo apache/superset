@@ -141,6 +141,10 @@ export default function CRUDCollection({
       createKeyedCollection(propsCollection);
     setCollection(newCollection);
     setCollectionArray(newCollectionArray);
+    // Refresh the restore order too, so that clearing a sort after an
+    // external sync (e.g. a source-control-synced column set) reflects the
+    // synced order and row set instead of stale, pre-sync ids.
+    unsortedOrderRef.current = newCollectionArray.map(item => item.id);
   }, [propsCollection]);
 
   useEffect(() => {

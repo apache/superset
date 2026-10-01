@@ -81,3 +81,52 @@ test('preserves an edit made while sorted after the sort is cleared', () => {
   ) as HTMLInputElement;
   expect(inputAfterReset.value).toBe('EDITED');
 });
+
+test('restores the synced order after a sort is cleared following an external reorder', () => {
+  const collection = [
+    { id: 1, column_name: 'c_col', type: 'VARCHAR' },
+    { id: 2, column_name: 'a_col', type: 'VARCHAR' },
+    { id: 3, column_name: 'b_col', type: 'VARCHAR' },
+  ];
+
+  const { container, rerender } = render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name', 'type']}
+      sortColumns={['column_name']}
+    />,
+  );
+
+  const sorter = container.querySelector('.ant-table-column-sorters');
+  expect(sorter).toBeInTheDocument();
+
+  // Ascending sort by column_name.
+  fireEvent.click(sorter!);
+
+  // Simulate an external sync (e.g. the source columns were reordered)
+  // landing while sorted: same ids, new canonical order.
+  const syncedCollection = [
+    { id: 3, column_name: 'b_col', type: 'VARCHAR' },
+    { id: 1, column_name: 'c_col', type: 'VARCHAR' },
+    { id: 2, column_name: 'a_col', type: 'VARCHAR' },
+  ];
+  rerender(
+    <CollectionTable
+      collection={syncedCollection}
+      tableColumns={['column_name', 'type']}
+      sortColumns={['column_name']}
+    />,
+  );
+
+  // Cycle the sort back to unsorted (ascend -> descend -> cancel).
+  fireEvent.click(sorter!);
+  fireEvent.click(sorter!);
+
+  const rows = container.querySelectorAll('.ant-table-tbody tr');
+  expect(rows).toHaveLength(3);
+  // The restored order reflects the synced order, not the stale
+  // pre-sync order captured before the sort was ever applied.
+  expect(rows[0].textContent).toContain('b_col');
+  expect(rows[1].textContent).toContain('c_col');
+  expect(rows[2].textContent).toContain('a_col');
+});
