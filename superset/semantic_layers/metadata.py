@@ -35,6 +35,7 @@ from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
     MetadataRefreshError,
     MetadataRefreshResult,
+    remaining_budget,
 )
 
 from superset.semantic_layers.cache_inspection import CacheEntryInfo, describe_entry
@@ -133,10 +134,7 @@ class ScopedMetadataStore:
         self._observations: dict[str, str] = {}
 
     def _remaining(self) -> float:
-        remaining: float = self._deadline - self._clock()
-        if not math.isfinite(remaining) or remaining <= 0:
-            raise MetadataRefreshError("deadline")
-        return remaining
+        return remaining_budget(self._deadline, now=self._clock())
 
     def _decode(self, raw: bytes | None) -> StoredCatalog | None:
         if raw is None or len(raw) > MAX_CATALOG_BYTES:
@@ -212,9 +210,8 @@ class ScopedMetadataStore:
 
     def _for_deadline(self, deadline: float) -> ScopedMetadataStore:
         """Narrow one call without mutating the operation or another call's budget."""
-        if not math.isfinite(deadline) or deadline > self._deadline:
-            raise MetadataRefreshError("deadline")
-        if deadline <= self._clock():
+        remaining_budget(deadline, now=self._clock())
+        if deadline > self._deadline:
             raise MetadataRefreshError("deadline")
         scoped: ScopedMetadataStore = ScopedMetadataStore(
             self._backend.with_deadline(deadline),

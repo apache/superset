@@ -86,3 +86,17 @@ def test_caller_budget_expires_during_fetch_without_publication() -> None:
         store.refresh(fetch, deadline=105)
     assert store.peek() is None
     assert store.read(lambda deadline: "[]", deadline=130).payload == "[]"
+
+
+@pytest.mark.parametrize("operation", ["read", "refresh"])
+def test_implausible_operation_budget_rejected_before_io(operation: str) -> None:
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=1_790_000_000.0, clock=clock
+    )
+    fetch: Mock = Mock(return_value="[]")
+    with pytest.raises(MetadataRefreshError, match="^deadline$"):
+        getattr(store, operation)(fetch, deadline=1_790_000_000.0)
+    fetch.assert_not_called()
+    assert not backend.entries

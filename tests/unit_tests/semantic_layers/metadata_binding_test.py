@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -79,7 +80,7 @@ def test_worker_operation_is_explicit_and_nested_calls_do_not_reset() -> None:
     with patch(
         "superset.semantic_layers.metadata_binding.time.monotonic", return_value=100
     ):
-        with metadata_operation(deadline=100000000000):
+        with metadata_operation(deadline=200):
             with metadata_operation():
                 assert operation_deadline() == 130
         with metadata_operation(deadline=120):
@@ -390,3 +391,19 @@ def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
             assert store.peek() == old
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("deadline", [401.0, 1_790_000_000.0])
+@pytest.mark.parametrize("nested", [False, True])
+def test_worker_rejects_implausible_budget_instead_of_clamping(
+    deadline: float, nested: bool
+) -> None:
+    with patch(
+        "superset.semantic_layers.metadata_binding.time.monotonic", return_value=100
+    ):
+        with metadata_operation() if nested else nullcontext():
+            with pytest.raises(MetadataRefreshError, match="^deadline$"):
+                with metadata_operation(deadline=deadline):
+                    pytest.fail("implausible deadline entered")
+            if nested:
+                assert operation_deadline() == 130

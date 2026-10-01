@@ -34,6 +34,10 @@ from redis.asyncio.retry import Retry
 from redis.asyncio.sentinel import Sentinel
 from redis.backoff import NoBackoff
 from redis.exceptions import RedisError, TimeoutError as RedisTimeoutError
+from superset_core.semantic_layers.metadata import (
+    MetadataRefreshError,
+    remaining_budget,
+)
 
 from superset.coordination.cache_backend import _COMPARE_AND_DELETE_LUA
 
@@ -80,10 +84,15 @@ class DeadlineRedisBackend:
             self._config, deadline=min(self._deadline, deadline)
         )
 
+    def _remaining(self) -> float:
+        """Keep the transport's Redis error boundary while sharing SDK validation."""
+        try:
+            return remaining_budget(self._deadline, now=time.monotonic())
+        except MetadataRefreshError:
+            raise RedisTimeoutError("Metadata deadline invalid or expired") from None
+
     async def _command(self, *args: str | int) -> Any:
-        remaining: float = self._deadline - time.monotonic()
-        if remaining <= 0:
-            raise RedisTimeoutError("Metadata deadline expired")
+        remaining: float = self._remaining()
         options: dict[str, Any] = {
             "db": self._config.get("CACHE_REDIS_DB", 0),
             "username": self._config.get("CACHE_REDIS_USER"),
@@ -139,8 +148,7 @@ class DeadlineRedisBackend:
 
     def execute(self, *args: str | int) -> Any:
         """Run one command with no automatic retry or detached Redis commands."""
-        if self._deadline <= time.monotonic():
-            raise RedisTimeoutError("Metadata deadline expired")
+        self._remaining()
         try:
             asyncio.get_running_loop()
         except RuntimeError:
