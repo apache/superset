@@ -70,6 +70,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class _Unset:
+    """Sentinel indicating that no filter should be applied."""
+
+
+_UNSET: _Unset = _Unset()
+
+
 class UndefinedTemplateFunctionException(SupersetTemplateException):
     """Raised when an undefined function-like Jinja identifier is encountered."""
 
@@ -1284,14 +1291,14 @@ def get_template_processor(
 
 
 def dataset_macro(
-    dataset_id: Union[int, str],
+    dataset_id: int | str,
     include_metrics: bool = False,
     columns: list[str] | None = None,
     from_dttm: datetime | None = None,
     to_dttm: datetime | None = None,
-    schema: str | None = None,
-    catalog: str | None = None,
-    database_id: Union[int, str] | None = None,
+    schema: str | _Unset | None = _UNSET,
+    catalog: str | _Unset | None = _UNSET,
+    database_id: int | str | _Unset | None = _UNSET,
     alias: str | None = None,
 ) -> str:
     """
@@ -1321,24 +1328,20 @@ def dataset_macro(
 
     from superset.daos.dataset import DatasetDAO
 
-    filters = {
-        key: value
-        for key, value in {
-            "database_id": database_id,
-            "catalog": catalog,
-            "schema": schema,
-        }.items()
-        if value is not None
-    }
+    filters: dict[str, Any] = {}
+
+    if database_id not in (_UNSET, None):
+        filters["database_id"] = database_id
+    if catalog is not _UNSET:
+        filters["catalog"] = catalog
+    if schema is not _UNSET:
+        filters["schema"] = schema
 
     if isinstance(dataset_id, str):
         try:
             dataset = DatasetDAO.get_table_by_catalog_schema_and_name(
                 table_name=dataset_id,
-                **cast(
-                    dict[str, Any],
-                    filters,
-                ),
+                **filters,
             )
         except MultipleResultsFound as ex:
             raise DatasetInvalidError(
@@ -1363,7 +1366,7 @@ def dataset_macro(
         dataset = DatasetDAO.find_by_id(dataset_id)
 
     if not dataset:
-        criteria = [
+        criteria: list[str] = [
             f"{dataset_id!r}",
             *[f"{key}={value!r}" for key, value in filters.items()],
         ]
