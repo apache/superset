@@ -1200,7 +1200,17 @@ class RBACToolVisibilityMiddleware(Middleware):
         # User and permission lookups need a metadata connection. Tool workers
         # can hold every pooled connection while they wait on this loop, so the
         # loop must never wait for one itself.
-        return await run_in_metadata_thread(self._visible_tools, tools)
+        try:
+            return await run_in_metadata_thread(self._visible_tools, tools)
+        except Exception:  # noqa: BLE001
+            # A failure setting up the metadata thread itself (e.g. the
+            # metadata pool is exhausted) happens before _visible_tools's own
+            # try/except ever runs. Fail open the same way that branch does;
+            # call-time RBAC still enforces permissions.
+            logger.warning(
+                "MCP tool list: failed to filter tools, showing all", exc_info=True
+            )
+            return tools
 
     @staticmethod
     def _visible_tools(tools: list[Tool]) -> list[Tool]:

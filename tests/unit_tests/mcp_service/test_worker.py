@@ -24,7 +24,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager, ExitStack
 from contextvars import ContextVar
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
@@ -375,6 +375,59 @@ async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
         assert all(
             session not in db.session.registry.registry.values() for session in sessions
         )
+    finally:
+        pool.executor.shutdown()
+        pool.cancellations.shutdown()
+
+
+def test_query_cancellation_capture_resets_stale_id_on_failed_recapture() -> None:
+    """A failed re-capture must not leave register() republishing a stale id
+    from an earlier, already-finished statement in a multi-statement call.
+    """
+    from superset.mcp_service.worker import QueryCancellation
+
+    call = MagicMock()
+    call.expired.is_set.return_value = False
+    database = MagicMock()
+    database.db_engine_spec.has_implicit_cancel.return_value = False
+    database.db_engine_spec.has_query_id_during_execute = False
+    cancellation = QueryCancellation(call, database, Mock(), None, None)
+
+    with patch(
+        "superset.tasks.query_cancel.capture_cancel_query_id",
+        return_value="statement-1-id",
+    ):
+        cancellation.capture()
+    assert cancellation.cancel_id == "statement-1-id"
+    cancellation.register()
+    assert call.cancel_query is not None
+
+    with patch(
+        "superset.tasks.query_cancel.capture_cancel_query_id",
+        side_effect=RuntimeError("driver refused a second handle"),
+    ):
+        cancellation.capture()
+    assert cancellation.cancel_id is None
+    cancellation.register()
+    # No usable handle for this statement: cancellation must go unavailable,
+    # not silently keep dispatching against the finished first statement.
+    assert call.cancel_query is None
+
+
+def test_worker_pool_cancel_releases_slot_on_unexpected_submit_error() -> None:
+    """Any failure to dispatch cancellation I/O must release its permit, not
+    just the already-handled RuntimeError-on-shutdown case."""
+    from superset.mcp_service.worker import WorkerPool
+
+    pool = WorkerPool(1)
+    try:
+        with patch.object(pool.cancellations, "submit", side_effect=ValueError("boom")):
+            with pytest.raises(ValueError, match="boom"):
+                pool.cancel(Mock(), Mock())
+        # The permit was released despite the unexpected exception type, so a
+        # later cancellation can still be admitted.
+        assert pool.cancel_slots.acquire(blocking=False)
+        pool.cancel_slots.release()
     finally:
         pool.executor.shutdown()
         pool.cancellations.shutdown()

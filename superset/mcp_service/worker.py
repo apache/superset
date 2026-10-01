@@ -178,15 +178,26 @@ class WorkerPool:
         try:
             future = self.cancellations.submit(fn)
         except RuntimeError:
+            # The cancellations executor is shut down; report failure to
+            # dispatch rather than raise.
             self.cancel_slots.release()
             return False
+        except BaseException:
+            self.cancel_slots.release()
+            raise
 
         def completed(_: Future[None]) -> None:
             """Release cancellation capacity before admitting another tool call."""
             self.cancel_slots.release()
             finished()
 
-        future.add_done_callback(completed)
+        try:
+            future.add_done_callback(completed)
+        except BaseException:
+            # The permit is otherwise never released: completed() runs only if
+            # the callback was registered, and a raise here means it was not.
+            self.cancel_slots.release()
+            raise
         return True
 
 
@@ -420,12 +431,20 @@ class TransportContext:
         async def forward(*args: Any, **kwargs: Any) -> Any:
             self.call.check()
             future = asyncio.run_coroutine_threadsafe(value(*args, **kwargs), self.loop)
+            wrapped = asyncio.wrap_future(future)
             try:
                 result = await asyncio.wait_for(
-                    asyncio.wrap_future(future),
+                    wrapped,
                     max(0, self.call.deadline - time.monotonic()),
                 )
             except TimeoutError:
+                if wrapped.done() and not wrapped.cancelled():
+                    # wait_for cancels the awaited future on its own timeout
+                    # (no shield here), so a TimeoutError that leaves it
+                    # already done rather than cancelled was genuinely
+                    # raised by the forwarded call itself. Propagate that
+                    # one as itself, not relabeled as our deadline.
+                    raise
                 raise WorkerDeadlineExceeded() from None
             self.call.check()
             return result
@@ -554,6 +573,41 @@ async def run_in_transport_thread(
     )
 
 
+def _handle_worker_timeout_or_cancel(
+    exc: BaseException,
+    wrapped: asyncio.Future[Any],
+    call: WorkerCall,
+    seconds: float,
+) -> None:
+    """Decide how a run_in_worker deadline or cancellation should surface.
+
+    Always raises; the caller's except block delegates here instead of
+    inlining the decision, to keep run_in_worker's own branching simple.
+    """
+    call.abandon()
+    # Retrieve late exceptions, including worker CancelledError, without
+    # retaining a task on the transport loop after the request has ended.
+    wrapped.add_done_callback(
+        lambda done: None if done.cancelled() else done.exception()
+    )
+    if isinstance(exc, asyncio.CancelledError):
+        raise exc
+    if isinstance(exc, TimeoutError) and wrapped.done():
+        # wait_for raises this same exception type both on its own deadline
+        # and when the shielded future already finished with a TimeoutError
+        # of its own (e.g. a driver-level socket timeout). Shielding means
+        # our deadline firing leaves the future still pending; only a
+        # TimeoutError genuinely raised by the tool/driver leaves it already
+        # done. Propagate that one as itself rather than relabeling it as
+        # our deadline.
+        raise exc
+    raise ToolError(
+        f"MCP tool timed out after {seconds:g} seconds. "
+        "Warehouse cancellation was requested where supported. "
+        f"Call id: {call.call_id}"
+    ) from None
+
+
 async def run_in_worker(
     fn: Callable[..., Coroutine[Any, Any, Any]],
     args: tuple[Any, ...],
@@ -636,27 +690,18 @@ async def run_in_worker(
                 call.check()
                 return result
 
-    future = pool.submit(lambda: context.run(execute), call.finished, call.admitted)
-    wrapped = asyncio.wrap_future(future)
     try:
-        # Shield the future: cancellation must not release its pool slot early.
-        return await asyncio.wait_for(
-            asyncio.shield(wrapped), timeout=max(0, call.deadline - time.monotonic())
-        )
-    except (TimeoutError, WorkerDeadlineExceeded, asyncio.CancelledError) as exc:
-        call.abandon()
-        # Retrieve late exceptions, including worker CancelledError, without
-        # retaining a task on the transport loop after the request has ended.
-        wrapped.add_done_callback(
-            lambda done: None if done.cancelled() else done.exception()
-        )
-        if isinstance(exc, asyncio.CancelledError):
-            raise
-        raise ToolError(
-            f"MCP tool timed out after {seconds:g} seconds. "
-            "Warehouse cancellation was requested where supported. "
-            f"Call id: {call.call_id}"
-        ) from None
+        future = pool.submit(lambda: context.run(execute), call.finished, call.admitted)
+        wrapped = asyncio.wrap_future(future)
+        try:
+            # Shield the future: cancellation must not release its pool slot
+            # early.
+            return await asyncio.wait_for(
+                asyncio.shield(wrapped),
+                timeout=max(0, call.deadline - time.monotonic()),
+            )
+        except (TimeoutError, WorkerDeadlineExceeded, asyncio.CancelledError) as exc:
+            _handle_worker_timeout_or_cancel(exc, wrapped, call, seconds)
     finally:
         from superset.mcp_service.auth import _mcp_user_id_var
 
@@ -685,9 +730,16 @@ class QueryCancellation:
         self.context = copy_context()
 
     def capture(self) -> None:
-        """Capture an engine handle without making unsupported drivers fail."""
+        """Capture an engine handle without making unsupported drivers fail.
+
+        Cleared up front: a multi-statement call re-captures per statement
+        (see ``refresh``), and a failed re-capture must not leave register()
+        republishing a stale handle for a statement that has already
+        finished.
+        """
         from superset.tasks.query_cancel import capture_cancel_query_id
 
+        self.cancel_id = None
         try:
             self.cancel_id = capture_cancel_query_id(self.database, self.cursor)
         except Exception:

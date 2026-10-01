@@ -430,6 +430,28 @@ def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
     return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
 
 
+async def _filter_visible_tools_fail_open(tools: Sequence[Any]) -> Sequence[Any]:
+    """Run the permission filter in the metadata thread, failing open on error.
+
+    ``run_in_metadata_thread`` reloads the caller's ORM user itself before the
+    filter ever runs (e.g. a metadata-pool-exhaustion failure), so a bare
+    ``await run_in_metadata_thread(...)`` here would raise before any fail-open
+    handling inside the filter gets a chance to run. Call-time RBAC still
+    enforces permissions, so an unexpected failure here shows every tool
+    rather than breaking search, matching
+    ``RBACToolVisibilityMiddleware.on_list_tools``.
+    """
+    try:
+        return await run_in_metadata_thread(
+            _filter_tools_by_current_user_permission, tools
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "MCP tool search: failed to filter tools, showing all", exc_info=True
+        )
+        return tools
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
@@ -671,9 +693,7 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return await run_in_metadata_thread(
-                    _filter_tools_by_current_user_permission, tools
-                )
+                return await _filter_visible_tools_fail_open(tools)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -695,9 +715,7 @@ def _create_search_transform(  # noqa: C901
             tools = await super()._get_visible_tools(ctx)
             # Permission lookups need a metadata connection; see
             # RBACToolVisibilityMiddleware.on_list_tools.
-            return await run_in_metadata_thread(
-                _filter_tools_by_current_user_permission, tools
-            )
+            return await _filter_visible_tools_fail_open(tools)
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
