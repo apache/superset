@@ -148,6 +148,40 @@ function getMinWidthSignature(colDefs: MinWidthColDef[]): string {
     .join('|');
 }
 
+function collectLeafMinWidthState(
+  colDefs: MinWidthColDef[],
+): { colId: string; width: number }[] {
+  return colDefs.flatMap(def => {
+    if (def.children?.length) {
+      return collectLeafMinWidthState(def.children);
+    }
+    const colId = def.colId ?? def.field;
+    if (!colId || colId === ROW_NUMBER_COL_ID) {
+      return [];
+    }
+    return [{ colId, width: def.minWidth ?? 100 }];
+  });
+}
+
+type GridColumnApi = {
+  applyColumnState?: (params: {
+    state: { colId: string; width?: number }[];
+    applyOrder?: boolean;
+  }) => void;
+  sizeColumnsToFit?: () => void;
+};
+
+function refitColumnsToMinWidths(
+  api: GridColumnApi,
+  colDefs: MinWidthColDef[],
+): void {
+  const state = collectLeafMinWidthState(colDefs);
+  if (state.length > 0) {
+    api.applyColumnState?.({ state });
+  }
+  api.sizeColumnsToFit?.();
+}
+
 function applyColDefOrder(
   api: {
     applyColumnState?: (params: {
@@ -622,8 +656,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
-    // AG Grid grows a column when its minWidth increases but keeps that
-    // width when minWidth drops, so refit when those widths actually change.
     const minWidthSignature = useMemo(
       () => getMinWidthSignature(colDefsFromProps),
       [colDefsFromProps],
@@ -636,7 +668,19 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       if (gridRef.current?.api) {
         gridRef.current.api.sizeColumnsToFit();
       }
-    }, [width, minWidthSignature]);
+    }, [width]);
+
+    // AG Grid grows a column when minWidth increases but keeps that pixel
+    // width when minWidth drops (sizeColumnsToFit is a no-op if the row
+    // already fills the grid). Reset each leaf to its current minWidth, then
+    // refit so "auto" actually shrinks without waiting for a chart refresh.
+    useEffect(() => {
+      const api = gridRef.current?.api;
+      if (!api) {
+        return;
+      }
+      refitColumnsToMinWidths(api, colDefsFromProps);
+    }, [minWidthSignature]);
 
     // Header-group order comes from Explore, but AG Grid keeps the previous
     // visual order while maintainColumnOrder is on. Mirror Table V1's
