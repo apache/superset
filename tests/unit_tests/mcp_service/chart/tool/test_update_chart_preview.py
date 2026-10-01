@@ -19,6 +19,7 @@
 Unit tests for update_chart_preview MCP tool
 """
 
+import asyncio
 import importlib
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -138,8 +139,10 @@ def test_update_chart_preview_entrypoint_exact_limit_and_plus_one() -> None:
             ),
             patch.object(update_chart_preview_module.time, "time", return_value=1.0),
         ):
-            return update_chart_preview_module.update_chart_preview(
-                request=request, ctx=MagicMock()
+            return asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request, ctx=MagicMock()
+                )
             )
 
     empty = run("")
@@ -189,9 +192,11 @@ class TestUpdateChartPreview:
         with patch.object(
             update_chart_preview_module, "_find_dataset", side_effect=error
         ):
-            result = update_chart_preview_module.update_chart_preview(
-                request=request,
-                ctx=Mock(),
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request,
+                    ctx=Mock(),
+                )
             )
 
         assert result["success"] is False
@@ -1034,7 +1039,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1112,7 +1117,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1335,7 +1340,7 @@ class TestUpdateChartPreview:
         with patch.object(
             feature_flag_manager, "is_feature_enabled", return_value=True
         ):
-            result = update_chart_preview_module.update_chart_preview(
+            result = await update_chart_preview_module.update_chart_preview(
                 request=request, ctx=Mock()
             )
 
@@ -1414,7 +1419,7 @@ class TestUpdateChartPreview:
             preview_formats=["url", "table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
