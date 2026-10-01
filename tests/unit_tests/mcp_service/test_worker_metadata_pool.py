@@ -907,3 +907,20 @@ async def test_metadata_only_call_takes_warehouse_slot_before_warehouse_io(
         release.set()
         pool.executor.shutdown()
         pool.cancellations.shutdown()
+
+
+def test_lazy_pool_creation_keeps_callers_session(
+    app: Any, metadata_engine: Engine
+) -> None:
+    """Sizing the pool from transport-side code must not end its session."""
+    from superset.mcp_service.worker import _get_pool, _pools
+
+    with app.test_request_context("/mcp/"), patch.dict(_pools, clear=True):
+        session = db.session()
+        pool = _get_pool(app)
+        try:
+            assert db.session() is session
+        finally:
+            pool.executor.shutdown()
+            pool.cancellations.shutdown()
+            pool.transport.shutdown()

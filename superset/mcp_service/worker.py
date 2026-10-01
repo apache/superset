@@ -202,9 +202,14 @@ def _metadata_pool_capacity(app: Flask) -> int | None:
     ``None`` means a checkout never waits for another holder to return one
     (e.g. ``NullPool``, per-thread pools, or unlimited overflow).
     """
+    from contextlib import nullcontext
+
     from superset import db
 
-    with app.app_context():
+    # Popping a pushed context tears down the caller's scoped session, and
+    # pools are created lazily from transport-side code that holds one.
+    in_app = has_app_context() and current_app._get_current_object() is app
+    with nullcontext() if in_app else app.app_context():
         pool = db.engine.pool
     if not isinstance(pool, QueuePool):
         return None
