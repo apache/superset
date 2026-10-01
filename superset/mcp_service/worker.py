@@ -225,11 +225,17 @@ def _metadata_pool_capacity(app: Flask) -> int | None:
     """Return how many metadata connections can be checked out at once.
 
     ``None`` means a checkout never waits for another holder to return one
-    (e.g. ``NullPool``, per-thread pools, or unlimited overflow).
+    (e.g. ``NullPool``, per-thread pools, or unlimited overflow), including
+    for an application that never registered the metadata database: it has
+    no metadata connections to budget, and resolving ``db.engine`` for it
+    would raise rather than report a capacity.
     """
     from contextlib import nullcontext
 
     from superset import db
+
+    if app.extensions.get("sqlalchemy") is not db:
+        return None
 
     # Popping a pushed context tears down the caller's scoped session, and
     # pools are created lazily from transport-side code that holds one.

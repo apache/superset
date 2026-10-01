@@ -682,6 +682,36 @@ def test_metadata_only_bound_without_a_waiting_pool(
         metadata_tool_worker_count(app)
 
 
+def test_app_without_metadata_database_gets_a_pool() -> None:
+    """An app with no metadata engine has nothing to budget; it must not raise.
+
+    The tool search filter runs on the transport thread, so a raise here made
+    it fail open and surface tools the caller is not permitted to see.
+    """
+    from flask import Flask
+
+    from superset.mcp_service.worker import (
+        _get_pool,
+        _metadata_pool_capacity,
+        admission_counts,
+        DEFAULT_METADATA_TOOL_WORKERS,
+        DEFAULT_TOOL_WORKERS,
+    )
+
+    bare = Flask(__name__)
+    assert _metadata_pool_capacity(bare) is None
+    assert admission_counts(bare) == (
+        DEFAULT_TOOL_WORKERS,
+        DEFAULT_METADATA_TOOL_WORKERS,
+    )
+    pool = _get_pool(bare)
+    try:
+        assert pool.metadata_slots is not None
+    finally:
+        for executor in (pool.executor, pool.cancellations, pool.transport, pool.auth):
+            executor.shutdown(wait=False)
+
+
 def test_metadata_only_tools_are_registered_tools() -> None:
     """A renamed tool must not silently fall out of (or into) the fast bound."""
     from superset.mcp_service.app import mcp
