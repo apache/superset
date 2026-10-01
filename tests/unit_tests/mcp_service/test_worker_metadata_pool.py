@@ -225,6 +225,32 @@ def test_tool_workers_leave_metadata_connections_for_cancellation(
         engine.dispose()
 
 
+def test_pool_logs_do_not_include_configuration_or_engine_values(app: Any) -> None:
+    """Pool notices are static while admission still clamps both worker bounds."""
+    from superset.mcp_service.worker import _get_pool
+
+    with (
+        patch.dict(
+            app.config,
+            {"MCP_TOOL_WORKERS": 20, "MCP_METADATA_TOOL_WORKERS": 30},
+        ),
+        patch("superset.mcp_service.worker._metadata_pool_capacity", return_value=15),
+        patch("superset.mcp_service.worker._pools", {}),
+        patch("superset.mcp_service.worker.WorkerPool") as pool_class,
+        patch("superset.mcp_service.worker.logger") as logger,
+    ):
+        assert _get_pool(app) is pool_class.return_value
+
+    pool_class.assert_called_once_with(6, 1, 1, 1, 32)
+    assert logger.warning.call_count == 2
+    logger.info.assert_called_once()
+    for call in [*logger.warning.call_args_list, *logger.info.call_args_list]:
+        assert len(call.args) == 1
+        assert isinstance(call.args[0], str)
+        assert "%s" not in call.args[0]
+        assert not call.kwargs
+
+
 def test_metadata_pool_too_small_for_cancellation_is_rejected(
     app: Any, tmp_path: Path
 ) -> None:

@@ -294,13 +294,9 @@ def admission_counts(app: Flask) -> tuple[int, int]:
         workers = min(DEFAULT_TOOL_WORKERS, max(1, available // 3))
     elif configured > limit:
         logger.warning(
-            "MCP_TOOL_WORKERS=%s needs %s metadata database connections, but the "
-            "pool allows %s; admitting %s concurrent tool calls. Raise the pool's "
-            "pool_size/max_overflow in SQLALCHEMY_ENGINE_OPTIONS to admit more.",
-            configured,
-            2 * configured + METADATA_POOL_HEADROOM,
-            capacity,
-            limit,
+            "MCP_TOOL_WORKERS exceeds the metadata database connection budget; "
+            "reducing concurrent tool calls. Raise the pool's pool_size/max_overflow "
+            "in SQLALCHEMY_ENGINE_OPTIONS to admit more."
         )
         workers = limit
     else:
@@ -310,13 +306,9 @@ def admission_counts(app: Flask) -> tuple[int, int]:
         metadata_workers = min(DEFAULT_METADATA_TOOL_WORKERS, remaining)
     elif configured_metadata > remaining:
         logger.warning(
-            "MCP_METADATA_TOOL_WORKERS=%s exceeds the %s metadata database "
-            "connections left after %s warehouse-capable tool calls; admitting "
-            "%s metadata-only tool calls.",
-            configured_metadata,
-            remaining,
-            workers,
-            remaining,
+            "MCP_METADATA_TOOL_WORKERS exceeds the metadata database connection "
+            "budget left after warehouse-capable tool calls; reducing concurrent "
+            "metadata-only tool calls."
         )
         metadata_workers = remaining
     else:
@@ -340,13 +332,8 @@ def _get_pool(app: Flask) -> WorkerPool:
         if app not in _pools:
             size, metadata_size = admission_counts(app)
             logger.info(
-                "MCP tool calls admitted concurrently: %s warehouse-capable, "
-                "%s metadata-only; %s transport metadata thread(s), "
-                "%s API-key lookup thread(s)",
-                size,
-                metadata_size,
-                TRANSPORT_METADATA_THREADS,
-                API_KEY_CHECK_POOL_SIZE,
+                "MCP worker pools initialized with bounded warehouse, metadata-only, "
+                "transport metadata, and API-key lookup concurrency."
             )
             _pools[app] = WorkerPool(
                 size,

@@ -81,7 +81,8 @@ more, raise the pool for the MCP process, for example
 a pool with fewer than 4 connections is rejected at startup. The server never
 waits for a metadata connection on its event loop.
 
-Pool logs report thread and connection counts. Successful transport-layer API-key
+Pool logs report initialization and connection-budget clamping without logging
+configuration values or engine-derived counts. Successful transport-layer API-key
 validation logs the user id rather than the username or API key.
 
 Tool-list and search permission checks, success/error audit writes, response-size
