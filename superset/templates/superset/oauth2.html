@@ -27,11 +27,13 @@ under the License.
       const message = { tabId: '{{ tab_id }}' };
       // Emit on both channels: postMessage success doesn't guarantee the original
       // tab's listener was attached. The receiver dedupes via a `handled` flag.
+      let signalSent = false;
       if (typeof BroadcastChannel !== 'undefined') {
         try {
           const channel = new BroadcastChannel('oauth');
           channel.postMessage(message);
           channel.close();
+          signalSent = true;
         } catch (e) {
           // ignore; storage path below still fires
         }
@@ -39,10 +41,16 @@ under the License.
       try {
         localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
         localStorage.removeItem('oauth2_auth_complete');
+        signalSent = true;
       } catch (e) {
         // storage may be unavailable (e.g. blocked or restricted); ignore
       }
-      window.close();
+      // If neither channel could deliver the signal, leave the window open so
+      // the user sees the instruction to re-run the query manually instead of
+      // closing silently with no completion ever observed.
+      if (signalSent) {
+        window.close();
+      }
     </script>
     <p>You can close this window and re-run the query.</p>
   </body>

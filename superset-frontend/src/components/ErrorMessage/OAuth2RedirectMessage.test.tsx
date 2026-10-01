@@ -369,25 +369,49 @@ describe('OAuth2RedirectMessage Component', () => {
       },
     );
 
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+
     render(
       <Provider store={dynamicStore}>
         <OAuth2RedirectMessage {...defaultProps} />
       </Provider>,
     );
 
+    const storageListenerCalls = () =>
+      addEventListenerSpy.mock.calls.filter(([type]) => type === 'storage')
+        .length;
+
     // First signal arrives before the SQL Lab query state is populated;
     // nothing dispatches and `handled` must NOT be flipped.
     simulateBroadcastMessage({ tabId: 'tabId' });
     expect(reRunQuery).not.toHaveBeenCalled();
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(storageListenerCalls()).toBe(1);
 
     // Query state becomes available, then the storage fallback signal fires.
     act(() => {
       dynamicStore.dispatch({ type: 'SET_READY' });
     });
+
+    // The effect's deps are [extra.tab_id, dispatch], so this unrelated
+    // Redux update must not tear down and recreate the channel or its
+    // storage listener: a regression that restores the old (state-dependent)
+    // deps would still happen to pass this test's final assertion otherwise,
+    // since the mock always hands back the same captured channel either way.
+    expect(globalWithBroadcastChannel.BroadcastChannel).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(channelCloseMock).not.toHaveBeenCalled();
+    expect(storageListenerCalls()).toBe(1);
+
     simulateStorageMessage({ tabId: 'tabId' });
 
     await waitFor(() => {
       expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
     });
+
+    addEventListenerSpy.mockRestore();
   });
 });
