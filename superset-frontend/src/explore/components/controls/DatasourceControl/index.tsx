@@ -84,6 +84,10 @@ interface User {
 }
 
 interface DatasourceControlActions {
+  refreshSemanticMetadata: (
+    viewId: number,
+    isCurrent: () => boolean,
+  ) => Promise<void>;
   changeDatasource: (datasource: ExtendedDatasource) => void;
   setControlValue: (
     name: string,
@@ -584,6 +588,9 @@ export default function DatasourceControl({
             show={showEditDatasourceModal}
             onHide={toggleEditDatasourceModal}
             onSave={() => handleDatasourceSave(datasource)}
+            onMetadataSync={isCurrent =>
+              actions.refreshSemanticMetadata(datasource.id, isCurrent)
+            }
             semanticView={{
               id: datasource.id,
               table_name: datasource.name,

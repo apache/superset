@@ -620,3 +620,53 @@ test('dataset name links to Explore with correct URL and accessible label', asyn
 
 // Note: Component "+1" tests for state persistence through operations have been
 // moved to DatasetList.listview.test.tsx where they can use the reliable selectOption helper.
+
+test('semantic metadata sync refreshes the list while preserving the open editor and draft', async () => {
+  const semanticView = {
+    ...mockDatasets[0],
+    id: 100,
+    table_name: 'sync_view',
+    kind: 'semantic_view',
+  };
+  mockDatasetListEndpoints({ result: [semanticView], count: 1 });
+  fetchMock.get('glob:*/api/v1/semantic_view/100/structure', {
+    result: {
+      uuid: 'bd2f07da-c65e-40da-b75e-c62b7cdd67f1',
+      can_refresh_metadata: true,
+      dimensions: [],
+      metrics: [],
+    },
+  });
+  fetchMock.post('glob:*/api/v1/semantic_view/*/refresh_metadata/', {
+    result: { status: 'changed' },
+  });
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+  });
+  const row = (await screen.findByText('sync_view')).closest('tr');
+  expect(row).not.toBeNull();
+  await userEvent.click(within(row!).getByTestId('dataset-row-edit'));
+  const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+  await userEvent.type(
+    within(screen.getByRole('dialog')).getByRole('textbox'),
+    'keep draft',
+  );
+  const before = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASOURCE_COMBINED,
+  ).length;
+  await userEvent.click(sync);
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+    ).toBeGreaterThan(before),
+  );
+  expect(within(screen.getByRole('dialog')).getByRole('textbox')).toHaveValue(
+    'keep draft',
+  );
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/100', {
+      method: 'PUT',
+    }),
+  ).toHaveLength(0);
+});

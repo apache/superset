@@ -79,3 +79,28 @@ store alone did not provide this earlier boundary; enablement requires this comm
 slice plus compatible provider/fleet configuration. MCP/async/CLI adaptation,
 operator timeouts, topology/load checks and UI/live-provider acceptance remain
 separate rollout gates. No database migration or role grant is added.
+
+## Provisional editor interaction
+
+The semantic-view editor exposes **Sync metadata** next to its tabs when the
+server reports maintenance capability and a stored UUID. This action refreshes
+metadata without saving the description or cache-timeout draft. It preserves
+the active tab. If publication succeeds but local reload fails, **Reload fields**
+retries the read only. Closing or switching editors discards stale completions.
+Explore reloads datasource fields and compatibility for the current selection;
+it preserves chart settings and does not automatically run a chart query.
+
+The **Cache metadata** tab provides explicit, read-only inspection of catalog and
+compatibility timing, including creation, source observation, inspection time,
+and estimated expiry. Compatibility inspection uses an empty selection; it does
+not describe a particular chart's selected metrics. Missing or unavailable
+entries and unknown or unlimited expiry remain distinct. Displayed TTL is the
+observation at inspection time, not a live countdown. Inspection does not fill or
+refresh caches. Sync/save resets displayed observations so users can inspect
+again. Independent invalidation remains available through the operations above.
+Result-cache inspection is not exposed in this editor because a fresh request
+has no captured query identity. Other interfaces can use the same operations.
+
+Local component tests use mocked HTTP. Live-provider, multi-worker, browser and
+Big Number acceptance remain separate enablement gates; this UI does not by
+itself establish fleet-wide or production acceptance.

@@ -20,14 +20,23 @@
 import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient, QueryFormData } from '@superset-ui/core';
+import {
+  SupersetClient,
+  QueryFormData,
+  ensureIsArray,
+} from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
+import {
+  CompatibilityResult,
+  SaveActionType,
+  ExplorePageState,
+} from 'src/explore/types';
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -203,6 +212,7 @@ export function fetchCompatibility(
   datasourceId: number,
   selectedMetrics: string[],
   selectedDimensions: string[],
+  isCurrent: () => boolean = () => true,
 ) {
   return async (dispatch: Dispatch) => {
     compatibilityRequestSeq += 1;
@@ -210,7 +220,7 @@ export function fetchCompatibility(
 
     if (datasourceType !== 'semantic_view') {
       dispatch(setCompatibility({ status: 'idle' }));
-      return;
+      return false;
     }
 
     dispatch(setCompatibility({ status: 'loading' }));
@@ -223,8 +233,8 @@ export function fetchCompatibility(
           selected_dimensions: selectedDimensions,
         },
       });
-      if (requestSeq !== compatibilityRequestSeq) {
-        return;
+      if (requestSeq !== compatibilityRequestSeq || !isCurrent()) {
+        return undefined;
       }
       dispatch(
         setCompatibility({
@@ -233,14 +243,16 @@ export function fetchCompatibility(
           dimensions: json.result.compatible_dimensions ?? [],
         }),
       );
+      return true;
     } catch {
       // A failed request must stay distinguishable from loading and from a
       // valid empty result; consumers fall back to no filtering so the user
       // is never blocked.
-      if (requestSeq !== compatibilityRequestSeq) {
-        return;
+      if (requestSeq !== compatibilityRequestSeq || !isCurrent()) {
+        return undefined;
       }
       dispatch(setCompatibility({ status: 'failed' }));
+      return false;
     }
   };
 }
@@ -272,6 +284,63 @@ export function syncDatasourceMetadata(datasource: Dataset) {
   return { type: SYNC_DATASOURCE_METADATA, datasource };
 }
 
+/** Refresh only the active view's derived metadata; chart selections stay intact. */
+export function refreshSemanticMetadata(
+  viewId: number,
+  sessionIsCurrent: () => boolean,
+) {
+  return async (
+    dispatch: Dispatch,
+    getState: () => Pick<ExplorePageState, 'explore'>,
+  ) => {
+    const isCurrent = () => {
+      const { datasource } = getState().explore;
+      return (
+        sessionIsCurrent() &&
+        Number(datasource.id) === viewId &&
+        String(datasource.type) === 'semantic_view'
+      );
+    };
+    if (!isCurrent()) return;
+    // A pre-sync compatibility response cannot replace a post-sync answer.
+    compatibilityRequestSeq += 1;
+    const { json } = await SupersetClient.get({
+      endpoint: `/fetch_datasource_metadata?datasourceKey=${viewId}__semantic_view`,
+    });
+    if (!isCurrent()) return;
+    const formData = getFormDataFromControls(getState().explore.controls);
+    dispatch(syncDatasourceMetadata(json as Dataset));
+    // Rebuild the controls against fresh fields using their existing values and
+    // normal removed-member validation, without rewriting form_data or querying.
+    dispatch(setExploreControls(formData));
+    const selectedMetrics = [
+      ...new Set(
+        [...ensureIsArray(formData.metrics), formData.metric].filter(
+          (value): value is string => typeof value === 'string',
+        ),
+      ),
+    ];
+    const selectedDimensions = [
+      ...new Set(
+        [
+          ...ensureIsArray(formData.groupby),
+          ...ensureIsArray(formData.columns),
+          formData.x_axis,
+        ].filter((value): value is string => typeof value === 'string'),
+      ),
+    ];
+    const verified = await fetchCompatibility(
+      'semantic_view',
+      viewId,
+      selectedMetrics,
+      selectedDimensions,
+      isCurrent,
+    )(dispatch);
+    if (verified === false && isCurrent())
+      throw new Error('Compatibility reload failed');
+  };
+}
+
 export const exploreActions = {
   ...toastActions,
   fetchDatasourcesStarted,
@@ -287,6 +356,7 @@ export const exploreActions = {
   sliceUpdated,
   setForceQuery,
   syncDatasourceMetadata,
+  refreshSemanticMetadata,
   fetchCompatibility,
 };
 
