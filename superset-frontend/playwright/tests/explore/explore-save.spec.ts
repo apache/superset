@@ -116,7 +116,11 @@ testWithAssets(
       pathMatch: true,
     });
     await saveModal2.clickSave();
-    expect((await updated).ok()).toBe(true);
+    const updatedResponse = await updated;
+    expect(updatedResponse.ok()).toBe(true);
+    expect(updatedResponse.request().postDataJSON().dashboards).toContain(
+      dashboardId,
+    );
 
     expect((await getChartsByName(page, newChartName)).count).toBe(1);
     expect((await getDashboardsByName(page, dashboardTitle)).count).toBe(1);
