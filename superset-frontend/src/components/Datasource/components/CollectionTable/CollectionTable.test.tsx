@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import CollectionTable from '.';
@@ -33,4 +33,51 @@ test('renders a table', () => {
   expect(tableBody).toBeInTheDocument();
   const rows = tableBody?.getElementsByTagName('tr');
   expect(rows).toHaveLength(mockDatasource['7__table'].columns.length);
+});
+
+test('preserves an edit made while sorted after the sort is cleared', () => {
+  const onChange = jest.fn();
+  const collection = [
+    { id: 1, column_name: 'b_col', type: 'VARCHAR' },
+    { id: 2, column_name: 'a_col', type: 'VARCHAR' },
+  ];
+
+  const { container } = render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name', 'type']}
+      sortColumns={['column_name']}
+      itemRenderers={{
+        type: (val, onItemChange, _label, record) => (
+          <input
+            data-test={`type-input-${record.id}`}
+            value={val as string}
+            onChange={e => onItemChange(e.target.value)}
+          />
+        ),
+      }}
+      onChange={onChange}
+    />,
+  );
+
+  const sorter = container.querySelector('.ant-table-column-sorters');
+  expect(sorter).toBeInTheDocument();
+
+  // Ascending sort by column_name puts a_col (id 2) first.
+  fireEvent.click(sorter!);
+
+  const editedInput = container.querySelector(
+    '[data-test="type-input-2"]',
+  ) as HTMLInputElement;
+  expect(editedInput).toBeInTheDocument();
+  fireEvent.change(editedInput, { target: { value: 'EDITED' } });
+
+  // Cycle the sort back to unsorted (ascend -> descend -> cancel).
+  fireEvent.click(sorter!);
+  fireEvent.click(sorter!);
+
+  const inputAfterReset = container.querySelector(
+    '[data-test="type-input-2"]',
+  ) as HTMLInputElement;
+  expect(inputAfterReset.value).toBe('EDITED');
 });

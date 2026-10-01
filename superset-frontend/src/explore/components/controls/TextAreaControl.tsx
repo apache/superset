@@ -38,6 +38,21 @@ interface HotkeyConfig {
   func: () => void;
 }
 
+interface AceEditorHandle {
+  commands: {
+    addCommand: (cmd: {
+      name: string;
+      bindKey: { win: string; mac: string };
+      exec: () => void;
+    }) => void;
+  };
+  getValue: () => string;
+  setValue: (value: string, cursorPos?: number) => void;
+  getCursorPosition: () => { row: number; column: number };
+  moveCursorToPosition: (pos: { row: number; column: number }) => void;
+  clearSelection: () => void;
+}
+
 interface TextAreaControlProps {
   name?: string;
   onChange?: (value: string) => void;
@@ -95,6 +110,15 @@ function TextAreaControl({
 }: TextAreaControlProps) {
   const theme = useTheme();
 
+  const editorRef = useRef<AceEditorHandle | null>(null);
+  // Tracks the value the Ace editor's own buffer currently holds, so an
+  // `initialValue` prop change caused by the user's own typing (echoed back
+  // through onChange) can be told apart from a genuinely external update
+  // (e.g. a "sync from source" action elsewhere). Only the latter should
+  // push an imperative setValue(); doing it unconditionally would reset the
+  // cursor to the end of the document on every keystroke.
+  const lastEditorValueRef = useRef<string | undefined>(initialValue ?? value);
+
   const debouncedOnChangeRef = useRef<ReturnType<
     typeof debounce<(value: string) => void>
   > | null>(null);
@@ -127,6 +151,7 @@ function TextAreaControl({
   const handleChange = useCallback(
     (val: string | { target: { value: string } }) => {
       const finalValue = typeof val === 'object' ? val.target.value : val;
+      lastEditorValueRef.current = finalValue;
       if (debouncedOnChangeRef.current) {
         debouncedOnChangeRef.current(finalValue);
       } else {
@@ -137,15 +162,8 @@ function TextAreaControl({
   );
 
   const onEditorLoad = useCallback(
-    (editor: {
-      commands: {
-        addCommand: (cmd: {
-          name: string;
-          bindKey: { win: string; mac: string };
-          exec: () => void;
-        }) => void;
-      };
-    }) => {
+    (editor: AceEditorHandle) => {
+      editorRef.current = editor;
       hotkeys?.forEach(keyConfig => {
         editor.commands.addCommand({
           name: keyConfig.name,
@@ -156,6 +174,27 @@ function TextAreaControl({
     },
     [hotkeys],
   );
+
+  // Pick up an `initialValue` change that didn't originate from this
+  // editor's own typing (handleChange above would have already updated
+  // lastEditorValueRef for that case), without remounting the Ace instance
+  // or losing the user's current cursor position.
+  useEffect(() => {
+    const nextValue = initialValue ?? value;
+    const editor = editorRef.current;
+    if (
+      editor &&
+      nextValue !== undefined &&
+      nextValue !== lastEditorValueRef.current &&
+      nextValue !== editor.getValue()
+    ) {
+      const cursorPos = editor.getCursorPosition();
+      editor.setValue(nextValue, 1);
+      editor.clearSelection();
+      editor.moveCursorToPosition(cursorPos);
+      lastEditorValueRef.current = nextValue;
+    }
+  }, [initialValue, value]);
 
   const renderEditor = useCallback(
     (inModal = false) => {

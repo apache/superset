@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import {
   fireEvent,
   render,
@@ -60,5 +61,47 @@ describe('TextArea', () => {
     const textArea = screen.getByRole('textbox');
     fireEvent.change(textArea, { target: { value: 'x' } });
     expect(defaultProps.onChange).toHaveBeenCalledWith('x');
+  });
+
+  test('picks up an externally changed initialValue without remounting the AceEditor', async () => {
+    function Wrapper() {
+      const [initialValue, setInitialValue] = useState('first');
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setInitialValue('synced-from-source')}
+          >
+            sync
+          </button>
+          <TextAreaControl
+            name="expr"
+            language="sql"
+            initialValue={initialValue}
+            onChange={() => {}}
+          />
+        </>
+      );
+    }
+    const { container } = render(<Wrapper />);
+    await waitFor(() => {
+      expect(container.querySelector('.ace_text-input')).toBeInTheDocument();
+    });
+    // react-ace keeps a reference to the live editor instance on the
+    // container node's `env`, which lets us read the underlying Ace
+    // document directly; jsdom doesn't paint Ace's text layer, so the
+    // rendered DOM has no visible text to assert against.
+    const editorNode = container.querySelector('.ace_editor') as HTMLElement & {
+      env: { editor: { getValue: () => string } };
+    };
+    expect(editorNode.env.editor.getValue()).toBe('first');
+
+    fireEvent.click(screen.getByText('sync'));
+
+    await waitFor(() => {
+      expect(editorNode.env.editor.getValue()).toBe('synced-from-source');
+    });
+    // Same editor instance picked up the new value; it was not remounted.
+    expect(container.querySelector('.ace_editor')).toBe(editorNode);
   });
 });

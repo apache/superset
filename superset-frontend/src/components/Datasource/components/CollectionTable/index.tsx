@@ -127,6 +127,13 @@ export default function CRUDCollection({
       : 10,
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
+  // The row order to restore when a sort is cleared. Tracked from
+  // collectionArray itself (not propsCollection) so it reflects in-progress
+  // edits whose onChange round trip to the parent hasn't landed back in
+  // props yet.
+  const unsortedOrderRef = useRef<Array<string | number>>(
+    initialKeyed.current!.collectionArray.map(item => item.id),
+  );
 
   // Sync with props.collection changes
   useEffect(() => {
@@ -135,6 +142,12 @@ export default function CRUDCollection({
     setCollection(newCollection);
     setCollectionArray(newCollectionArray);
   }, [propsCollection]);
+
+  useEffect(() => {
+    if (sort === SortOrderEnum.Unsorted) {
+      unsortedOrderRef.current = collectionArray.map(item => item.id);
+    }
+  }, [collectionArray, sort]);
 
   const onCellChange = useCallback(
     (id: string | number, col: string, val: unknown) => {
@@ -323,7 +336,7 @@ export default function CRUDCollection({
         sortColumns?.includes(col) ||
         newSortOrder === SortOrderEnum.Unsorted
       ) {
-        let sortedArray = [...propsCollection] as CollectionItem[];
+        let sortedArray: CollectionItem[];
 
         if (newSortOrder !== SortOrderEnum.Unsorted) {
           const compareSort = (m: Sort, n: Sort) => {
@@ -341,6 +354,10 @@ export default function CRUDCollection({
             return mStr.localeCompare(nStr);
           };
 
+          // Sort the live, edited collection rather than propsCollection, so
+          // an edit that hasn't round-tripped back through onChange yet
+          // isn't dropped when a sort is applied.
+          sortedArray = [...collectionArray];
           sortedArray.sort((a: CollectionItem, b: CollectionItem) =>
             compareSort(a[col] as Sort, b[col] as Sort),
           );
@@ -348,9 +365,19 @@ export default function CRUDCollection({
             sortedArray.reverse();
           }
         } else {
-          const { collectionArray: resetArray } =
-            createKeyedCollection(propsCollection);
-          sortedArray = resetArray;
+          // Restore the pre-sort order, but take each row's current value
+          // from the live `collection` map (not propsCollection) so an edit
+          // made while sorted survives clearing the sort. Any row not part
+          // of the tracked order (e.g. added while sorted) is appended.
+          const trackedIds = new Set(unsortedOrderRef.current);
+          sortedArray = unsortedOrderRef.current
+            .filter(id => collection[id])
+            .map(id => collection[id]);
+          collectionArray.forEach(item => {
+            if (!trackedIds.has(item.id)) {
+              sortedArray.push(item);
+            }
+          });
         }
 
         setCollectionArray(sortedArray);
@@ -358,7 +385,7 @@ export default function CRUDCollection({
         setSort(newSortOrder);
       }
     },
-    [propsCollection, sortColumns],
+    [collection, collectionArray, sortColumns],
   );
 
   const renderExpandableSection = useCallback(
