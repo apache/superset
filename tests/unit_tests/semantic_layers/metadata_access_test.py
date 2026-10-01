@@ -281,3 +281,93 @@ def test_denied_native_filter_does_not_discover(
         with pytest.raises(SupersetSecurityException):
             SupersetSecurityManager.raise_for_access(sm, query_context=context)
         construct.assert_not_called()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("tooltip", [False, True])
+def test_completed_guest_query_rechecks_tooltip_columns_before_execution(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, enabled: bool, tooltip: bool
+) -> None:
+    """The added early gate preserves final guest payload checks.
+
+    The chart is a resolved semantic fixture, not a persisted embedded chart;
+    factory processing and the guest payload comparator are both real.
+    """
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.models.slice import Slice
+
+    provider: ResultView = ResultView("scope:guest", 17)
+    view: SemanticView = view_for(provider)
+    chart: MagicMock = MagicMock(spec=Slice)
+    chart.id = 2
+    chart.params_dict = {"metrics": ["orders"]}
+    chart.query_context = None
+    chart.datasource = view
+    chart.datasource_id = view.id
+    dashboard: MagicMock = MagicMock()
+    dashboard.slices = [chart]
+    manager: MagicMock = MagicMock(spec=SupersetSecurityManager)
+    manager.is_guest_user.return_value = True
+    manager.can_access_schema.return_value = False
+    manager.can_access.return_value = False
+    manager._semantic_layer_grant_allows.return_value = False
+    manager.is_editor.return_value = False
+    manager.is_viewer.return_value = False
+    manager.can_access_dashboard.return_value = True
+    manager.get_current_guest_user_if_guest.return_value = None
+    manager.session.query.side_effect = lambda model: MagicMock(
+        **{
+            "filter.return_value.one_or_none.return_value": dashboard
+            if model is Dashboard
+            else chart
+        }
+    )
+    manager.raise_for_access.side_effect = (
+        lambda **kwargs: SupersetSecurityManager.raise_for_access(manager, **kwargs)
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", enabled)
+    monkeypatch.setitem(app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", None)
+    monkeypatch.setitem(app.config, "VIEWER_PROMISCUOUS_MODE", False)
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    # The legacy path uses the old cached property; both paths see the same fixture.
+    view.__dict__["_legacy_implementation"] = provider
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        lambda model: provider,
+    )
+    form_data: dict[str, Any] = {"slice_id": 2, "dashboardId": 1}
+    if tooltip:
+        form_data["tooltip_contents"] = ["unshared_dimension"]
+    with (
+        app.test_request_context(),
+        patch("superset.is_feature_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.security_manager", manager),
+        patch("superset.common.query_context_factory.security_manager", manager),
+        patch("superset.common.query_context_processor.security_manager", manager),
+        patch(
+            "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+            return_value=view,
+        ),
+    ):
+        context: QueryContext = QueryContextFactory().create(
+            current_slice=chart,
+            datasource={"id": 11, "type": "semantic_view"},
+            queries=[{"metrics": ["orders"], "row_limit": 10}],
+            form_data=form_data,
+        )
+        assert context.queries[0].columns == (["unshared_dimension"] if tooltip else [])
+        command: ChartDataCommand = ChartDataCommand(context)
+        if tooltip:
+            with pytest.raises(
+                SupersetSecurityException,
+                match="Guest user cannot modify chart payload",
+            ):
+                command.validate()
+        else:
+            command.validate()
+        assert provider.calls == 0

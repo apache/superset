@@ -88,7 +88,10 @@ metadata without saving the description or cache-timeout draft. It preserves
 the active tab. If publication succeeds but local reload fails, **Reload fields**
 retries the read only. Closing or switching editors discards stale completions.
 Explore reloads datasource fields and compatibility for the current selection;
-it preserves chart settings and does not automatically run a chart query.
+it does not save chart settings or automatically run a chart query. Controls use
+their normal validation against the refreshed choices. If that removes or changes
+a selected value, version history records the actual control change; an unchanged
+selection creates no unsaved-change entry.
 
 The **Cache metadata** tab provides explicit, read-only inspection of catalog and
 compatibility timing, including creation, source observation, inspection time,

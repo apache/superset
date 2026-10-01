@@ -128,9 +128,16 @@ def metadata_refresh_enabled() -> bool:
 
 
 def participates(layer: SemanticLayer) -> bool:
-    return metadata_refresh_enabled() and registry[
-        layer.type
-    ].supports_metadata_refresh(json.loads(layer.configuration))
+    """Classify stored configuration without leaking parser or registry errors."""
+    if not metadata_refresh_enabled():
+        return False
+    try:
+        configuration: Any = json.loads(layer.configuration)
+        if not isinstance(configuration, dict):
+            raise MetadataRefreshError("configuration")
+        return registry[layer.type].supports_metadata_refresh(configuration)
+    except (KeyError, TypeError, ValueError):
+        raise MetadataRefreshError("configuration") from None
 
 
 def connection_metadata_scope(layer: SemanticLayer) -> str:

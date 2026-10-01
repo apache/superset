@@ -508,14 +508,14 @@ test('metadata sync reloads the active semantic view and compatibility without r
       endpoint: '/fetch_datasource_metadata?datasourceKey=7__semantic_view',
     });
     expect(dispatch).toHaveBeenCalledWith(
-      actions.syncDatasourceMetadata(fresh as never),
-    );
-    expect(dispatch).toHaveBeenCalledWith(
-      actions.setExploreControls({
-        metrics: ['m1'],
-        groupby: [],
-        metric: 'm1',
-      } as never),
+      actions.syncSemanticMetadata(
+        fresh as never,
+        {
+          metrics: ['m1'],
+          groupby: [],
+          metric: 'm1',
+        } as never,
+      ),
     );
     expect(postSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -523,8 +523,7 @@ test('metadata sync reloads the active semantic view and compatibility without r
       }),
     );
     expect(dispatch.mock.calls.map(([action]) => action.type)).toEqual([
-      actions.SYNC_DATASOURCE_METADATA,
-      actions.SET_EXPLORE_CONTROLS,
+      actions.SYNC_SEMANTIC_METADATA,
       actions.SET_COMPATIBILITY,
       actions.SET_COMPATIBILITY,
     ]);

@@ -39,6 +39,7 @@ from superset.semantic_layers.metadata_binding import (
     layer_implementation,
     metadata_operation,
     operation_deadline,
+    participates,
     request_metadata_budget,
     view_implementation,
 )
@@ -407,3 +408,65 @@ def test_worker_rejects_implausible_budget_instead_of_clamping(
                     pytest.fail("implausible deadline entered")
             if nested:
                 assert operation_deadline() == 130
+
+
+@pytest.mark.parametrize(
+    "provider_type,configuration",
+    [
+        ("missing-provider", "{}"),
+        ("fixture", "{broken"),
+        ("fixture", "null"),
+        ("fixture", "[]"),
+    ],
+)
+def test_participation_configuration_errors_are_stable(
+    app: Flask,
+    provider_type: str,
+    configuration: str,
+) -> None:
+    """Invalid stored configuration uses the metadata error contract."""
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type=provider_type, configuration=configuration
+    )
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch.dict(registry, {"fixture": OptedInLayer}),
+    ):
+        with pytest.raises(MetadataRefreshError, match="configuration"):
+            participates(layer)
+
+
+def test_configuration_change_on_same_model_rebinds_opted_in_provider(
+    app: Flask,
+) -> None:
+    """Operation caching is scoped by configuration, not just ORM identity."""
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    with (
+        app.app_context(),
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant",
+            },
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch.dict(registry, {"fixture": OptedInLayer}),
+        patch("superset.semantic_layers.metadata_binding.connection_store"),
+        metadata_operation(),
+    ):
+        first: object = layer.implementation
+        layer.configuration = '{"changed":true}'
+        second: object = layer.implementation
+        assert first is not second
+        assert layer.implementation is second

@@ -57,6 +57,10 @@ def refresh_context(app: Flask) -> Iterator[tuple[Mock, Mock, Mock]]:
         patch.object(module, "Session", return_value=MagicMock()),
         patch.object(module, "operation_deadline", return_value=130.0),
         patch.object(module, "metadata_refresh_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.metadata_binding.metadata_refresh_enabled",
+            return_value=True,
+        ),
         patch.object(module, "security_manager", manager),
         patch.object(module, "current_user_can_modify_object", return_value=True),
         patch.object(module, "connection_metadata_scope", return_value="scope"),
@@ -415,4 +419,172 @@ def test_compatibility_inspection_never_fills_missing_identity(
         assert result.kind == "compatibility"
         assert result.state == "missing"
         identity.assert_called_once_with(view, ["orders"], [], inspection=True)
+    provider.from_configuration.assert_not_called()
+
+
+@pytest.mark.parametrize("subject_id", [21, 31], ids=["role", "group"])
+@pytest.mark.parametrize("warmed", [False, True])
+def test_refresh_rechecks_subject_membership_after_fetch(
+    app: Flask,
+    refresh_context: tuple[Mock, Mock, Mock],
+    subject_id: int,
+    warmed: bool,
+) -> None:
+    """Revoked extra editorship cannot publish using a warmed request cache."""
+    import time
+
+    from flask import request
+
+    from superset.commands import utils
+    from superset.commands.semantic_layer import refresh_metadata as module
+    from superset.commands.semantic_layer.exceptions import SemanticLayerForbiddenError
+    from superset.security.manager import SupersetSecurityManager
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from superset.subjects.utils import get_user_subject_ids
+    from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+    view: Mock
+    provider: Mock
+    manager: Mock
+    view, provider, manager = refresh_context
+    view.semantic_layer.editors = []
+    view.semantic_layer.created_by = None
+    manager.is_admin.return_value = False
+    manager.is_guest_user.return_value = False
+    manager.is_editor.side_effect = lambda resource: SupersetSecurityManager.is_editor(
+        manager, resource
+    )
+    manager.raise_for_editorship.side_effect = (
+        lambda resource: SupersetSecurityManager.raise_for_editorship(manager, resource)
+    )
+    membership: list[int] = [1, subject_id]
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 30
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "revoked", deadline=deadline
+    )
+    store.read(lambda budget: '["old"]', deadline=deadline)
+    generation: str = store.compatibility_generation()
+    before: dict[str, tuple[bytes, float | None]] = dict(backend.entries)
+
+    def fetch(budget: float) -> str:
+        """Simulate committed membership removal while the provider is busy."""
+        membership.remove(subject_id)
+        return '["new"]'
+
+    def guarded(
+        view: Mock, *, before_publish: Callable[[], None]
+    ) -> ScopedMetadataStore:
+        """Keep the real publication guard and in-memory atomic store."""
+        return ScopedMetadataStore(
+            backend, "revoked", deadline=deadline, before_publish=before_publish
+        )
+
+    adapter: Mock = provider.from_configuration.return_value.metadata_refresh
+    with (
+        app.test_request_context(),
+        patch.dict(
+            app.config, {"EXTRA_EDITORS_RESOLVER": lambda resource: [subject_id]}
+        ),
+        patch(
+            "superset.subjects.utils._query_user_subject_ids",
+            side_effect=lambda uid: list(membership),
+        ),
+        patch.object(utils, "security_manager", manager),
+        patch.object(
+            module,
+            "current_user_can_modify_object",
+            utils.current_user_can_modify_object,
+        ),
+        patch.object(module, "operation_deadline", return_value=deadline),
+    ):
+        if warmed:
+            assert get_user_subject_ids(1) == [1, subject_id]
+        original_cache: dict[int, list[int]] | None = getattr(
+            request, "_user_subject_ids", None
+        )
+        original_user: Mock = g.user
+        original_session: Mock = module.db.session()
+        cast(Mock, module.guarded_store).side_effect = guarded
+        adapter.refresh.side_effect = lambda *, deadline: adapter.bind.call_args.args[
+            0
+        ].refresh(fetch, deadline=deadline)
+        command: module.RefreshMetadataCommand = module.RefreshMetadataCommand(
+            VIEW_UUID
+        )
+        with pytest.raises(SemanticLayerForbiddenError):
+            command.run()
+        assert backend.entries == before
+        assert store.compatibility_generation() == generation
+        assert getattr(request, "_user_subject_ids", None) is original_cache
+        assert hasattr(request, "_user_subject_ids") is warmed
+        assert g.user is original_user
+        module.db.session.registry.set.assert_called_with(original_session)
+
+
+@pytest.mark.parametrize(
+    "command_name", ["InvalidateCatalogCommand", "InvalidateCompatibilityCommand"]
+)
+@pytest.mark.parametrize("changed", ["authority", "binding"])
+def test_clear_revalidation_preserves_both_cache_domains(
+    refresh_context: tuple[Mock, Mock, Mock], command_name: str, changed: str
+) -> None:
+    """A denied clear must mutate neither catalog nor compatibility generation."""
+    import time
+
+    from superset.commands.semantic_layer import refresh_metadata as module
+    from superset.commands.semantic_layer.exceptions import SemanticLayerForbiddenError
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+    view: Mock
+    provider: Mock
+    manager: Mock
+    view, provider, manager = refresh_context
+    deadline: float = time.monotonic() + 30
+    backend: MemoryBackend = MemoryBackend()
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "clear", deadline=deadline
+    )
+    store.read(lambda budget: '["old"]', deadline=deadline)
+    generation: str = store.compatibility_generation()
+    before: dict[str, tuple[bytes, float | None]] = dict(backend.entries)
+    cast(Mock, module.guarded_store).return_value = store
+    command: module.MetadataCommand = getattr(module, command_name)(VIEW_UUID)
+    validate: Callable[[], None] = command.validate
+
+    def validate_then_change() -> None:
+        """Interleave a committed policy or binding change before the clear."""
+        validate()
+        if changed == "authority":
+            manager.can_access.return_value = False
+        else:
+            view.name = "different"
+
+    with patch.object(command, "validate", side_effect=validate_then_change):
+        with pytest.raises((SemanticLayerForbiddenError, MetadataRefreshError)):
+            command.run()
+    assert backend.entries == before
+    assert store.compatibility_generation() == generation
+    provider.from_configuration.assert_not_called()
+
+
+@pytest.mark.parametrize("configuration", ["[]", "null"])
+def test_nonobject_configuration_is_rejected_before_provider_hook(
+    refresh_context: tuple[Mock, Mock, Mock],
+    configuration: str,
+) -> None:
+    """Malformed stored configuration cannot escape the capability projection."""
+    from superset.commands.semantic_layer import refresh_metadata as module
+
+    view: Mock
+    provider: Mock
+    manager: Mock
+    view, provider, manager = refresh_context
+    view.semantic_layer.configuration = configuration
+    provider.supports_metadata_refresh.side_effect = lambda config: config.get("token")
+    with pytest.raises(MetadataRefreshError, match="^configuration$"):
+        module.RefreshMetadataCommand(VIEW_UUID).run()
+    assert module.can_refresh_metadata(view) is False
+    provider.supports_metadata_refresh.assert_not_called()
     provider.from_configuration.assert_not_called()

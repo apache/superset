@@ -103,6 +103,12 @@ interface SyncDatasourceMetadataAction {
   datasource: Dataset;
 }
 
+interface SyncSemanticMetadataAction {
+  type: typeof actions.SYNC_SEMANTIC_METADATA;
+  datasource: Dataset;
+  formData: QueryFormData;
+}
+
 interface UpdateFormDataByDatasourceAction {
   type: typeof actions.UPDATE_FORM_DATA_BY_DATASOURCE;
   prevDatasource: Dataset;
@@ -191,6 +197,7 @@ type ExploreAction =
   | StartMetadataLoadingAction
   | StopMetadataLoadingAction
   | SyncDatasourceMetadataAction
+  | SyncSemanticMetadataAction
   | UpdateFormDataByDatasourceAction
   | FetchDatasourcesStartedAction
   | SetFieldValueAction
@@ -272,6 +279,17 @@ export default function exploreReducer(
       return {
         ...state,
         datasource: typedAction.datasource,
+      };
+    },
+    [actions.SYNC_SEMANTIC_METADATA]() {
+      const typedAction = action as SyncSemanticMetadataAction;
+      const refreshedState = { ...state, datasource: typedAction.datasource };
+      return {
+        ...refreshedState,
+        controls: getControlsState(
+          refreshedState as Parameters<typeof getControlsState>[0],
+          typedAction.formData,
+        ) as ControlStateMapping,
       };
     },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {

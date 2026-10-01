@@ -29,6 +29,12 @@ Both `SEMANTIC_LAYERS` and `SEMANTIC_LAYER_METADATA_REFRESH_ENABLED` remain off
 by default. A provider must explicitly declare support and supply the adapter
 and captured view token. Legacy providers retain their existing behavior.
 
+For participating stored layers, the runtime-schema endpoint uses the bound
+adapter's catalog, so its choices follow refreshed metadata just like view
+discovery. Participation classification normalizes invalid stored provider types
+and configurations to the stable metadata configuration error. The runtime-schema
+endpoint retains its existing unknown-type response.
+
 Before enabling, configure `DISTRIBUTED_COORDINATION_CONFIG` with Redis or Redis
 Sentinel, and `SEMANTIC_LAYER_METADATA_NAMESPACE` with a trusted, nonempty
 string or zero-argument callable returning the deployment and tenant namespace.
@@ -58,6 +64,9 @@ random generation: clearing compatibility retires all its selection variants
 without fetching metadata or invalidating query results. Late fills retain their
 old captured key. Existing query/RLS identity and selected-query force refresh
 remain in the query-cache path. No global key scan or upstream cache purge occurs.
+The compatibility endpoint captures its generation before resolving the provider
+view. A clear during that resolution cannot relabel the endpoint's old answer with
+the new generation. Callers must not pre-resolve the view before this capture.
 
 Bounds are a 30-second metadata I/O budget, a non-renewing lease capped by the
 owner’s remaining budget (and at most 60 seconds), a
@@ -101,16 +110,18 @@ Read authorization remains with the canonical caller policy, using its full
 chart, dashboard, guest-token or datasource context. Model construction must not
 replace those policies with a narrower datasource permission check.
 
-**Production enablement is blocked on chart-data authorization ordering.** The
-existing QueryContext factory reads semantic columns before its caller checks
-access. With this path enabled, a caller later denied chart access can trigger a
-bounded catalog acquisition/publication when the shared observation is missing
-or expired. A warm observation does not force an upstream refresh; denial still
-prevents query execution and response data disclosure. PR3 must put canonical
-contextual authorization ahead of factory discovery and prove zero provider/cache
-acquisition for denied callers before production enablement. The factory-path
-characterization test records this gap; it is not acceptance of that final policy.
-Maintenance commands additionally require connection-manager authority in PR3.
+The chart-context factory authorizes the full semantic context before column
+discovery, and query validation checks the completed context before execution.
+Maintenance commands require connection-management authority and revalidate the
+persisted principal, subject membership and stored binding before mutation.
+These prerequisites are implemented in the API/command layer; denied cold and
+warm reads are covered by zero-acquisition tests.
+
+Production rollout still requires the default-off flag, a trusted tenant
+namespace, a compatible provider and fleet, bounded metadata database and Redis
+transports, topology/load/failover checks, and UI/live-provider acceptance. See
+[metadata operations](./semantic-metadata-operations.md) for the authority policy,
+error contract and remaining rollout gates.
 
 Do not enable this path for deployments using semantic MCP tools or other
 unadapted async/CLI callers. Existing MCP handlers require a synchronous worker

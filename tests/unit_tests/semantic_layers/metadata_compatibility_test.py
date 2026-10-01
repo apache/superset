@@ -210,3 +210,49 @@ def test_actual_compatible_endpoint_uses_snapshot_and_generation_identity(
         assert endpoint(api, "semantic_view", 11)[1]["result"][
             "compatible_metrics"
         ] == ["newer"]
+
+
+def test_clear_during_provider_resolution_does_not_relabel_old_observation(
+    app: Flask,
+) -> None:
+    """Capture the generation before provider code can yield to a clear."""
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 5
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=deadline
+    )
+    snapshot: CatalogSnapshot = store.read(catalog, deadline=deadline)
+    provider: ResultView = ResultView(snapshot.cache_token, 17)
+    view: SemanticView = view_for(provider)
+    with patch(
+        "superset.semantic_layers.metadata_cache.connection_store", return_value=store
+    ):
+        with patch.object(
+            SemanticView, "implementation", new=property(lambda self: provider)
+        ):
+            old: CompatibilityIdentity | None = compatibility_identity(
+                view, ["orders"], []
+            )
+
+        def capture_before_clear(model: SemanticView) -> ResultView:
+            """The provider observation precedes invalidation; returning it follows."""
+            store.invalidate_compatibility()
+            return provider
+
+        with patch.object(
+            SemanticView, "implementation", new=property(capture_before_clear)
+        ):
+            captured: CompatibilityIdentity | None = compatibility_identity(
+                view, ["orders"], []
+            )
+        with patch.object(
+            SemanticView, "implementation", new=property(lambda self: provider)
+        ):
+            current: CompatibilityIdentity | None = compatibility_identity(
+                view, ["orders"], []
+            )
+    assert old is not None
+    assert captured is not None
+    assert current is not None
+    assert captured.key == old.key
+    assert captured.key != current.key

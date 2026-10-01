@@ -38,6 +38,7 @@ export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 // Note the literal: explore names this constant SET_EXPLORE_CONTROLS but its
 // value is 'UPDATE_EXPLORE_CONTROLS'. The pinning test guards the mismatch.
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
+export const SYNC_SEMANTIC_METADATA = 'explore/SYNC_SEMANTIC_METADATA';
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 
 // The control whose label names a datasource change in the log. Both the
@@ -52,7 +53,7 @@ const HISTORY_CONTROL_NAME = '__history__';
 interface SessionLogState {
   user?: { firstName?: string; lastName?: string };
   explore?: {
-    controls?: Record<string, { label?: unknown } | undefined>;
+    controls?: Record<string, { label?: unknown; value?: unknown } | undefined>;
     form_data?: Record<string, unknown>;
   };
   versionHistory?: {
@@ -184,6 +185,23 @@ export const versionSessionLogMiddleware: Middleware =
           user: userName(state),
         }),
       );
+    } else if (action.type === SYNC_SEMANTIC_METADATA) {
+      // Fresh choices can prune a selected value. Metadata-only rebuilds are
+      // clean; record only actual value changes so restore cannot discard them.
+      const state = store.getState() as SessionLogState;
+      const controls = state.explore?.controls ?? {};
+      Object.entries(action.formData ?? {}).forEach(([controlName, value]) => {
+        if (!jsonValuesEqual(value, controls[controlName]?.value)) {
+          store.dispatch(
+            appendVersionSessionLog({
+              label: t("Changed '%s'", controlLabel(state, controlName)),
+              controlName,
+              ts: Date.now(),
+              user: userName(state),
+            }),
+          );
+        }
+      });
     } else if (action.type === UPDATE_FORM_DATA_BY_DATASOURCE) {
       // Swapping the dataset and editing it in place both reconcile the
       // chart's form data against the new columns, but only the swap emits

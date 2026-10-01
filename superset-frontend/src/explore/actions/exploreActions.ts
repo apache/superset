@@ -284,7 +284,20 @@ export function syncDatasourceMetadata(datasource: Dataset) {
   return { type: SYNC_DATASOURCE_METADATA, datasource };
 }
 
-/** Refresh only the active view's derived metadata; chart selections stay intact. */
+export const SYNC_SEMANTIC_METADATA = 'explore/SYNC_SEMANTIC_METADATA';
+/** Rebuild metadata-derived controls without recording a chart edit. */
+export function syncSemanticMetadata(
+  datasource: Dataset,
+  formData: QueryFormData,
+): {
+  type: typeof SYNC_SEMANTIC_METADATA;
+  datasource: Dataset;
+  formData: QueryFormData;
+} {
+  return { type: SYNC_SEMANTIC_METADATA, datasource, formData };
+}
+
+/** Refresh the active view's metadata without saving or running the chart. */
 export function refreshSemanticMetadata(
   viewId: number,
   sessionIsCurrent: () => boolean,
@@ -309,10 +322,9 @@ export function refreshSemanticMetadata(
     });
     if (!isCurrent()) return;
     const formData = getFormDataFromControls(getState().explore.controls);
-    dispatch(syncDatasourceMetadata(json as Dataset));
     // Rebuild the controls against fresh fields using their existing values and
     // normal removed-member validation, without rewriting form_data or querying.
-    dispatch(setExploreControls(formData));
+    dispatch(syncSemanticMetadata(json as Dataset, formData));
     const selectedMetrics = [
       ...new Set(
         [...ensureIsArray(formData.metrics), formData.metric].filter(
