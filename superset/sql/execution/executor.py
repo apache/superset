@@ -221,14 +221,35 @@ class _LimitedCursor:
         return rows
 
     def check_truncated(self, db_engine_spec: type[BaseEngineSpec]) -> bool:
-        """Probe one extra row using the engine's fetch and error handling."""
-        return self._remaining == 0 and bool(
-            db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1))
-        )
+        """
+        Probe one extra row using the engine's fetch and error handling.
+
+        The rows within the budget are already materialized, so a failed probe
+        reports the result as possibly partial instead of discarding them.
+        """
+        if self._remaining != 0:
+            return False
+        try:
+            return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Truncation probe failed; reporting the result as partial",
+                exc_info=True,
+            )
+            return True
 
     def fetchall(self) -> list[Any]:
-        """Translate an unbounded read into a bounded driver fetch."""
-        return self.fetchmany(self._remaining)
+        """
+        Translate an unbounded read into bounded driver fetches.
+
+        PEP 249 lets `fetchmany` return fewer rows than requested before the
+        result is exhausted, so keep reading until the budget is spent or a
+        batch comes back empty.
+        """
+        rows: list[Any] = []
+        while batch := self.fetchmany(self._remaining):
+            rows.extend(batch)
+        return rows
 
     def fetchone(self) -> Any:
         """Read one row only if budget remains."""

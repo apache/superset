@@ -99,6 +99,13 @@ server limits) and rewrites these clauses to a fixed `TOP` cap. For example,
 `TOP 5 PERCENT` with a 1000-row dropdown can return up to 1000 rows rather than
 the previous five.
 
+`BigQueryEngineSpec.fetch_data` no longer falls back to a plain `fetchall()` once
+it has read its initial sample, since a forward-only cursor cannot replay those
+rows. A BigQuery driver error after the sample now fails the query instead of
+returning the remaining rows as a success. This applies to every caller,
+including legacy SQL Lab execution and dataset column discovery. An error on the
+initial read still falls back as before.
+
 ### Doris SSL requests require TLS
 
 The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and

@@ -2012,16 +2012,45 @@ def test_limited_cursor_error_fallback_stays_bounded(
     with pytest.raises(RuntimeError, match="fetch failed"):
         limited.fetchmany(failed_size)
     if retry_method == "fetchall":
-        assert limited.fetchall() == [(1,), (2,)]
+        # A short batch does not end the read while budget remains.
+        assert limited.fetchall() == [(1,), (2,), (3,), (4,), (5,)]
     else:
         assert limited.fetchmany(100) == [(1,), (2,)]
-    assert limited.fetchall() == [(3,), (4,), (5,)]
+        assert limited.fetchall() == [(3,), (4,), (5,)]
     assert limited.fetchall() == []
     assert limited.fetchmany(100) == []
     assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [
         min(failed_size, 5),
         5,
         3,
+    ]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_fetchall_reads_through_short_batches() -> None:
+    """A driver returning short batches cannot make a capped result look complete."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    available = [(n,) for n in range(10)]
+    cursor = create_mock_cursor(["n"])
+
+    def short_batches(size: int) -> list[tuple[int]]:
+        """Serve at most two rows per call, as PEP 249 allows."""
+        batch = available[:2][:size]
+        del available[: len(batch)]
+        return batch
+
+    cursor.fetchmany.side_effect = short_batches
+    limited = _LimitedCursor(cursor, 5)
+
+    assert BaseEngineSpec.fetch_data(limited) == [(n,) for n in range(5)]
+    assert limited.check_truncated(BaseEngineSpec) is True
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [
+        5,
+        3,
+        1,
+        1,
     ]
     cursor.fetchall.assert_not_called()
 
@@ -3405,7 +3434,7 @@ def test_execute_truncation_probe_engine_errors(
     app_context: None,
     eof: bool,
 ) -> None:
-    """Normalize Drill EOF and map real driver errors during the bounded probe."""
+    """Normalize Drill EOF; a real probe error keeps rows and flags truncation."""
     from superset.db_engine_specs.drill import DrillEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
     from superset.result_set import SupersetResultSet
@@ -3436,15 +3465,12 @@ def test_execute_truncation_probe_engine_errors(
             execute_fn=MagicMock(),
         )
 
-    if eof:
-        results = execute()
-        result_set = results[0][1]
-        assert result_set is not None
-        assert result_set.size == 2
-        assert result_set.truncated is False
-    else:
-        with pytest.raises(SupersetDBAPIConnectionError, match="connection lost"):
-            execute()
+    # A failed probe keeps the fetched rows and reports them as possibly partial.
+    results = execute()
+    result_set = results[0][1]
+    assert result_set is not None
+    assert result_set.size == 2
+    assert result_set.truncated is not eof
     assert cursor.fetchmany.call_args_list == [mocker.call(2), mocker.call(1)]
     cursor.fetchall.assert_not_called()
 
