@@ -1354,7 +1354,7 @@ def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
         """
         return f"-- begin\n{sql}\n-- end"
 
-    dataset = SqlaTable(id=1)
+    dataset: SqlaTable = SqlaTable(id=1)
     mocker.patch.object(
         dataset,
         "get_query_str_extended",
