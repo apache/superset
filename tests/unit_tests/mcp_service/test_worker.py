@@ -493,6 +493,9 @@ async def test_prequery_registers_cancellation_before_blocking(app: Any) -> None
     from superset.mcp_service.worker import run_in_worker, WorkerPool
     from superset.models.core import Database
 
+    # Resolve the engine spec (first use loads every spec) before the short
+    # deadline starts, so a cold process still reaches the prequery in time.
+    assert Database(sqlalchemy_uri="sqlite://").db_engine_spec.engine == "sqlite"
     pool = WorkerPool(1)
     entered = threading.Event()
     cancelled = threading.Event()
@@ -642,3 +645,177 @@ async def test_expired_call_cancellation_reaches_engine_after_prequery(
             assert tenant.get() == "tenant-a"
     finally:
         engine.dispose()
+
+
+TRINO_QUERY_ID = "20261001_000000_00001_mcpts"
+
+
+@contextmanager
+def fake_trino_coordinator(killed: threading.Event) -> Iterator[int]:
+    """Serve a Trino query that keeps running until ``killed`` is set."""
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from superset.utils import json
+
+    base_url: list[str] = []
+
+    class Coordinator(BaseHTTPRequestHandler):
+        """Minimal statement protocol: queued, then running, then killed."""
+
+        def log_message(self, *args: Any) -> None:
+            """Keep the test output quiet."""
+
+        def _reply(self, payload: dict[str, Any]) -> None:
+            body = json.dumps(payload).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def _status(self) -> dict[str, Any]:
+            status: dict[str, Any] = {
+                "id": TRINO_QUERY_ID,
+                "infoUri": f"{base_url[0]}/ui/query.html?{TRINO_QUERY_ID}",
+                "stats": {"state": "RUNNING"},
+            }
+            if killed.is_set():
+                status["stats"] = {"state": "FAILED"}
+                status["error"] = {
+                    "message": "Query killed. Message: Query cancelled by Superset",
+                    "errorCode": 3,
+                    "errorName": "ADMINISTRATIVELY_KILLED",
+                    "errorType": "USER_ERROR",
+                }
+            else:
+                status["nextUri"] = f"{base_url[0]}/v1/statement/executing"
+            return status
+
+        def do_POST(self) -> None:  # noqa: N802
+            """Accept the statement; the client now knows the query id."""
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            self._reply(self._status())
+
+        def do_GET(self) -> None:  # noqa: N802
+            """Report progress without rows until the query is killed."""
+            killed.wait(0.05)
+            self._reply(self._status())
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Coordinator)
+    base_url.append(f"http://127.0.0.1:{server.server_port}")
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server.server_port
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+@pytest.mark.asyncio
+async def test_abandoned_trino_query_is_killed_by_its_query_id(app: Any) -> None:
+    """Trino's client blocks in execute(); its queryId still reaches the kill.
+
+    No handle exists before execute(), so the cancellation thread reads the
+    live cursor's queryId and kills the query through the engine's
+    ``cancel_query``, which unblocks the abandoned worker.
+    """
+    import trino.dbapi
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.mcp_service.worker import run_in_worker
+    from superset.sql.execution.cancellation import cancellable_cursor
+
+    killed = threading.Event()
+    finished = threading.Event()
+    errors: list[BaseException] = []
+    worker_threads: list[int] = []
+    database = Mock(id=42, db_engine_spec=TrinoEngineSpec)
+    database.is_oauth2_enabled.return_value = False
+
+    with fake_trino_coordinator(killed) as port:
+
+        async def query() -> None:
+            """Run a real Trino DB-API cursor through the engine spec."""
+            worker_threads.append(threading.get_ident())
+            connection = trino.dbapi.connect(
+                host="127.0.0.1", port=port, user="mcp", http_scheme="http"
+            )
+            cursor = connection.cursor()
+            assert TrinoEngineSpec.get_cancel_query_id(cursor, Mock()) is None
+            try:
+                with cancellable_cursor(database, cursor, "hive", "default"):
+                    TrinoEngineSpec.execute(cursor, "SELECT sleep()", database)
+            except BaseException as ex:
+                errors.append(ex)
+                raise
+            finally:
+                finished.set()
+
+        def kill(target: Any, cancel_id: str, **kwargs: Any) -> bool:
+            """Record the engine kill instead of opening a second connection."""
+            assert threading.get_ident() not in worker_threads
+            assert target is database
+            assert cancel_id == TRINO_QUERY_ID
+            assert kwargs == {"catalog": "hive", "schema": "default"}
+            killed.set()
+            return True
+
+        with (
+            patch(
+                "superset.tasks.query_cancel.cancel_chart_query", side_effect=kill
+            ) as cancellation,
+            patch.object(db.session, "get", return_value=database),
+        ):
+            with pytest.raises(ToolError, match="timed out"):
+                await run_in_worker(query, (), {}, 0.3)
+            assert await asyncio.to_thread(finished.wait, 5)
+
+    cancellation.assert_called_once()
+    assert killed.is_set()
+    # The engine spec maps the driver error; the kill is what ended the query.
+    assert "name=ADMINISTRATIVELY_KILLED" in str(errors[0])
+    assert f"query_id={TRINO_QUERY_ID}" in str(errors[0])
+
+
+@pytest.mark.asyncio
+async def test_query_id_during_execute_without_a_handle_is_not_killed(
+    app: Any,
+) -> None:
+    """If the live cursor has no id yet, nothing is cancelled by mistake."""
+    from superset.mcp_service import worker
+    from superset.mcp_service.worker import run_in_worker
+    from superset.sql.execution.cancellation import cancellable_cursor
+
+    database = Mock(id=42)
+    database.db_engine_spec.has_implicit_cancel.return_value = False
+    database.db_engine_spec.has_query_id_during_execute = True
+    database.db_engine_spec.get_cancel_query_id.return_value = None
+    gave_up = threading.Event()
+    finished = threading.Event()
+
+    async def query() -> None:
+        """Stay blocked until the cancellation thread has given up."""
+        try:
+            with cancellable_cursor(database, Mock()):
+                gave_up.wait(3)
+        finally:
+            finished.set()
+
+    def warning(message: str, *args: Any, **kwargs: Any) -> None:
+        """Observe the cancellation thread's outcome."""
+        if "no cancellation handle" in message:
+            gave_up.set()
+
+    with (
+        patch("superset.tasks.query_cancel.cancel_chart_query") as cancellation,
+        patch.object(db.session, "get", return_value=database),
+        patch.object(worker.logger, "warning", side_effect=warning),
+    ):
+        with pytest.raises(ToolError, match="timed out"):
+            await run_in_worker(query, (), {}, 0.1)
+        assert await asyncio.to_thread(gave_up.wait, 3)
+        assert await asyncio.to_thread(finished.wait, 3)
+    # Once when the cursor was registered, once more on the cancel thread.
+    assert database.db_engine_spec.get_cancel_query_id.call_count == 2
+    cancellation.assert_not_called()

@@ -92,8 +92,12 @@ call, including composed queries, and returns a clear timeout error with a call
 ID. Superset requests warehouse cancellation using its engine cancellation
 hooks, including for connection prequeries, on a separate bounded pool.
 Cancellation connections run independently of the expired tool deadline, including
-connection prequeries such as PostgreSQL schema selection.
-Drivers without cancellation support can
+connection prequeries such as PostgreSQL schema selection. Trino's client only
+learns a query's `queryId` once it is running and then blocks until results
+arrive, so the cancellation thread reads that id from the live cursor and kills
+the query with `system.runtime.kill_query`. Engines whose specs expose no
+cancellation handle (for example BigQuery, Databricks native and Athena) are not
+cancelled. Drivers without cancellation support can
 continue running after the caller receives the timeout; the worker retains its
 slot and owns session cleanup until it finishes, while metadata-only tools keep
 their own bound. A stuck cancellation also

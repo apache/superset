@@ -702,7 +702,11 @@ class QueryCancellation:
         with self.call.lock:
             if self.spec.has_implicit_cancel():
                 self.call.cancel_query = self.cancel_live_cursor
-            elif self.cancel_id is not None:
+            elif (
+                self.cancel_id is not None
+                or getattr(self.spec, "has_query_id_during_execute", False) is True
+            ):
+                # Without a handle yet, cancel() reads it from the live cursor.
                 self.call.cancel_query = lambda: self.context.run(self.cancel)
             else:
                 self.call.cancel_query = None
@@ -732,7 +736,10 @@ class QueryCancellation:
         from superset import db, security_manager
         from superset.models.core import Database
         from superset.sql.execution.cancellation import without_execution_hooks
-        from superset.tasks.query_cancel import cancel_chart_query
+        from superset.tasks.query_cancel import (
+            cancel_chart_query,
+            capture_cancel_query_id,
+        )
 
         active_token = _active_call.set(None)
         try:
@@ -742,9 +749,20 @@ class QueryCancellation:
                         security_manager.user_model, self.call.user_id
                     )
                 target = db.session.get(Database, self.database_id)
-                if target is not None and self.cancel_id is not None:
+                cancel_id = self.cancel_id
+                if target is not None and cancel_id is None:
+                    # The worker is still blocked in execute(); engines with
+                    # has_query_id_during_execute publish the handle on the
+                    # live cursor by then.
+                    cancel_id = capture_cancel_query_id(target, self.cursor)
+                if target is not None and cancel_id is not None:
                     cancel_chart_query(
-                        target, self.cancel_id, catalog=self.catalog, schema=self.schema
+                        target, cancel_id, catalog=self.catalog, schema=self.schema
+                    )
+                else:
+                    logger.warning(
+                        "MCP call %s: no cancellation handle available",
+                        self.call.call_id,
                     )
         except Exception:
             logger.warning(
