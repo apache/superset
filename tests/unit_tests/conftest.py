@@ -27,6 +27,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -39,11 +40,19 @@ from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture) -> Callable[[], Session]:
+def session_engine() -> Engine:
+    """
+    The engine behind ``session``; a module may override it for one test file.
+    """
+    return create_engine("sqlite://")
+
+
+@pytest.fixture
+def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    engine = session_engine
 
     def get_session():
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806

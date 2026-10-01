@@ -29,24 +29,7 @@ import {
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
-const findConditionalFormattingControl = (): ControlConfig | null => {
-  for (const section of config.controlPanelSections) {
-    if (!section) continue;
-    for (const row of section.controlSetRows) {
-      for (const control of row) {
-        if (
-          isCustomControlItem(control) &&
-          control.name === 'conditional_formatting'
-        ) {
-          return control.config;
-        }
-      }
-    }
-  }
-  return null;
-};
-
-const getPaginationControl = (name: string): ControlConfig => {
+const findNamedControl = (name: string): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {
@@ -57,8 +40,17 @@ const getPaginationControl = (name: string): ControlConfig => {
       }
     }
   }
+  return null;
+};
+
+const getPaginationControl = (name: string): ControlConfig => {
+  const control = findNamedControl(name);
+  if (control) return control;
   throw new Error(`Missing pagination control: ${name}`);
 };
+
+const findConditionalFormattingControl = (): ControlConfig | null =>
+  findNamedControl('conditional_formatting');
 
 const findMetricsMapStateToProps = ():
   | ControlConfig['mapStateToProps']
@@ -300,6 +292,28 @@ const createMockMetricsControlState = (): ControlState => ({
   label: '',
   default: undefined,
   renderTrigger: false,
+});
+
+test('column_config mapStateToProps expands comparison columns for metrics', () => {
+  const controlConfig = findNamedControl('column_config');
+  const explore = {
+    ...createMockExplore(['1 year ago']),
+    form_data: {
+      ...createMockExplore(['1 year ago']).form_data,
+      metrics: ['col1'],
+    },
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    createMockChart(),
+  );
+
+  expect(result.columnsPropsObject.colnames).toEqual(
+    expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
+  );
+  expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
+  expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
 });
 
 test('metrics control includes non-filterable columns', () => {

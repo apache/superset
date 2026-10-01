@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1494,6 +1494,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Afegir Filtre"
 
+msgid "Add group"
+msgstr "Afegeix grup"
+
 msgid "Add item"
 msgstr "Afegir element"
 
@@ -1536,6 +1539,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Afegir full"
+
+msgid "Add subgroup"
+msgstr "Afegeix subgrup"
 
 msgid "Add tag to entities"
 msgstr "Afegir etiqueta a entitats"
@@ -1774,6 +1780,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3500,6 +3510,9 @@ msgstr "Límit de cel·les"
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
+msgid "Center"
+msgstr "Centre"
+
 msgid "Center value"
 msgstr ""
 
@@ -4215,6 +4228,9 @@ msgstr "Col·lapsar panell de dades"
 msgid "Collapse row"
 msgstr "Col·lapsar fila"
 
+msgid "Collapse settings"
+msgstr "Replega la configuració"
+
 msgid "Collapse tab content"
 msgstr "Col·lapsar contingut de la pestanya"
 
@@ -4358,6 +4374,9 @@ msgstr "Columna que conté dades de longitud"
 
 msgid "Column data types"
 msgstr "Tipus de dades de columna"
+
+msgid "Column groups"
+msgstr "Grups de columnes"
 
 msgid "Column header tooltip"
 msgstr "Informació d'ajuda de l'encapçalament de columna"
@@ -7220,6 +7239,9 @@ msgstr "Introdueix duració en segons"
 msgid "Enter fullscreen"
 msgstr "Entrar a pantalla completa"
 
+msgid "Enter group name"
+msgstr "Introduïu el nom del grup"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7521,6 +7543,9 @@ msgstr "Expandir fila"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Expandir fila"
+
+msgid "Expand settings"
+msgstr "Expandeix la configuració"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8581,6 +8606,10 @@ msgstr ""
 msgid "Group"
 msgstr "Agrupar per"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grup %s"
+
 msgid "Group By"
 msgstr "Agrupar Per"
 
@@ -8592,6 +8621,12 @@ msgstr "Clau de Grup"
 
 msgid "Group by"
 msgstr "Agrupar per"
+
+msgid "Group columns"
+msgstr "Agrupa columnes"
+
+msgid "Group name"
+msgstr "Nom del grup"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9229,10 +9264,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "O bé el nom d'usuari o la contrasenya són incorrectes."
 
 msgid "Inverse"
 msgstr ""
@@ -10596,6 +10627,12 @@ msgstr "Més filtres"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mou el grup a l'esquerra"
+
+msgid "Move group right"
+msgstr "Mou el grup a la dreta"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Només moure"
@@ -10628,6 +10665,9 @@ msgstr "Multi-Nivells"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variables"
+
+msgid "Multi-level header"
+msgstr "Capçalera multinivell"
 
 msgid "Multiple"
 msgstr "Múltiple"
@@ -12233,6 +12273,9 @@ msgstr "El port %(port)s a l'hostname \"%(hostname)s\" ha refusat la connexió."
 msgid "Port out of range 0-65535"
 msgstr "Port fora del rang 0-65535"
 
+msgid "Position"
+msgstr "Posició"
+
 msgid "Position JSON"
 msgstr "JSON de Posició"
 
@@ -12731,6 +12774,9 @@ msgstr "Eliminar element"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Eliminar grup"
 
 msgid "Remove item"
 msgstr "Eliminar element"
@@ -13980,6 +14026,9 @@ msgstr "Seleccionar columna"
 #, fuzzy
 msgid "Select column name"
 msgstr "Seleccionar columna"
+
+msgid "Select columns"
+msgstr "Seleccionar columnes"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15526,6 +15575,10 @@ msgstr "Categoria"
 msgid "Subdomain"
 msgstr "Subdomini"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrup %s"
+
 msgid "Subject"
 msgstr "Subjecte"
 
@@ -15774,6 +15827,9 @@ msgstr "Nom de taula no definit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La Taula o Vista \"%(table)s\" no existeix."
+
+msgid "Table side"
+msgstr "Costat de la taula"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
