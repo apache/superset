@@ -24,7 +24,7 @@ import runpy
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, ClassVar
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, call, MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -328,6 +328,68 @@ def test_unsupported_model_is_reported_without_scanning(
     finally:
         mapper_registry.dispose()
         engine.dispose()
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_unsupported_model_does_not_prevent_supported_models_from_purging(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    dry_run: bool,
+) -> None:
+    """A skipped model must not stop the remaining supported models in the run."""
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.tasks import deletion_retention as task
+
+    registered_models: list[type[SoftDeleteMixin]] = task._soft_delete_models()
+    supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", registered_models[:])
+
+    class UnsupportedModel(SoftDeleteMixin):
+        """An unsupported root that must never reach the row-processing boundary."""
+
+        __tablename__: str = "unsupported_mixed_purge_test"
+
+    # Put the unsupported model first to detect an early return or break.
+    monkeypatch.setattr(
+        SoftDeleteMixin,
+        "_registered_subclasses",
+        [UnsupportedModel, *registered_models],
+    )
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
+    purge: MagicMock
+    counter: MagicMock
+    with (
+        patch.object(
+            task, "_purge_model", return_value=(0, 1, 0, 0) if dry_run else (1, 0, 0, 0)
+        ) as purge,
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge"),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert purge.call_count == len(supported_models)
+    model: type[SoftDeleteMixin]
+    for model in supported_models:
+        assert call(model, ANY, dry_run) in purge.call_args_list
+    assert result["would_purge" if dry_run else "purged"] == {
+        "dashboards": 1,
+        "slices": 1,
+        "tables": 1,
+    }
+    assert result["unsupported_models"] == {"unsupported_mixed_purge_test": 1}
+    counter.assert_called_once_with(
+        "deletion_retention.unsupported_models.unsupported_mixed_purge_test"
+    )
+    assert (
+        caplog.text.count("skipping unsupported_mixed_purge_test: no purge policy") == 1
+    )
 
 
 def test_default_config_purges_for_real_after_the_retention_window() -> None:
