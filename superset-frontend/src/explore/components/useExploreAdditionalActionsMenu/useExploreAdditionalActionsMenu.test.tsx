@@ -56,12 +56,14 @@ const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
 const mockExportChart = exploreUtils.exportChart as jest.Mock;
 
 const mockAddDangerToast = jest.fn();
+const mockAddWarningToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (component: ComponentType) => component,
   useToasts: () => ({
     addDangerToast: mockAddDangerToast,
     addSuccessToast: jest.fn(),
+    addWarningToast: mockAddWarningToast,
   }),
 }));
 
@@ -464,4 +466,24 @@ test('the item stays hidden while the feature flag is off', async () => {
 
   await screen.findByText('View query');
   expect(screen.queryByText('View version history')).not.toBeInTheDocument();
+});
+
+test('Export All Data JPEG screenshot passes addWarningToast to downloadAsImage', async () => {
+  render(<TestComponent {...defaultProps} />, {
+    useRedux: true,
+    initialState: { explore: { can_export_image: true } },
+  });
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  await userEvent.click(await screen.findByText('Export screenshot (jpeg)'));
+
+  expect(mockDownloadAsImage).toHaveBeenCalledWith(
+    expect.any(String),
+    'Test Chart',
+    true,
+    expect.anything(),
+    undefined,
+    mockAddWarningToast,
+  );
 });
