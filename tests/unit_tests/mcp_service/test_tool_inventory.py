@@ -131,7 +131,7 @@ TOOL_BUDGETS = {
     "save_sql_query": 1_600,
     "update_chart": 4_100,
     "update_chart_preview": 2_000,
-    "update_dashboard": 4_100,
+    "update_dashboard": 4_200,
     "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
 }

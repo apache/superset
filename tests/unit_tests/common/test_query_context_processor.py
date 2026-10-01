@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -230,6 +231,17 @@ def test_get_data_json_preserves_browser_numeric_contract(
         "big_integer": str(2**53 + 1),
         "longdouble_nonfinite": None,
     }
+
+
+def test_get_data_json_keeps_decimals_numeric(processor, mock_query_context) -> None:
+    """Chart JSON keeps decimals as numbers; only SQL Lab quotes them."""
+    frame = pd.DataFrame({"amount": [Decimal("10.50")]})
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(frame, [GenericDataType.NUMERIC])
+
+    assert type(result[0]["amount"]) is Decimal
+    assert superset_json.loads(superset_json.dumps(result)) == [{"amount": 10.5}]
 
 
 def test_get_data_invalid_dataframe(processor, mock_query_context):
