@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1490,6 +1490,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Přidat složku"
 
+msgid "Add group"
+msgstr "Přidat skupinu"
+
 msgid "Add item"
 msgstr "Přidat položku"
 
@@ -1532,6 +1535,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Přidat list"
+
+msgid "Add subgroup"
+msgstr "Přidat podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Přidat značku k entitám"
@@ -1770,6 +1776,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3395,6 +3405,9 @@ msgstr "Limit buněk"
 msgid "Cell title template"
 msgstr "Šablona názvu buňky"
 
+msgid "Center"
+msgstr "Na střed"
+
 msgid "Center value"
 msgstr ""
 
@@ -4078,6 +4091,9 @@ msgstr "Sbalit datový panel"
 msgid "Collapse row"
 msgstr "Sbalit řádek"
 
+msgid "Collapse settings"
+msgstr "Sbalit nastavení"
+
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
 
@@ -4219,6 +4235,9 @@ msgstr "Sloupec obsahující data o zeměpisné délce"
 
 msgid "Column data types"
 msgstr "Datové typy sloupců"
+
+msgid "Column groups"
+msgstr "Skupiny sloupců"
 
 msgid "Column header tooltip"
 msgstr "Nápověda záhlaví sloupce"
@@ -6993,6 +7012,9 @@ msgstr "Zadejte dobu trvání v sekundách"
 msgid "Enter fullscreen"
 msgstr "Vstoupit do režimu celé obrazovky"
 
+msgid "Enter group name"
+msgstr "Zadejte název skupiny"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
 
@@ -7284,6 +7306,9 @@ msgstr "Rozbalit řádek"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rozbalit řádek"
+
+msgid "Expand settings"
+msgstr "Rozbalit nastavení"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8286,6 +8311,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Seskupit podle"
 
@@ -8297,6 +8326,12 @@ msgstr "Klíč skupiny"
 
 msgid "Group by"
 msgstr "Seskupit podle"
+
+msgid "Group columns"
+msgstr "Seskupit sloupce"
+
+msgid "Group name"
+msgstr "Název skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
@@ -8899,10 +8934,6 @@ msgstr "Neplatná ID karet: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Neplatné uživatelské jméno nebo heslo"
 
 msgid "Inverse"
 msgstr ""
@@ -10227,6 +10258,12 @@ msgstr "Více filtrů"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Přesunout skupinu doleva"
+
+msgid "Move group right"
+msgstr "Přesunout skupinu doprava"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Pouze přesunout"
@@ -10259,6 +10296,9 @@ msgstr "Více úrovní"
 
 msgid "Multi-Variables"
 msgstr "Více proměnných"
+
+msgid "Multi-level header"
+msgstr "Víceúrovňové záhlaví"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -11835,6 +11875,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl připojení."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+msgid "Position"
+msgstr "Pozice"
+
 msgid "Position JSON"
 msgstr "JSON pozice"
 
@@ -12317,6 +12360,9 @@ msgstr "Odstranit položku"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstranit skupinu"
 
 msgid "Remove item"
 msgstr "Odstranit položku"
@@ -13547,6 +13593,9 @@ msgstr "Vybrat sloupec"
 #, fuzzy
 msgid "Select column name"
 msgstr "Vybrat sloupec"
+
+msgid "Select columns"
+msgstr "Vybrat sloupce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15022,6 +15071,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15260,6 +15313,9 @@ msgstr "Název tabulky není definován"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabulka nebo pohled „%(table)s“ neexistuje."
+
+msgid "Table side"
+msgstr "Strana tabulky"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

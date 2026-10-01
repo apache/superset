@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-export const DASHBOARD_LIST = '/dashboard/list/';
-export const CHART_LIST = '/chart/list/';
-export const WORLD_HEALTH_DASHBOARD = '/dashboard/world_health/';
-export const TABBED_DASHBOARD = '/dashboard/tabbed_dash/';
-export const DATABASE_LIST = '/databaseview/list';
+export {
+  buildHeaderGroupRows,
+  collectHeaderGroupLeaves,
+  getHeaderGroupDepth,
+  getHeaderGroupsMaxDepth,
+  hasRenderableHeaderGroups,
+  orderColumnsByHeaderGroups,
+} from '@superset-ui/chart-controls';
+export type {
+  HeaderGroupCell,
+  HeaderGroupConfig,
+  HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
+} from '@superset-ui/chart-controls';

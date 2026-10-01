@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1313,6 +1313,9 @@ msgstr ""
 msgid "Add folder"
 msgstr ""
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr ""
 
@@ -1350,6 +1353,9 @@ msgid "Add service credentials"
 msgstr ""
 
 msgid "Add sheet"
+msgstr ""
+
+msgid "Add subgroup"
 msgstr ""
 
 msgid "Add tag to entities"
@@ -1576,6 +1582,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3042,6 +3052,9 @@ msgstr ""
 msgid "Cell title template"
 msgstr ""
 
+msgid "Center"
+msgstr ""
+
 msgid "Center value"
 msgstr ""
 
@@ -3678,6 +3691,9 @@ msgstr ""
 msgid "Collapse row"
 msgstr ""
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr ""
 
@@ -3799,6 +3815,9 @@ msgid "Column containing longitude data"
 msgstr ""
 
 msgid "Column data types"
+msgstr ""
+
+msgid "Column groups"
 msgstr ""
 
 msgid "Column header tooltip"
@@ -6297,6 +6316,9 @@ msgstr ""
 msgid "Enter fullscreen"
 msgstr ""
 
+msgid "Enter group name"
+msgstr ""
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 
@@ -6570,6 +6592,9 @@ msgid "Expand row"
 msgstr ""
 
 msgid "Expand row to edit"
+msgstr ""
+
+msgid "Expand settings"
 msgstr ""
 
 msgid ""
@@ -7483,6 +7508,10 @@ msgstr ""
 msgid "Group"
 msgstr ""
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr ""
 
@@ -7493,6 +7522,12 @@ msgid "Group Key"
 msgstr ""
 
 msgid "Group by"
+msgstr ""
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
 msgstr ""
 
 msgid "Group remaining as \"Others\""
@@ -8049,9 +8084,6 @@ msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
-msgstr ""
-
-msgid "Invalid username or password"
 msgstr ""
 
 msgid "Inverse"
@@ -9273,6 +9305,12 @@ msgstr ""
 msgid "MotherDuck token"
 msgstr ""
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 msgid "Move icon"
 msgstr ""
 
@@ -9303,6 +9341,9 @@ msgid "Multi-Levels"
 msgstr ""
 
 msgid "Multi-Variables"
+msgstr ""
+
+msgid "Multi-level header"
 msgstr ""
 
 msgid "Multiple"
@@ -10734,6 +10775,9 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr ""
 
+msgid "Position"
+msgstr ""
+
 msgid "Position JSON"
 msgstr ""
 
@@ -11194,6 +11238,9 @@ msgid "Remove filter"
 msgstr ""
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -12346,6 +12393,9 @@ msgid "Select column"
 msgstr ""
 
 msgid "Select column name"
+msgstr ""
+
+msgid "Select columns"
 msgstr ""
 
 msgid ""
@@ -13610,6 +13660,10 @@ msgstr ""
 msgid "Subdomain"
 msgstr ""
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 msgid "Subject"
 msgstr ""
 
@@ -13833,6 +13887,9 @@ msgstr ""
 
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
+msgstr ""
+
+msgid "Table side"
 msgstr ""
 
 msgid ""

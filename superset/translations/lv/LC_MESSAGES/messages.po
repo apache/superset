@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1484,6 +1484,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pievienot mapi"
 
+msgid "Add group"
+msgstr "Pievienot grupu"
+
 msgid "Add item"
 msgstr "Pievienot ierakstu"
 
@@ -1523,6 +1526,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Pievienot lapu"
+
+msgid "Add subgroup"
+msgstr "Pievienot apakšgrupu"
 
 msgid "Add tag to entities"
 msgstr "Pievienot birku ierakstiem"
@@ -1757,6 +1763,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3363,6 +3373,9 @@ msgstr "Šūnu limits"
 msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
+msgid "Center"
+msgstr "Centrs"
+
 msgid "Center value"
 msgstr ""
 
@@ -4035,6 +4048,9 @@ msgstr "Sakļaut datu paneli"
 msgid "Collapse row"
 msgstr "Sakļaut rindu"
 
+msgid "Collapse settings"
+msgstr "Sakļaut iestatījumus"
+
 msgid "Collapse tab content"
 msgstr "Sakļaut cilnes saturu"
 
@@ -4175,6 +4191,9 @@ msgstr "Kolonna, kas satur garuma datus"
 
 msgid "Column data types"
 msgstr "Kolonnas datu tipi"
+
+msgid "Column groups"
+msgstr "Kolonnu grupas"
 
 msgid "Column header tooltip"
 msgstr "Kolonnas galvenes padoms"
@@ -6873,6 +6892,9 @@ msgstr "Ievadiet ilgumu sekundēs"
 msgid "Enter fullscreen"
 msgstr "Pāriet pilnekrāna režīmā"
 
+msgid "Enter group name"
+msgstr "Ievadiet grupas nosaukumu"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
 
@@ -7153,6 +7175,9 @@ msgstr "Izvērst rindu"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Izvērst rindu"
+
+msgid "Expand settings"
+msgstr "Izvērst iestatījumus"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8135,6 +8160,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupa"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupa %s"
+
 msgid "Group By"
 msgstr "Grupēt pēc"
 
@@ -8146,6 +8175,12 @@ msgstr "Grupas atslēga"
 
 msgid "Group by"
 msgstr "Grupēt pēc"
+
+msgid "Group columns"
+msgstr "Grupēt kolonnas"
+
+msgid "Group name"
+msgstr "Grupas nosaukums"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
@@ -8725,9 +8760,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Nepareizs lietotājvārds vai parole"
 
 msgid "Inverse"
 msgstr ""
@@ -10030,6 +10062,12 @@ msgstr "Vairāk filtru"
 msgid "MotherDuck token"
 msgstr "MotherDuck žetons"
 
+msgid "Move group left"
+msgstr "Pārvietot grupu pa kreisi"
+
+msgid "Move group right"
+msgstr "Pārvietot grupu pa labi"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Tikai pārvietot"
@@ -10062,6 +10100,9 @@ msgstr "Daudzlīmeņu"
 
 msgid "Multi-Variables"
 msgstr "Daudzmainīgo"
+
+msgid "Multi-level header"
+msgstr "Vairāklīmeņu galvene"
 
 msgid "Multiple"
 msgstr "Vairāki"
@@ -11608,6 +11649,9 @@ msgstr "Ports %(port)s resursdatorā \"%(hostname)s\" noraidīja savienojumu."
 msgid "Port out of range 0-65535"
 msgstr "Ports ārpus diapazona 0-65535"
 
+msgid "Position"
+msgstr "Pozīcija"
+
 msgid "Position JSON"
 msgstr "Pozīcijas JSON"
 
@@ -12082,6 +12126,9 @@ msgstr "Noņemt elementu"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Noņemt grupu"
 
 msgid "Remove item"
 msgstr "Noņemt elementu"
@@ -13286,6 +13333,9 @@ msgstr "Atlasīt kolonnu"
 #, fuzzy
 msgid "Select column name"
 msgstr "Atlasīt kolonnu"
+
+msgid "Select columns"
+msgstr "Atlasīt kolonnas"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14718,6 +14768,10 @@ msgstr "Apakškategorijas"
 msgid "Subdomain"
 msgstr "Apakšdomēns"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Apakšgrupa %s"
+
 msgid "Subject"
 msgstr "Subjekts"
 
@@ -14952,6 +15006,9 @@ msgstr "Tabulas nosaukums nav definēts"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabula vai skats \"%(table)s\" nepastāv."
+
+msgid "Table side"
+msgstr "Tabulas puse"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

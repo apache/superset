@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1438,6 +1438,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ordner hinzufügen"
 
+msgid "Add group"
+msgstr "Gruppe hinzufügen"
+
 msgid "Add item"
 msgstr "Element hinzufügen"
 
@@ -1480,6 +1483,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Tabelle hinzufügen"
+
+msgid "Add subgroup"
+msgstr "Untergruppe hinzufügen"
 
 msgid "Add tag to entities"
 msgstr "Schlagwort zu Entitäten hinzufügen"
@@ -1714,6 +1720,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3342,6 +3352,9 @@ msgstr "Zellgrenze"
 msgid "Cell title template"
 msgstr "Vorlage für die Zellenüberschrift"
 
+msgid "Center"
+msgstr "Zentriert"
+
 msgid "Center value"
 msgstr ""
 
@@ -4019,6 +4032,9 @@ msgstr "Datenbereich ausblenden"
 msgid "Collapse row"
 msgstr "Zeile zusammenklappen"
 
+msgid "Collapse settings"
+msgstr "Einstellungen einklappen"
+
 msgid "Collapse tab content"
 msgstr "Inhalt der Registerkarte ausblenden"
 
@@ -4148,6 +4164,9 @@ msgstr "Spalte mit Längengraddaten"
 
 msgid "Column data types"
 msgstr "Spaltendatentypen"
+
+msgid "Column groups"
+msgstr "Spaltengruppen"
 
 msgid "Column header tooltip"
 msgstr "Tooltip zur Spaltenüberschrift"
@@ -6851,6 +6870,9 @@ msgstr "Dauer in Sekunden eingeben"
 msgid "Enter fullscreen"
 msgstr "Vollbildmodus aktivieren"
 
+msgid "Enter group name"
+msgstr "Gruppennamen eingeben"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
@@ -7127,6 +7149,9 @@ msgstr "Zeile aufklappen"
 
 msgid "Expand row to edit"
 msgstr "Zeile zum Bearbeiten erweitern"
+
+msgid "Expand settings"
+msgstr "Einstellungen aufklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8099,6 +8124,10 @@ msgstr ""
 msgid "Group"
 msgstr "Gruppe"
 
+#, python-format
+msgid "Group %s"
+msgstr "Gruppe %s"
+
 msgid "Group By"
 msgstr "Gruppieren nach"
 
@@ -8112,6 +8141,12 @@ msgstr "Gruppenschlüssel"
 
 msgid "Group by"
 msgstr "Gruppieren nach"
+
+msgid "Group columns"
+msgstr "Spalten gruppieren"
+
+msgid "Group name"
+msgstr "Gruppenname"
 
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
@@ -8696,9 +8731,6 @@ msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Der Anmeldename oder das Kennwort ist falsch"
 
 msgid "Inverse"
 msgstr ""
@@ -9967,6 +9999,12 @@ msgstr "Weitere Filter"
 msgid "MotherDuck token"
 msgstr "MotherDuck-Token"
 
+msgid "Move group left"
+msgstr "Gruppe nach links verschieben"
+
+msgid "Move group right"
+msgstr "Gruppe nach rechts verschieben"
+
 msgid "Move icon"
 msgstr "Symbol verschieben"
 
@@ -10000,6 +10038,9 @@ msgstr "Mehrstufige"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variablen"
+
+msgid "Multi-level header"
+msgstr "Mehrstufige Überschrift"
 
 msgid "Multiple"
 msgstr "Mehrfach"
@@ -11560,6 +11601,9 @@ msgstr "Port %(port)s auf Hostname \"%(hostname)s\" verweigerte die Verbindung."
 msgid "Port out of range 0-65535"
 msgstr "Port außerhalb des Bereichs 0-65535"
 
+msgid "Position"
+msgstr "Position"
+
 msgid "Position JSON"
 msgstr "Anordnungs-JSON"
 
@@ -12022,6 +12066,9 @@ msgstr "Filter entfernen"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Gruppe entfernen"
 
 msgid "Remove item"
 msgstr "Element entfernen"
@@ -13225,6 +13272,9 @@ msgstr "Spalte auswählen"
 
 msgid "Select column name"
 msgstr "Spaltennamen auswählen"
+
+msgid "Select columns"
+msgstr "Spalten auswählen"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14618,6 +14668,10 @@ msgstr "Unterkategorien"
 msgid "Subdomain"
 msgstr "Subdomain"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Untergruppe %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14850,6 +14904,9 @@ msgstr "Tabellenname nicht definiert"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Die Tabelle oder View \"%(table)s\" existiert nicht."
+
+msgid "Table side"
+msgstr "Tabellenseite"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

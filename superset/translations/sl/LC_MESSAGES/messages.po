@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1501,6 +1501,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Dodaj mapo"
 
+msgid "Add group"
+msgstr "Dodaj skupino"
+
 msgid "Add item"
 msgstr "Dodaj"
 
@@ -1539,6 +1542,9 @@ msgstr "Dodaj poverilnice storitve"
 
 msgid "Add sheet"
 msgstr "Dodaj preglednico"
+
+msgid "Add subgroup"
+msgstr "Dodaj podskupino"
 
 msgid "Add tag to entities"
 msgstr "Dodaj oznako elementom"
@@ -1779,6 +1785,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3415,6 +3425,9 @@ msgstr "Omejitev števila celic"
 msgid "Cell title template"
 msgstr "Predloga naslova celice"
 
+msgid "Center"
+msgstr "Sredina"
+
 msgid "Center value"
 msgstr ""
 
@@ -4097,6 +4110,9 @@ msgstr "Skrij podatkovni panel"
 msgid "Collapse row"
 msgstr "Skrij vrstico"
 
+msgid "Collapse settings"
+msgstr "Strni nastavitve"
+
 msgid "Collapse tab content"
 msgstr "Skrij vsebino zavihka"
 
@@ -4229,6 +4245,9 @@ msgstr "Stolpec s podatki zemljepisne dolžine"
 
 msgid "Column data types"
 msgstr "Podatkovni tipi stolpcev"
+
+msgid "Column groups"
+msgstr "Skupine stolpcev"
 
 msgid "Column header tooltip"
 msgstr "Opis glave stolpca"
@@ -6966,6 +6985,9 @@ msgstr "Vnesite trajanje v sekundah"
 msgid "Enter fullscreen"
 msgstr "Vklopi celozaslonski način"
 
+msgid "Enter group name"
+msgstr "Vnesite ime skupine"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -7256,6 +7278,9 @@ msgstr "Razširi vrstico"
 
 msgid "Expand row to edit"
 msgstr "Razširite vrstico za urejanje"
+
+msgid "Expand settings"
+msgstr "Razširi nastavitve"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8260,6 +8285,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Združevanje po (Group by)"
 
@@ -8271,6 +8300,12 @@ msgstr "Ključ za združevanje"
 
 msgid "Group by"
 msgstr "Združevanje po (Group by)"
+
+msgid "Group columns"
+msgstr "Združi stolpce"
+
+msgid "Group name"
+msgstr "Ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8867,9 +8902,6 @@ msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Neveljavno uporabniško ime ali geslo"
 
 msgid "Inverse"
 msgstr ""
@@ -10188,6 +10220,12 @@ msgstr "Več filtrov"
 msgid "MotherDuck token"
 msgstr "Žeton za MotherDuck"
 
+msgid "Move group left"
+msgstr "Premakni skupino levo"
+
+msgid "Move group right"
+msgstr "Premakni skupino desno"
+
 msgid "Move icon"
 msgstr "Premakni ikono"
 
@@ -10219,6 +10257,9 @@ msgstr "Večplastni"
 
 msgid "Multi-Variables"
 msgstr "Več spremenljivk"
+
+msgid "Multi-level header"
+msgstr "Večnivojska glava"
 
 msgid "Multiple"
 msgstr "Več"
@@ -11760,6 +11801,9 @@ msgstr "Vrata %(port)s na gostitelju \"%(hostname)s\" niso sprejela povezave."
 msgid "Port out of range 0-65535"
 msgstr "Vrata v razponu 0-65535"
 
+msgid "Position"
+msgstr "Položaj"
+
 msgid "Position JSON"
 msgstr "JSON za postavitev"
 
@@ -12239,6 +12283,9 @@ msgstr "Odstranite filter"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstrani skupino"
 
 msgid "Remove item"
 msgstr "Odstrani element"
@@ -13452,6 +13499,9 @@ msgstr "Izberite stolpec"
 
 msgid "Select column name"
 msgstr "Izberite ime stolpca"
+
+msgid "Select columns"
+msgstr "Izberite stolpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14876,6 +14926,10 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomena"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15121,6 +15175,9 @@ msgstr "Ime tabele ni definirano"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ali pogled \"%(table)s\" ne obstaja."
+
+msgid "Table side"
+msgstr "Stran tabele"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
