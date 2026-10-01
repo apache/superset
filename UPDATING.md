@@ -126,6 +126,26 @@ get the same handling. With MariaDB Connector/Python
 ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
 StarRocks keep their existing SSL handling.
 
+### SQL Lab decimal results use exact strings
+
+SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
+of JSON numbers, preserving precision and trailing zeros in the results grid
+and exports. The strings use fixed-point notation, and non-finite `NaN` and
+`Infinity` decimals are returned as `null`. Numeric sorting still compares
+their exact values. API consumers performing arithmetic should parse these
+strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
+extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
+carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
+`AVG` or `ROUND` results), so adding them with `+` concatenates instead of
+summing. The `sqleditor.extension.resultTable` override, which replaces
+`FilterableTable` in both SQL Lab results and table previews, also receives
+string rows but not the built-in exact-decimal comparator; extensions must
+implement their own decimal sorting. Chart and dataset queries also use fixed-point strings for Decimal
+columns that fall back to string conversion (for example, Decimals mixed with
+floats), and non-finite Decimals in those columns become null. Other chart
+result serialization and chart number formatting are unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
+
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
@@ -308,6 +328,15 @@ upgrading. See the two migrations' docstrings (`superset/migrations/versions/
 `..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
 per-permission mapping and reasoning.
 
+- Snowflake stage file-management statements (`PUT`, `GET`, `REMOVE` and its
+  `RM` alias) are rejected in user-submitted SQL (SQL Lab, the cost-estimate
+  path and alert queries), regardless of the database's `allow_dml` setting.
+  `PUT`/`GET` perform file I/O on the host running the
+  query, and `REMOVE`/`RM` delete files within a stage; none of them read or
+  write table data, so `allow_dml` does not govern them. Deployments that ran
+  these through SQL Lab should manage stage files with Snowflake's own clients
+  instead. `LIST`/`LS`, which only enumerate staged files, are unaffected.
+
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
 Superset has always *intended* to default the metadata-database isolation
@@ -337,6 +366,24 @@ requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
+
+### Legacy FAB password reset pages are removed
+
+The Flask-AppBuilder server-rendered password reset pages at
+`/resetpassword/form` (admin reset of another account) and
+`/resetmypassword/form` (self-service reset) are no longer registered; both
+routes answer 404, and the "Reset Password" and "Reset my password" buttons on
+the legacy FAB user pages that led to them are gone. `superset init` no longer
+assigns their permissions (`can this form get/post on ResetPasswordView` and
+`ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
+`UserDBModelView`) to any role. Every flow they served lives in the SPA:
+administrators reset a user's password from the "New password" fields in the
+Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
+own from the "Reset my password" modal on their profile page (`PUT
+/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
+change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
+instead of the removed form. Deployments that link to either legacy route should
+point at `/user_info/` or the Users list instead.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
