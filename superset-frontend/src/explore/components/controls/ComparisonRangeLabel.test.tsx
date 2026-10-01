@@ -173,6 +173,23 @@ test('custom shift resolves the offset from start_date_offset to the current ran
   );
 });
 
+test('maps the legacy time_comparison shorthand "c" to a custom shift resolved from start_date_offset', async () => {
+  renderLabel({ time_comparison: 'c', start_date_offset: '2024-01-01' });
+
+  expect(await screen.findByText(COMPARISON_LABEL)).toBeInTheDocument();
+  expect(mockedFetchTimeRange).toHaveBeenNthCalledWith(
+    1,
+    temporalRangeFilter.comparator,
+    temporalRangeFilter.subject,
+  );
+  expect(mockedFetchTimeRange).toHaveBeenNthCalledWith(
+    2,
+    temporalRangeFilter.comparator,
+    temporalRangeFilter.subject,
+    ['60 days ago'],
+  );
+});
+
 test('custom shift without start_date_offset never requests a comparison range', async () => {
   renderLabel({ time_compare: ['custom'] });
 

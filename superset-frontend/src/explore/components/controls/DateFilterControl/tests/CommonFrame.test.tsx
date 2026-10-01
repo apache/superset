@@ -18,7 +18,6 @@
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { DateFilterTestKey } from '../utils';
-import { COMMON_RANGE_OPTIONS } from '../utils/constants';
 import { CommonFrame } from '../components';
 
 test('renders the title and one radio per common range', () => {
@@ -27,9 +26,18 @@ test('renders the title and one radio per common range', () => {
   expect(screen.getByTestId(DateFilterTestKey.CommonFrame)).toHaveTextContent(
     'Configure Time Range: Last...',
   );
-  expect(screen.getAllByRole('radio')).toHaveLength(
-    COMMON_RANGE_OPTIONS.length,
-  );
+  const radios = screen.getAllByRole('radio');
+  const expectedNames = [
+    'Last day',
+    'Last week',
+    'Last month',
+    'Last quarter',
+    'Last year',
+  ];
+  expect(radios).toHaveLength(expectedNames.length);
+  expectedNames.forEach((name, index) => {
+    expect(radios[index]).toHaveAccessibleName(name);
+  });
 });
 
 test('checks the radio matching the value', () => {

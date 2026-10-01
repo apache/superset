@@ -79,6 +79,10 @@ beforeEach(() => {
   mockPopoverProps.length = 0;
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 function setup(
   props: Omit<DateFilterControlProps, 'name'> = defaultProps,
   store: any = mockStore({}),
