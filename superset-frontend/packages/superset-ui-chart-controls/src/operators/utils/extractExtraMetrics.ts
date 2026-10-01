@@ -22,11 +22,12 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
+import { SortSeriesType } from '../../types';
 
 export function extractExtraMetrics(
   formData: QueryFormData,
 ): QueryFormMetric[] {
-  const { timeseries_limit_metric, x_axis_sort, metrics } = formData;
+  const { timeseries_limit_metric, x_axis_sort, metrics, groupby } = formData;
   const extra_metrics: QueryFormMetric[] = [];
   const [limitMetric] = ensureIsArray(timeseries_limit_metric);
   // The "Sort By" limit metric is only queried when the axis is sorted by it
@@ -34,7 +35,16 @@ export function extractExtraMetrics(
   // the pivot then yields one `<limit metric>, <dimension values>` column
   // per series, which the chart sums client-side to order the axis (the
   // backend sort operator only handles the single-series case).
+  // With several series, `x_axis_sort` naming a `SortSeriesType` aggregate
+  // means that aggregate (the control drops a colliding metric), so a limit
+  // metric sharing its label is not a sort target and must not be queried.
+  const isMultiSeries =
+    ensureIsArray(groupby).length > 0 || ensureIsArray(metrics).length > 1;
+  const isAggregateSort =
+    isMultiSeries &&
+    Object.values<string>(SortSeriesType).includes(x_axis_sort as string);
   if (
+    !isAggregateSort &&
     limitMetric &&
     getMetricLabel(limitMetric) === x_axis_sort &&
     !metrics?.some(metric => getMetricLabel(metric) === x_axis_sort)

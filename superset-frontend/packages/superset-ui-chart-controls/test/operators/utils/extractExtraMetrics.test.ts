@@ -145,3 +145,25 @@ test('returns empty array if timeseries_limit_metric is an empty array', () => {
     }),
   ).toEqual([]);
 });
+
+test('does not query a limit metric whose label collides with an aggregate sort when several series exist', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      groupby: ['dim'],
+      timeseries_limit_metric: 'sum',
+      x_axis_sort: 'sum',
+    }),
+  ).toEqual([]);
+});
+
+test('still queries a limit metric labeled like an aggregate for a single series', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      metrics: ['a'],
+      timeseries_limit_metric: 'sum',
+      x_axis_sort: 'sum',
+    }),
+  ).toEqual(['sum']);
+});
