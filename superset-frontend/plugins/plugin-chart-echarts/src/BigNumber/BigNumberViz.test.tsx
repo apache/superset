@@ -22,7 +22,11 @@ import {
   getNumberFormatter,
   TimeFormatter,
 } from '@superset-ui/core';
-import { render, fireEvent } from '../../../../spec/helpers/testing-library';
+import {
+  render,
+  fireEvent,
+  waitFor,
+} from '../../../../spec/helpers/testing-library';
 import BigNumberVis from './BigNumberViz';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -289,5 +293,64 @@ describe('BigNumberViz alignment', () => {
     expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
     const headerLine = container.querySelector('.header-line');
     expect(headerLine).toHaveStyle({ justifyContent: 'flex-end' });
+  });
+
+  test('keeps the value and subheader centered when the trendline layout overflows', async () => {
+    const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetHeight',
+    );
+    // Force shouldApplyOverflow to report an overflow, which switches
+    // .text-container from a flex to a block container.
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get: () => 1000,
+    });
+
+    try {
+      const { container } = render(
+        <BigNumberVis
+          width={200}
+          height={100}
+          bigNumber={42}
+          headerFormatter={getNumberFormatter()}
+          headerFontSize={0.3}
+          subheaderFontSize={0.125}
+          subtitleFontSize={0.125}
+          subheader="subheader text"
+          subtitle=""
+          refs={{}}
+          headerAlignment="center"
+          showTrendLine
+          trendLineData={[
+            [1577836800000, 10],
+            [1577923200000, 20],
+          ]}
+          echartOptions={{}}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(container.querySelector('.text-container')).toHaveStyle({
+          display: 'block',
+        });
+      });
+
+      const headerLine = container.querySelector('.header-line');
+      expect(headerLine).toHaveStyle({ justifyContent: 'center' });
+      const subheaderLine = container.querySelector('.subheader-line');
+      expect(subheaderLine).toHaveStyle({ textAlign: 'center' });
+    } finally {
+      if (offsetHeightDescriptor) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          'offsetHeight',
+          offsetHeightDescriptor,
+        );
+      } else {
+        delete (HTMLElement.prototype as { offsetHeight?: number })
+          .offsetHeight;
+      }
+    }
   });
 });
