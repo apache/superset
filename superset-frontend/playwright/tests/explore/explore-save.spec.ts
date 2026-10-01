@@ -111,7 +111,7 @@ testWithAssets(
     // Overwrite, selecting the now-existing dashboard by the same title.
     const saveModal2 = await explorePage.openSaveModal();
     await saveModal2.selectSaveAction('overwrite');
-    await saveModal2.selectDashboard(dashboardTitle);
+    await saveModal2.selectExistingDashboard(dashboardTitle);
     const updated = waitForPut(page, `api/v1/chart/${newChartId}`, {
       pathMatch: true,
     });
