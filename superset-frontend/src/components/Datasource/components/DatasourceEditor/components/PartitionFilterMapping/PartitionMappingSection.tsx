@@ -116,12 +116,13 @@ export default function PartitionMappingSection({
         message={
           <span>
             {t('Not currently mapped to the partition column.')}{' '}
-            <Typography.Link
+            <Button
+              buttonStyle="link"
               onClick={() => onMoveMappingHere(columnName)}
               data-test="move-mapping-here"
             >
               {t('Move mapping to this column →')}
-            </Typography.Link>
+            </Button>
           </span>
         }
       />

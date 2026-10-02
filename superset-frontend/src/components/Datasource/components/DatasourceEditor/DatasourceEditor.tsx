@@ -1358,7 +1358,16 @@ function DatasourceEditor({
 
   // Which column's row expand to open, for the "map a different column" links.
   // Consumed by the Columns tab, which scrolls the row into view and expands it.
-  const [columnToReveal, setColumnToReveal] = useState<string | null>(null);
+  //
+  // Carries a nonce because the request is an event, not a state: clicking the
+  // same link twice -- after collapsing the row by hand in between -- asks for
+  // the same column name, and a bare string would make the second
+  // `setColumnToReveal` a no-op. React would bail out of the render, nothing
+  // downstream would see a change, and the row would stay shut.
+  const [columnToReveal, setColumnToReveal] = useState<{
+    name: string;
+    nonce: number;
+  } | null>(null);
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
@@ -1385,7 +1394,10 @@ function DatasourceEditor({
     // would otherwise open somewhere below the fold, which reads as the link
     // having done nothing.
     setColumnSearchTerm(columnName);
-    setColumnToReveal(columnName);
+    setColumnToReveal(previous => ({
+      name: columnName,
+      nonce: (previous?.nonce ?? 0) + 1,
+    }));
   }, []);
 
   const handleMoveMappingHere = useCallback(
@@ -2877,7 +2889,7 @@ function DatasourceEditor({
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
               onMonotonicChange={handleMonotonicChange}
-              expandedColumnName={columnToReveal}
+              expandedColumnName={columnToReveal?.name ?? null}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>

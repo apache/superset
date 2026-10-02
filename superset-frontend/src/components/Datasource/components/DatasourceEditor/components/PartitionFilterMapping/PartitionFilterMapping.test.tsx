@@ -591,3 +591,227 @@ test('an empty transform on a temporal column is inactive, not an error', () => 
     screen.queryByTestId('partition-value-transform-error'),
   ).not.toBeInTheDocument();
 });
+
+test.each([
+  'Map a different column instead →',
+  'Customize the value transform →',
+])('"%s" is reachable from the keyboard', async label => {
+  // antd's `Typography.Link` without an `href` renders an `<a>` that is outside
+  // the tab order and ignores Enter, so these actions were mouse-only.
+  const onNavigateToColumn = jest.fn();
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={COLUMNS.map(column =>
+        column.column_name === 'event_time'
+          ? { ...column, partition_value_transform: 'unix_timestamp(:value)' }
+          : column,
+      )}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={onNavigateToColumn}
+    />,
+  );
+
+  const trigger = screen.getByRole('button', { name: label });
+  trigger.focus();
+  await userEvent.keyboard('{Enter}');
+
+  expect(onNavigateToColumn).toHaveBeenCalledWith('event_time');
+});
+
+test('"Map a column" is reachable from the keyboard', async () => {
+  const onNavigateToColumn = jest.fn();
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: null, partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={onNavigateToColumn}
+    />,
+  );
+
+  const trigger = screen.getByRole('button', { name: 'Map a column →' });
+  trigger.focus();
+  await userEvent.keyboard('{Enter}');
+
+  expect(onNavigateToColumn).toHaveBeenCalledWith('event_time');
+});
+
+test('"Move mapping to this column" is reachable from the keyboard', async () => {
+  const onMoveMappingHere = jest.fn();
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value={null}
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={onMoveMappingHere}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  const trigger = screen.getByRole('button', {
+    name: 'Move mapping to this column →',
+  });
+  trigger.focus();
+  await userEvent.keyboard('{Enter}');
+
+  expect(onMoveMappingHere).toHaveBeenCalledWith('country');
+});
+
+test('the override link leads somewhere when the mapping points at itself', async () => {
+  // Choosing a partition column that is already the default datetime column is
+  // reachable in one click, and leaves the self-mapping the backend rejects.
+  // Navigating to the mapped column then opens the partition column's own row,
+  // which renders no mapping section -- so the one guided way out of the broken
+  // state was a dead end.
+  const onNavigateToColumn = jest.fn();
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'event_time',
+      }}
+      columns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={onNavigateToColumn}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Map a different column instead →' }),
+  );
+
+  expect(onNavigateToColumn).not.toHaveBeenCalledWith('event_time');
+  expect(onNavigateToColumn).toHaveBeenCalledWith('dt_epoch');
+});
+
+test('an unparseable-but-nonblank transform is not announced as mirroring', () => {
+  // A transform with no `:value` has nothing to substitute, so the backend
+  // reports the mapping inactive. The green alert claimed otherwise.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={COLUMNS.map(column =>
+        column.column_name === 'event_time'
+          ? {
+              ...column,
+              partition_value_transform: 'unix_timestamp(event_time)',
+            }
+          : column,
+      )}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByText(/will automatically apply an equivalent filter/),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(/No value transform is set/)).toBeInTheDocument();
+});
+
+test('the spinner stops when the transform stops being previewable', async () => {
+  // The in-flight request's own handlers see the abort and stop short of
+  // clearing `loading`, and the next effect run used to return early without
+  // clearing it either -- so clearing the transform mid-request left the panel
+  // spinning for good.
+  let release: (value: unknown) => void = () => {};
+  fetchMock.post(
+    PREVIEW_URL,
+    () =>
+      new Promise(resolve => {
+        release = resolve;
+      }),
+  );
+
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: {
+      id: 1,
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+    },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="unix_timestamp(:value)" />,
+  );
+
+  expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+
+  // The owner clears the box while the request is still out.
+  rerender(<PartitionMappingSection {...props} value="" />);
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  release({ body: { result: { valid: true } } });
+});
+
+test('a superseded preview response does not overwrite the current one', async () => {
+  // This hits a live warehouse query, so responses can arrive out of order.
+  // Without a request identity the older one wins and reports "Valid" for a
+  // transform the input no longer holds.
+  let releaseFirst: (value: unknown) => void = () => {};
+  let call = 0;
+  fetchMock.post(PREVIEW_URL, () => {
+    call += 1;
+    if (call === 1) {
+      return new Promise(resolve => {
+        releaseFirst = resolve;
+      });
+    }
+    return {
+      body: {
+        result: { valid: true, emitted_predicate: 'dt_epoch = 2' },
+      },
+    };
+  });
+
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: {
+      id: 1,
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+    },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="first(:value)" />,
+  );
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(PREVIEW_URL)).toHaveLength(1);
+  });
+
+  rerender(<PartitionMappingSection {...props} value="second(:value)" />);
+  expect(await screen.findByText('dt_epoch = 2')).toBeInTheDocument();
+
+  // The first request finally lands, carrying a predicate for text that is no
+  // longer in the box.
+  releaseFirst({
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText('dt_epoch = 1')).not.toBeInTheDocument();
+  });
+  expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
+});

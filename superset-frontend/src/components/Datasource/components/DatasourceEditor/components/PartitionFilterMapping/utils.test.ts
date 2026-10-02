@@ -676,3 +676,41 @@ test('the transform check judges the text it is handed, not the stored value', (
 test('a column the list has no record of yields no transform issue', () => {
   expect(valueTransformIssues(undefined, '')).toEqual([]);
 });
+
+test.each([
+  ['a transform with no :value to substitute', 'unix_timestamp(event_time)'],
+  ['a transform carrying Jinja', '{{ current_username() }}'],
+])('%s is not an active mapping', (_label, transform) => {
+  // The backend's own summary reports these inactive, so calling them active
+  // here showed the green "filters will automatically apply" message for a
+  // mapping that mirrors nothing -- telling an owner their queries prune when
+  // they do not.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+  };
+  const columns = COLUMNS.map(column =>
+    column.column_name === 'event_time'
+      ? { ...column, partition_value_transform: transform }
+      : column,
+  );
+
+  expect(mappingIsActive(datasource, columns)).toBe(false);
+});
+
+test('samples follow the mapped column type, not just whether it is temporal', () => {
+  // `CAST(:value AS INTEGER)` on an integer column is a real configuration, and
+  // evaluating it at 'US' made the engine reject a transform that an actual
+  // `IN (2025, 2026)` filter would mirror perfectly well.
+  expect(sampleValuesFor({ column_name: 'year', type: 'INTEGER' })).toEqual([
+    '2025',
+    '2026',
+  ]);
+  expect(
+    sampleValuesFor({ column_name: 'amount', type: 'DECIMAL(10,2)' }),
+  ).toEqual(['2025', '2026']);
+  expect(sampleValuesFor({ column_name: 'country', type: 'TEXT' })).toEqual([
+    'US',
+    'CA',
+  ]);
+});

@@ -181,6 +181,13 @@ MIRRORABLE_IF_MONOTONIC = {
 #: the monotonicity declaration.
 MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 
+#: Operators the preview endpoint can construct. `TEMPORAL_RANGE` is mirrored by
+#: the query path, but as *two* bounds that `_collect_partition_mirror_range`
+#: decomposes a time range into -- the preview request carries sample values, not
+#: a since/until pair, so there is no range for it to build. The editor never
+#: asks for one either: `previewOperatorFor` sends `>=`, `=` or `IN`.
+PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
+
 
 def mirrorable_operators(is_monotonic: bool) -> set[FilterOperator]:
     """
@@ -1032,6 +1039,23 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     sample_input = _render_sample_input(
         datasource, mapped_column, operator, sample_values
     )
+
+    if operator not in PREVIEWABLE_OPERATORS:
+        # Checked before `mirrors`, which lets `TEMPORAL_RANGE` through when the
+        # transform is declared monotonic -- and the single sample value would
+        # then reach `handle_comparison_filter`, which has no case for a range
+        # and raises. The request schema rejects it too; this keeps the function
+        # honest for any other caller.
+        return {
+            "valid": False,
+            "reason": "operator",
+            "sample_input": sample_input,
+            "error": _(
+                "A %(operator)s filter is mirrored as a pair of bounds, which "
+                "a preview of a single value cannot describe.",
+                operator=operator.value,
+            ),
+        }
 
     if not mapping.mirrors(operator):
         return {
