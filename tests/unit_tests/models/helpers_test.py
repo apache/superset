@@ -4136,6 +4136,7 @@ def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
     df = pd.DataFrame(
         {
             "metric": pd.Series([1.0, np.inf, -np.inf, 2.0], dtype=object),
+            "count": pd.Series([1, 2, -np.inf, 4], dtype=object),
             "label": ["a", "b", "c", "d"],
         }
     )
@@ -4146,6 +4147,7 @@ def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
 
     assert result["metric"].dtype == np.float64
     assert result["metric"].isna().tolist() == [False, True, True, False]
+    assert result["count"].dtype == np.float64
     assert result["label"].dtype == object
 
 
