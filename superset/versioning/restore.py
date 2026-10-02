@@ -135,6 +135,57 @@ class RecycledChildIdentityError(Exception):
         )
 
 
+class MissingDatasourceError(Exception):
+    """The chart version's datasource no longer exists.
+
+    A version snapshot records the chart's datasource by type and id, but
+    restoring a snapshot does not restore the datasource itself. Restoring
+    onto a deleted one would leave the chart resolving no datasource while
+    reporting success, so the restore refuses instead. The message is
+    user-facing.
+    """
+
+    def __init__(self, datasource_label: str) -> None:
+        super().__init__(
+            f"This chart version cannot be restored: the {datasource_label} it "
+            "uses no longer exists. The chart was left unchanged."
+        )
+
+
+def _verify_chart_datasource_exists(target_version: Any) -> None:
+    """Refuse a chart restore whose snapshot names a deleted datasource.
+
+    A soft-deleted dataset still counts as existing: it is restorable from
+    the trash with its permissions intact, so the restored chart works again
+    once the dataset is restored. A snapshot without a datasource id has no
+    dependency to check.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import Datasource, DatasourceDAO
+    from superset.models.helpers import skip_visibility_filter
+    from superset.utils.core import DatasourceType
+
+    datasource_id: int | None = target_version.datasource_id
+    if not datasource_id:
+        return
+    datasource_type: str = target_version.datasource_type
+    label: str = (
+        "semantic view"
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value
+        else "dataset"
+    )
+    src_class: type[Datasource] | None = DatasourceDAO.sources.get(datasource_type)
+    if src_class is None:
+        raise MissingDatasourceError(label)
+    with skip_visibility_filter(db.session, src_class):
+        exists: bool = (
+            db.session.query(src_class.id).filter_by(id=datasource_id).first()
+            is not None
+        )
+    if not exists:
+        raise MissingDatasourceError(label)
+
+
 def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     """Refuse the restore when a needed child shadow row was pruned.
 
@@ -553,6 +604,8 @@ def restore_version(
     if model_cls.__name__ == "SqlaTable":
         _verify_child_history_complete(entity, transaction_id)
         _verify_child_identities(entity, transaction_id)
+    if model_cls.__name__ == "Slice":
+        _verify_chart_datasource_exists(target_version)
 
     skipped_slice_ids: list[int] = []
     try:
