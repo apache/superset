@@ -2088,6 +2088,117 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
   );
 });
 
+test('switching Exact then back to LIKE does not replay the discarded pending edit', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (operatorType: SelectFilterOperatorType) =>
+    buildSelectFilterProps({
+      formData: { operatorType },
+      filterState: { value: undefined },
+      setDataMask: setDataMaskMock,
+    });
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+    reduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Exact)} />,
+    );
+  });
+  await act(async () => {});
+
+  const callsBeforeReturn = setDataMaskMock.mock.calls.length;
+  rerender(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+  );
+  await act(async () => {});
+
+  expect(
+    setDataMaskMock.mock.calls.slice(callsBeforeReturn).map(call => call[0]),
+  ).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
+});
+
+test('clear-all does not restore a LIKE edit still pending in the deferred value', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  // Type and fire clear-all in one update, then release the trigger, so the
+  // deferred value still holds the typed text when the trigger goes away.
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...likeProps}
+        clearAllTrigger={{ 'test-filter': true }}
+      />,
+    );
+  });
+  const callsBeforeRelease = setDataMaskMock.mock.calls.length;
+  rerender(<SelectFilterPlugin {...likeProps} clearAllTrigger={{}} />);
+  await act(async () => {});
+
+  expect(input).toHaveValue('');
+  expect(
+    setDataMaskMock.mock.calls.slice(callsBeforeRelease).map(call => call[0]),
+  ).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
+});
+
 test('renders standard Select dropdown when operatorType is Exact', () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();

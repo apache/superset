@@ -608,9 +608,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMaskRef.current = updateDataMask;
   }, [updateDataMask]);
 
+  // Leaving a LIKE operator discards the pending edit so returning to one
+  // doesn't replay text typed under the previous mode.
   useEffect(() => {
+    if (!isLikeOperator) {
+      setPendingLikeValue(null);
+    }
+  }, [isLikeOperator]);
+
+  useEffect(() => {
+    // A deferred value that lags the live one is stale (e.g. the pending
+    // edit was just invalidated by clear-all or an operator switch), so it
+    // must not be dispatched while the deferred value catches up.
     if (
       deferredPendingLikeValue === null ||
+      deferredPendingLikeValue !== pendingLikeValue ||
       !isLikeOperator ||
       clearAllTrigger
     ) {
@@ -621,7 +633,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     } else {
       updateDataMaskRef.current(null);
     }
-  }, [deferredPendingLikeValue, isLikeOperator, clearAllTrigger]);
+  }, [
+    deferredPendingLikeValue,
+    pendingLikeValue,
+    isLikeOperator,
+    clearAllTrigger,
+  ]);
 
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
