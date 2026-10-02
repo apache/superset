@@ -183,6 +183,77 @@ latest-per-user permalink lookup, and replaying a previously received permalink
 could overwrite manual changes or undo. If a notification is missed or its
 permalink cannot be resolved, open `dashboard_url` from chat.
 
+## Dashboard filter scope
+
+A client that answers questions about a dashboard the user is viewing (for
+example an assistant embedded next to it) can make every tool call honor that
+dashboard's active filters by sending them in the `X-Superset-Dashboard-Scope`
+request header on each MCP HTTP request of the conversation turn. The model
+issuing tool calls never sees the header, so it cannot drop or loosen the
+filters, and retried calls carry them again.
+
+The header value is `base64url(zlib(JSON))` of:
+
+```json
+{
+  "version": 1,
+  "dashboard_id": 12,
+  "chart_filters": {
+    "101": {"filters": [{"col": "client", "op": "IN", "val": ["A"]}],
+            "time_range": "Last quarter"}
+  }
+}
+```
+
+`chart_filters` maps each chart with active filters to the `extra_form_data`
+the dashboard applies to it. A malformed header refuses every tool call rather
+than being ignored. Without the header, behavior is unchanged.
+
+While a scope with active filters is present:
+
+- Chart data tools (`get_chart_data`, `get_chart_preview`, `get_dashboard_data`)
+  apply each chart's dashboard filters and AND any `extra_form_data` the model
+  supplies with them. Filters can be added but not removed, and time windows,
+  time columns and relative anchors the dashboard sets (including time-series
+  cross-filters) cannot be changed. Charts that are not on the scoped
+  dashboard, and unsaved chart state (`form_data_key`), are refused.
+- `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
+  filters from dashboard charts backed by the queried dataset, respecting
+  native-filter chart scoping. Datasets outside the dashboard use the combined
+  dashboard-wide filters. A model-supplied time range is intersected with the
+  applicable dashboard time range. `execute_sql` replaces each filtered table
+  read with a sub-query, the same way row-level security is applied, and refuses
+  SQL whose tables are not registered datasets that have every filtered column, as well
+  as SQL that could read tables it cannot see: opaque statements, functions
+  the SQL parser does not model, and table functions. For `execute_sql`, template
+  syntax in SQL or dashboard filter values is refused rather than rendered after
+  scoping.
+  For all three tools, the time-filter column is resolved from the affected
+  dashboard charts' temporal filters (or legacy chart time-column settings),
+  after dashboard overrides. The charts must agree on one column. A chart with
+  no temporal target, conflicting targets, or a dataset outside the dashboard
+  with an applicable time window causes a refusal; the dataset's main datetime
+  column and a model-supplied column are never used to guess the dashboard target.
+  Malformed saved chart filter lists also cause an explicit scope refusal before
+  dashboard overrides are merged; no query is run.
+  Without an applicable dashboard time window, no chart temporal target is
+  required, and model-supplied time filtering behaves as before.
+- Writes that change what charts or datasets query (adding a chart to a
+  dashboard, saving a chart, defining a virtual dataset, editing a dataset or
+  metric, restoring a chart or dataset) are refused while the scope is
+  active.
+- Where the filters cannot be applied (for example, a column the dataset lacks,
+  or a column filtered differently by different charts) the call fails with a
+  tool error beginning `Dashboard filter scope refused this call:`. Tools that
+  return no dataset rows are unaffected; any other tool, including extension
+  tools, is refused.
+- MCP response caching is bypassed for scoped calls, and the scope is applied
+  before any query is built, so Superset's query cache never serves an
+  unscoped result.
+
+The scope is a correctness control for answers, not an access control.
+Permissions and row-level security apply exactly as they do without it.
+
 ---
 
 ## Quick Start
