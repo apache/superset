@@ -611,6 +611,7 @@ def test_semantic_view_data(
     """Test SemanticView data property."""
     from superset.semantic_layers.models import SemanticLayer
 
+    mock_implementation.configure_mock(selection_identity_version="cube-member-id-v1")
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
     layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
@@ -636,6 +637,7 @@ def test_semantic_view_data(
         assert data["id"] == 1
         assert data["uid"] == "semantic_view_uid_123"
         assert data["type"] == "semantic_view"
+        assert data["semantic_selection_version"] == "cube-member-id-v1"
         assert data["name"] == "Orders View"
         assert data["description"] == "View of order data"
         assert data["cache_timeout"] == 3600
