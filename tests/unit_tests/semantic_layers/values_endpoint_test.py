@@ -39,7 +39,7 @@ from superset.semantic_layers.models import SemanticView
 
 @pytest.fixture
 def semantic_view_datasource(mocker: MockerFixture) -> SemanticView:
-    implementation = MagicMock()
+    implementation: MagicMock = MagicMock(selection_identity_version=None)
     implementation.uid.return_value = "semantic_view_uid_123"
     implementation.get_dimensions.return_value = [
         Dimension(id="orders.category", name="category", type=pa.utf8()),
@@ -316,3 +316,22 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     )
     assert _column_values_cache_key(datasource, query) == expected
     assert "semantic_result_version" not in query
+
+
+def test_versioned_suggestions_are_unavailable_before_cache(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.selection_identity_version = "cube-member-id-v1"
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    response: Any = _get(client, "category/values/")
+    assert response.status_code == 200
+    assert response.json == {
+        "result": [],
+        "suggestions_status": "unavailable_versioned_view",
+    }
+    cache.get.assert_not_called()
+    implementation.get_values.assert_not_called()

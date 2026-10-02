@@ -2984,3 +2984,33 @@ def test_data_generation_separates_late_legacy_writer_and_task_keys(
         query.force_nonce = "task-uuid"
         assert processor.query_cache_key(query) == guarded
     provider.assert_not_called()
+
+
+def test_get_viz_annotation_data_ignores_source_chart_annotations(
+    app_context: Any,
+) -> None:
+    """The source chart's annotation layers are dropped to avoid recursion."""
+    query_object: MagicMock = MagicMock(
+        annotation_layers=[{"sourceType": "line", "value": 1, "name": "Back"}],
+    )
+    query_context: MagicMock = MagicMock(queries=[query_object])
+    chart: MagicMock = MagicMock(id=42)
+    chart.get_query_context.return_value = query_context
+    command: MagicMock = MagicMock()
+    command.run.return_value = {"queries": [{"data": [{"x": 1}]}]}
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, force=False
+        )
+
+    assert result == {"records": [{"x": 1}]}
+    assert query_object.annotation_layers == []
