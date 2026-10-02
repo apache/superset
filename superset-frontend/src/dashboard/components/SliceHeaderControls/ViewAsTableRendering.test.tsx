@@ -266,6 +266,13 @@ test('"View as table" renders the actual rows and headers for a view-as-table-on
     expect(screen.getByText('Heart')).toBeInTheDocument();
     expect(screen.getByText('Tech')).toBeInTheDocument();
   });
+
+  // Headers come from the column names via the drill_info verbose_map
+  // (null verbose_name falls back to the raw name).
+  await waitFor(() => {
+    expect(screen.getAllByText('speciality').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('COUNT(id)').length).toBeGreaterThan(0);
+  });
 });
 
 test('"View as table" does not get stuck loading when drill_info 403s for a view-as-table-only role', async () => {
