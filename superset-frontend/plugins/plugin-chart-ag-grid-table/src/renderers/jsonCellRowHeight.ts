@@ -17,36 +17,33 @@
  * under the License.
  */
 
-type RowHeightNode = {
-  setRowHeight: (height: number | null | undefined) => void;
-};
-
-type RowHeightApi = {
-  onRowHeightChanged: () => void;
+type HeightRow = {
+  setRowHeight?: (height: number | null | undefined) => void;
 };
 
 const heightsByRow = new WeakMap<object, Map<string, number>>();
 
 /**
- * Track per-column JSON expansion height on a row. The row grows to the
- * tallest expanded JSON cell and returns to the grid default once every
- * expanded cell in that row is collapsed. A collapse for a column that was
- * never expanded is ignored.
+ * Track per-column JSON expansion height on a row. `row` is the AG Grid row
+ * node: height is applied with `row.setRowHeight`, so the method keeps that
+ * node as `this`. The row grows to the tallest expanded JSON cell and returns
+ * to the grid default once every expanded cell in that row is collapsed. A
+ * collapse for a column that was never expanded is ignored.
  */
 export function syncJsonCellRowHeight(
-  node: RowHeightNode,
-  api: RowHeightApi,
+  row: HeightRow,
+  onRowHeightChanged: () => void,
   colId: string,
   height: number,
 ): void {
-  let heights = heightsByRow.get(node);
+  let heights = heightsByRow.get(row);
   const hadEntry = heights?.has(colId) ?? false;
   if (height <= 0 && !hadEntry) {
     return;
   }
   if (!heights) {
     heights = new Map();
-    heightsByRow.set(node, heights);
+    heightsByRow.set(row, heights);
   }
   if (height > 0) {
     heights.set(colId, height);
@@ -59,6 +56,6 @@ export function syncJsonCellRowHeight(
       max = value;
     }
   });
-  node.setRowHeight(max > 0 ? max : null);
-  api.onRowHeightChanged();
+  row.setRowHeight?.(max > 0 ? max : null);
+  onRowHeightChanged();
 }

@@ -19,9 +19,12 @@
 
 export type JsonContainer = Record<string, unknown> | unknown[];
 
-// Skip multi-megabyte cells so a single value cannot stall the grid while
-// it is being parsed on the render path.
-const MAX_JSON_CELL_LENGTH = 5_000_000;
+// Visible cells are parsed on the render path. Above this size the cell stays
+// plain text. Parsed results are reused for the same string.
+const MAX_JSON_CELL_LENGTH = 100_000;
+const PARSE_CACHE_LIMIT = 200;
+
+const parsedJsonCache = new Map<string, JsonContainer | null>();
 
 function isJsonContainer(value: unknown): value is JsonContainer {
   if (value === null || typeof value !== 'object') {
@@ -35,6 +38,20 @@ function isJsonContainer(value: unknown): value is JsonContainer {
   }
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function rememberParse(
+  text: string,
+  parsed: JsonContainer | null,
+): JsonContainer | null {
+  if (parsedJsonCache.size >= PARSE_CACHE_LIMIT) {
+    const oldest = parsedJsonCache.keys().next().value;
+    if (oldest !== undefined) {
+      parsedJsonCache.delete(oldest);
+    }
+  }
+  parsedJsonCache.set(text, parsed);
+  return parsed;
 }
 
 /**
@@ -57,19 +74,98 @@ export function parseJsonCellValue(value: unknown): JsonContainer | null {
   ) {
     return null;
   }
+  const cached = parsedJsonCache.get(trimmed);
+  if (cached !== undefined) {
+    return cached;
+  }
   try {
     const parsed: unknown = JSON.parse(trimmed);
-    return isJsonContainer(parsed) ? parsed : null;
+    return rememberParse(trimmed, isJsonContainer(parsed) ? parsed : null);
   } catch {
-    return null;
+    return rememberParse(trimmed, null);
   }
 }
 
-/** One-line preview. Whitespace inside the original text is collapsed. */
+function isFormattingWhitespace(char: string): boolean {
+  return char === ' ' || char === '\n' || char === '\r' || char === '\t';
+}
+
+/**
+ * Collapse formatting whitespace onto one line. Spaces inside JSON strings
+ * stay as written.
+ */
+function collapseFormattingWhitespace(source: string): string {
+  let collapsed = '';
+  let inString = false;
+  let escaped = false;
+  let pendingSpace = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (inString) {
+      collapsed += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (isFormattingWhitespace(char)) {
+      pendingSpace = collapsed.length > 0;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+    }
+    if (pendingSpace) {
+      collapsed += ' ';
+      pendingSpace = false;
+    }
+    collapsed += char;
+  }
+  return collapsed.trim();
+}
+
+function exceedsPreviewBudget(
+  value: unknown,
+  budget: { left: number },
+): boolean {
+  if (budget.left < 0) {
+    return true;
+  }
+  if (typeof value === 'string') {
+    budget.left -= value.length;
+    return budget.left < 0;
+  }
+  if (Array.isArray(value)) {
+    budget.left -= value.length;
+    return value.some(item => exceedsPreviewBudget(item, budget));
+  }
+  if (isJsonContainer(value)) {
+    const keys = Object.keys(value);
+    budget.left -= keys.length;
+    return keys.some(key => exceedsPreviewBudget(value[key], budget));
+  }
+  return false;
+}
+
+/** One-line preview of a JSON object or array. */
 export function jsonCellPreview(
   value: JsonContainer,
   rawText?: string,
 ): string {
-  const source = rawText ?? JSON.stringify(value);
-  return source.replace(/\s+/g, ' ').trim();
+  if (rawText !== undefined) {
+    return collapseFormattingWhitespace(rawText);
+  }
+  if (exceedsPreviewBudget(value, { left: MAX_JSON_CELL_LENGTH })) {
+    return Array.isArray(value) ? '[…]' : '{…}';
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return Array.isArray(value) ? '[…]' : '{…}';
+  }
 }

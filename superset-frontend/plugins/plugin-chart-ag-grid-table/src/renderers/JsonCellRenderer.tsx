@@ -21,10 +21,11 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Button, Icons, Modal } from '@superset-ui/core/components';
 import { type JsonContainer, jsonCellPreview } from './parseJsonCellValue';
@@ -33,6 +34,8 @@ import { syncJsonCellRowHeight } from './jsonCellRowHeight';
 const MAX_JSON_DEPTH = 32;
 const JSON_CELL_ROW_CHROME_PX = 12;
 const ARROW_CLICK_MS = 250;
+const COPIED_RESET_MS = 2000;
+const PREVIEW_TITLE_MAX_LENGTH = 500;
 
 type JsonCellGridApi = {
   resetRowHeights?: () => void;
@@ -103,21 +106,6 @@ const JsonToggle = styled.button`
       color: ${theme.colorPrimary};
     }
   `}
-`;
-
-const TextToggle = styled.button`
-  display: block;
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: inherit;
-  cursor: pointer;
-  white-space: inherit;
-  word-break: inherit;
 `;
 
 const JsonBlock = styled.div`
@@ -198,14 +186,12 @@ function JsonActionButton({
   label,
   expanded,
   onActivate,
-  plain = false,
   testId,
   children,
 }: {
   label?: string;
   expanded?: boolean;
   onActivate: () => void;
-  plain?: boolean;
   testId?: string;
   children: ReactNode;
 }) {
@@ -235,9 +221,8 @@ function JsonActionButton({
     };
   }, [onActivate]);
 
-  const Toggle = plain ? TextToggle : JsonToggle;
   return (
-    <Toggle
+    <JsonToggle
       ref={ref}
       type="button"
       aria-expanded={expanded}
@@ -246,7 +231,7 @@ function JsonActionButton({
       data-test={testId}
     >
       {children}
-    </Toggle>
+    </JsonToggle>
   );
 }
 
@@ -277,9 +262,10 @@ function containerEntries(
 
 function containerSummary(value: JsonContainer): string {
   if (Array.isArray(value)) {
-    return t('%s items', value.length);
+    return tn('%s item', '%s items', value.length, value.length);
   }
-  return t('%s keys', Object.keys(value).length);
+  const keyCount = Object.keys(value).length;
+  return tn('%s key', '%s keys', keyCount, keyCount);
 }
 
 function JsonNode({
@@ -393,11 +379,12 @@ export function JsonCellRenderer({
   });
 
   const showTree = jsonInCell && expanded;
-  const preview = jsonCellPreview(value, rawText);
-  const originalText = rawText ?? JSON.stringify(value);
+  const preview = useMemo(
+    () => jsonCellPreview(value, rawText),
+    [rawText, value],
+  );
   const openBrace = Array.isArray(value) ? '[' : '{';
   const closeBrace = Array.isArray(value) ? ']' : '}';
-  const entries = containerEntries(value);
 
   const bumpLayout = useCallback(() => {
     setLayoutTick(tick => tick + 1);
@@ -410,20 +397,16 @@ export function JsonCellRenderer({
 
     const shouldSync = showTree || hasAdjustedHeight.current;
     const setRowHeight = node?.setRowHeight;
+    const onRowHeightChanged = api?.onRowHeightChanged;
     if (shouldSync && !api?.isDestroyed?.()) {
       hasAdjustedHeight.current = showTree;
       if (autoHeight) {
         api?.resetRowHeights?.();
-      } else if (setRowHeight && api?.onRowHeightChanged) {
+      } else if (node && setRowHeight && onRowHeightChanged) {
         const measured = rootRef.current?.scrollHeight ?? 0;
         const height =
           showTree && measured > 0 ? measured + JSON_CELL_ROW_CHROME_PX : 0;
-        syncJsonCellRowHeight(
-          { setRowHeight },
-          { onRowHeightChanged: () => api.onRowHeightChanged?.() },
-          colId,
-          height,
-        );
+        syncJsonCellRowHeight(node, onRowHeightChanged, colId, height);
       }
     }
 
@@ -465,6 +448,7 @@ export function JsonCellRenderer({
         colId: columnId,
       } = current;
       const setRowHeight = rowNode?.setRowHeight;
+      const onRowHeightChanged = gridApi?.onRowHeightChanged;
       if (!wasExpanded || gridApi?.isDestroyed?.()) {
         return;
       }
@@ -472,13 +456,8 @@ export function JsonCellRenderer({
         gridApi?.resetRowHeights?.();
         return;
       }
-      if (setRowHeight && gridApi?.onRowHeightChanged) {
-        syncJsonCellRowHeight(
-          { setRowHeight },
-          { onRowHeightChanged: () => gridApi.onRowHeightChanged?.() },
-          columnId,
-          0,
-        );
+      if (rowNode && setRowHeight && onRowHeightChanged) {
+        syncJsonCellRowHeight(rowNode, onRowHeightChanged, columnId, 0);
       }
     },
     [],
@@ -488,7 +467,7 @@ export function JsonCellRenderer({
     if (!copied) {
       return undefined;
     }
-    const timer = window.setTimeout(() => setCopied(false), 2000);
+    const timer = window.setTimeout(() => setCopied(false), COPIED_RESET_MS);
     return () => window.clearTimeout(timer);
   }, [copied]);
 
@@ -524,7 +503,9 @@ export function JsonCellRenderer({
           {!expanded && (
             <Preview
               data-test="json-cell-preview"
-              title={preview.length <= 500 ? preview : undefined}
+              title={
+                preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
+              }
             >
               {preview}
             </Preview>
@@ -532,18 +513,19 @@ export function JsonCellRenderer({
           {expanded && <span>{openBrace}</span>}
         </Toolbar>
       ) : (
-        <JsonActionButton
-          plain
-          testId="json-cell-preview"
-          onActivate={() => setModalOpen(true)}
+        <Preview
+          data-test="json-cell-preview"
+          title={
+            preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
+          }
         >
-          {originalText}
-        </JsonActionButton>
+          {preview}
+        </Preview>
       )}
       {showTree && (
         <>
           <JsonIndent>
-            {entries.map(([key, child]) => (
+            {containerEntries(value).map(([key, child]) => (
               <JsonNode
                 key={key}
                 name={key}

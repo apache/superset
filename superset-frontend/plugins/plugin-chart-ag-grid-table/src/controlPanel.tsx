@@ -543,7 +543,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t(
-                'Collapse JSON objects and arrays and show an arrow in the cell. A click expands the value in the row, and a double-click on the arrow opens it in a dialog. Otherwise the cell keeps the original text and a click opens the dialog.',
+                'Add an arrow beside collapsed JSON. A click expands the value in the row, and a double-click on the arrow opens it in a dialog.',
               ),
             },
           },
