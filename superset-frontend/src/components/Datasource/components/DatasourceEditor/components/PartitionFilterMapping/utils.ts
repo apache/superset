@@ -64,10 +64,17 @@ export function mappedColumnIsImplicit(
 /**
  * Whether the mapping will actually mirror anything.
  *
- * "Inert" here means only "no transform entered yet", which is the point of the
- * warning in wireframe 1g. A transform that is present but unusable -- no
- * `:value`, a Jinja block, unparseable -- is reported by the transform field's
- * own validation instead, so this does not repeat those checks.
+ * Drives the choice between the green "filters will automatically apply"
+ * message and the warning that nothing is mirrored yet, so "non-blank text in
+ * the box" is not a good enough test: a transform with no `:value` to
+ * substitute, or one carrying Jinja, is as inert as an empty one and the
+ * backend's own summary reports it inactive. Claiming otherwise tells an owner
+ * their queries are pruning when they are not.
+ *
+ * Shares `transformCanPreview`'s conditions rather than restating them, and is
+ * necessary rather than sufficient for the same reason: an unparseable
+ * expression or a non-deterministic function needs a SQL parser to spot, so the
+ * server stays the authority and reports those at the transform field itself.
  */
 export function mappingIsActive(
   datasource: PartitionMappingDatasource,
@@ -80,7 +87,11 @@ export function mappingIsActive(
   const mappedColumn = columns.find(
     column => column.column_name === mappedColumnName,
   );
-  return Boolean(mappedColumn?.partition_value_transform?.trim());
+  return transformCanPreview(
+    mappedColumn?.partition_value_transform,
+    mappedColumnName,
+    datasource.partition_column,
+  );
 }
 
 /**
@@ -274,17 +285,33 @@ export function defaultTransformFor(
   return datasource.partition_value_transform_default || '';
 }
 
+/** Declared types whose values are numbers rather than strings. */
+const NUMERIC_TYPE_RE =
+  /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
+
 /**
  * Samples the preview evaluates the transform at.
  *
  * Temporal columns get one timestamp, because a time-range bound is what they
  * are mapped for. Everything else gets two values, so the preview demonstrates
  * the element-wise `IN` an ordinary categorical filter actually produces.
+ *
+ * The samples follow the column's declared type, not just whether it is
+ * temporal. A mapped integer column with `CAST(:value AS INTEGER)` is a real
+ * configuration, and evaluating it at `'US'` makes the engine reject a transform
+ * that an actual `IN (2025, 2026)` filter would mirror perfectly well -- the
+ * preview was reporting a fault in its own sample data.
  */
 export function sampleValuesFor(
   column: PartitionMappingColumn | undefined,
 ): string[] {
-  return column?.is_dttm ? ['2026-01-15 00:00:00'] : ['US', 'CA'];
+  if (column?.is_dttm) {
+    return ['2026-01-15 00:00:00'];
+  }
+  if (column?.type && NUMERIC_TYPE_RE.test(column.type)) {
+    return ['2025', '2026'];
+  }
+  return ['US', 'CA'];
 }
 
 /**

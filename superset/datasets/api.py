@@ -2216,6 +2216,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         properties:
                           valid:
                             type: boolean
+                          reason:
+                            type: string
+                            description: >-
+                              Why the mapping is not valid. Absent when it is.
+                              The editor branches on this to decide how to
+                              present the failure.
+                            enum:
+                            - unconfigured
+                            - validation
+                            - parse
+                            - operator
+                            - engine
                           sample_input:
                             type: string
                           emitted_predicate:

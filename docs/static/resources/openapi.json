@@ -7988,15 +7988,14 @@
           },
           "operator": {
             "default": "==",
-            "description": "Filter operator being mirrored. Only operators that can be mirrored at all are accepted.",
+            "description": "Filter operator being mirrored. Only operators the preview can construct are accepted: TEMPORAL_RANGE is mirrored by the query path as two bounds decomposed from a since/until pair, which this request has no way to express.",
             "enum": [
               "<",
               "<=",
               "==",
               ">",
               ">=",
-              "IN",
-              "TEMPORAL_RANGE"
+              "IN"
             ],
             "type": "string"
           },
@@ -24975,6 +24974,17 @@
                           "type": "string"
                         },
                         "error": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "enum": [
+                            "unconfigured",
+                            "validation",
+                            "parse",
+                            "operator",
+                            "engine"
+                          ],
                           "type": "string"
                         },
                         "sample_input": {
