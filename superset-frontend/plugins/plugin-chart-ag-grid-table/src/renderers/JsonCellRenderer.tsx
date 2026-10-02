@@ -130,10 +130,12 @@ const JsonBlock = styled.div`
 `;
 
 const JsonLine = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
+  ${({ theme }) => `
+    display: flex;
+    align-items: flex-start;
+    gap: ${theme.sizeUnit}px;
+    min-width: 0;
+  `}
 `;
 
 const JsonIndent = styled.div`
