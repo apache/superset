@@ -42,6 +42,7 @@ async function overwriteToDashboard(
   explorePage: ExplorePage,
   chartId: number,
   dashboardName: string,
+  dashboardId: number,
 ): Promise<void> {
   const saveModal = await explorePage.openSaveModal();
   await saveModal.selectSaveAction('overwrite');
@@ -50,7 +51,11 @@ async function overwriteToDashboard(
     pathMatch: true,
   });
   await saveModal.clickSave();
-  expect((await updated).ok()).toBe(true);
+  const updatedResponse = await updated;
+  expect(updatedResponse.ok()).toBe(true);
+  expect(updatedResponse.request().postDataJSON().dashboards).toContain(
+    dashboardId,
+  );
   // A duplicate here means the save created a new dashboard instead of
   // picking the existing one; it would also escape testAssets cleanup.
   expect((await getDashboardsByName(page, dashboardName)).count).toBe(1);
@@ -89,7 +94,13 @@ testWithAssets(
     });
 
     // UI-save to dashboard 1: verifies singular metadata text.
-    await overwriteToDashboard(page, explorePage, chartId, dashboard1.name);
+    await overwriteToDashboard(
+      page,
+      explorePage,
+      chartId,
+      dashboard1.name,
+      dashboard1.id,
+    );
 
     await expect(explorePage.getDashboardsMetadataText()).toHaveText(
       'Added to 1 dashboard',
@@ -97,7 +108,13 @@ testWithAssets(
 
     // UI-save to dashboard 2: verifies plural metadata text and that both
     // dashboards are listed in the submenu.
-    await overwriteToDashboard(page, explorePage, chartId, dashboard2.name);
+    await overwriteToDashboard(
+      page,
+      explorePage,
+      chartId,
+      dashboard2.name,
+      dashboard2.id,
+    );
 
     await expect(explorePage.getDashboardsMetadataText()).toHaveText(
       'Added to 2 dashboards',
