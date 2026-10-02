@@ -1423,6 +1423,52 @@ session scope, without reloading the request user. Reporting an error therefore
 does not require metadata database access unless the hook itself uses it. Use the
 provided hook context for caller identity rather than `g.user`.
 
+## SQL execution row limits
+
+The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
+last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
+request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
+`limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
+If SQL has no outer limit, the explicit request cap is applied. Inner query and
+CTE limits and SQL offsets are preserved. Literal `FETCH FIRST` counts and
+parenthesized literal limits follow the same rule. `PERCENT`, `WITH TIES`, and
+limit expressions that cannot be interpreted as a fixed row count are preserved
+inside a subquery with an outer row cap, rather than replaced. This conservative
+fallback cannot increase the original result's row count. For SQL Server, these
+restrictions are left unchanged instead: a derived table could reject duplicate
+or unnamed output columns. The executor caps the last statement's returned rows
+at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
+percentage, tie, or expression semantics. Cursor reads are bounded by the same
+cap plus one probe row, including across multiple fetch batches, preserving
+engine-specific result processing. Only successfully returned rows count against the cursor
+budget, so a failed fetch leaves that budget available for an engine fallback.
+BigQuery only falls back if its initial fetch fails; errors after a successful
+sample, including during the EOF probe, fail the query rather than silently
+discarding buffered rows.
+This does not bound the work performed by the database.
+Because this cap applies to any row-returning last statement, a non-query
+statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each
+statement reports `truncated: true` when a fetch cap omits rows from the
+executed SQL result, including engine memory caps such as `BQ_FETCH_MAX_MB`.
+Exactly-at-cap and smaller results report `false` when no rows are omitted. This
+flag does not indicate rows excluded by a SQL LIMIT visible in `executed_sql`,
+and does not bound or count affected rows for a write with `RETURNING`. In
+`dry_run`, the SQL Server restriction remains unchanged because no results are
+fetched.
+
+Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
+subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
+to `dry_run`, which returns the transformed SQL without executing it.
+
+The SQL-only `Database.apply_limit_to_sql()` helper used by dataset column
+discovery and alerts does not use the executor's bounded cursor. It retains the
+legacy SQL Server behavior of replacing `PERCENT`, `WITH TIES`, and non-fixed
+limit expressions with a fixed `TOP` cap, without introducing derived tables
+that could reject unnamed or duplicate columns. Smaller fixed limits, including
+zero, are preserved unless the caller explicitly requests `force=True`. This
+legacy helper's replacement semantics are separate from MCP execution's
+preservation of complex SQL restrictions.
+
 ## Result serialization
 
 Data-bearing tool responses sanitize row values, column samples, and statistics
