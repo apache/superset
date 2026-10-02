@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Example export (`/export_as_example/`) rejects dashboards whose charts or
+  native-filter targets use semantic views; use the ordinary chart/dashboard
+  bundle export instead.
+
+- Semantic-view chart and dashboard bundles use typed UUID references and require
+  a destination with support for this format and an already provisioned, accessible
+  view with the same UUID. They do not provision semantic layers/views or export
+  their configuration or credentials. Older readers cannot import these semantic
+  bundles. Older dashboard bundles with semantic filter targets but no typed
+  `datasourceRef` are also rejected; re-export them with this version rather than
+  binding their local IDs to unrelated destination tables. Imports fail explicitly
+  if a semantic dependency is missing, inaccessible, feature-disabled or
+  provider-unregistered. Chart and dashboard exports omit references for missing
+  views so unrelated assets can still be archived; orphaned charts and dashboard
+  targets cannot be imported without repairing their datasources. Existing-view
+  access, feature and provider checks remain enforced, including in full asset
+  exports. Ordinary table bundles retain their existing format. The examples
+  loader rejects semantic bundles;
+  use the chart, dashboard or assets importer instead.
+
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
 `DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.

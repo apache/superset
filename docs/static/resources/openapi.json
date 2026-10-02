@@ -19732,7 +19732,7 @@
     },
     "/api/v1/dashboard/{pk}/export_as_example/": {
       "get": {
-        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files.",
+        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files. Charts and native-filter targets that use semantic views are not supported.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19781,6 +19781,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "The dashboard contains unsupported semantic-view assets"
           },
           "500": {
             "$ref": "#/components/responses/500"
