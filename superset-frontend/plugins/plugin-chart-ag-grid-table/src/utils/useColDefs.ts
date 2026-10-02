@@ -76,6 +76,7 @@ type UseColDefsProps = {
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
+  jsonInCell?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   isUsingTimeComparison?: boolean;
   emitCrossFilters?: boolean;
@@ -246,6 +247,7 @@ export const useColDefs = ({
   columnColorFormatters,
   allowRearrangeColumns,
   allowRenderHtml,
+  jsonInCell = false,
   basicColorFormatters,
   isUsingTimeComparison,
   emitCrossFilters,
@@ -426,6 +428,7 @@ export const useColDefs = ({
                 isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
               cellRendererParams: {
                 allowRenderHtml,
+                jsonInCell,
                 columns,
                 hasBasicColorFormatters,
                 col,
@@ -480,6 +483,7 @@ export const useColDefs = ({
       emitCrossFilters,
       allowRearrangeColumns,
       allowRenderHtml,
+      jsonInCell,
       serverPagination,
       alignPositiveNegative,
       zebraStriping,

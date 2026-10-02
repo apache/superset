@@ -83,6 +83,7 @@ export type TableChartFormData = QueryFormData & {
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
   allow_render_html?: boolean;
+  json_in_cell?: boolean;
   show_numbered_column?: boolean;
   zebra_striping?: boolean;
 };
@@ -112,6 +113,7 @@ export interface AgGridTableChartTransformedProps<
   emitCrossFilters?: boolean;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
+  jsonInCell: boolean;
   slice_id: number;
   serverPagination: boolean;
   rowCount: number;
@@ -220,6 +222,7 @@ export type CellRendererProps = CustomCellRendererProps & {
   alignPositiveNegative: boolean;
   colorPositiveNegative: boolean;
   allowRenderHtml: boolean;
+  jsonInCell: boolean;
   columns: InputColumn[];
 };
 

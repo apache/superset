@@ -17,7 +17,13 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, userEvent, within } from '@superset-ui/core/spec';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  within,
+} from '@superset-ui/core/spec';
 import { JsonCellRenderer } from '../src/renderers/JsonCellRenderer';
 import {
   jsonCellPreview,
@@ -87,6 +93,7 @@ test('collapsed JSON shows a one-line preview and hides nested keys', async () =
       rawText={nestedJson}
       colId="payload"
       autoHeight={false}
+      jsonInCell
     />,
   );
 
@@ -97,10 +104,10 @@ test('collapsed JSON shows a one-line preview and hides nested keys', async () =
 
   await userEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
 
-  expect(screen.queryByTestId('json-cell-preview')).not.toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'Expand address' }),
+    await screen.findByRole('button', { name: 'Expand address' }),
   ).toBeInTheDocument();
+  expect(screen.queryByTestId('json-cell-preview')).not.toBeInTheDocument();
   expect(screen.queryByText('London')).not.toBeInTheDocument();
 
   await userEvent.click(screen.getByRole('button', { name: 'Expand address' }));
@@ -110,7 +117,12 @@ test('collapsed JSON shows a one-line preview and hides nested keys', async () =
 test('JSON controls do not bubble clicks to the cell', async () => {
   const onParentClick = jest.fn();
   const { container } = render(
-    <JsonCellRenderer value={{ a: 1 }} colId="payload" autoHeight={false} />,
+    <JsonCellRenderer
+      value={{ a: 1 }}
+      colId="payload"
+      autoHeight={false}
+      jsonInCell
+    />,
   );
   container.addEventListener('click', onParentClick);
 
@@ -125,16 +137,37 @@ test('expanded JSON asks an auto-height grid to remeasure the row', async () => 
       value={{ a: 1 }}
       colId="payload"
       autoHeight
+      jsonInCell
       api={{ resetRowHeights }}
     />,
   );
 
   expect(resetRowHeights).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
+  expect(
+    await screen.findByRole('button', { name: 'Collapse JSON' }),
+  ).toBeInTheDocument();
   expect(resetRowHeights).toHaveBeenCalled();
 });
 
-test('view control opens the full JSON in a dialog and copies the original text', async () => {
+test('the default cell keeps the original JSON text, including line breaks', () => {
+  const raw = '{\n  "user": "ada"\n}';
+  render(
+    <JsonCellRenderer
+      value={{ user: 'ada' }}
+      rawText={raw}
+      colId="payload"
+      autoHeight={false}
+    />,
+  );
+
+  expect(screen.getByTestId('json-cell-preview').textContent).toBe(raw);
+  expect(
+    screen.queryByRole('button', { name: 'Expand JSON' }),
+  ).not.toBeInTheDocument();
+});
+
+test('JSON stays the original text and opens on click', async () => {
   const writeText = jest.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -150,7 +183,11 @@ test('view control opens the full JSON in a dialog and copies the original text'
     />,
   );
 
-  await userEvent.click(screen.getByRole('button', { name: 'View full JSON' }));
+  expect(
+    screen.queryByRole('button', { name: 'Expand JSON' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByTestId('json-cell-preview').textContent).toBe(nestedJson);
+  await userEvent.click(screen.getByTestId('json-cell-preview'));
   const dialog = await screen.findByRole('dialog');
   expect(dialog).toHaveTextContent('Cell content');
   expect(within(dialog).getByText('"ada"')).toBeInTheDocument();
@@ -160,6 +197,29 @@ test('view control opens the full JSON in a dialog and copies the original text'
   expect(
     await within(dialog).findByRole('button', { name: 'Copied' }),
   ).toBeInTheDocument();
+});
+
+test('a click on the arrow expands the cell and a second click opens the dialog', async () => {
+  render(
+    <JsonCellRenderer
+      value={{ user: 'ada', address: { city: 'London' } }}
+      rawText={nestedJson}
+      colId="payload"
+      autoHeight={false}
+      jsonInCell
+    />,
+  );
+
+  fireEvent.dblClick(screen.getByTestId('json-cell-preview'));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  const arrow = screen.getByRole('button', { name: 'Expand JSON' });
+  fireEvent.click(arrow);
+  fireEvent.click(arrow);
+  expect(await screen.findByRole('dialog')).toHaveTextContent('Cell content');
+  expect(
+    screen.queryByRole('button', { name: 'Expand address' }),
+  ).not.toBeInTheDocument();
 });
 
 test('text cells render JSON, and leave other strings untouched', () => {

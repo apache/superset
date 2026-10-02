@@ -32,6 +32,7 @@ import { syncJsonCellRowHeight } from './jsonCellRowHeight';
 
 const MAX_JSON_DEPTH = 32;
 const JSON_CELL_ROW_CHROME_PX = 12;
+const ARROW_CLICK_MS = 250;
 
 type JsonCellGridApi = {
   resetRowHeights?: () => void;
@@ -48,6 +49,7 @@ export type JsonCellRendererProps = {
   rawText?: string;
   colId: string;
   autoHeight: boolean;
+  jsonInCell?: boolean;
   api?: JsonCellGridApi;
   node?: JsonCellRowNode;
   eGridCell?: HTMLElement | null;
@@ -60,11 +62,8 @@ const Root = styled.div`
     gap: ${theme.sizeUnit / 2}px;
     width: 100%;
     min-width: 0;
-    line-height: 1.4;
-    font-family: ${theme.fontFamilyCode};
-    font-size: ${theme.fontSizeSM}px;
-    white-space: pre-wrap;
-    word-break: break-word;
+    white-space: inherit;
+    word-break: inherit;
   `}
 `;
 
@@ -106,14 +105,28 @@ const JsonToggle = styled.button`
   `}
 `;
 
-const ViewToggle = styled(JsonToggle)`
-  margin-left: auto;
+const TextToggle = styled.button`
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  white-space: inherit;
+  word-break: inherit;
 `;
 
 const JsonBlock = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-family: ${theme.fontFamilyCode};
+  `}
 `;
 
 const JsonLine = styled.div`
@@ -183,14 +196,14 @@ function JsonActionButton({
   label,
   expanded,
   onActivate,
-  alignEnd = false,
+  plain = false,
   testId,
   children,
 }: {
-  label: string;
+  label?: string;
   expanded?: boolean;
   onActivate: () => void;
-  alignEnd?: boolean;
+  plain?: boolean;
   testId?: string;
   children: ReactNode;
 }) {
@@ -211,14 +224,16 @@ function JsonActionButton({
     node.addEventListener('pointerdown', stop);
     node.addEventListener('mousedown', stop);
     node.addEventListener('click', onClick);
+    node.addEventListener('dblclick', stop);
     return () => {
       node.removeEventListener('pointerdown', stop);
       node.removeEventListener('mousedown', stop);
       node.removeEventListener('click', onClick);
+      node.removeEventListener('dblclick', stop);
     };
   }, [onActivate]);
 
-  const Toggle = alignEnd ? ViewToggle : JsonToggle;
+  const Toggle = plain ? TextToggle : JsonToggle;
   return (
     <Toggle
       ref={ref}
@@ -355,6 +370,7 @@ export function JsonCellRenderer({
   rawText,
   colId,
   autoHeight,
+  jsonInCell = false,
   api,
   node,
   eGridCell,
@@ -364,6 +380,7 @@ export function JsonCellRenderer({
   const [modalOpen, setModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const arrowClickTimer = useRef<number | undefined>(undefined);
   const hasAdjustedHeight = useRef(false);
   const latest = useRef({
     expanded,
@@ -373,7 +390,9 @@ export function JsonCellRenderer({
     colId,
   });
 
+  const showTree = jsonInCell && expanded;
   const preview = jsonCellPreview(value, rawText);
+  const originalText = rawText ?? JSON.stringify(value);
   const openBrace = Array.isArray(value) ? '[' : '{';
   const closeBrace = Array.isArray(value) ? ']' : '}';
   const entries = containerEntries(value);
@@ -383,20 +402,20 @@ export function JsonCellRenderer({
   }, []);
 
   useLayoutEffect(() => {
-    latest.current = { expanded, autoHeight, api, node, colId };
+    latest.current = { expanded: showTree, autoHeight, api, node, colId };
     const cell = eGridCell ?? null;
-    cell?.classList.toggle('json-cell-expanded', expanded);
+    cell?.classList.toggle('json-cell-expanded', showTree);
 
-    const shouldSync = expanded || hasAdjustedHeight.current;
+    const shouldSync = showTree || hasAdjustedHeight.current;
     const setRowHeight = node?.setRowHeight;
     if (shouldSync && !api?.isDestroyed?.()) {
-      hasAdjustedHeight.current = expanded;
+      hasAdjustedHeight.current = showTree;
       if (autoHeight) {
         api?.resetRowHeights?.();
       } else if (setRowHeight && api?.onRowHeightChanged) {
         const measured = rootRef.current?.scrollHeight ?? 0;
         const height =
-          expanded && measured > 0 ? measured + JSON_CELL_ROW_CHROME_PX : 0;
+          showTree && measured > 0 ? measured + JSON_CELL_ROW_CHROME_PX : 0;
         syncJsonCellRowHeight(
           { setRowHeight },
           { onRowHeightChanged: () => api.onRowHeightChanged?.() },
@@ -409,7 +428,29 @@ export function JsonCellRenderer({
     return () => {
       cell?.classList.remove('json-cell-expanded');
     };
-  }, [api, autoHeight, colId, eGridCell, expanded, layoutTick, node]);
+  }, [api, autoHeight, colId, eGridCell, layoutTick, node, showTree]);
+
+  useEffect(
+    () => () => {
+      if (arrowClickTimer.current !== undefined) {
+        window.clearTimeout(arrowClickTimer.current);
+      }
+    },
+    [],
+  );
+
+  const onArrowClick = useCallback(() => {
+    if (arrowClickTimer.current !== undefined) {
+      window.clearTimeout(arrowClickTimer.current);
+      arrowClickTimer.current = undefined;
+      setModalOpen(true);
+      return;
+    }
+    arrowClickTimer.current = window.setTimeout(() => {
+      arrowClickTimer.current = undefined;
+      setExpanded(current => !current);
+    }, ARROW_CLICK_MS);
+  }, []);
 
   useEffect(
     () => () => {
@@ -464,38 +505,40 @@ export function JsonCellRenderer({
 
   return (
     <Root ref={rootRef} data-test="json-cell">
-      <Toolbar>
-        <JsonActionButton
-          label={expanded ? t('Collapse JSON') : t('Expand JSON')}
-          expanded={expanded}
-          testId="json-cell-expand"
-          onActivate={() => setExpanded(current => !current)}
-        >
-          {expanded ? (
-            <Icons.CaretDownOutlined iconSize="xs" />
-          ) : (
-            <Icons.CaretRightOutlined iconSize="xs" />
-          )}
-        </JsonActionButton>
-        {!expanded && (
-          <Preview
-            data-test="json-cell-preview"
-            title={preview.length <= 500 ? preview : undefined}
+      {jsonInCell ? (
+        <Toolbar>
+          <JsonActionButton
+            label={expanded ? t('Collapse JSON') : t('Expand JSON')}
+            expanded={expanded}
+            testId="json-cell-expand"
+            onActivate={onArrowClick}
           >
-            {preview}
-          </Preview>
-        )}
-        {expanded && <span>{openBrace}</span>}
+            {expanded ? (
+              <Icons.CaretDownOutlined iconSize="xs" />
+            ) : (
+              <Icons.CaretRightOutlined iconSize="xs" />
+            )}
+          </JsonActionButton>
+          {!expanded && (
+            <Preview
+              data-test="json-cell-preview"
+              title={preview.length <= 500 ? preview : undefined}
+            >
+              {preview}
+            </Preview>
+          )}
+          {expanded && <span>{openBrace}</span>}
+        </Toolbar>
+      ) : (
         <JsonActionButton
-          label={t('View full JSON')}
-          alignEnd
-          testId="json-cell-view"
+          plain
+          testId="json-cell-preview"
           onActivate={() => setModalOpen(true)}
         >
-          <Icons.FullscreenOutlined iconSize="xs" />
+          {originalText}
         </JsonActionButton>
-      </Toolbar>
-      {expanded && (
+      )}
+      {showTree && (
         <>
           <JsonIndent>
             {entries.map(([key, child]) => (

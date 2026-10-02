@@ -388,6 +388,12 @@ The **Show summary** checkbox lives at the top of the **Visual formatting** sect
 
 In both modes, the summary is computed across the full result set, independent of the chart's row limit and pagination, and it reflects dashboard and chart-level filters. It does not reflect AG Grid's own server-side column filters (the per-column filter UI in the grid header), which are excluded from the summary query.
 
+#### JSON values
+
+A text cell that holds a JSON object or array stays the original text. Clicking it opens the full value in a dialog, with a control to copy that text.
+
+**Customize** → **Options** → **JSON in cell** collapses those values and adds an arrow on the left. A click on the arrow expands and collapses the JSON in the row. A double-click on the arrow opens the same dialog.
+
 ### Dynamic Currency Formatting
 
 Chart metric values can display currencies dynamically rather than using a fixed currency code. To enable:

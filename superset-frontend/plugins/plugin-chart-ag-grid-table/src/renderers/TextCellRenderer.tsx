@@ -32,8 +32,16 @@ const SUMMARY_TOOLTIP_TEXT = t(
 );
 
 export const TextCellRenderer = (params: CellRendererProps) => {
-  const { node, api, colDef, columns, allowRenderHtml, value, valueFormatted } =
-    params;
+  const {
+    node,
+    api,
+    colDef,
+    columns,
+    allowRenderHtml,
+    jsonInCell = false,
+    value,
+    valueFormatted,
+  } = params;
 
   if (node?.rowPinned === 'bottom') {
     const cols = api.getAllGridColumns().filter(col => col.isVisible());
@@ -63,6 +71,7 @@ export const TextCellRenderer = (params: CellRendererProps) => {
         rawText={typeof value === 'string' ? value : undefined}
         colId={colDef?.field || colDef?.colId || 'json'}
         autoHeight={Boolean(colDef?.autoHeight)}
+        jsonInCell={jsonInCell}
         api={api}
         node={node}
         eGridCell={params.eGridCell}

@@ -536,6 +536,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'json_in_cell',
+            config: {
+              type: 'CheckboxControl',
+              label: t('JSON in cell'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Collapse JSON objects and arrays and show an arrow in the cell. A click expands the value in the row, and a double-click on the arrow opens it in a dialog. Otherwise the cell keeps the original text and a click opens the dialog.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {
