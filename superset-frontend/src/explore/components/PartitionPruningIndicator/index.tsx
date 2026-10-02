@@ -19,9 +19,10 @@
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { NO_TIME_RANGE } from '@superset-ui/core';
-import { Icons, Tooltip } from '@superset-ui/core/components';
+import { Button, Icons, Tooltip } from '@superset-ui/core/components';
 import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { ExpressionTypes } from 'src/explore/components/controls/FilterControl/types';
+import { NULL_STRING } from 'src/utils/common';
 
 interface PartitionPruningIndicatorProps {
   /** The dataset's mapping summary, straight off the datasource payload. */
@@ -39,6 +40,11 @@ export interface MirrorCandidateFilter {
   subject?: string | { column_name?: string } | null;
   operator?: string | null;
   comparator?: unknown;
+  /**
+   * The time grain a drill-to-detail filter carries. Present here because it
+   * decides whether the filter mirrors at all -- see `isMirroredFilter`.
+   */
+  grain?: string | null;
 }
 
 /**
@@ -58,23 +64,44 @@ export default function PartitionPruningIndicator({
     return null;
   }
 
+  const explanation = t(
+    'This filter is also applied to a partition column for faster queries. See "View query" for the generated SQL.',
+  );
+
   return (
-    <Tooltip
-      placement="top"
-      title={t(
-        'This filter is also applied to a partition column for faster queries. See "View query" for the generated SQL.',
-      )}
-    >
-      <span data-test="partition-pruning-indicator">
-        <Icons.FilterOutlined
-          iconSize="s"
-          iconColor={theme.colorSuccess}
-          css={css`
-            margin-left: ${theme.sizeUnit}px;
-            vertical-align: middle;
-          `}
-        />
-      </span>
+    <Tooltip placement="top" title={explanation}>
+      {/* A text-variant `Button` rather than a `span`, the same shape
+          `InfoTooltip` uses: the glyph's only explanation is this tooltip, and
+          on a non-focusable element with no accessible name a keyboard or
+          screen-reader user has no way to reach it. */}
+      <Button
+        type="text"
+        variant="text"
+        data-test="partition-pruning-indicator"
+        aria-label={explanation}
+        css={css`
+          box-shadow: none;
+          padding: 0;
+          height: auto;
+          background: none;
+          vertical-align: middle;
+          &&&:hover,
+          &&&:focus,
+          &&&:active {
+            box-shadow: none;
+            background: none;
+          }
+        `}
+        icon={
+          <Icons.FilterOutlined
+            iconSize="s"
+            iconColor={theme.colorSuccess}
+            css={css`
+              margin-left: ${theme.sizeUnit}px;
+            `}
+          />
+        }
+      />
     </Tooltip>
   );
 }
@@ -105,12 +132,24 @@ export function isMirroredColumn(
   );
 }
 
+/** Whether a comparator reaches the query path as a real `NULL`. */
+function isNullish(value: unknown): boolean {
+  // `<NULL>` is the sentinel Explore puts in a filter value for a real NULL;
+  // `filter_values_handler` converts it back to `None` server-side, so it is
+  // nullish here for exactly the same reason `null` is.
+  return value == null || value === NULL_STRING;
+}
+
 /**
  * Whether the comparator is one the mirrored predicate can be built from.
  *
  * A `NULL` inside an `IN` list widens the real predicate to
  * `col IS NULL OR col IN (...)`, which the mirror cannot express, so the
  * backend skips those lists outright.
+ *
+ * An empty string is *not* excluded. The backend's mirror collector skips only
+ * `None`, so `col = ''` -- which Explore writes as the `<empty string>`
+ * sentinel -- does mirror, and hiding the glyph for it contradicted the SQL.
  */
 function hasMirrorableValue(operator: string, comparator: unknown): boolean {
   if (operator === 'TEMPORAL_RANGE') {
@@ -121,10 +160,10 @@ function hasMirrorableValue(operator: string, comparator: unknown): boolean {
     return (
       Array.isArray(comparator) &&
       comparator.length > 0 &&
-      !comparator.some(value => value == null)
+      !comparator.some(isNullish)
     );
   }
-  return comparator !== null && comparator !== undefined && comparator !== '';
+  return !isNullish(comparator);
 }
 
 /**
@@ -140,6 +179,14 @@ function hasMirrorableValue(operator: string, comparator: unknown): boolean {
  *
  * The operator list is not restated here; it is computed server-side from the
  * transform's declared monotonicity and shipped on the mapping.
+ *
+ * One gate is deliberately not reproduced. A virtual dataset's SQL can consume
+ * a filter with a Jinja `get_filters('col', remove_filter=True)` call, and
+ * `should_skip_filter` then drops both the filter's own predicate and its
+ * mirror -- so the glyph can appear on a filter that produces no SQL at all.
+ * `removed_filters` is assembled while the query is generated and is not in
+ * `form_data`, so the only way to know would be to render the template in the
+ * browser. The glyph is advisory, and "View query" remains the authority.
  */
 export function isMirroredFilter(
   mapping: PartitionFilterMapping | null | undefined,
@@ -163,6 +210,15 @@ export function isMirroredFilter(
     !filter.operator ||
     !mapping.mirrorable_operators?.includes(filter.operator)
   ) {
+    return false;
+  }
+  // A grain makes the real predicate compare the *truncated* column, so the raw
+  // value no longer describes the rows it matches: drill-to-detail sends `==` on
+  // a bucket start, which every row in the bucket satisfies once truncated.
+  // `_collect_partition_mirror_filter` is skipped entirely for those, so the
+  // glyph would promise pruning the query does not do. A grained range is the
+  // exception -- it mirrors by widening both bounds.
+  if (filter.grain && filter.operator !== 'TEMPORAL_RANGE') {
     return false;
   }
   return hasMirrorableValue(filter.operator, filter.comparator);

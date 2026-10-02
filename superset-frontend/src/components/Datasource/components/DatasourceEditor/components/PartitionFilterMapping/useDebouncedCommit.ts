@@ -41,16 +41,25 @@ export function useDebouncedCommit(
 ) {
   const [localValue, setLocalValue] = useState(value ?? '');
   const [prevValue, setPrevValue] = useState(value);
+  // What was last handed to `commit`. A commit's own echo arrives as a prop
+  // change like any other, and the re-seed below cannot tell the two apart --
+  // so a commit landing while typing continues (a blur or Enter flushes
+  // immediately) used to reset the input to the committed text and drop every
+  // keystroke since. State rather than a ref because the re-seed reads it
+  // during render, which is exactly what a ref is not for.
+  const [lastCommitted, setLastCommitted] = useState<string | undefined>(
+    undefined,
+  );
 
   // The commit fires from a timer, so the callback is handed in at call time
   // rather than captured when the debounce was built -- otherwise it would
-  // close over whichever render happened to create it, and the commit reads
-  // props (the column's monotonic flag) to decide what to write.
+  // close over whichever render happened to create it, and fire a stale
+  // callback that writes to a superseded owner.
   const debouncedCommit = useRef(
-    debounce(
-      (next: string, commitFn: (value: string) => void) => commitFn(next),
-      delay,
-    ),
+    debounce((next: string, commitFn: (value: string) => void) => {
+      setLastCommitted(next);
+      commitFn(next);
+    }, delay),
   );
 
   useEffect(() => () => debouncedCommit.current.cancel(), []);
@@ -78,7 +87,13 @@ export function useDebouncedCommit(
   // re-enter this branch -- puts the stale value back in the input.
   if (prevValue !== value) {
     setPrevValue(value);
-    setLocalValue(value ?? '');
+    if (value === lastCommitted) {
+      // Our own echo. Consume it, so a later genuine reset to the same text is
+      // still honoured.
+      setLastCommitted(undefined);
+    } else {
+      setLocalValue(value ?? '');
+    }
   }
 
   return { value: localValue, onChange, flush };

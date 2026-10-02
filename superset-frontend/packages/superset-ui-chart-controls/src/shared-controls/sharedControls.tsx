@@ -232,7 +232,10 @@ function timeRangePartitionMapping({
   ) {
     return null;
   }
-  if (formData?.time_range === NO_TIME_RANGE) {
+  // An absent `time_range` is the same as `No filter` -- a legacy saved chart
+  // predating this control, or a render before the defaults populate, has no
+  // key at all rather than the sentinel.
+  if ((formData?.time_range ?? NO_TIME_RANGE) === NO_TIME_RANGE) {
     return null;
   }
   const granularity = formData?.granularity_sqla;
@@ -242,7 +245,11 @@ function timeRangePartitionMapping({
   const mirrorsSelectedColumn = selectedColumn === mapping.mapped_column;
   // `always_filter_main_dttm` adds a second time filter on the main datetime
   // column even when the chart groups by another one, and that filter mirrors.
+  // The backend collects it inside the `if granularity:` branch, so with no
+  // temporal column selected the query has no such filter to mirror and the
+  // glyph would stand next to SQL that never mentions the partition column.
   const mirrorsMainDttm = Boolean(
+    selectedColumn &&
     dataset?.always_filter_main_dttm &&
     dataset.main_dttm_col === mapping.mapped_column,
   );

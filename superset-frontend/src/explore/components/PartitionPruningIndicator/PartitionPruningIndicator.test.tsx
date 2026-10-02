@@ -136,9 +136,25 @@ test('a filter with no usable value is not mirrored', () => {
   expect(isMirroredFilter(ACTIVE, { ...equalsFilter, comparator: null })).toBe(
     false,
   );
+  // An empty string is *not* excluded: the backend's mirror collector skips
+  // only `None`, so `col = ''` mirrors and hiding the glyph contradicted the
+  // SQL it stands next to.
   expect(isMirroredFilter(ACTIVE, { ...equalsFilter, comparator: '' })).toBe(
-    false,
+    true,
   );
+  // `<NULL>` is the sentinel Explore writes for a real NULL, which
+  // `filter_values_handler` converts back to `None` server-side -- so it is as
+  // unmirrorable as `null`, by the same rule.
+  expect(
+    isMirroredFilter(ACTIVE, { ...equalsFilter, comparator: '<NULL>' }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(ACTIVE, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['a', '<NULL>'],
+    }),
+  ).toBe(false);
   expect(
     isMirroredFilter(ACTIVE, {
       ...equalsFilter,
@@ -176,4 +192,49 @@ test('a temporal range of "No filter" resolves to no bounds and no glyph', () =>
   expect(
     isMirroredFilter(NON_MONOTONIC, { ...temporal, comparator: 'Last week' }),
   ).toBe(false);
+});
+
+test('a filter carrying a time grain is not mirrored', () => {
+  // Drill-to-detail sends `==` on a bucket start plus the chart's grain, so the
+  // real predicate compares the truncated column and every row in the bucket
+  // matches. `_collect_partition_mirror_filter` is skipped entirely for those,
+  // so the glyph would promise pruning the query does not do.
+  expect(isMirroredFilter(ACTIVE, { ...equalsFilter, grain: 'P1W' })).toBe(
+    false,
+  );
+  expect(
+    isMirroredFilter(ACTIVE, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['a'],
+      grain: 'P1D',
+    }),
+  ).toBe(false);
+});
+
+test('a grained time range still mirrors, by widening its bounds', () => {
+  // The one grained case the query path does mirror -- both bounds are widened
+  // by a bucket, which is never narrower than the truncated predicate.
+  expect(
+    isMirroredFilter(ACTIVE, {
+      expressionType: 'SIMPLE',
+      subject: 'event_time',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'Last week',
+      grain: 'P1W',
+    }),
+  ).toBe(true);
+});
+
+test('the glyph explains itself to a keyboard user', async () => {
+  // The glyph's only explanation is its tooltip, so without a tab stop and an
+  // accessible name there was no way to discover why it is there.
+  render(<PartitionPruningIndicator mapping={ACTIVE} />);
+
+  const glyph = screen.getByRole('button', {
+    name: /also applied to a partition column/,
+  });
+
+  await userEvent.tab();
+  expect(glyph).toHaveFocus();
 });
