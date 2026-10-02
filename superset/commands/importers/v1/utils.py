@@ -195,6 +195,10 @@ def load_configs(
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:
+            # Bind ``config`` up front so the ``except ValidationError``
+            # diagnostic below stays valid even when ``load_yaml`` raises
+            # before the assignment completes (unparseable YAML).
+            config: Any = None
             try:
                 config = load_yaml(file_name, content)
                 if not isinstance(config, dict):
