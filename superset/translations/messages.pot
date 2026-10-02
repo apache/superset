@@ -15450,7 +15450,7 @@ msgstr ""
 msgid "Unverified"
 msgstr ""
 
-msgid "Up to"
+msgid "Up to %s"
 msgstr ""
 
 msgid "Update"
