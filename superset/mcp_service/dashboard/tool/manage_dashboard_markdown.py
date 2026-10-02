@@ -27,6 +27,7 @@ or section header (see ``generate_dashboard``'s ``position_json`` docstring).
 """
 
 import logging
+from collections import Counter
 from typing import Any, Dict
 
 from fastmcp import Context
@@ -229,7 +230,9 @@ def _apply_updates(
 ) -> list[str]:
     """Apply every update spec in order; returns the updated component IDs."""
     update_ids = [spec.id for spec in updates]
-    if duplicates := sorted({cid for cid in update_ids if update_ids.count(cid) > 1}):
+    if duplicates := sorted(
+        cid for cid, count in Counter(update_ids).items() if count > 1
+    ):
         raise _ComponentOperationError(
             f"update contains duplicate component IDs: {duplicates}."
         )
@@ -361,6 +364,17 @@ def manage_dashboard_markdown(  # noqa: C901
                         "Cannot remove components that are not markdown/"
                         f"header/divider components on this dashboard: "
                         f"{unknown_removals}."
+                    ),
+                )
+
+            if duplicate_removals := sorted(
+                cid for cid, count in Counter(request.remove).items() if count > 1
+            ):
+                return ManageDashboardMarkdownResponse(
+                    dashboard_id=request.dashboard_id,
+                    error=(
+                        "remove contains duplicate component IDs: "
+                        f"{duplicate_removals}."
                     ),
                 )
 

@@ -103,6 +103,7 @@ from superset.mcp_service.common.time_range_validation import validate_time_rang
 from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
+    GRID_MAX_ROW_UNITS,
 )
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
@@ -2474,7 +2475,11 @@ class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
     height: int = Field(
         50,
         ge=1,
-        description="Tile height in grid units (one unit is 8 pixels; default 50)",
+        le=GRID_MAX_ROW_UNITS,
+        description=(
+            f"Tile height in grid units (1-{GRID_MAX_ROW_UNITS}; one unit is "
+            "8 pixels; default 50)"
+        ),
     )
 
 
@@ -2550,7 +2555,13 @@ class DashboardComponentUpdateSpec(BaseModel):
         description="New tile width in grid columns (markdown only)",
     )
     height: int | None = Field(
-        None, ge=1, description="New tile height in 8-pixel grid units (markdown only)"
+        None,
+        ge=1,
+        le=GRID_MAX_ROW_UNITS,
+        description=(
+            f"New tile height in 8-pixel grid units (1-{GRID_MAX_ROW_UNITS}; "
+            "markdown only)"
+        ),
     )
     text: str | None = Field(None, description="New header text (header only)")
     header_size: Literal["SMALL_HEADER", "MEDIUM_HEADER", "LARGE_HEADER"] | None = (

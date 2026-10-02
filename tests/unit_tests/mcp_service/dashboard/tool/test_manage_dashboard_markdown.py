@@ -389,13 +389,14 @@ async def test_add_target_tab_on_dashboard_without_tabs(mcp_server: FastMCP) -> 
 
 @pytest.mark.asyncio
 async def test_update_markdown_code(mcp_server: FastMCP) -> None:
-    dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
+    """Updating markdown code preserves the existing width and height."""
+    dashboard: Mock = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session"),
     ):
-        data = await _call(
+        data: dict[str, Any] = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,
@@ -405,8 +406,8 @@ async def test_update_markdown_code(mcp_server: FastMCP) -> None:
 
     assert data["error"] is None
     assert data["updated_component_ids"] == ["MARKDOWN-existing1"]
-    saved_layout = json.loads(dashboard.position_json)
-    meta = saved_layout["MARKDOWN-existing1"]["meta"]
+    saved_layout: dict[str, Any] = json.loads(dashboard.position_json)
+    meta: dict[str, Any] = saved_layout["MARKDOWN-existing1"]["meta"]
     # Only `code` was passed; width/height are preserved from the existing
     # config (a partial update merges into the full component, it does not
     # replace it).
@@ -415,6 +416,7 @@ async def test_update_markdown_code(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_update_header_fields(mcp_server: FastMCP) -> None:
+    """Updating a header's text and size keeps its other metadata."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -436,8 +438,8 @@ async def test_update_header_fields(mcp_server: FastMCP) -> None:
         )
 
     assert data["error"] is None
-    saved_layout = json.loads(dashboard.position_json)
-    meta = saved_layout["HEADER-existing1"]["meta"]
+    saved_layout: dict[str, Any] = json.loads(dashboard.position_json)
+    meta: dict[str, Any] = saved_layout["HEADER-existing1"]["meta"]
     assert meta == {
         "text": "New header",
         "headerSize": "SMALL_HEADER",
@@ -449,6 +451,7 @@ async def test_update_header_fields(mcp_server: FastMCP) -> None:
 async def test_update_rejects_field_from_wrong_component_type(
     mcp_server: FastMCP,
 ) -> None:
+    """Reject markdown-only fields sent for a header component."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -468,6 +471,7 @@ async def test_update_rejects_field_from_wrong_component_type(
 
 @pytest.mark.asyncio
 async def test_update_unknown_component_id(mcp_server: FastMCP) -> None:
+    """Updating an ID that is not a manageable component returns an error."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -487,6 +491,7 @@ async def test_update_unknown_component_id(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_duplicate_update_ids_rejected(mcp_server: FastMCP) -> None:
+    """Reject an update batch that lists the same component ID twice."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -514,6 +519,7 @@ async def test_duplicate_update_ids_rejected(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_remove_header(mcp_server: FastMCP) -> None:
+    """Remove a header that hangs directly off the grid."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -534,6 +540,7 @@ async def test_remove_header(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_remove_markdown_prunes_empty_wrapping_row(mcp_server: FastMCP) -> None:
+    """Removing a markdown prunes the wrapping row it leaves empty."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -556,6 +563,7 @@ async def test_remove_markdown_prunes_empty_wrapping_row(mcp_server: FastMCP) ->
 
 @pytest.mark.asyncio
 async def test_remove_unknown_id_rejected(mcp_server: FastMCP) -> None:
+    """Reject removal of an ID that is not a manageable component."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -568,6 +576,30 @@ async def test_remove_unknown_id_rejected(mcp_server: FastMCP) -> None:
         )
 
     assert "MARKDOWN-nonexistent" in data["error"]
+    assert (
+        json.loads(dashboard.position_json) == _grid_layout_with_existing_components()
+    )
+
+
+@pytest.mark.asyncio
+async def test_duplicate_remove_ids_rejected(mcp_server: FastMCP) -> None:
+    """Reject a remove list that names the same component twice."""
+    dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "remove": ["HEADER-existing1", "HEADER-existing1"]},
+        )
+
+    assert "duplicate component IDs" in data["error"]
+    session.commit.assert_not_called()
+    assert (
+        json.loads(dashboard.position_json) == _grid_layout_with_existing_components()
+    )
 
 
 @pytest.mark.asyncio
@@ -705,6 +737,8 @@ async def test_header_text_all_html_rejected(mcp_server: FastMCP) -> None:
     [
         {"add": [{"component_type": "markdown", "code": "x", "width": 13}]},
         {"add": [{"component_type": "markdown", "code": "x", "height": 0}]},
+        {"add": [{"component_type": "markdown", "code": "x", "height": 101}]},
+        {"update": [{"id": "MARKDOWN-existing1", "height": 101}]},
         {"add": [{"component_type": "chart"}]},
         {"add": [{"component_type": "markdown"}]},
         {"add": [{"component_type": "divider", "code": "ignored?"}]},

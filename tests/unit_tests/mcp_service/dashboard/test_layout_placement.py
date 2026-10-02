@@ -32,7 +32,7 @@ from superset.mcp_service.dashboard.layout_placement import (
 
 def test_emoji_ranges_match_only_documented_code_points() -> None:
     """Check every Unicode code point, including gaps and U+FFFD."""
-    ranges = (
+    ranges: tuple[tuple[int, int], ...] = (
         (0x1F300, 0x1F5FF),
         (0x1F600, 0x1F64F),
         (0x1F680, 0x1F6FF),
@@ -42,13 +42,13 @@ def test_emoji_ranges_match_only_documented_code_points() -> None:
         (0x2700, 0x27BF),
         (0xFE00, 0xFE0F),
     )
-    expected = {0x200D}
+    expected: set[int] = {0x200D}
     for start, end in ranges:
-        block = set(range(start, end + 1))
+        block: set[int] = set(range(start, end + 1))
         assert expected.isdisjoint(block)
         expected.update(block)
 
-    actual = {
+    actual: set[int] = {
         code_point
         for code_point in range(sys.maxunicode + 1)
         if _EMOJI_RE.fullmatch(chr(code_point))
