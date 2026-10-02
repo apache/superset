@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import {
+  Button,
   Flex,
   Icons,
   InfoTooltip,
@@ -84,6 +85,17 @@ export default function PartitionColumnFields({
   const isImplicit = mappedColumnIsImplicit(datasource);
   const isActive = mappingIsActive(datasource, columns);
   const { partition_column: partitionColumn } = datasource;
+
+  // "Map a different column instead" normally opens the currently-mapped
+  // column's row, which is where the picker lives. When the mapped column *is*
+  // the partition column -- the self-mapping the backend rejects, and reachable
+  // in one click because the picker offers every column -- that row renders no
+  // mapping section at all, so the one guided way out of the broken state led
+  // nowhere. Offer a column that is not the partition column instead.
+  const differentColumnTarget =
+    mappedColumn && mappedColumn !== partitionColumn
+      ? mappedColumn
+      : (suggestedMappedColumn(columns, partitionColumn) ?? mappedColumn);
 
   return (
     <Flex vertical gap={theme.sizeUnit} data-test="partition-column-fields">
@@ -150,12 +162,13 @@ export default function PartitionColumnFields({
                 {t(
                   'Filters on this column are mirrored onto the partition column.',
                 )}{' '}
-                <Typography.Link
-                  onClick={() => onNavigateToColumn(mappedColumn)}
+                <Button
+                  buttonStyle="link"
+                  onClick={() => onNavigateToColumn(differentColumnTarget)}
                   data-test="map-a-different-column"
                 >
                   {t('Map a different column instead →')}
-                </Typography.Link>
+                </Button>
               </Typography.Text>
               {isActive ? (
                 <Alert
@@ -168,11 +181,12 @@ export default function PartitionColumnFields({
                         'Filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s.',
                         { mapped: mappedColumn, partition: partitionColumn },
                       )}{' '}
-                      <Typography.Link
+                      <Button
+                        buttonStyle="link"
                         onClick={() => onNavigateToColumn(mappedColumn)}
                       >
                         {t('Customize the value transform →')}
-                      </Typography.Link>
+                      </Button>
                     </span>
                   }
                 />
@@ -197,7 +211,8 @@ export default function PartitionColumnFields({
                 >
                   {t('No mapping')}
                 </Label>
-                <Typography.Link
+                <Button
+                  buttonStyle="link"
                   onClick={() => {
                     const candidate = suggestedMappedColumn(
                       columns,
@@ -210,7 +225,7 @@ export default function PartitionColumnFields({
                   data-test="map-a-column"
                 >
                   {t('Map a column →')}
-                </Typography.Link>
+                </Button>
               </Flex>
               <Typography.Text type="secondary">
                 {t(

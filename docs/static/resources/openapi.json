@@ -5893,6 +5893,8 @@
           },
           "partition_value_transform": {
             "description": "SQL expression containing a :value placeholder. Filters on this column are mirrored onto the dataset's partition column with the value passed through this transform.",
+            "maxLength": 1024,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
@@ -7943,15 +7945,14 @@
           },
           "operator": {
             "default": "==",
-            "description": "Filter operator being mirrored. Only operators that can be mirrored at all are accepted.",
+            "description": "Filter operator being mirrored. Only operators the preview can construct are accepted: TEMPORAL_RANGE is mirrored by the query path as two bounds decomposed from a since/until pair, which this request has no way to express.",
             "enum": [
               "<",
               "<=",
               "==",
               ">",
               ">=",
-              "IN",
-              "TEMPORAL_RANGE"
+              "IN"
             ],
             "type": "string"
           },
@@ -24729,6 +24730,17 @@
                         "error": {
                           "type": "string"
                         },
+                        "reason": {
+                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "enum": [
+                            "unconfigured",
+                            "validation",
+                            "parse",
+                            "operator",
+                            "engine"
+                          ],
+                          "type": "string"
+                        },
                         "sample_input": {
                           "type": "string"
                         },
@@ -24751,11 +24763,26 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           },
           "429": {
-            "$ref": "#/components/responses/400"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many preview requests for this dataset"
           },
           "500": {
             "$ref": "#/components/responses/500"

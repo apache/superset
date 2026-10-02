@@ -41,6 +41,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
+    drop_unusable_partition_transforms,
     import_dataset,
     validate_data_uri,
 )
@@ -2863,3 +2864,81 @@ def test_import_drops_a_transform_the_mapping_does_not_mirror(
         "event_time2": "to_unixtime(:value)",
         "dt_epoch": None,
     }
+
+
+def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
+    return {
+        "table_name": "web_events",
+        "uuid": uuid.uuid4(),
+        "database_id": database_id,
+        "main_dttm_col": "event_time",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": transform,
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "metrics": [],
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp({{ current_username() }})", "rand() + 0 * :value"],
+    ids=["jinja", "non-deterministic"],
+)
+def test_import_drops_a_transform_the_save_path_would_reject(
+    session: Session, transform: str
+) -> None:
+    """
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform that will never
+    mirror a filter. Dropping it leaves a state an owner can see and fix rather
+    than a stored expression that looks configured and is not.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_keeps_a_usable_transform(session: Session) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_leaves_transforms_alone_while_the_feature_is_off(
+    session: Session,
+) -> None:
+    """Nothing reads a mapping with the flag off, so nothing is rewritten either."""
+    config = _partition_mapping_config(1, "unix_timestamp({{ current_username() }})")
+    drop_unusable_partition_transforms(config)
+
+    assert (
+        config["columns"][0]["partition_value_transform"]
+        == "unix_timestamp({{ current_username() }})"
+    )
