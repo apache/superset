@@ -9,7 +9,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
-    /* Disable strict mode temporarily for Typescript v6 migration */
+    /* Keep strict mode disabled to keep pre-TS6 status quo */
     "strict": false,
 
     "types": ["jest", "node"],
@@ -98,5 +98,13 @@
     { "path": "./plugins/plugin-chart-table" },
     { "path": "./plugins/plugin-chart-word-cloud" }
   ],
-  "exclude": []
+
+  // Explicitly exclude typechecking for node_modules and built artifacts in plugins/packages
+  "exclude": [
+    "node_modules",
+    "packages/**/lib/**/*",
+    "packages/**/esm/**/*",
+    "plugins/**/lib/**/*",
+    "plugins/**/esm/**/*"
+  ]
 }
