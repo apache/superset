@@ -31,7 +31,12 @@ export type V = string | number | null | undefined;
 
 export type LabeledValue = AntdLabeledValue;
 
-export type CustomLabeledValue = { label?: ReactNode; value?: V };
+export type CustomLabeledValue = {
+  label?: ReactNode;
+  value?: V;
+  /** Flag identifying optimistic custom options created when allowNewOptions is enabled */
+  isNewOption?: boolean;
+};
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
