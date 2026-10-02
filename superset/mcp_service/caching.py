@@ -53,6 +53,41 @@ def _version_cache_prefix(
     return f"{prefix}{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
+def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
+    """Make ``middleware`` skip tool calls that carry a dashboard filter scope.
+
+    FastMCP keys cached tool results on the tool name and arguments only. A
+    dashboard filter scope arrives in a request header instead, so without
+    this a result computed without the scope could be served to a call that
+    carries one (or the reverse). Calls whose scope restricts rows, or whose
+    header cannot be decoded, are neither read from nor written to the cache.
+    A scope with no active filters changes nothing, so those calls are cached
+    as before.
+
+    FastMCP resolves ``on_call_tool`` on the instance at dispatch time, so
+    wrapping the bound method is enough.
+    """
+    from superset.mcp_service.dashboard_scope import (
+        get_request_dashboard_scope,
+        MCPDashboardScopeError,
+    )
+
+    cached_call_tool = middleware.on_call_tool
+
+    async def on_call_tool(context: Any, call_next: Any) -> Any:
+        try:
+            scope = get_request_dashboard_scope()
+        except MCPDashboardScopeError:
+            # Never serve a cached result; the tool call refuses the header.
+            return await call_next(context)
+        if scope is not None and scope.has_constraints:
+            return await call_next(context)
+        return await cached_call_tool(context, call_next)
+
+    middleware.on_call_tool = on_call_tool
+    return middleware
+
+
 def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Build FastMCP caching settings from MCP_CACHE_CONFIG.
@@ -196,7 +231,7 @@ def create_response_caching_middleware() -> Any | None:
             **settings,
         )
         logger.info("MCP caching middleware enabled")
-        return middleware
+        return _bypass_dashboard_scoped_calls(middleware)
 
     # Use existing app context if available, otherwise push one
     if has_app_context():
