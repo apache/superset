@@ -824,7 +824,7 @@ pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==5.3.5
+pyfakefs==6.2.0
     # via apache-superset
 pygeohash==3.2.2
     # via

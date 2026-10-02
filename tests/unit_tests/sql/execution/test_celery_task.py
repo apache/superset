@@ -485,6 +485,7 @@ def test_finalize_successful_query(
     mocker.patch("superset.results_backend_use_msgpack", False)
     mocker.patch("superset.dataframe.df_to_records", return_value=[{"id": 1}])
     payload: dict[str, Any] = {}
+    mock_result_set.truncated = True
 
     # Create original script
     original_script = SQLScript(
@@ -509,6 +510,7 @@ def test_finalize_successful_query(
     assert mock_query.progress == 100
     assert payload["status"] == QueryStatusEnum.SUCCESS
     assert "statements" in payload
+    assert payload["statements"][0]["truncated"] is True
     # SQL is formatted by SQLScript, so we can't compare exact whitespace
     assert "SELECT" in payload["statements"][0]["original_sql"]
     assert "FROM users" in payload["statements"][0]["original_sql"]

@@ -50,7 +50,6 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
-        item.changed_by_fk = g.user.id
         # Pop unconditionally: this key is only meaningful for verifying a
         # password change below, and it isn't a real column on the user
         # model -- it must never reach ``UserDAO.update``'s ``setattr`` loop.
