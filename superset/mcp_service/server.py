@@ -50,6 +50,7 @@ from superset.mcp_service.middleware import (
     ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.mcp_service.worker import run_in_metadata_thread
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -429,6 +430,28 @@ def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
     return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
 
 
+async def _filter_visible_tools_fail_open(tools: Sequence[Any]) -> Sequence[Any]:
+    """Run the permission filter in the metadata thread, failing open on error.
+
+    ``run_in_metadata_thread`` reloads the caller's ORM user itself before the
+    filter ever runs (e.g. a metadata-pool-exhaustion failure), so a bare
+    ``await run_in_metadata_thread(...)`` here would raise before any fail-open
+    handling inside the filter gets a chance to run. Call-time RBAC still
+    enforces permissions, so an unexpected failure here shows every tool
+    rather than breaking search, matching
+    ``RBACToolVisibilityMiddleware.on_list_tools``.
+    """
+    try:
+        return await run_in_metadata_thread(
+            _filter_tools_by_current_user_permission, tools
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "MCP tool search: failed to filter tools, showing all", exc_info=True
+        )
+        return tools
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
@@ -661,6 +684,31 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
+    def _promote_exact_name(
+        tools: Sequence[Tool],
+        query: str,
+        ranked: Sequence[Tool],
+        max_results: int,
+    ) -> Sequence[Tool]:
+        """Promote caller-visible exact names without duplicating ranked matches."""
+        normalized_query = " ".join(query.casefold().replace("_", " ").split())
+        exact = [
+            tool
+            for tool in tools
+            if " ".join(tool.name.casefold().replace("_", " ").split())
+            == normalized_query
+        ]
+        if not exact:
+            return ranked
+        # Only inspect the caller-filtered candidates, never the full catalog.
+        # The upstream top-N contains enough non-exact results to fill the
+        # remaining slots, without changing upstream ordering or shared limits.
+        exact_names = {tool.name for tool in exact}
+        return [
+            *exact,
+            *(tool for tool in ranked if tool.name not in exact_names),
+        ][:max_results]
+
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
@@ -670,7 +718,14 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return _filter_tools_by_current_user_permission(tools)
+                return await _filter_visible_tools_fail_open(tools)
+
+            async def _search(
+                self, tools: Sequence[Tool], query: str
+            ) -> Sequence[Tool]:
+                """Promote visible exact names before applying the result limit."""
+                ranked = await super()._search(tools, query)
+                return _promote_exact_name(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -690,7 +745,14 @@ def _create_search_transform(  # noqa: C901
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
             """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
-            return _filter_tools_by_current_user_permission(tools)
+            # Permission lookups need a metadata connection; see
+            # RBACToolVisibilityMiddleware.on_list_tools.
+            return await _filter_visible_tools_fail_open(tools)
+
+        async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
+            """Promote visible exact names before applying the final result limit."""
+            ranked = await super()._search(tools, query)
+            return _promote_exact_name(tools, query, ranked, self._max_results)
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -990,6 +1052,13 @@ def run_server(
                 size_guard_middleware.excluded_tools.add(search_name)
 
     _register_health_endpoint(mcp_instance)
+
+    # Size tool admission against the metadata pool before serving traffic, so
+    # an unusable pool configuration fails at startup rather than per call.
+    from superset.mcp_service.flask_singleton import get_flask_app
+    from superset.mcp_service.worker import _get_pool
+
+    _get_pool(get_flask_app())
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)

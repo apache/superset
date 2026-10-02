@@ -38,7 +38,10 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from flask import g
 from pydantic import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import StaticPool
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import MCPPermissionDeniedError
@@ -147,6 +150,16 @@ def viewer_without_data_model_access() -> Role:
         name="Viewer",
         permissions=set(READ_ALL),
         grants={"datasource_access": {TABLE_A_PERM}},
+    )
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    # The injected Session is handed from setup to a single tool worker
+    # sequentially; concurrent ownership is covered with scoped sessions.
+    return create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
 
 
