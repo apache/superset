@@ -208,22 +208,28 @@ testWithAssets(
 
     // Example queries settle in ~1-2s, too fast to race for real. Delaying only
     // the next request makes "boy" reliably still in flight when "girl" fires.
-    let matchCount = 0;
-    // Set at interception, which is when the delay actually starts. Measuring
-    // from `apply()`'s return would overstate the remaining park time by
-    // however long the UI cycle took.
+    // Both stamped at interception -- when the delay actually starts, and when
+    // girl's request actually leaves. Measuring either from the surrounding
+    // test flow would fold in the UI cycle and the response wait.
     let boyParkedAt = 0;
+    let girlRequestedAt = 0;
     let boyCancelled = false;
     const raceRoute = (url: URL) =>
       sliceIdFromChartDataUrl(url.toString()) === chartId;
     await page.route(raceRoute, async route => {
-      matchCount += 1;
-      const isBoy = matchCount === 1;
-      if (isBoy) {
+      // By payload rather than arrival order: both requests are for this slice.
+      const filterValues = nativeFilterValuesIn(
+        route.request().postData() ?? '',
+        FILTER_COLUMN,
+      );
+      const isBoy = filterValues.includes('boy');
+      if (isBoy && boyParkedAt === 0) {
         boyParkedAt = Date.now();
         await new Promise(resolve => {
           setTimeout(resolve, RACE_DELAY_MS);
         });
+      } else if (filterValues.includes('girl') && girlRequestedAt === 0) {
+        girlRequestedAt = Date.now();
       }
       // Continuing a request the app already aborted rejects; that rejection is
       // the expected outcome here, not a test failure.
@@ -276,15 +282,22 @@ testWithAssets(
       ).toContain(girlStatuses[0]);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
-    // The race only exists if "boy" was still parked when "girl" was applied.
+    // The race only exists if "girl" started while "boy" was still parked.
+    // Compared stamp-to-stamp: measuring against `Date.now()` here would fold
+    // in however long "girl"'s response took, so a healthy race with a slow
+    // response would read as "boy was already released".
     expect(
       boyParkedAt,
       '"boy"\'s request should have been intercepted and parked',
     ).toBeGreaterThan(0);
     expect(
-      RACE_DELAY_MS - (Date.now() - boyParkedAt),
-      '"girl" should have been applied while "boy" was still parked',
+      girlRequestedAt,
+      '"girl"\'s request should have been intercepted',
     ).toBeGreaterThan(0);
+    expect(
+      girlRequestedAt - boyParkedAt,
+      '"girl" should have started while "boy" was still parked',
+    ).toBeLessThan(RACE_DELAY_MS);
 
     await expect(value).toHaveText(expectedGirlText ?? '', {
       timeout: TIMEOUT.UI_TRANSITION,
