@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 13:11+0000\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1713,6 +1713,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додај фасциклу"
 
+msgid "Add group"
+msgstr "Додај групу"
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Add item"
@@ -1764,6 +1767,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add sheet"
 msgstr "Додај лист"
+
+msgid "Add subgroup"
+msgstr "Додај подгрупу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add tag to entities"
@@ -2054,6 +2060,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -4039,6 +4049,9 @@ msgstr "Ограничење ћелија"
 msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
+msgid "Center"
+msgstr "Центар"
+
 msgid "Center value"
 msgstr ""
 
@@ -4874,6 +4887,9 @@ msgstr "Скупи панел са подацима"
 msgid "Collapse row"
 msgstr "Скупи ред"
 
+msgid "Collapse settings"
+msgstr "Скупи подешавања"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Collapse tab content"
 msgstr "Скупи садржај картице"
@@ -5027,6 +5043,9 @@ msgstr "Колона која садржи податке о географск�
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Column data types"
 msgstr "Типови података колоне"
+
+msgid "Column groups"
+msgstr "Групе колона"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Column header tooltip"
@@ -5351,6 +5370,9 @@ msgstr "Потврди"
 msgid "Confirm Password"
 msgstr "Потврди лозинку"
 
+msgid "Confirm new password"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Confirm overwrite"
 msgstr "Потврди преписивање"
@@ -5362,6 +5384,9 @@ msgstr "Потврди лозинку"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Confirm save"
 msgstr "Потврди чување"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Confirm the user's password"
@@ -5643,6 +5668,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Није могуће разрешити назив хоста: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Could not validate the user in the current session."
 msgstr "Није могуће потврдити корисника у тренутној сесији."
@@ -5847,6 +5878,9 @@ msgstr "Тренутни дан"
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current month"
 msgstr "Тренутни месец"
+
+msgid "Current password"
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current quarter"
@@ -6618,9 +6652,6 @@ msgstr "Формат датума"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Date format string"
 msgstr "Низ формата датума"
-
-msgid "Date range filter"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -8335,6 +8366,9 @@ msgstr "Унесите примарне акредитиве"
 msgid "Enter a name for this sheet"
 msgstr "Унесите назив за овај лист"
 
+msgid "Enter a new password"
+msgstr ""
+
 # uk]
 msgid "Enter a part of the object name"
 msgstr "Унесите део назива објекта"
@@ -8350,6 +8384,9 @@ msgstr "Унесите трајање у секундама"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Enter fullscreen"
 msgstr "Уђи у режим целог екрана"
+
+msgid "Enter group name"
+msgstr "Унесите назив групе"
 
 # pt_BR, ru, sk, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -8403,6 +8440,9 @@ msgstr "Унесите корисничко име корисника"
 # uk]
 msgid "Enter theme name"
 msgstr "Унесите назив теме"
+
+msgid "Enter your current password"
+msgstr ""
 
 # lv, pt_BR, ru, sk, uk]
 msgid "Enter your login and password below:"
@@ -8702,6 +8742,9 @@ msgstr "Прошири ред"
 
 msgid "Expand row to edit"
 msgstr "Прошири ред за измену"
+
+msgid "Expand settings"
+msgstr "Прошири подешавања"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -9878,6 +9921,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Group By"
 msgstr "Групиши по"
@@ -9894,6 +9941,12 @@ msgstr "Кључ групе"
 # zh_TW]
 msgid "Group by"
 msgstr "Групиши по"
+
+msgid "Group columns"
+msgstr "Групиши колоне"
+
+msgid "Group name"
+msgstr "Назив групе"
 
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
@@ -10622,10 +10675,6 @@ msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-# ru, uk]
-msgid "Invalid username or password"
-msgstr "Неисправно корисничко име или лозинка"
-
 msgid "Inverse"
 msgstr ""
 
@@ -11059,6 +11108,9 @@ msgstr "Тип распореда стабла"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Least recently modified"
 msgstr "Најмање недавно измењено"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -12194,6 +12246,12 @@ msgstr "Више филтера"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Помери групу улево"
+
+msgid "Move group right"
+msgstr "Помери групу удесно"
+
 msgid "Move icon"
 msgstr "Икона за померање"
 
@@ -12231,6 +12289,9 @@ msgstr "Више нивоа"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Више променљивих"
+
+msgid "Multi-level header"
+msgstr "Вишениво заглавље"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multiple"
@@ -12423,6 +12484,9 @@ msgstr "Назив новог скупа података"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New header"
 msgstr "Ново заглавље"
+
+msgid "New password"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -13871,11 +13935,6 @@ msgstr "Пиксели"
 msgid "Plain"
 msgstr "Обичан"
 
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -13934,6 +13993,9 @@ msgstr "Потврдите своју лозинку"
 # zh_TW]
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Молимо унесите SQLAlchemy URI за тестирање"
+
+msgid "Please enter a new password"
+msgstr ""
 
 # uk]
 msgid "Please enter a valid email"
@@ -14119,6 +14181,9 @@ msgstr "Port %(port)s на хосту „%(hostname)s“ је одбио вез�
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Port out of range 0-65535"
 msgstr "Port изван опсега 0-65535"
+
+msgid "Position"
+msgstr "Позиција"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -14711,6 +14776,9 @@ msgstr "Уклони филтер"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Уклони групу"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
 msgstr "Уклони ставку"
@@ -14998,6 +15066,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Required control values have been removed"
 msgstr "Обавезне контролне вредности су уклоњене"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Resample"
@@ -15811,6 +15882,9 @@ msgstr "Шема"
 msgid "Schema cache timeout"
 msgstr "Истек кеша шеме"
 
+msgid "Schema not found."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Schemas allowed for File upload"
 msgstr "Шеме дозвољене за отпремање датотека"
@@ -16198,6 +16272,9 @@ msgstr "Изаберите колону"
 
 msgid "Select column name"
 msgstr "Изаберите назив колоне"
+
+msgid "Select columns"
+msgstr "Изаберите колоне"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -17875,6 +17952,10 @@ msgstr "Подкатегорије"
 msgid "Subdomain"
 msgstr "Поддомен"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгрупа %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -18178,6 +18259,9 @@ msgstr "Назив табеле није дефинисан"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Табела или преглед \"%(table)s\" не постоји."
+
+msgid "Table side"
+msgstr "Страна табеле"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19402,6 +19486,10 @@ msgstr ""
 "Шема \"%(schema)s\" не постоји. За извршавање овог упита мора се "
 "користити важећа шема."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid ""
@@ -19477,6 +19565,10 @@ msgid ""
 msgstr ""
 "Табела \"%(table)s\" не постоји. За извршавање овог упита мора се "
 "користити важећа табела."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -20069,6 +20161,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -22404,6 +22501,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "Није могуће пронаћи колону „%(column_name)s” у реду %(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format

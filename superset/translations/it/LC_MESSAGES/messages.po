@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 13:11+0000\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1757,6 +1757,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Aggiungi cartella"
 
+msgid "Add group"
+msgstr "Aggiungi gruppo"
+
 msgid "Add item"
 msgstr "Aggiungi elemento"
 
@@ -1809,6 +1812,9 @@ msgstr "Aggiungi credenziali di servizio"
 
 msgid "Add sheet"
 msgstr "Aggiungi foglio"
+
+msgid "Add subgroup"
+msgstr "Aggiungi sottogruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -2089,6 +2095,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -4108,6 +4118,9 @@ msgstr "Limite cella"
 msgid "Cell title template"
 msgstr "Template per il titolo della cella"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -4959,6 +4972,9 @@ msgstr "Collassa pannello dati"
 msgid "Collapse row"
 msgstr "Collassa riga"
 
+msgid "Collapse settings"
+msgstr "Comprimi impostazioni"
+
 msgid "Collapse tab content"
 msgstr "Collassa il contenuto della scheda"
 
@@ -5132,6 +5148,9 @@ msgstr "Colonna contenente dati sulla longitudine"
 
 msgid "Column data types"
 msgstr "Tipi dati per la colonna"
+
+msgid "Column groups"
+msgstr "Gruppi di colonne"
 
 msgid "Column header tooltip"
 msgstr "Tooltip intestazione colonna"
@@ -5500,6 +5519,9 @@ msgstr "Conferma"
 msgid "Confirm Password"
 msgstr "Conferma Password"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Conferma sovrascrittura"
 
@@ -5511,6 +5533,9 @@ msgstr "Conferma password"
 # uk, zh, zh_TW]
 msgid "Confirm save"
 msgstr "Conferma il salvataggio"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5812,6 +5837,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Impossibile risolvere il nome host: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -5990,6 +6021,9 @@ msgstr "Giorno corrente"
 
 msgid "Current month"
 msgstr "Mese corrente"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Quarto corrente"
@@ -6731,9 +6765,6 @@ msgstr "Formato date"
 
 msgid "Date format string"
 msgstr "Stringa di formato delle date"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "Tempo"
@@ -8420,6 +8451,9 @@ msgstr "Immettere Credenziali Primarie"
 msgid "Enter a name for this sheet"
 msgstr "Immettere un nome per questo foglio"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
@@ -8434,6 +8468,9 @@ msgstr "Immettere la durata in secondi"
 # uk, zh, zh_TW]
 msgid "Enter fullscreen"
 msgstr "Modalità fullscreen"
+
+msgid "Enter group name"
+msgstr "Immettere il nome del gruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8476,6 +8513,9 @@ msgstr "Immettere lo username dell'utente"
 
 msgid "Enter theme name"
 msgstr "Immettere il nome del tema"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Immettere username e password qua sotto:"
@@ -8803,6 +8843,9 @@ msgstr "Espandi riga"
 
 msgid "Expand row to edit"
 msgstr "Espandi la riga da modificare"
+
+msgid "Expand settings"
+msgstr "Espandi impostazioni"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10061,6 +10104,10 @@ msgstr ""
 msgid "Group"
 msgstr "Gruppo"
 
+#, python-format
+msgid "Group %s"
+msgstr "Gruppo %s"
+
 msgid "Group By"
 msgstr "Raggruppa per"
 
@@ -10075,6 +10122,12 @@ msgstr "Chiave raggruppamento"
 
 msgid "Group by"
 msgstr "Raggruppa per"
+
+msgid "Group columns"
+msgstr "Raggruppa colonne"
+
+msgid "Group name"
+msgstr "Nome del gruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10894,11 +10947,6 @@ msgstr "Id schede non validi: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
-# lv, ro, ru, sr, sr_Latn, tr, uk]
-msgid "Invalid username or password"
-msgstr "Nome utente o password non validi"
-
 msgid "Inverse"
 msgstr ""
 
@@ -11360,6 +11408,9 @@ msgstr "Tipo di layout dell'albero"
 
 msgid "Least recently modified"
 msgstr "Modificato più di recente"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -12599,6 +12650,12 @@ msgstr "Più filtri"
 msgid "MotherDuck token"
 msgstr "Gettone MotherDuck"
 
+msgid "Move group left"
+msgstr "Sposta il gruppo a sinistra"
+
+msgid "Move group right"
+msgstr "Sposta il gruppo a destra"
+
 msgid "Move icon"
 msgstr "Sposta icona"
 
@@ -12645,6 +12702,9 @@ msgstr "Multi-livelli"
 # uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Multivariabili"
+
+msgid "Multi-level header"
+msgstr "Intestazione a più livelli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12832,6 +12892,9 @@ msgstr "Nome del nuovo dataset"
 
 msgid "New header"
 msgstr "Nuova intestazione"
+
+msgid "New password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -14356,11 +14419,6 @@ msgstr "Pixel"
 msgid "Plain"
 msgstr "Normale"
 
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14427,6 +14485,9 @@ msgstr "Per cortesia confermare la password"
 
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Inserisci un nome per la slice"
+
+msgid "Please enter a new password"
+msgstr ""
 
 msgid "Please enter a valid email"
 msgstr "Inserire un'email valida"
@@ -14617,6 +14678,9 @@ msgstr "La porta %(port)s dell'host \"%(hostname)s\" ha rifiutato la connessione
 
 msgid "Port out of range 0-65535"
 msgstr "Porta furi dall'intervallo 0-65535"
+
+msgid "Position"
+msgstr "Posizione"
 
 msgid "Position JSON"
 msgstr "Posizione del JSON"
@@ -15214,6 +15278,9 @@ msgstr "Rimuovi filtro"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Rimuovi gruppo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -15534,6 +15601,9 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Required control values have been removed"
 msgstr "I valori di controllo richiesti sono stati rimossi"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -16341,6 +16411,9 @@ msgstr "Schema"
 msgid "Schema cache timeout"
 msgstr "Timeout cache dello schema"
 
+msgid "Schema not found."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Schemas allowed for File upload"
@@ -16705,6 +16778,9 @@ msgstr "Seleziona colonna"
 
 msgid "Select column name"
 msgstr "Seleziona un nome colonna"
+
+msgid "Select columns"
+msgstr "Seleziona colonne"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -18454,6 +18530,10 @@ msgstr "Sottocategorie"
 msgid "Subdomain"
 msgstr "Sottodominio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Sottogruppo %s"
+
 msgid "Subject"
 msgstr "Soggetto"
 
@@ -18767,6 +18847,9 @@ msgstr "Nome tabella non definito"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La tabella o vista \"%(table)s\" non esiste."
+
+msgid "Table side"
+msgstr "Lato della tabella"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20135,6 +20218,10 @@ msgstr ""
 "Lo schema \"%(schema)s\" non esiste. Per eseguire questa query è "
 "necessario utilizzare uno schema valido."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20209,6 +20296,10 @@ msgid ""
 msgstr ""
 "La tabella \"%(table)s\" non esiste. Per eseguire questa query è "
 "necessario utilizzare una tabella valida."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20812,6 +20903,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -23433,6 +23529,10 @@ msgid ""
 msgstr ""
 "Sembra che non riusciamo a risolvere la colonna \"%(column_name)s\" alla "
 "riga %(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

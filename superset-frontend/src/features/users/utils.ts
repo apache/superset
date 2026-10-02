@@ -36,7 +36,7 @@ export const handleUserError = async (
 
   if (err.status === 400 || err.status === 422) {
     const errorData = await getClientErrorObject(err);
-    const message: unknown = errorData.message;
+    const { message } = errorData;
 
     if (err.status === 400 && message && errorData.error) {
       errorMessage = errorData.error;
@@ -72,9 +72,13 @@ export const createUser = async (values: FormValues) => {
 };
 
 export const updateUser = async (user_Id: number, values: FormValues) => {
+  // The password fields are optional when editing: an empty new password
+  // means "keep the current one", so it (and its confirmation, which is
+  // client-side only) must stay out of the payload.
+  const { confirmPassword: _confirmPassword, password, ...payload } = values;
   await SupersetClient.put({
     endpoint: `/api/v1/security/users/${user_Id}`,
-    jsonPayload: { ...values },
+    jsonPayload: password ? { ...payload, password } : payload,
   });
 };
 

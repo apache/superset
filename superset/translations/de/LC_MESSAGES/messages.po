@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-29 13:11+0000\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1433,6 +1433,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ordner hinzufügen"
 
+msgid "Add group"
+msgstr "Gruppe hinzufügen"
+
 msgid "Add item"
 msgstr "Element hinzufügen"
 
@@ -1475,6 +1478,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Tabelle hinzufügen"
+
+msgid "Add subgroup"
+msgstr "Untergruppe hinzufügen"
 
 msgid "Add tag to entities"
 msgstr "Schlagwort zu Entitäten hinzufügen"
@@ -1709,6 +1715,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3337,6 +3347,9 @@ msgstr "Zellgrenze"
 msgid "Cell title template"
 msgstr "Vorlage für die Zellenüberschrift"
 
+msgid "Center"
+msgstr "Zentriert"
+
 msgid "Center value"
 msgstr ""
 
@@ -4014,6 +4027,9 @@ msgstr "Datenbereich ausblenden"
 msgid "Collapse row"
 msgstr "Zeile zusammenklappen"
 
+msgid "Collapse settings"
+msgstr "Einstellungen einklappen"
+
 msgid "Collapse tab content"
 msgstr "Inhalt der Registerkarte ausblenden"
 
@@ -4143,6 +4159,9 @@ msgstr "Spalte mit Längengraddaten"
 
 msgid "Column data types"
 msgstr "Spaltendatentypen"
+
+msgid "Column groups"
+msgstr "Spaltengruppen"
 
 msgid "Column header tooltip"
 msgstr "Tooltip zur Spaltenüberschrift"
@@ -4416,6 +4435,9 @@ msgstr "Bestätigen"
 msgid "Confirm Password"
 msgstr "Passwort bestätigen"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Überschreiben bestätigen"
 
@@ -4424,6 +4446,9 @@ msgstr "Passwort bestätigen"
 
 msgid "Confirm save"
 msgstr "Speichern bestätigen"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Passwort bestätigen"
@@ -4663,6 +4688,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Hostname konnte nicht aufgelöst werden: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr ""
 "Der/Die Benutzer*in konnte in der aktuellen Sitzung nicht authentifiziert"
@@ -4821,6 +4852,9 @@ msgstr "Aktueller Tag"
 
 msgid "Current month"
 msgstr "Aktueller Monat"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Aktuelles Quartal"
@@ -5429,9 +5463,6 @@ msgstr "Datumsformat"
 
 msgid "Date format string"
 msgstr "Datumsformat-Zeichenfolge"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "Datum/Zeit"
@@ -6819,6 +6850,9 @@ msgstr "Primäre Anmeldeinformationen eingeben"
 msgid "Enter a name for this sheet"
 msgstr "Geben Sie einen neuen Titel für die Registerkarte ein"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
@@ -6830,6 +6864,9 @@ msgstr "Dauer in Sekunden eingeben"
 
 msgid "Enter fullscreen"
 msgstr "Vollbildmodus aktivieren"
+
+msgid "Enter group name"
+msgstr "Gruppennamen eingeben"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
@@ -6870,6 +6907,9 @@ msgstr "Anmeldenamen eingeben"
 
 msgid "Enter theme name"
 msgstr "Designnamen eingeben"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Geben Sie unten Ihren Anmeldenamen und Ihr Passwort ein:"
@@ -7104,6 +7144,9 @@ msgstr "Zeile aufklappen"
 
 msgid "Expand row to edit"
 msgstr "Zeile zum Bearbeiten erweitern"
+
+msgid "Expand settings"
+msgstr "Einstellungen aufklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8076,6 +8119,10 @@ msgstr ""
 msgid "Group"
 msgstr "Gruppe"
 
+#, python-format
+msgid "Group %s"
+msgstr "Gruppe %s"
+
 msgid "Group By"
 msgstr "Gruppieren nach"
 
@@ -8089,6 +8136,12 @@ msgstr "Gruppenschlüssel"
 
 msgid "Group by"
 msgstr "Gruppieren nach"
+
+msgid "Group columns"
+msgstr "Spalten gruppieren"
+
+msgid "Group name"
+msgstr "Gruppenname"
 
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
@@ -8674,9 +8727,6 @@ msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Der Anmeldename oder das Kennwort ist falsch"
-
 msgid "Inverse"
 msgstr ""
 
@@ -9018,6 +9068,9 @@ msgstr "Layouttyp des Baums"
 
 msgid "Least recently modified"
 msgstr "Zuletzt geändert"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9941,6 +9994,12 @@ msgstr "Weitere Filter"
 msgid "MotherDuck token"
 msgstr "MotherDuck-Token"
 
+msgid "Move group left"
+msgstr "Gruppe nach links verschieben"
+
+msgid "Move group right"
+msgstr "Gruppe nach rechts verschieben"
+
 msgid "Move icon"
 msgstr "Symbol verschieben"
 
@@ -9974,6 +10033,9 @@ msgstr "Mehrstufige"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variablen"
+
+msgid "Multi-level header"
+msgstr "Mehrstufige Überschrift"
 
 msgid "Multiple"
 msgstr "Mehrfach"
@@ -10128,6 +10190,9 @@ msgstr "Name des neuen Datensatzes"
 
 msgid "New header"
 msgstr "Neue Überschrift"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Neuer Tab"
@@ -11314,11 +11379,6 @@ msgid "Plain"
 msgstr "Unformatiert"
 
 msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
-
-msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
 "your query again."
@@ -11367,6 +11427,9 @@ msgstr "Bitte bestätigen Sie Ihr Passwort"
 
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Bitten geben Sie eine SQL Alchemy URI zum Testen ein"
+
+msgid "Please enter a new password"
+msgstr ""
 
 msgid "Please enter a valid email"
 msgstr "Bitte geben Sie eine gültige E-Mail-Adresse ein"
@@ -11529,6 +11592,9 @@ msgstr "Port %(port)s auf Hostname \"%(hostname)s\" verweigerte die Verbindung."
 
 msgid "Port out of range 0-65535"
 msgstr "Port außerhalb des Bereichs 0-65535"
+
+msgid "Position"
+msgstr "Position"
 
 msgid "Position JSON"
 msgstr "Anordnungs-JSON"
@@ -11993,6 +12059,9 @@ msgstr "Filter entfernen"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Gruppe entfernen"
+
 msgid "Remove item"
 msgstr "Element entfernen"
 
@@ -12230,6 +12299,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Erforderliche Steuerwerte wurden entfernt"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Resample"
@@ -12873,6 +12945,9 @@ msgstr "Schema"
 msgid "Schema cache timeout"
 msgstr "Zeitüberschreitung Schema-Zwischenspeicher"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Zulässige Schemata für den Datei-Upload"
 
@@ -13189,6 +13264,9 @@ msgstr "Spalte auswählen"
 
 msgid "Select column name"
 msgstr "Spaltennamen auswählen"
+
+msgid "Select columns"
+msgstr "Spalten auswählen"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14582,6 +14660,10 @@ msgstr "Unterkategorien"
 msgid "Subdomain"
 msgstr "Subdomain"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Untergruppe %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14814,6 +14896,9 @@ msgstr "Tabellenname nicht definiert"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Die Tabelle oder View \"%(table)s\" existiert nicht."
+
+msgid "Table side"
+msgstr "Tabellenseite"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15926,6 +16011,10 @@ msgstr ""
 "muss ein gültiges Schema verwendet werden."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -15989,6 +16078,10 @@ msgid ""
 msgstr ""
 "Die Tabelle \"%(table)s\" existiert nicht. Zum Ausführen dieser Abfrage "
 "muss eine gültige Tabelle verwendet werden."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16520,6 +16613,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18523,6 +18621,10 @@ msgid ""
 msgstr ""
 "Wir können die Spalte \"%(column_name)s\" in Zeile %(location)s nicht "
 "auflösen."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
