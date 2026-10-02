@@ -75,10 +75,10 @@ export function useItemStateManager(
   const [orderedIds, setOrderedIds] = useState<string[]>(initialOrder);
   const [renderedIds, setRenderedIds] = useState<string[]>(DEFAULT_EMPTY_ARRAY);
 
+  // Assigned during render so the ref is current as soon as a commit lands,
+  // including for layout effects that run before passive effects flush.
   const removedItemsRef = useRef(removedItems);
-  useEffect(() => {
-    removedItemsRef.current = removedItems;
-  }, [removedItems]);
+  removedItemsRef.current = removedItems;
 
   const clearPendingRemovalTimers = useCallback(() => {
     Object.values(removedItemsRef.current).forEach(removal => {
@@ -140,7 +140,12 @@ export function useItemStateManager(
 
   // Only on unmount: clearing on every removedItems change would cancel the
   // timers of earlier, still-pending removals whenever another one is added.
-  useEffect(() => clearPendingRemovalTimers, [clearPendingRemovalTimers]);
+  useEffect(
+    () => () => {
+      clearPendingRemovalTimers();
+    },
+    [clearPendingRemovalTimers],
+  );
 
   return {
     changes,
