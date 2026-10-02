@@ -917,6 +917,12 @@ class QueryContextProcessor:
                     )
                 )
 
+            # Only the source chart's rows are used. Dropping its own annotation
+            # layers also stops charts that annotate each other (A -> B -> A)
+            # from recursing.
+            for query_object in query_context.queries:
+                query_object.annotation_layers = []
+
             if overrides := annotation_layer.get("overrides"):
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
                     for query_object in query_context.queries:

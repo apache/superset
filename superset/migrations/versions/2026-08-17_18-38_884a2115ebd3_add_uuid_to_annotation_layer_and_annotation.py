@@ -33,9 +33,10 @@ from superset import db
 from superset.migrations.shared.utils import (
     add_columns,
     assign_uuids,
+    DEFAULT_BATCH_SIZE,
     drop_columns,
     has_table,
-    paginated_update,
+    uuid_by_dialect,
 )
 
 # revision identifiers, used by Alembic.
@@ -65,20 +66,42 @@ def _backfill_uuids(model: type[ImportMixin], session: sa.orm.Session) -> None:
     """
     Give every row without a UUID a new one, leaving existing UUIDs alone.
 
-    On a freshly added column every row is empty, so ``assign_uuids`` fills the
-    whole table (a single UPDATE on Postgres and MySQL). If an earlier run
-    stopped partway, only the rows still missing a UUID are filled, so UUIDs
-    that bundles may already reference are kept.
+    A freshly added column on Postgres or MySQL is filled by ``assign_uuids``
+    with a single UPDATE. Otherwise (other dialects, or a column an earlier
+    run left partly filled) only the empty rows are updated, in batches on the
+    migration's own connection and without committing, so a later failure
+    rolls the whole migration back.
     """
-    missing = session.query(model).filter(model.uuid.is_(None))
-    missing_count = missing.count()
-    if not missing_count:
+    bind = op.get_bind()
+    table = model.__table__
+    missing_ids = [
+        row_id
+        for (row_id,) in bind.execute(
+            sa.select(table.c.id).where(table.c.uuid.is_(None))
+        )
+    ]
+    if not missing_ids:
         return
-    if missing_count == session.query(model).count():
+
+    total = bind.execute(sa.select(sa.func.count()).select_from(table)).scalar()
+    native_uuid = any(isinstance(bind.dialect, dialect) for dialect in uuid_by_dialect)
+    if native_uuid and len(missing_ids) == total:
         assign_uuids(model, session)
         return
-    for obj in paginated_update(missing):
-        obj.uuid = uuid4()
+
+    update = (
+        table.update()
+        .where(table.c.id == sa.bindparam("row_id"))
+        .values(uuid=sa.bindparam("new_uuid"))
+    )
+    for start in range(0, len(missing_ids), DEFAULT_BATCH_SIZE):
+        bind.execute(
+            update,
+            [
+                {"row_id": row_id, "new_uuid": uuid4()}
+                for row_id in missing_ids[start : start + DEFAULT_BATCH_SIZE]
+            ],
+        )
 
 
 def _has_unique_constraint(table_name: str, constraint_name: str) -> bool:

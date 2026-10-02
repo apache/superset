@@ -63,7 +63,11 @@ def filter_chart_annotations(
     params = chart_config.get("params", {})
     annotation_layers = params.get("annotation_layers", [])
     _resolve_annotation_list(
-        annotation_layers, annotation_layer_ids, chart_ids, pending_chart_uuids
+        annotation_layers,
+        annotation_layer_ids,
+        chart_ids,
+        pending_chart_uuids,
+        chart_uuid=chart_config.get("uuid"),
     )
     params["annotation_layers"] = annotation_layers
 
@@ -386,9 +390,9 @@ def topological_sort_charts(
     cycle are appended in their original order; ``import_charts`` resolves
     their references in a second pass.
 
-    TODO: Add runtime circular annotation detection in
-    QueryContextProcessor.get_viz_annotation_data to prevent infinite
-    recursion when rendering charts with circular line annotations.
+    Keeping both edges of a cycle is safe at render time:
+    ``QueryContextProcessor.get_viz_annotation_data`` drops the source chart's
+    own annotation layers, so A -> B -> A doesn't recurse.
     """
     if len(chart_configs) <= 1:
         return chart_configs
@@ -487,11 +491,11 @@ def resolve_deferred_chart_annotations(chart: Slice, chart_ids: dict[str, int]) 
     query_context = _load_query_context(chart.query_context)
 
     if _resolve_deferred_annotation_lists(
-        get_annotation_layer_lists(params, None), chart_ids
+        get_annotation_layer_lists(params, None), chart_ids, chart.uuid
     ):
         chart.params = json.dumps(params)
     if _resolve_deferred_annotation_lists(
-        get_annotation_layer_lists(None, query_context), chart_ids
+        get_annotation_layer_lists(None, query_context), chart_ids, chart.uuid
     ):
         chart.query_context = json.dumps(query_context)
 
@@ -499,6 +503,7 @@ def resolve_deferred_chart_annotations(chart: Slice, chart_ids: dict[str, int]) 
 def _resolve_deferred_annotation_lists(
     annotation_lists: list[list[dict[str, Any]]],
     chart_ids: dict[str, int],
+    chart_uuid: Any = None,
 ) -> bool:
     """Rewrite chart-source UUIDs in place; return whether anything changed."""
     changed = False
@@ -513,6 +518,11 @@ def _resolve_deferred_annotation_lists(
             ):
                 changed = True
                 if value not in chart_ids:
+                    _warn_dropped_annotation(
+                        chart_uuid,
+                        annotation,
+                        f"source chart {value} wasn't imported",
+                    )
                     continue
                 annotation["value"] = chart_ids[value]
             resolved.append(annotation)
@@ -536,11 +546,23 @@ def _resolve_uuid_to_id(
     return obj.id if obj else None
 
 
+def _warn_dropped_annotation(
+    chart_uuid: Any, annotation: dict[str, Any], why: str
+) -> None:
+    logger.warning(
+        "Import of chart %s drops annotation %r: %s",
+        chart_uuid,
+        annotation.get("name"),
+        why,
+    )
+
+
 def _resolve_annotation_list(
     annotations: list[dict[str, Any]],
     annotation_layer_ids: dict[str, int] | None,
     chart_ids: dict[str, int] | None,
     pending_chart_uuids: set[str] | None = None,
+    chart_uuid: Any = None,
 ) -> None:
     """
     Resolve UUID values to integer IDs in-place for an annotation list.
@@ -551,6 +573,8 @@ def _resolve_annotation_list(
       still pending in the same bundle are kept for a later pass
     - anything else is dropped, including integer IDs from bundles exported
       before UUIDs were written, since those IDs belong to another instance
+
+    Every dropped annotation is logged with a warning.
     """
     resolved_annotations: list[dict[str, Any]] = []
     for annotation in annotations:
@@ -559,13 +583,28 @@ def _resolve_annotation_list(
             continue
         source_type = annotation.get("sourceType")
         value = annotation.get("value")
+        if isinstance(value, int):
+            _warn_dropped_annotation(
+                chart_uuid,
+                annotation,
+                f"integer reference {value} from an older export points at the "
+                "source instance",
+            )
+            continue
         if not isinstance(value, str):
+            _warn_dropped_annotation(chart_uuid, annotation, "it has no reference")
             continue
         if source_type == "NATIVE":
             layer_id = _resolve_uuid_to_id(value, annotation_layer_ids, AnnotationLayer)
             if layer_id is not None:
                 annotation["value"] = layer_id
                 resolved_annotations.append(annotation)
+            else:
+                _warn_dropped_annotation(
+                    chart_uuid,
+                    annotation,
+                    f"annotation layer {value} is neither in the bundle nor here",
+                )
         elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
             ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
             if ref_chart_id is not None:
@@ -573,6 +612,16 @@ def _resolve_annotation_list(
                 resolved_annotations.append(annotation)
             elif pending_chart_uuids and value in pending_chart_uuids:
                 resolved_annotations.append(annotation)
+            else:
+                _warn_dropped_annotation(
+                    chart_uuid,
+                    annotation,
+                    f"source chart {value} is neither in the bundle nor here",
+                )
+        else:
+            _warn_dropped_annotation(
+                chart_uuid, annotation, f"unknown source type {source_type!r}"
+            )
     annotations[:] = resolved_annotations
 
 
@@ -588,6 +637,10 @@ def _resolve_query_context_annotations(
         return
     for annotation_layers in get_annotation_layer_lists(None, query_context):
         _resolve_annotation_list(
-            annotation_layers, annotation_layer_ids, chart_ids, pending_chart_uuids
+            annotation_layers,
+            annotation_layer_ids,
+            chart_ids,
+            pending_chart_uuids,
+            chart_uuid=config.get("uuid"),
         )
     config["query_context"] = json.dumps(query_context)

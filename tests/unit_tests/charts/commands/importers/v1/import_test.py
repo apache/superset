@@ -17,6 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, unused-import, invalid-name
 
 import copy
+import logging
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -169,6 +170,33 @@ def test_filter_chart_annotations(session: Session) -> None:
     # point at rows of the source instance, so only the formula survives.
     assert len(annotation_layers) == 1
     assert all(al["annotationType"] == "FORMULA" for al in annotation_layers)
+
+
+def test_filter_chart_annotations_warns_on_dropped_reference(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    Every annotation dropped on import is logged with the chart it belonged to.
+    """
+    from superset.commands.chart.importers.v1.utils import filter_chart_annotations
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config_with_mixed_annotations,
+    )
+
+    config = copy.deepcopy(chart_config_with_mixed_annotations)
+    with caplog.at_level(
+        logging.WARNING, logger="superset.commands.chart.importers.v1.utils"
+    ):
+        filter_chart_annotations(config)
+
+    dropped = [
+        record.getMessage()
+        for record in caplog.records
+        if "drops annotation" in record.getMessage()
+    ]
+    assert len(dropped) == 1
+    assert str(config["uuid"]) in dropped[0]
+    assert "integer reference" in dropped[0]
 
 
 def test_import_existing_chart_without_permission(
