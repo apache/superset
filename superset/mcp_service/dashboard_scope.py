@@ -1353,8 +1353,13 @@ def apply_call_dashboard_scope(
     rewritten = rewriter(request, scope)
     if rewritten is request:
         return args, kwargs
-    bound.arguments["request"] = rewritten
     logger.debug(
         "Applied dashboard %s filter scope to %s", scope.dashboard_id, tool_name
     )
-    return bound.args, dict(bound.kwargs)
+    # Replace the request where the caller passed it. Re-deriving the call
+    # from ``bound.args`` would move keyword arguments such as ``ctx`` into
+    # positional slots, and the auth wrapper would then pass ``ctx`` twice.
+    if "request" in kwargs:
+        return args, {**kwargs, "request": rewritten}
+    position = list(signature.parameters).index("request")
+    return (*args[:position], rewritten, *args[position + 1 :]), kwargs

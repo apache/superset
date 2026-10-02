@@ -30,6 +30,7 @@ import sqlalchemy as sa
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import StaticPool
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard_scope import (
@@ -62,6 +63,14 @@ ORDERS = [
     (None, 1000, "2024-01-25 00:00:00"),
 ]
 REFUNDS = [("A", 1), ("B", 50)]
+
+
+@pytest.fixture
+def session_engine() -> sa.engine.Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    return sa.create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
 
 @pytest.fixture
