@@ -145,6 +145,18 @@ def test_date_trunc_metric_matches_quarter_grouping_in_complete_query() -> None:
     assert sql.count("DATE_TRUNC('quarter'") >= 2
 
 
+def test_catalog_support() -> None:
+    """
+    Redshift supports catalogs (databases), including cross-database queries.
+
+    Migration ``e6d0a676a087`` relies on ``supports_catalog``: without it the
+    migration is a no-op.
+    """
+    assert RedshiftEngineSpec.supports_catalog
+    assert RedshiftEngineSpec.supports_dynamic_catalog
+    assert RedshiftEngineSpec.supports_cross_catalog_queries
+
+
 def test_adjust_engine_params() -> None:
     """
     Test `adjust_engine_params`.
