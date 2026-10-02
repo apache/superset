@@ -210,6 +210,7 @@ def test_captured_view_survives_a_long_first_query(
         layer.get_semantic_view.assert_called_once()
 
 
+@pytest.mark.parametrize("capture_source", [False, True])
 @pytest.mark.parametrize("source_type", ["line", "table"])
 @pytest.mark.parametrize("refresh_enabled", [False, True])
 @pytest.mark.parametrize("refresh_during_query", [False, True])
@@ -218,6 +219,7 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     app: Flask,
     monkeypatch: pytest.MonkeyPatch,
     source_type: str,
+    capture_source: bool,
     refresh_enabled: bool,
     refresh_during_query: bool,
     failure: MetadataRefreshErrorCategory | None,
@@ -284,10 +286,16 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     assert chart.datasource is None
     assert chart.resolved_datasource is source
     rls: Mock
+    cache_write: Mock
+    if not capture_source:
+        monkeypatch.setattr(store, "peek", lambda: None)
     rotated: bool = False
 
     def annotations(self: QueryContextProcessor, query: QueryObject) -> dict[str, Any]:
         nonlocal rotated
+        if not capture_source:
+            # Model an annotation query that does not acquire the keyed view.
+            return {"semantic": {"orders": [17]}}
         if refresh_enabled and refresh_during_query and not rotated:
             # Publication between the host lookup and annotation acquisition.
             rotated = True
@@ -304,6 +312,7 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     monkeypatch.setattr(QueryContextProcessor, "get_annotation_data", annotations)
     with (
         app.test_request_context(),
+        patch.object(cache, "set", wraps=cache.set) as cache_write,
         patch(
             "superset.semantic_layers.metadata_binding.is_feature_enabled",
             return_value=True,
@@ -336,6 +345,14 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
         ]
         first: dict[str, Any] = context.get_df_payload(query)
         assert first["annotation_data"] == {"semantic": {"orders": [17]}}
+        if not capture_source:
+            assert first["df"]["orders"].tolist() == [1]
+            assert context.get_df_payload(query)["is_cached"] is not refresh_enabled
+            if refresh_enabled:
+                cache_write.assert_not_called()
+            else:
+                cache_write.assert_called_once()
+            return
         assert context.get_df_payload(query)["is_cached"]
         # Start a new HTTP operation: the provider must not be touched on a hit.
         from superset.semantic_layers import metadata_binding

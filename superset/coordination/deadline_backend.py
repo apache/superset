@@ -25,10 +25,11 @@ from __future__ import annotations
 
 import asyncio
 import math
+import os
 import time
 from _thread import LockType
 from contextlib import AsyncExitStack
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from redis.asyncio import Redis
 from redis.asyncio.retry import Retry
@@ -41,6 +42,34 @@ from superset_core.semantic_layers.metadata import (
 )
 
 from superset.coordination.cache_backend import _COMPARE_AND_DELETE_LUA
+
+if TYPE_CHECKING:
+    from threading import local
+
+    from gevent.threadpool import ThreadPool
+
+_METADATA_POOL_SIZE: int = 4
+_metadata_pool_state: local | None = None
+
+
+def _metadata_threadpool() -> ThreadPool:
+    """Reuse a lazy metadata-only pool in its owning native thread and hub."""
+    from gevent import get_hub
+    from gevent.hub import Hub
+    from gevent.monkey import get_original
+    from gevent.threadpool import ThreadPool
+
+    global _metadata_pool_state  # pylint: disable=global-statement
+    if _metadata_pool_state is None:
+        # Patched threading.local is greenlet-local; the pool belongs to a hub.
+        _metadata_pool_state = get_original("threading", "local")()
+    hub: Hub = get_hub()
+    pool: ThreadPool | None = getattr(_metadata_pool_state, "pool", None)
+    if pool is None or pool.hub is not hub or pool.pid != os.getpid():
+        pool = ThreadPool(_METADATA_POOL_SIZE, hub=hub, idle_task_timeout=30)
+        _metadata_pool_state.pool = pool
+    return pool
+
 
 _COMPARE_AND_PUBLISH_LUA: str = """
 if redis.call('get', KEYS[1]) ~= ARGV[1] then
@@ -198,7 +227,7 @@ class DeadlineRedisBackend:
         """Keep request greenlets from sharing asyncio's native-thread loop state."""
         self._remaining()
         try:
-            from gevent import get_hub, getcurrent, Greenlet, Timeout
+            from gevent import getcurrent, Greenlet, Timeout
             from gevent.event import AsyncResult
             from gevent.monkey import get_original
         except ImportError:
@@ -209,12 +238,12 @@ class DeadlineRedisBackend:
             get_original("_thread", "allocate_lock")()
         )
         try:
-            # The hub's bounded native pool isolates loop TLS without blocking
-            # other requests. Its queue wait consumes the original deadline too.
+            # The metadata-only native pool leaves the hub DNS pool available.
+            # Its queue wait consumes the original deadline too.
             with Timeout(
                 self._remaining(), RedisTimeoutError("Metadata deadline expired")
             ):
-                result: AsyncResult = get_hub().threadpool.spawn(
+                result: AsyncResult = _metadata_threadpool().spawn(
                     self._execute_sync, *args, cancellation=cancellation
                 )
                 return result.get()

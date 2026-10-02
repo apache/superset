@@ -212,14 +212,21 @@ On a miss, the write key is recomputed after annotation acquisition so a concurr
 refresh cannot store the result under a different observation. Refreshing the catalog
 changes the identity for subsequent operations. If the snapshot
 is missing, expired or unreadable, a unique key forces a miss; an unknown identity never
-reuses cached annotation data. Flag-off and nonparticipating providers keep legacy keys.
+reuses cached annotation data. If acquisition still cannot capture the keyed view,
+the host returns its data without persisting the unreachable result key. Flag-off and nonparticipating providers keep legacy keys.
 
 ### Gevent request isolation
 
-Synchronous request greenlets run each private Redis asyncio loop in the gevent
-hub's bounded native thread pool. Queueing consumes the same operation deadline;
+Synchronous request greenlets run each private Redis asyncio loop in a dedicated
+four-thread metadata pool per native thread/hub, created lazily after first use;
+metadata outages do not occupy the hub pool used by its default DNS resolver. Queueing consumes the same operation deadline;
 expired queued work cannot begin a Redis command. Request cancellation signals
 the private task with a thread-safe callback, so abandoning a request does not
 leave an uncancelled command running. Other requests' loop state, clients, retry
 policy and timeouts remain independent. Ordinary native-thread callers keep the private-loop path and reject an
 already-running asyncio loop.
+
+Size gevent workers for the expected concurrent metadata demand (four active
+commands per worker hub; excess requests queue within their deadline), and set
+shorter per-node socket/connect timeouts so an unhealthy Redis or Sentinel node
+does not consume the whole operation budget. The pool is lazy and recreated when the process or owning hub changes.
