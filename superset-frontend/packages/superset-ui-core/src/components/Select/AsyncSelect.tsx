@@ -64,6 +64,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -380,7 +381,19 @@ const AsyncSelect = forwardRef(
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
+              .filter(previousOption => {
+                if (dataValues.has(previousOption.value)) {
+                  return false;
+                }
+                if (
+                  isNewOption(previousOption) &&
+                  (hasOption(previousOption.label as V, data, true) ||
+                    hasOption(previousOption.value as V, data, true))
+                ) {
+                  return false;
+                }
+                return true;
+              })
               .concat(data)
               // Forward-compat: TS 6.0 infers stricter antd option types; widen
               // the comparator to accept the broader DefaultOptionType shape.
@@ -477,7 +490,11 @@ const AsyncSelect = forwardRef(
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    isNewOption(opt) &&
+                    !dataValues.has(opt.value) &&
+                    !hasOption(opt.label as V, data, true) &&
+                    !hasOption(opt.value as V, data, true),
                 );
                 return preservedNew
                   .concat(data)
