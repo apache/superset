@@ -121,6 +121,23 @@ describe('transformSeries', () => {
     // OpacityEnum.NonTransparent = 1 (not dimmed)
     expect((result as any).itemStyle.opacity).toBe(1);
   });
+
+  test('should not dim series for an X-axis cross-filter when dimensions are set', () => {
+    const opts = {
+      filterState: {
+        selectedValues: ['Product A'],
+        crossFilterSource: 'xAxis',
+      },
+      hasDimensions: true,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    // OpacityEnum.NonTransparent = 1 (not dimmed)
+    expect((result as any).itemStyle.opacity).toBe(1);
+  });
 });
 
 describe('transformNegativeLabelsPosition', () => {

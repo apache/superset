@@ -1555,3 +1555,34 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.type).toBe(AxisType.Category);
   expect(xAxis.triggerEvent).toBe(true);
 });
+
+test('categorical x-axis enables trigger events when dimensions are set', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      groupby: ['status'],
+      x_axis: 'category_column',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { category_column: 'Product A', 'metric, RESOLVED': 10 },
+          { category_column: 'Product B', 'metric, RESOLVED': 20 },
+        ],
+        {
+          colnames: ['category_column', 'metric, RESOLVED'],
+          coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
