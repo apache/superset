@@ -166,7 +166,8 @@ export async function apiGetDashboard(
 export interface DashboardChartResult {
   id: number;
   slice_name: string;
-  form_data: { viz_type: string } & Record<string, unknown>;
+  /** Omitted by the backend when the requesting user cannot access the chart. */
+  form_data?: { viz_type: string } & Record<string, unknown>;
 }
 
 /**

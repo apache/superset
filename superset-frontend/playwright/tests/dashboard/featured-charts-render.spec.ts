@@ -80,6 +80,14 @@ const EXPECTED_VIZ_TYPES = [
 // axes-only canvas scores ~0. Series correctness is left to plugin unit tests.
 const MIN_COLORED_PIXELS = 100;
 
+// Default `expect` timeout from playwright.config.ts, spent by the assertions
+// below that do not override it (big number text, error-alert count).
+const DEFAULT_EXPECT_TIMEOUT = 8000;
+
+// Worst-case time one chart can consume: the visibility wait and the paint
+// poll each take a full CHART_RENDER, plus the two default-timeout assertions.
+const PER_CHART_BUDGET = TIMEOUT.CHART_RENDER * 2 + DEFAULT_EXPECT_TIMEOUT * 2;
+
 /**
  * The terminal output each visualization paints once its data has arrived.
  * ECharts-based visualizations (the default) paint a canvas.
@@ -138,8 +146,9 @@ async function saturatedPixelCount(chart: Locator): Promise<number> {
 test('every chart on the Featured Charts dashboard renders', async ({
   page,
 }) => {
-  // Twenty-five uncached queries, rendered one scroll position at a time.
-  test.setTimeout(TIMEOUT.SLOW_TEST * 3);
+  // Covers the lookups and dashboard load; widened once the chart count is
+  // known so the sequential per-chart assertions cannot outlive the test.
+  test.setTimeout(TIMEOUT.SLOW_TEST);
 
   const dashboardSummary = await getDashboardByName(page, DASHBOARD_TITLE);
   expect(
@@ -149,7 +158,20 @@ test('every chart on the Featured Charts dashboard renders', async ({
   const dashboardId = dashboardSummary!.id;
 
   const charts = await getDashboardCharts(page, dashboardId);
-  const vizTypes = charts.map(chart => chart.form_data.viz_type);
+  // Charts are asserted one at a time and each can spend its full render
+  // budget, so size the test timeout to the worst case rather than assuming
+  // the queries overlap. Keeps the lookups' budget plus every chart's budget.
+  test.setTimeout(TIMEOUT.SLOW_TEST + charts.length * PER_CHART_BUDGET);
+
+  // The charts endpoint drops form_data for charts the user cannot access.
+  const inaccessible = charts
+    .filter(chart => !chart.form_data)
+    .map(chart => `"${chart.slice_name}" (${chart.id})`);
+  expect(
+    inaccessible,
+    'every chart on the dashboard should be accessible to the test user',
+  ).toEqual([]);
+  const vizTypes = charts.map(chart => chart.form_data?.viz_type);
   expect(vizTypes).toEqual(expect.arrayContaining(EXPECTED_VIZ_TYPES));
 
   const chartDataStatusBySliceId = new Map<number, number>();
@@ -173,6 +195,9 @@ test('every chart on the Featured Charts dashboard renders', async ({
   // Dashboard virtualization only mounts rows near the viewport, so bring each
   // chart into view (as a user scrolling the dashboard would) before asserting.
   for (const { id, slice_name: name, form_data: formData } of charts) {
+    if (!formData) {
+      throw new Error(`"${name}" (${id}) has no form_data`);
+    }
     const chart = dashboard.getChart(id);
     await chart.scrollIntoViewIfNeeded();
 
