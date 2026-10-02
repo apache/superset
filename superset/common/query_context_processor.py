@@ -258,7 +258,7 @@ class QueryContextProcessor:
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key = self.query_cache_key(query_obj)
+        cache_key: str | None = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
@@ -310,6 +310,16 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+                if query_obj.annotation_layers:
+                    from superset.semantic_layers.metadata_binding import (
+                        metadata_refresh_enabled,
+                    )
+
+                    if metadata_refresh_enabled():
+                        # Discovery on a miss can capture a newer annotation
+                        # snapshot than the lookup peek. Store only under the
+                        # identity actually used by that annotation query.
+                        cache_key = self.query_cache_key(query_obj)
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -319,6 +329,7 @@ class QueryContextProcessor:
                 )
 
             if cache.status != QueryStatus.FAILED:
+                assert cache_key is not None
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
@@ -462,6 +473,7 @@ class QueryContextProcessor:
         user and, for chart-backed layers, the RLS clauses of the referenced
         chart's datasource and any captured semantic metadata identity.
         """
+        from superset.semantic_layers.metadata_cache import annotation_cache_token
         from superset.semantic_layers.models import SemanticView
 
         source_metadata: dict[str, str] = {}
@@ -483,7 +495,7 @@ class QueryContextProcessor:
                 chart.resolved_datasource if chart else None
             )
             if isinstance(metadata_datasource, SemanticView):
-                token: str | None = metadata_datasource.metadata_cache_token
+                token: str | None = annotation_cache_token(metadata_datasource)
                 if token is not None:
                     source_metadata[str(layer.get("value"))] = token
         return {
