@@ -6137,6 +6137,9 @@ msgstr ""
 msgid "Example"
 msgstr ""
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr ""
 
