@@ -1985,42 +1985,41 @@ test('pending LIKE debounce still applies after rerender recreates updateDataMas
     reduxState,
   );
 
-  fireEvent.change(
-    screen.getByPlaceholderText('Type to search (contains)...'),
-    {
-      target: { value: 'Jen' },
-    },
-  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
 
-  setDataMaskMock.mockClear();
-
-  rerender(
-    <SelectFilterPlugin
-      {...buildSelectFilterProps({
-        formData: { operatorType: SelectFilterOperatorType.Contains },
-        filterState: { value: undefined, label: 'external change' },
-        setDataMask: setDataMaskMock,
-      })}
-    />,
-  );
-
+  // Batch the keystroke and the rerender into one update so the deferred
+  // value hasn't settled yet when updateDataMask's identity changes --
+  // useDeferredValue has no fixed delay, so letting the keystroke flush on
+  // its own (as a real fixed-delay debounce would still be pending) would
+  // settle it before the rerender and not exercise the stale-ref path.
   act(() => {
-    jest.advanceTimersByTime(500);
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildSelectFilterProps({
+          formData: { operatorType: SelectFilterOperatorType.Contains },
+          filterState: { value: undefined, label: 'external change' },
+          setDataMask: setDataMaskMock,
+        })}
+      />,
+    );
   });
 
-  expect(setDataMaskMock).toHaveBeenCalledWith(
-    expect.objectContaining({
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'ILIKE',
-            val: '%Jen%',
-          },
-        ],
-      },
-    }),
-  );
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'gender',
+              op: 'ILIKE',
+              val: '%Jen%',
+            },
+          ],
+        },
+      }),
+    );
+  });
 });
 
 test('pending LIKE debounce is canceled when operatorType switches back to Exact', async () => {
@@ -2052,30 +2051,41 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
     reduxState,
   );
 
-  fireEvent.change(
-    screen.getByPlaceholderText('Type to search (contains)...'),
-    {
-      target: { value: 'Jen' },
-    },
-  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+  const callsBeforeSwitch = setDataMaskMock.mock.calls.length;
 
-  setDataMaskMock.mockClear();
-
-  rerender(
-    <SelectFilterPlugin
-      {...buildSelectFilterProps({
-        formData: { operatorType: SelectFilterOperatorType.Exact },
-        filterState: { value: undefined },
-        setDataMask: setDataMaskMock,
-      })}
-    />,
-  );
-
+  // Same batching as the sibling test above: the keystroke and the switch
+  // away from the LIKE operator land in the same update, before the
+  // deferred value has a chance to settle on its own.
   act(() => {
-    jest.advanceTimersByTime(500);
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildSelectFilterProps({
+          formData: { operatorType: SelectFilterOperatorType.Exact },
+          filterState: { value: undefined },
+          setDataMask: setDataMaskMock,
+        })}
+      />,
+    );
   });
 
-  expect(setDataMaskMock).not.toHaveBeenCalled();
+  await act(async () => {});
+
+  // Rerendering with fresh (non-memoized) props can independently re-run
+  // this plugin's own default-value initialisation, unrelated to the LIKE
+  // debounce this test is pinning -- so assert no *new* call carries the
+  // 'Jen' ILIKE payload, rather than that setDataMask was never called again.
+  const callsSinceSwitch = setDataMaskMock.mock.calls
+    .slice(callsBeforeSwitch)
+    .map(call => call[0]);
+  expect(callsSinceSwitch).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {

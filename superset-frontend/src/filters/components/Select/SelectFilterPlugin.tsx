@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
@@ -30,14 +37,13 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { debounce, isUndefined } from 'lodash-es';
+import { isUndefined } from 'lodash-es';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
   LabeledValue,
   Select,
   Space,
-  Constants,
   Input,
 } from '@superset-ui/core/components';
 import {
@@ -174,7 +180,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const deferredSearchInput = useDeferredValue(searchInput);
+  // Set true the first time the user actually searches; distinguishes a real
+  // search from the clearAllTrigger reset below, which must not re-trigger
+  // the searchAllOptions dispatch once the deferred value catches up.
+  const hasSearchedRef = useRef(false);
   const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -200,6 +211,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [likeInputValue, setLikeInputValue] = useState<string>(
     filterState.value?.[0] != null ? String(filterState.value[0]) : '',
   );
+  // null until the user types in the LIKE input; distinguishes a real edit
+  // from the clearAllTrigger reset below, which also clears likeInputValue
+  // but must not re-trigger a dispatch once the deferred value catches up.
+  const [pendingLikeValue, setPendingLikeValue] = useState<string | null>(null);
+  const deferredPendingLikeValue = useDeferredValue(pendingLikeValue);
 
   useEffect(() => {
     const externalValue =
@@ -280,32 +296,58 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const isDisabled =
     appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
-  const onSearch = useMemo(
-    () =>
-      debounce((search: string) => {
-        setSearch(search);
-        if (searchAllOptions) {
-          dispatchDataMask({
-            type: 'ownState',
-            ownState: {
-              coltypeMap: initialColtypeMap,
-              // The dropdown offers `stripSurroundingQuotes(search)` as the
-              // creatable option, so the server has to be asked for the same
-              // string or the two disagree about what was searched for.
-              search: stripSurroundingQuotes(search).trim(),
-            },
-          });
-        }
-      }, Constants.SLOW_DEBOUNCE),
-    [dispatchDataMask, initialColtypeMap, searchAllOptions],
-  );
+  const handleSearch = useCallback((value: string) => {
+    hasSearchedRef.current = true;
+    setSearchInput(value);
+  }, []);
+
+  // Read through a ref so a parent re-render that hands down new identities
+  // for these doesn't, by itself, re-fire the dispatch below -- only an
+  // actual search settling (a change to deferredSearchInput) should.
+  const searchDispatchRef = useRef({
+    searchAllOptions,
+    dispatchDataMask,
+    initialColtypeMap,
+  });
+  useEffect(() => {
+    searchDispatchRef.current = {
+      searchAllOptions,
+      dispatchDataMask,
+      initialColtypeMap,
+    };
+  });
+
+  useEffect(() => {
+    if (!hasSearchedRef.current) {
+      return;
+    }
+    const {
+      searchAllOptions: currentSearchAllOptions,
+      dispatchDataMask: currentDispatchDataMask,
+      initialColtypeMap: currentInitialColtypeMap,
+    } = searchDispatchRef.current;
+    if (!currentSearchAllOptions) {
+      return;
+    }
+    currentDispatchDataMask({
+      type: 'ownState',
+      ownState: {
+        coltypeMap: currentInitialColtypeMap,
+        // The dropdown offers `stripSurroundingQuotes(search)` as the
+        // creatable option, so the server has to be asked for the same
+        // string or the two disagree about what was searched for.
+        search: stripSurroundingQuotes(deferredSearchInput).trim(),
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deferredSearchInput]);
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-    if (search) {
-      onSearch('');
+    if (searchInput) {
+      handleSearch('');
     }
-  }, [onSearch, search, unsetFocusedFilter]);
+  }, [handleSearch, searchInput, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -375,7 +417,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    const unquotedSearch = stripSurroundingQuotes(search);
+    const unquotedSearch = stripSurroundingQuotes(deferredSearchInput);
     if (
       unquotedSearch &&
       creatable !== false &&
@@ -387,7 +429,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable]);
+  }, [deferredSearchInput, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -525,8 +567,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
 
       updateDataMask(null);
-      setSearch('');
+      setSearchInput('');
+      hasSearchedRef.current = false;
       setLikeInputValue('');
+      setPendingLikeValue(null);
       onClearAllComplete?.(formData.nativeFilterId);
     }
   }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
@@ -564,32 +608,27 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMaskRef.current = updateDataMask;
   }, [updateDataMask]);
 
-  const debouncedLikeChange = useMemo(
-    () =>
-      debounce((text: string) => {
-        if (text) {
-          updateDataMaskRef.current([text]);
-        } else {
-          updateDataMaskRef.current(null);
-        }
-      }, Constants.SLOW_DEBOUNCE),
-    [],
-  );
-
   useEffect(() => {
-    if (!isLikeOperator || clearAllTrigger) {
-      debouncedLikeChange.cancel();
+    if (
+      deferredPendingLikeValue === null ||
+      !isLikeOperator ||
+      clearAllTrigger
+    ) {
+      return;
     }
-  }, [clearAllTrigger, debouncedLikeChange, isLikeOperator]);
-
-  useEffect(() => () => debouncedLikeChange.cancel(), [debouncedLikeChange]);
+    if (deferredPendingLikeValue) {
+      updateDataMaskRef.current([deferredPendingLikeValue]);
+    } else {
+      updateDataMaskRef.current(null);
+    }
+  }, [deferredPendingLikeValue, isLikeOperator, clearAllTrigger]);
 
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLikeInputValue(e.target.value);
-      debouncedLikeChange(e.target.value);
+      setPendingLikeValue(e.target.value);
     },
-    [debouncedLikeChange],
+    [],
   );
 
   const getSelectPopupContainer = useCallback(
@@ -669,8 +708,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
               helperText={helperText}
-              onClear={() => onSearch('')}
-              onSearch={onSearch}
+              onClear={() => handleSearch('')}
+              onSearch={handleSearch}
               onBlur={handleBlur}
               onFocus={setFocusedFilter}
               onMouseEnter={setHoveredFilter}
