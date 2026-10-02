@@ -34,6 +34,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.layer import SemanticLayer as LayerABC
 from superset_core.semantic_layers.metadata import (
+    CatalogSnapshot,
     MetadataRefreshError,
     remaining_budget,
 )
@@ -236,15 +237,31 @@ def layer_implementation(layer: SemanticLayer) -> LayerABC[Any, ViewABC]:
     return state.layers[scope]
 
 
-def view_implementation(view: SemanticView) -> ViewABC:
-    """A view captures one observation for this operation, never across requests."""
-    state: MetadataOperation = _operation(require_budget=False)
-    scope: str = connection_metadata_scope(view.semantic_layer)
-    key: tuple[str, str, str] = (
-        scope,
+def _view_key(view: SemanticView) -> tuple[str, str, str]:
+    """Identify a configured view within one metadata operation."""
+    return (
+        connection_metadata_scope(view.semantic_layer),
         str(view.uuid),
         json.dumps([view.name, _configuration(view.configuration)], sort_keys=True),
     )
+
+
+def peek_view_metadata_token(view: SemanticView) -> str | None:
+    """Use a captured view or stored snapshot without constructing a provider."""
+    state: MetadataOperation = _operation(require_budget=False)
+    captured: ViewABC | None = state.views.get(_view_key(view))
+    if captured is not None:
+        # An in-flight annotation query must retain its own observation even if
+        # another request publishes a newer catalog before its host key is built.
+        return captured.metadata_cache_token
+    snapshot: CatalogSnapshot | None = connection_store(view.semantic_layer).peek()
+    return snapshot.cache_token if snapshot is not None else None
+
+
+def view_implementation(view: SemanticView) -> ViewABC:
+    """A view captures one observation for this operation, never across requests."""
+    state: MetadataOperation = _operation(require_budget=False)
+    key: tuple[str, str, str] = _view_key(view)
     if key not in state.views:
         operation_deadline()
         implementation: ViewABC = layer_implementation(

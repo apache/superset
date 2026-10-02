@@ -213,3 +213,130 @@ def test_sentinel_node_timeouts_respect_configuration_and_operation_ceiling(
         actual: float = factory.call_args.kwargs["sentinel_kwargs"][option]
         assert actual == expected
         assert factory.call_args.kwargs[option] == actual
+
+
+@pytest.mark.parametrize("patched", [False, True])
+def test_concurrent_greenlets_have_isolated_redis_loops(patched: bool) -> None:
+    """Two synchronous requests may yield Redis I/O on the same native thread."""
+    import subprocess
+    import sys
+    import textwrap
+
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent(
+        """
+        import sys
+        if sys.argv[1] == "True":
+            from gevent import monkey
+            monkey.patch_all()
+        import asyncio
+        import time
+        import gevent
+        from unittest.mock import patch
+        from superset.coordination.deadline_backend import DeadlineRedisBackend
+
+        async def slow(self: object, *args: object, **kwargs: object) -> bytes:
+            await asyncio.sleep(0.03)
+            return str(args[-1]).encode()
+
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 2
+        )
+        with patch("redis.asyncio.Redis.execute_command", slow):
+            requests: list[gevent.Greenlet] = [
+                gevent.spawn(backend.get, "first"),
+                gevent.spawn(backend.get, "second"),
+            ]
+            gevent.joinall(requests, timeout=3, raise_error=True)
+            assert [request.value for request in requests] == [b"first", b"second"]
+        print("two concurrent requests passed")
+        """
+    )
+    # Execute only fixed test source and parametrized literals, with no shell.
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, str(patched)],
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "two concurrent requests passed" in result.stdout
+
+
+@pytest.mark.parametrize("mode", ["deadline", "caller_cancelled", "queued"])
+def test_gevent_transport_cancels_without_late_commands(mode: str) -> None:
+    """Native isolation preserves queue deadlines and cancels abandoned I/O."""
+    import subprocess
+    import sys
+    import textwrap
+
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent(
+        """
+        from gevent import monkey
+        monkey.patch_all()
+        import asyncio
+        import sys
+        import time
+        import gevent
+        from unittest.mock import patch
+        from superset.coordination.deadline_backend import DeadlineRedisBackend
+        from redis.exceptions import TimeoutError as RedisTimeoutError
+
+        mode: str = sys.argv[1]
+        events: list[str] = []
+        async def slow(self: object, *args: object, **kwargs: object) -> bytes:
+            events.append("started")
+            try:
+                await asyncio.sleep(3)
+                events.append("published")
+                return b"late"
+            finally:
+                events.append("cancelled")
+
+        from gevent.hub import Hub
+
+        hub: Hub = gevent.get_hub()
+        if mode == "queued":
+            hub.threadpool.maxsize = 1
+            hub.threadpool.spawn(monkey.get_original("time", "sleep"), 0.3)
+        started: float = time.monotonic()
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisCache"},
+            deadline=started + (2 if mode == "caller_cancelled" else 0.1),
+        )
+        with patch("redis.asyncio.Redis.execute_command", slow):
+            request: gevent.Greenlet = gevent.spawn(backend.get, "owned")
+            if mode == "caller_cancelled":
+                with gevent.Timeout(1):
+                    while "started" not in events:
+                        gevent.sleep(0.001)
+                request.kill(block=True)
+            else:
+                request.join(timeout=0.5)
+                assert isinstance(request.exception, RedisTimeoutError), (
+                    request.exception
+                )
+                assert time.monotonic() - started < 0.5
+            assert request.ready()
+            # Wait for cleanup/queued expiry; an abandoned command cannot publish.
+            with gevent.Timeout(1):
+                hub.threadpool.join()
+            if mode == "queued":
+                assert events == [], events
+            else:
+                assert events == ["started", "cancelled"], events
+        print("bounded cancellation passed")
+        """
+    )
+    # Execute only fixed test source and parametrized literals, with no shell.
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, mode],
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "bounded cancellation passed" in result.stdout

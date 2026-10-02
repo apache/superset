@@ -188,3 +188,42 @@ def test_result_capture_is_disabled_without_http_operation(app: Flask) -> None:
     with app.app_context():
         capture_result_identity(context, query, "already-computed-key")
         assert captured_result_key(context, query) is None
+
+
+@pytest.mark.parametrize(
+    "enabled,annotated", [(False, False), (True, True), (True, False)]
+)
+def test_result_capture_guard_prevents_fingerprinting_excluded_queries(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, enabled: bool, annotated: bool
+) -> None:
+    """Flag-off and annotated queries do no capture or fingerprint work."""
+    from flask import request
+
+    from superset.semantic_layers import result_inspection as module
+
+    view: SemanticView = view_for(ResultView("unused", 17))
+    context: QueryContext
+    query: QueryObject
+    context, query = context_for(view)
+    if annotated:
+        query.annotation_layers = [
+            {"sourceType": "NATIVE", "name": "notes", "value": 1}
+        ]
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", enabled)
+    fingerprint: Mock
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch.object(module, "_fingerprint", return_value="fingerprint") as fingerprint,
+    ):
+        module.capture_result_identity(context, query, "computed-key")
+        if enabled and not annotated:
+            fingerprint.assert_called_once_with(context, query)
+            assert module.captured_result_key(context, query) == "computed-key"
+        else:
+            fingerprint.assert_not_called()
+            assert module._IDENTITY_KEY not in request.environ
+            assert module.captured_result_key(context, query) is None

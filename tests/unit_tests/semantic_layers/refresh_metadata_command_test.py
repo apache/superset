@@ -588,3 +588,17 @@ def test_nonobject_configuration_is_rejected_before_provider_hook(
     assert module.can_refresh_metadata(view) is False
     provider.supports_metadata_refresh.assert_not_called()
     provider.from_configuration.assert_not_called()
+
+
+def test_opted_in_provider_without_adapter_fails_before_store_work(
+    refresh_context: tuple[Mock, Mock, Mock],
+) -> None:
+    """A broken opt-in contract is unsupported, never None.bind or HTTP500."""
+    from superset.commands.semantic_layer import refresh_metadata as module
+
+    provider: Mock = refresh_context[1]
+    provider.from_configuration.return_value.metadata_refresh = None
+    with pytest.raises(MetadataRefreshError, match="unsupported"):
+        module.RefreshMetadataCommand(VIEW_UUID).run()
+    provider.from_configuration.assert_called_once()
+    cast(Mock, module.guarded_store).assert_not_called()

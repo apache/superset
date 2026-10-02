@@ -203,3 +203,25 @@ Set `SEMANTIC_METADATA_TEST_REDIS_URL` to an isolated Redis endpoint to run
 owned prefixes, two processes, owner/follower barriers, blocked Redis I/O and
 concurrent entry replacement. They delete only their own keys. They do not prove
 a live dbt deployment, browser workflow, or Sentinel failover topology.
+
+### Chart-backed annotations
+
+A host chart's cache key includes the annotation source's metadata identity without
+constructing its provider or running discovery. It uses the view observation already
+captured in the operation, or peeks at the stored catalog snapshot. A current snapshot
+allows a warm host result to be served even if provider discovery is unavailable.
+On a miss, the write key is recomputed after annotation acquisition so a concurrent
+refresh cannot store the result under a different observation. Refreshing the catalog
+changes the identity for subsequent operations. If the snapshot
+is missing, expired or unreadable, a unique key forces a miss; an unknown identity never
+reuses cached annotation data. Flag-off and nonparticipating providers keep legacy keys.
+
+### Gevent request isolation
+
+Synchronous request greenlets run each private Redis asyncio loop in the gevent
+hub's bounded native thread pool. Queueing consumes the same operation deadline;
+expired queued work cannot begin a Redis command. Request cancellation signals
+the private task with a thread-safe callback, so abandoning a request does not
+leave an uncancelled command running. Other requests' loop state, clients, retry
+policy and timeouts remain independent. Ordinary native-thread callers keep the private-loop path and reject an
+already-running asyncio loop.

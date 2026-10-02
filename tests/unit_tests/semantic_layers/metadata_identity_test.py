@@ -29,6 +29,7 @@ import pyarrow as pa
 import pytest
 from flask import Flask
 from flask_caching import Cache
+from superset_core.semantic_layers.metadata import MetadataRefreshErrorCategory
 from superset_core.semantic_layers.types import Metric, SemanticQuery, SemanticResult
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -210,16 +211,34 @@ def test_captured_view_survives_a_long_first_query(
 
 
 @pytest.mark.parametrize("source_type", ["line", "table"])
+@pytest.mark.parametrize("refresh_enabled", [False, True])
+@pytest.mark.parametrize("refresh_during_query", [False, True])
+@pytest.mark.parametrize("failure", [None, "upstream", "deadline", "unavailable"])
 def test_sql_parent_cache_changes_with_semantic_annotation_observation(
-    app: Flask, monkeypatch: pytest.MonkeyPatch, source_type: str
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    source_type: str,
+    refresh_enabled: bool,
+    refresh_during_query: bool,
+    failure: MetadataRefreshErrorCategory | None,
 ) -> None:
     """A warm SQL chart cannot retain annotations from an older catalog."""
+    import time
+
     import pandas as pd
+    from flask import request
+    from superset_core.semantic_layers.metadata import (
+        CatalogSnapshot,
+        MetadataRefreshError,
+    )
 
     from superset.common.query_context_processor import QueryContextProcessor
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.helpers import QueryResult
     from superset.models.slice import Slice
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+    from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
 
     parent: SqlaTable = SqlaTable(
         id=12,
@@ -230,15 +249,32 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     )
     monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda self, query: [])
     monkeypatch.setattr(SemanticView, "raise_for_access", lambda self: None)
+    provider: Mock = Mock()
     monkeypatch.setattr(
-        "superset.semantic_layers.metadata_binding.view_implementation",
-        lambda view: view.__dict__["_fixture_implementation"],
+        "superset.semantic_layers.metadata_binding.layer_implementation",
+        lambda layer: provider,
     )
-    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    deadline: float = time.monotonic() + 30
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        MemoryBackend(), "scope", deadline=deadline
+    )
+    snapshot: CatalogSnapshot = store.read(lambda deadline: "{}", deadline=deadline)
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.connection_store",
+        lambda layer: store,
+    )
+    monkeypatch.setitem(
+        app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", refresh_enabled
+    )
     monkeypatch.setitem(registry, "cache-test", RefreshLayer)
     cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
     monkeypatch.setitem(query_cache_manager._cache, CacheRegion.DATA, cache)
-    source: SemanticView = view_for(ResultView("scope:old", 17))
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_NAMESPACE", "test")
+    source: SemanticView = view_for(ResultView(snapshot.cache_token, 17))
+    source.__dict__["_legacy_implementation"] = source.__dict__[
+        "_fixture_implementation"
+    ]
+    provider.get_semantic_view.return_value = source.__dict__["_fixture_implementation"]
     chart: Slice = Slice(
         id=31,
         datasource_id=source.id,
@@ -248,8 +284,17 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     assert chart.datasource is None
     assert chart.resolved_datasource is source
     rls: Mock
+    rotated: bool = False
 
     def annotations(self: QueryContextProcessor, query: QueryObject) -> dict[str, Any]:
+        nonlocal rotated
+        if refresh_enabled and refresh_during_query and not rotated:
+            # Publication between the host lookup and annotation acquisition.
+            rotated = True
+            newer: CatalogSnapshot = store.refresh(
+                lambda deadline: '{"raced": true}', deadline=deadline
+            ).snapshot
+            provider.get_semantic_view.return_value = ResultView(newer.cache_token, 17)
         return {
             "semantic": source.implementation.get_table(
                 SemanticQuery(metrics=[], dimensions=[])
@@ -282,6 +327,7 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
             ),
         ),
     ):
+        request_metadata_budget()
         context: QueryContext
         query: QueryObject
         context, query = context_for(parent)
@@ -291,14 +337,123 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
         first: dict[str, Any] = context.get_df_payload(query)
         assert first["annotation_data"] == {"semantic": {"orders": [17]}}
         assert context.get_df_payload(query)["is_cached"]
-        source = view_for(ResultView("scope:new", 23))
+        # Start a new HTTP operation: the provider must not be touched on a hit.
+        from superset.semantic_layers import metadata_binding
+
+        request.environ.pop(metadata_binding._OPERATION_KEY, None)
+        request_metadata_budget()
+        provider.get_semantic_view.reset_mock()
+        if failure is not None:
+            provider.get_semantic_view.side_effect = MetadataRefreshError(failure)
+        assert context.get_df_payload(query)["is_cached"]
+        provider.get_semantic_view.assert_not_called()
+        if not refresh_enabled:
+            return
+        provider.get_semantic_view.side_effect = None
+        snapshot = store.refresh(
+            lambda deadline: '{"new": true}', deadline=deadline
+        ).snapshot
+        source = view_for(ResultView(snapshot.cache_token, 23))
+        provider.get_semantic_view.return_value = source.__dict__[
+            "_fixture_implementation"
+        ]
         chart.semantic_view = source
         second: dict[str, Any] = context.get_df_payload(query)
         assert not second["is_cached"]
         assert second["annotation_data"] == {"semantic": {"orders": [23]}}
         assert first["cache_key"] != second["cache_key"]
+        store.refresh(lambda deadline: '{"newer": true}', deadline=deadline)
+        assert context.get_df_payload(query)["cache_key"] == second["cache_key"]
+        assert context.get_df_payload(query)["is_cached"]
         assert rls.call_args_list
         assert all(call.args[0] is parent for call in rls.call_args_list)
+
+
+@pytest.mark.parametrize("state", ["missing", "expired", "backend_error", "deadline"])
+def test_annotation_unknown_snapshot_never_reuses_a_key(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, state: str
+) -> None:
+    """Unknown metadata must miss both warmed and previous failed-read keys."""
+    from redis.exceptions import ConnectionError as RedisConnectionError
+    from superset_core.semantic_layers.metadata import CatalogSnapshot
+
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.models.slice import Slice
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+    from tests.unit_tests.semantic_layers.metadata_store_test import (
+        Clock,
+        MemoryBackend,
+    )
+
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=130, clock=clock
+    )
+    snapshot: CatalogSnapshot = store.read(lambda deadline: "{}", deadline=130)
+    source: SemanticView = view_for(ResultView(snapshot.cache_token, 17))
+    chart: Slice = Slice(
+        id=31,
+        datasource_id=source.id,
+        datasource_type="semantic_view",
+        semantic_view=source,
+    )
+    query: QueryObject = QueryObject(
+        annotation_layers=[
+            {"sourceType": "line", "value": 31, "annotationType": "TIME_SERIES"}
+        ]
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(Mock())
+    provider: Mock = Mock(return_value=source.__dict__["_fixture_implementation"])
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation", provider
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.connection_store",
+        lambda layer: store,
+    )
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    with (
+        app.test_request_context(),
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "test",
+            },
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=1),
+    ):
+        request_metadata_budget()
+        warm: dict[str, Any] = processor._annotation_cache_context(query)
+        if state == "missing":
+            backend.entries.clear()
+        elif state == "expired":
+            clock.advance(301)
+            store = ScopedMetadataStore(
+                backend, "scope", deadline=clock() + 30, clock=clock
+            )
+        elif state == "deadline":
+            clock.advance(31)
+        else:
+            monkeypatch.setattr(
+                backend, "get", Mock(side_effect=RedisConnectionError())
+            )
+        first: dict[str, Any] = processor._annotation_cache_context(query)
+        second: dict[str, Any] = processor._annotation_cache_context(query)
+        assert first != warm
+        assert second != first
+        assert "source_metadata" in first
+        provider.assert_not_called()
 
 
 @pytest.mark.parametrize("refreshed", [False, True])

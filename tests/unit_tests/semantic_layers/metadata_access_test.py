@@ -212,8 +212,8 @@ def test_factory_denial_precedes_catalog_acquisition(
         execute.assert_not_called()
 
 
-@pytest.mark.parametrize("stage", ["payload", "membership"])
-def test_denied_native_filter_does_not_discover(
+@pytest.mark.parametrize("stage", ["payload", "membership", "allowed"])
+def test_native_filter_authority_does_not_discover(
     app: Flask, monkeypatch: pytest.MonkeyPatch, stage: str
 ) -> None:
     from superset import db
@@ -228,7 +228,11 @@ def test_denied_native_filter_does_not_discover(
         result_format=ChartDataResultFormat.JSON,
         cache_values={},
         datasource=view,
-        queries=[QueryObject(columns=["forbidden"], row_limit=10)],
+        queries=[
+            QueryObject(
+                columns=["country" if stage == "allowed" else "forbidden"], row_limit=10
+            )
+        ],
         form_data={
             "type": "NATIVE_FILTER",
             "native_filter_id": "filter",
@@ -252,7 +256,8 @@ def test_denied_native_filter_does_not_discover(
     sm.can_access.return_value = False
     sm._semantic_layer_grant_allows.return_value = False
     sm.is_editor.return_value = False
-    sm.can_access_dashboard.return_value = False
+    sm.can_access_dashboard.return_value = stage == "allowed"
+    sm.get_current_guest_user_if_guest.return_value = None
     sm.session.query.return_value.filter.return_value.one_or_none.return_value = (
         dashboard
     )
@@ -278,8 +283,12 @@ def test_denied_native_filter_does_not_discover(
                 "superset.security.manager.query_context_modified",
                 lambda context: False,
             )
-        with pytest.raises(SupersetSecurityException):
+        if stage == "allowed":
             SupersetSecurityManager.raise_for_access(sm, query_context=context)
+            sm.can_access_dashboard.assert_called_once_with(dashboard)
+        else:
+            with pytest.raises(SupersetSecurityException):
+                SupersetSecurityManager.raise_for_access(sm, query_context=context)
         construct.assert_not_called()
 
 
