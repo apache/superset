@@ -32,7 +32,12 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
-from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    QueryObjectValidationError,
+    SupersetException,
+)
 from superset.extensions import event_logger
 from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
@@ -92,8 +97,18 @@ _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.BOOLEAN: "boolean",
 }
 
+
+def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
+    """Return whether the owning plugin validates get_chart_data rows/exports."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    return plugin is not None and plugin.normalize_data_results
+
+
 # Maps Superset viz_type strings to canonical categories so we can
 # avoid recommending a chart type the user already has.
+
 _VIZ_CATEGORY: dict[str, str] = {
     "echarts_timeseries_line": "line",
     "echarts_timeseries_smooth": "line",
@@ -792,7 +807,7 @@ async def execute_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
-            if form_data.get("viz_type") == "treemap_v2":
+            if _normalizes_data_results(form_data):
                 result = normalize_chart_query_result(result, form_data)
                 if isinstance(result, ChartError):
                     return result
@@ -1051,6 +1066,11 @@ async def execute_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
+        except QueryObjectValidationError as ex:
+            logger.warning(
+                "Chart data validation failed for chart %s: %s", chart_id, ex
+            )
+            return ChartError(error=str(ex), error_type="ValidationError")
         except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
@@ -1169,7 +1189,7 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
-        if form_data.get("viz_type") == "treemap_v2":
+        if _normalizes_data_results(form_data):
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
@@ -1305,6 +1325,9 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
+    except QueryObjectValidationError as ex:
+        logger.warning("Unsaved chart data validation failed: %s", ex)
+        return ChartError(error=str(ex), error_type="ValidationError")
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
         return ChartError(
