@@ -587,6 +587,13 @@ class SupersetUserApi(UserApi):
         from superset.daos.user import UserDAO
 
         item.roles = []
+        # Rows written before the self-referencing audit columns were guarded
+        # can point at themselves, which SQLAlchemy cannot order for DELETE
+        # (CircularDependencyError). Clear them so the delete can proceed.
+        for column in ("changed_by_fk", "created_by_fk"):
+            if getattr(item, column, None) == item.id:
+                setattr(item, column, None)
+        self.datamodel.session.flush()
         UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:

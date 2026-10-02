@@ -158,3 +158,26 @@ def test_update_me_falsy_password_does_not_blank_stored_hash(
 
     assert admin_user.password == original_hash
     assert admin_user.first_name == "Foo"
+
+
+def test_update_me_does_not_set_self_referential_changed_by(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """A user editing their own profile must not end up with ``changed_by_fk``
+    pointing at their own row. ``User.changed_by`` is a self-referential
+    relationship without ``post_update``, so SQLAlchemy cannot order the
+    DELETE of such a row and raises ``CircularDependencyError``, which made
+    the user undeletable.
+    """
+    db.session.flush()
+
+    _run_update_me(admin_user, {"first_name": "Changed"})
+    db.session.flush()
+
+    assert admin_user.first_name == "Changed"
+    assert admin_user.changed_by_fk != admin_user.id
+
+    # The user can still be deleted.
+    db.session.delete(admin_user)
+    db.session.flush()
