@@ -163,9 +163,28 @@ def test_implausible_budget_never_starts_redis_command() -> None:
         command.assert_not_awaited()
 
 
-@pytest.mark.parametrize("configured", [0.05, 50.0])
+@pytest.mark.parametrize(
+    "configured,expected",
+    [
+        (0.05, 0.05),
+        (50.0, 1.0),
+        (1, 1.0),
+        (None, 1.0),
+        ("0.05", 1.0),
+        (0, 1.0),
+        (-1, 1.0),
+        (True, 1.0),
+        (False, 1.0),
+        (float("nan"), 1.0),
+        (float("inf"), 1.0),
+        (float("-inf"), 1.0),
+        ({}, 1.0),
+        ([], 1.0),
+    ],
+)
 def test_sentinel_node_timeouts_respect_configuration_and_operation_ceiling(
-    configured: float,
+    configured: object,
+    expected: float,
 ) -> None:
     """A short per-node timeout leaves time for Sentinel fallback."""
     client: Mock = Mock()
@@ -187,9 +206,10 @@ def test_sentinel_node_timeouts_respect_configuration_and_operation_ceiling(
             },
             deadline=time.monotonic() + 1,
         )
-        assert backend.get("owned") == b"observed"
+        with patch.object(backend, "_remaining", return_value=1.0):
+            assert backend.get("owned") == b"observed"
     option: str
     for option in ("socket_timeout", "socket_connect_timeout"):
         actual: float = factory.call_args.kwargs["sentinel_kwargs"][option]
-        assert 0 < actual <= min(configured, 1)
+        assert actual == expected
         assert factory.call_args.kwargs[option] == actual

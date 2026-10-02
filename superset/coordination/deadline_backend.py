@@ -93,8 +93,14 @@ class DeadlineRedisBackend:
 
     def _socket_timeout(self, key: str, remaining: float) -> float:
         """Preserve shorter node timeouts inside the shared operation deadline."""
-        configured: float | None = self._config.get(key)
-        return remaining if configured is None else min(configured, remaining)
+        configured: object = self._config.get(key)
+        if (
+            isinstance(configured, (int, float))
+            and not isinstance(configured, bool)
+            and 0 < configured < math.inf
+        ):
+            return min(configured, remaining)
+        return remaining
 
     async def _command(self, *args: str | int) -> Any:
         remaining: float = self._remaining()

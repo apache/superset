@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import time
 from collections.abc import Iterator
@@ -50,6 +51,9 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -205,6 +209,7 @@ def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
                 if fresh is None or connection_metadata_scope(fresh) != scope:
                     raise MetadataRefreshError("configuration_changed")
         except SQLAlchemyError:
+            logger.warning("Metadata layer revalidation failed", exc_info=True)
             raise MetadataRefreshError("unavailable") from None
 
     store: ScopedMetadataStore = ScopedMetadataStore(

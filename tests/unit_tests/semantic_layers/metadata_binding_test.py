@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from logging import LogRecord
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -180,7 +181,9 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
 @pytest.mark.parametrize(
     "change", ["config", "namespace", "removed", "disabled", "database"]
 )
-def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
+def test_publication_rechecks_connection_scope(
+    app: Flask, change: str, caplog: pytest.LogCaptureFixture
+) -> None:
     layer: SemanticLayer = SemanticLayer(
         uuid=uuid4(), type="fixture", configuration="{}"
     )
@@ -239,6 +242,14 @@ def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
         assert "private" not in str(error.value)
         assert error.value.__cause__ is None
         assert store.peek() is None
+        warnings: list[LogRecord] = [
+            record
+            for record in caplog.records
+            if record.name == "superset.semantic_layers.metadata_binding"
+            and record.getMessage() == "Metadata layer revalidation failed"
+            and record.exc_info is not None
+        ]
+        assert len(warnings) == (1 if change == "database" else 0)
 
 
 def test_connection_configuration_and_missing_capability_fail_closed(

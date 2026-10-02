@@ -72,6 +72,7 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -475,8 +476,11 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
-            if isinstance(annotation_datasource, SemanticView):
-                token: str | None = annotation_datasource.metadata_cache_token
+            metadata_datasource: Datasource | None = (
+                chart.resolved_datasource if chart else None
+            )
+            if isinstance(metadata_datasource, SemanticView):
+                token: str | None = metadata_datasource.metadata_cache_token
                 if token is not None:
                     source_metadata[str(layer.get("value"))] = token
         return {

@@ -72,7 +72,9 @@ annotation sources. Async contribution tasks resolve totals using the dependent
 task's captured catalog: a matching entry is reused, while a different catalog
 requires recomputation before caching percentages. Pending participating tasks
 created without a serialized totals query fail closed; resubmit them after
-upgrading the fleet.
+upgrading the fleet. Deploy workers before web nodes, or expect participating
+contribution tasks to fail until both are upgraded: an older worker cannot accept
+the serialized totals query sent by a newer web node.
 
 The compatibility endpoint captures its generation before resolving the provider
 view. A clear during that resolution cannot relabel the endpoint's old answer with
@@ -113,6 +115,13 @@ This covers connection setup, Sentinel discovery and response parsing; retries
 are disabled. Configured `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT` values are retained when shorter than the
 remaining budget, allowing Sentinel to try another node after a node timeout.
+For Sentinel deployments, start with finite positive per-node values such as
+`CACHE_REDIS_SOCKET_TIMEOUT = 1.0` and
+`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT = 1.0` (seconds), then tune them for the
+network and discovery latency. Unset or invalid values use the remaining
+operation budget, which can leave no time to try a second node. Each command
+creates a new Sentinel client and can pay the first node's timeout again.
+Unit tests verify timeout configuration, not live second-node failover.
 Cleanup supports both redis-py 5.0.0's `close()` and later `aclose()` clients.
 The synchronous bridge owns and closes each event loop/client,
 without changing shared coordinator pools. An uncancellable system DNS lookup
