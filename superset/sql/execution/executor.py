@@ -79,6 +79,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
+from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -186,6 +187,86 @@ def build_statement_blocks(
     return parsed_script, blocks
 
 
+class _LimitedCursor:
+    """Bound cumulative cursor reads without bypassing engine fetch processing."""
+
+    def __init__(self, cursor: Any, limit: int) -> None:
+        """Wrap a cursor with a shared budget for all row-reading methods."""
+        self._cursor = cursor
+        self._remaining = limit
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate metadata and driver-specific methods to the real cursor."""
+        return getattr(self._cursor, name)
+
+    @property
+    def arraysize(self) -> int:
+        """Expose the driver's default fetch batch size."""
+        return self._cursor.arraysize
+
+    @arraysize.setter
+    def arraysize(self, value: int) -> None:
+        """Preserve engine-specific cursor batch-size configuration."""
+        self._cursor.arraysize = value
+
+    def fetchmany(self, size: int | None = None) -> list[Any]:
+        """Read no more than the remaining budget, including across batches."""
+        size = self.arraysize if size is None else size
+        size = max(0, min(size, self._remaining))
+        # Some drivers interpret zero as unbounded, so do not call them at all.
+        if not size:
+            return []
+        rows = self._cursor.fetchmany(size)
+        self._remaining -= len(rows)
+        return rows
+
+    def check_truncated(self, db_engine_spec: type[BaseEngineSpec]) -> bool:
+        """
+        Probe one extra row using the engine's fetch and error handling.
+
+        The rows within the budget are already materialized, so a failed probe
+        reports the result as possibly partial instead of discarding them.
+        """
+        if self._remaining != 0:
+            return False
+        try:
+            return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Truncation probe failed; reporting the result as partial",
+                exc_info=True,
+            )
+            return True
+
+    def fetchall(self) -> list[Any]:
+        """
+        Translate an unbounded read into bounded driver fetches.
+
+        PEP 249 lets `fetchmany` return fewer rows than requested before the
+        result is exhausted, so keep reading until the budget is spent or a
+        batch comes back empty.
+        """
+        rows: list[Any] = []
+        while batch := self.fetchmany(self._remaining):
+            rows.extend(batch)
+        return rows
+
+    def fetchone(self) -> Any:
+        """Read one row only if budget remains."""
+        rows = self.fetchmany(1)
+        return rows[0] if rows else None
+
+    def __iter__(self) -> _LimitedCursor:
+        """Iterate through the same bounded read path."""
+        return self
+
+    def __next__(self) -> Any:
+        """Stop iteration when the result or row budget is exhausted."""
+        if (row := self.fetchone()) is None:
+            raise StopIteration
+        return row
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -277,12 +358,30 @@ def execute_sql_with_cursor(
         # Fetch results from ALL statements
         description = cursor.description
         if description:
-            rows = database.db_engine_spec.fetch_data(cursor)
+            fetch_cursor = cursor
+            limited_cursor = None
+            # SQL restrictions cannot always be safely wrapped or replaced.
+            # Cap returned rows from the last statement, including RETURNING,
+            # not affected rows. Only explicit limits also honor SQL_MAX_ROW.
+            if i == total - 1 and query.limit is not None:
+                row_limit: int = query.limit
+                if sql_max_row := app.config.get("SQL_MAX_ROW"):
+                    row_limit = min(row_limit, sql_max_row)
+                limited_cursor = _LimitedCursor(cursor, row_limit)
+                fetch_cursor = limited_cursor
+            # Keep each spec's conversion/error handling. Even specs that ignore
+            # a fetch_data limit can only consume the bounded cursor's budget.
+            rows = database.db_engine_spec.fetch_data(fetch_cursor)
+            truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
+                limited_cursor is not None
+                and limited_cursor.check_truncated(database.db_engine_spec)
+            )
             check_query_deadline()
             result_set = SupersetResultSet(
                 rows,
                 description,
                 database.db_engine_spec,
+                truncated=truncated,
             )
         else:
             # DML statement - no result set
@@ -719,6 +818,7 @@ class SQLExecutor:
                     executed_sql=exec_sql,
                     data=df,
                     row_count=len(df),
+                    truncated=result_set.truncated,
                     execution_time_ms=exec_time,
                 )
             else:
@@ -804,7 +904,7 @@ class SQLExecutor:
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
-        Apply limit to the last statement in the script in place.
+        Cap the last statement's outer limit in place without increasing it.
 
         :param script: SQLScript object to modify
         :param opts: Query options
@@ -820,7 +920,7 @@ class SQLExecutor:
 
         # Apply limit to last statement only
         if script.statements:
-            script.statements[-1].set_limit_value(
+            script.statements[-1].cap_limit_value(
                 effective_limit,
                 self.database.db_engine_spec.limit_method,
             )
@@ -993,6 +1093,7 @@ class SQLExecutor:
                     data=stmt_data["data"],
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
+                    truncated=stmt_data.get("truncated", False),
                 )
                 for stmt_data in cached.get("statements", [])
             ]
@@ -1048,6 +1149,7 @@ class SQLExecutor:
                         else stmt.data
                     ),
                     "row_count": stmt.row_count,
+                    "truncated": stmt.truncated,
                     "execution_time_ms": stmt.execution_time_ms,
                 }
                 for stmt in result.statements
@@ -1296,6 +1398,7 @@ class SQLExecutor:
                                     else None
                                 ),
                                 row_count=stmt_data.get("row_count", 0),
+                                truncated=stmt_data.get("truncated", False),
                                 execution_time_ms=stmt_data.get("execution_time_ms"),
                             )
                             for stmt_data in payload.get("statements", [])
