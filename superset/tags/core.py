@@ -29,7 +29,13 @@ def _tag_delete_listener_declarations() -> tuple[DeleteListenerDeclaration, ...]
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tags.models import ChartUpdater, DashboardUpdater, DatasetUpdater
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import (
+        ChartUpdater,
+        DashboardUpdater,
+        DatasetUpdater,
+        QueryUpdater,
+    )
 
     return (
         DeleteListenerDeclaration(
@@ -50,6 +56,12 @@ def _tag_delete_listener_declarations() -> tuple[DeleteListenerDeclaration, ...]
             DeleteListenerEffect.PERSISTENT_RECORD,
             DashboardUpdater.after_delete,
         ),
+        DeleteListenerDeclaration(
+            SavedQuery,
+            "tagged_object_cleanup",
+            DeleteListenerEffect.PERSISTENT_RECORD,
+            QueryUpdater.after_delete,
+        ),
     )
 
 
@@ -62,32 +74,10 @@ def register_sqla_event_listeners() -> None:
     since it applies to every tag on the object, custom tags included, and
     ``tagged_object.object_id`` has no foreign key to cascade on its own.
     """
-    import sqlalchemy as sqla
-
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import QueryUpdater
-
-    declarations = _tag_delete_listener_declarations()
-
-    register_delete_listener(declarations[0])  # dataset
-    register_delete_listener(declarations[1])  # chart
-    register_delete_listener(declarations[2])  # dashboard
-
-    if not sqla.event.contains(SavedQuery, "after_delete", QueryUpdater.after_delete):
-        sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    for declaration in _tag_delete_listener_declarations():
+        register_delete_listener(declaration)
 
 
 def clear_sqla_event_listeners() -> None:
-    import sqlalchemy as sqla
-
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import QueryUpdater
-
-    declarations = _tag_delete_listener_declarations()
-
-    remove_delete_listener(declarations[0])  # dataset
-    remove_delete_listener(declarations[1])  # chart
-    remove_delete_listener(declarations[2])  # dashboard
-
-    if sqla.event.contains(SavedQuery, "after_delete", QueryUpdater.after_delete):
-        sqla.event.remove(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    for declaration in _tag_delete_listener_declarations():
+        remove_delete_listener(declaration)
