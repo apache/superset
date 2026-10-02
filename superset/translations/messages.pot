@@ -7362,6 +7362,9 @@ msgstr ""
 msgid "Import Error"
 msgstr ""
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr ""
 
