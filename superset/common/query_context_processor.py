@@ -456,8 +456,11 @@ class QueryContextProcessor:
         Annotation payloads are fetched per requesting user and stored on the
         same cache entry as the dataframe, so the key also binds the requesting
         user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        chart's datasource and any captured semantic metadata identity.
         """
+        from superset.semantic_layers.models import SemanticView
+
+        source_metadata: dict[str, str] = {}
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
             if layer.get("sourceType") not in ("line", "table"):
@@ -472,7 +475,15 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            if isinstance(annotation_datasource, SemanticView):
+                token: str | None = annotation_datasource.metadata_cache_token
+                if token is not None:
+                    source_metadata[str(layer.get("value"))] = token
+        return {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            **({"source_metadata": source_metadata} if source_metadata else {}),
+        }
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """

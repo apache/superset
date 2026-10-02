@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, cast
 from unittest.mock import patch
 from uuid import UUID
@@ -37,6 +37,7 @@ from superset.common.query_object import QueryObject
 from superset.common.utils import query_cache_manager
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CacheRegion
+from superset.explorables.base import Explorable
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from tests.unit_tests.semantic_layers.metadata_contract_test import (
@@ -88,7 +89,7 @@ def view_for(provider: ResultView) -> SemanticView:
     return view
 
 
-def context_for(view: SemanticView) -> tuple[QueryContext, QueryObject]:
+def context_for(view: Explorable) -> tuple[QueryContext, QueryObject]:
     query: QueryObject = QueryObject(
         datasource=cast(BaseDatasource, view), metrics=["orders"], row_limit=10
     )
@@ -206,3 +207,145 @@ def test_captured_view_survives_a_long_first_query(
         assert context.get_df_payload(query)["is_cached"]
         assert view.data["metrics"][0]["metric_name"] == "orders"
         layer.get_semantic_view.assert_called_once()
+
+
+def test_sql_parent_cache_changes_with_semantic_annotation_observation(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A warm SQL chart cannot retain annotations from an older catalog."""
+    import pandas as pd
+
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import QueryResult
+    from superset.models.slice import Slice
+
+    parent: SqlaTable = SqlaTable(
+        id=12,
+        table_name="parent",
+        changed_on=datetime(2026, 1, 1),
+        columns=[TableColumn(column_name="orders")],
+        cache_timeout=300,
+    )
+    monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda self, query: [])
+    monkeypatch.setattr(SemanticView, "raise_for_access", lambda self: None)
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        lambda view: view.__dict__["_fixture_implementation"],
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
+    monkeypatch.setitem(query_cache_manager._cache, CacheRegion.DATA, cache)
+    source: SemanticView = view_for(ResultView("scope:old", 17))
+    chart: Slice = Slice(id=31, datasource_type="semantic_view")
+    monkeypatch.setattr(Slice, "datasource", property(lambda self: source))
+
+    def annotations(self: QueryContextProcessor, query: QueryObject) -> dict[str, Any]:
+        return {
+            "semantic": source.implementation.get_table(
+                SemanticQuery(metrics=[], dimensions=[])
+            ).results.to_pydict()
+        }
+
+    monkeypatch.setattr(QueryContextProcessor, "get_annotation_data", annotations)
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=1),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+        patch.object(
+            QueryContextProcessor,
+            "get_query_result",
+            return_value=QueryResult(
+                df=pd.DataFrame({"orders": [1]}),
+                query="SELECT orders FROM parent",
+                duration=timedelta(0),
+            ),
+        ),
+    ):
+        context: QueryContext
+        query: QueryObject
+        context, query = context_for(parent)
+        query.annotation_layers = [
+            {"sourceType": "line", "value": 31, "name": "semantic"}
+        ]
+        first: dict[str, Any] = context.get_df_payload(query)
+        assert first["annotation_data"] == {"semantic": {"orders": [17]}}
+        assert context.get_df_payload(query)["is_cached"]
+        source = view_for(ResultView("scope:new", 23))
+        second: dict[str, Any] = context.get_df_payload(query)
+        assert not second["is_cached"]
+        assert second["annotation_data"] == {"semantic": {"orders": [23]}}
+        assert first["cache_key"] != second["cache_key"]
+
+
+@pytest.mark.parametrize("refreshed", [False, True])
+@pytest.mark.parametrize("force", [False, True])
+def test_async_totals_reuse_only_the_captured_catalog_cache(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    refreshed: bool,
+    force: bool,
+) -> None:
+    """Warm T0 totals, then normalize and cache the dependent using T0 or T1."""
+    from superset.tasks.async_queries import _inject_contribution_totals
+
+    monkeypatch.setattr(SemanticView, "raise_for_access", lambda self: None)
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        lambda view: view.__dict__["_fixture_implementation"],
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
+    monkeypatch.setitem(query_cache_manager._cache, CacheRegion.DATA, cache)
+    old: ResultView = ResultView("scope:old", 20)
+    captured: ResultView = ResultView("scope:new", 40) if refreshed else old
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+    ):
+        old_context: QueryContext
+        old_query: QueryObject
+        old_context, old_query = context_for(view_for(old))
+        old_payload: dict[str, Any] = old_context.get_df_payload(old_query)
+        totals_context: QueryContext
+        totals_query: QueryObject
+        totals_context, totals_query = context_for(view_for(captured))
+        totals_context.force = force
+        main_context: QueryContext
+        main_query: QueryObject
+        main_context, main_query = context_for(view_for(captured))
+        main_query.post_processing = [
+            {"operation": "contribution", "options": {"columns": ["orders"]}}
+        ]
+        _inject_contribution_totals(
+            main_query, old_payload["cache_key"], totals_context
+        )
+        assert main_query.post_processing[0]["options"]["contribution_totals"] == {
+            "orders": 40 if refreshed else 20,
+        }
+        # The unchanged observation reads warmed totals without querying again.
+        assert old.calls == 1
+        assert captured.calls == 1
+        result: dict[str, Any] = main_context.get_df_payload(main_query)
+        assert result["df"].to_dict("list") == {"orders": [1.0]}
+        assert main_context.get_df_payload(main_query)["is_cached"]

@@ -24,10 +24,12 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app, has_app_context, has_request_context, request
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.layer import SemanticLayer as LayerABC
 from superset_core.semantic_layers.metadata import (
@@ -58,6 +60,7 @@ class MetadataOperation:
     layers: dict[str, LayerABC[Any, ViewABC]] = field(default_factory=dict)
     views: dict[tuple[str, str, str], ViewABC] = field(default_factory=dict)
     stores: dict[str, ScopedMetadataStore] = field(default_factory=dict)
+    configurations: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 _OPERATION_KEY: str = "superset.semantic_metadata.operation"
@@ -127,14 +130,25 @@ def metadata_refresh_enabled() -> bool:
     )
 
 
+def _configuration(raw: str) -> dict[str, Any]:
+    """Cache parsing by stored bytes; providers receive independent mutable copies."""
+    state: MetadataOperation | None = _current_operation()
+    if state is not None and raw in state.configurations:
+        return deepcopy(state.configurations[raw])
+    parsed: Any = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise MetadataRefreshError("configuration")
+    if state is not None:
+        state.configurations[raw] = parsed
+    return deepcopy(parsed)
+
+
 def participates(layer: SemanticLayer) -> bool:
     """Classify stored configuration without leaking parser or registry errors."""
     if not metadata_refresh_enabled():
         return False
     try:
-        configuration: Any = json.loads(layer.configuration)
-        if not isinstance(configuration, dict):
-            raise MetadataRefreshError("configuration")
+        configuration: dict[str, Any] = _configuration(layer.configuration)
         return registry[layer.type].supports_metadata_refresh(configuration)
     except (KeyError, TypeError, ValueError):
         raise MetadataRefreshError("configuration") from None
@@ -154,7 +168,7 @@ def connection_metadata_scope(layer: SemanticLayer) -> str:
     ):
         raise MetadataRefreshError("configuration")
     configuration: str = json.dumps(
-        {"provider": layer.type, "configuration": json.loads(layer.configuration)},
+        {"provider": layer.type, "configuration": _configuration(layer.configuration)},
         sort_keys=True,
     )
     return metadata_scope(secret, namespace, str(layer.uuid), configuration)
@@ -183,12 +197,15 @@ def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
         if not participates(layer):
             raise MetadataRefreshError("configuration_changed")
         session: Session
-        with Session(
-            bind=db.session.get_bind(mapper=SemanticLayer), autoflush=False
-        ) as session:
-            fresh: SemanticLayer | None = session.get(SemanticLayer, layer.uuid)
-            if fresh is None or connection_metadata_scope(fresh) != scope:
-                raise MetadataRefreshError("configuration_changed")
+        try:
+            with Session(
+                bind=db.session.get_bind(mapper=SemanticLayer), autoflush=False
+            ) as session:
+                fresh: SemanticLayer | None = session.get(SemanticLayer, layer.uuid)
+                if fresh is None or connection_metadata_scope(fresh) != scope:
+                    raise MetadataRefreshError("configuration_changed")
+        except SQLAlchemyError:
+            raise MetadataRefreshError("unavailable") from None
 
     store: ScopedMetadataStore = ScopedMetadataStore(
         backend, scope, deadline=state.deadline, before_publish=revalidate
@@ -206,7 +223,7 @@ def layer_implementation(layer: SemanticLayer) -> LayerABC[Any, ViewABC]:
         store: ScopedMetadataStore = connection_store(layer)
         implementation: LayerABC[Any, ViewABC] = registry[
             layer.type
-        ].from_configuration(json.loads(layer.configuration))
+        ].from_configuration(_configuration(layer.configuration))
         if implementation.metadata_refresh is None:
             raise MetadataRefreshError("configuration")
         implementation.metadata_refresh.bind(store, deadline=state.deadline)
@@ -221,13 +238,13 @@ def view_implementation(view: SemanticView) -> ViewABC:
     key: tuple[str, str, str] = (
         scope,
         str(view.uuid),
-        json.dumps([view.name, json.loads(view.configuration)], sort_keys=True),
+        json.dumps([view.name, _configuration(view.configuration)], sort_keys=True),
     )
     if key not in state.views:
         operation_deadline()
         implementation: ViewABC = layer_implementation(
             view.semantic_layer
-        ).get_semantic_view(view.name, json.loads(view.configuration))
+        ).get_semantic_view(view.name, _configuration(view.configuration))
         if not implementation.metadata_cache_token:
             raise MetadataRefreshError("configuration")
         state.views[key] = implementation
