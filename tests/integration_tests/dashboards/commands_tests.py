@@ -1513,9 +1513,14 @@ class TestImportDashboardsAnnotationLayers(SupersetTestCase):
                 db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).one()
             )
             children = db.session.query(Annotation).filter_by(layer_id=reloaded.id)
+            chart = db.session.query(Slice).filter_by(uuid=chart_uuid).one()
             assert reloaded.name == layer_name
             assert reloaded.descr == "original"
             assert [child.short_descr for child in children] == ["original-child"]
+            assert [
+                annotation["value"]
+                for annotation in json.loads(chart.params)["annotation_layers"]
+            ] == [reloaded.id]
         finally:
             _cleanup_dashboard_annotation_import(
                 [chart_uuid], [layer_uuid], dashboard_uuid

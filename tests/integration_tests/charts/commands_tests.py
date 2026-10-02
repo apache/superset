@@ -2406,6 +2406,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
         )
         _create_chart_annotation(layer, short_descr="original-child")
         layer_uuid = str(layer.uuid)
+        layer_name = layer.name
         seed_chart_uuid = str(uuid4())
         main_chart_uuid = str(uuid4())
         try:
@@ -2445,7 +2446,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
             )
             children = db.session.query(Annotation).filter_by(layer_id=reloaded.id)
             chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
-            assert reloaded.name == layer.name
+            assert reloaded.name == layer_name
             assert reloaded.descr == "original"
             assert [child.short_descr for child in children] == ["original-child"]
             assert [

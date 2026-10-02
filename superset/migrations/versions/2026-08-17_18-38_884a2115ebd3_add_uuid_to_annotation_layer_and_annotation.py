@@ -35,6 +35,7 @@ from superset.migrations.shared.utils import (
     assign_uuids,
     drop_columns,
     has_table,
+    paginated_update,
 )
 
 # revision identifiers, used by Alembic.
@@ -76,9 +77,8 @@ def _backfill_uuids(model: type[ImportMixin], session: sa.orm.Session) -> None:
     if missing_count == session.query(model).count():
         assign_uuids(model, session)
         return
-    for obj in missing:
+    for obj in paginated_update(missing):
         obj.uuid = uuid4()
-    session.commit()
 
 
 def _has_unique_constraint(table_name: str, constraint_name: str) -> bool:
