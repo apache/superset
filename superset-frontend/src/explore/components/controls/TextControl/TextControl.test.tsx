@@ -118,3 +118,23 @@ test('should keep showing an externally updated value across later re-renders', 
   rerender(<TextControl {...mockedProps} value="200" label="Row limit" />);
   expect(screen.getByDisplayValue('200')).toBeInTheDocument();
 });
+
+test('should not call onChange on mount', () => {
+  const onChange = jest.fn();
+  render(<TextControl {...mockedProps} onChange={onChange} />);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('should not call onChange again when a parent re-render hands down a new onChange identity', () => {
+  const onChangeA = jest.fn();
+  const onChangeB = jest.fn();
+  const { rerender } = render(
+    <TextControl {...mockedProps} onChange={onChangeA} />,
+  );
+
+  // a parent re-rendering with a fresh inline callback (common in control
+  // panels) must not, by itself, re-fire the deferred-value effect
+  rerender(<TextControl {...mockedProps} onChange={onChangeB} />);
+  expect(onChangeA).not.toHaveBeenCalled();
+  expect(onChangeB).not.toHaveBeenCalled();
+});
