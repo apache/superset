@@ -22,7 +22,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-from fastmcp.tools import FunctionTool
+from fastmcp.tools import FunctionTool, ToolResult
 from jsonschema import Draft202012Validator
 from mcp.types import Tool
 from pydantic import BaseModel
@@ -67,11 +67,14 @@ CHART_TOOLS = [
 # ceil(measured_bytes / 100) * 100 + 100, measured without the registry-derived
 # chart_type enum (budgeted_bytes), so a new chart type needs no budget change
 # while any inlined per-type schema still fails.
-TOOL_BUDGETS = [
-    ("generate_chart", 2_400),
-    ("update_chart", 4_100),
+# Explicit dataset/view targets add one source selector and its guidance.
+# Measured budgeted bytes: generate_chart 2388, update_chart 4238,
+# generate_explore_link 2138; apply the same snapshot formula above.
+TOOL_BUDGETS: list[tuple[str, int]] = [
+    ("generate_chart", 2_500),
+    ("update_chart", 4_400),
     ("update_chart_preview", 2_000),
-    ("generate_explore_link", 1_800),
+    ("generate_explore_link", 2_300),
 ]
 
 
@@ -293,37 +296,44 @@ def _explore_fixture(request: GenerateExploreLinkRequest) -> str:
         ("generate_explore_link", _explore_fixture, GenerateExploreLinkRequest),
     ],
 )
+@pytest.mark.parametrize("source_key", ["dataset_id", "view_id"])
 async def test_chart_tool_schema_first_invocation(
-    name: str, fixture: Callable[..., str], model: type[BaseModel]
+    name: str, fixture: Callable[..., str], model: type[BaseModel], source_key: str
 ) -> None:
     """Build an invocation from the tool schema plus get_chart_type_schema."""
-    schema = await _input_schema(name)
-    request_schema = _resolve_pointer(schema, schema["properties"]["request"]["$ref"])
-    config_schema = _config_schema(schema, model)
+    schema: dict[str, Any] = await _input_schema(name)
+    request_schema: dict[str, Any] = _resolve_pointer(
+        schema, schema["properties"]["request"]["$ref"]
+    )
+    config_schema: dict[str, Any] = _config_schema(schema, model)
     assert "table" in config_schema["properties"]["chart_type"]["enum"]
     # Resolve the table variant and its column model from the per-type schema
     # the client fetches, rather than substituting a generic object.
-    table_schema = _type_schema("table")
-    column_schema = _resolve_pointer(
+    table_schema: dict[str, Any] = _type_schema("table")
+    column_schema: dict[str, Any] = _resolve_pointer(
         table_schema, table_schema["properties"]["columns"]["items"]["$ref"]
     )
     assert "columns" in table_schema["required"]
     assert "name" in column_schema["properties"]
-    config = {
+    config: dict[str, Any] = {
         "chart_type": table_schema["properties"]["chart_type"]["const"],
         "columns": [{"name": "region"}],
     }
     Draft202012Validator(table_schema).validate(config)
     request: dict[str, Any] = {
-        key: 1 for key in request_schema["required"] if key != "config"
+        key: 1 for key in request_schema.get("required", []) if key != "config"
     }
+    # A model validator enforces the dataset/view alternative; neither source
+    # is individually required. Choose each advertised source in turn.
+    assert source_key in request_schema["properties"]
+    request[source_key] = 1
     request["config"] = config
-    arguments = {"request": request}
+    arguments: dict[str, Any] = {"request": request}
     Draft202012Validator(schema).validate(arguments)
     # Use the same request model through FastMCP's real argument validation,
     # but replace persistence/query execution with the explicitly typed fixture.
-    controlled_tool = FunctionTool.from_function(fixture)
-    result = await controlled_tool.run(arguments)
+    controlled_tool: FunctionTool = FunctionTool.from_function(fixture)
+    result: ToolResult = await controlled_tool.run(arguments)
     assert result.content[0].text == "table"
 
 
