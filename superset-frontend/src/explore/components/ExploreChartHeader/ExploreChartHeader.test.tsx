@@ -207,6 +207,27 @@ const stubClipboard = () => {
   return writeText;
 };
 
+// The mailto flow assigns window.location.href; stub a writable location for
+// the duration of `run` and always restore the real one, even on failure.
+const stubMailtoLocation = async (
+  run: (mockedLocation: { href: string }) => Promise<void>,
+) => {
+  const mockedLocation = {
+    href: '',
+    search: '',
+    origin: 'http://localhost',
+    pathname: '/explore/',
+  };
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue(mockedLocation as unknown as Location);
+  try {
+    await run(mockedLocation);
+  } finally {
+    locationSpy.mockRestore();
+  }
+};
+
 const openShareSubmenu = async () => {
   await userEvent.click(screen.getByLabelText('Menu actions trigger'));
   await userEvent.hover(await screen.findByText('Share'));
@@ -881,16 +902,7 @@ describe('Additional actions tests', () => {
       { key: 'k1', url: PERMALINK_URL },
       { name: 'permalink-create' },
     );
-    const mockedLocation = {
-      href: '',
-      search: '',
-      origin: 'http://localhost',
-      pathname: '/explore/',
-    };
-    const locationSpy = jest
-      .spyOn(window, 'location', 'get')
-      .mockReturnValue(mockedLocation as unknown as Location);
-    try {
+    await stubMailtoLocation(async mockedLocation => {
       render(<ExploreHeader {...createProps()} />, {
         store: createShareStore(),
       });
@@ -903,23 +915,12 @@ describe('Additional actions tests', () => {
       expect(decodeURIComponent(mockedLocation.href)).toContain(
         `Check out this chart: ${PERMALINK_URL}`,
       );
-    } finally {
-      locationSpy.mockRestore();
-    }
+    });
   });
 
   test('Share chart by email shows a danger toast and no mailto link when the permalink request fails', async () => {
     fetchMock.post(PERMALINK_ENDPOINT, 500, { name: 'permalink-create' });
-    const mockedLocation = {
-      href: '',
-      search: '',
-      origin: 'http://localhost',
-      pathname: '/explore/',
-    };
-    const locationSpy = jest
-      .spyOn(window, 'location', 'get')
-      .mockReturnValue(mockedLocation as unknown as Location);
-    try {
+    await stubMailtoLocation(async mockedLocation => {
       const store = createShareStore();
       render(<ExploreHeader {...createProps()} />, { store });
 
@@ -932,9 +933,7 @@ describe('Additional actions tests', () => {
         ]),
       );
       expect(mockedLocation.href).toBe('');
-    } finally {
-      locationSpy.mockRestore();
-    }
+    });
   });
 
   test('Embed code opens a modal whose textarea holds the chart iframe', async () => {

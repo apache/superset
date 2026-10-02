@@ -156,18 +156,14 @@ jest.mock('../ControlPanelsContainer', () => ({
   __esModule: true,
   default: ({
     onQuery,
-    onStop,
     buttonErrorMessage,
     errorMessage,
     chartIsStale,
-    canStopQuery,
   }: {
     onQuery: () => void;
-    onStop: () => void;
     buttonErrorMessage?: ReactNode;
     errorMessage?: ReactNode;
     chartIsStale?: boolean;
-    canStopQuery?: boolean;
   }) => {
     const { RunQueryButton } = jest.requireActual('../RunQueryButton');
     const message = buttonErrorMessage ?? errorMessage;
@@ -181,14 +177,15 @@ jest.mock('../ControlPanelsContainer', () => ({
       >
         {/* The real button, wired like ControlPanelsContainer wires it. It is
             never in the loading state here: mounting queues a query and no
-            chart panel exists to resolve it, so the store stays 'loading'. */}
+            chart panel exists to resolve it, so the store stays 'loading'.
+            The stop path is therefore unreachable and its props are inert. */}
         <RunQueryButton
           onQuery={onQuery}
-          onStop={onStop}
+          onStop={() => undefined}
           errorMessage={buttonErrorMessage || errorMessage}
           loading={false}
           isNewChart={false}
-          canStopQuery={!!canStopQuery}
+          canStopQuery={false}
           chartIsStale={!!chartIsStale}
         />
         {message && (
@@ -1336,27 +1333,31 @@ const getChart = (store: Store) =>
     }
   ).charts[1];
 
+// Renders the explore view and clears the query that mounting queues, so a
+// test can tell whether its own interaction queues one again.
+const renderWithClearedQuery = async () => {
+  const store = createStore(reduxState, reducerIndex);
+  renderWithRouter({ initialState: reduxState, store: store as Store });
+  await screen.findByTestId('control-panels-container');
+  act(() => {
+    store.dispatch(chartActions.triggerQuery(false, 1));
+  });
+  return store as Store;
+};
+
 test.each([
   ['Ctrl', '{Control>}{Enter}{/Control}'],
   ['Cmd', '{Meta>}{Enter}{/Meta}'],
 ])('%s+Enter anywhere on the page queues the chart query', async (_, keys) => {
   setupTableChartControlPanel();
   try {
-    const store = createStore(reduxState, reducerIndex);
-    renderWithRouter({ initialState: reduxState, store: store as Store });
-    await screen.findByTestId('control-panels-container');
-
-    // Mounting queues a query; clear it so only the shortcut can set it again.
-    act(() => {
-      store.dispatch(chartActions.triggerQuery(false, 1));
-    });
-    expect(getChart(store as Store).triggerQuery).toBe(false);
+    // Only the shortcut can set the cleared query flag again.
+    const store = await renderWithClearedQuery();
+    expect(getChart(store).triggerQuery).toBe(false);
 
     await userEvent.keyboard(keys);
 
-    await waitFor(() =>
-      expect(getChart(store as Store).triggerQuery).toBe(true),
-    );
+    await waitFor(() => expect(getChart(store).triggerQuery).toBe(true));
   } finally {
     getChartControlPanelRegistry().remove('table');
   }
@@ -1368,16 +1369,11 @@ test.each([
 ])('%s does not queue the chart query', async (_, keys) => {
   setupTableChartControlPanel();
   try {
-    const store = createStore(reduxState, reducerIndex);
-    renderWithRouter({ initialState: reduxState, store: store as Store });
-    await screen.findByTestId('control-panels-container');
-    act(() => {
-      store.dispatch(chartActions.triggerQuery(false, 1));
-    });
+    const store = await renderWithClearedQuery();
 
     await userEvent.keyboard(keys);
 
-    expect(getChart(store as Store).triggerQuery).toBe(false);
+    expect(getChart(store).triggerQuery).toBe(false);
   } finally {
     getChartControlPanelRegistry().remove('table');
   }
