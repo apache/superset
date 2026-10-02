@@ -309,6 +309,16 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+                if query_obj.annotation_layers:
+                    from superset.semantic_layers.metadata_binding import (
+                        metadata_refresh_enabled,
+                    )
+
+                    if metadata_refresh_enabled():
+                        # Discovery on a miss can capture a newer annotation
+                        # snapshot than the lookup peek. Store only under the
+                        # identity actually used by that annotation query.
+                        cache_key = self.query_cache_key(query_obj)
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -318,6 +328,7 @@ class QueryContextProcessor:
                 )
 
             if cache.status != QueryStatus.FAILED:
+                assert cache_key is not None
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,

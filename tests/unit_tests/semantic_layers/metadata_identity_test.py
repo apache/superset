@@ -212,12 +212,14 @@ def test_captured_view_survives_a_long_first_query(
 
 @pytest.mark.parametrize("source_type", ["line", "table"])
 @pytest.mark.parametrize("refresh_enabled", [False, True])
+@pytest.mark.parametrize("refresh_during_query", [False, True])
 @pytest.mark.parametrize("failure", [None, "upstream", "deadline", "unavailable"])
 def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     app: Flask,
     monkeypatch: pytest.MonkeyPatch,
     source_type: str,
     refresh_enabled: bool,
+    refresh_during_query: bool,
     failure: MetadataRefreshErrorCategory | None,
 ) -> None:
     """A warm SQL chart cannot retain annotations from an older catalog."""
@@ -282,8 +284,17 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
     assert chart.datasource is None
     assert chart.resolved_datasource is source
     rls: Mock
+    rotated: bool = False
 
     def annotations(self: QueryContextProcessor, query: QueryObject) -> dict[str, Any]:
+        nonlocal rotated
+        if refresh_enabled and refresh_during_query and not rotated:
+            # Publication between the host lookup and annotation acquisition.
+            rotated = True
+            newer: CatalogSnapshot = store.refresh(
+                lambda deadline: '{"raced": true}', deadline=deadline
+            ).snapshot
+            provider.get_semantic_view.return_value = ResultView(newer.cache_token, 17)
         return {
             "semantic": source.implementation.get_table(
                 SemanticQuery(metrics=[], dimensions=[])

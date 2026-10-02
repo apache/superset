@@ -208,6 +208,8 @@ A host chart's cache key includes the annotation source's metadata identity with
 constructing its provider or running discovery. It uses the view observation already
 captured in the operation, or peeks at the stored catalog snapshot. A current snapshot
 allows a warm host result to be served even if provider discovery is unavailable.
-Refreshing the catalog changes the identity for subsequent operations. If the snapshot
+On a miss, the write key is recomputed after annotation acquisition so a concurrent
+refresh cannot store the result under a different observation. Refreshing the catalog
+changes the identity for subsequent operations. If the snapshot
 is missing, expired or unreadable, a unique key forces a miss; an unknown identity never
 reuses cached annotation data. Flag-off and nonparticipating providers keep legacy keys.
