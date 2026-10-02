@@ -346,10 +346,12 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
           setSelectOptions(
             fullSelectOptions.filter(
-              option => getValue(option.value) !== getValue(value),
+              opt =>
+                getValue(opt.value) !== getValue(value) &&
+                getValue(opt.label) !== getValue(value),
             ),
           );
         }
@@ -697,6 +699,11 @@ const AsyncSelect = forwardRef(
 
     const handleClear = () => {
       setSelectValue(undefined);
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       if (onClear) {
         onClear();
       }

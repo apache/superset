@@ -504,6 +504,14 @@ const Select = forwardRef(
             ),
         );
       }
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+        setVisibleOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       fireOnChange();
     };
 
@@ -515,9 +523,11 @@ const Select = forwardRef(
         setSelectValue(array);
 
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
           const updatedOptions = fullSelectOptions.filter(
-            option => getValue(option.value) !== getValue(value),
+            opt =>
+              getValue(opt.value) !== getValue(value) &&
+              getValue(opt.label) !== getValue(value),
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
