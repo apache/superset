@@ -45,7 +45,13 @@ def mock_auth() -> Iterator[Mock]:
 
 
 @pytest.fixture(autouse=True)
-def mock_data_access() -> Iterator[None]:
+def can_view() -> bool:
+    """Whether the mocked user may inspect data model metadata."""
+    return True
+
+
+@pytest.fixture(autouse=True)
+def mock_data_access(can_view: bool) -> Iterator[tuple[Mock, Mock]]:
     """Avoid hitting the metadata database while generating the resource."""
     dataset = SimpleNamespace(
         id=7,
@@ -58,17 +64,25 @@ def mock_data_access() -> Iterator[None]:
     with (
         patch(
             "superset.mcp_service.mcp_core.InstanceInfoCore._calculate_basic_counts",
-            return_value={},
+            return_value={"total_datasets": 7, "total_databases": 3},
         ),
         patch(
             "superset.mcp_service.mcp_core.InstanceInfoCore"
             "._calculate_time_based_metrics",
             return_value={},
         ),
-        patch("superset.daos.dataset.DatasetDAO.find_all", return_value=[dataset]),
-        patch("superset.daos.database.DatabaseDAO.find_all", return_value=[database]),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_all", return_value=[dataset]
+        ) as find_datasets,
+        patch(
+            "superset.daos.database.DatabaseDAO.find_all", return_value=[database]
+        ) as find_databases,
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view,
+        ),
     ):
-        yield
+        yield find_datasets, find_databases
 
 
 async def _read_metadata() -> dict[str, Any]:
@@ -88,12 +102,37 @@ async def test_instance_metadata_resource_returns_valid_payload() -> None:
         {"popular_content": {"top_tags": [], "top_creators": []}, **data}
     )
     assert FeatureAvailability.model_validate(data["feature_availability"])
+    assert data["instance_summary"]["total_datasets"] == 7
+    assert data["instance_summary"]["total_databases"] == 3
+    assert data["data_model_metadata_redacted"] is False
     assert data["available_datasets"] == [
         {"id": 7, "table_name": "orders", "schema": "public", "database_id": 3}
     ]
     assert data["available_databases"] == [
         {"id": 3, "database_name": "examples", "backend": "sqlite"}
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_view", [False])
+async def test_instance_metadata_resource_redacts_data_model_metadata(
+    mock_data_access: tuple[Mock, Mock],
+) -> None:
+    """Principals without data model access must not see dataset/database info."""
+    find_datasets, find_databases = mock_data_access
+
+    data = await _read_metadata()
+
+    assert "error" not in data
+    assert data["data_model_metadata_redacted"] is True
+    assert data["instance_summary"]["total_datasets"] == 0
+    assert data["instance_summary"]["total_databases"] == 0
+    assert data["database_breakdown"]["by_type"] == {}
+    assert data["available_datasets"] == []
+    assert data["available_databases"] == []
+    find_datasets.assert_not_called()
+    find_databases.assert_not_called()
+    assert "accessible_menus" in data["feature_availability"]
 
 
 def test_resource_and_tool_share_metric_calculators() -> None:

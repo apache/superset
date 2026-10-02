@@ -29,6 +29,7 @@ from superset.mcp_service.system.schemas import (
     DashboardBreakdown,
     DatabaseBreakdown,
     FeatureAvailability,
+    InstanceInfo,
     InstanceSummary,
     PopularContent,
     RecentActivity,
@@ -223,6 +224,18 @@ def calculate_feature_availability(
     return FeatureAvailability(
         accessible_menus=accessible_menus,
     )
+
+
+def redact_data_model_metadata(result: InstanceInfo) -> InstanceInfo:
+    """Remove dataset/database counts and activity from instance overview."""
+    data = result.model_copy(deep=True)
+    data.instance_summary.total_datasets = 0
+    data.instance_summary.total_databases = 0
+    data.recent_activity.datasets_created_last_30_days = 0
+    data.recent_activity.datasets_modified_last_7_days = 0
+    data.database_breakdown.by_type = {}
+    data.data_model_metadata_redacted = True
+    return data
 
 
 # Shared by the get_instance_info tool and the instance://metadata resource so a
