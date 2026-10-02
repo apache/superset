@@ -141,4 +141,5 @@ test('disables editing and resets while ranges has a blank token between numbers
   screen.getAllByRole('button', { name: 'Use default' }).forEach(button => {
     expect(button).toBeDisabled();
   });
+  expect(onChange).not.toHaveBeenCalled();
 });
