@@ -772,18 +772,26 @@ class DatasetValidator:
 
     @staticmethod
     def _bounded_error_context(
-        dataset_context: DatasetContext, candidates: List[str]
+        dataset_context: DatasetContext,
+        candidates: List[str],
+        metric_candidates: List[str] | None = None,
     ) -> DatasetContext:
         """Names-only dataset context for a column error.
 
         Names are returned verbatim per the Tool Result Value Contract; only
         the number of entries is bounded, and SQL expressions are dropped.
         Fuzzy candidates come first so the suggested column is never cut from
-        the list by the count bound.
+        the list by the count bound. Saved metrics get the same treatment so a
+        hinted saved metric is never missing from ``available_metrics``.
         """
         all_names = [col["name"] for col in dataset_context.available_columns]
         ranked = [name for name in candidates if name in all_names]
         ranked += [name for name in all_names if name not in ranked]
+        all_metrics = [metric["name"] for metric in dataset_context.available_metrics]
+        ranked_metrics = [
+            name for name in (metric_candidates or []) if name in all_metrics
+        ]
+        ranked_metrics += [name for name in all_metrics if name not in ranked_metrics]
         return DatasetContext(
             id=dataset_context.id,
             table_name=dataset_context.table_name,
@@ -793,8 +801,7 @@ class DatasetValidator:
                 {"name": name} for name in ranked[:MAX_ERROR_SUGGESTIONS]
             ],
             available_metrics=[
-                {"name": metric["name"]}
-                for metric in dataset_context.available_metrics[:MAX_ERROR_SUGGESTIONS]
+                {"name": name} for name in ranked_metrics[:MAX_ERROR_SUGGESTIONS]
             ],
         )
 
@@ -828,11 +835,22 @@ class DatasetValidator:
                 f"Showing {MAX_ERROR_SUGGESTIONS} of {total_columns} columns; "
                 "call get_dataset_info for the full list"
             )
+        total_metrics = len(dataset_context.available_metrics)
+        if total_metrics > MAX_ERROR_SUGGESTIONS:
+            extra.append(
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_metrics} saved "
+                "metrics; call get_dataset_info for the full list"
+            )
         if extra:
             error.suggestions = (error.suggestions + extra)[:MAX_ERROR_SUGGESTIONS]
 
+        metric_candidates = list(
+            dict.fromkeys(
+                name for matches in (metric_hints or {}).values() for name in matches
+            )
+        )
         error.dataset_context = DatasetValidator._bounded_error_context(
-            dataset_context, candidates
+            dataset_context, candidates, metric_candidates
         )
         return error
 
@@ -868,7 +886,7 @@ class DatasetValidator:
         available = [m["name"] for m in dataset_context.available_metrics]
         return ChartErrorBuilder.build_error(
             error_type="invalid_saved_metric",
-            template_key="column_not_found",
+            template_key="saved_metric_not_found",
             template_vars={
                 "column": ", ".join(invalid),
                 "suggestions": (

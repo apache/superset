@@ -846,8 +846,9 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
-        # This path shares the free-form ``column_not_found`` template, so the
-        # metric list is returned without a "Did you mean" wrapper around it.
+        # Uses the saved-metric template, so the message names a metric (not a
+        # column) and the metric list has no "Did you mean" wrapper around it.
+        assert error.message == "Saved metric 'nonexistent_metric' not found in dataset"
         assert "Available saved metrics: TotalRevenue" in error.suggestions
         assert all(not s.startswith("Did you mean:") for s in error.suggestions)
 

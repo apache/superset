@@ -277,6 +277,30 @@ def test_truncated_context_says_how_many_columns_exist() -> None:
     )
 
 
+def test_hinted_saved_metric_is_never_cut_from_the_context() -> None:
+    """The metric named by the hint leads ``available_metrics`` and cuts say so."""
+    context = DatasetContext(
+        id=268,
+        table_name="fixture",
+        database_name="fixture",
+        available_columns=[{"name": "num"}],
+        available_metrics=[{"name": f"metric_{i:02d}"} for i in range(25)]
+        + [{"name": "sum_boys"}],
+    )
+    error = DatasetValidator._validate_columns_exist(
+        [ColumnRef(name="sum_boy", aggregate="SUM")], context
+    )
+    assert error is not None
+    assert error.dataset_context is not None
+    metric_names = [m["name"] for m in error.dataset_context.available_metrics]
+    assert "sum_boys" in metric_names
+    assert len(metric_names) == MAX_ERROR_SUGGESTIONS
+    assert any(
+        s.startswith(f"Showing {MAX_ERROR_SUGGESTIONS} of 26 saved metrics")
+        for s in error.suggestions
+    )
+
+
 def test_suggested_column_is_never_cut_from_the_context() -> None:
     """Fuzzy candidates lead the bounded context, ahead of schema order."""
     context = DatasetContext(

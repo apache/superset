@@ -147,12 +147,16 @@ class ChartErrorBuilder:
                 "Use the list_datasets tool to find available datasets",
             ],
         },
-        # Free-form ``{suggestions}`` text, used where the caller composes its
-        # own closing line (e.g. the saved-metric validator).
-        "column_not_found": {
-            "message": "Column '{column}' not found in dataset",
-            "details": "The column '{column}' does not exist in the dataset schema",
-            "suggestions": [*_COLUMN_GUIDANCE, "{suggestions}"],
+        # Free-form ``{suggestions}`` text: the saved-metric validator composes
+        # its own closing line.
+        "saved_metric_not_found": {
+            "message": "Saved metric '{column}' not found in dataset",
+            "details": "The saved metric '{column}' does not exist in the dataset",
+            "suggestions": [
+                "Check saved metric name spelling and case sensitivity",
+                "Use get_dataset_info to see available saved metrics",
+                "{suggestions}",
+            ],
         },
         "column_not_found_candidates": {
             "message": "Column '{column}' not found in dataset",
