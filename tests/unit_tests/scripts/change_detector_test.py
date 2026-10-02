@@ -21,6 +21,7 @@ from urllib.error import HTTPError, URLError
 import pytest
 
 from scripts import change_detector
+from superset.utils import json
 
 
 def _make_response(body: bytes) -> mock.MagicMock:
@@ -186,3 +187,97 @@ def test_grype_config_changes_trigger_docker_build() -> None:
         [".grype.yaml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_fetch_changed_files_push_uses_full_push_range() -> None:
+    changed_files = [
+        {"filename": "superset/foo.py"},
+        {"filename": "superset-frontend/src/foo.tsx"},
+    ]
+
+    with mock.patch.object(
+        change_detector,
+        "fetch_files_github_api",
+        return_value={"files": changed_files},
+    ) as fetch_mock:
+        result = change_detector.fetch_changed_files_push(
+            "apache/superset",
+            "after-sha",
+            "before-sha",
+        )
+
+    assert result == [
+        "superset/foo.py",
+        "superset-frontend/src/foo.tsx",
+    ]
+
+    fetch_mock.assert_called_once_with(
+        "https://api.github.com/repos/apache/superset/compare/before-sha...after-sha"
+    )
+
+
+def test_get_push_before_sha() -> None:
+    event = {"before": "before-sha", "after": "after-sha"}
+
+    with mock.patch.dict(
+        change_detector.os.environ,
+        {"GITHUB_EVENT_PATH": "github-event.json"},
+    ):
+        with mock.patch(
+            "builtins.open",
+            mock.mock_open(read_data=json.dumps(event)),
+        ):
+            assert change_detector.get_push_before_sha() == "before-sha"
+
+
+def test_get_push_before_sha_returns_none_for_initial_push() -> None:
+    event = {"before": "0" * 40, "after": "after-sha"}
+
+    with mock.patch.dict(
+        change_detector.os.environ,
+        {"GITHUB_EVENT_PATH": "github-event.json"},
+    ):
+        with mock.patch(
+            "builtins.open",
+            mock.mock_open(read_data=json.dumps(event)),
+        ):
+            assert change_detector.get_push_before_sha() is None
+
+
+def test_main_push_detects_changes_from_multiple_commits(tmp_path) -> None:
+    event = {"before": "before-sha", "after": "after-sha"}
+
+    changed_files = {
+        "files": [
+            {"filename": "superset/foo.py"},
+            {"filename": "superset-frontend/src/foo.tsx"},
+        ]
+    }
+
+    with mock.patch.dict(
+        change_detector.os.environ,
+        {
+            "GITHUB_EVENT_PATH": "github-event.json",
+            "GITHUB_OUTPUT": str(tmp_path / "github-output"),
+        },
+    ):
+        with mock.patch(
+            "builtins.open",
+            mock.mock_open(read_data=json.dumps(event)),
+        ) as open_mock:
+            with mock.patch.object(
+                change_detector,
+                "fetch_files_github_api",
+                return_value=changed_files,
+            ):
+                change_detector.main(
+                    "push",
+                    "after-sha",
+                    "apache/superset",
+                )
+
+    output = open_mock()
+    written = "".join(call.args[0] for call in output.write.call_args_list)
+
+    assert "python=true" in written
+    assert "frontend=true" in written
