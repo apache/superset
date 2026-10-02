@@ -36,6 +36,40 @@ from superset.exceptions import (
 from superset.models.core import Database
 
 
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(1 + 4)"])
+def test_get_columns_description_caps_complex_tsql_limits(
+    top: str, mocker: MockerFixture
+) -> None:
+    """Column discovery must enforce its SQL cap without an executor cursor."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLScript
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=MssqlEngineSpec)
+    connection = mocker.patch.object(database, "get_raw_connection")
+    cursor = connection.return_value.__enter__.return_value.cursor.return_value
+    cursor.description = [("n", "INT", None, None, None, None, None)]
+    cursor.fetchall.return_value = [(1,)]
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql: sql
+    )
+    execute = mocker.patch.object(MssqlEngineSpec, "execute")
+    fetch = mocker.spy(MssqlEngineSpec, "fetch_data")
+    result_set = mocker.patch("superset.connectors.sqla.utils.SupersetResultSet")
+
+    get_columns_description(
+        database,
+        None,
+        None,
+        f"SELECT TOP {top} n FROM t ORDER BY n",  # noqa: S608
+    )
+
+    expected = SQLScript("SELECT TOP 1 n FROM t ORDER BY n", "mssql").format()
+    execute.assert_called_once_with(cursor, expected, database)
+    fetch.assert_called_once_with(cursor, limit=1)
+    result_set.assert_called_once_with([(1,)], cursor.description, MssqlEngineSpec)
+
+
 # Returns column descriptions when given valid database, catalog, schema, and query
 def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     database = mocker.MagicMock()

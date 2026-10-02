@@ -183,6 +183,77 @@ latest-per-user permalink lookup, and replaying a previously received permalink
 could overwrite manual changes or undo. If a notification is missed or its
 permalink cannot be resolved, open `dashboard_url` from chat.
 
+## Dashboard filter scope
+
+A client that answers questions about a dashboard the user is viewing (for
+example an assistant embedded next to it) can make every tool call honor that
+dashboard's active filters by sending them in the `X-Superset-Dashboard-Scope`
+request header on each MCP HTTP request of the conversation turn. The model
+issuing tool calls never sees the header, so it cannot drop or loosen the
+filters, and retried calls carry them again.
+
+The header value is `base64url(zlib(JSON))` of:
+
+```json
+{
+  "version": 1,
+  "dashboard_id": 12,
+  "chart_filters": {
+    "101": {"filters": [{"col": "client", "op": "IN", "val": ["A"]}],
+            "time_range": "Last quarter"}
+  }
+}
+```
+
+`chart_filters` maps each chart with active filters to the `extra_form_data`
+the dashboard applies to it. A malformed header refuses every tool call rather
+than being ignored. Without the header, behavior is unchanged.
+
+While a scope with active filters is present:
+
+- Chart data tools (`get_chart_data`, `get_chart_preview`, `get_dashboard_data`)
+  apply each chart's dashboard filters and AND any `extra_form_data` the model
+  supplies with them. Filters can be added but not removed, and time windows,
+  time columns and relative anchors the dashboard sets (including time-series
+  cross-filters) cannot be changed. Charts that are not on the scoped
+  dashboard, and unsaved chart state (`form_data_key`), are refused.
+- `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
+  filters from dashboard charts backed by the queried dataset, respecting
+  native-filter chart scoping. Datasets outside the dashboard use the combined
+  dashboard-wide filters. A model-supplied time range is intersected with the
+  applicable dashboard time range. `execute_sql` replaces each filtered table
+  read with a sub-query, the same way row-level security is applied, and refuses
+  SQL whose tables are not registered datasets that have every filtered column, as well
+  as SQL that could read tables it cannot see: opaque statements, functions
+  the SQL parser does not model, and table functions. For `execute_sql`, template
+  syntax in SQL or dashboard filter values is refused rather than rendered after
+  scoping.
+  For all three tools, the time-filter column is resolved from the affected
+  dashboard charts' temporal filters (or legacy chart time-column settings),
+  after dashboard overrides. The charts must agree on one column. A chart with
+  no temporal target, conflicting targets, or a dataset outside the dashboard
+  with an applicable time window causes a refusal; the dataset's main datetime
+  column and a model-supplied column are never used to guess the dashboard target.
+  Malformed saved chart filter lists also cause an explicit scope refusal before
+  dashboard overrides are merged; no query is run.
+  Without an applicable dashboard time window, no chart temporal target is
+  required, and model-supplied time filtering behaves as before.
+- Writes that change what charts or datasets query (adding a chart to a
+  dashboard, saving a chart, defining a virtual dataset, editing a dataset or
+  metric, restoring a chart or dataset) are refused while the scope is
+  active.
+- Where the filters cannot be applied (for example, a column the dataset lacks,
+  or a column filtered differently by different charts) the call fails with a
+  tool error beginning `Dashboard filter scope refused this call:`. Tools that
+  return no dataset rows are unaffected; any other tool, including extension
+  tools, is refused.
+- MCP response caching is bypassed for scoped calls, and the scope is applied
+  before any query is built, so Superset's query cache never serves an
+  unscoped result.
+
+The scope is a correctness control for answers, not an access control.
+Permissions and row-level security apply exactly as they do without it.
+
 ---
 
 ## Quick Start
@@ -1144,6 +1215,23 @@ while page["next_cursor"]:
     )
 ```
 
+## Chart datasource metadata
+
+For roles allowed to view data-model metadata, `get_chart_info` includes
+`datasource_id` in its default columns. Dashboard chart summaries include
+`datasource_type` alongside `datasource_id`, which is only unique within its type.
+Both fields are redacted for users without data-model metadata access.
+Chart and dashboard chart summaries resolve dataset names from the live table
+or semantic view, so renames are reflected without resaving the chart. Query and
+saved-query charts retain their stored datasource names; missing tables or
+semantic views do not fall back to stale names. Dataset-access validation remains
+unchanged.
+
+`list_charts` filters on `datasource_name` use these same live names before
+pagination and counting. For tables with a schema, filter using
+`schema.table_name`. Data-model metadata permission checks also apply to these
+filters and returned identifiers.
+
 ## Trash Listing (Soft-Deleted Objects)
 
 When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
@@ -1371,6 +1459,52 @@ The error hook runs off the transport loop in its own application and metadata
 session scope, without reloading the request user. Reporting an error therefore
 does not require metadata database access unless the hook itself uses it. Use the
 provided hook context for caller identity rather than `g.user`.
+
+## SQL execution row limits
+
+The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
+last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
+request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
+`limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
+If SQL has no outer limit, the explicit request cap is applied. Inner query and
+CTE limits and SQL offsets are preserved. Literal `FETCH FIRST` counts and
+parenthesized literal limits follow the same rule. `PERCENT`, `WITH TIES`, and
+limit expressions that cannot be interpreted as a fixed row count are preserved
+inside a subquery with an outer row cap, rather than replaced. This conservative
+fallback cannot increase the original result's row count. For SQL Server, these
+restrictions are left unchanged instead: a derived table could reject duplicate
+or unnamed output columns. The executor caps the last statement's returned rows
+at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
+percentage, tie, or expression semantics. Cursor reads are bounded by the same
+cap plus one probe row, including across multiple fetch batches, preserving
+engine-specific result processing. Only successfully returned rows count against the cursor
+budget, so a failed fetch leaves that budget available for an engine fallback.
+BigQuery only falls back if its initial fetch fails; errors after a successful
+sample, including during the EOF probe, fail the query rather than silently
+discarding buffered rows.
+This does not bound the work performed by the database.
+Because this cap applies to any row-returning last statement, a non-query
+statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each
+statement reports `truncated: true` when a fetch cap omits rows from the
+executed SQL result, including engine memory caps such as `BQ_FETCH_MAX_MB`.
+Exactly-at-cap and smaller results report `false` when no rows are omitted. This
+flag does not indicate rows excluded by a SQL LIMIT visible in `executed_sql`,
+and does not bound or count affected rows for a write with `RETURNING`. In
+`dry_run`, the SQL Server restriction remains unchanged because no results are
+fetched.
+
+Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
+subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
+to `dry_run`, which returns the transformed SQL without executing it.
+
+The SQL-only `Database.apply_limit_to_sql()` helper used by dataset column
+discovery and alerts does not use the executor's bounded cursor. It retains the
+legacy SQL Server behavior of replacing `PERCENT`, `WITH TIES`, and non-fixed
+limit expressions with a fixed `TOP` cap, without introducing derived tables
+that could reject unnamed or duplicate columns. Smaller fixed limits, including
+zero, are preserved unless the caller explicitly requests `force=True`. This
+legacy helper's replacement semantics are separate from MCP execution's
+preservation of complex SQL restrictions.
 
 ## Result serialization
 

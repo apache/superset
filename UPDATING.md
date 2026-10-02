@@ -80,6 +80,32 @@ format. Use a consistent timezone and precision for stored strings and bounds.
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
 
+### SQL execution request limits are safety caps
+
+The MCP `execute_sql` request's `limit` no longer overrides a smaller outer SQL
+LIMIT. It caps the last statement at the smaller of the SQL LIMIT and the request
+limit, subject to `SQL_MAX_ROW`. For example, SQL `LIMIT 5` with request `limit: 10`
+keeps `LIMIT 5`. To return more rows, increase or remove the SQL LIMIT explicitly.
+Omitting the request limit still leaves SQL limits unchanged. Inner query and CTE
+limits are not changed.
+
+This contract change also applies to the public `Database.execute()` and
+`Database.execute_async()` APIs through `QueryOptions.limit`, including dry runs.
+
+SQL Lab also recognizes literal `FETCH FIRST` counts and parenthesized literal
+limits. SQL Server `TOP ... PERCENT` and `TOP ... WITH TIES` are no longer
+interpreted as fixed row counts: SQL Lab uses the row-limit dropdown (subject to
+server limits) and rewrites these clauses to a fixed `TOP` cap. For example,
+`TOP 5 PERCENT` with a 1000-row dropdown can return up to 1000 rows rather than
+the previous five.
+
+`BigQueryEngineSpec.fetch_data` no longer falls back to a plain `fetchall()` once
+it has read its initial sample, since a forward-only cursor cannot replay those
+rows. A BigQuery driver error after the sample now fails the query instead of
+returning the remaining rows as a success. This applies to every caller,
+including legacy SQL Lab execution and dataset column discovery. An error on the
+initial read still falls back as before.
+
 ### Doris SSL requests require TLS
 
 The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and
