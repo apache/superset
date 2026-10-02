@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
+  has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
+  saved, including during the dataset's deletion. Such orphaned charts no longer
+  appear in the chart list through `schema_access` or `catalog_access` grants,
+  matching the object-level check that already denies them. Charts of a
+  soft-deleted dataset keep their permissions, so restoring the dataset restores
+  access.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

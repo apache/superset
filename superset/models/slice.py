@@ -45,6 +45,7 @@ from superset.legacy import update_time_range
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
+    skip_visibility_filter,
     SoftDeleteMixin,
 )
 from superset.security.manager import get_extra_editor_subject_ids
@@ -522,12 +523,22 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         target.catalog_perm = None
         target.schema_perm = None
         return
+    ds: Datasource | None = None
     if id_ := target.datasource_id:
-        ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-        if ds:
-            target.perm = ds.perm
-            target.catalog_perm = ds.catalog_perm
-            target.schema_perm = ds.schema_perm
+        # A soft-deleted datasource is restorable, not missing: resolve it so
+        # its charts keep their perms through trash and restore.
+        with skip_visibility_filter(db.session, src_class):
+            ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+    if ds is None:
+        # A missing datasource (hard-deleted, or no ``datasource_id``) fails
+        # closed like an unknown type, rather than keeping the stale perm.
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
+    target.perm = ds.perm
+    target.catalog_perm = ds.catalog_perm
+    target.schema_perm = ds.schema_perm
 
 
 def event_after_chart_changed(
