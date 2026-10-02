@@ -62,39 +62,6 @@ export function mappedColumnIsImplicit(
 }
 
 /**
- * Whether the mapping will actually mirror anything.
- *
- * Drives the choice between the green "filters will automatically apply"
- * message and the warning that nothing is mirrored yet, so "non-blank text in
- * the box" is not a good enough test: a transform with no `:value` to
- * substitute, or one carrying Jinja, is as inert as an empty one and the
- * backend's own summary reports it inactive. Claiming otherwise tells an owner
- * their queries are pruning when they are not.
- *
- * Shares `transformCanPreview`'s conditions rather than restating them, and is
- * necessary rather than sufficient for the same reason: an unparseable
- * expression or a non-deterministic function needs a SQL parser to spot, so the
- * server stays the authority and reports those at the transform field itself.
- */
-export function mappingIsActive(
-  datasource: PartitionMappingDatasource,
-  columns: PartitionMappingColumn[],
-): boolean {
-  const mappedColumnName = resolveMappedColumn(datasource);
-  if (!mappedColumnName || mappedColumnName === datasource.partition_column) {
-    return false;
-  }
-  const mappedColumn = columns.find(
-    column => column.column_name === mappedColumnName,
-  );
-  return transformCanPreview(
-    mappedColumn?.partition_value_transform,
-    mappedColumnName,
-    datasource.partition_column,
-  );
-}
-
-/**
  * Whether a transform is worth spending a preview request on.
  *
  * A necessary condition, never a sufficient one: the server stays the authority
@@ -127,6 +94,40 @@ export function transformCanPreview(
     return false;
   }
   return true;
+}
+
+/**
+ * Whether the mapping will actually mirror anything.
+ *
+ * Drives the choice between the green "filters will automatically apply"
+ * message and the warning that nothing is mirrored yet, so "non-blank text in
+ * the box" is not a good enough test: a transform with no `:value` to
+ * substitute, or one carrying Jinja, is as inert as an empty one and the
+ * backend's own summary reports it inactive. Claiming otherwise tells an owner
+ * their queries are pruning when they are not.
+ *
+ * Shares `transformCanPreview`'s conditions rather than restating them, and is
+ * necessary rather than sufficient for the same reason: an unparseable
+ * expression or a non-deterministic function needs a SQL parser to spot, so the
+ * server stays the authority -- `valueTransformIssues` surfaces what it says at
+ * the transform field itself.
+ */
+export function mappingIsActive(
+  datasource: PartitionMappingDatasource,
+  columns: PartitionMappingColumn[],
+): boolean {
+  const mappedColumnName = resolveMappedColumn(datasource);
+  if (!mappedColumnName || mappedColumnName === datasource.partition_column) {
+    return false;
+  }
+  const mappedColumn = columns.find(
+    column => column.column_name === mappedColumnName,
+  );
+  return transformCanPreview(
+    mappedColumn?.partition_value_transform,
+    mappedColumnName,
+    datasource.partition_column,
+  );
 }
 
 /**
