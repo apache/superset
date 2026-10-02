@@ -2184,7 +2184,7 @@ test('clear-all does not restore a LIKE edit still pending in the deferred value
     );
   });
   const callsBeforeRelease = setDataMaskMock.mock.calls.length;
-  rerender(<SelectFilterPlugin {...likeProps} clearAllTrigger={{}} />);
+  rerender(<SelectFilterPlugin {...likeProps} clearAllTrigger={undefined} />);
   await act(async () => {});
 
   expect(input).toHaveValue('');

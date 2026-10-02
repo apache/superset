@@ -629,14 +629,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     updateDataMaskRef.current = updateDataMask;
   }, [updateDataMask]);
 
-  // Leaving a LIKE operator discards the pending edit so returning to one
-  // doesn't replay text typed under the previous mode.
+  // Any match-type change (including between two LIKE modes) discards the
+  // pending edit, so text typed under the previous mode is never replayed and
+  // re-entering the same text afterwards registers as a fresh edit.
   useEffect(() => {
-    if (!isLikeOperator) {
-      settleLikeValue.cancel();
-      setPendingLikeValue(null);
-    }
-  }, [isLikeOperator, settleLikeValue]);
+    settleLikeValue.cancel();
+    setPendingLikeValue(null);
+  }, [operatorType, isLikeOperator, settleLikeValue]);
 
   useEffect(() => {
     if (pendingLikeValue === null || !isLikeOperator || clearAllTrigger) {
