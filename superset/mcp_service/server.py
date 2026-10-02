@@ -320,6 +320,14 @@ def _complete_sentences(text: str, max_length: int) -> str:
     return text[: ends[-1]].strip() if ends else ""
 
 
+def _drop_trailing_lead_in(text: str) -> str:
+    """Drop a final sentence ending in a colon, which introduces a cut-off list."""
+    if not text.endswith(":"):
+        return text
+    boundaries = list(re.finditer(r"[.!?](?=\s)", text))
+    return text[: boundaries[-1].end()].strip() if boundaries else text
+
+
 def _truncate_description(text: str, max_length: int) -> str:
     """Keep whole paragraphs, then whole sentences of the next one, within budget.
 
@@ -336,6 +344,7 @@ def _truncate_description(text: str, max_length: int) -> str:
         if match.start() > max_length:
             break
         kept, rest = text[: match.start()].strip(), text[match.end() :]
+    kept = _drop_trailing_lead_in(kept)
     following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
     # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
     if kept and _STRUCTURED_PARAGRAPH.search(following):

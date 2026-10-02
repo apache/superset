@@ -458,6 +458,19 @@ def test_truncate_description_never_starts_structured_paragraph(
     assert _truncate_description(f"Summary.\n\n{following}", 60) == "Summary."
 
 
+def test_truncate_description_drops_trailing_lead_in_sentence() -> None:
+    """A kept paragraph ending in a colon must not advertise a cut-off list."""
+    text = "Edit things. An LLM can:\n\n- first\n- second\n\n" + "x" * 300
+    assert _truncate_description(text, 30) == "Edit things."
+
+
+def test_truncate_description_keeps_lone_lead_in_sentence() -> None:
+    """With no earlier sentence, the colon-terminated text is left untouched."""
+    assert _truncate_description("An LLM can:\n\n- first\n\n" + "x" * 300, 15) == (
+        "An LLM can:"
+    )
+
+
 def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
     """An overlong first paragraph still yields its complete leading sentences."""
     text = "Purpose line. " + "More detail here. " * 20 + "\n\nSecond paragraph."
