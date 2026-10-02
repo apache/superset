@@ -1195,6 +1195,23 @@ while page["next_cursor"]:
     )
 ```
 
+## Chart datasource metadata
+
+For roles allowed to view data-model metadata, `get_chart_info` includes
+`datasource_id` in its default columns. Dashboard chart summaries include
+`datasource_type` alongside `datasource_id`, which is only unique within its type.
+Both fields are redacted for users without data-model metadata access.
+Chart and dashboard chart summaries resolve dataset names from the live table
+or semantic view, so renames are reflected without resaving the chart. Query and
+saved-query charts retain their stored datasource names; missing tables or
+semantic views do not fall back to stale names. Dataset-access validation remains
+unchanged.
+
+`list_charts` filters on `datasource_name` use these same live names before
+pagination and counting. For tables with a schema, filter using
+`schema.table_name`. Data-model metadata permission checks also apply to these
+filters and returned identifiers.
+
 ## Trash Listing (Soft-Deleted Objects)
 
 When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
