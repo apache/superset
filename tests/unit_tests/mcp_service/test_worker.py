@@ -79,7 +79,11 @@ def server(app: Any, request: pytest.FixtureRequest) -> Iterator[FastMCP]:
             else:
                 script = SQLScript(sql, "sqlite")
                 SQLExecutor(database)._execute_statements(
-                    script, script, None, None, Mock(progress=0, schema=None)
+                    script,
+                    script,
+                    None,
+                    None,
+                    Mock(progress=0, schema=None, limit=None),
                 )
         return "finished"
 
