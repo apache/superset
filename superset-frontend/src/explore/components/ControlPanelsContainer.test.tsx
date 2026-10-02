@@ -77,6 +77,7 @@ const StoreBackedControlPanelsContainer = () => {
       dispatch(setControlValue(...args)) as unknown as ReturnType<
         typeof setControlValue
       >,
+    resetSemanticSelections: jest.fn(),
   };
   return (
     <ControlPanelsContainer
