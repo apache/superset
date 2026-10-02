@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { act } from 'react';
 import '@testing-library/jest-dom';
 import {
   fireEvent,
   render,
   screen,
   userEvent,
+  waitFor,
   within,
 } from '@superset-ui/core/spec';
 import { JsonCellRenderer } from '../src/renderers/JsonCellRenderer';
@@ -56,6 +58,19 @@ test('parseJsonCellValue reuses a parsed string and skips oversized text', () =>
   const first = parseJsonCellValue('{"a":1}');
   expect(parseJsonCellValue('{"a":1}')).toBe(first);
   expect(parseJsonCellValue(`{"a":"${'x'.repeat(100_000)}"}`)).toBeNull();
+  expect(parseJsonCellValue('')).toBeNull();
+  expect(parseJsonCellValue('   ')).toBeNull();
+  expect(parseJsonCellValue(Object.create(null))).toEqual({});
+});
+
+test('parseJsonCellValue drops the oldest cached string when the cache is full', () => {
+  const first = parseJsonCellValue('{"n":0}');
+  for (let index = 1; index < 200; index += 1) {
+    parseJsonCellValue(`{"n":${index}}`);
+  }
+  parseJsonCellValue('{"extra":1}');
+  expect(parseJsonCellValue('{"n":0}')).not.toBe(first);
+  expect(parseJsonCellValue('{"n":0}')).toEqual({ n: 0 });
 });
 
 test('jsonCellPreview collapses formatting whitespace and keeps string contents', () => {
@@ -63,7 +78,14 @@ test('jsonCellPreview collapses formatting whitespace and keeps string contents'
   expect(jsonCellPreview({ a: 'x  y' }, '{\n  "a": "x  y"\n}')).toBe(
     '{ "a": "x  y" }',
   );
+  expect(jsonCellPreview({ a: 'x"y' }, '{"a":"x\\"y"}')).toBe('{"a":"x\\"y"}');
+  expect(jsonCellPreview({ a: 1 }, '{\r\n\t"a": 1}')).toBe('{ "a": 1}');
   expect(jsonCellPreview({ a: 'x'.repeat(100_001) })).toBe('{…}');
+  expect(jsonCellPreview(Array.from({ length: 100_001 }, () => 1))).toBe('[…]');
+  expect(jsonCellPreview({ a: BigInt(1) })).toBe('{…}');
+  expect(jsonCellPreview([BigInt(1)])).toBe('[…]');
+  expect(jsonCellPreview({ a: 1 })).toBe('{"a":1}');
+  expect(jsonCellPreview([1, 2])).toBe('[1,2]');
 });
 
 test('syncJsonCellRowHeight writes height onto the row node', () => {
@@ -114,6 +136,10 @@ test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   expect(
     isJsonCellDoubleClick(secondClick, document.getElementById('plain')),
   ).toBe(false);
+  expect(isJsonCellDoubleClick(null, text)).toBe(false);
+  expect(isJsonCellDoubleClick(secondClick, null)).toBe(false);
+  expect(isJsonCellDoubleClick(new Event('click'), text)).toBe(false);
+  expect(isJsonCellDoubleClick({ detail: '2' } as Event, text)).toBe(false);
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {
@@ -242,6 +268,234 @@ test('a click on the arrow expands the cell and a second click opens the dialog'
   expect(writeText).toHaveBeenCalledWith(nestedJson);
   expect(
     await within(dialog).findByRole('button', { name: 'Copied' }),
+  ).toBeInTheDocument();
+});
+
+test('the dialog shows primitives and arrays', async () => {
+  render(
+    <JsonCellRenderer
+      value={{
+        n: 1,
+        big: BigInt(2),
+        on: false,
+        empty: null,
+        items: ['ada'],
+      }}
+      colId="payload"
+      autoHeight={false}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('1')).toBeInTheDocument();
+  expect(within(dialog).getByText('2')).toBeInTheDocument();
+  expect(within(dialog).getByText('false')).toBeInTheDocument();
+  expect(within(dialog).getByText('null')).toBeInTheDocument();
+  expect(
+    within(dialog).getByRole('button', { name: 'Expand items' }),
+  ).toBeInTheDocument();
+
+  await userEvent.click(
+    within(dialog).getByRole('button', { name: 'Expand items' }),
+  );
+  expect(within(dialog).getByText('"ada"')).toBeInTheDocument();
+  await userEvent.click(
+    within(dialog).getByRole('button', { name: 'Collapse items' }),
+  );
+  expect(within(dialog).queryByText('"ada"')).not.toBeInTheDocument();
+
+  await userEvent.click(within(dialog).getByTestId('close-modal-btn'));
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+  );
+});
+
+test('a nested value past the depth limit is abbreviated', async () => {
+  let deep: Record<string, unknown> = { leaf: 'end' };
+  for (let index = 0; index < 40; index += 1) {
+    deep = { child: deep };
+  }
+  render(<JsonCellRenderer value={deep} colId="payload" autoHeight={false} />);
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  const dialog = await screen.findByRole('dialog');
+  for (let index = 0; index < 31; index += 1) {
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Expand child' }),
+    );
+  }
+  expect(within(dialog).getByText('…')).toBeInTheDocument();
+});
+
+test('the copied label clears after two seconds', async () => {
+  const writeText = jest.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
+  render(
+    <JsonCellRenderer value={{ a: 1 }} colId="payload" autoHeight={false} />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  const dialog = await screen.findByRole('dialog');
+
+  jest.useFakeTimers();
+  try {
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+      await Promise.resolve();
+    });
+    expect(
+      within(dialog).getByRole('button', { name: 'Copied' }),
+    ).toBeInTheDocument();
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(
+      within(dialog).getByRole('button', { name: 'Copy' }),
+    ).toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('a pending arrow click does not expand after unmount', () => {
+  jest.useFakeTimers();
+  try {
+    const { unmount } = render(
+      <JsonCellRenderer
+        value={{ a: 1 }}
+        colId="payload"
+        autoHeight={false}
+        jsonInCell
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
+    unmount();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Collapse JSON' }),
+    ).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('a long preview has no title and an expanded cell sets the row height', async () => {
+  const longValue = { a: 'y'.repeat(500) };
+  const setRowHeight = jest.fn();
+  const onRowHeightChanged = jest.fn();
+  const cell = document.createElement('div');
+  const { container, unmount } = render(
+    <JsonCellRenderer
+      value={longValue}
+      colId="payload"
+      autoHeight={false}
+      jsonInCell
+      node={{ setRowHeight }}
+      api={{ onRowHeightChanged }}
+      eGridCell={cell}
+    />,
+  );
+  expect(screen.getByTestId('json-cell-preview')).not.toHaveAttribute('title');
+
+  const root = container.querySelector(
+    '[data-test="json-cell"]',
+  ) as HTMLElement;
+  Object.defineProperty(root, 'scrollHeight', {
+    configurable: true,
+    value: 40,
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
+  expect(
+    await screen.findByRole('button', { name: 'Collapse JSON' }),
+  ).toBeInTheDocument();
+  expect(cell.classList.contains('json-cell-expanded')).toBe(true);
+  expect(setRowHeight).toHaveBeenCalledWith(52);
+  expect(onRowHeightChanged).toHaveBeenCalled();
+
+  unmount();
+  expect(setRowHeight).toHaveBeenCalledWith(null);
+  expect(cell.classList.contains('json-cell-expanded')).toBe(false);
+});
+
+test('a destroyed grid does not change row height, and auto-height resets on unmount', async () => {
+  const setRowHeight = jest.fn();
+  const resetRowHeights = jest.fn();
+  const { unmount } = render(
+    <JsonCellRenderer
+      value={{ a: 1 }}
+      colId="payload"
+      autoHeight={false}
+      jsonInCell
+      node={{ setRowHeight }}
+      api={{ onRowHeightChanged: jest.fn(), isDestroyed: () => true }}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
+  expect(
+    await screen.findByRole('button', { name: 'Collapse JSON' }),
+  ).toBeInTheDocument();
+  expect(setRowHeight).not.toHaveBeenCalled();
+  unmount();
+
+  const { unmount: unmountAuto } = render(
+    <JsonCellRenderer
+      value={{ a: 1 }}
+      colId="payload"
+      autoHeight
+      jsonInCell
+      api={{ resetRowHeights }}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
+  expect(
+    await screen.findByRole('button', { name: 'Collapse JSON' }),
+  ).toBeInTheDocument();
+  const callsAfterExpand = resetRowHeights.mock.calls.length;
+  unmountAuto();
+  expect(resetRowHeights.mock.calls.length).toBeGreaterThan(callsAfterExpand);
+});
+
+test('copy reports failure when the clipboard is missing or rejects', async () => {
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: undefined,
+  });
+  const { unmount } = render(
+    <JsonCellRenderer value={{ a: 1 }} colId="payload" autoHeight={false} />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  const dialog = await screen.findByRole('dialog');
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+  expect(
+    within(dialog).getByRole('button', { name: 'Copy' }),
+  ).toBeInTheDocument();
+  unmount();
+
+  const writeText = jest.fn().mockRejectedValue(new Error('denied'));
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  });
+  render(
+    <JsonCellRenderer
+      value={{ a: 1 }}
+      rawText='{"a":1}'
+      colId="payload"
+      autoHeight={false}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  const nextDialog = await screen.findByRole('dialog');
+  await userEvent.click(
+    within(nextDialog).getByRole('button', { name: 'Copy' }),
+  );
+  expect(writeText).toHaveBeenCalledWith('{"a":1}');
+  expect(
+    within(nextDialog).getByRole('button', { name: 'Copy' }),
   ).toBeInTheDocument();
 });
 
