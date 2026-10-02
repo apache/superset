@@ -575,6 +575,110 @@ test('does not emit duplicate cross-filter for generic axis label clicks', () =>
   expect(setDataMaskMock).not.toHaveBeenCalled();
 });
 
+test('emits X-axis cross-filter from categorical axis label clicks when dimensions are set', () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{
+        ...defaultFormData,
+        groupby: ['status'],
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const labelClickHandler = getLatestEchartProps().queryEventHandlers?.find(
+    ({ query }) => query === 'yAxis',
+  )?.handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    targetType: 'axisLabel',
+    value: 'Product A',
+  } as unknown as ECElementEvent);
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(1);
+  expect(setDataMaskMock.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [{ col: 'category_column', op: 'IN', val: ['Product A'] }],
+    },
+    filterState: {
+      label: ['Product A'],
+      value: ['Product A'],
+      selectedValues: ['Product A'],
+      crossFilterSource: 'xAxis',
+    },
+  });
+});
+
+test('does not emit dimension cross-filter for generic axis label clicks when dimensions are set', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+  });
+
+  jest.advanceTimersByTime(400);
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
+test('does not open context menu for axis labels when dimensions are set', async () => {
+  const onContextMenuMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      onContextMenu={onContextMenuMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  expect(onContextMenuMock).not.toHaveBeenCalled();
+});
+
 test('keeps temporal range exclusive ends on whole-second boundaries', () => {
   const clickedTimestamp = new Date(Date.UTC(2021, 0, 15, 12, 34, 56, 789));
 
@@ -1113,7 +1217,7 @@ test('clears temporal X-axis cross-filter when clicking selected bucket again', 
   });
 });
 
-test('does not emit temporal X-axis label cross-filter when dimensions are set', () => {
+test('emits temporal X-axis label cross-filter when dimensions are set', () => {
   const setDataMaskMock = jest.fn();
 
   render(
@@ -1121,6 +1225,7 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
       {...defaultProps}
       emitCrossFilters
       setDataMask={setDataMaskMock}
+      resolvedTimeGrain={TimeGranularity.MONTH}
       groupby={['country']}
       formData={{
         ...defaultFormData,
@@ -1144,7 +1249,14 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
     value: '2021-01-01',
   } as unknown as ECElementEvent);
 
-  expect(setDataMaskMock).not.toHaveBeenCalled();
+  expect(setDataMaskMock).toHaveBeenCalledTimes(1);
+  expect(setDataMaskMock.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
 });
 
 test('does not emit temporal X-axis cross-filter when dimensions are set', () => {
