@@ -96,13 +96,18 @@ def monkeypatch_dialect() -> None:
     """
     Monkeypatch dialect to correctly escape single quotes for Databricks.
 
-    The Databricks SQLAlchemy dialect (<3.0) incorrectly escapes single quotes by
-    doubling them ('O''Hara') instead of using backslash escaping ('O\'Hara'). The
-    fixed version requires SQLAlchemy>=2.0, which is not yet compatible with Superset.
+    This compatibility patch covers HiveDialect-based Databricks dialects from
+    sqlalchemy-databricks. The supported databricks-sqlalchemy dialect defines its
+    own colspecs and escaping; it is not a target of this patch.
 
-    Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
-    we can't patch it without affecting other Hive-based dialects. The solution is to
-    introduce a dialect-aware string type so that the change applies only to Databricks.
+    A dialect-aware string type preserves ordinary Hive literal handling while
+    applying backslash escaping to Hive-based Databricks dialects.
+
+    PyHive's HiveDialect does not define ``colspecs``, so ``HiveDialect.colspecs`` is
+    SQLAlchemy's ``DefaultDialect.colspecs`` dict, shared by every dialect that does
+    not define its own. The patch therefore gives HiveDialect its own copy instead of
+    writing to the shared dict, which would change the string types of unrelated
+    dialects (and make ``sa.Enum`` fail to adapt on them).
     """
     try:
         from pyhive.sqlalchemy_hive import HiveDialect
@@ -118,7 +123,14 @@ def monkeypatch_dialect() -> None:
                     return DatabricksStringType().literal_processor(dialect)
                 return super().literal_processor(dialect)
 
-        HiveDialect.colspecs[types.String] = ContextAwareStringType
+        # Copy, never write to the shared parent dict. Enum is a String subclass;
+        # map it to itself so it is not adapted to the decorator, which cannot
+        # take Enum's arguments. Enum literals retain their own escaping.
+        HiveDialect.colspecs = {
+            **HiveDialect.colspecs,
+            types.String: ContextAwareStringType,
+            types.Enum: types.Enum,
+        }
 
     except ImportError:
         pass
@@ -276,6 +288,25 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
         return super().extract_errors(ex, context, database_name)
 
 
+# Credential connect args of databricks-sql-connector. With impersonation on, all
+# of them are dropped from ``extra`` and the secure extra; ``impersonate_user``
+# then writes the user's OAuth2 token as ``access_token`` (when ``extra`` set one),
+# so that token is the only credential the connector receives.
+DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS = frozenset(
+    {
+        "access_token",
+        "auth_type",
+        "credentials_provider",
+        "oauth_client_id",
+        "oauth_client_secret",
+        "azure_client_id",
+        "azure_client_secret",
+        "azure_tenant_id",
+        "azure_workspace_resource_id",
+    }
+)
+
+
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
     default_driver = ""
     encryption_parameters = {"ssl": "1"}
@@ -321,6 +352,41 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         return f"https://{host}/oidc/v1/{path}"
 
     @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: Any,
+    ) -> Any:
+        """
+        Derive missing OAuth2 endpoints from the workspace host.
+
+        ``authorization_request_uri`` and ``token_request_uri`` are required by
+        ``OAuth2ClientConfigSchema``; without them the database's OAuth2 was
+        disabled (``is_oauth2_enabled`` returned False) and every connection
+        failed with a ValidationError. Each missing or empty endpoint becomes
+        ``https://<workspace-host>/oidc/v1/{authorize,token}``; explicit values
+        win. A connection without a host raises ``OAuth2Error``. A non-dict
+        value is returned unchanged for ``OAuth2ClientConfigSchema`` to reject.
+        """
+        endpoints = {
+            "authorization_request_uri": "authorize",
+            "token_request_uri": "token",
+        }
+        if not isinstance(client_info, dict):
+            # Leave malformed values to ``OAuth2ClientConfigSchema`` to reject.
+            return client_info
+        missing = [key for key in endpoints if not client_info.get(key)]
+        if not missing:
+            return client_info
+        return {
+            **client_info,
+            **{
+                key: cls._workspace_oauth2_endpoint(database, endpoints[key])
+                for key in missing
+            },
+        }
+
+    @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Identify driver errors that should trigger the OAuth2 dance.
@@ -335,7 +401,21 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if isinstance(ex, cls.oauth2_exception):
             return True
         message = str(ex).lower()
-        return any(signal in message for signal in cls.oauth2_auth_failure_signals)
+        if any(signal in message for signal in cls.oauth2_auth_failure_signals):
+            return True
+        # A rejected bearer token fails the request with HTTP 401 and a message
+        # such as "Credential was not sent or was of an unsupported type for this
+        # API", which no signal above matches; the connector reports the status
+        # in ``RequestError.context["http-code"]``. 403 is left out on purpose: it
+        # also means a missing permission, which re-authorizing cannot fix.
+        error = getattr(ex, "orig", None) or ex
+        context = getattr(error, "context", None)
+        if isinstance(context, dict):
+            try:
+                return int(context.get("http-code") or 0) == 401
+            except (TypeError, ValueError):
+                return False
+        return False
 
     @classmethod
     def get_oauth2_authorization_uri(
@@ -360,12 +440,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             if database := db.session.get(Database, database_id):
                 config = cast(
                     "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
-                            database, "authorize"
-                        )
-                    },
+                    cls.resolve_oauth2_client_info(database, dict(config)),
                 )
 
         return super().get_oauth2_authorization_uri(config, state, code_verifier)
@@ -417,13 +492,39 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         # back to an empty string to force re-authentication when none is set.
         url = url.set(password=user_token or "")
 
+        # Drop shared credentials from ``extra`` (a PAT, OAuth M2M client, Azure
+        # service principal) so none of them reaches the connector next to the
+        # user's token. The secure extra is filtered the same way in
+        # ``update_params_from_encrypted_extra``.
+        connect_args = engine_kwargs.get("connect_args") or {}
+        filtered_connect_args = {
+            key: value
+            for key, value in connect_args.items()
+            if key not in DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS
+        }
         # The Python connector passes the token via ``connect_args`` instead of the
         # URL password, so keep it in sync (clearing it likewise forces re-auth).
-        connect_args = engine_kwargs.setdefault("connect_args", {})
         if "access_token" in connect_args:
-            connect_args["access_token"] = user_token or ""
+            filtered_connect_args["access_token"] = user_token or ""
+        engine_kwargs["connect_args"] = filtered_connect_args
 
         return url, engine_kwargs
+
+    @classmethod
+    def start_oauth2_dance(cls, database: Database) -> None:
+        """
+        Start the OAuth2 dance only when the database impersonates the user.
+
+        The user's OAuth2 token only reaches the connection through
+        ``impersonate_user``. Without impersonation the connection uses the
+        shared credential, so an authorization prompt cannot fix an auth failure
+        (e.g. a revoked shared token returning HTTP 401). Return instead, so the
+        caller raises the original error for an admin to act on.
+        """
+        if not database.impersonate_user:
+            return
+
+        super().start_oauth2_dance(database)
 
     @staticmethod
     def update_params_from_encrypted_extra(
@@ -437,6 +538,14 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         consumed by ``Database.get_oauth2_config``; it is not a Databricks driver
         connection argument, so it must be stripped here to avoid poisoning the
         connection when OAuth2 is configured on the database itself.
+
+        ``connect_args`` are merged key by key, so credentials kept in the secure
+        extra (an access token, an OAuth M2M client secret) do not discard the
+        ``connect_args`` from ``extra`` or Superset's own (e.g. the User-Agent).
+        With user impersonation enabled, shared credentials in the secure extra
+        are dropped (``impersonate_user`` drops the ones from ``extra``): the
+        user's OAuth2 token is the only credential, instead of being silently
+        replaced by a shared one.
         """
         if not database.encrypted_extra:
             return
@@ -446,7 +555,25 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             logger.error(ex, exc_info=True)
             raise
         encrypted_extra.pop("oauth2_client_info", None)
+        secure_connect_args = encrypted_extra.pop("connect_args", None)
         params.update(encrypted_extra)
+        if secure_connect_args is not None and not isinstance(
+            secure_connect_args, dict
+        ):
+            params["connect_args"] = secure_connect_args
+            return
+        if secure_connect_args is None and "connect_args" not in params:
+            return
+
+        secure_connect_args = secure_connect_args or {}
+        connect_args = dict(params.get("connect_args") or {})
+        if database.impersonate_user:
+            secure_connect_args = {
+                key: value
+                for key, value in secure_connect_args.items()
+                if key not in DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS
+            }
+        params["connect_args"] = {**connect_args, **secure_connect_args}
 
     @staticmethod
     def get_extra_params(

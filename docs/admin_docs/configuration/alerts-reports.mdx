@@ -604,7 +604,7 @@ investigate, not a reason to repeat the same request.
 
 ### Check the Playwright and Chromium installation
 
-To take a screenshot, the worker visits the dashboard or chart using a headless Chromium browser controlled by Playwright, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser. When Playwright or Chromium is missing or fails to launch, screenshot attempts fail with an error that includes `Playwright is required for screenshots`.
+To take a screenshot, the worker visits the dashboard or chart using a headless Chromium browser controlled by Playwright, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser. If the Playwright package isn't installed, screenshot attempts fail with an error that includes `Playwright is required for screenshots`. If Playwright is installed but Chromium is missing or fails to launch, the error includes `Failed to launch the headless browser for screenshots`, followed by the underlying launch error.
 
 If you are handling the installation of the headless browser on your own, confirm that Chromium launches in the worker environment. Start Python in your worker environment and run:
 

@@ -57,9 +57,10 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
-import { TIMESERIES_CONSTANTS } from '../constants';
+import { TIMESERIES_CONSTANTS, X_AXIS_CROSS_FILTER_SOURCE } from '../constants';
 
 const TIMER_DURATION = 300;
 const MAX_CUSTOM_LEGEND_HEIGHT = 160;
@@ -417,6 +418,9 @@ export default function EchartsTimeseries({
             label: values.length ? values : undefined,
             value: values.length ? values : null,
             selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
           },
         },
         isCurrentValueSelected: selected.includes(stringValue),
@@ -476,6 +480,9 @@ export default function EchartsTimeseries({
             label: values.length ? values : undefined,
             value: values.length ? values : null,
             selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
           },
         },
         isCurrentValueSelected,
@@ -519,6 +526,10 @@ export default function EchartsTimeseries({
   const canCrossFilterByXAxis =
     !hasDimensions &&
     (xAxis.type === AxisType.Category || xAxis.type === AxisType.Time);
+  // Axis labels always map to an x-axis value, so they can cross-filter by it
+  // even when dimensions are set
+  const canCrossFilterByXAxisLabel =
+    xAxis.type === AxisType.Category || xAxis.type === AxisType.Time;
   const xAxisValueIndex =
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getXAxisValue = useCallback(
@@ -540,7 +551,13 @@ export default function EchartsTimeseries({
     [xAxisValueIndex],
   );
 
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
+
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
@@ -552,9 +569,11 @@ export default function EchartsTimeseries({
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
         if (hasDimensions) {
-          // Cross-filter by dimension (original behavior)
-          const { seriesName: name } = props;
-          handleChange(name);
+          // Cross-filter by dimension (original behavior). Axis label clicks
+          // are handled by handleXAxisLabelClick.
+          if (props.componentType === 'series') {
+            handleChange(props.seriesName);
+          }
         } else if (
           canCrossFilterByXAxis &&
           xAxis.type === AxisType.Category &&
@@ -586,19 +605,12 @@ export default function EchartsTimeseries({
     mouseover: params => {
       onFocusedSeries(params.seriesName);
     },
-    legendscroll: payload => {
-      onLegendScroll?.(payload.scrollDataIndex);
-    },
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
     contextmenu: async eventParams => {
+      // Axis labels carry no series, so the dimension-based filters below
+      // cannot be built from them
+      if (hasDimensions && eventParams.componentType !== 'series') {
+        return;
+      }
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName } = eventParams;
@@ -745,7 +757,7 @@ export default function EchartsTimeseries({
     (event: ECElementEvent) => {
       const { value } = event;
       if (
-        canCrossFilterByXAxis &&
+        canCrossFilterByXAxisLabel &&
         event.targetType === 'axisLabel' &&
         (typeof value === 'string' || typeof value === 'number')
       ) {
@@ -760,7 +772,7 @@ export default function EchartsTimeseries({
       }
     },
     [
-      canCrossFilterByXAxis,
+      canCrossFilterByXAxisLabel,
       handleTimeAxisChange,
       handleXAxisChange,
       xAxis.type,

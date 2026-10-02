@@ -322,6 +322,13 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
     }
 ]
 
+# EPOCH_FORMATS keys resolve to a f"{pdf}_to_dttm" classmethod, except
+# "epoch_s": its method predates "epoch_ms"/"epoch_us" and kept the shorter
+# legacy name `epoch_to_dttm`. Only exceptions to the naming convention
+# belong here; a new EPOCH_FORMATS entry that follows the convention needs
+# no matching entry in this dict.
+_EPOCH_METHOD_ALIASES = {"epoch_s": "epoch_to_dttm"}
+
 
 class DBEngineSpecMetadata(TypedDict, total=False):
     """
@@ -391,6 +398,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
                                        directly use aggregation clauses, without
                                        having to add the same aggregation in SELECT.
+        select_alias_shadows_source_column: Whether the engine resolves an
+                                       identifier to a SELECT alias before a
+                                       source column of the same name in every
+                                       clause (WHERE, GROUP BY, HAVING, ORDER
+                                       BY), so such aliases must be renamed.
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
@@ -580,6 +592,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # that are the same as a source column
     allows_alias_to_source_column = True
 
+    # Whether the engine resolves an identifier to a SELECT alias before a source
+    # column of the same name, in WHERE, GROUP BY, HAVING and ORDER BY alike
+    # (ClickHouse). An alias such as `DATE_TRUNC(ts) AS ts` then changes what the
+    # query's other clauses read, so chart queries rename it.
+    select_alias_shadows_source_column = False
+
     # Whether ORDER BY clause must appear in SELECT
     # if True, then it doesn't have to.
     allows_hidden_orderby_agg = True
@@ -742,6 +760,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
 
+    # Can another thread read ``get_cancel_query_id`` from the live cursor
+    # while ``execute`` is still blocked? Clients that block until results are
+    # ready (e.g. Trino's) expose the id only then, which lets an execution
+    # owner cancel a query whose caller has given up.
+    has_query_id_during_execute = False
+
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
         """Build the bounded-read retry form of system-authored sampling SQL.
@@ -887,6 +911,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
+
+    @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Complete a database's ``oauth2_client_info`` before it is validated.
+
+        Engine specs that can derive values (for example the OAuth2 endpoints
+        from the connection host) return a copy with the missing values filled
+        in; values set explicitly must be kept. The default returns it as is.
+        """
+        return client_info
 
     @classmethod
     def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
@@ -1358,12 +1397,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         # if epoch, translate to DATE using db specific conf
         if pdf in EPOCH_FORMATS:
-            epoch_to_dttm = {
-                "epoch_s": cls.epoch_to_dttm,
-                "epoch_ms": cls.epoch_ms_to_dttm,
-                "epoch_us": cls.epoch_us_to_dttm,
-            }[pdf]
-            time_expr = time_expr.replace("{col}", epoch_to_dttm())
+            # "epoch_s" predates "epoch_ms"/"epoch_us" and kept the shorter
+            # legacy method name; every other format follows f"{pdf}_to_dttm",
+            # so adding a new EPOCH_FORMATS entry needs no second edit here.
+            method_name = _EPOCH_METHOD_ALIASES.get(pdf, f"{pdf}_to_dttm")
+            time_expr = time_expr.replace("{col}", getattr(cls, method_name)())
         elif pdf == "%Y":
             # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
             # example dataset) has no native date type to lean on; without this the
@@ -1520,10 +1558,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
+            # Statements that return no result set (DDL, DML) leave the cursor
+            # description empty (``None`` per PEP 249), and several DB-API
+            # drivers (mysql-connector, ibm_db, pyexasol, impyla, ...) raise on
+            # a fetch in that state instead of returning no rows.
+            description = cursor.description
+            if not description:
+                return []
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
-            description = cursor.description or []
             # Create a mapping between column index and a mutator function to normalize
             # values with. The first two items in the description row are the column
             # name and type.
