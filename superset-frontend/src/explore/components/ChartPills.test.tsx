@@ -36,8 +36,7 @@ const renderPills = (props: Partial<ChartPillsProps> = {}) => {
   return { refreshCachedQuery };
 };
 
-// The table viz reports its total row count in a second query when the
-// dataset is paginated on the server.
+// Table viz types report their total row count in a second query response.
 const paginatedTableResponses = (
   pageRowCount: number,
   totalRowCount: number,
@@ -46,12 +45,19 @@ const paginatedTableResponses = (
   { data: [{ rowcount: totalRowCount }] },
 ];
 
+const cachedResponse = (): QueryData => ({
+  rowcount: 25,
+  is_cached: true,
+  cached_dttm: '2024-01-01T00:00:00',
+  data: [],
+});
+
 test.each([VizType.Table, VizType.TableAgGrid])(
-  'reads the row count of a server-paginated %s from the second query',
+  'reads the row count of a %s from the second query',
   vizType => {
     renderPills({
       queriesResponse: paginatedTableResponses(25, 250),
-      formData: { viz_type: vizType, server_pagination: true },
+      formData: { viz_type: vizType },
     });
 
     expect(screen.getByText('250 rows')).toBeInTheDocument();
@@ -62,7 +68,7 @@ test.each([VizType.Table, VizType.TableAgGrid])(
 test('reads the row count from the first query for a table with a single query', () => {
   renderPills({
     queriesResponse: [{ rowcount: 25, data: [] }],
-    formData: { viz_type: VizType.Table, server_pagination: true },
+    formData: { viz_type: VizType.Table },
   });
 
   expect(screen.getByText('25 rows')).toBeInTheDocument();
@@ -115,14 +121,7 @@ test('does not show the row count without a query response', () => {
 
 test('shows the cached label for a cached response and refreshes on click', async () => {
   const { refreshCachedQuery } = renderPills({
-    queriesResponse: [
-      {
-        rowcount: 25,
-        is_cached: true,
-        cached_dttm: '2024-01-01T00:00:00',
-        data: [],
-      },
-    ],
+    queriesResponse: [cachedResponse()],
   });
 
   expect(refreshCachedQuery).not.toHaveBeenCalled();
@@ -140,14 +139,7 @@ test('does not show the cached label for an uncached response', () => {
 test('shows neither the row count nor the cached label while loading', () => {
   renderPills({
     chartStatus: 'loading',
-    queriesResponse: [
-      {
-        rowcount: 25,
-        is_cached: true,
-        cached_dttm: '2024-01-01T00:00:00',
-        data: [],
-      },
-    ],
+    queriesResponse: [cachedResponse()],
   });
 
   expect(screen.queryByText('25 rows')).not.toBeInTheDocument();
@@ -162,5 +154,5 @@ test('shows the elapsed time between the update start and end', () => {
     queriesResponse: [{ rowcount: 25, data: [] }],
   });
 
-  expect(screen.getByRole('timer')).toHaveTextContent('00:00:02.50');
+  expect(screen.getByRole('timer')).toHaveTextContent(/^00:00:02\.500$/);
 });
