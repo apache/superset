@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 # relevance.
 MAX_DID_YOU_MEAN_CANDIDATES = 3
 
-# Maximum suggestions returned on a single error, to bound response size.
+# Maximum entries per error-response list (suggestions, context, or template
+# variables), to bound response size.
 MAX_ERROR_SUGGESTIONS = 10
 
 # Leading guidance shared by every column-not-found variant.
@@ -96,7 +97,7 @@ def _sanitize_template_vars(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
         elif isinstance(value, (list, tuple)):
             # Sanitize lists of strings
             sanitized[key] = ", ".join(
-                [_sanitize_user_input(item) for item in value[:10]]
+                [_sanitize_user_input(item) for item in value[:MAX_ERROR_SUGGESTIONS]]
             )  # Limit list size and convert to string
         else:
             # For other types, convert to string and sanitize

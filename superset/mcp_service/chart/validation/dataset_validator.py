@@ -50,11 +50,6 @@ _NUMERIC_TYPE_PATTERN = re.compile(
     r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
 )
 
-# How many dataset names a column error may carry as context. Callers that need
-# the full schema are pointed at ``get_dataset_info``.
-MAX_ERROR_CONTEXT_COLUMNS = 10
-MAX_ERROR_CONTEXT_METRICS = 10
-
 
 class GanttSemanticNormalizationError(ValueError):
     """A Gantt canonicalization result violates its typed semantic contract."""
@@ -795,13 +790,11 @@ class DatasetValidator:
             schema=dataset_context.schema_name,
             database_name=dataset_context.database_name,
             available_columns=[
-                {"name": name} for name in ranked[:MAX_ERROR_CONTEXT_COLUMNS]
+                {"name": name} for name in ranked[:MAX_ERROR_SUGGESTIONS]
             ],
             available_metrics=[
                 {"name": metric["name"]}
-                for metric in dataset_context.available_metrics[
-                    :MAX_ERROR_CONTEXT_METRICS
-                ]
+                for metric in dataset_context.available_metrics[:MAX_ERROR_SUGGESTIONS]
             ],
         )
 
@@ -830,9 +823,9 @@ class DatasetValidator:
 
         extra = DatasetValidator._saved_metric_hints(metric_hints or {})
         total_columns = len(dataset_context.available_columns)
-        if total_columns > MAX_ERROR_CONTEXT_COLUMNS:
+        if total_columns > MAX_ERROR_SUGGESTIONS:
             extra.append(
-                f"Showing {MAX_ERROR_CONTEXT_COLUMNS} of {total_columns} columns; "
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_columns} columns; "
                 "call get_dataset_info for the full list"
             )
         if extra:
@@ -879,7 +872,8 @@ class DatasetValidator:
             template_vars={
                 "column": ", ".join(invalid),
                 "suggestions": (
-                    f"Available saved metrics: {', '.join(available[:10])}"
+                    "Available saved metrics: "
+                    f"{', '.join(available[:MAX_ERROR_SUGGESTIONS])}"
                     if available
                     else "This dataset has no saved metrics"
                 ),

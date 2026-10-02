@@ -27,15 +27,18 @@ from superset.mcp_service.chart.schemas import ColumnRef, GenerateChartRequest
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
-    MAX_ERROR_CONTEXT_COLUMNS,
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
-from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+from superset.mcp_service.utils.error_builder import (
+    ChartErrorBuilder,
+    MAX_ERROR_SUGGESTIONS,
+)
 
 GET_DATASET_INFO = "Use get_dataset_info to see available columns"
 
 
 def _orm_dataset(names: list[str]) -> Mock:
+    """Mock an ORM dataset with physical columns and a saved metric."""
     return Mock(
         id=268,
         table_name="sales_fixture",
@@ -61,6 +64,7 @@ def _orm_dataset(names: list[str]) -> Mock:
 
 
 def _bar_request(column: str) -> GenerateChartRequest:
+    """Build an unsaved bar-chart request for the given x-axis column."""
     return GenerateChartRequest.model_validate(
         {
             "dataset_id": 268,
@@ -76,6 +80,7 @@ def _bar_request(column: str) -> GenerateChartRequest:
 
 
 def _ctx() -> Mock:
+    """Mock the MCP context with asynchronous logging and progress methods."""
     return Mock(
         info=AsyncMock(),
         debug=AsyncMock(),
@@ -230,7 +235,9 @@ def test_column_context_is_bounded_and_names_only() -> None:
         available_columns=[
             {"name": name, "expression": "PRIVATE SQL"} for name in names
         ],
-        available_metrics=[{"name": "metric", "expression": "PRIVATE SQL"}],
+        available_metrics=[
+            {"name": f"metric_{i}", "expression": "PRIVATE SQL"} for i in range(25)
+        ],
     )
     error = DatasetValidator._validate_columns_exist(
         [ColumnRef(name="private_input")], context
@@ -238,15 +245,17 @@ def test_column_context_is_bounded_and_names_only() -> None:
     assert error is not None
     assert error.dataset_context is not None
     columns = error.dataset_context.available_columns
-    assert len(columns) == MAX_ERROR_CONTEXT_COLUMNS
+    assert len(columns) == MAX_ERROR_SUGGESTIONS == 10
     # Verbatim per the Tool Result Value Contract: no escaping, no truncation.
     assert columns[0] == {"name": "Customer's Name"}
     assert columns[1] == {"name": "Sales & Marketing"}
     assert columns[2] == {"name": "y" * 255}
     assert error.dataset_context.table_name == "Sales & Marketing"
-    assert error.dataset_context.available_metrics == [{"name": "metric"}]
+    assert error.dataset_context.available_metrics == [
+        {"name": f"metric_{i}"} for i in range(MAX_ERROR_SUGGESTIONS)
+    ]
     assert "PRIVATE SQL" not in error.model_dump_json()
-    assert len(error.suggestions) <= 10
+    assert len(error.suggestions) <= MAX_ERROR_SUGGESTIONS
     assert "private_input" not in " ".join(error.suggestions)
 
 
@@ -263,7 +272,7 @@ def test_truncated_context_says_how_many_columns_exist() -> None:
     )
     assert error is not None
     assert (
-        f"Showing {MAX_ERROR_CONTEXT_COLUMNS} of 25 columns; "
+        f"Showing {MAX_ERROR_SUGGESTIONS} of 25 columns; "
         "call get_dataset_info for the full list" in error.suggestions
     )
 
