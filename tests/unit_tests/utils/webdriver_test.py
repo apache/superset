@@ -274,6 +274,76 @@ class TestWebDriverSelenium:
         mock_driver_class.assert_called_once()
 
 
+class TestWebDriverSeleniumBinaryLocation:
+    """Test that WebDriverSelenium.create() applies the configured binary_location."""
+
+    @staticmethod
+    def _create(mock_app_patch, mock_chrome, webdriver_configuration):
+        mock_app_patch.config = {
+            "WEBDRIVER_TYPE": "chrome",
+            "WEBDRIVER_OPTION_ARGS": [],
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "WEBDRIVER_WINDOW": {},
+            "WEBDRIVER_CONFIGURATION": webdriver_configuration,
+        }
+        mock_chrome.webdriver.WebDriver = MagicMock()
+        mock_chrome.service.Service = MagicMock()
+        mock_options = MagicMock()
+        mock_chrome.options.Options = MagicMock(return_value=mock_options)
+
+        WebDriverSelenium(driver_type="chrome").create()
+        return mock_options
+
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver.chrome")
+    def test_binary_location_nested_under_options(self, mock_chrome, mock_app_patch):
+        """The value nested under "options", as in the default config, is applied."""
+        options = self._create(
+            mock_app_patch,
+            mock_chrome,
+            {
+                "options": {
+                    "capabilities": {},
+                    "preferences": {},
+                    "binary_location": "/usr/bin/firefox-esr",
+                },
+                "service": {"log_output": "/dev/null"},
+            },
+        )
+
+        assert options.binary_location == "/usr/bin/firefox-esr"
+
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver.chrome")
+    def test_binary_location_top_level_takes_precedence(
+        self, mock_chrome, mock_app_patch
+    ):
+        """A top-level value keeps working and wins over the nested one."""
+        options = self._create(
+            mock_app_patch,
+            mock_chrome,
+            {
+                "binary_location": "/opt/browser/top-level",
+                "options": {"binary_location": "/opt/browser/nested"},
+            },
+        )
+
+        assert options.binary_location == "/opt/browser/top-level"
+
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver.chrome")
+    def test_binary_location_defaults_to_empty(self, mock_chrome, mock_app_patch):
+        """An empty or missing value leaves the browser to be auto-detected."""
+        for config in (
+            {},
+            {"options": {"binary_location": ""}},
+            {"options": {"capabilities": {}}},
+        ):
+            options = self._create(mock_app_patch, mock_chrome, config)
+            assert options.binary_location == ""
+
+
 class TestPlaywrightAvailabilityCheck:
     """Test comprehensive Playwright availability checking."""
 
