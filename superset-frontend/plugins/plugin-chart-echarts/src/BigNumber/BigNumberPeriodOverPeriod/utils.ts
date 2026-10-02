@@ -151,13 +151,15 @@ export const getComparisonColorTokens = (
       strongText: theme.colorErrorText,
     };
   }
-  const themeColors = theme as unknown as Record<string, string>;
-  const resolvedColor = Object.prototype.hasOwnProperty.call(
+  const themeColors = theme as unknown as Record<string, unknown>;
+  const themeValue = Object.prototype.hasOwnProperty.call(
     themeColors,
     colorValue,
   )
     ? themeColors[colorValue]
-    : colorValue;
+    : undefined;
+  const resolvedColor =
+    typeof themeValue === 'string' ? themeValue : colorValue;
   // An 8-digit hex (alpha-enabled picker) already carries its own alpha
   // channel; strip it before appending the tint suffix below so the
   // background stays a valid 8-digit hex instead of stacking a second one.
