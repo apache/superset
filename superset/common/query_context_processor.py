@@ -48,6 +48,7 @@ from superset.exceptions import (
     CacheLoadError,
     QueryObjectValidationError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
@@ -526,24 +527,38 @@ class QueryContextProcessor:
             ):
                 continue
             layer_value = layer.get("value")
-            source_scope[str(layer_value)] = self._annotation_source_scope(layer_value)
+            source_scope[str(layer_value)] = self._annotation_source_scope(layer)
         if source_scope:
             context["source_scope"] = source_scope
 
         return context
 
-    def _annotation_source_scope(self, layer_value: Any) -> dict[str, Any]:
+    def _annotation_source_scope(self, layer: dict[str, Any]) -> dict[str, Any]:
         """
         Access and data-identity cache-key material for one chart-backed
         annotation layer.
 
         ``access`` keeps a user denied the referenced chart's datasource from
-        reading an authorized user's cached payload. ``data_key`` is the
-        annotation chart's own query cache key(s), which already capture the
-        datasource version, RLS clauses, and any per-user Jinja/virtual-dataset
-        RLS material — reusing it here avoids re-deriving that logic and
-        automatically inherits any future correctness fixes made there.
+        reading an authorized user's cached payload. When the chart has a
+        saved query context, this runs the *same* authorization path
+        :meth:`get_viz_annotation_data` executes
+        (``QueryContext.raise_for_access``) rather than the coarser
+        :meth:`SecurityManager.can_access_datasource` — a requester whose
+        access comes from a dashboard/viewer-promiscuous-mode bypass (which
+        depends on the chart's own saved ``form_data``, e.g. its
+        ``slice_id``/``dashboardId``) would otherwise still fail that coarser,
+        context-free check and collapse onto the same denied scope as a
+        genuinely unauthorized requester, letting the latter read the
+        former's cached payload. ``data_key`` is the annotation chart's own
+        query cache key(s) — derived from the same, override-applied query
+        objects actually executed (see :meth:`_apply_annotation_overrides`),
+        so it captures the datasource version, RLS clauses, and any per-user
+        Jinja/virtual-dataset RLS material exactly as the live fetch would,
+        including material an override only introduces at a finer grain.
+        Reusing this logic avoids re-deriving it and automatically inherits
+        any future correctness fixes made there.
         """
+        layer_value = layer.get("value")
         datasource = None
         try:
             chart = (
@@ -558,18 +573,23 @@ class QueryContextProcessor:
             if chart is None or datasource is None:
                 return {"access": None, "data_key": None}
 
-            access = security_manager.can_access_datasource(datasource)
-            # Fall back to the RLS-clause identity when the chart has no saved
-            # query context to key on.
             annotation_query_context = chart.get_query_context()
-            data_key: Any = (
-                [
+            if annotation_query_context is not None:
+                self._apply_annotation_overrides(annotation_query_context, layer)
+                try:
+                    annotation_query_context.raise_for_access()
+                    access: Any = True
+                except SupersetSecurityException:
+                    access = False
+                data_key: Any = [
                     annotation_query_context.query_cache_key(query_object)
                     for query_object in annotation_query_context.queries
                 ]
-                if annotation_query_context is not None
-                else security_manager.get_rls_cache_key(datasource)
-            )
+            else:
+                # Fall back to the RLS-clause identity when the chart has no
+                # saved query context to key on.
+                access = security_manager.can_access_datasource(datasource)
+                data_key = security_manager.get_rls_cache_key(datasource)
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
             # Derivation can fail well beyond SupersetException: the DAO
             # lookup and lazy ``datasource`` load are themselves live DB
@@ -1054,6 +1074,42 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
+    def _apply_annotation_overrides(
+        query_context: QueryContext, annotation_layer: dict[str, Any]
+    ) -> None:
+        """
+        Apply a chart-backed annotation layer's per-request overrides (time
+        grain, time range) to its saved query context's queries, in place.
+
+        Shared by :meth:`get_viz_annotation_data` (which executes the
+        overridden query) and :meth:`_annotation_source_scope` (which derives
+        its cache key from it), so the key always reflects the query that
+        actually runs: an override can introduce per-user Jinja/RLS material
+        the saved, un-overridden query lacks (e.g. a template that only calls
+        ``current_user_id()`` at a finer time grain), which deriving the key
+        from the un-overridden query would silently miss.
+        """
+        # Only the source chart's rows are used. Dropping its own annotation
+        # layers also stops charts that annotate each other (A -> B -> A)
+        # from recursing.
+        for query_object in query_context.queries:
+            query_object.annotation_layers = []
+
+        if not (overrides := annotation_layer.get("overrides")):
+            return
+
+        if time_grain_sqla := overrides.get("time_grain_sqla"):
+            for query_object in query_context.queries:
+                query_object.extras["time_grain_sqla"] = time_grain_sqla
+
+        if time_range := overrides.get("time_range"):
+            from_dttm, to_dttm = get_since_until_from_time_range(time_range)
+
+            for query_object in query_context.queries:
+                query_object.from_dttm = from_dttm
+                query_object.to_dttm = to_dttm
+
+    @staticmethod
     def get_viz_annotation_data(  # noqa: C901
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
@@ -1084,23 +1140,9 @@ class QueryContextProcessor:
                     )
                 )
 
-            # Only the source chart's rows are used. Dropping its own annotation
-            # layers also stops charts that annotate each other (A -> B -> A)
-            # from recursing.
-            for query_object in query_context.queries:
-                query_object.annotation_layers = []
-
-            if overrides := annotation_layer.get("overrides"):
-                if time_grain_sqla := overrides.get("time_grain_sqla"):
-                    for query_object in query_context.queries:
-                        query_object.extras["time_grain_sqla"] = time_grain_sqla
-
-                if time_range := overrides.get("time_range"):
-                    from_dttm, to_dttm = get_since_until_from_time_range(time_range)
-
-                    for query_object in query_context.queries:
-                        query_object.from_dttm = from_dttm
-                        query_object.to_dttm = to_dttm
+            QueryContextProcessor._apply_annotation_overrides(
+                query_context, annotation_layer
+            )
 
             query_context.force = force
             command = ChartDataCommand(query_context)

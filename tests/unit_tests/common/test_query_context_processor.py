@@ -208,8 +208,8 @@ def test_annotation_source_scope_binds_datasource_access(
     ) as security_manager:
         security_manager.can_access_datasource.side_effect = [True, False]
         security_manager.get_rls_cache_key.return_value = []
-        scope_a = processor._annotation_source_scope(1)
-        scope_b = processor._annotation_source_scope(1)
+        scope_a = processor._annotation_source_scope({"value": 1})
+        scope_b = processor._annotation_source_scope({"value": 1})
     assert scope_a != scope_b
     assert scope_a["access"] is True
     assert scope_b["access"] is False
@@ -231,9 +231,74 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
         new_callable=MagicMock,
     ) as security_manager:
         security_manager.can_access_datasource.return_value = True
-        scope = processor._annotation_source_scope(1)
+        scope = processor._annotation_source_scope({"value": 1})
     assert scope == {"access": True, "data_key": ["referenced-chart-key"]}
     mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
+
+
+def test_annotation_source_scope_uses_live_fetch_authorization(
+    processor, mock_annotation_chart
+) -> None:
+    """When the referenced chart has a saved query context, ``access`` must
+    come from that context's own ``raise_for_access`` -- the same
+    authorization path the live fetch in ``get_viz_annotation_data`` uses --
+    not the coarser, context-free ``can_access_datasource``. A requester
+    denied by ``can_access_datasource`` but granted via a bypass that depends
+    on the chart's own saved form_data (e.g. a dashboard/viewer-promiscuous
+    bypass) must get a scope distinct from one truly denied, or the latter
+    could read the former's cached payload."""
+    from superset.exceptions import SupersetSecurityException
+
+    mock_query_object = MagicMock()
+    mock_query_context = MagicMock()
+    mock_query_context.queries = [mock_query_object]
+    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        # Coarse proxy says "denied" for both -- the real authorization
+        # path must be what actually decides access.
+        security_manager.can_access_datasource.return_value = False
+        mock_query_context.raise_for_access.side_effect = [
+            None,
+            SupersetSecurityException(MagicMock()),
+        ]
+        scope_a = processor._annotation_source_scope({"value": 1})
+        scope_b = processor._annotation_source_scope({"value": 1})
+    assert scope_a["access"] is True
+    assert scope_b["access"] is False
+    assert scope_a != scope_b
+    security_manager.can_access_datasource.assert_not_called()
+
+
+def test_annotation_source_scope_applies_overrides_before_keying(
+    processor, mock_annotation_chart
+) -> None:
+    """A time-grain/time-range override on the annotation layer must be
+    applied to the referenced chart's query objects *before* deriving the
+    cache key, mirroring ``get_viz_annotation_data`` exactly -- otherwise the
+    key can omit per-user Jinja/RLS material an override only introduces at a
+    finer grain."""
+    mock_query_object = MagicMock()
+    mock_query_object.extras = {}
+    mock_query_context = MagicMock()
+    mock_query_context.queries = [mock_query_object]
+    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+    layer = {
+        "value": 1,
+        "overrides": {"time_grain_sqla": "P1D", "time_range": "Last week"},
+    }
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ):
+        processor._annotation_source_scope(layer)
+    assert mock_query_object.extras["time_grain_sqla"] == "P1D"
+    assert mock_query_object.from_dttm is not None
+    assert mock_query_object.to_dttm is not None
 
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
@@ -251,7 +316,7 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
     ) as security_manager:
         security_manager.can_access_datasource.return_value = True
         security_manager.get_rls_cache_key.return_value = []
-        scope = processor._annotation_source_scope(1)
+        scope = processor._annotation_source_scope({"value": 1})
     assert scope == {"access": False, "data_key": []}
 
 
@@ -267,7 +332,7 @@ def test_annotation_source_scope_fallback_lookup_also_fails_closed(
     ) as security_manager:
         security_manager.can_access_datasource.return_value = True
         security_manager.get_rls_cache_key.side_effect = RuntimeError("still down")
-        scope = processor._annotation_source_scope(1)
+        scope = processor._annotation_source_scope({"value": 1})
     assert scope == {"access": False, "data_key": None}
 
 
@@ -276,7 +341,7 @@ def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
         "superset.common.query_context_processor.ChartDAO.find_by_id",
         return_value=None,
     ):
-        scope = processor._annotation_source_scope(999)
+        scope = processor._annotation_source_scope({"value": 999})
     assert scope == {"access": None, "data_key": None}
 
 
@@ -297,8 +362,8 @@ def test_annotation_source_scope_uses_resolved_datasource_for_semantic_views(
     ) as security_manager:
         security_manager.can_access_datasource.side_effect = [True, False]
         security_manager.get_rls_cache_key.return_value = []
-        scope_a = processor._annotation_source_scope(1)
-        scope_b = processor._annotation_source_scope(1)
+        scope_a = processor._annotation_source_scope({"value": 1})
+        scope_b = processor._annotation_source_scope({"value": 1})
     assert scope_a == {"access": True, "data_key": []}
     assert scope_b == {"access": False, "data_key": []}
     security_manager.can_access_datasource.assert_called_with(
