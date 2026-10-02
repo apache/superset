@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1514,6 +1514,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filter toevoegen"
 
+msgid "Add group"
+msgstr "Groep toevoegen"
+
 msgid "Add item"
 msgstr "Voeg item toe"
 
@@ -1556,6 +1559,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Voeg blad toe"
+
+msgid "Add subgroup"
+msgstr "Subgroep toevoegen"
 
 msgid "Add tag to entities"
 msgstr "Voeg tag toe aan entiteiten"
@@ -1805,6 +1811,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3582,6 +3592,9 @@ msgstr "Cel limiet"
 msgid "Cell title template"
 msgstr "Verwijder template"
 
+msgid "Center"
+msgstr "Midden"
+
 msgid "Center value"
 msgstr ""
 
@@ -4308,6 +4321,9 @@ msgstr "Paneel data samenvouwen"
 msgid "Collapse row"
 msgstr "Rij inklappen"
 
+msgid "Collapse settings"
+msgstr "Instellingen inklappen"
+
 msgid "Collapse tab content"
 msgstr "Tabbladinhoud inklappen"
 
@@ -4452,6 +4468,9 @@ msgstr "Kolom met lengtegraad gegevens"
 #, fuzzy
 msgid "Column data types"
 msgstr "Kolom gegevenstypen"
+
+msgid "Column groups"
+msgstr "Kolomgroepen"
 
 msgid "Column header tooltip"
 msgstr "Kolomkop tooltip"
@@ -7402,6 +7421,9 @@ msgstr "Voer duur in seconden in"
 msgid "Enter fullscreen"
 msgstr "Open volledig scherm"
 
+msgid "Enter group name"
+msgstr "Groepsnaam invoeren"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7726,6 +7748,9 @@ msgstr "Rij uitklappen"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rij uitklappen"
+
+msgid "Expand settings"
+msgstr "Instellingen uitklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8816,6 +8841,10 @@ msgstr ""
 msgid "Group"
 msgstr "Groep per"
 
+#, python-format
+msgid "Group %s"
+msgstr "Groep %s"
+
 msgid "Group By"
 msgstr "Groeperen op"
 
@@ -8827,6 +8856,12 @@ msgstr "Groep Sleutel"
 
 msgid "Group by"
 msgstr "Groep per"
+
+msgid "Group columns"
+msgstr "Kolommen groeperen"
+
+msgid "Group name"
+msgstr "Groepsnaam"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9486,10 +9521,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Ofwel is de gebruikersnaam ofwel het wachtwoord verkeerd."
 
 msgid "Inverse"
 msgstr ""
@@ -10915,6 +10946,12 @@ msgstr "Meer filters"
 msgid "MotherDuck token"
 msgstr "MotherDuck-token"
 
+msgid "Move group left"
+msgstr "Groep naar links verplaatsen"
+
+msgid "Move group right"
+msgstr "Groep naar rechts verplaatsen"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Enkel verplaatsen"
@@ -10947,6 +10984,9 @@ msgstr "Multi-Niveaus"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabelen"
+
+msgid "Multi-level header"
+msgstr "Meerlagige koptekst"
 
 msgid "Multiple"
 msgstr "Meerdere"
@@ -12596,6 +12636,9 @@ msgstr "Poort %(port)s op hostnaam “%(hostname)s” weigerde de verbinding."
 msgid "Port out of range 0-65535"
 msgstr "Poort buiten bereik 0-65535"
 
+msgid "Position"
+msgstr "Positie"
+
 msgid "Position JSON"
 msgstr "Positie JSON"
 
@@ -13101,6 +13144,9 @@ msgstr "Item verwijderen"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Groep verwijderen"
 
 msgid "Remove item"
 msgstr "Item verwijderen"
@@ -14384,6 +14430,9 @@ msgstr "Selecteer kolom"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selecteer kolom"
+
+msgid "Select columns"
+msgstr "Kolommen selecteren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15954,6 +16003,10 @@ msgstr "Categorie"
 msgid "Subdomain"
 msgstr "Subdomein"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgroep %s"
+
 msgid "Subject"
 msgstr "Subject"
 
@@ -16217,6 +16270,9 @@ msgstr "Tabelnaam niet gedefinieerd"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabel of Weergave \"%(table)s\" bestaat niet."
+
+msgid "Table side"
+msgstr "Tabelzijde"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

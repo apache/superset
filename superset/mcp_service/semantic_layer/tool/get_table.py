@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.semantic_layers.types import Dimension
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset.commands.exceptions import CommandException
 from superset.common.tabular_query import (
@@ -54,6 +55,7 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticView
@@ -186,17 +188,39 @@ def _resolve_external_view(
             error_type="AccessDenied",
         )
 
-    display_name = view.name
-    valid_columns = {c.column_name for c in view.columns}
-    valid_dttm_columns = {c.column_name for c in view.columns if c.is_dttm}
-    valid_metrics = {m.metric_name for m in view.metrics}
+    try:
+        implementation: SemanticViewABC = view.implementation
+    except json.JSONDecodeError:
+        return SemanticLayerError.create(
+            error="The semantic view configuration is invalid.",
+            error_type="ConfigurationError",
+        )
+    try:
+        implementation.validate_selection_version(request.semantic_selection_version)
+    except ValueError as ex:
+        return SemanticLayerError.create(
+            error=str(ex),
+            error_type="ValidationError",
+        )
+
+    return _resolve_external_view_metadata(request, view)
+
+
+def _resolve_external_view_metadata(
+    request: GetTableRequest, view: "SemanticView"
+) -> _ResolvedDatasource | SemanticLayerError:
+    """Validate query fields on an accessible view with current selections."""
+    display_name: str = view.name
+    valid_columns: set[str] = {c.column_name for c in view.columns}
+    valid_dttm_columns: set[str] = {c.column_name for c in view.columns if c.is_dttm}
+    valid_metrics: set[str] = {m.metric_name for m in view.metrics}
 
     warnings: list[str] = []
-    time_col = request.time_column
+    time_col: str | None = request.time_column
     if time_col is None and request.time_range:
-        dttm_cols = [c for c in view.columns if c.is_dttm]
+        dttm_cols: list[str] = [c.column_name for c in view.columns if c.is_dttm]
         if dttm_cols:
-            time_col = dttm_cols[0].column_name
+            time_col = dttm_cols[0]
         else:
             return SemanticLayerError.create(
                 error=(
@@ -309,6 +333,7 @@ def _build_query_dict(
         dimensions=request.dimensions,
         filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
         time_range=request.time_range,
+        semantic_selection_version=request.semantic_selection_version,
         limit=request.row_limit,
         order=[(name, request.order_desc) for name in request.order_by],
         order_desc=request.order_desc,
@@ -569,7 +594,10 @@ async def get_table(
     Workflow:
     1. list_metrics -> discover metrics
     2. get_compatible_dimensions -> discover dimensions for the chosen metrics
-    3. get_table -> query with chosen metrics and dimensions
+    3. Explicitly select current member IDs from those discovery responses.
+    4. get_table -> query with those IDs and, for a versioned external view,
+       its semantic_selection_version from list_metrics. Never upgrade old
+       saved title keys automatically, even if a title looks like an ID.
 
     Example (built-in):
     ```json
@@ -582,12 +610,13 @@ async def get_table(
     }
     ```
 
-    Example (external):
+    Example (versioned external view; use the discovered version and IDs):
     ```json
     {
         "view_id": 5,
-        "metrics": ["bookings"],
-        "dimensions": ["listing__country_name"],
+        "metrics": ["Orders.bookings"],
+        "dimensions": ["Orders.country"],
+        "semantic_selection_version": "cube-member-id-v1",
         "row_limit": 100
     }
     ```
