@@ -18,6 +18,7 @@
 
 import datetime
 import logging
+from decimal import Decimal
 from typing import Any, Optional
 
 import numpy as np
@@ -88,6 +89,11 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                             # Non-JSON-serializable value (e.g. bytes, custom
                             # objects): fall back to str() to avoid crashing.
                             obj[...] = str(val)
+                    elif isinstance(val, Decimal):
+                        # str() switches to scientific notation for small or
+                        # large exponents (-1.0E-7), which CSV export would
+                        # formula-escape. NaN and Infinity have no exact value.
+                        obj[...] = format(val, "f") if val.is_finite() else None
                     else:
                         # for simple string conversions
                         # this handles odd character types better
@@ -179,7 +185,10 @@ class SupersetResultSet:
         data: DbapiResult,
         cursor_description: DbapiDescription,
         db_engine_spec: type[BaseEngineSpec],
+        *,
+        truncated: bool = False,
     ):
+        self.truncated = truncated
         self.db_engine_spec = db_engine_spec
         data = data or []
         column_names: list[str] = []
