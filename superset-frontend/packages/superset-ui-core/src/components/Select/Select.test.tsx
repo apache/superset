@@ -576,6 +576,16 @@ test('removes a new option if the user does not select it', async () => {
   );
 });
 
+test('does not duplicate existing option when searching with matching label in allowNewOptions mode', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} allowNewOptions />);
+  await open();
+  await type(OPTIONS[0].label);
+  const selectOptions = await findAllSelectOptions();
+  // Should display the single matching existing option without duplicate new option entry
+  expect(selectOptions.length).toBe(1);
+  expect(selectOptions[0]).toHaveTextContent(OPTIONS[0].label);
+});
+
 test('clear all the values', async () => {
   const onClear = jest.fn();
   render(
