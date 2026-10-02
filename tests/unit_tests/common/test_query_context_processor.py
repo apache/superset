@@ -2408,7 +2408,9 @@ def test_get_df_payload_no_warning_when_not_memory_limited() -> None:
     assert result["warning"] is None
 
 
-def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache():
+def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache() -> (
+    None
+):
     """
     The dataframe cache entry must stay shareable across viewers, and
     annotation-layer data must be resolved through its own (per-user) cache
@@ -2493,7 +2495,7 @@ def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache()
     assert result["annotation_data"] == {"a": [1, 2]}
 
 
-def test_get_df_payload_result_annotation_refresh_independent_of_df_marker():
+def test_get_df_payload_result_annotation_refresh_independent_of_df_marker() -> None:
     """
     A GTF forced refresh's idempotency marker is per (nonce, cache_key). Once
     the dataframe's marker (keyed on the dataframe's own cache_key) is set,
@@ -2528,31 +2530,31 @@ def test_get_df_payload_result_annotation_refresh_independent_of_df_marker():
     query_obj.force_nonce = None  # falls back to the context-level nonce above
 
     class MockCache:
-        def __init__(self):
-            self.is_loaded = True
-            self.applied_filter_columns = ["col1"]
-            self.df = pd.DataFrame({"col1": [1, 2, 3]})
-            self.query = ""
-            self.status = "success"
-            self.cache_dttm = "2024-01-01T00:00:00"
-            self.queried_dttm = "2024-01-01T00:00:00"
-            self.stacktrace = None
-            self.error_message = None
-            self.is_cached = True
-            self.sql_rowcount = 0
-            self.cache_value = None
-            self.applied_template_filters = []
-            self.rejected_filter_columns = []
-            self.annotation_data = {}
-            self.bq_memory_limited = False
-            self.bq_memory_limited_row_count = 0
-            self.result_persisted = False
-            self.set_query_result = MagicMock()
+        def __init__(self) -> None:
+            self.is_loaded: bool = True
+            self.applied_filter_columns: list[str] = ["col1"]
+            self.df: pd.DataFrame = pd.DataFrame({"col1": [1, 2, 3]})
+            self.query: str = ""
+            self.status: str = "success"
+            self.cache_dttm: str = "2024-01-01T00:00:00"
+            self.queried_dttm: str = "2024-01-01T00:00:00"
+            self.stacktrace: str | None = None
+            self.error_message: str | None = None
+            self.is_cached: bool = True
+            self.sql_rowcount: int = 0
+            self.cache_value: Any | None = None
+            self.applied_template_filters: list[Any] = []
+            self.rejected_filter_columns: list[Any] = []
+            self.annotation_data: dict[str, Any] = {}
+            self.bq_memory_limited: bool = False
+            self.bq_memory_limited_row_count: int = 0
+            self.result_persisted: bool = False
+            self.set_query_result: MagicMock = MagicMock()
 
     mock_cache = MockCache()
 
-    def marker_lookup(key: str):
-        # Marker present only for the dataframe's own cache_key.
+    def marker_lookup(key: str) -> int | None:
+        """Return the force-nonce marker only for the dataframe's own cache_key."""
         return 1 if key == "gtf-force-nonce:nonce-1:df-key" else None
 
     with (
