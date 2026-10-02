@@ -135,8 +135,8 @@ objects (dashboards and slices) associated with the tables you just extended the
 ### Actionable Access-Denied Messages
 
 When a viewer opens a chart or dashboard built on a dataset they don't have access to, Superset
-shows a plain-language error naming the dataset (or tables, for SQL Lab) and, when known, the
-dataset owners to contact. You can also point users at your own access-request process by setting
+shows a plain-language error explaining that access is denied (naming the tables for SQL Lab
+errors) and, when known, the dataset owners to contact. You can also point users at your own access-request process by setting
 `PERMISSION_INSTRUCTIONS_LINK` in `superset_config.py`:
 
 ```python
