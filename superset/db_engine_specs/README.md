@@ -76,7 +76,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Aurora PostgreSQL (Data API) | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | CockroachDB | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | RisingWave | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
-| Google BigQuery | 83 | Supported | Partial | Supported | Partial | Partial | Partial |
+| Google BigQuery | 103 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Apache Doris | 79 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Snowflake | 72 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Databricks | 70 | Supported | Partial | Supported | Partial | Partial | Not supported |
@@ -524,7 +524,7 @@ Integration with platform features and metadata handling.
 | Exasol | False | False | False | False |
 | Firebird | False | False | False | False |
 | Firebolt | False | False | False | False |
-| Google BigQuery | False | False | True | False |
+| Google BigQuery | True | False | True | False |
 | Google Sheets | True | False | False | False |
 | IBM Db2 | False | False | False | False |
 | IBM Db2 for i | False | False | False | False |
