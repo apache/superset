@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1067,6 +1067,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i "
+"minimum dla każdego okresu. Jest powszechnie używany do analiz "
+"finansowych i zakresów szeregów czasowych."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4309,7 +4312,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Wartość zamknięcia dla każdego okresu."
 
 msgid "Cluster label aggregator"
 msgstr "Agregator etykiet klastrów"
@@ -5672,8 +5675,9 @@ msgstr "Dane"
 msgid "Data Connections"
 msgstr "Połączenia z bazą danych"
 
+#, fuzzy
 msgid "Data Export Options"
-msgstr ""
+msgstr "Opcje wykresu"
 
 #, fuzzy
 msgid "Data Table"
@@ -7198,7 +7202,7 @@ msgid "Edit chart"
 msgstr "Edytuj wykres"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Edytuj właściwości wykresu"
 
 msgid "Edit dashboard"
 msgstr "Edytuj pulpit nawigacyjny"
@@ -7908,11 +7912,13 @@ msgstr "Eksploruj zestaw wyników w widoku eksploracji danych"
 msgid "Export"
 msgstr "Eksportuj"
 
+#, fuzzy
 msgid "Export All Data"
-msgstr ""
+msgstr "Wyczyść wszystkie dane"
 
+#, fuzzy
 msgid "Export Current View"
-msgstr ""
+msgstr "Odwróć bieżącą stronę"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7999,10 +8005,10 @@ msgid "Export to full Excel"
 msgstr "Eksportuj do pełnego Excel"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Eksportuj do oryginalnego .CSV"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Eksportuj do .CSV z pivotem"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8315,8 +8321,13 @@ msgstr "Nie udało się zweryfikować opcji wyboru: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
+"Powrót do formatu CSV; biblioteka eksportu do programu Excel jest "
+"niedostępna."
 
 #, fuzzy
 msgid "False"
@@ -11172,6 +11183,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -11307,7 +11319,7 @@ msgid "New Semantic Layer"
 msgstr "Brak warstw adnotacji"
 
 msgid "New chart"
-msgstr ""
+msgstr "Nowy wykres"
 
 #, fuzzy
 msgid "New dataset"
@@ -16417,7 +16429,7 @@ msgid "Sunday"
 msgstr "Niedziela"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Wykres Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Dokumentacja wbudowanego SDK Superset."
@@ -18868,7 +18880,7 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -22643,8 +22655,9 @@ msgid "permalink state not found"
 msgstr "stan bezpośredniego łącza nie znaleziony"
 
 #. do-not-translate
+#, fuzzy
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "Przestawione"
 
 msgid "pixels"
 msgstr "piksele"

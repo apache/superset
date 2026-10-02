@@ -959,8 +959,11 @@ export function getLegendProps(
    * affordance (e.g. aria-label or title attribute on the legend item) is
    * tracked as a separate enhancement.
    */
-  const makeLegendTooltip = (maxTextWidth: number): any => ({
+  const makeLegendTooltip = (
+    maxTextWidth: number,
+  ): NonNullable<LegendComponentOption['tooltip']> => ({
     show: true,
+    appendToBody: true, // Use DOM body to prevent clipping
     confine: false, // allow tooltip to render above the canvas boundary
     position: (
       _pos: [number, number],
@@ -979,8 +982,11 @@ export function getLegendProps(
         ),
         0,
       );
-      // Place above the legend item; negative y appears above canvas with confine:false
-      const y = elRect.y - tooltipHeight - 8;
+      // Place above the legend item; if no room above, flip below
+      let y = elRect.y - tooltipHeight - 8;
+      if (y < 0) {
+        y = elRect.y + elRect.height + 8;
+      }
       return [x, y];
     },
     // Suppress tooltip when text fits; show escaped full name only when truncated

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -989,6 +989,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Ein Kerzenchart zeigt Eröffnungs-, Schluss-, Höchst- und Tiefstwerte für "
+"jeden Zeitraum. Er wird häufig für Finanz- und andere Zeitreihen-"
+"Spannweitenanalysen verwendet."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3995,7 +3998,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Schlusswert für jeden Zeitraum."
 
 msgid "Cluster label aggregator"
 msgstr "Cluster-Beschriftung-Aggregator"
@@ -5194,7 +5197,7 @@ msgid "Data Connections"
 msgstr "Datenverbindungen"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Optionen für den Datenexport"
 
 msgid "Data Table"
 msgstr "Datentabelle"
@@ -6568,7 +6571,7 @@ msgid "Edit chart"
 msgstr "Diagramm bearbeiten"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Diagrammeigenschaften bearbeiten"
 
 msgid "Edit dashboard"
 msgstr "Dashboard bearbeiten"
@@ -7184,10 +7187,10 @@ msgid "Export"
 msgstr "Export"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Alle Daten exportieren"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Aktuelle Ansicht exportieren"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7261,10 +7264,10 @@ msgid "Export to full Excel"
 msgstr "Export in vollständiges Excel"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Export in das ursprüngliche .CSV"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Export in das pivotierte .CSV"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -7539,7 +7542,7 @@ msgid "Failure Notifications"
 msgstr ""
 
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Ausweichen auf CSV; Excel-Exportbibliothek nicht verfügbar."
 
 msgid "False"
 msgstr "Falsch"
@@ -10076,6 +10079,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -10195,7 +10199,7 @@ msgid "New Semantic Layer"
 msgstr "Neue semantische Schicht"
 
 msgid "New chart"
-msgstr ""
+msgstr "Neues Diagramm"
 
 msgid "New dataset"
 msgstr "Neuer Datensatz"
@@ -14747,7 +14751,7 @@ msgid "Sunday"
 msgstr "Sonntag"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Superset Diagramm"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset Embedded SDK-Dokumentation."
@@ -20456,7 +20460,7 @@ msgstr "Permalink-Status nicht gefunden"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "Pixel"

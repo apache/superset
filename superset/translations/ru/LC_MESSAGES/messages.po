@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1025,6 +1025,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Свечной график показывает цены открытия, закрытия, максимум и минимум за "
+"каждый период. Обычно используется для финансового и другого анализа "
+"диапазонов временных рядов."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3954,7 +3957,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Значение закрытия за каждый период."
 
 msgid "Cluster label aggregator"
 msgstr "Агрегатор меток кластера"
@@ -5126,7 +5129,7 @@ msgid "Data Connections"
 msgstr "Подключения"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Параметры экспорта данных"
 
 msgid "Data Table"
 msgstr "Таблица"
@@ -6487,7 +6490,7 @@ msgid "Edit chart"
 msgstr "Редактировать диаграмму"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Редактировать свойства диаграммы"
 
 msgid "Edit dashboard"
 msgstr "Редактировать дашборд"
@@ -7099,10 +7102,10 @@ msgid "Export"
 msgstr "Экспортировать"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Экспортировать все данные"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Экспортировать текущий вид"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7176,10 +7179,10 @@ msgid "Export to full Excel"
 msgstr "Экспорт в целый Excel"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Экспорт исходных данных в CSV"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Экспорт сводной таблицы в CSV"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -7451,7 +7454,7 @@ msgid "Failure Notifications"
 msgstr ""
 
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Возврат к формату CSV; библиотека экспорта в Excel недоступна."
 
 msgid "False"
 msgstr "Ложь"
@@ -9985,6 +9988,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -10103,7 +10107,7 @@ msgid "New Semantic Layer"
 msgstr "Новый слой аннотаций"
 
 msgid "New chart"
-msgstr ""
+msgstr "Новая диаграмма"
 
 msgid "New dataset"
 msgstr "Новый датасет"
@@ -14570,7 +14574,7 @@ msgid "Sunday"
 msgstr "Воскресенье"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Диаграмма Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Документация Superset Embedded SDK."
@@ -20115,6 +20119,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "состояние постоянной ссылки не найдено"
 
+# Не переводить
 #. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1009,6 +1009,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un gráfico de velas muestra los valores de apertura, cierre, máximo y "
+"mínimo de cada período. Se usa habitualmente para análisis financiero y "
+"de rangos en series temporales."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4142,7 +4145,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valor de cierre de cada período."
 
 msgid "Cluster label aggregator"
 msgstr "Agregador de etiquetas del clúster"
@@ -5397,7 +5400,7 @@ msgid "Data Connections"
 msgstr "Conexiones de datos"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Opciones de exportación de datos"
 
 msgid "Data Table"
 msgstr "Tabla de datos"
@@ -6838,7 +6841,7 @@ msgid "Edit chart"
 msgstr "Editar gráfico"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Editar propiedades del gráfico"
 
 #, -ERR:PROP-NOT-FOUND-
 msgid "Edit dashboard"
@@ -7500,10 +7503,10 @@ msgid "Export"
 msgstr "Exportar"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Exportar todos los datos"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Exportar la vista actual"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7585,10 +7588,10 @@ msgid "Export to full Excel"
 msgstr "Exportar a Excel completo"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Exportar a .CSV original"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Exportar a .CSV dinámico"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -7883,8 +7886,12 @@ msgstr "No se han podido verificar las opciones de selección: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
+"Usando CSV como alternativa; la biblioteca de exportación a Excel no está"
+" disponible."
 
 msgid "False"
 msgstr "Falso"
@@ -10599,6 +10606,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -10723,7 +10731,7 @@ msgid "New Semantic Layer"
 msgstr "Nueva capa semántica"
 
 msgid "New chart"
-msgstr ""
+msgstr "Nuevo gráfico"
 
 msgid "New dataset"
 msgstr "Nuevo conjunto de datos"
@@ -15522,7 +15530,7 @@ msgid "Sunday"
 msgstr "Domingo"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Gráfico Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentación del SDK integrado de Superset."
@@ -21487,8 +21495,9 @@ msgid "permalink state not found"
 msgstr "no se ha encontrado el estado del enlace permanente"
 
 #. do-not-translate
+#, fuzzy
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "Pivotado"
 
 msgid "pixels"
 msgstr "píxeles"

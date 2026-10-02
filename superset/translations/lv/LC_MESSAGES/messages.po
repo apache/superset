@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1040,6 +1040,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
+" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -4010,7 +4013,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Katras perioda slēgšanas vērtība."
 
 msgid "Cluster label aggregator"
 msgstr "Klasteru apzīmējumu agregators"
@@ -5208,7 +5211,7 @@ msgid "Data Connections"
 msgstr "Datubāzes savienojumi"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Datu eksportēšanas opcijas"
 
 msgid "Data Table"
 msgstr "Datu tabula"
@@ -6594,7 +6597,7 @@ msgid "Edit chart"
 msgstr "Rediģēt diagrammu"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Rediģēt diagrammas rekvizītus"
 
 msgid "Edit dashboard"
 msgstr "Rediģēt informācijas paneli"
@@ -7211,10 +7214,10 @@ msgid "Export"
 msgstr "Eksportēt"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Eksportēt visus datus"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Eksportēt pašreizējo skatu"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7289,10 +7292,10 @@ msgid "Export to full Excel"
 msgstr "Eksportēt uz pilnu Excel"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Eksportēt uz oriģinālo .CSV"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Eksportēt uz šķērsgriezuma .CSV"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -7572,7 +7575,7 @@ msgid "Failure Notifications"
 msgstr ""
 
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Atgriešanās pie CSV; Excel eksporta bibliotēka nav pieejama."
 
 msgid "False"
 msgstr "Nepatiesi"
@@ -10141,6 +10144,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -10262,7 +10266,7 @@ msgid "New Semantic Layer"
 msgstr "Nav anotāciju slāņu"
 
 msgid "New chart"
-msgstr ""
+msgstr "Jauna diagramma"
 
 msgid "New dataset"
 msgstr "Jauna datu kopa"
@@ -14848,7 +14852,7 @@ msgid "Sunday"
 msgstr "Svētdiena"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Superset diagramma"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Superset iegultā SDK dokumentācija."
@@ -17058,7 +17062,7 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -20498,7 +20502,7 @@ msgstr "pastāvīgās saites stāvoklis nav atrasts"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pikseļi"

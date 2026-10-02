@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -34,7 +34,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1159,6 +1159,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"يعرض مخطط الشموع قيم الفتح والإغلاق والأعلى والأدنى لكل فترة. يُستخدم "
+"عادةً في التحليل المالي وتحليل نطاق السلاسل الزمنية."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4369,7 +4371,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "قيمة الإغلاق لكل فترة."
 
 msgid "Cluster label aggregator"
 msgstr "مجمع تسميات نظام المجموعة"
@@ -5670,8 +5672,9 @@ msgstr "بيانات"
 msgid "Data Connections"
 msgstr "اتصالات قاعدة البيانات"
 
+#, fuzzy
 msgid "Data Export Options"
-msgstr ""
+msgstr "خيارات الرسم البياني"
 
 msgid "Data Table"
 msgstr "جدول البيانات"
@@ -7203,7 +7206,7 @@ msgid "Edit chart"
 msgstr "تحرير المخطط"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "تحرير خصائص المخطط"
 
 msgid "Edit dashboard"
 msgstr "تحرير لوحة التحكم"
@@ -7914,11 +7917,13 @@ msgstr "استكشف مجموعة النتائج في عرض استكشاف ال
 msgid "Export"
 msgstr "تصدير"
 
+#, fuzzy
 msgid "Export All Data"
-msgstr ""
+msgstr "مسح جميع البيانات"
 
+#, fuzzy
 msgid "Export Current View"
-msgstr ""
+msgstr "عكس الصفحة الحالية"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -8003,10 +8008,10 @@ msgid "Export to full Excel"
 msgstr "تصدير إلى Excel الكامل"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "تصدير إلى ملف CSV الأصلي"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "التصدير إلى ملف CSV المحوري"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8311,8 +8316,11 @@ msgstr "فشلت عملية التحقق من خيارات التحديد: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "الرجوع إلى CSV؛ مكتبة تصدير Excel غير متوفرة."
 
 #, fuzzy
 msgid "False"
@@ -11126,6 +11134,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -11254,7 +11263,7 @@ msgid "New Semantic Layer"
 msgstr "لا توجد طبقات توضيحية"
 
 msgid "New chart"
-msgstr ""
+msgstr "مخطط جديد"
 
 msgid "New dataset"
 msgstr "مجموعة بيانات جديدة"
@@ -16174,7 +16183,7 @@ msgid "Sunday"
 msgstr "الأحد"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "مخطط المجموعة الشاملة"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "قم بتجميع وثائق SDK المضمنة."
@@ -18563,7 +18572,7 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
@@ -22243,8 +22252,9 @@ msgid "permalink state not found"
 msgstr "لم يتم العثور على حالة الرابط الثابت"
 
 #. do-not-translate
+#, fuzzy
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "ممحور"
 
 msgid "pixels"
 msgstr "بكسل"

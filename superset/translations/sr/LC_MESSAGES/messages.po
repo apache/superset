@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1183,6 +1183,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Свећасти графикон приказује вредности отварања, затварања, максимум и "
+"минимум за сваки период. Обично се користи за финансијску и другу анализу"
+" опсега временских серија."
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4847,7 +4850,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Вредност затварања за сваки период."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
@@ -6296,8 +6299,9 @@ msgstr "Подаци"
 msgid "Data Connections"
 msgstr "Везе са подацима"
 
+# uk]
 msgid "Data Export Options"
-msgstr ""
+msgstr "Опције извоза података"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Data Table"
@@ -8006,8 +8010,10 @@ msgstr "Уреди својства слоја анотације"
 msgid "Edit chart"
 msgstr "Уреди графикон"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Уреди својства графикона"
 
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
 msgid "Edit dashboard"
@@ -8786,11 +8792,13 @@ msgstr "Истражи скуп резултата у приказу за ист
 msgid "Export"
 msgstr "Извези"
 
+# ru, uk]
 msgid "Export All Data"
-msgstr ""
+msgstr "Извези све податке"
 
+# uk]
 msgid "Export Current View"
-msgstr ""
+msgstr "Извези тренутни приказ"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -8881,11 +8889,13 @@ msgstr "Извези у потпуни .CSV"
 msgid "Export to full Excel"
 msgstr "Извези у потпуни Excel"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Извези у оригинални .CSV"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Извези у укрштени .CSV"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -9200,8 +9210,9 @@ msgstr "Неуспела провера опција избора: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# ru, sk, uk]
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Враћање на CSV; библиотека за извоз у Excel није доступна."
 
 # ru, uk]
 msgid "False"
@@ -12327,6 +12338,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -12475,8 +12487,10 @@ msgstr "Ново"
 msgid "New Semantic Layer"
 msgstr "Нови семантички слој"
 
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
 msgid "New chart"
-msgstr ""
+msgstr "Нови графикон"
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New dataset"
@@ -18052,8 +18066,9 @@ msgstr "Sunburst графикон"
 msgid "Sunday"
 msgstr "Недеља"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Chart"
-msgstr ""
+msgstr "Superset графикон"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Superset Embedded SDK documentation."
@@ -24696,7 +24711,7 @@ msgstr "стање трајне везе није пронађено"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "pivoted_xlsx"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "pixels"

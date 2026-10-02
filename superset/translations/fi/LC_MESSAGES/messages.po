@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1435,6 +1435,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Kynttiläkaavio näyttää avaus-, päätös-, ylä- ja aliarvot kullekin "
+"jaksolle. Sitä käytetään yleisesti rahoitus- ja muuhun aikasarjojen "
+"vaihteluvälianalyysiin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -6493,7 +6496,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Päätösarvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -8510,8 +8513,11 @@ msgstr "Tiedot"
 msgid "Data Connections"
 msgstr "Tietokantayhteydet"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+#, fuzzy
 msgid "Data Export Options"
-msgstr ""
+msgstr "Tietojen vientiasetukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -10830,8 +10836,12 @@ msgstr "Muokkaa merkintätason ominaisuuksia"
 msgid "Edit chart"
 msgstr "Muokkaa kaaviota"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+#, fuzzy
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Muokkaa kaavion ominaisuuksia"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, tr, uk, zh, zh_TW]
@@ -11943,11 +11953,17 @@ msgstr "Tutki tulosjoukkoa datan tutkimisnäkymässä"
 msgid "Export"
 msgstr "Vie"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
+# ru, uk]
+#, fuzzy
 msgid "Export All Data"
-msgstr ""
+msgstr "Vie kaikki tiedot"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+#, fuzzy
 msgid "Export Current View"
-msgstr ""
+msgstr "Vie nykyinen näkymä"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -12073,11 +12089,17 @@ msgstr "Vie täydelliseen .CSV-tiedostoon"
 msgid "Export to full Excel"
 msgstr "Vie täydelliseen Exceliin"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Vie alkuperäiseen .CSV-tiedostoon"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Vie pivot-muotoiseen .CSV-tiedostoon"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -12494,8 +12516,11 @@ msgstr "Valinnan vaihtoehtojen tarkistaminen epäonnistui: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
+# ru, sk, uk]
+#, fuzzy
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Palataan CSV-muotoon; Excel-vientikirjasto ei ole käytettävissä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -16923,6 +16948,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -17137,8 +17163,12 @@ msgstr "Uusi"
 msgid "New Semantic Layer"
 msgstr "Ei annotaatiokerroksia"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
+# zh, zh_TW]
+#, fuzzy
 msgid "New chart"
-msgstr ""
+msgstr "Uusi kaavio"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -24953,8 +24983,11 @@ msgstr "Sunburst-kaavio"
 msgid "Sunday"
 msgstr "Sunnuntai"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Superset Chart"
-msgstr ""
+msgstr "Superset-kaavio"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -28260,9 +28293,7 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 

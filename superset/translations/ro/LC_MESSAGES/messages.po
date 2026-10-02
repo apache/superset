@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1087,6 +1087,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un grafic cu lumânări afișează valorile de deschidere, închidere, maximă "
+"și minimă pentru fiecare perioadă. Este folosit frecvent în analize "
+"financiare și de interval pe serii temporale."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "O listă separată prin virgulă de coloane care ar trebui analizate ca date"
@@ -4253,7 +4256,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valoarea de închidere pentru fiecare perioadă."
 
 msgid "Cluster label aggregator"
 msgstr "Agregator etichetă cluster"
@@ -5535,7 +5538,7 @@ msgid "Data Connections"
 msgstr "Conexiuni de date"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Opțiuni Export Date"
 
 msgid "Data Table"
 msgstr "Tabel Date"
@@ -7036,7 +7039,7 @@ msgid "Edit chart"
 msgstr "Editează grafic"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Editează proprietățile graficului"
 
 msgid "Edit dashboard"
 msgstr "Editează panoul de control"
@@ -7699,10 +7702,10 @@ msgid "Export"
 msgstr "Exportă"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Exportă Toate Datele"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Exportă Vederea Curentă"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -7785,10 +7788,10 @@ msgid "Export to full Excel"
 msgstr "Exportă în Excel complet"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Exportă în .CSV original"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Exportă în .CSV pivotat"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8087,7 +8090,7 @@ msgid "Failure Notifications"
 msgstr ""
 
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Revenire la CSV; biblioteca de export Excel nu este disponibilă."
 
 msgid "False"
 msgstr "Fals"
@@ -10849,6 +10852,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -10980,7 +10984,7 @@ msgid "New Semantic Layer"
 msgstr "Strat semantic nou"
 
 msgid "New chart"
-msgstr ""
+msgstr "Grafic nou"
 
 msgid "New dataset"
 msgstr "Set de date nou"
@@ -15847,7 +15851,7 @@ msgid "Sunday"
 msgstr "Duminică"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Grafic Superset"
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentația Superset Embedded SDK."
@@ -21858,7 +21862,7 @@ msgstr "starea permalink-ului nu a fost găsită"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "pixeli"

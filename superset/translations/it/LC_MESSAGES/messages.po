@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1230,6 +1230,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un grafico a candele mostra i valori di apertura, chiusura, massimo e "
+"minimo per ogni periodo. È comunemente usato per analisi finanziarie e di"
+" intervallo su serie temporali."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3965,15 +3968,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Annullamento non disponibile per mancanza del gestore di interruzione"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Candlestick"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Grafico a candele"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Le candele disegnano un corpo pieno tra apertura e chiusura. OHLC disegna"
+" tacche di apertura e chiusura su uno stelo massimo-minimo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -3984,6 +3989,7 @@ msgstr "Impossibile accedere alla query"
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Impossibile cancellare un database che ha dei dataset collegati"
 
+#, python-brace-format
 msgid ""
 "Cannot delete a database whose only remaining datasets are soft-deleted. "
 "Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its "
@@ -4116,7 +4122,7 @@ msgid "Cell title template"
 msgstr "Template per il titolo della cella"
 
 msgid "Center"
-msgstr ""
+msgstr "Centro"
 
 msgid "Center value"
 msgstr ""
@@ -4926,7 +4932,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valore di chiusura per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5037,7 +5043,7 @@ msgid "Color by"
 msgstr "Colora per"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Colore in base alla direzione"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -5077,9 +5083,11 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Colore usato quando il valore di chiusura è maggiore o uguale a quello di"
+" apertura."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Colore usato quando il valore di chiusura è minore di quello di apertura."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -6442,7 +6450,7 @@ msgid "Data Connections"
 msgstr "Connessioni ai dati"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Opzioni di esportazione dei dati"
 
 msgid "Data Table"
 msgstr "Tabella Dati"
@@ -8093,7 +8101,7 @@ msgid "Edit chart"
 msgstr "Modifica grafico"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Modifica proprietà grafico"
 
 msgid "Edit dashboard"
 msgstr "Modifica dashboard"
@@ -8891,10 +8899,10 @@ msgid "Export"
 msgstr "Esporta"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Esporta tutti i dati"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Esporta vista corrente"
 
 msgid "Export Data to Excel"
 msgstr "Esporta dati in Excel"
@@ -8968,10 +8976,10 @@ msgid "Export to full Excel"
 msgstr "Esporta in Excel completo"
 
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Esporta in CSV originale"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Esporta in CSV Pivoted"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -9039,6 +9047,7 @@ msgstr "Controlli aggiuntivi"
 msgid "Extra Parameters"
 msgstr "Parametri aggiuntivi"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
 "\"This is a warning.\" }`. Use the Certification fields below for "
@@ -9316,8 +9325,12 @@ msgstr "Impossibile verificare le opzioni selezionate: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
+"Utilizzo del CSV come fallback; libreria di esportazione Excel non "
+"disponibile."
 
 msgid "False"
 msgstr "Falso"
@@ -10244,7 +10257,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valore massimo per ciascun periodo."
 
 msgid "Histogram"
 msgstr "Istogramma"
@@ -11246,10 +11259,10 @@ msgid "Label threshold"
 msgstr "Soglia etichetta"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Etichetta delle candele in ribasso nel tooltip."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Etichetta delle candele in rialzo nel tooltip."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11888,7 +11901,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "La soglia inferiore deve essere inferiore alla soglia superiore"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valore minimo per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12683,7 +12696,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Sposta l'insieme di date specificato in base a un intervallo specificato."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Medie mobili"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -12741,6 +12754,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -12827,6 +12841,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Nome della serie a candele nella legenda e nel tooltip quando non è "
+"impostata una dimensione di serie."
 
 msgid "Name your database"
 msgstr "Nome del database"
@@ -12885,7 +12901,7 @@ msgid "New Semantic Layer"
 msgstr "Nuovo layer semantico"
 
 msgid "New chart"
-msgstr ""
+msgstr "Nuovo grafico"
 
 msgid "New dataset"
 msgstr "Nuovo dataset"
@@ -13464,7 +13480,7 @@ msgid "OCT"
 msgstr "OTT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13724,7 +13740,7 @@ msgid "Open query in SQL Lab"
 msgstr "Apri query in SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valore di apertura per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13766,7 +13782,7 @@ msgstr "Stringa opzionale per il formato dei numeri d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Dimensione opzionale per suddividere il grafico in più serie a candele."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13950,6 +13966,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Sovrappone medie mobili semplici del prezzo di chiusura (MA5, MA10, MA15,"
+" ...). Digitare un periodo personalizzato per aggiungerlo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17264,7 +17282,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Tipo di grafico della serie (linea, barra, ecc.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Colori della serie"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17283,13 +17301,13 @@ msgid "Series limit"
 msgstr "Limite di serie"
 
 msgid "Series name"
-msgstr ""
+msgstr "Nome della serie"
 
 msgid "Series settings"
 msgstr "Impostazioni serie"
 
 msgid "Series style"
-msgstr ""
+msgstr "Stile della serie"
 
 msgid "Series total setting"
 msgstr "Impostazioni totale serie"
@@ -18624,7 +18642,7 @@ msgid "Sunday"
 msgstr "Domenica"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Grafico Superset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23691,6 +23709,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Se abilitato, le candele in rialzo usano il colore di aumento e quelle in"
+" ribasso il colore di diminuzione. Disattivare per un solo colore di "
+"serie, con corpo pieno in rialzo e vuoto in ribasso."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 17:23+0530\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -1276,6 +1276,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo"
+" de cada período. É habitualmente usado em análises financeiras e de "
+"intervalos de séries temporais."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -5157,7 +5160,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valor de fecho de cada período."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -6678,7 +6681,7 @@ msgid "Data Connections"
 msgstr "Ligações de Dados"
 
 msgid "Data Export Options"
-msgstr ""
+msgstr "Opções de Exportação de Dados"
 
 msgid "Data Table"
 msgstr "Tabela de Dados"
@@ -8411,7 +8414,7 @@ msgid "Edit chart"
 msgstr "Editar gráfico"
 
 msgid "Edit chart properties"
-msgstr ""
+msgstr "Editar propriedades da visualização"
 
 msgid "Edit dashboard"
 msgstr "Editar Dashboard"
@@ -9271,10 +9274,10 @@ msgid "Export"
 msgstr "Exportar"
 
 msgid "Export All Data"
-msgstr ""
+msgstr "Exportar Todos os Dados"
 
 msgid "Export Current View"
-msgstr ""
+msgstr "Exportar Vista Atual"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -9351,11 +9354,14 @@ msgstr "Exportar para .CSV completo"
 msgid "Export to full Excel"
 msgstr "Exportar para Excel completo"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
 msgid "Export to original .CSV"
-msgstr ""
+msgstr "Exportar para .CSV original"
 
 msgid "Export to pivoted .CSV"
-msgstr ""
+msgstr "Exportar para .CSV dinamizado"
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -9711,8 +9717,10 @@ msgstr "Falha ao verificar opções selecionadas: %s"
 msgid "Failure Notifications"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
+# lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Voltando ao CSV; biblioteca de exportação para Excel não disponível."
 
 msgid "False"
 msgstr "Falso"
@@ -13176,6 +13184,7 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -13343,7 +13352,7 @@ msgid "New Semantic Layer"
 msgstr "Nova Camada Semântica"
 
 msgid "New chart"
-msgstr ""
+msgstr "Novo gráfico"
 
 msgid "New dataset"
 msgstr "Novo conjunto de dados"
@@ -19359,7 +19368,7 @@ msgid "Sunday"
 msgstr "Domingo"
 
 msgid "Superset Chart"
-msgstr ""
+msgstr "Gráfico Superset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -26861,7 +26870,7 @@ msgstr "estado do link permanente não encontrado"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr ""
+msgstr "pivoted_xlsx"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

@@ -613,7 +613,7 @@ export default function transformProps(
         false, // zoomable — Pie charts do not use the zoom control
         legendState,
         undefined, // padding — Pie passes width instead
-        Math.min(width, 250), // horizontalLegendWidth: cap at 250px so long names don't consume the entire row
+        Math.max(0, Math.min(width - 50, 250)), // horizontalLegendWidth: cap at 250px so long names don't consume the entire row
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
