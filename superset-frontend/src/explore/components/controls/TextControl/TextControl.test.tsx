@@ -21,6 +21,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import TextControl from '.';
 
@@ -137,4 +138,19 @@ test('should not call onChange again when a parent re-render hands down a new on
   rerender(<TextControl {...mockedProps} onChange={onChangeB} />);
   expect(onChangeA).not.toHaveBeenCalled();
   expect(onChangeB).not.toHaveBeenCalled();
+});
+
+test('should report a repeated identical edit after an external reset', async () => {
+  const onChange = jest.fn();
+  const { rerender } = render(
+    <TextControl {...mockedProps} value="75" onChange={onChange} />,
+  );
+  const input = screen.getByRole('textbox');
+  await userEvent.clear(input);
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+  rerender(<TextControl {...mockedProps} value="" onChange={onChange} />);
+  rerender(<TextControl {...mockedProps} value="75" onChange={onChange} />);
+  await userEvent.clear(input);
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
+  expect(onChange).toHaveBeenLastCalledWith('', []);
 });
