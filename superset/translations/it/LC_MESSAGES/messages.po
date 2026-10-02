@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 16:14+0530\n"
+"POT-Creation-Date: 2026-10-02 17:23+0530\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -4114,6 +4114,9 @@ msgstr "Limite cella"
 
 msgid "Cell title template"
 msgstr "Template per il titolo della cella"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -10939,11 +10942,6 @@ msgstr "Id schede non validi: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
-# lv, ro, ru, sr, sr_Latn, tr, uk]
-msgid "Invalid username or password"
-msgstr "Nome utente o password non validi"
-
 msgid "Inverse"
 msgstr ""
 
@@ -11411,6 +11409,9 @@ msgstr "Tipo di layout dell'albero"
 
 msgid "Least recently modified"
 msgstr "Modificato più di recente"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
