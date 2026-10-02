@@ -703,7 +703,7 @@ describe('ControlPanelsContainer', () => {
       type: 'SelectControl' as const,
       value: ComparisonType.Values,
     };
-    props.actions = { setControlValue };
+    props.actions = { setControlValue, resetSemanticSelections: jest.fn() };
     props.controls = {
       ...props.controls,
       header_groups: {
