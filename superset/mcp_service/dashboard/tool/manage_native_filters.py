@@ -33,7 +33,9 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
+    FilterRangeSpec,
     FilterSelectSpec,
+    FilterTimeGrainSpec,
     FilterTimeSpec,
     ManageNativeFiltersRequest,
     ManageNativeFiltersResponse,
@@ -45,14 +47,37 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
-# Control values that map to filter_select controlValues keys.
-_SELECT_CONTROL_FIELDS: dict[str, str] = {
+# Update fields that map to a filter's controlValues, keyed by the
+# NativeFilterUpdateSpec field name they come from.
+_CONTROL_VALUE_FIELDS: dict[str, str] = {
     "multi_select": "multiSelect",
     "default_to_first_item": "defaultToFirstItem",
     "enable_empty_filter": "enableEmptyFilter",
     "sort_ascending": "sortAscending",
     "search_all_options": "searchAllOptions",
 }
+
+# Update fields valid only for specific filter types. Fields not listed in
+# any of these sets (name, description, scope_chart_ids) apply to every type.
+_TYPE_SPECIFIC_UPDATE_FIELDS: dict[str, frozenset[str]] = {
+    "filter_select": frozenset(
+        {
+            "dataset_id",
+            "column",
+            "multi_select",
+            "default_to_first_item",
+            "enable_empty_filter",
+            "sort_ascending",
+            "search_all_options",
+        }
+    ),
+    "filter_range": frozenset({"dataset_id", "column", "enable_empty_filter"}),
+    "filter_time": frozenset({"default_time_range"}),
+    "filter_timegrain": frozenset({"enable_empty_filter"}),
+}
+_ALL_TYPE_SPECIFIC_UPDATE_FIELDS: frozenset[str] = frozenset().union(
+    *_TYPE_SPECIFIC_UPDATE_FIELDS.values()
+)
 
 
 class _FilterValidationError(Exception):
@@ -120,7 +145,7 @@ def _build_scope(
 
 
 def _build_new_filter_config(
-    spec: FilterSelectSpec | FilterTimeSpec,
+    spec: FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
     """Build a full native filter config dict for a new filter."""
@@ -152,6 +177,37 @@ def _build_new_filter_config(
             "cascadeParentIds": [],
         }
 
+    if isinstance(spec, FilterRangeSpec):
+        _validate_dataset_column(spec.dataset_id, spec.column)
+        return {
+            "id": filter_id,
+            "type": "NATIVE_FILTER",
+            "filterType": "filter_range",
+            "name": spec.name,
+            "description": spec.description,
+            "scope": scope,
+            "targets": [
+                {"datasetId": spec.dataset_id, "column": {"name": spec.column}}
+            ],
+            "controlValues": {"enableEmptyFilter": spec.enable_empty_filter},
+            "defaultDataMask": _empty_data_mask(),
+            "cascadeParentIds": [],
+        }
+
+    if isinstance(spec, FilterTimeGrainSpec):
+        return {
+            "id": filter_id,
+            "type": "NATIVE_FILTER",
+            "filterType": "filter_timegrain",
+            "name": spec.name,
+            "description": spec.description,
+            "scope": scope,
+            "targets": [{}],
+            "controlValues": {"enableEmptyFilter": spec.enable_empty_filter},
+            "defaultDataMask": _empty_data_mask(),
+            "cascadeParentIds": [],
+        }
+
     # filter_time: no dataset target, empty controlValues
     return {
         "id": filter_id,
@@ -171,20 +227,27 @@ def _validate_update_type_compat(
     spec: NativeFilterUpdateSpec, filter_type: str | None
 ) -> None:
     """Reject update fields that do not apply to the filter's type."""
-    select_fields_set = [
+    allowed = (
+        _TYPE_SPECIFIC_UPDATE_FIELDS.get(filter_type, frozenset())
+        if filter_type is not None
+        else frozenset()
+    )
+    invalid_fields = sorted(
         field
-        for field in (*_SELECT_CONTROL_FIELDS, "dataset_id", "column")
-        if getattr(spec, field) is not None
-    ]
-    if filter_type != "filter_select" and select_fields_set:
+        for field in _ALL_TYPE_SPECIFIC_UPDATE_FIELDS
+        if getattr(spec, field) is not None and field not in allowed
+    )
+    if invalid_fields:
+        valid_types = sorted(
+            {
+                type_name
+                for type_name, fields in _TYPE_SPECIFIC_UPDATE_FIELDS.items()
+                if fields & set(invalid_fields)
+            }
+        )
         raise _FilterValidationError(
             f"Filter '{spec.id}' has type '{filter_type}'; fields "
-            f"{select_fields_set} only apply to filter_select filters."
-        )
-    if filter_type != "filter_time" and spec.default_time_range is not None:
-        raise _FilterValidationError(
-            f"Filter '{spec.id}' has type '{filter_type}'; default_time_range "
-            "only applies to filter_time filters."
+            f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
         )
 
 
@@ -234,7 +297,7 @@ def _merge_filter_update(
         _merge_target(spec, merged)
 
     control_values = dict(merged.get("controlValues") or {})
-    for field, control_key in _SELECT_CONTROL_FIELDS.items():
+    for field, control_key in _CONTROL_VALUE_FIELDS.items():
         value = getattr(spec, field)
         if value is not None:
             control_values[control_key] = value
@@ -387,9 +450,10 @@ def manage_native_filters(
     Add, update, remove, and reorder native filters on a dashboard.
 
     Supported filter types for new filters: filter_select (dropdown backed
-    by a dataset column) and filter_time (time range). Other filter types
-    (numerical range, time column, time grain) are not yet supported.
-    Filter IDs are generated by the server and returned in the response.
+    by a dataset column), filter_time (time range), filter_range (numerical
+    range backed by a dataset column), and filter_timegrain (time grain).
+    filter_timecolumn (time column) is not yet supported. Filter IDs are
+    generated by the server and returned in the response.
 
     Concurrency note: the filter-list snapshot used for validation is read
     outside the DAO write transaction.  A ``reorder`` that is valid against

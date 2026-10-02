@@ -110,6 +110,32 @@ EXISTING_TIME_FILTER = {
     "cascadeParentIds": [],
 }
 
+EXISTING_RANGE_FILTER = {
+    "id": "NATIVE_FILTER-existing3",
+    "type": "NATIVE_FILTER",
+    "filterType": "filter_range",
+    "name": "Cost",
+    "description": "",
+    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    "targets": [{"datasetId": 5, "column": {"name": "cost"}}],
+    "controlValues": {"enableEmptyFilter": False},
+    "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
+    "cascadeParentIds": [],
+}
+
+EXISTING_TIMEGRAIN_FILTER = {
+    "id": "NATIVE_FILTER-existing4",
+    "type": "NATIVE_FILTER",
+    "filterType": "filter_timegrain",
+    "name": "Granularity",
+    "description": "",
+    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    "targets": [{}],
+    "controlValues": {"enableEmptyFilter": False},
+    "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
+    "cascadeParentIds": [],
+}
+
 
 def _mock_dashboard(
     id: int = 1,
@@ -298,6 +324,109 @@ async def test_add_filter_time(mcp_server):
     }
 
 
+@pytest.mark.asyncio
+async def test_add_filter_range(mcp_server):
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["cost", "ds"])),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_range",
+                        "name": "Cost",
+                        "dataset_id": 5,
+                        "column": "cost",
+                        "enable_empty_filter": True,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    new_id = data["added_filter_ids"][0]
+    config = captured["payload"]["modified"][0]
+    assert config["id"] == new_id
+    assert config["type"] == "NATIVE_FILTER"
+    assert config["filterType"] == "filter_range"
+    assert config["targets"] == [{"datasetId": 5, "column": {"name": "cost"}}]
+    assert config["controlValues"] == {"enableEmptyFilter": True}
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
+    assert data["filters"][0]["filter_type"] == "filter_range"
+
+
+@pytest.mark.asyncio
+async def test_add_filter_range_with_invalid_column(mcp_server):
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["region", "ds"])),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_range",
+                        "name": "Cost",
+                        "dataset_id": 5,
+                        "column": "nonexistent",
+                    }
+                ],
+            },
+        )
+
+    assert "Column 'nonexistent' not found in dataset 5" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timegrain(mcp_server):
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timegrain",
+                        "name": "Granularity",
+                        "enable_empty_filter": False,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    new_id = data["added_filter_ids"][0]
+    config = captured["payload"]["modified"][0]
+    assert config["id"] == new_id
+    assert config["filterType"] == "filter_timegrain"
+    assert config["targets"] == [{}]
+    assert config["controlValues"] == {"enableEmptyFilter": False}
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
+
+
 # ---------------------------------------------------------------------------
 # Update
 # ---------------------------------------------------------------------------
@@ -384,6 +513,112 @@ async def test_update_time_field_on_select_filter_rejected(mcp_server):
 
     assert "default_time_range" in data["error"]
     assert "filter_time" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_range_filter_target_and_empty_filter(mcp_server):
+    captured: dict = {"current_config": [EXISTING_RANGE_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_RANGE_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["cost", "price"])),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing3",
+                        "column": "price",
+                        "enable_empty_filter": True,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_range"
+    assert config["targets"] == [{"datasetId": 5, "column": {"name": "price"}}]
+    assert config["controlValues"]["enableEmptyFilter"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_timegrain_enable_empty_filter(mcp_server):
+    captured: dict = {"current_config": [EXISTING_TIMEGRAIN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMEGRAIN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing4",
+                        "enable_empty_filter": True,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timegrain"
+    assert config["controlValues"]["enableEmptyFilter"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_field_on_timegrain_filter_rejected(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMEGRAIN_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing4",
+                        "dataset_id": 5,
+                        "column": "cost",
+                    }
+                ],
+            },
+        )
+
+    assert "has type 'filter_timegrain'" in data["error"]
+    assert "dataset_id" in data["error"]
+    assert "column" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_select_only_field_on_range_filter_rejected(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_RANGE_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing3",
+                        "multi_select": True,
+                    }
+                ],
+            },
+        )
+
+    assert "has type 'filter_range'" in data["error"]
+    assert "multi_select" in data["error"]
+    assert "filter_select" in data["error"]
 
 
 @pytest.mark.asyncio

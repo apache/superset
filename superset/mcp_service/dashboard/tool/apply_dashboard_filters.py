@@ -26,6 +26,7 @@ which DEFINES the filters and writes to the shared dashboard.
 """
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from fastmcp import Context
@@ -53,7 +54,9 @@ logger = logging.getLogger(__name__)
 
 # Filter types this tool knows how to apply a value to. Kept in step with the
 # types manage_native_filters can create.
-SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset({"filter_select", "filter_time"})
+SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
+    {"filter_select", "filter_time", "filter_range", "filter_timegrain"}
+)
 
 # Display strings the frontend uses when labelling a selected value; mirrored
 # here so a permalink's label reads the same as a UI-applied one.
@@ -224,6 +227,65 @@ def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
     }
 
 
+def _range_data_mask(
+    conf: dict[str, Any], bounds: list[int | float | None]
+) -> dict[str, Any]:
+    """Build the data mask a filter_range filter produces for ``bounds``.
+
+    Mirrors the frontend's ``getRangeExtraFormData``: distinct non-null
+    bounds become a pair of ``>=``/``<=`` predicates, equal non-null bounds
+    collapse to a single ``==`` predicate, and two null bounds produce no
+    predicate at all (the "required filter, nothing chosen" state when the
+    filter is marked ``enableEmptyFilter``, raised rather than guessed).
+    """
+    targets = [target for target in (conf.get("targets") or []) if target]
+    column = (targets[0].get("column") or {}).get("name") if targets else None
+    if not column:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
+            "column, so a value cannot be applied to it."
+        )
+
+    lower, upper = bounds
+    if lower is None and upper is None:
+        if (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+            raise _FilterApplyError(
+                f"Filter '{conf.get('name') or conf.get('id')}' requires a "
+                "value and cannot be cleared."
+            )
+        return {"extraFormData": {}, "filterState": {"value": [None, None]}}
+
+    filters: list[dict[str, Any]] = []
+    if lower == upper:
+        filters.append({"col": column, "op": "==", "val": upper})
+    else:
+        if lower is not None:
+            filters.append({"col": column, "op": ">=", "val": lower})
+        if upper is not None:
+            filters.append({"col": column, "op": "<=", "val": upper})
+
+    return {
+        "extraFormData": {"filters": filters},
+        "filterState": {"value": [lower, upper]},
+    }
+
+
+def _timegrain_data_mask(
+    conf: dict[str, Any], time_grain: Sequence[str]
+) -> dict[str, Any]:
+    """Build the data mask a filter_timegrain filter produces for ``time_grain``."""
+    is_set = bool(time_grain)
+    if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' requires a time "
+            "grain and cannot be cleared."
+        )
+    return {
+        "extraFormData": {"time_grain_sqla": time_grain[0]} if is_set else {},
+        "filterState": {"value": list(time_grain) if is_set else None},
+    }
+
+
 def _apply_one(
     spec: ApplyFilterValueSpec, configs: list[dict[str, Any]]
 ) -> tuple[str, dict[str, Any], AppliedFilterSummary]:
@@ -256,7 +318,7 @@ def _apply_one(
             filter_type=filter_type,
             values=list(spec.values),
         )
-    else:
+    elif filter_type == "filter_time":
         if spec.time_range is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_time filter; "
@@ -268,6 +330,32 @@ def _apply_one(
             name=conf.get("name"),
             filter_type=filter_type,
             time_range=spec.time_range,
+        )
+    elif filter_type == "filter_range":
+        if spec.range is None:
+            raise _FilterApplyError(
+                f"Filter '{spec.filter_name_or_id}' is a filter_range "
+                "filter; provide 'range', not 'values'."
+            )
+        data_mask = _range_data_mask(conf, spec.range)
+        summary = AppliedFilterSummary(
+            id=filter_id,
+            name=conf.get("name"),
+            filter_type=filter_type,
+            range=list(spec.range),
+        )
+    else:
+        if spec.time_grain is None:
+            raise _FilterApplyError(
+                f"Filter '{spec.filter_name_or_id}' is a filter_timegrain "
+                "filter; provide 'time_grain', not 'values'."
+            )
+        data_mask = _timegrain_data_mask(conf, spec.time_grain)
+        summary = AppliedFilterSummary(
+            id=filter_id,
+            name=conf.get("name"),
+            filter_type=filter_type,
+            time_grain=list(spec.time_grain),
         )
 
     # ``id`` and ``ownState`` complete the shape the dashboard's data mask
@@ -331,8 +419,11 @@ async def apply_dashboard_filters(
     its filter ID; call get_dashboard_info first to see which filters a
     dashboard has. Only exact-match select filters without inverse selection
     are supported. Supply ``values`` for a filter_select filter (an empty
-    list clears it, and a single-select filter accepts at most one value)
-    and ``time_range`` for a filter_time filter. Filters
+    list clears it, and a single-select filter accepts at most one value),
+    ``time_range`` for a filter_time filter, ``range`` as a ``[lower, upper]``
+    pair for a filter_range filter (either bound may be null, and
+    ``[null, null]`` clears it), and ``time_grain`` as a list of at most one
+    value for a filter_timegrain filter (an empty list clears it). Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
@@ -347,7 +438,9 @@ async def apply_dashboard_filters(
         "dashboard_id": 123,
         "filters": [
             {"filter_name_or_id": "Region", "values": ["EMEA", "APAC"]},
-            {"filter_name_or_id": "Time Range", "time_range": "Last month"}
+            {"filter_name_or_id": "Time Range", "time_range": "Last month"},
+            {"filter_name_or_id": "Cost", "range": [10, 100]},
+            {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}
         ]
     }
     ```
