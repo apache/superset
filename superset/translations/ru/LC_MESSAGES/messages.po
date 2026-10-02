@@ -3973,6 +3973,9 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
+msgid "Collapse rows by default"
+msgstr "Сворачивать строки по умолчанию"
+
 msgid "Collapse tab content"
 msgstr "Свернуть содержимое вкладки"
 
@@ -14277,6 +14280,13 @@ msgstr "Стандартный временной ряд"
 
 msgid "Start"
 msgstr "Начало"
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
+msgstr ""
+"Если показаны подытоги по строкам, группы строк изначально свёрнуты. "
+"Каждую группу по-прежнему можно развернуть стрелкой."
 
 msgid "Start (Longitude, Latitude): "
 msgstr "Старт (долгота, широта): "

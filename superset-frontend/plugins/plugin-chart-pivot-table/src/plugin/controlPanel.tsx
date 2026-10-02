@@ -194,6 +194,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'collapseRows',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Collapse rows by default'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Start with row groups collapsed when row subtotals are shown. ' +
+                  'Each group can still be expanded with its arrow.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.rowSubTotals?.value),
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',

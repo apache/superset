@@ -1220,3 +1220,180 @@ test('TableRenderer ignores customFormatters while showValuesAs is a percentage'
     expect.arrayContaining(['50.0%', '50.0%', '50.0%', '50.0%']),
   );
 });
+
+const NESTED_ROW_DATA = [
+  {
+    country: 'US',
+    city: 'NYC',
+    shape: 'circle',
+    value: 10,
+    __rows: ['country', 'city'],
+    __columns: ['shape'],
+  },
+  {
+    country: 'US',
+    city: 'LA',
+    shape: 'circle',
+    value: 20,
+    __rows: ['country', 'city'],
+    __columns: ['shape'],
+  },
+  {
+    country: 'UK',
+    city: 'London',
+    shape: 'circle',
+    value: 30,
+    __rows: ['country', 'city'],
+    __columns: ['shape'],
+  },
+  {
+    country: 'US',
+    shape: 'circle',
+    value: 30,
+    __rows: ['country'],
+    __columns: ['shape'],
+  },
+  {
+    country: 'UK',
+    shape: 'circle',
+    value: 30,
+    __rows: ['country'],
+    __columns: ['shape'],
+  },
+];
+
+const THREE_LEVEL_ROW_DATA = [
+  {
+    country: 'US',
+    region: 'West',
+    city: 'LA',
+    value: 1,
+    __rows: ['country', 'region', 'city'],
+    __columns: [],
+  },
+  {
+    country: 'US',
+    region: 'West',
+    city: 'SF',
+    value: 2,
+    __rows: ['country', 'region', 'city'],
+    __columns: [],
+  },
+  {
+    country: 'US',
+    region: 'East',
+    city: 'NYC',
+    value: 4,
+    __rows: ['country', 'region', 'city'],
+    __columns: [],
+  },
+  {
+    country: 'US',
+    region: 'West',
+    value: 3,
+    __rows: ['country', 'region'],
+    __columns: [],
+  },
+  {
+    country: 'US',
+    region: 'East',
+    value: 4,
+    __rows: ['country', 'region'],
+    __columns: [],
+  },
+  { country: 'US', value: 7, __rows: ['country'], __columns: [] },
+];
+
+function clickRowGroupToggle(label: string) {
+  const labelNode = screen.getByText(label);
+  const toggle = labelNode.closest('th')?.querySelector('button.toggle');
+  if (!toggle) {
+    throw new Error(`No row-group toggle for ${label}`);
+  }
+  fireEvent.click(toggle);
+}
+
+test('TableRenderer keeps nested rows expanded when collapseRows is off', () => {
+  const props = buildDefaultProps({
+    data: NESTED_ROW_DATA,
+    rows: ['country', 'city'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: false },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.getByText('London')).toBeInTheDocument();
+});
+
+test('TableRenderer collapses row groups by default and still expands one group', () => {
+  const props = buildDefaultProps({
+    data: NESTED_ROW_DATA,
+    rows: ['country', 'city'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.getByText('UK')).toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+  expect(screen.queryByText('London')).not.toBeInTheDocument();
+  expect(screen.getAllByText('Subtotal').length).toBeGreaterThan(0);
+
+  clickRowGroupToggle('US');
+
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.queryByText('London')).not.toBeInTheDocument();
+
+  clickRowGroupToggle('US');
+
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+});
+
+test('TableRenderer keeps the next row level collapsed after expanding a parent', () => {
+  const props = buildDefaultProps({
+    data: THREE_LEVEL_ROW_DATA,
+    rows: ['country', 'region', 'city'],
+    cols: [],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.queryByText('West')).not.toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+
+  clickRowGroupToggle('US');
+
+  expect(screen.getByText('West')).toBeInTheDocument();
+  expect(screen.getByText('East')).toBeInTheDocument();
+  expect(screen.queryByText('LA')).not.toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+
+  clickRowGroupToggle('West');
+
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.getByText('SF')).toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+});
+
+test('TableRenderer ignores collapseRows when row subtotals are off', () => {
+  const props = buildDefaultProps({
+    data: NESTED_ROW_DATA,
+    rows: ['country', 'city'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: false, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('London')).toBeInTheDocument();
+});

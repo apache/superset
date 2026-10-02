@@ -81,6 +81,8 @@ interface TableOptions {
   colTotals?: boolean;
   rowSubTotals?: boolean;
   colSubTotals?: boolean;
+  /** Collapse every row group until the viewer expands it. Requires row subtotals. */
+  collapseRows?: boolean;
   clickCallback?: ClickCallback;
   clickColumnHeaderCallback?: HeaderClickCallback;
   clickRowHeaderCallback?: HeaderClickCallback;
@@ -160,6 +162,26 @@ const parseLabel = (value: unknown): string | number => {
   }
   return String(value);
 };
+
+/**
+ * Whether a row prefix is collapsed. An explicit toggle wins. Otherwise the
+ * prefix follows the default. The empty prefix is always expanded, because the
+ * ancestor walk visits it for every key.
+ */
+function isEffectivelyCollapsed(
+  key: string[],
+  collapsed: Record<string, boolean>,
+  collapseByDefault: boolean,
+): boolean {
+  if (key.length === 0) {
+    return false;
+  }
+  const keyId = flatKey(key);
+  if (keyId in collapsed) {
+    return Boolean(collapsed[keyId]);
+  }
+  return collapseByDefault;
+}
 
 function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
   if (allowRenderHtml && typeof value === 'string') {
@@ -364,6 +386,12 @@ export function TableRenderer(props: TableRendererProps) {
   const [activeSortColumn, setActiveSortColumn] = useState<number | null>(null);
   const [sortedRowKeys, setSortedRowKeys] = useState<string[][] | null>(null);
 
+  // Default collapse only applies while row subtotals are on. Without them
+  // there is no subtotal row to show and no arrow to expand a hidden group.
+  const collapseRowsByDefault = Boolean(
+    tableOptions.collapseRows && tableOptions.rowSubTotals,
+  );
+
   const sortCacheRef = useRef(new Map<string, string[][]>());
 
   const clickHandler = useCallback(
@@ -478,12 +506,16 @@ export function TableRenderer(props: TableRendererProps) {
   const toggleRowKey = useCallback(
     (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
-      setCollapsedRows(state => ({
-        ...state,
-        [flatRowKey]: !state[flatRowKey],
-      }));
+      setCollapsedRows(state => {
+        const currentlyCollapsed =
+          flatRowKey in state ? state[flatRowKey] : collapseRowsByDefault;
+        return {
+          ...state,
+          [flatRowKey]: !currentlyCollapsed,
+        };
+      });
     },
-    [],
+    [collapseRowsByDefault],
   );
 
   const toggleColKey = useCallback(
@@ -729,17 +761,23 @@ export function TableRenderer(props: TableRendererProps) {
       collapsed: Record<string, boolean>,
       numAttrs: number,
       subtotalDisplay: SubtotalDisplay,
+      collapseByDefault: boolean,
     ) =>
       keys.filter(
         (key: string[]) =>
           // Is the key hidden by one of its parents?
-          !key.some(
-            (_k: string, j: number) => collapsed[flatKey(key.slice(0, j))],
+          !key.some((_k: string, j: number) =>
+            isEffectivelyCollapsed(
+              key.slice(0, j),
+              collapsed,
+              collapseByDefault,
+            ),
           ) &&
           // Leaf key.
           (key.length === numAttrs ||
             // Children hidden. Must show total.
             flatKey(key) in collapsed ||
+            (collapseByDefault && key.length > 0 && key.length < numAttrs) ||
             // Don't hide totals.
             !subtotalDisplay.hideOnExpand),
       ),
@@ -795,12 +833,14 @@ export function TableRenderer(props: TableRendererProps) {
     collapsedRows,
     rowAttrs.length,
     rowSubtotalDisplay,
+    collapseRowsByDefault,
   );
   const visibleColKeys = visibleKeys(
     colKeys,
     collapsedCols,
     colAttrs.length,
     colSubtotalDisplay,
+    false,
   );
 
   const pivotSettings: PivotSettings = {
@@ -1305,7 +1345,13 @@ export function TableRenderer(props: TableRendererProps) {
             >
               {displayHeaderCell(
                 needRowToggle,
-                collapsedRows[flatRowKeySlice] ? arrowCollapsed : arrowExpanded,
+                isEffectivelyCollapsed(
+                  rowKey.slice(0, i + 1),
+                  collapsedRows,
+                  collapseRowsByDefault,
+                )
+                  ? arrowCollapsed
+                  : arrowExpanded,
                 onArrowClick,
                 headerCellFormattedValue,
                 namesMapping,
@@ -1410,6 +1456,7 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       collapsedRows,
+      collapseRowsByDefault,
     ],
   );
 
