@@ -602,6 +602,23 @@ test('clear all the values', async () => {
   expect(values.length).toBe(0);
 });
 
+test('cleans up temporary new option when clearAll is called in allowNewOptions mode', async () => {
+  const onClear = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      value={[{ label: 'Custom Tag', value: 'Custom Tag', isNewOption: true }]}
+      onClear={onClear}
+    />,
+  );
+  await clearAll();
+  expect(onClear).toHaveBeenCalled();
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(0);
+});
+
 test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={OPTIONS} />);
   await open();

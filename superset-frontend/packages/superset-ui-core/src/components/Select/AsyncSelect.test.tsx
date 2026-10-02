@@ -502,6 +502,40 @@ test('clear all the values', async () => {
   expect(values.length).toBe(0);
 });
 
+test('cleans up temporary new option when clearAll is called in allowNewOptions mode', async () => {
+  const onClear = jest.fn();
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      value={[
+        { label: 'Custom Item', value: 'Custom Item', isNewOption: true },
+      ]}
+      onClear={onClear}
+    />,
+  );
+  await clearAll();
+  expect(onClear).toHaveBeenCalled();
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(0);
+});
+
+test('deduplicates pasted values against loaded options when allowNewOptions is enabled', async () => {
+  render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[0].label},BrandNewItem`,
+    },
+  });
+  fireEvent(input, paste);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(2);
+  expect(values[0]).toHaveTextContent(OPTIONS[0].label);
+  expect(values[1]).toHaveTextContent('BrandNewItem');
+});
+
 test('does not add a new option if allowNewOptions is false', async () => {
   render(<AsyncSelect {...defaultProps} />);
   await open();
