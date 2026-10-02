@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComponentProps } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import XAxisSortControl from './XAxisSortControl';
 
@@ -25,9 +24,7 @@ const choices: [string, string][] = [
   ['metric_b', 'Metric B'],
 ];
 
-const setup = (
-  overrides: Partial<ComponentProps<typeof XAxisSortControl>> = {},
-) => {
+const setup = (overrides: { shouldReset?: boolean } = {}) => {
   const onChange = jest.fn();
   const utils = render(
     <XAxisSortControl

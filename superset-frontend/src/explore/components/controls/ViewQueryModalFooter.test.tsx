@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentProps } from 'react';
 import { useLocation } from 'react-router-dom';
 import { SupersetClient } from '@superset-ui/core';
 import {
@@ -26,7 +27,15 @@ import {
 } from 'spec/helpers/testing-library';
 import ViewQueryModalFooter from './ViewQueryModalFooter';
 
-const datasource = { id: '7', type: 'table', sql: 'SELECT 1' };
+type FooterDatasource = NonNullable<
+  ComponentProps<typeof ViewQueryModalFooter>['datasource']
+>;
+
+const datasource: FooterDatasource = {
+  id: '7',
+  type: 'table',
+  sql: 'SELECT 1',
+};
 
 const setup = () => {
   const closeModal = jest.fn();
