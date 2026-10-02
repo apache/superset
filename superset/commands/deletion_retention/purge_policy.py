@@ -879,10 +879,11 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
     unsupported model. The host therefore declares their purge behavior and
     installs it under ``PURGE_POLICIES_FUNC``.
 
-    Host boundary: an unavailable provider, a malformed payload, or a policy
-    that collides with a root declared here is logged and dropped. A broken
-    host declaration must not take the scheduled purge down with it, and must
-    never redefine how a chart, dashboard or dataset is purged.
+    Host boundary: an unavailable provider, a malformed payload, a policy that
+    collides with a root declared here, and two policies for one host root are
+    each logged and dropped. A broken host declaration must not take the
+    scheduled purge down with it, and must never redefine how a chart,
+    dashboard or dataset is purged.
     """
     if not has_app_context():
         return ()
@@ -911,6 +912,24 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
     builtin_roots: frozenset[type[Any]] = frozenset(
         policy.model for policy in _builtin_purge_policies()
     )
+    declared: dict[type[Any], int] = {}
+    for policy in provided:
+        declared[policy.model] = declared.get(policy.model, 0) + 1
+    # Which of two declarations for one root is authoritative is undecidable,
+    # and the loser would still delete rows. Dropping both leaves the model
+    # reported as unsupported, which is the recoverable outcome. Resolving it
+    # here also keeps the duplicate away from validate_unique_root_policies,
+    # whose ValueError would abort the whole scheduled run.
+    duplicated: list[type[Any]] = [
+        model for model, count in declared.items() if count > 1
+    ]
+    for model in duplicated:
+        logger.error(
+            "purge_policy: %s declares %d policies for %s; ignoring all of them",
+            HOST_POLICIES_CONFIG_KEY,
+            declared[model],
+            model.__name__,
+        )
     accepted: list[PurgeEntityPolicy] = []
     for policy in provided:
         if policy.model in builtin_roots:
@@ -918,6 +937,8 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
                 "purge_policy: host policy for built-in root %s ignored",
                 policy.model.__name__,
             )
+            continue
+        if policy.model in duplicated:
             continue
         accepted.append(policy)
     return tuple(accepted)
@@ -927,10 +948,11 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     """Index the built-in purge roots plus any the host installed.
 
     Uncached on purpose, unlike its two inputs: the built-in declarations are
-    built once per process, while a host policy is resolved per call so a
-    provider installed after the first purge is still honored. The hot path is
-    ``get_purge_policy``, which caches per model, so rebuilding this small
-    index is not on it.
+    built once per process, while a host policy is resolved per call, so a
+    provider installed after the first purge is honored for any root not yet
+    resolved. ``get_purge_policy`` memoizes per model, so replacing the policy
+    of a root it has already resolved needs a restart -- and that memoization
+    is why rebuilding this small index is off the hot path.
     """
     return validate_unique_root_policies(
         (*_builtin_purge_policies(), *_host_purge_policies())

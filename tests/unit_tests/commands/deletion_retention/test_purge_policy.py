@@ -22,7 +22,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
@@ -673,6 +673,38 @@ def test_malformed_host_provider_leaves_builtin_roots_intact(
     """A broken host boundary costs the host its roots, not the purge."""
     with _installed(provider):
         assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+
+def test_host_policies_need_an_app_context() -> None:
+    """Off an app context the host's roots drop out; the built-ins remain.
+
+    The provider lives in config, so there is nothing to read without an
+    application context. Dropping the host's roots leaves them reported as
+    unsupported, where propagating the Flask error would abort the whole
+    scheduled run -- including the roots that do have policies.
+    """
+    model: type[Any] = _host_root("contextless")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("contextless"),))
+
+    with (
+        _installed(lambda: [policy]),
+        patch(
+            "superset.commands.deletion_retention.purge_policy.has_app_context",
+            return_value=False,
+        ),
+    ):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+
+def test_duplicate_host_declarations_do_not_abort_the_registry() -> None:
+    """Two policies for one host root drop that root, not the whole index."""
+    model: type[Any] = _host_root("duplicate")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("duplicate"),))
+
+    with _installed(lambda: [policy, policy]):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+        with pytest.raises(ValueError, match="Unsupported purge model"):
+            get_purge_policy(model)
 
 
 def test_host_policy_cannot_redeclare_a_builtin_root() -> None:
