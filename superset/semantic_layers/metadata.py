@@ -170,7 +170,7 @@ class ScopedMetadataStore:
             ) or not envelope["cache_token"].startswith(f"{self._scope}:"):
                 return None
             payload: str = envelope["payload"]
-            json.dumps(json.loads(payload), allow_nan=False)
+            json.loads(payload, use_decimal=True)
             if hashlib.sha256(payload.encode()).hexdigest() != envelope["digest"]:
                 return None
             return StoredCatalog(
@@ -305,7 +305,7 @@ class ScopedMetadataStore:
             if len(payload.encode()) > MAX_CATALOG_BYTES:
                 raise MetadataRefreshError("invalid_payload")
             payload = json.dumps(
-                json.loads(payload),
+                json.loads(payload, use_decimal=True),
                 sort_keys=True,
                 separators=(",", ":"),
                 allow_nan=False,

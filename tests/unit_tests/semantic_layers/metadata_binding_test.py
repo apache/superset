@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+from logging import LogRecord
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -177,8 +178,12 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
         assert provider.from_configuration.call_count == 2
 
 
-@pytest.mark.parametrize("change", ["config", "namespace", "removed", "disabled"])
-def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
+@pytest.mark.parametrize(
+    "change", ["config", "namespace", "removed", "disabled", "database"]
+)
+def test_publication_rechecks_connection_scope(
+    app: Flask, change: str, caplog: pytest.LogCaptureFixture
+) -> None:
     layer: SemanticLayer = SemanticLayer(
         uuid=uuid4(), type="fixture", configuration="{}"
     )
@@ -214,6 +219,12 @@ def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
         session.return_value.__enter__.return_value.get.return_value = (
             None if change == "removed" else fresh
         )
+        if change == "database":
+            from sqlalchemy.exc import OperationalError
+
+            session.return_value.__enter__.return_value.get.side_effect = (
+                OperationalError("private SQL", {}, Exception("private driver"))
+            )
         store_deadline: float = operation_deadline()
         store: ScopedMetadataStore = connection_store(layer)
 
@@ -224,9 +235,21 @@ def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
                 app.config["SEMANTIC_LAYER_METADATA_NAMESPACE"] = "other-tenant"
             return "[]"
 
-        with pytest.raises(MetadataRefreshError, match="configuration_changed"):
+        reason: str = "unavailable" if change == "database" else "configuration_changed"
+        error: pytest.ExceptionInfo[MetadataRefreshError]
+        with pytest.raises(MetadataRefreshError, match=reason) as error:
             store.refresh(fetch, deadline=store_deadline)
+        assert "private" not in str(error.value)
+        assert error.value.__cause__ is None
         assert store.peek() is None
+        warnings: list[LogRecord] = [
+            record
+            for record in caplog.records
+            if record.name == "superset.semantic_layers.metadata_binding"
+            and record.getMessage() == "Metadata layer revalidation failed"
+            and record.exc_info is not None
+        ]
+        assert len(warnings) == (1 if change == "database" else 0)
 
 
 def test_connection_configuration_and_missing_capability_fail_closed(
@@ -470,3 +493,46 @@ def test_configuration_change_on_same_model_rebinds_opted_in_provider(
         second: object = layer.implementation
         assert first is not second
         assert layer.implementation is second
+
+
+def test_configuration_parse_is_operation_scoped_and_tracks_stored_changes(
+    app: Flask,
+) -> None:
+    """Avoid repeated parsing without retaining stale or provider-mutated values."""
+    from superset.utils import json
+
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    provider: Mock = Mock()
+    seen: list[dict[str, object]] = []
+
+    def supports(configuration: dict[str, object]) -> bool:
+        seen.append(dict(configuration))
+        configuration["provider_mutation"] = True
+        return True
+
+    provider.supports_metadata_refresh.side_effect = supports
+    parse: Mock
+    with (
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch.dict(registry, {"fixture": provider}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.json.loads", wraps=json.loads
+        ) as parse,
+    ):
+        with metadata_operation():
+            assert participates(layer)
+            assert participates(layer)
+            assert parse.call_count == 1
+            layer.configuration = '{"changed":true}'
+            assert participates(layer)
+            assert parse.call_count == 2
+        with metadata_operation():
+            assert participates(layer)
+            assert parse.call_count == 3
+    assert seen == [{}, {}, {"changed": True}, {"changed": True}]

@@ -91,14 +91,29 @@ class DeadlineRedisBackend:
         except MetadataRefreshError:
             raise RedisTimeoutError("Metadata deadline invalid or expired") from None
 
+    def _socket_timeout(self, key: str, remaining: float) -> float:
+        """Preserve shorter node timeouts inside the shared operation deadline."""
+        configured: object = self._config.get(key)
+        if (
+            isinstance(configured, (int, float))
+            and not isinstance(configured, bool)
+            and 0 < configured < math.inf
+        ):
+            return min(configured, remaining)
+        return remaining
+
     async def _command(self, *args: str | int) -> Any:
         remaining: float = self._remaining()
         options: dict[str, Any] = {
             "db": self._config.get("CACHE_REDIS_DB", 0),
             "username": self._config.get("CACHE_REDIS_USER"),
             "password": self._config.get("CACHE_REDIS_PASSWORD"),
-            "socket_timeout": remaining,
-            "socket_connect_timeout": remaining,
+            "socket_timeout": self._socket_timeout(
+                "CACHE_REDIS_SOCKET_TIMEOUT", remaining
+            ),
+            "socket_connect_timeout": self._socket_timeout(
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT", remaining
+            ),
             "retry": Retry(NoBackoff(), 0),
             "protocol": 2,
         }
@@ -124,8 +139,8 @@ class DeadlineRedisBackend:
                     self._config.get("CACHE_REDIS_SENTINELS", [("127.0.0.1", 26379)]),
                     sentinel_kwargs={
                         "password": self._config.get("CACHE_REDIS_SENTINEL_PASSWORD"),
-                        "socket_timeout": remaining,
-                        "socket_connect_timeout": remaining,
+                        "socket_timeout": options["socket_timeout"],
+                        "socket_connect_timeout": options["socket_connect_timeout"],
                         "retry": Retry(NoBackoff(), 0),
                         "protocol": 2,
                     },
@@ -133,7 +148,10 @@ class DeadlineRedisBackend:
                 )
                 sentinel_client: Redis
                 for sentinel_client in sentinel.sentinels:
-                    stack.push_async_callback(sentinel_client.aclose)
+                    stack.push_async_callback(
+                        getattr(sentinel_client, "aclose", None)
+                        or sentinel_client.close
+                    )
                 client = sentinel.master_for(
                     self._config.get("CACHE_REDIS_SENTINEL_MASTER", "mymaster")
                 )

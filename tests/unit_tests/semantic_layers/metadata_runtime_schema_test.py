@@ -30,6 +30,7 @@ from werkzeug.test import TestResponse
 from superset.app import create_app
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import cache_manager
 from superset.initialization import SupersetAppInitializer
 from superset.semantic_layers.metadata_binding import (
     connection_store,
@@ -41,6 +42,17 @@ from superset.semantic_layers.models import SemanticLayer
 from superset.semantic_layers.registry import registry
 from tests.unit_tests.semantic_layers.metadata_contract_test import OptedInLayer
 from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+
+@pytest.fixture(scope="module", autouse=True)
+def restore_coordination_backend(module_mocker: MockerFixture) -> None:
+    """Restore the singleton backend after this module's Redis-configured app."""
+    # Run before the module-scoped app fixture initializes the shared manager.
+    module_mocker.patch.object(
+        cache_manager,
+        "_distributed_coordination",
+        cache_manager.distributed_coordination,
+    )
 
 
 class RuntimeConfiguration(BaseModel):

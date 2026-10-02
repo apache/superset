@@ -50,21 +50,25 @@ def test_expired_budget_never_opens_a_connection() -> None:
         deadline=time.monotonic() - 1,
     )
     client: Mock
-    with patch("redis.asyncio.Redis") as client:
+    with patch("superset.coordination.deadline_backend.Redis") as client:
         with pytest.raises(RedisTimeoutError):
             backend.get("owned-key")
         client.assert_not_called()
 
 
-def test_sentinel_and_tls_configuration_use_private_clients_without_retries() -> None:
+@pytest.mark.parametrize("close_method", ["close", "aclose"])
+def test_sentinel_and_tls_configuration_use_private_clients_without_retries(
+    close_method: str,
+) -> None:
     from unittest.mock import AsyncMock, Mock
 
     client: Mock = Mock()
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=None)
     client.execute_command = AsyncMock(return_value=b"observed")
-    sentinel_client: Mock = Mock()
-    sentinel_client.aclose = AsyncMock()
+    sentinel_client: Mock = Mock(spec=[close_method])
+    close: AsyncMock = AsyncMock()
+    setattr(sentinel_client, close_method, close)
     manager: Mock = Mock()
     manager.sentinels = [sentinel_client]
     manager.master_for.return_value = client
@@ -90,7 +94,7 @@ def test_sentinel_and_tls_configuration_use_private_clients_without_retries() ->
         assert factory.call_args.kwargs["retry"]._retries == 0
         assert factory.call_args.kwargs["sentinel_kwargs"]["retry"]._retries == 0
         manager.master_for.assert_called_once_with("owned-master")
-        sentinel_client.aclose.assert_awaited_once()
+        close.assert_awaited_once()
         client.__aexit__.assert_awaited_once()
 
 
@@ -122,7 +126,7 @@ def test_async_host_caller_requires_a_synchronous_worker() -> None:
         with pytest.raises(RedisError, match="synchronous caller"):
             backend.get("owned-key")
 
-    with patch("redis.asyncio.Redis") as client:
+    with patch("superset.coordination.deadline_backend.Redis") as client:
         asyncio.run(unsupported())
         client.assert_not_called()
 
@@ -157,3 +161,55 @@ def test_implausible_budget_never_starts_redis_command() -> None:
         with pytest.raises(RedisTimeoutError):
             backend.get("owned-key")
         command.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "configured,expected",
+    [
+        (0.05, 0.05),
+        (50.0, 1.0),
+        (1, 1.0),
+        (None, 1.0),
+        ("0.05", 1.0),
+        (0, 1.0),
+        (-1, 1.0),
+        (True, 1.0),
+        (False, 1.0),
+        (float("nan"), 1.0),
+        (float("inf"), 1.0),
+        (float("-inf"), 1.0),
+        ({}, 1.0),
+        ([], 1.0),
+    ],
+)
+def test_sentinel_node_timeouts_respect_configuration_and_operation_ceiling(
+    configured: object,
+    expected: float,
+) -> None:
+    """A short per-node timeout leaves time for Sentinel fallback."""
+    client: Mock = Mock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+    client.execute_command = AsyncMock(return_value=b"observed")
+    manager: Mock = Mock()
+    manager.sentinels = []
+    manager.master_for.return_value = client
+    factory: Mock
+    with patch(
+        "superset.coordination.deadline_backend.Sentinel", return_value=manager
+    ) as factory:
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {
+                "CACHE_TYPE": "RedisSentinelCache",
+                "CACHE_REDIS_SOCKET_TIMEOUT": configured,
+                "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": configured,
+            },
+            deadline=time.monotonic() + 1,
+        )
+        with patch.object(backend, "_remaining", return_value=1.0):
+            assert backend.get("owned") == b"observed"
+    option: str
+    for option in ("socket_timeout", "socket_connect_timeout"):
+        actual: float = factory.call_args.kwargs["sentinel_kwargs"][option]
+        assert actual == expected
+        assert factory.call_args.kwargs[option] == actual

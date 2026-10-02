@@ -50,6 +50,7 @@ from superset.tasks.utils import (
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
+    import pandas as pd
     from superset_core.tasks.models import Task as CoreTask
 
     from superset.common.query_context import QueryContext
@@ -168,7 +169,9 @@ def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User
 
 
 def _inject_contribution_totals(
-    query_obj: "QueryObject", totals_cache_key: str
+    query_obj: "QueryObject",
+    totals_cache_key: str,
+    totals_context: "QueryContext | None" = None,
 ) -> None:
     """Inject ``contribution_totals`` from the cached totals query into ``query_obj``.
 
@@ -178,28 +181,61 @@ def _inject_contribution_totals(
     cached dataframe and inject the sums into this query's contribution
     post-processing before it runs — the same result the synchronous
     ``ensure_totals_available`` produces, but reading the cache the prerequisite
-    populated instead of re-running the totals query. ``contribution_totals`` is
+    populated. Participating semantic queries resolve the totals context under
+    the dependent operation so an obsolete denominator is recomputed.
+    ``contribution_totals`` is
     stripped from the cache key, so this affects only the result, not the key.
     """
     from superset.common.query_context_processor import is_summable
     from superset.common.utils.query_cache_manager import QueryCacheManager
 
-    cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
-    if not cache.is_loaded or cache.df is None:
-        # The depends_on prerequisite guarantees the totals task succeeded and wrote
-        # this cache entry, so a miss is unexpected (e.g. it was evicted between the
-        # totals task finishing and this task reading). Fail loudly rather than
-        # caching a silently un-normalized result the client would then re-request:
-        # this task's single query cannot reproduce the synchronous path's
-        # ensure_totals_available (it has no totals query to run).
-        raise SupersetException(
-            f"Contribution totals not found in cache under {totals_cache_key}"
+    df: pd.DataFrame
+    if totals_context is not None:
+        # The ordinary key captures this operation's catalog. A matching totals
+        # entry is reused; a refreshed catalog recomputes before normalization.
+        totals_context.force = (
+            totals_context.force
+            and _query_task_cache_key(totals_context, 0) != totals_cache_key
         )
-    df = cache.df
-    totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
+        totals_context.is_async_execution = True
+        with _capture_query_cancellation(totals_context):
+            df = totals_context.get_df_payload_result(
+                totals_context.queries[0]
+            ).payload["df"]
+        if df is None:
+            raise SupersetException("Contribution totals query did not return data")
+    else:
+        cache: QueryCacheManager = QueryCacheManager.get(
+            key=totals_cache_key, region=CacheRegion.DATA
+        )
+        if not cache.is_loaded or cache.df is None:
+            # The depends_on prerequisite guarantees the totals task succeeded and wrote
+            # this cache entry, so a miss is unexpected (e.g. it was evicted between the
+            # totals task finishing and this task reading). Fail loudly rather than
+            # caching a silently un-normalized result the client would then re-request:
+            # this task's single query cannot reproduce the synchronous path's
+            # ensure_totals_available (it has no totals query to run).
+            raise SupersetException(
+                f"Contribution totals not found in cache under {totals_cache_key}"
+            )
+        df = cache.df
+    totals: dict[str, Any] = {
+        col: df[col].sum() for col in df.columns if is_summable(df[col])
+    }
+    post_processing: dict[str, Any]
     for post_processing in query_obj.post_processing or []:
         if post_processing.get("operation") == "contribution":
             post_processing.setdefault("options", {})["contribution_totals"] = totals
+
+
+def _uses_semantic_metadata(query_context: "QueryContext") -> bool:
+    """Only participating semantic views need catalog-coupled totals."""
+    from superset.semantic_layers.models import SemanticView
+
+    return (
+        isinstance(query_context.datasource, SemanticView)
+        and query_context.datasource.metadata_cache_token is not None
+    )
 
 
 def _get_dependency_cache_key() -> str:
@@ -272,6 +308,7 @@ def execute_chart_query(
     user_id: int | None = None,
     guest_token: "GuestToken | None" = None,
     requires_totals: bool = False,
+    serialized_totals: SerializedQuery | None = None,
 ) -> None:
     """Execute a single chart-data query and cache it under its query_cache_key.
 
@@ -313,7 +350,20 @@ def execute_chart_query(
         # task reads back under the same id. Only consulted when force is true.
         query_obj.force_nonce = str(get_context().task_uuid)
         if requires_totals:
-            _inject_contribution_totals(query_obj, _get_dependency_cache_key())
+            if _uses_semantic_metadata(query_context):
+                from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+                if serialized_totals is None:
+                    # A task queued before catalog-coupled totals were serialized
+                    # cannot safely consume a denominator from another observation.
+                    raise MetadataRefreshError("configuration_changed")
+                _inject_contribution_totals(
+                    query_obj,
+                    _get_dependency_cache_key(),
+                    load_serialized_query(serialized_totals),
+                )
+            else:
+                _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
         with _capture_query_cancellation(query_context):
             result = query_context.get_df_payload_result(query_obj)
@@ -426,6 +476,13 @@ def submit_chart_data_query_tasks(
             user_id,
             guest_token,
             _needs_prerequisite_totals(index),
+            **(
+                {"serialized_totals": serialized_queries[totals_idx]}
+                if totals_idx is not None
+                and _needs_prerequisite_totals(index)
+                and _uses_semantic_metadata(query_context)
+                else {}
+            ),
             options=TaskOptions(
                 task_key=query_cache_keys[index],
                 task_name=_task_name(index),

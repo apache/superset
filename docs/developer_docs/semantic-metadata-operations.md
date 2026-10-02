@@ -73,6 +73,16 @@ storage/database or unconfirmed outcomes, 504 for deadline expiry, and 422 for
 unsupported/incomplete configuration. Existing access/missing-resource errors stay
 403/404. Errors never include provider payloads, credentials or database statements.
 
+The same typed error mapping applies to datasource metadata, query and column-value
+requests, Explore context loading, and chart-data requests (including result
+cache-key construction). Access checks still precede discovery. Unrelated database
+and validation errors retain each endpoint's existing handling.
+
+Dashboard dataset loading retains its per-datasource failure isolation: if a
+semantic provider fails during discovery, the response still contains the healthy
+datasets with HTTP 200. It omits the failed semantic view and logs a safe warning
+instead of failing metadata loading for every chart on the dashboard.
+
 The chart-context factory authorizes the full semantic context before column
 discovery. Later query validation/access checks remain in place. The default-off
 store alone did not provide this earlier boundary; enablement requires this command
