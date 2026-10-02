@@ -1004,7 +1004,11 @@ def dangling_chart_uuids(
 def delete_associations(
     session: Session, policy: PurgeEntityPolicy, entity_id: int
 ) -> None:
-    """Execute declared association and tag cleanup with Core DML."""
+    """Execute declared association and tag cleanup with Core DML.
+
+    A purged dataset's charts are preserved but detached as well (see
+    ``_detach_dataset_charts``).
+    """
     _delete_declared_dependencies(
         session, policy, entity_id, DependencyClassification.ASSOCIATION
     )
@@ -1014,6 +1018,32 @@ def delete_associations(
         entity_id,
         phase=ExecutionPhase.ASSOCIATIONS,
         permission_name=None,
+    )
+    if policy.entity_type == "dataset":
+        _detach_dataset_charts(session, entity_id)
+
+
+def _detach_dataset_charts(session: Session, entity_id: int) -> None:
+    """Clear the datasource reference and permission fields of a purged
+    dataset's charts, as an ORM hard delete of the dataset leaves them.
+
+    A chart kept pointing at the purged id would keep the dataset's stale
+    permission, and would adopt any later dataset that reuses the id. Only
+    ``slices`` rows are updated; no chart is deleted. Runs after the
+    dangling-chart impact snapshot, inside the purge's transaction.
+    """
+    # avoid circular import: model listener registration imports neutral event helpers
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    slices: sa.Table = Slice.__table__  # pylint: disable=no-member
+    session.execute(
+        sa.update(slices)
+        .where(
+            slices.c.datasource_type == DatasourceType.TABLE.value,
+            slices.c.datasource_id == entity_id,
+        )
+        .values(datasource_id=None, perm=None, schema_perm=None, catalog_perm=None)
     )
 
 
