@@ -74,23 +74,34 @@ PATTERNS = {
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
-# Maps a file extension to the CodeQL language it belongs to, independent of
-# which directory the file lives in. PATTERNS above groups files by project
-# area (e.g. "frontend" means "under superset-frontend/"), which is right for
-# gating CI jobs by area but wrong for picking which CodeQL languages to scan:
-# a .js file outside superset-frontend/ (e.g. under scripts/ or
-# superset/mcp_service/) is grouped under "python" by PATTERNS, so a consumer
-# that reused the "frontend" group as a stand-in for "javascript changed"
-# would silently skip scanning it. See
-# https://github.com/apache/superset/issues/44822.
-LANGUAGE_EXTENSIONS = {
-    ".py": "python",
-    ".js": "javascript",
-    ".jsx": "javascript",
-    ".ts": "javascript",
-    ".tsx": "javascript",
-    ".mjs": "javascript",
-    ".cjs": "javascript",
+# Maps each PATTERNS group to the CodeQL language(s) its files are written
+# in, by file extension rather than directory. PATTERNS above groups files by
+# project area (e.g. "frontend" means "under superset-frontend/"), which is
+# right for gating CI jobs by area but wrong for picking which CodeQL
+# languages to scan: a .js file outside superset-frontend/ (e.g. under
+# scripts/ or superset/mcp_service/) is grouped under "python" by PATTERNS,
+# so a consumer that reused the "frontend" group as a stand-in for
+# "javascript changed" would silently skip scanning it. This reuses the same
+# group names as PATTERNS rather than introducing new ones, so a group's
+# language(s) can be looked up directly instead of via a separate mapping.
+# See https://github.com/apache/superset/issues/44822.
+GROUP_LANGUAGE_EXTENSIONS: dict[str, dict[str, str]] = {
+    "python": {".py": "python"},
+    "frontend": {
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".ts": "javascript",
+        ".tsx": "javascript",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+    },
+}
+# Flattened for a direct extension -> language lookup, independent of which
+# PATTERNS group (i.e. directory) the file lives in.
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    ext: lang
+    for extensions in GROUP_LANGUAGE_EXTENSIONS.values()
+    for ext, lang in extensions.items()
 }
 
 
@@ -260,4 +271,49 @@ def main(event_type: str, sha: str, repo: str) -> None:
     # sees a language silently excluded by the cap.
     languages = (
         sorted(set(LANGUAGE_EXTENSIONS.values()))
-        if files is not None and len(files)
+        if files is not None and len(files) >= 99
+        else detect_languages(files)
+    )
+
+    # Output results
+    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
+    with open(output_path, "a") as f:
+        for check, changed in changes_detected.items():
+            # NOTE: as noted above, we assume that if 100 files are touched, we should
+            # trigger all checks. This is a workaround for the GitHub API limit of 100
+            # files. Using >= 99 because off-by-one errors are not uncommon
+            if changed or (files is not None and len(files) >= 99):
+                print(f"{check}=true", file=f)
+                print(f"Triggering group: {check}")
+        print(f"languages={json.dumps(languages)}", file=f)
+        print(f"Languages detected: {languages}")
+
+
+def get_git_sha() -> str:
+    return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
+    ).strip().decode("utf-8")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Detect file changes based on event context"
+    )
+    parser.add_argument(
+        "--event-type",
+        default=os.getenv("GITHUB_EVENT_NAME") or "push",
+        help="The type of event that triggered the workflow",
+    )
+    parser.add_argument(
+        "--sha",
+        default=get_git_sha(),
+        help="The commit SHA for push events or PR head SHA",
+    )
+    parser.add_argument(
+        "--repo",
+        default=os.getenv("GITHUB_REPOSITORY") or "apache/superset",
+        help="GitHub repository in the format owner/repo",
+    )
+    args = parser.parse_args()
+
+    main(args.event_type, args.sha, args.repo)

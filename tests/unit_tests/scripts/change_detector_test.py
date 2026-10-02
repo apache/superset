@@ -212,3 +212,54 @@ def test_detect_languages_ignores_unmapped_extensions() -> None:
 def test_detect_languages_none_means_every_language() -> None:
     """workflow_dispatch/schedule runs assume everything changed."""
     assert change_detector.detect_languages(None) == ["javascript", "python"]
+
+
+def test_group_language_extensions_reuses_pattern_group_names() -> None:
+    """The language map is keyed by the same group names as PATTERNS,
+    rather than introducing its own, so a group's language(s) can be looked
+    up directly."""
+    assert set(change_detector.GROUP_LANGUAGE_EXTENSIONS) <= set(
+        change_detector.PATTERNS
+    )
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["python"] == {".py": "python"}
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["frontend"][".tsx"] == (
+        "javascript"
+    )
+
+
+def test_main_writes_languages_to_github_output(tmp_path, monkeypatch) -> None:
+    """`main()` must write `languages` to $GITHUB_OUTPUT, not just compute it
+    -- a value that's assigned but never written is invisible to any
+    consuming workflow step."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha: ["superset/foo.py", "superset-frontend/src/bar.tsx"],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
+    assert "python=true" in output
+    assert "frontend=true" in output
+
+
+def test_main_languages_respects_the_99_file_cap(tmp_path, monkeypatch) -> None:
+    """A push/PR touching >= 99 files is treated as "everything changed" for
+    the PATTERNS groups; languages must honor the same cap so a consumer
+    combining both outputs never sees a language silently excluded by it."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha: [f"docs/page{i}.md" for i in range(99)],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
