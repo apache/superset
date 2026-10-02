@@ -5764,3 +5764,54 @@ def test_filter_adhoc_column(database: Database) -> None:
     # The adhoc column resolved by label is parenthesized in the WHERE clause,
     # consistent with inline adhoc columns, to guard operator precedence.
     assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)
