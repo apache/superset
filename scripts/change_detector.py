@@ -61,6 +61,7 @@ PATTERNS = {
         r"^Dockerfile$",
         r"^docker.*",
         r"^\.github/workflows/docker\.yml$",
+        r"^\.grype\.yaml$",
     ],
     "docs": [
         r"^docs/",
@@ -72,6 +73,54 @@ PATTERNS = {
     ],
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+
+# Maps each PATTERNS group to the CodeQL language(s) its files are written
+# in, by file extension rather than directory. PATTERNS above groups files by
+# project area (e.g. "frontend" means "under superset-frontend/"), which is
+# right for gating CI jobs by area but wrong for picking which CodeQL
+# languages to scan: a .js file outside superset-frontend/ (e.g. under
+# scripts/ or superset/mcp_service/) is grouped under "python" by PATTERNS,
+# so a consumer that reused the "frontend" group as a stand-in for
+# "javascript changed" would silently skip scanning it. This reuses the same
+# group names as PATTERNS rather than introducing new ones, so a group's
+# language(s) can be looked up directly instead of via a separate mapping.
+# See https://github.com/apache/superset/issues/44822.
+GROUP_LANGUAGE_EXTENSIONS: dict[str, dict[str, str]] = {
+    "python": {".py": "python"},
+    "frontend": {
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".ts": "javascript",
+        ".tsx": "javascript",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+    },
+}
+# Flattened for a direct extension -> language lookup, independent of which
+# PATTERNS group (i.e. directory) the file lives in.
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    ext: lang
+    for extensions in GROUP_LANGUAGE_EXTENSIONS.values()
+    for ext, lang in extensions.items()
+}
+
+
+def detect_languages(files: Optional[List[str]]) -> List[str]:
+    """Returns the CodeQL languages actually touched, by file extension.
+
+    Unlike the PATTERNS groups above, this ignores which directory a file
+    lives in: a .js file is "javascript" whether it's under
+    superset-frontend/ or not. `files is None` (workflow_dispatch/schedule)
+    means "assume everything changed", so every known language is returned.
+    """
+    if files is None:
+        return sorted(set(LANGUAGE_EXTENSIONS.values()))
+    languages = set()
+    for file in files:
+        _, ext = os.path.splitext(file)
+        if lang := LANGUAGE_EXTENSIONS.get(ext):
+            languages.add(lang)
+    return sorted(languages)
 
 
 def _is_rate_limited(err: HTTPError) -> bool:
@@ -216,6 +265,16 @@ def main(event_type: str, sha: str, repo: str) -> None:
             files, patterns_compiled
         )
 
+    # The 100-file API cap below treats a push/PR touching that many files as
+    # "everything changed" for the PATTERNS groups; language detection
+    # honors the same assumption so a consumer combining both outputs never
+    # sees a language silently excluded by the cap.
+    languages = (
+        sorted(set(LANGUAGE_EXTENSIONS.values()))
+        if files is not None and len(files) >= 99
+        else detect_languages(files)
+    )
+
     # Output results
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
@@ -226,6 +285,8 @@ def main(event_type: str, sha: str, repo: str) -> None:
             if changed or (files is not None and len(files) >= 99):
                 print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
+        print(f"languages={json.dumps(languages)}", file=f)
+        print(f"Languages detected: {languages}")
 
 
 def get_git_sha() -> str:

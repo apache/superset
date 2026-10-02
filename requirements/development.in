@@ -45,3 +45,14 @@
 # DockerContainer plus whatever driver its own extra above already
 # provides.
 testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5
+
+# gevent (pulled in via the `gevent` extra above) has no direct version
+# requirement on zope.interface, so the resolver was free to pick the
+# oldest version satisfying gevent's own loose constraint: 5.4.0. That
+# version's metaclass treats every class attribute as an interface member,
+# including `__firstlineno__`, the implicit attribute Python 3.13 (PEP 626
+# byte-code line tracking) adds to every class -- so importing gevent
+# (and anything that imports it, e.g. the gunicorn+gevent worker class)
+# raises `zope.interface.exceptions.InvalidInterface` outright on 3.13.
+# 7.2 is the first release with explicit handling for it.
+zope.interface>=7.2

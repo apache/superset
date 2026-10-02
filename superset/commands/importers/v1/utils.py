@@ -192,6 +192,7 @@ def load_configs(
         if not content:
             continue
 
+        config: dict[str, Any] | None = None
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:
@@ -303,7 +304,7 @@ def load_configs(
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
-                logger.error(
+                logger.warning(
                     "Schema validation failed for %s (prefix: %s): %s",
                     file_name,
                     prefix,
@@ -324,7 +325,8 @@ def load_configs(
                         file_name,
                         type(config).__name__,
                     )
-                exc.messages = {file_name: exc.messages}
+                if file_name not in exc.messages:
+                    exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
             except json.JSONDecodeError as exc:
                 # masked_encrypted_extra comes straight from the imported YAML
@@ -332,7 +334,7 @@ def load_configs(
                 # the raw decode error into a ValidationError so it flows into
                 # the aggregated CommandInvalidError like every other per-file
                 # validation failure, instead of escaping as an opaque 500.
-                logger.error(
+                logger.warning(
                     "Invalid JSON in masked_encrypted_extra for %s: %s",
                     file_name,
                     exc,
@@ -348,7 +350,7 @@ def load_configs(
                 # per-file error. Convert it into a ValidationError so it flows
                 # into the same aggregated error path.
                 field = str(exc).strip("'\"")
-                logger.error(
+                logger.warning(
                     "Missing required key %s in config for %s (prefix: %s)",
                     exc,
                     file_name,

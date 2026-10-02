@@ -67,7 +67,7 @@ dependencies = [
     "flask-sqlalchemy>=3.1.1, <4.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
-    "greenlet<=3.5.5, >=3.5.5",
+    "greenlet<=3.5.6, >=3.5.6",
     "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
@@ -141,7 +141,7 @@ bigquery = [
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.2",
-    "google-cloud-bigquery>=3.44.0",
+    "google-cloud-bigquery>=3.45.2",
 ]
 clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
@@ -155,14 +155,11 @@ clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # `postgres` extra -- CockroachDB speaks the Postgres wire protocol.
 cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.13"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
-# sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
-# explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's
-# known_incompatibilities metadata.
-d1 = [
-    "superset-engine-d1>=0.1.0",
-    "sqlalchemy-d1>=0.1.0",
-    "dbapi-d1>=0.1.0",
-]
+# sqlalchemy-d1 0.2.0 is its first SQLAlchemy 2.0 release (2.0-only, no
+# dual-compat release). superset-engine-d1 and dbapi-d1 are retired: the
+# engine spec lives in superset/db_engine_specs/d1.py, and sqlalchemy-d1
+# gets its DBAPI from sqlalchemy-cloudflare-d1.
+d1 = ["sqlalchemy-d1>=0.2.0, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector>=4.5.0, <4.6.0",
@@ -202,7 +199,7 @@ excel-export = ["boto3"]
 # superset.utils.gcs, so this extra is an alternative to excel-export, not an
 # addition to it -- pick whichever matches your bucket's provider.
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
-excel-export-gcs = ["google-cloud-storage>=1.37"]
+excel-export-gcs = ["google-cloud-storage>=3.14.1"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
@@ -219,7 +216,7 @@ firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.8.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
-hana = ["hdbcli==2.29.27", "sqlalchemy_hana==3.0.3"]
+hana = ["hdbcli==2.30.27", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -240,7 +237,7 @@ mongodb = ["pymongosql>=0.7.4, <1"]
 mssql = ["pymssql>=2.4.0, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
-mysql = ["mysqlclient>=2.2.8, <3"]
+mysql = ["mysqlclient>=2.3.0, <3"]
 ocient = [
     # Closed-source vendor package with no public changelog; permissive
     # unpinned sqlalchemy>=1.4 declared. Verified compatible with SQLAlchemy
@@ -257,7 +254,7 @@ ocient = [
 oracle = ["oracledb>=4.0.2, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
-playwright = ["playwright>=1.62.0, <2"]
+playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.339.0"]
@@ -322,7 +319,17 @@ development = [
     "pre-commit",
     "progress>=1.6.1,<2",
     "psutil",
-    "pyfakefs",
+    # 5.3.5 (the previously resolved version) predates pyfakefs's own Python
+    # 3.13 support: under 3.13 it leaves os.chdir patched to the fake
+    # filesystem after the `fs` fixture is undone, so the chdir back to the
+    # rootdir in pytest-cov's own teardown aborts the whole session with an
+    # INTERNALERROR. 5.6.0 added preliminary 3.13 support, which is what stops
+    # that crash, and 5.7.0 made 3.13 support official. 5.7.4 is the floor
+    # rather than 5.7.0 because it also fixes module/session-scoped fixtures
+    # under 3.13 (pyfakefs #1101), and the `fs` tests in
+    # tests/integration_tests/cli_tests.py -- the only consumers of that
+    # fixture -- run alongside session- and module-scoped fixtures.
+    "pyfakefs>=5.7.4",
     "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
@@ -330,7 +337,7 @@ development = [
     "pytest-cov",
     "pytest-mock",
     "pytest-xdist",
-    "python-ldap>=3.4.7",
+    "python-ldap>=3.4.8",
     "ruff",
     "sqloxide",
     "statsd",

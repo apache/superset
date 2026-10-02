@@ -28,6 +28,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from superset import is_feature_enabled
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
+from superset.security.password_change import clear_password_must_change
 from superset.security.session_invalidation import invalidate_sessions_for_user
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -49,7 +50,6 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
-        item.changed_by_fk = g.user.id
         # Pop unconditionally: this key is only meaningful for verifying a
         # password change below, and it isn't a real column on the user
         # model -- it must never reach ``UserDAO.update``'s ``setattr`` loop.
@@ -80,8 +80,12 @@ class CurrentUserRestApi(BaseSupersetApi):
                 salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
             )
             # A changed password invalidates any other outstanding session
-            # for this account.
+            # for this account, and satisfies a pending forced password
+            # change: this is the self-service path (the caller is the
+            # account owner), so the "must change at next login" requirement
+            # an administrator set on a temporary password is fulfilled here.
             invalidate_sessions_for_user(item.id)
+            clear_password_must_change(item.id)
         elif "password" in data:
             # A falsy value (e.g. an empty string, which the complexity
             # validator lets through when password complexity is disabled)

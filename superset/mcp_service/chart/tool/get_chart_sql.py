@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
     GetChartSqlRequest,
+    resolve_chart_datasource_name,
 )
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ def _find_chart_by_identifier(
     from superset.daos.chart import ChartDAO
 
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
         return ChartDAO.find_by_id(chart_id)
@@ -247,7 +248,7 @@ def _sql_from_saved_query_context(
             result,
             chart.id,
             chart.slice_name,
-            chart.datasource_name,
+            resolve_chart_datasource_name(chart),
             extra_form_data=extra_form_data,
         )
     except SupersetSecurityException:
@@ -266,7 +267,7 @@ def _resolve_datasource_name(
     from form_data so that the response includes a meaningful name.
     """
     if chart:
-        return getattr(chart, "datasource_name", None)
+        return resolve_chart_datasource_name(chart)
 
     # Unsaved chart — resolve from form_data
     datasource_id = form_data.get("datasource_id")
@@ -275,7 +276,7 @@ def _resolve_datasource_name(
     if not datasource_id and (combined := form_data.get("datasource")):
         if isinstance(combined, str) and "__" in combined:
             parts = combined.split("__", 1)
-            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_id = int(parts[0]) if parts[0].isdecimal() else parts[0]
             datasource_type = parts[1] if len(parts) > 1 else "table"
 
     if not datasource_id:
