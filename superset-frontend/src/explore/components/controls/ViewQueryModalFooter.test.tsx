@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useLocation } from 'react-router-dom';
 import { SupersetClient } from '@superset-ui/core';
 import {
   fireEvent,
@@ -30,15 +31,25 @@ const datasource = { id: '7', type: 'table', sql: 'SELECT 1' };
 const setup = () => {
   const closeModal = jest.fn();
   const changeDatasource = jest.fn();
+  // Reads the router location (not the raw window.history entry) so the
+  // assertion does not depend on how the history library serializes state.
+  const location: { current?: ReturnType<typeof useLocation> } = {};
+  const LocationProbe = () => {
+    location.current = useLocation();
+    return null;
+  };
   render(
-    <ViewQueryModalFooter
-      closeModal={closeModal}
-      changeDatasource={changeDatasource}
-      datasource={datasource}
-    />,
+    <>
+      <ViewQueryModalFooter
+        closeModal={closeModal}
+        changeDatasource={changeDatasource}
+        datasource={datasource}
+      />
+      <LocationProbe />
+    </>,
     { useRouter: true },
   );
-  return { closeModal, changeDatasource };
+  return { closeModal, changeDatasource, location };
 };
 
 beforeEach(() => {
@@ -64,12 +75,13 @@ test('Open in SQL Lab navigates in-app with the requested query', async () => {
   const postForm = jest
     .spyOn(SupersetClient, 'postForm')
     .mockResolvedValue(undefined);
-  setup();
+  const { location } = setup();
   await userEvent.click(
     screen.getByRole('button', { name: 'Open in SQL Lab' }),
   );
   expect(window.location.pathname).toBe('/sqllab');
-  expect(window.history.state.state).toEqual({
+  expect(location.current?.pathname).toBe('/sqllab');
+  expect(location.current?.state).toEqual({
     requestedQuery: { datasourceKey: '7__table', sql: 'SELECT 1' },
   });
   expect(postForm).not.toHaveBeenCalled();

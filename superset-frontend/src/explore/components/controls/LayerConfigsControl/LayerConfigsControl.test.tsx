@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import LayerConfigsControl from './LayerConfigsControl';
 import { LayerConf, WmsLayerConf } from './types';
 
@@ -29,9 +34,17 @@ const wms = (
   version: '1.3.0',
   title,
   url,
-  layersParam: 'roads',
+  layersParam: title.toLowerCase(),
   ...overrides,
 });
+
+// The layer type select is the first combobox in the form (the service
+// version select follows it), so pick it by position.
+const chooseLayerType = async (type: 'WMS' | 'WFS' | 'XYZ') => {
+  const [typeSelect] = await screen.findAllByRole('combobox');
+  await userEvent.click(typeSelect);
+  await userEvent.click(await screen.findByTitle(type));
+};
 
 const existing = [wms('Roads', 'https://maps.example.com/wms')];
 
@@ -111,10 +124,7 @@ test('editing a layer prefills the form and replaces the layer in place', async 
   // Rivers differs from the defaults so the save must carry its own fields.
   const { onChange } = setup([
     wms('Roads', 'https://a.example.com'),
-    wms('Rivers', 'https://b.example.com', {
-      version: '1.1.1',
-      layersParam: 'rivers',
-    }),
+    wms('Rivers', 'https://b.example.com', { version: '1.1.1' }),
   ]);
   await userEvent.click(screen.getByRole('button', { name: 'Rivers' }));
   const title = await screen.findByPlaceholderText('Insert Layer title');
@@ -145,4 +155,117 @@ test('closing the form does not emit a change', async () => {
   await screen.findByText('Add Layer');
   await userEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test('adding a layer without an existing value emits a single-layer list', async () => {
+  const { onChange } = setup(undefined);
+  expect(screen.queryByRole('button', { name: 'WMS' })).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: /Click to add new layer/ }),
+  );
+  await userEvent.type(
+    await screen.findByPlaceholderText('Insert Layer URL'),
+    'https://new.example.com/wms',
+  );
+  await userEvent.type(
+    screen.getByPlaceholderText('Insert Layer title'),
+    'Parcels',
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      type: 'WMS',
+      title: 'Parcels',
+      url: 'https://new.example.com/wms',
+    }),
+  ]);
+});
+
+test('removing the last layer emits an empty list', async () => {
+  const { onChange } = setup([wms('Roads', 'https://a.example.com')]);
+  await userEvent.click(screen.getByRole('button', { name: /close/i }));
+  expect(onChange).toHaveBeenCalledWith([]);
+});
+
+test('adding an XYZ layer emits only the base fields', async () => {
+  const { onChange } = setup([]);
+  await userEvent.click(
+    screen.getByRole('button', { name: /Click to add new layer/ }),
+  );
+  await screen.findByText('Add Layer');
+  await chooseLayerType('XYZ');
+  // XYZ layers have no service version or layer name.
+  expect(screen.queryByPlaceholderText('Layer Name')).not.toBeInTheDocument();
+  await userEvent.type(
+    screen.getByPlaceholderText('Insert Layer URL'),
+    // `{{` types a literal brace; a lone `{` starts a key descriptor.
+    'https://tiles.example.com/{{z}/{{x}/{{y}.png',
+  );
+  await userEvent.type(
+    screen.getByPlaceholderText('Insert Layer title'),
+    'Tiles',
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith([
+    {
+      type: 'XYZ',
+      title: 'Tiles',
+      url: 'https://tiles.example.com/{z}/{x}/{y}.png',
+      attribution: undefined,
+    },
+  ]);
+});
+
+test('adding a WFS layer emits its type name, version and feature limit', async () => {
+  const { onChange } = setup([]);
+  await userEvent.click(
+    screen.getByRole('button', { name: /Click to add new layer/ }),
+  );
+  await screen.findByText('Add Layer');
+  await chooseLayerType('WFS');
+  await userEvent.type(
+    screen.getByPlaceholderText('Insert Layer URL'),
+    'https://features.example.com/wfs',
+  );
+  await userEvent.type(screen.getByPlaceholderText('Layer Name'), 'ns:parks');
+  await userEvent.type(
+    screen.getByPlaceholderText('Insert Layer title'),
+    'Parks',
+  );
+  await userEvent.type(screen.getByPlaceholderText('10000'), '250');
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const [saved] = onChange.mock.calls[0][0];
+  expect(saved).toMatchObject({
+    type: 'WFS',
+    title: 'Parks',
+    url: 'https://features.example.com/wfs',
+    typeName: 'ns:parks',
+    version: '2.0.2',
+    maxFeatures: 250,
+  });
+  expect(saved).not.toHaveProperty('layersParam');
+});
+
+test('dragging a layer onto another reorders the list', () => {
+  const roads = wms('Roads', 'https://a.example.com');
+  const rivers = wms('Rivers', 'https://b.example.com');
+  const lakes = wms('Lakes', 'https://c.example.com');
+  const { onChange } = setup([roads, rivers, lakes]);
+  const treeNode = (title: string) =>
+    // eslint-disable-next-line testing-library/no-node-access
+    screen.getByRole('button', { name: title }).closest('.ant-tree-treenode')!;
+  const source = treeNode('Roads');
+  const target = treeNode('Lakes');
+
+  fireEvent.dragStart(source);
+  fireEvent.dragEnter(target);
+  fireEvent.dragOver(target);
+  fireEvent.drop(target);
+  fireEvent.dragEnd(source);
+
+  // jsdom reports empty layout rects, so the drop lands after the target.
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith([rivers, lakes, roads]);
 });

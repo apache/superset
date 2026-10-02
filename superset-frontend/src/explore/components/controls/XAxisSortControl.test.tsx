@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentProps } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import XAxisSortControl from './XAxisSortControl';
 
@@ -24,7 +25,9 @@ const choices: [string, string][] = [
   ['metric_b', 'Metric B'],
 ];
 
-const setup = (overrides = {}) => {
+const setup = (
+  overrides: Partial<ComponentProps<typeof XAxisSortControl>> = {},
+) => {
   const onChange = jest.fn();
   const utils = render(
     <XAxisSortControl
@@ -47,10 +50,11 @@ test('renders the selected sort option', () => {
 test('does not reset the value when shouldReset is false', () => {
   const { onChange } = setup();
   expect(onChange).not.toHaveBeenCalled();
+  expect(screen.getByText('Metric A')).toBeInTheDocument();
 });
 
 test('clears the value and notifies the parent when shouldReset is true', () => {
   const { onChange } = setup({ shouldReset: true });
-  expect(onChange).toHaveBeenCalledWith(undefined);
   expect(screen.queryByText('Metric A')).not.toBeInTheDocument();
+  expect(onChange).toHaveBeenCalledWith(undefined);
 });
