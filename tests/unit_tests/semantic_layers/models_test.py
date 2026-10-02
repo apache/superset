@@ -2478,3 +2478,53 @@ def test_layer_delete_removes_child_view_permissions(
         for view_perm in view_perms
     )
     assert session.get(Role, role_id).permissions == []
+
+
+@pytest.mark.parametrize("deleted", ["layer", "view"])
+def test_view_delete_keeps_permission_another_resource_owns(
+    session: Any, deleted: str
+) -> None:
+    """Deleting a view (directly or with its layer) does not remove a
+    permission key that another live resource still owns."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    database: Database = Database(database_name="shared", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(id=1, table_name="orders", database=database)
+    session.add(dataset)
+    session.flush()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="shared", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    view: SemanticView = SemanticView(
+        id=1, name="orders", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    session.add(view)
+    session.flush()
+    assert view.perm == dataset.perm
+    key: str = dataset.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="orders reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    session.delete(layer if deleted == "layer" else view)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert session.get(SqlaTable, 1) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
