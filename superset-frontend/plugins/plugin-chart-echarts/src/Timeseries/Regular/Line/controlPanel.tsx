@@ -66,6 +66,7 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    sections.anomalyDetectionControls,
     sections.titleControls,
     {
       label: t('Chart Options'),

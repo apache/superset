@@ -69,6 +69,7 @@ export enum ForecastSeriesEnum {
   ForecastTrend = '__yhat',
   ForecastUpper = '__yhat_upper',
   ForecastLower = '__yhat_lower',
+  Anomaly = '__anomaly',
 }
 
 export type ForecastSeriesContext = {
@@ -94,6 +95,7 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  anomaly?: number;
   color?: string;
 };
 
