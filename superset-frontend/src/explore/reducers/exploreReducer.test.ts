@@ -17,16 +17,24 @@
  * under the License.
  */
 
-import { QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  QueryFormData,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,
   ControlState,
   CustomControlItem,
+  Dataset,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
+import {
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -373,4 +381,53 @@ test('SET_FIELD_VALUE raises a dependent control error when the changed control 
   expect(newState.controls.start_date_offset.validationErrors).toEqual([
     REQUIRED_DATE_ERROR,
   ]);
+});
+
+test('explicit semantic reset removes stale fields and stash and persists only new generation', () => {
+  const datasource = {
+    id: 7,
+    uid: 'cube:Orders',
+    type: DatasourceType.SemanticView,
+    semantic_selection_version: 'cube-member-id-v1',
+    columns: [],
+    metrics: [],
+    verbose_map: {},
+    column_formats: {},
+    main_dttm_col: '',
+    datasource_name: 'Orders',
+    description: null,
+  } as Dataset;
+  getChartControlPanelRegistry().registerValue('identity-test', {
+    // Exercise Explore's default section, without injecting the shared section.
+    controlPanelSections: [],
+  });
+  const initial: ExploreState = {
+    datasource,
+    controls: {},
+    form_data: {
+      datasource: '7__semantic_view',
+      viz_type: 'identity-test',
+      slice_id: 12,
+      metrics: ['Orders.b'],
+      column_config: { 'Orders.b': {} },
+    },
+    hiddenFormData: { metrics: ['Orders.b'] },
+  };
+  const refreshed = exploreReducer(initial, {
+    type: 'SYNC_DATASOURCE_METADATA',
+    datasource,
+  });
+  expect(refreshed.form_data.semantic_selection_version).toBeUndefined();
+  const reset = exploreReducer(initial, { type: 'RESET_SEMANTIC_SELECTIONS' });
+  expect(reset.form_data).toEqual({
+    datasource: '7__semantic_view',
+    viz_type: 'identity-test',
+    slice_id: 12,
+    semantic_selection_version: 'cube-member-id-v1',
+  });
+  expect(reset.hiddenFormData).toEqual({});
+  expect(
+    getFormDataFromControls(reset.controls).semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+  getChartControlPanelRegistry().remove('identity-test');
 });

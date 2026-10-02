@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -155,25 +155,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard pentru a ne asigura că ordonarea lexicografică\n"
-"                      coincide cu ordonarea cronologică. Dacă\n"
-"                      formatul timestamp nu respectă standardul ISO 8601\n"
-"                      va trebui să definiți o expresie și un tip pentru\n"
-"                      transformarea șirului într-o dată sau timestamp. "
-"Rețineți\n"
-"                      în prezent fusurile orare nu sunt suportate. Dacă "
-"timpul este stocat\n"
-"                      în format epoch, puneți `epoch_s` sau `epoch_ms`. "
-"Dacă niciun model\n"
-"                      nu este specificat, revenim la utilizarea valorilor"
-" implicite opționale la nivel de\n"
-"                      bază de date/nume de coloană prin parametrul extra."
 
 msgid " to add calculated columns"
 msgstr " pentru a adăuga coloane calculate"
@@ -1084,6 +1071,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Detalii: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1584,6 +1574,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adaugă folder"
 
+msgid "Add group"
+msgstr "Adaugă grup"
+
 msgid "Add item"
 msgstr "Adaugă element"
 
@@ -1631,6 +1624,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Adaugă foaie"
+
+msgid "Add subgroup"
+msgstr "Adaugă subgrup"
 
 msgid "Add tag to entities"
 msgstr "Adaugă etichetă la entități"
@@ -1774,6 +1770,9 @@ msgstr "Grafice Afectate"
 msgid "Affected Dashboards"
 msgstr "Panouri de control afectate"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1865,6 +1864,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3568,6 +3571,9 @@ msgstr "Limită celulă"
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
 
+msgid "Center"
+msgstr "Centru"
+
 msgid "Center value"
 msgstr ""
 
@@ -4282,6 +4288,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse settings"
+msgstr "Restrânge setările"
+
 msgid "Collapse tab content"
 msgstr "Restrânge conținutul filei"
 
@@ -4435,6 +4444,9 @@ msgstr "Coloană care conține date de longitudine"
 
 msgid "Column data types"
 msgstr "Tipuri de date coloană"
+
+msgid "Column groups"
+msgstr "Grupuri de coloane"
 
 msgid "Column header tooltip"
 msgstr "Tooltip antet coloană"
@@ -4718,6 +4730,9 @@ msgstr "Confirmă"
 msgid "Confirm Password"
 msgstr "Confirmă Parola"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Confirmă suprascrierea"
 
@@ -4726,6 +4741,9 @@ msgstr "Confirmă parola"
 
 msgid "Confirm save"
 msgstr "Confirmă salvarea"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Confirmă parola utilizatorului"
@@ -4962,6 +4980,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nu s-a putut rezolva numele de gazdă: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nu s-a putut valida utilizatorul în sesiunea curentă."
 
@@ -5132,6 +5156,9 @@ msgstr "Zi curentă"
 
 msgid "Current month"
 msgstr "Lună curentă"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Trimestru curent"
@@ -5404,6 +5431,9 @@ msgstr "Tabloul de bord nu a putut fi restaurat."
 msgid "Dashboard could not be updated."
 msgstr "Panoul de control nu a putut fi actualizat."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Panoul de control nu există"
 
@@ -5418,6 +5448,9 @@ msgstr "Tabloul de bord a fost exportat cu succes ca exemplu"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Tabloul de bord a fost exportat cu succes"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panoul de control a fost importat"
@@ -6092,6 +6125,11 @@ msgstr "Șterge grup"
 #, fuzzy
 msgid "Delete item"
 msgstr "Șterge elementul"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7303,6 +7341,9 @@ msgstr "Introduceți Credențiale Primare"
 msgid "Enter a name for this sheet"
 msgstr "Introduceți un nume pentru această foaie"
 
+msgid "Enter a new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -7317,6 +7358,9 @@ msgstr "Introduceți durata în secunde"
 
 msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
+
+msgid "Enter group name"
+msgstr "Introduceți numele grupului"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
@@ -7360,6 +7404,9 @@ msgstr "Introduceți numele de utilizator"
 
 msgid "Enter theme name"
 msgstr "Introduceți numele temei"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Introduceți datele de conectare și parola mai jos:"
@@ -7553,9 +7600,6 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Formatul fișierului Excel nu poate fi determinat"
 
@@ -7612,6 +7656,9 @@ msgstr "Extinde rând"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
+
+msgid "Expand settings"
+msgstr "Extinde setările"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7737,6 +7784,11 @@ msgstr "Exportă în .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportă în .CSV pivotat"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8662,6 +8714,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grup"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grup %s"
+
 msgid "Group By"
 msgstr "Grupare După"
 
@@ -8675,6 +8731,12 @@ msgstr "Cheie Grup"
 
 msgid "Group by"
 msgstr "Grupare după"
+
+msgid "Group columns"
+msgstr "Grupează coloane"
+
+msgid "Group name"
+msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
@@ -9324,9 +9386,6 @@ msgstr "ID-uri de file nevalide: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr "Nume de utilizator sau parolă invalidă"
-
 msgid "Inverse"
 msgstr ""
 
@@ -9696,6 +9755,9 @@ msgstr "Tip aspect de arbore"
 
 msgid "Least recently modified"
 msgstr "Cel mai puțin modificat recent"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10704,6 +10766,12 @@ msgstr "Mai multe filtre"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mută grupul la stânga"
+
+msgid "Move group right"
+msgstr "Mută grupul la dreapta"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, sr, sr_Latn]
 #, fuzzy
@@ -10738,6 +10806,9 @@ msgstr "Multi-Nivele"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabile"
+
+msgid "Multi-level header"
+msgstr "Antet pe mai multe niveluri"
 
 msgid "Multiple"
 msgstr "Multiplu"
@@ -10904,6 +10975,9 @@ msgstr "Nume nou set de date"
 
 msgid "New header"
 msgstr "Antet nou"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Filă nouă"
@@ -11196,6 +11270,11 @@ msgstr "Niciunul -> Săgeată"
 msgid "None -> None"
 msgstr "Niciunul -> Niciunul"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -11219,6 +11298,15 @@ msgstr "Nu Egal"
 
 msgid "Not Time Series"
 msgstr "Nu Serii Temporale"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nu este un fișier ZIP valid"
@@ -11625,8 +11713,7 @@ msgstr "Șir format număr d3 opțional"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
+msgstr "Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11760,8 +11847,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15, "
-"...). Tastați o perioadă personalizată pentru a o adăuga."
+"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15,"
+" ...). Tastați o perioadă personalizată pentru a o adăuga."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12173,6 +12260,9 @@ msgstr "Vă rugăm să confirmați parola"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Vă rugăm să introduceți un URI SQLAlchemy pentru testare"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Vă rugăm să introduceți un email valid"
 
@@ -12335,6 +12425,9 @@ msgstr "Portul %(port)s de pe hostname \"%(hostname)s\" a refuzat conexiunea."
 msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
 
+msgid "Position"
+msgstr "Poziție"
+
 msgid "Position JSON"
 msgstr "Poziție JSON"
 
@@ -12379,6 +12472,12 @@ msgstr "Prefix sau sufix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12822,6 +12921,9 @@ msgstr "Eliminați filtrul"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Elimină grupul"
+
 msgid "Remove item"
 msgstr "Elimină element"
 
@@ -13056,6 +13158,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Valorile de control obligatorii au fost eliminate"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Re-eșantionare"
@@ -13751,6 +13856,9 @@ msgstr "Schemă"
 msgid "Schema cache timeout"
 msgstr "Timeout cache schemă"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Schemă permise pentru încărcare fișier"
 
@@ -14097,6 +14205,9 @@ msgstr "Selectează coloană"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selectați numele coloanei"
+
+msgid "Select columns"
+msgstr "Selectează coloane"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15632,6 +15743,10 @@ msgstr "Subcategorii"
 msgid "Subdomain"
 msgstr "Subdomeniu"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrup %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -15891,6 +16006,9 @@ msgstr "Numele tabelului este nedefinit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
+
+msgid "Table side"
+msgstr "Partea tabelului"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16542,6 +16660,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17037,6 +17161,10 @@ msgstr ""
 "a rula această interogare."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -17101,6 +17229,10 @@ msgid ""
 msgstr ""
 "Tabelul \"%(table)s\" nu există. Trebuie folosit un tabel valid pentru a "
 "rula această interogare."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17607,6 +17739,12 @@ msgstr "A apărut o problemă la previzualizarea interogării selectate. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17627,6 +17765,12 @@ msgstr "Acestea sunt seturile de date la care va fi aplicat acest filtru."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17643,6 +17787,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17776,6 +17925,12 @@ msgstr ""
 "adnotare."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18672,6 +18827,9 @@ msgstr "Marți"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tip"
@@ -19751,6 +19909,10 @@ msgid ""
 msgstr ""
 "Nu pare să putem rezolva coloana \"%(column_name)s\" la linia "
 "%(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -21026,6 +21188,13 @@ msgstr "buton (cmd + z) până salvați modificările."
 
 msgid "by using"
 msgstr "folosind"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nu poate fi gol"

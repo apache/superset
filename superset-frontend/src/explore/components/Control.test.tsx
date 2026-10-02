@@ -36,11 +36,18 @@ const defaultProps: ControlProps = {
 
 const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
 
-test('render a control', () => {
-  render(setup());
+test('forwards child control changes through setControlValue', async () => {
+  const setControlValue = jest.fn();
+  render(setup({ actions: { setControlValue } }));
 
-  const checkbox = screen.getByRole('checkbox');
-  expect(checkbox).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('checkbox'));
+
+  expect(setControlValue).toHaveBeenCalledWith(
+    'checkbox',
+    false,
+    undefined,
+    undefined,
+  );
 });
 
 test('render null if type is not exit', () => {
@@ -70,17 +77,30 @@ test('render null if isVisible is false', () => {
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
 
-test('call setControlValue if isVisible is false', async () => {
+test('marks hiding a control as a programmatic value reset', async () => {
+  const setControlValue = jest.fn();
   const { rerender } = render(
     setup({
+      actions: { setControlValue },
       isVisible: true,
+      value: true,
       default: false,
     }),
   );
-  expect(defaultProps.actions.setControlValue).not.toHaveBeenCalled();
-  rerender(setup({ isVisible: false, default: false }));
+
+  expect(setControlValue).not.toHaveBeenCalled();
+  rerender(
+    setup({
+      actions: { setControlValue },
+      isVisible: false,
+      value: true,
+      default: false,
+    }),
+  );
   await waitFor(() =>
-    expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
+    expect(setControlValue).toHaveBeenCalledWith('checkbox', false, undefined, {
+      programmatic: true,
+    }),
   );
 });
 
