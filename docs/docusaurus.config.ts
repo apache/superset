@@ -403,7 +403,6 @@ const config: Config = {
     },
   ],
   themes: [
-    '@saucelabs/theme-github-codeblock',
     '@docusaurus/theme-mermaid',
     '@docusaurus/theme-live-codeblock',
     'docusaurus-theme-openapi-docs',

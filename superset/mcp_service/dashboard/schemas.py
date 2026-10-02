@@ -80,6 +80,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -89,6 +90,10 @@ if TYPE_CHECKING:
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
+from superset.mcp_service.chart.schemas import (
+    resolve_chart_datasource_id,
+    resolve_chart_datasource_name,
+)
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -335,29 +340,41 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Request a dashboard layout by its identifier or shared permalink.
-
-    Permalink requests resolve the dashboard while preserving shared active-tab
-    and filter state in the response.
-    """
+    """Dashboard layout, optionally scoped."""
 
     identifier: Annotated[
         int | str | None,
         Field(
             default=None,
             description=(
-                "Dashboard ID, UUID, slug, bare permalink key, or a shared URL "
-                "containing /superset/dashboard/p/<key>/. Omit when "
-                "permalink_key is provided."
+                "Dashboard ID, UUID, slug, or permalink key/URL (/dashboard/p/<key>/). "
+                "Omit with permalink_key."
             ),
         ),
     ]
     permalink_key: str | None = Field(
         default=None,
         description=(
-            "Key from a shared dashboard URL such as "
-            "'/superset/dashboard/p/<key>/'. Resolves the dashboard and includes "
-            "the shared active-tab and filter context in the layout response."
+            "Permalink key; resolves dashboard and preserves shared "
+            "active-tab/filter state."
+        ),
+    )
+    tabs_only: bool = Field(
+        default=False,
+        description=(
+            "Tab tree only (ID, name, parent, depth, chart_count), in tab_tree."
+        ),
+    )
+    tab: str | None = Field(
+        default=None,
+        description=(
+            "Tab subtree by ID or exact title (case-sensitive); IDs win over titles."
+        ),
+    )
+    untabbed_only: bool = Field(
+        default=False,
+        description=(
+            "Only charts outside every tab; cannot combine with tab or tabs_only."
         ),
     )
 
@@ -417,7 +434,22 @@ class DashboardChartSummary(BaseModel):
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type")
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_type: str | None = Field(
+        None,
+        description=(
+            "Type of the datasource; datasource_id is only unique within this type"
+        ),
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
 
@@ -723,7 +755,7 @@ class GenerateDashboardRequest(BaseModel):
             "dashboard's css field."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -889,7 +921,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
             "the ``filter_bar_orientation`` json_metadata key."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1384,7 +1416,7 @@ class DuplicateDashboardRequest(BaseModel):
             "source."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1519,6 +1551,39 @@ class DashboardTab(BaseModel):
     )
 
 
+class DashboardTabSummary(BaseModel):
+    """Compact tab-tree entry without chart IDs or chart positions."""
+
+    id: str = Field(..., description="Tab component ID from position_json")
+    name: str | None = Field(None, description="Tab display name")
+    parent_tab_id: str | None = Field(None, description="ID of the enclosing tab")
+    depth: int = Field(
+        ..., description="Tab nesting depth; top-level tabs have depth 0"
+    )
+    chart_count: int = Field(
+        ...,
+        description="Distinct chart IDs directly or indirectly under this tab",
+    )
+
+
+class DashboardLayoutScope(BaseModel):
+    """Scope applied to a get_dashboard_layout response."""
+
+    tabs_only: bool = Field(
+        False,
+        description=(
+            "True when chart positions were omitted by request; charts is then "
+            "empty regardless of what the dashboard contains."
+        ),
+    )
+    tab_id: str | None = Field(
+        None, description="Resolved ID of the tab the response is limited to"
+    )
+    untabbed_only: bool = Field(
+        False, description="True when only charts outside every tab are returned"
+    )
+
+
 class DashboardLayout(BaseModel):
     """Parsed layout data for a dashboard, derived from position_json."""
 
@@ -1528,12 +1593,38 @@ class DashboardLayout(BaseModel):
     tabs: List[DashboardTab] = Field(
         default_factory=list,
         description=(
-            "Tabs declared in the dashboard layout (empty for untabbed dashboards)"
+            "Tabs declared in the dashboard layout, limited to the selected "
+            "subtree when scoped by tab. Empty for untabbed dashboards and when "
+            "tabs_only or untabbed_only is requested."
+        ),
+    )
+    tab_tree: List[DashboardTabSummary] = Field(
+        default_factory=list,
+        description=(
+            "Compact tab tree without chart IDs or positions; populated only when "
+            "tabs_only is requested."
         ),
     )
     charts: List[ChartPosition] = Field(
         default_factory=list,
-        description="Charts placed in the dashboard layout with their tab context",
+        description=(
+            "Charts placed in the dashboard layout with their tab context, limited "
+            "to the requested scope. Always empty when tabs_only is requested; "
+            "see scope."
+        ),
+    )
+    untabbed_chart_count: int = Field(
+        0,
+        description=(
+            "Count of distinct charts outside every tab in the full layout; "
+            "untabbed_only lists each placement."
+        ),
+    )
+    scope: DashboardLayoutScope | None = Field(
+        None,
+        description=(
+            "Scope applied to tabs, tab_tree, and charts; None for the full layout."
+        ),
     )
     has_layout: bool = Field(
         default=False,
@@ -1796,7 +1887,13 @@ def serialize_chart_summary(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None)
+        datasource_id=resolve_chart_datasource_id(chart)
+        if include_data_model_metadata
+        else None,
+        datasource_type=getattr(chart, "datasource_type", None)
+        if include_data_model_metadata
+        else None,
+        datasource_name=resolve_chart_datasource_name(chart)
         if include_data_model_metadata
         else None,
         url=chart_url,
@@ -2080,12 +2177,18 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
     """Serialize a Dashboard model to a parsed DashboardLayout."""
     position_json_str = getattr(dashboard, "position_json", None)
     tabs, charts = _extract_layout_from_position(position_json_str)
+    untabbed_chart_ids = {
+        chart.chart_id
+        for chart in charts
+        if chart.tab_id is None and chart.chart_id is not None
+    }
     return DashboardLayout(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         tabs=tabs,
         charts=charts,
+        untabbed_chart_count=len(untabbed_chart_ids),
         has_layout=bool(position_json_str),
     )
 

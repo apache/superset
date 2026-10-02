@@ -83,7 +83,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
-from superset.commands.dashboard.export_example import ExportExampleCommand
+from superset.commands.dashboard.export_example import (
+    ExportExampleCommand,
+    ExportExampleSemanticViewError,
+)
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
@@ -180,6 +183,7 @@ from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
 )
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
@@ -790,7 +794,9 @@ class DashboardRestApi(
         if "charts" in result:
             # Only name the member charts the caller can access, consistent with
             # the per-object narrowing applied to the dashboard's datasets and
-            # charts sub-resources.
+            # charts sub-resources. The check reads each chart's editors and
+            # viewers, so load them for the whole set first.
+            DashboardDAO.prefetch_chart_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
@@ -1728,6 +1734,8 @@ class DashboardRestApi(
                     )
             except DashboardNotFoundError:
                 return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
         return send_export_zip(buf, filename)
@@ -1752,6 +1760,7 @@ class DashboardRestApi(
             Exports a dashboard with its charts and datasets in the example
             format used by the Superset example loading system. The export
             includes Parquet data files and YAML configuration files.
+            Charts and native-filter targets that use semantic views are not supported.
           parameters:
           - in: path
             schema:
@@ -1783,6 +1792,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              description: The dashboard contains unsupported semantic-view assets
             500:
               $ref: '#/components/responses/500'
         """
@@ -1804,6 +1815,8 @@ class DashboardRestApi(
                     bundle.writestr(filename, content_fn())
         except DashboardNotFoundError:
             return self.response_404()
+        except ExportExampleSemanticViewError as ex:
+            return self.response_422(message=str(ex))
 
         buf.seek(0)
 
@@ -3441,6 +3454,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -3489,6 +3503,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -3543,6 +3558,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -3628,6 +3644,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

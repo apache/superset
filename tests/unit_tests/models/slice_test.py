@@ -81,6 +81,10 @@ class TestSlice:
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
             ("integer_id", 123),
+            # str.isdigit() is True for "²" (superscript 2) but int()
+            # rejects it; must not raise and must fall through to the uuid
+            # branch instead of the int(id_or_uuid) branch.
+            ("non_decimal_digit", "²"),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):

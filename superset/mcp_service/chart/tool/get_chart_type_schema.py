@@ -260,8 +260,8 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
         },
         {
             "chart_type": "treemap_v2",
-            "groupby": ["region", "product"],
-            "metric": "total_revenue",
+            "groupby": [{"name": "region"}, {"name": "product"}],
+            "metric": {"name": "total_revenue", "saved_metric": True},
             "show_labels": True,
             "show_upper_labels": True,
             "label_type": "key_value",

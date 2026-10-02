@@ -1390,3 +1390,20 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
     );
   });
 });
+
+test('versioned suggestions are unavailable without a failure and allow manual input', async () => {
+  const { onChange } = setupWithFilterValuesResponse({
+    result: [],
+    suggestions_status: 'unavailable_versioned_view',
+  });
+  const comparator = await openComparator();
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable for this view. Enter a value manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+  await userEvent.type(comparator, 'manual');
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalled();
+});
