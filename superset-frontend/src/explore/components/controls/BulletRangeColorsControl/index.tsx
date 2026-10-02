@@ -79,9 +79,7 @@ export default function BulletRangeColorsControl({
         rangeValues.map((range, index) => (
           // eslint-disable-next-line react/no-array-index-key
           <RangeRow key={index}>
-            <RangeLabel>
-              {t('Up to %s', range)}
-            </RangeLabel>
+            <RangeLabel>{t('Up to %s', range)}</RangeLabel>
             <ColorPickerControl
               ariaLabel={t('Color for range up to %s', range)}
               value={colorAt(index) || undefined}
