@@ -989,8 +989,9 @@ def test_pivot_preserves_null_index_value_datetime() -> None:
     when filled and must be preserved as '<NULL>' in the pivot output.
 
     Regression for #43547: datetime64 columns cannot store strings directly;
-    converting NaT-containing datetime columns to string ensures NaT keys
-    survive pivot_table() without dtype/sort errors.
+    casting to object dtype and filling only the NaT positions lets NaT keys
+    survive pivot_table() without dtype/sort errors, while non-null entries
+    stay real Timestamp objects instead of being stringified.
     """
     df = DataFrame(
         {
@@ -1007,6 +1008,29 @@ def test_pivot_preserves_null_index_value_datetime() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_null_index_value_datetime_keeps_non_null_timestamps() -> None:
+    """Filling NaT positions in a datetime index must not degrade the other,
+    non-null entries to strings -- they should remain real Timestamp values.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    non_null_index_values = [v for v in result.index if v != NULL_STRING]
+    assert non_null_index_values, "expected at least one non-null index value"
+    assert all(isinstance(v, pd.Timestamp) for v in non_null_index_values), (
+        f"Expected non-null index values to remain Timestamps; "
+        f"got {[type(v) for v in non_null_index_values]}"
+    )
 
 
 def test_pivot_preserves_null_index_value_datetime_with_columns() -> None:

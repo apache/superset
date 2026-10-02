@@ -194,10 +194,10 @@ def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
     """Fill missing values in a groupby dimension column before pivoting.
 
     Handles categorical dtypes (adding fill_value to categories), datetime
-    dtypes (converting to string representation with fill_value for NaT), and
-    nullable extension dtypes (casting to object so a string fill value is
-    valid) to prevent dtype errors and preserve NULL/NaN/NaT keys through
-    pivot_table().
+    dtypes (casting to object with fill_value for NaT, preserving Timestamp
+    for non-null values), and nullable extension dtypes (casting to object
+    so a string fill value is valid) to prevent dtype errors and preserve
+    NULL/NaN/NaT keys through pivot_table().
     """
     s = df[col]
     if isinstance(s.dtype, pd.CategoricalDtype):
@@ -213,7 +213,10 @@ def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
         getattr(s.dtype, "kind", None) == "M"
     ):
         if s.isna().any():
-            df[col] = s.astype(str).where(~s.isna(), other=fill_value)
+            # astype(object) rather than astype(str): it boxes each value
+            # without stringifying, so non-null entries stay real Timestamp
+            # objects and only the NaT positions become the fill sentinel.
+            df[col] = s.astype(object).where(~s.isna(), other=fill_value)
     else:
         if s.isna().any():
             # Nullable extension dtypes (Int64, Float64, boolean, ...) back
