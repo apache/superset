@@ -119,7 +119,8 @@ export function handleDeprecatedControls(formData: FormData): void {
     formData.increase_color === undefined &&
     formData.decrease_color === undefined
   ) {
-    const legacyReversed = formData.comparison_color_scheme === ColorSchemeEnum.Red;
+    const legacyReversed =
+      formData.comparison_color_scheme === ColorSchemeEnum.Red;
     formData.increase_color = legacyReversed
       ? ColorSchemeEnum.Red
       : ColorSchemeEnum.Green;
