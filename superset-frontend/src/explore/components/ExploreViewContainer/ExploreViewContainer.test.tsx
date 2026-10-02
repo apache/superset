@@ -860,6 +860,79 @@ function setupTableChartControlPanel() {
   });
 }
 
+test('clearing a singleton metric refreshes semantic compatibility after metadata sync', async () => {
+  const fetchCompatibilitySpy = jest.spyOn(
+    exploreActions,
+    'fetchCompatibility',
+  );
+  const endpoint = 'path:/api/v1/datasource/semantic_view/7/compatible';
+  fetchMock.post(endpoint, {
+    result: {
+      compatible_metrics: ['metric_a', 'metric_b'],
+      compatible_dimensions: [],
+    },
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      datasource: {
+        ...reduxState.explore.datasource,
+        id: 7,
+        type: 'semantic_view',
+      },
+      form_data: {
+        datasource: '7__semantic_view',
+        viz_type: VizType.BigNumberTotal,
+        metric: 'metric_a',
+      },
+      controls: {
+        datasource: { value: '7__semantic_view' },
+        viz_type: { value: VizType.BigNumberTotal },
+        metric: { value: 'metric_a' },
+      },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store });
+  await waitFor(() =>
+    expect(store.getState()).toMatchObject({
+      explore: { compatibility: { status: 'verified' } },
+    }),
+  );
+  // Model the completed sync answer: metric B cannot combine with metric A.
+  act(() => {
+    store.dispatch(
+      exploreActions.setCompatibility({
+        status: 'verified',
+        metrics: ['metric_a'],
+        dimensions: [],
+      }),
+    );
+  });
+  fetchCompatibilitySpy.mockClear();
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('metric', null));
+  });
+  await waitFor(() => {
+    expect(fetchCompatibilitySpy).toHaveBeenCalledWith(
+      'semantic_view',
+      7,
+      [],
+      [],
+    );
+    expect(store.getState()).toMatchObject({
+      explore: {
+        compatibility: {
+          status: 'verified',
+          metrics: ['metric_a', 'metric_b'],
+          dimensions: [],
+        },
+      },
+    });
+  });
+});
+
 test('automatic axis title margin adjustment sets X axis margin to 30 when title is added', async () => {
   setupTableChartControlPanel();
   try {

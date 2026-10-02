@@ -20,11 +20,7 @@
 import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import {
-  SupersetClient,
-  QueryFormData,
-  ensureIsArray,
-} from '@superset-ui/core';
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
@@ -32,6 +28,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
+import { getCompatibilitySelection } from 'src/explore/utils/getCompatibilitySelection';
 import {
   CompatibilityResult,
   SaveActionType,
@@ -306,14 +303,14 @@ export function refreshSemanticMetadata(
     dispatch: Dispatch,
     getState: () => Pick<ExplorePageState, 'explore'>,
   ) => {
-    const isCurrent = () => {
+    const isActiveDatasource = () => {
       const { datasource } = getState().explore;
       return (
-        sessionIsCurrent() &&
         Number(datasource.id) === viewId &&
         String(datasource.type) === 'semantic_view'
       );
     };
+    const isCurrent = () => sessionIsCurrent() && isActiveDatasource();
     if (!isCurrent()) return;
     // A pre-sync compatibility response cannot replace a post-sync answer.
     compatibilityRequestSeq += 1;
@@ -325,28 +322,16 @@ export function refreshSemanticMetadata(
     // Rebuild the controls against fresh fields using their existing values and
     // normal removed-member validation, without rewriting form_data or querying.
     dispatch(syncSemanticMetadata(json as Dataset, formData));
-    const selectedMetrics = [
-      ...new Set(
-        [...ensureIsArray(formData.metrics), formData.metric].filter(
-          (value): value is string => typeof value === 'string',
-        ),
-      ),
-    ];
-    const selectedDimensions = [
-      ...new Set(
-        [
-          ...ensureIsArray(formData.groupby),
-          ...ensureIsArray(formData.columns),
-          formData.x_axis,
-        ].filter((value): value is string => typeof value === 'string'),
-      ),
-    ];
+    const { selectedMetrics, selectedDimensions } =
+      getCompatibilitySelection(formData);
+    // Once controls are rebuilt, Explore owns this request even if the editor
+    // closes. Datasource changes and newer requests still retire its response.
     const verified = await fetchCompatibility(
       'semantic_view',
       viewId,
       selectedMetrics,
       selectedDimensions,
-      isCurrent,
+      isActiveDatasource,
     )(dispatch);
     if (verified === false && isCurrent())
       throw new Error('Compatibility reload failed');

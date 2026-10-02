@@ -17,7 +17,8 @@
  * under the License.
  */
 import type { AnyAction } from 'redux';
-import { SupersetClient } from '@superset-ui/core';
+import { JsonResponse, SupersetClient } from '@superset-ui/core';
+import { ExplorePageState } from 'src/explore/types';
 import { defaultState } from 'src/explore/store';
 import exploreReducer, {
   ExploreState,
@@ -584,6 +585,99 @@ test('metadata sync does not refetch when the active datasource is another view'
     expect(dispatch).not.toHaveBeenCalled();
   } finally {
     getSpy.mockRestore();
+  }
+});
+
+test.each(['verified', 'failed'] as const)(
+  'metadata sync settles compatibility as %s after its modal closes during the POST',
+  async status => {
+    const dispatch = jest.fn();
+    const state = {
+      explore: {
+        ...defaultState,
+        datasource: { id: 7, type: 'semantic_view' },
+        controls: {},
+      },
+    } as Pick<ExplorePageState, 'explore'>;
+    let current = true;
+    let resolve!: (value: JsonResponse) => void;
+    let reject!: (reason: Error) => void;
+    const response = new Promise<JsonResponse>((done, fail) => {
+      resolve = done;
+      reject = fail;
+    });
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValueOnce({
+      json: { id: 7, type: 'semantic_view' },
+      response: new Response(),
+    });
+    const postSpy = jest
+      .spyOn(SupersetClient, 'post')
+      .mockReturnValueOnce(response);
+    try {
+      const pending = actions.refreshSemanticMetadata(7, () => current)(
+        dispatch,
+        () => state,
+      );
+      await Promise.resolve();
+      expect(postSpy).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenLastCalledWith(
+        actions.setCompatibility({ status: 'loading' }),
+      );
+      current = false;
+      if (status === 'verified') {
+        resolve({
+          response: new Response(),
+          json: {
+            result: { compatible_metrics: ['m1'], compatible_dimensions: [] },
+          },
+        });
+      } else {
+        reject(new Error('compatibility unavailable'));
+      }
+      await expect(pending).resolves.toBeUndefined();
+      expect(dispatch).toHaveBeenLastCalledWith(
+        actions.setCompatibility(
+          status === 'verified'
+            ? { status, metrics: ['m1'], dimensions: [] }
+            : { status },
+        ),
+      );
+    } finally {
+      getSpy.mockRestore();
+      postSpy.mockRestore();
+    }
+  },
+);
+
+test('metadata sync rejects when compatibility reload fails in the active session', async () => {
+  const dispatch = jest.fn();
+  const state = {
+    explore: {
+      ...defaultState,
+      datasource: { id: 7, type: 'semantic_view' },
+      controls: {},
+    },
+  } as Pick<ExplorePageState, 'explore'>;
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValueOnce({
+    json: { id: 7, type: 'semantic_view' },
+    response: new Response(),
+  });
+  const postSpy = jest
+    .spyOn(SupersetClient, 'post')
+    .mockRejectedValueOnce(new Error('compatibility unavailable'));
+  try {
+    await expect(
+      actions.refreshSemanticMetadata(7, () => true)(dispatch, () => state),
+    ).rejects.toThrow('Compatibility reload failed');
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: actions.SYNC_SEMANTIC_METADATA }),
+    );
+    expect(dispatch).toHaveBeenLastCalledWith(
+      actions.setCompatibility({ status: 'failed' }),
+    );
+  } finally {
+    getSpy.mockRestore();
+    postSpy.mockRestore();
   }
 });
 
