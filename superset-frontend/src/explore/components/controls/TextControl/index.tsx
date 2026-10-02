@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useRef, useEffect, ChangeEvent } from 'react';
+import {
+  useState,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  ChangeEvent,
+} from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
-import { debounce } from 'lodash-es';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Constants, Input } from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components';
 
 type InputValueType = string | number;
 
@@ -64,6 +70,11 @@ function TextControl<T extends InputValueType = InputValueType>({
 }: TextControlProps<T>) {
   const [localValue, setLocalValue] = useState<string>(safeStringify(value));
   const [prevValue, setPrevValue] = useState<T | null | undefined>(value);
+  // null until the user types; distinguishes a real edit from the prop-sync
+  // branch below, which also writes `localValue` but must never trigger
+  // `onChange`.
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+  const deferredPendingValue = useDeferredValue(pendingValue);
 
   const handleChange = useCallback(
     (inputValue: string) => {
@@ -95,26 +106,28 @@ function TextControl<T extends InputValueType = InputValueType>({
     [isFloat, isInt, onChange],
   );
 
-  const debouncedOnChangeRef = useRef(
-    debounce((inputValue: string, changeFn: (val: string) => void) => {
-      changeFn(inputValue);
-    }, Constants.FAST_DEBOUNCE),
-  );
+  // Read through a ref so a parent re-render that hands down a new `onChange`
+  // identity doesn't re-fire this effect on its own -- only an actual
+  // keystroke (a change to `deferredPendingValue`) should.
+  const handleChangeRef = useRef(handleChange);
+  handleChangeRef.current = handleChange;
 
-  useEffect(
-    () => () => {
-      debouncedOnChangeRef.current.cancel();
-    },
-    [],
-  );
+  // Fires once the deferred value catches up with the latest keystroke.
+  // Low-priority and interrupted by each new keystroke, unlike a fixed-delay
+  // debounce, so the input never lags behind a burst of typing.
+  useEffect(() => {
+    if (deferredPendingValue !== null) {
+      handleChangeRef.current(deferredPendingValue);
+    }
+  }, [deferredPendingValue]);
 
   const onChangeWrapper = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const { value: newValue } = event.target;
       setLocalValue(newValue);
-      debouncedOnChangeRef.current(newValue, handleChange);
+      setPendingValue(newValue);
     },
-    [handleChange],
+    [],
   );
 
   // Sync local value when prop value changes externally. Adjusting state during
