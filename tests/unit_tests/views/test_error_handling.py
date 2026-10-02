@@ -369,8 +369,9 @@ class TestShowHttpException:
         assert len(records) == 1
         assert records[0].levelno == logging.DEBUG
         assert records[0].exc_info is None
-        assert "/view-not-found" in records[0].getMessage()
+        assert repr(response.request.path) in records[0].getMessage()
         assert "\n" not in records[0].getMessage()
+        assert "\r" not in records[0].getMessage()
 
     @pytest.mark.parametrize(
         "error",
