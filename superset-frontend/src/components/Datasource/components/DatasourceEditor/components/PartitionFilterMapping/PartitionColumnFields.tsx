@@ -33,12 +33,14 @@ import {
 import {
   mappedColumnIsImplicit,
   mappingIsActive,
+  partitionMappingErrors,
   resolveMappedColumn,
   suggestedMappedColumn,
 } from './utils';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
+  PartitionMappingIssue,
 } from './types';
 
 interface PartitionColumnFieldsProps {
@@ -86,6 +88,16 @@ export default function PartitionColumnFields({
   const isActive = mappingIsActive(datasource, columns);
   const { partition_column: partitionColumn } = datasource;
 
+  // `field` is what the issues carry it for: a message about the partition
+  // column belongs under the partition column, not only in the Save button's
+  // tooltip, where an owner has to guess which of the two selects is at fault.
+  const issues = useMemo(
+    () => partitionMappingErrors(datasource, columns),
+    [datasource, columns],
+  );
+  const issueFor = (field: PartitionMappingIssue['field']) =>
+    issues.find(issue => issue.field === field)?.message;
+
   // "Map a different column instead" normally opens the currently-mapped
   // column's row, which is where the picker lives. When the mapped column *is*
   // the partition column -- the self-mapping the backend rejects, and reachable
@@ -117,6 +129,11 @@ export default function PartitionColumnFields({
         allowClear
         data-test="partition-column-select"
       />
+      {issueFor('partition_column') && (
+        <Typography.Text type="danger" data-test="partition-column-error">
+          {issueFor('partition_column')}
+        </Typography.Text>
+      )}
       <Typography.Text type="secondary">
         {t(
           "Column used for partition pruning on this table. Selecting one hides it from Explore's dimension and filter pickers by default.",
@@ -158,6 +175,14 @@ export default function PartitionColumnFields({
                   </>
                 )}
               </Flex>
+              {issueFor('partition_mapped_column') && (
+                <Typography.Text
+                  type="danger"
+                  data-test="partition-mapped-column-error"
+                >
+                  {issueFor('partition_mapped_column')}
+                </Typography.Text>
+              )}
               <Typography.Text type="secondary">
                 {t(
                   'Filters on this column are mirrored onto the partition column.',

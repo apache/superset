@@ -47,6 +47,20 @@ from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
 
+#: Attributes whose presence in an update can change which column the partition
+#: mapping mirrors -- and therefore which column is allowed to hold a transform.
+#: A request touching none of these cannot invalidate the one-transform
+#: invariant, so there is nothing for `clear_unmapped_partition_transforms` to
+#: enforce and clearing would be pure loss.
+PARTITION_MAPPING_ATTRIBUTES = frozenset(
+    {
+        "columns",
+        "main_dttm_col",
+        "partition_column",
+        "partition_mapped_column",
+    }
+)
+
 # Custom filterable fields for datasets (not direct model columns)
 DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
     "database_name": ["eq", "like", "ilike"],
@@ -437,6 +451,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         delete_metric_ids removes only explicitly selected metrics, without
         replacing or replaying the remaining metrics.
         """
+        # Snapshot the keys: the column and metric branches below `pop` theirs
+        # out of `attributes`, so by the time the partition-mapping cleanup runs
+        # the dict no longer says what the request contained.
+        attribute_names = set(attributes or {})
 
         if item and delete_metric_ids:
             for metric in item.metrics:
@@ -469,7 +487,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # After the dataset-level attributes land, not before: the mapped column
         # is `partition_mapped_column or main_dttm_col`, and either can be part
         # of this very request.
-        cls.clear_unmapped_partition_transforms(updated)
+        #
+        # Only when the request touches the mapping, though. This discards
+        # stored configuration, so running it unconditionally meant a
+        # description-only PUT -- or a client that GETs the dataset and PUTs it
+        # back -- silently dropped a transform parked on a non-mapped column.
+        # Nothing about such a request changes which column is mirrored, so
+        # there is nothing for it to enforce.
+        if not PARTITION_MAPPING_ATTRIBUTES.isdisjoint(attribute_names):
+            cls.clear_unmapped_partition_transforms(updated)
         return updated
 
     @classmethod
@@ -516,6 +542,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if model.partition_column
             else None
         )
+        # `_upsert_columns` and `_override_columns` insert a new column with
+        # `db.session.add(TableColumn(..., table_id=model.id))` rather than
+        # appending to this relationship, and `BaseDAO.update` does not flush --
+        # so a column created *and* given a transform in the same request was
+        # invisible here and kept it. That is exactly the stray transform this
+        # method exists to clear, waiting for the mapping to resolve back to it.
+        db.session.flush()
+        db.session.expire(model, ["columns"])
         for column in model.columns:
             if column.column_name == mapped_column:
                 continue
