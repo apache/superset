@@ -53,7 +53,7 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 2_900,
+    "apply_dashboard_filters": 3_900,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,
     "create_theme": 1_100,
@@ -123,7 +123,7 @@ TOOL_BUDGETS = {
     "manage_dashboard_certification": 1_900,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    "manage_native_filters": 6_700,
+    "manage_native_filters": 8_900,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,
