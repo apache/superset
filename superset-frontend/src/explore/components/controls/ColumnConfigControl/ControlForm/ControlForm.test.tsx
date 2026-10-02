@@ -18,9 +18,11 @@
  */
 import { useCallback, useState } from 'react';
 import { JsonObject } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import {
   render,
   screen,
+  sleep,
   userEvent,
   within,
   waitFor,
@@ -34,7 +36,6 @@ const renderForm = (
   props: {
     value?: Record<string, string>;
     validators?: ((value: unknown) => string | false)[];
-    debounceDelay?: number;
   } = {},
 ) => {
   const onChange = jest.fn();
@@ -47,7 +48,6 @@ const renderForm = (
           label="Title"
           description="Title description"
           validators={props.validators}
-          debounceDelay={props.debounceDelay}
         />
         <ControlFormItem
           name="note"
@@ -126,7 +126,8 @@ test('does not propagate a value that fails validation and shows the error', asy
   const errorBadge = await screen.findByTestId('error-tooltip');
   await userEvent.hover(within(errorBadge).getByRole('img'));
   expect(await screen.findByText('Digits are not allowed')).toBeInTheDocument();
-  await new Promise(resolve => setTimeout(resolve, 400));
+  // Wait past the form's debounce window so a late propagation would surface.
+  await sleep(Constants.FAST_DEBOUNCE + 100);
   expect(onChange).not.toHaveBeenCalled();
 });
 

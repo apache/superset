@@ -143,8 +143,18 @@ const renderCrud = (
   return { onChange, ...utils };
 };
 
-const lastChange = (onChange: jest.Mock) =>
-  onChange.mock.calls[onChange.mock.calls.length - 1][0];
+const lastChange = (onChange: jest.Mock) => onChange.mock.calls.at(-1)?.[0];
+
+// Opens the edit popover of the formatter with the given label, sets its
+// target value, and applies.
+const editTargetValue = async (formatterLabel: string, value: string) => {
+  await userEvent.click(screen.getByText(formatterLabel));
+  await screen.findByText('Edit formatter');
+  const targetValue = screen.getByLabelText('Target value');
+  await userEvent.clear(targetValue);
+  await userEvent.type(targetValue, value);
+  await userEvent.click(screen.getByText('Apply'));
+};
 
 // The popover Selects render their options inline next to the trigger, so
 // scope the option lookup to the Select that was opened.
@@ -212,12 +222,7 @@ test('opens the edit popover prefilled from the clicked formatter', async () => 
 test('replaces the edited formatter at its index and keeps the others', async () => {
   const { onChange } = renderCrud({ value: [greaterThanA, lessThanB] });
 
-  await userEvent.click(screen.getByText('col_b < 2'));
-  await screen.findByText('Edit formatter');
-  const targetValue = screen.getByLabelText('Target value');
-  await userEvent.clear(targetValue);
-  await userEvent.type(targetValue, '7');
-  await userEvent.click(screen.getByText('Apply'));
+  await editTargetValue('col_b < 2', '7');
 
   await waitFor(() =>
     expect(lastChange(onChange)).toEqual([
@@ -236,12 +241,7 @@ test('replaces the edited formatter at its index and keeps the others', async ()
 test('edits the first formatter without touching later ones', async () => {
   const { onChange } = renderCrud({ value: [greaterThanA, lessThanB] });
 
-  await userEvent.click(screen.getByText('col_a > 1'));
-  await screen.findByText('Edit formatter');
-  const targetValue = screen.getByLabelText('Target value');
-  await userEvent.clear(targetValue);
-  await userEvent.type(targetValue, '9');
-  await userEvent.click(screen.getByText('Apply'));
+  await editTargetValue('col_a > 1', '9');
 
   await waitFor(() =>
     expect(lastChange(onChange)).toEqual([
@@ -268,12 +268,7 @@ test('edits the remaining formatter at its new index after an earlier one is del
 
   await userEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
   await waitFor(() => expect(lastChange(onChange)).toEqual([lessThanB]));
-  await userEvent.click(screen.getByText('col_b < 2'));
-  await screen.findByText('Edit formatter');
-  const targetValue = screen.getByLabelText('Target value');
-  await userEvent.clear(targetValue);
-  await userEvent.type(targetValue, '8');
-  await userEvent.click(screen.getByText('Apply'));
+  await editTargetValue('col_b < 2', '8');
 
   await waitFor(() =>
     expect(lastChange(onChange)).toEqual([
@@ -287,22 +282,12 @@ test('edits the remaining formatter at its new index after an earlier one is del
 test('keeps both edits when two formatters are edited one after the other', async () => {
   const { onChange } = renderCrud({ value: [greaterThanA, lessThanB] });
 
-  await userEvent.click(screen.getByText('col_a > 1'));
-  await screen.findByText('Edit formatter');
-  let targetValue = screen.getByLabelText('Target value');
-  await userEvent.clear(targetValue);
-  await userEvent.type(targetValue, '5');
-  await userEvent.click(screen.getByText('Apply'));
+  await editTargetValue('col_a > 1', '5');
   await waitFor(() =>
     expect(screen.queryByText('Edit formatter')).not.toBeInTheDocument(),
   );
 
-  await userEvent.click(screen.getByText('col_b < 2'));
-  await screen.findByText('Edit formatter');
-  targetValue = screen.getByLabelText('Target value');
-  await userEvent.clear(targetValue);
-  await userEvent.type(targetValue, '6');
-  await userEvent.click(screen.getByText('Apply'));
+  await editTargetValue('col_b < 2', '6');
 
   await waitFor(() =>
     expect(lastChange(onChange)).toEqual([

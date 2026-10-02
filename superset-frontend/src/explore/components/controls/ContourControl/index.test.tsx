@@ -27,6 +27,8 @@ import { Constants } from '@superset-ui/core/components';
 import ContourControl from '.';
 import { ContourType } from './types';
 
+// Alpha is 100 because ContourPopoverControl forces it on every picked color
+// (see `updateColor`), so fixtures match what the popover emits.
 const magenta = { r: 255, g: 0, b: 255, a: 100 };
 const green = { r: 0, g: 255, b: 0, a: 100 };
 
@@ -67,14 +69,25 @@ const renderControl = (value?: ContourType[]) => {
 };
 
 const lastChange = (onChange: jest.Mock): ContourType[] =>
-  onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  onChange.mock.calls.at(-1)?.[0] ?? [];
 
-const fields = () => screen.getAllByTestId('inline-name') as HTMLInputElement[];
+// Lets the popover's debounced field change flush before the next interaction.
+const flushDebounce = () => sleep(Constants.FAST_DEBOUNCE + 100);
+
+const fields = () =>
+  screen.getAllByTestId('inline-name').map(el => {
+    if (!(el instanceof HTMLInputElement)) {
+      throw new Error('expected inline-name to be an input element');
+    }
+    return el;
+  });
 
 const pickColor = async () => {
-  const trigger = document.querySelector(
-    '.ant-color-picker-trigger',
-  ) as HTMLElement;
+  const trigger = await waitFor(() => {
+    const el = document.querySelector('.ant-color-picker-trigger');
+    if (!el) throw new Error('no color picker trigger');
+    return el as HTMLElement;
+  });
   await userEvent.click(trigger);
   const preset = await waitFor(() => {
     const el = document.querySelector('.ant-color-picker-presets-color');
@@ -86,6 +99,8 @@ const pickColor = async () => {
 
 test('renders the default contours when no value is provided', () => {
   renderControl();
+  // ContourControl ships three default contours (DEFAULT_CONTOURS in index.tsx,
+  // not exported).
   expect(screen.getAllByTestId('option-label')).toHaveLength(3);
 });
 
@@ -123,9 +138,9 @@ test('adds an isoline and reports it after the existing contours', async () => {
   await userEvent.click(screen.getByText('Click to add a contour'));
   await screen.findByRole('tooltip');
   await userEvent.type(fields()[0], '3');
-  await sleep(Constants.FAST_DEBOUNCE + 100);
+  await flushDebounce();
   await userEvent.type(fields()[1], '2');
-  await sleep(Constants.FAST_DEBOUNCE + 100);
+  await flushDebounce();
   await pickColor();
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
@@ -152,7 +167,7 @@ test('edits a contour in place through its popover', async () => {
   const input = fields()[0];
   await userEvent.clear(input);
   await userEvent.type(input, '5');
-  await sleep(Constants.FAST_DEBOUNCE + 100);
+  await flushDebounce();
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() =>
