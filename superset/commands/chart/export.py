@@ -98,7 +98,17 @@ class ExportChartsCommand(ExportModelsCommand):
         if extra_fields := get_extra_export_fields(model, "chart"):
             payload["extra"] = extra_fields
 
-        # Replace annotation layer/chart integer IDs with UUIDs for portability
+        ExportChartsCommand._export_annotation_references(model, payload)
+
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+        return file_content
+
+    @staticmethod
+    def _export_annotation_references(model: Slice, payload: dict[str, Any]) -> None:
+        """
+        Replace annotation layer/chart integer IDs in ``payload``'s params and
+        query_context with UUIDs for portability.
+        """
         query_context = None
         if payload.get("query_context"):
             try:
@@ -116,9 +126,6 @@ class ExportChartsCommand(ExportModelsCommand):
             )
         if query_context is not None:
             payload["query_context"] = json.dumps(query_context)
-
-        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
-        return file_content
 
     @staticmethod
     def _can_read_annotations() -> bool:
