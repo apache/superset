@@ -24,7 +24,9 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Example export (`/export_as_example/`) rejects dashboards with semantic-view charts or native-filter targets; use ordinary chart/dashboard bundle export instead.
+- Example export (`/export_as_example/`) rejects dashboards whose charts or
+  native-filter targets use semantic views; use the ordinary chart/dashboard
+  bundle export instead.
 
 - Semantic-view chart and dashboard bundles use typed UUID references and require
   a destination with support for this format and an already provisioned, accessible

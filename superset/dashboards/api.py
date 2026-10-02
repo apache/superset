@@ -1760,7 +1760,7 @@ class DashboardRestApi(
             Exports a dashboard with its charts and datasets in the example
             format used by the Superset example loading system. The export
             includes Parquet data files and YAML configuration files.
-            Semantic-view charts and native-filter targets are not supported.
+            Charts and native-filter targets that use semantic views are not supported.
           parameters:
           - in: path
             schema:
