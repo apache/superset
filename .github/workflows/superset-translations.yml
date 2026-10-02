@@ -60,6 +60,8 @@ jobs:
         run: |
           npm run build-translation
 
+  # This job id is a required status check in .asf.yaml; renaming it breaks
+  # branch protection for every PR until .asf.yaml is updated to match.
   babel-extract:
     runs-on: ubuntu-26.04
     permissions:
