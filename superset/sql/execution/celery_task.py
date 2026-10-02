@@ -181,6 +181,7 @@ def _finalize_successful_query(
                     "data": data,
                     "columns": columns,
                     "row_count": result_set.size,
+                    "truncated": result_set.truncated,
                     "execution_time_ms": exec_time,
                 }
             )

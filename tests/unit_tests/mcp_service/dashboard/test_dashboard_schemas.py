@@ -269,6 +269,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -279,6 +281,8 @@ class TestSerializeDashboardObject:
         assert result.charts[0].id == 5
         assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id == 3
+        assert result.charts[0].datasource_type == "table"
         assert result.charts[0].datasource_name == "sales"
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
         # Verify no heavy fields
@@ -300,6 +304,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -309,6 +315,8 @@ class TestSerializeDashboardObject:
         assert len(result.charts) == 1
         assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
         assert result.charts[0].datasource_name is None
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
 
@@ -326,6 +334,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -348,6 +358,8 @@ class TestSerializeDashboardObject:
 
         result = dashboard_serializer(dashboard)
 
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
         assert result.charts[0].datasource_name is None
         assert result.native_filters[0].targets == []
 
@@ -366,6 +378,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -523,12 +537,16 @@ class TestSerializeChartSummary:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
         result = serialize_chart_summary(chart)
 
         assert result is not None
+        assert result.datasource_id is None
+        assert result.datasource_type is None
         assert result.datasource_name is None
 
 
