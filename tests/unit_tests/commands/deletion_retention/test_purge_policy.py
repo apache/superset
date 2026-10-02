@@ -18,12 +18,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 import sqlalchemy as sa
+from flask import current_app
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import configure_mappers, registry
 from sqlalchemy.sql import Select
@@ -40,6 +43,7 @@ from superset.commands.deletion_retention.purge_policy import (
     DependencyPolicy,
     discover_dependencies,
     get_purge_policy,
+    HOST_POLICIES_CONFIG_KEY,
     listener_responsibilities,
     PolicyCoverage,
     purge_policy_registry,
@@ -568,3 +572,112 @@ def test_core_delete_actions_compile_for_supported_dialects(dialect: str) -> Non
 
     assert compiled
     assert all(statement.startswith(("SELECT", "DELETE")) for statement in compiled)
+
+
+def _host_root(prefix: str) -> type[Any]:
+    """Map a throwaway root in its own ``MetaData``.
+
+    The hook is indifferent to a host root's shape, so this is the smallest
+    graph with anything to declare: one outbound foreign key, the same edge
+    every built-in policy preserves for its ``ab_user`` columns.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    sa.Table(
+        f"{prefix}_owner",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("owner_id", sa.Integer, sa.ForeignKey(f"{prefix}_owner.id")),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class HostRoot:
+        """Temporary mapped root standing in for an entity core does not own."""
+
+    registry().map_imperatively(HostRoot, root_table)
+    return HostRoot
+
+
+def _host_edge(prefix: str) -> DependencyPolicy:
+    """The one dependency ``discover_dependencies`` finds for that root."""
+    return DependencyPolicy(
+        DependencyKey(
+            "foreign_key",
+            f"{prefix}_entity",
+            f"{prefix}_owner",
+            ("owner_id",),
+            ("id",),
+            "outbound",
+        ),
+        DependencyClassification.PRESERVE,
+    )
+
+
+def _host_policy(
+    model: type[Any], dependencies: tuple[DependencyPolicy, ...]
+) -> PurgeEntityPolicy:
+    """Borrow the chart policy's executable actions for a host root."""
+    return replace(
+        get_purge_policy(Slice),
+        model=model,
+        entity_type="host_root",
+        dependencies=dependencies,
+    )
+
+
+@contextmanager
+def _installed(provider: Callable[[], Any]) -> Iterator[None]:
+    """Install a host policy provider for the duration of one test."""
+    previous: Any = current_app.config.get(HOST_POLICIES_CONFIG_KEY)
+    current_app.config[HOST_POLICIES_CONFIG_KEY] = provider
+    try:
+        yield
+    finally:
+        current_app.config[HOST_POLICIES_CONFIG_KEY] = previous
+
+
+def test_host_policy_extends_the_registry() -> None:
+    """A complete host declaration resolves like a built-in root."""
+    model: type[Any] = _host_root("extend")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("extend"),))
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(model) is policy
+        assert {Slice, Dashboard, SqlaTable} <= set(purge_policy_registry())
+
+
+def test_host_policy_is_held_to_the_discovered_graph() -> None:
+    """An incomplete host declaration is rejected, not silently honored."""
+    model: type[Any] = _host_root("incomplete")
+
+    with _installed(lambda: [_host_policy(model, ())]):
+        with pytest.raises(RuntimeError, match="Incomplete purge policy"):
+            get_purge_policy(model)
+
+
+@pytest.mark.parametrize(
+    "provider",
+    [
+        pytest.param(lambda: 1 // 0, id="raises"),
+        pytest.param(lambda: "not-a-sequence", id="wrong_type"),
+        pytest.param(lambda: [object()], id="wrong_member"),
+    ],
+)
+def test_malformed_host_provider_leaves_builtin_roots_intact(
+    provider: Callable[[], Any],
+) -> None:
+    """A broken host boundary costs the host its roots, not the purge."""
+    with _installed(provider):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+
+def test_host_policy_cannot_redeclare_a_builtin_root() -> None:
+    """A host cannot redefine how a chart, dashboard or dataset is purged."""
+    builtin: PurgeEntityPolicy = get_purge_policy(Slice)
+
+    with _installed(lambda: [replace(builtin, dependencies=())]):
+        assert purge_policy_registry()[Slice] is builtin

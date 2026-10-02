@@ -27,6 +27,7 @@ from types import MappingProxyType
 from typing import Any, cast, NamedTuple
 
 import sqlalchemy as sa
+from flask import current_app, has_app_context
 from sqlalchemy.orm import Mapper, Session
 
 from superset.utils.sqlalchemy_events import (
@@ -53,6 +54,12 @@ ALL_REASON_CODES: frozenset[str] = frozenset(
         REASON_CASCADE_INTEGRITY_FAILURE,
     }
 )
+
+#: Config key holding the host's purge-policy provider: a zero-argument
+#: callable returning ``PurgeEntityPolicy`` objects for soft-delete roots this
+#: package does not own. Downstream startup may require
+#: ``superset.versioning.utils.HOST_POLICY_API_VERSION`` before installing one.
+HOST_POLICIES_CONFIG_KEY: str = "PURGE_POLICIES_FUNC"
 
 
 class BlockerReason(NamedTuple):
@@ -410,8 +417,8 @@ def compare_policy(
 
 
 @lru_cache(maxsize=1)
-def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
-    """Build the supported purge registry after model initialization."""
+def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+    """Declare the purge roots this package owns, after model initialization."""
     # avoid circular import: model listener registration imports neutral event helpers
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
@@ -860,7 +867,74 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
             cleanup_permission=cleanup_dataset_permission,
         ),
     }
-    return validate_unique_root_policies(registry.values())
+    return tuple(registry.values())
+
+
+def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+    """Return the purge policies a host installed for its own roots.
+
+    A host distribution can carry ``SoftDeleteMixin`` entities this package
+    cannot import. The retention task discovers those entities through the
+    mixin registry, so without a policy they reach the cascade as an
+    unsupported model. The host therefore declares their purge behavior and
+    installs it under ``PURGE_POLICIES_FUNC``.
+
+    Host boundary: an unavailable provider, a malformed payload, or a policy
+    that collides with a root declared here is logged and dropped. A broken
+    host declaration must not take the scheduled purge down with it, and must
+    never redefine how a chart, dashboard or dataset is purged.
+    """
+    if not has_app_context():
+        return ()
+    provider: Callable[[], Any] | None = current_app.config.get(
+        HOST_POLICIES_CONFIG_KEY
+    )
+    if provider is None:
+        return ()
+    try:
+        provided: Any = provider()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "purge_policy: %s is unavailable; keeping built-in roots only",
+            HOST_POLICIES_CONFIG_KEY,
+        )
+        return ()
+    if not isinstance(provided, (list, tuple)) or not all(
+        isinstance(policy, PurgeEntityPolicy) for policy in provided
+    ):
+        logger.error(
+            "purge_policy: %s returned %s; expected a sequence of PurgeEntityPolicy",
+            HOST_POLICIES_CONFIG_KEY,
+            type(provided).__name__,
+        )
+        return ()
+    builtin_roots: frozenset[type[Any]] = frozenset(
+        policy.model for policy in _builtin_purge_policies()
+    )
+    accepted: list[PurgeEntityPolicy] = []
+    for policy in provided:
+        if policy.model in builtin_roots:
+            logger.error(
+                "purge_policy: host policy for built-in root %s ignored",
+                policy.model.__name__,
+            )
+            continue
+        accepted.append(policy)
+    return tuple(accepted)
+
+
+def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
+    """Index the built-in purge roots plus any the host installed.
+
+    Uncached on purpose, unlike its two inputs: the built-in declarations are
+    built once per process, while a host policy is resolved per call so a
+    provider installed after the first purge is still honored. The hot path is
+    ``get_purge_policy``, which caches per model, so rebuilding this small
+    index is not on it.
+    """
+    return validate_unique_root_policies(
+        (*_builtin_purge_policies(), *_host_purge_policies())
+    )
 
 
 @lru_cache(maxsize=None)
