@@ -92,7 +92,9 @@ TOOL_BUDGETS = {
     "get_role_info": 900,
     "get_saved_query_info": 1_200,
     "get_schema": 1_100,
-    "get_table": 3_900,
+    # Includes semantic_selection_version and its explicit-reselection guidance:
+    # 3,957 bytes, rounded up plus the standard 100-byte headroom.
+    "get_table": 4_100,
     "get_tag_info": 1_000,
     "get_task_info": 1_100,
     "get_theme_info": 1_000,
@@ -131,7 +133,7 @@ TOOL_BUDGETS = {
     "save_sql_query": 1_600,
     "update_chart": 4_100,
     "update_chart_preview": 2_000,
-    "update_dashboard": 4_100,
+    "update_dashboard": 4_200,
     "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
 }
