@@ -80,7 +80,6 @@ from superset.utils.core import (
     get_column_name,
     get_column_names_from_columns,
     get_column_names_from_metrics,
-    get_user_id,
     is_adhoc_column,
     is_adhoc_metric,
 )
@@ -503,13 +502,12 @@ class QueryContextProcessor:
         Cache key for this query's annotation-layer payload, or ``None`` when
         the query has no annotation layers.
 
-        Annotation payloads are fetched per requesting user and, for
-        chart-backed layers, scoped by the RLS clauses of the referenced
-        chart's datasource — a stricter security requirement than the
-        dataframe itself has. Keying them separately from
-        :meth:`query_cache_key` keeps that per-user scoping from forcing every
-        distinct viewer of an annotated chart onto their own full copy of the
-        (potentially much larger) shared dataframe.
+        Annotation payloads are fetched under the requesting user's access
+        scope, which is a stricter security requirement than the dataframe
+        itself has. Keying them separately from :meth:`query_cache_key` keeps
+        that scoping from forcing every distinct viewer of an annotated chart
+        onto their own full copy of the (potentially much larger) shared
+        dataframe: users with the same access scope share this key too.
         """
         if not query_obj or not query_obj.annotation_layers:
             return None
@@ -519,13 +517,25 @@ class QueryContextProcessor:
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
-        Cache-key material binding cached annotation data to its security
-        context: the requesting user and, for chart-backed layers, the RLS
-        clauses of the referenced chart's datasource.
+        Cache-key material binding annotation data to its security *scope* so
+        users with the same access share a cache entry and users with a
+        different scope — or no access — never read each other's data.
+
+        * NATIVE layers: the ``can_read`` permission on ``Annotation``, the
+          only user-dependent dimension of these global records.
+        * Chart-backed (``line``/``table``) layers: see
+          :meth:`_annotation_source_scope`.
         """
-        source_rls: dict[str, list[str] | None] = {}
-        source_versions: dict[str, tuple[str, str]] = {}
-        metadata_versions: dict[str, str] = {}
+        context: dict[str, Any] = {}
+
+        if any(
+            layer.get("sourceType") == "NATIVE" for layer in query_obj.annotation_layers
+        ):
+            context["annotation_read"] = security_manager.can_access(
+                "can_read", "Annotation"
+            )
+
+        source_scope: dict[str, Any] = {}
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
@@ -533,13 +543,45 @@ class QueryContextProcessor:
             ):
                 continue
             layer_value = layer.get("value")
-            chart = (
-                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            source_scope[str(layer_value)] = self._annotation_source_scope(layer_value)
+        if source_scope:
+            context["source_scope"] = source_scope
+            context["semantic_filter_protocol"] = "semantic-null-filters-v1"
+
+        return context
+
+    def _annotation_source_scope(self, layer_value: Any) -> dict[str, Any]:
+        """
+        Access and data-identity cache-key material for one chart-backed
+        annotation layer.
+
+        ``access`` keeps a user denied the referenced chart's datasource from
+        reading an authorized user's cached payload. ``data_key`` is the
+        annotation chart's own query cache key(s), which already capture the
+        datasource version, RLS clauses, and any per-user Jinja/virtual-dataset
+        RLS material — reusing it here avoids re-deriving that logic and
+        automatically inherits any future correctness fixes made there.
+        """
+        chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+        datasource = chart.datasource if chart else None
+        if chart is None or datasource is None:
+            return {"access": None, "data_key": None}
+
+        try:
+            access = security_manager.can_access_datasource(datasource)
+            # Fall back to the RLS-clause identity when the chart has no saved
+            # query context to key on.
+            annotation_query_context = chart.get_query_context()
+            data_key: Any = (
+                [
+                    annotation_query_context.query_cache_key(query_object)
+                    for query_object in annotation_query_context.queries
+                ]
+                if annotation_query_context is not None
+                else security_manager.get_rls_cache_key(datasource)
             )
-            annotation_datasource: Datasource | None = (
-                chart.resolved_datasource if chart else None
-            )
-            if chart and isinstance(chart.query_context, str):
+            annotation_datasource: Datasource | None = chart.resolved_datasource
+            if isinstance(chart.query_context, str):
                 try:
                     source: dict[str, Any] = json.loads(chart.query_context)[
                         "datasource"
@@ -556,30 +598,32 @@ class QueryContextProcessor:
                     DatasourceValueIsIncorrect,
                 ):
                     annotation_datasource = None
+            metadata_version: str | None = None
+            result_discriminator: tuple[str, str] | None = None
             if isinstance(annotation_datasource, SemanticView):
-                metadata_versions[str(layer_value)] = (
-                    annotation_datasource.metadata_generation
-                )
-            source_rls[str(layer.get("value"))] = (
-                security_manager.get_rls_cache_key(annotation_datasource)
-                if annotation_datasource
-                else None
+                metadata_version = annotation_datasource.metadata_generation
+                result_discriminator = annotation_datasource.result_cache_discriminator
+        except SupersetException:
+            # The annotation fetch raises these same errors and persists
+            # nothing, so a fallback key never stores real data; fail closed
+            # so this scope can't silently dedupe onto a successfully-derived
+            # one.
+            logger.warning(
+                "Could not derive annotation cache key for chart %s; "
+                "falling back to a fail-closed scope",
+                layer_value,
+                exc_info=True,
             )
-            if isinstance(annotation_datasource, SemanticView):
-                discriminator: tuple[str, str] | None = (
-                    annotation_datasource.result_cache_discriminator
-                )
-                if discriminator is not None:
-                    source_versions[str(layer_value)] = discriminator
-        context: dict[str, Any] = {
-            "user_id": get_user_id(),
-            "source_rls": source_rls,
-            "semantic_filter_protocol": "semantic-null-filters-v1",
-            "source_versions": metadata_versions,
+            return {
+                "access": False,
+                "data_key": security_manager.get_rls_cache_key(datasource),
+            }
+        return {
+            "access": access,
+            "data_key": data_key,
+            "metadata_version": metadata_version,
+            "result_discriminator": result_discriminator,
         }
-        if source_versions:
-            context["semantic_result_versions"] = source_versions
-        return context
 
     def _get_annotation_data_cached(
         self,
