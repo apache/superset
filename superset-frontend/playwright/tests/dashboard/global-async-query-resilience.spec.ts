@@ -181,30 +181,43 @@ testWithAssets(
     await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
-    // Learn "girl"'s real count first, so the race can assert on that number.
-    // The chart still shows the unfiltered total while the query is in flight,
-    // and that already contains a digit -- so a bare /\d/ would capture the
-    // *pre-filter* value. Wait for the round trip at the network level instead.
+    // Learn both counts up front. The chart keeps showing its previous value
+    // while a query is in flight, so a bare /\d/ would capture whatever was
+    // already on screen -- wait for the round trip at the network level, and
+    // identify it by the filter that produced it.
     const baselineSignals = trackGaqSignals(page);
-    await filterBar.selectOption('girl');
-    await filterBar.apply();
-    await expect(() => {
-      const statuses = baselineSignals.submitStatusesFor(chartId);
-      expect(
-        statuses,
-        '"girl"\'s chart-data request should have been answered',
-      ).not.toHaveLength(0);
-      expect(
-        statuses.every(status => status === 200 || status === 202),
-        `"girl"'s chart-data statuses should all be 200/202, got ${statuses.join(', ')}`,
-      ).toBe(true);
-      expect(
-        statuses[statuses.length - 1],
-        '"girl"\'s chart-data round trip should end with a 200',
-      ).toBe(200);
-    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
-    await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
-    const expectedGirlText = await value.textContent();
+    const applyAndRead = async (option: string): Promise<string> => {
+      await filterBar.selectOption(option);
+      await filterBar.apply();
+      await expect(() => {
+        const statuses = baselineSignals.submitStatusesWhere(chartId, body =>
+          nativeFilterValuesIn(body, FILTER_COLUMN).includes(option),
+        );
+        expect(
+          statuses,
+          `"${option}"'s chart-data request should have been answered`,
+        ).not.toHaveLength(0);
+        expect(
+          statuses.every(status => status === 200 || status === 202),
+          `"${option}"'s chart-data statuses should all be 200/202, got ${statuses.join(', ')}`,
+        ).toBe(true);
+        expect(
+          statuses[statuses.length - 1],
+          `"${option}"'s chart-data round trip should end with a 200`,
+        ).toBe(200);
+      }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+      await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
+      return (await value.textContent()) ?? '';
+    };
+
+    const boyText = await applyAndRead('boy');
+    const girlText = await applyAndRead('girl');
+    // Without this the test could not fail: the screen shows "girl" throughout
+    // the race, so a clobber is only detectable as a change *to boy's number*.
+    expect(
+      girlText,
+      '"boy" and "girl" should render different counts, or a clobber would be invisible',
+    ).not.toBe(boyText);
 
     // Example queries settle in ~1-2s, too fast to race for real. Delaying only
     // the next request makes "boy" reliably still in flight when "girl" fires.
@@ -299,15 +312,15 @@ testWithAssets(
       '"girl" should have started while "boy" was still parked',
     ).toBeLessThan(RACE_DELAY_MS);
 
-    await expect(value).toHaveText(expectedGirlText ?? '', {
+    await expect(value).toHaveText(girlText, {
       timeout: TIMEOUT.UI_TRANSITION,
     });
-    const raceResultText = await value.textContent();
 
     // What actually protects the screen: the app cancels the superseded request
     // (`chartAction.ts` aborts the previous controller), so "boy"'s result never
     // arrives. Wait out the rest of its park -- the window a regressed
-    // cancellation would let a stale result land in.
+    // cancellation would let a stale result land in -- then check the mechanism
+    // and the screen separately.
     await page.waitForTimeout(
       Math.max(RACE_DELAY_MS - (Date.now() - boyParkedAt), 0) + 2000,
     );
@@ -319,7 +332,9 @@ testWithAssets(
       statusesFor('boy'),
       '"boy" was superseded, so its result should never have reached the client',
     ).toHaveLength(0);
-    await expect(value).toHaveText(raceResultText ?? '');
+    // Still "girl", and specifically not "boy": the two differ, so this fails
+    // if the superseded result ever reached the screen.
+    await expect(value).toHaveText(girlText);
 
     await page.unroute(raceRoute);
   },
