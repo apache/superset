@@ -528,6 +528,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket
       label: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
       value: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
       selectedValues: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
+      crossFilterSource: 'xAxis',
     },
   });
 });
@@ -808,13 +809,14 @@ test('warns and skips temporal cross-filter when string value cannot be parsed',
   );
 });
 
-test('does not emit temporal X-axis label cross-filter when dimensions are set', () => {
+test('emits temporal X-axis label cross-filter when dimensions are set', () => {
   const setDataMask = jest.fn();
 
   renderTimeseries({
     emitCrossFilters: true,
     setDataMask,
     groupby: ['country'],
+    resolvedTimeGrain: TimeGranularity.MONTH,
     formData: {
       groupby: ['country'],
       granularitySqla: 'ds',
@@ -836,7 +838,14 @@ test('does not emit temporal X-axis label cross-filter when dimensions are set',
     value: '2021-01-01',
   } as unknown as ECElementEvent);
 
-  expect(setDataMask).not.toHaveBeenCalled();
+  expect(setDataMask).toHaveBeenCalledTimes(1);
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
 });
 
 test('context menu cross-filter is available for a temporal bar point', async () => {
