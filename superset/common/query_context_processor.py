@@ -257,7 +257,7 @@ class QueryContextProcessor:
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key = self.query_cache_key(query_obj)
+        cache_key: str | None = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
