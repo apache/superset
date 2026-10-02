@@ -498,3 +498,17 @@ test.each([
     }
   },
 );
+
+test('draws bubbles for the processed data when showBubbles is true', () => {
+  WorldMap(container, { ...baseProps, showBubbles: true });
+
+  expect(mockBubbles).toHaveBeenCalledTimes(1);
+  const bubbleData = mockBubbles.mock.calls[0][0] as { name: string }[];
+  expect(bubbleData.map(d => d.name)).toEqual(['United States', 'Canada']);
+});
+
+test('does not draw bubbles when showBubbles is false', () => {
+  WorldMap(container, { ...baseProps, showBubbles: false });
+
+  expect(mockBubbles).not.toHaveBeenCalled();
+});
