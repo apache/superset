@@ -16,11 +16,12 @@
 # under the License.
 
 import logging
-from unittest.mock import patch, PropertyMock
+from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 from flask import current_app
 
+from superset.connectors.sqla.models import BaseDatasource
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 
@@ -698,3 +699,41 @@ def test_tabs_places_a_node_the_layout_reaches_twice_only_once(
     assert "skipping layout node TAB-1, the layout reaches it more than once" in (
         caplog.text
     )
+
+
+def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
+    """Keys slices by (datasource_type, datasource_id) to avoid id collisions.
+
+    SqlaTable and SemanticView use independent auto-increment id spaces, so a
+    table chart and a semantic-view chart can carry the same datasource_id.
+    Grouping by the bare id would merge the table chart into the semantic-view
+    group (whose non-table datasource is dropped), losing the table chart's
+    metadata from the dashboard payload.
+    """
+    table_datasource = Mock(spec=BaseDatasource)
+    table_datasource.table_name = "orders"
+    table_datasource.data_for_slices.return_value = {"cols": ["column"]}
+
+    sesh_table_slice = Mock()
+    sesh_table_slice.datasource_id = 1
+    sesh_table_slice.datasource_type = "table"
+    sesh_table_slice.resolved_datasource = table_datasource
+
+    semantic_view_slice = Mock()
+    semantic_view_slice.datasource_id = 1
+    semantic_view_slice.datasource_type = "semantic_view"
+    semantic_view_slice.resolved_datasource = None
+
+    dash = Dashboard()
+    with patch.object(
+        Dashboard,
+        "slices",
+        new_callable=PropertyMock,
+        return_value=[sesh_table_slice, semantic_view_slice],
+    ):
+        result = dash.datasets_trimmed_for_slices()
+
+    # Only the table-backed chart is kept; its datasource must be reported
+    # with the exact slice list (no semantic-view slice leaking into it).
+    assert result == [(table_datasource, {"cols": ["column"]})]
+    table_datasource.data_for_slices.assert_called_once_with([sesh_table_slice])

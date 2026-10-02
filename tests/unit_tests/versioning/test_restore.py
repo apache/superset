@@ -137,7 +137,8 @@ def test_single_flush_scope_skips_flush_on_exception() -> None:
 class _Row:
     """Minimal validity interval consumed by the restore proof."""
 
-    def __init__(self, tx: int, end: int | None, op: int) -> None:
+    def __init__(self, tx: int, end: int | None, op: int, child_id: int = 1) -> None:
+        self.id: int = child_id
         self.transaction_id: int = tx
         self.end_transaction_id: int | None = end
         self.operation_type: int = op
@@ -323,6 +324,41 @@ def test_child_state_provable_case_algebra(
     assert _provable(rows, target_tx) is expected, case
 
 
+@pytest.mark.parametrize(
+    ("foreign_closers", "expected", "case"),
+    [
+        (
+            {(1, 10)},
+            True,
+            "surviving foreign row at the close transaction proves reassignment",
+        ),
+        (
+            {(1, 11)},
+            False,
+            "a foreign row at another transaction is not this row's closer",
+        ),
+        (
+            {(2, 10)},
+            False,
+            "another child's foreign row proves nothing for this id",
+        ),
+        (set(), False, "no foreign evidence keeps the expired interval refused"),
+    ],
+)
+def test_expired_interval_closed_by_foreign_reassignment_is_absence(
+    foreign_closers: set[tuple[int, int]], expected: bool, case: str
+) -> None:
+    """A child id recycled under another parent closes the old parent's open
+    row with its own INSERT at the same transaction (gap reconciliation). The
+    shadow key is unique per transaction, so that surviving foreign row rules
+    out a pruned same-parent successor: the old parent provably lacks the child
+    from that transaction on."""
+    rows: list[_Row] = [_Row(2, 10, _INSERT)]
+    assert (
+        _child_state_provable_at(rows, 12, foreign_closers=foreign_closers) is expected
+    ), case
+
+
 def test_documented_limitation_rebirth_looks_like_first_birth() -> None:
     """Erased birth/covering history cannot be distinguished from born-after.
 
@@ -331,6 +367,46 @@ def test_documented_limitation_rebirth_looks_like_first_birth() -> None:
     """
     survivors: list[_Row] = [_Row(20, None, _INSERT)]
     assert _provable(survivors, 10)
+
+
+def test_restore_endpoint_maps_recycled_child_identity_to_422(
+    app_context: None,
+) -> None:
+    """The child-identity refusal surfaces as a user-facing 422 like the
+    pruned-history refusal; both leave the entity unchanged."""
+    from superset.models.dashboard import Dashboard
+    from superset.versioning.api_helpers import restore_version_endpoint
+    from superset.versioning.restore import RecycledChildIdentityError
+
+    error: RecycledChildIdentityError = RecycledChildIdentityError(
+        "SqlaTable", "column id=1"
+    )
+
+    class _Command:
+        not_found_exc: type[Exception] = KeyError
+        forbidden_exc: type[Exception] = PermissionError
+        failed_exc: type[Exception] = RuntimeError
+
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        def run(self) -> None:
+            raise error
+
+    api: MagicMock = MagicMock()
+    api.response_422.return_value = "resp-422"
+
+    response: Any = restore_version_endpoint(
+        api,
+        Dashboard,
+        _Command,
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    )
+
+    assert response == "resp-422"
+    api.response_422.assert_called_once_with(message=str(error))
+    assert "left unchanged" in str(error)
 
 
 def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:

@@ -33,7 +33,7 @@ annotated-types==0.7.0
     #   pydantic
 antlr4-python3-runtime==4.13.2
     # via pymongosql
-anyio==4.11.0
+anyio==4.15.1
     # via
     #   httpx
     #   mcp
@@ -407,7 +407,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.45.0
+google-cloud-bigquery==3.45.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -422,7 +422,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.5
+greenlet==3.5.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -627,7 +627,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via apache-superset
 nh3==0.3.7
     # via
@@ -930,7 +930,7 @@ python-dotenv==1.2.2
     #   fastmcp-slim
     #   pydantic-settings
     #   testcontainers
-python-ldap==3.4.7
+python-ldap==3.4.8
     # via apache-superset
 python-multipart==0.0.29
     # via
@@ -1021,7 +1021,6 @@ setuptools==84.0.0
     #   pandas-gbq
     #   pydata-google-auth
     #   zope-event
-    #   zope-interface
 shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
@@ -1041,8 +1040,6 @@ slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sniffio==1.3.1
-    # via anyio
 sqlalchemy==2.0.52
     # via
     #   -c requirements/base-constraint.txt
@@ -1272,7 +1269,9 @@ zipp==3.23.0
     # via importlib-metadata
 zope-event==5.0
     # via gevent
-zope-interface==5.4.0
-    # via gevent
+zope-interface==8.6
+    # via
+    #   -r requirements/development.in
+    #   gevent
 zstandard==0.23.0
     # via trino

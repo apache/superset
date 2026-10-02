@@ -327,12 +327,16 @@ def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
 
     Negative values get a leading ``-`` (or wrapping parentheses for the ``(``
     accounting mode); positive values get a ``+`` or a leading space only for the
-    ``+`` and space modes respectively. Mirrors the sign decoration in
-    ``d3-format/src/locale.js``.
+    ``+`` and space modes respectively. A negative value (including ``-0.0``)
+    whose formatted magnitude rounds to zero is shown unsigned unless the ``+``
+    mode is requested. Mirrors the sign decoration in ``d3-format/src/locale.js``.
 
     :return: the signed or accounting-decorated string
     """
-    if value < 0:
+    negative = math.copysign(1.0, value) < 0
+    if negative and sign_mode != "+" and not re.search(r"[1-9]", formatted):
+        negative = False
+    if negative:
         return f"({formatted})" if sign_mode == "(" else f"-{formatted}"
     if sign_mode == "+":
         return f"+{formatted}"

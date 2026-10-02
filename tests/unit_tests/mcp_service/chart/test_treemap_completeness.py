@@ -28,12 +28,12 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from superset.mcp_service.chart.chart_helpers import _build_single_query_dict
 from superset.mcp_service.chart.chart_utils import (
     map_treemap_config,
     merge_chart_form_data,
     resolve_treemap_update_config,
 )
+from superset.mcp_service.chart.plugins.treemap import TreemapChartPlugin
 from superset.mcp_service.chart.query_result import normalize_chart_query_result
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -45,6 +45,17 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.utils import json
+
+
+def _treemap_query(form: dict[str, Any]) -> dict[str, Any]:
+    """Build the single Treemap query through the plugin contract."""
+    queries = TreemapChartPlugin().build_query_dicts(
+        form, viz_type="treemap_v2", engine="sqlite", row_limit=None, order_desc=None
+    )
+    assert queries is not None
+    assert len(queries) == 1
+    return queries[0]
+
 
 FORM_DATA: dict[str, Any] = {
     "viz_type": "treemap_v2",
@@ -85,7 +96,7 @@ ROWS = [
 def test_hierarchy_query_order_matches_frontend(sort: bool, limit: int | None) -> None:
     """Metric order has precedence, with hierarchy tie-breakers only when bounded."""
     form = {**FORM_DATA, "sort_by_metric": sort, "row_limit": limit}
-    query = _build_single_query_dict(form, form["groupby"], [form["metric"]])
+    query = _treemap_query(form)
     expected = ([("revenue", False)] if sort else []) + [
         ("region", True),
         ("product", True),
@@ -679,10 +690,13 @@ async def test_registered_cached_preview_is_treemap(
 @pytest.mark.parametrize(
     "patch_data", [{"show_labels": True}, {"filters": []}, {"color_scheme": None}]
 )
+@pytest.mark.parametrize("disabled", [False, True])
 @pytest.mark.parametrize("known_dataset", [True, False, None])
 async def test_registered_update_preview_preserves_cached_controls(
     patch_data: dict[str, Any],
     known_dataset: bool | None,
+    disabled: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Partial native updates reach real FastMCP hydration, merge, and cache writes."""
     import importlib
@@ -694,6 +708,15 @@ async def test_registered_update_preview_preserves_cached_controls(
 
     module = importlib.import_module(
         "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(
+            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
+        ),
     )
     dataset = Mock(id=7, table_name="sales", schema=None, columns=[], metrics=[])
     with (
@@ -770,7 +793,10 @@ async def test_registered_update_preview_preserves_cached_controls(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("malformed", [False, True])
-async def test_registered_saved_update_preserves_omissions(malformed: bool) -> None:
+@pytest.mark.parametrize("disabled", [False, True])
+async def test_registered_saved_update_preserves_omissions(
+    malformed: bool, disabled: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The registered save path persists the same partial Treemap merge as preview."""
     import importlib
 
@@ -779,6 +805,15 @@ async def test_registered_saved_update_preserves_omissions(malformed: bool) -> N
     from superset.mcp_service.app import mcp
 
     module = importlib.import_module("superset.mcp_service.chart.tool.update_chart")
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(
+            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
+        ),
+    )
     chart = Mock(
         id=1,
         datasource_id=7,
@@ -864,9 +899,7 @@ def test_treemap_query_ignores_stale_cross_chart_roles() -> None:
 @pytest.mark.parametrize("limit", ["0", "0.0", "", "1"])
 def test_native_string_row_limits_match_frontend(limit: str) -> None:
     """Frontend applyOrderBy numerically parses string row limits."""
-    query = _build_single_query_dict(
-        {**FORM_DATA, "row_limit": limit}, ["region"], ["revenue"]
-    )
+    query = _treemap_query({**FORM_DATA, "groupby": ["region"], "row_limit": limit})
     assert query.get("orderby", []) == ([("region", True)] if limit == "1" else [])
 
 
@@ -1371,3 +1404,34 @@ def test_unresolvable_or_duplicate_hierarchy_columns_stay_rejected(
     )
     assert isinstance(failure, ChartError)
     assert failure.error_type == "InvalidTreemapFormData"
+
+
+def test_disabled_treemap_retains_dataset_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Disabling creation must not bypass column resolution on saved updates."""
+    from superset.mcp_service.chart import registry
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+    from superset.mcp_service.common.error_schemas import DatasetContext
+
+    config = TreemapChartConfig(
+        groupby=[{"name": "region"}],
+        metric={"name": "revenue", "saved_metric": True},
+    )
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        database_name="db",
+        available_columns=[{"name": "Region", "type": "VARCHAR"}],
+        available_metrics=[{"name": "Revenue", "expression": "SUM(amount)"}],
+    )
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(disabled_plugins=frozenset({"treemap_v2"})),
+    )
+    refs = DatasetValidator._extract_column_references(config)
+    assert {ref.name for ref in refs} == {"region", "revenue"}
+    normalized = DatasetValidator.normalize_column_names(config, 7, context)
+    assert normalized.groupby[0].name == "Region"
+    assert normalized.metric.name == "Revenue"

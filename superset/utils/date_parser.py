@@ -349,7 +349,7 @@ def handle_nth_of(
         "DATETRUNC(..., year) : DATEADD(DATETRUNC(..., year), 1, week)"
     """
     # Convert ordinal to number
-    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdigit() else 1)
+    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdecimal() else 1)
 
     relative_base = get_relative_base(unit, relative_start)
     effective_scope = scope.lower() if scope else "this"
