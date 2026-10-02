@@ -55,12 +55,12 @@ const CUSTOM_PLUGIN_ID_PREFIXES = ['theme-colors', 'icons', 'i18n-strings'];
  */
 function parseRuleId(code) {
   if (!code) {
-    return 'unknown';
+    return { parsed: 'unknown', pluginId: 'unknown' };
   }
 
   const match = code.match(/^([\w-]+)\(([^)]+)\)$/);
   if (!match) {
-    return code;
+    return { parsed: code, pluginId: 'unknown' };
   }
 
   const [, namespace, rule] = match;

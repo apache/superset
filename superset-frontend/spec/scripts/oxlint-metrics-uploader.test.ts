@@ -70,9 +70,18 @@ test('the legacy eslint-plugin- prefix still collapses to the plugin name', () =
 });
 
 test('an unrecognized or missing code is passed through rather than dropped', () => {
-  expect(parseRuleId('something-unparseable')).toBe('something-unparseable');
-  expect(parseRuleId(undefined)).toBe('unknown');
-  expect(parseRuleId('')).toBe('unknown');
+  expect(parseRuleId('something-unparseable')).toMatchObject({
+    parsed: 'something-unparseable',
+    pluginId: 'unknown',
+  });
+  expect(parseRuleId(undefined)).toMatchObject({
+    parsed: 'unknown',
+    pluginId: 'unknown',
+  });
+  expect(parseRuleId('')).toMatchObject({
+    parsed: 'unknown',
+    pluginId: 'unknown',
+  });
 });
 
 test('parseOxlintResult aggregates diagnostics and records their locations', () => {
