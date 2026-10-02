@@ -17,7 +17,7 @@
 """Enable catalog in Redshift
 
 Revision ID: e6d0a676a087
-Revises: 95d8a99c822e
+Revises: 884a2115ebd3
 Create Date: 2026-09-30 14:30:00.000000
 
 """
@@ -29,7 +29,7 @@ from superset.migrations.shared.catalogs import (
 
 # revision identifiers, used by Alembic.
 revision = "e6d0a676a087"
-down_revision = "95d8a99c822e"
+down_revision = "884a2115ebd3"
 
 
 def upgrade():
