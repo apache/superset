@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -148,26 +148,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" štandard, aby bolo zaistené, že lexikografické radenie\n"
-"                      sa zhoduje s chronologickým radením. Pokiaľ formát\n"
-"                      časovej pečiatky nezodpovedá štandardu ISO 8601,\n"
-"                      budete musieť definovať výraz a typ pre\n"
-"                      transformáciu reťazca na dátum alebo časovú "
-"pečiatku. Upozornenie:\n"
-"                      v súčasnej dobe nie sú časové pásma podporované. "
-"Pokiaľ je čas uložený\n"
-"                      vo formáte epochy, zadajte `epoch_s` alebo "
-"`epoch_ms`. Pokiaľ nie je\n"
-"                      zadaný žiadny vzor, použijú sa voliteľné predvolené"
-" hodnoty na úrovni\n"
-"                      databázy/názvu stĺpca prostredníctvom dodatočného "
-"parametra."
 
 msgid " to add calculated columns"
 msgstr " pre pridanie počítaných stĺpcov"
@@ -1031,6 +1017,9 @@ msgstr ""
 "title: { text: \"Môj graf\" }, tooltip: { trigger: \"item\" } }). "
 "Podrobnosti: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1490,6 +1479,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pridať priečinok"
 
+msgid "Add group"
+msgstr "Pridať skupinu"
+
 msgid "Add item"
 msgstr "Pridať položku"
 
@@ -1530,6 +1522,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Pridať list"
+
+msgid "Add subgroup"
+msgstr "Pridať podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Pridať značku k entitám"
@@ -1674,6 +1669,9 @@ msgstr "Dotčené grafy"
 msgid "Affected Dashboards"
 msgstr "Dotčené nástenky"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1765,6 +1763,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3399,6 +3401,9 @@ msgstr "Limit bunek"
 msgid "Cell title template"
 msgstr "Šablona názvu bunky"
 
+msgid "Center"
+msgstr "Na stred"
+
 msgid "Center value"
 msgstr ""
 
@@ -4084,6 +4089,9 @@ msgstr "Sbalit dátový panel"
 msgid "Collapse row"
 msgstr "Sbalit riadok"
 
+msgid "Collapse settings"
+msgstr "Zbaliť nastavenie"
+
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
 
@@ -4225,6 +4233,9 @@ msgstr "Stĺpec obsahujúci data o zemepisné dĺžke"
 
 msgid "Column data types"
 msgstr "Datové typy stĺpcov"
+
+msgid "Column groups"
+msgstr "Skupiny stĺpcov"
 
 msgid "Column header tooltip"
 msgstr "Pomoc záhlavie stĺpce"
@@ -4496,6 +4507,9 @@ msgstr "Potvrdiť"
 msgid "Confirm Password"
 msgstr "Potvrdiť heslo"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Potvrdiť prepísanie"
 
@@ -4505,6 +4519,9 @@ msgstr "Potvrdiť heslo"
 
 msgid "Confirm save"
 msgstr "Potvrdiť uloženie"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Potvrďte heslo používateľa"
@@ -4737,6 +4754,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nemožno preložiť názov hostitele: „%(host)s“."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nepodarilo sa overiť používateľa v aktuálny relácii."
 
@@ -4901,6 +4924,9 @@ msgstr "Aktuálny den"
 
 msgid "Current month"
 msgstr "Aktuálny mesiac"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Aktuálny čtvrtletí"
@@ -5149,6 +5175,9 @@ msgstr "Dashboard sa nepodarilo obnoviť."
 msgid "Dashboard could not be updated."
 msgstr "Nástenku sa nepodarilo aktualizovať."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Nástenka neexistuje"
 
@@ -5159,6 +5188,9 @@ msgstr "Táto nástenka bola úspešne uložena ako príklad."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Táto nástenka bola úspešne uložena."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Nástenka importována"
@@ -5801,6 +5833,11 @@ msgstr "Zmazať skupinu"
 #, fuzzy
 msgid "Delete item"
 msgstr "Zmazať položku"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6956,6 +6993,9 @@ msgstr "Zadejte primární poverenie"
 msgid "Enter a name for this sheet"
 msgstr "Zadejte názov pre tento list"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
@@ -6968,6 +7008,9 @@ msgstr "Zadejte dobu trvanie v sekundách"
 
 msgid "Enter fullscreen"
 msgstr "Prejsť do režimu celej obrazovky"
+
+msgid "Enter group name"
+msgstr "Zadajte názov skupiny"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pre filter rozsahu"
@@ -7012,6 +7055,9 @@ msgstr "Zadejte používateľské meno používateľa"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Zadejte názov tématu"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Zadejte vaše prihlasovacie údaje níže:"
@@ -7205,9 +7251,6 @@ msgstr "Export do Excelu"
 msgid "Excel XML Export"
 msgstr "XML Export do Excelu"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Formát súboru Excel nemožno určit"
 
@@ -7260,6 +7303,9 @@ msgstr "Rozbalit riadok"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rozbalit riadok"
+
+msgid "Expand settings"
+msgstr "Rozbaliť nastavenie"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7383,6 +7429,11 @@ msgstr "Exportovať do původního .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportovať do kontingenčnejho .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8258,6 +8309,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Zoskupiť podle"
 
@@ -8269,6 +8324,12 @@ msgstr "Kľúč skupiny"
 
 msgid "Group by"
 msgstr "Zoskupiť podle"
+
+msgid "Group columns"
+msgstr "Zoskupiť stĺpce"
+
+msgid "Group name"
+msgstr "Názov skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zostávajúce riadky zoskupiť do skupiny \"Ostatné\""
@@ -8874,10 +8935,6 @@ msgstr "Neplatná ID karet: %(tab_ids)s"
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Neplatné používateľské meno alebo heslo"
-
 msgid "Inverse"
 msgstr ""
 
@@ -9229,6 +9286,9 @@ msgstr "Typ rozloženie stromu"
 
 msgid "Least recently modified"
 msgstr "Nejméne nedávno zmenenýé"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10200,6 +10260,12 @@ msgstr "Viac filtrov"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Presunúť skupinu doľava"
+
+msgid "Move group right"
+msgstr "Presunúť skupinu doprava"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Iba presunúť"
@@ -10232,6 +10298,9 @@ msgstr "Viac úrovní"
 
 msgid "Multi-Variables"
 msgstr "Viac promenných"
+
+msgid "Multi-level header"
+msgstr "Viacúrovňové záhlavie"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -10393,6 +10462,9 @@ msgstr "Nový názov sady dat"
 
 msgid "New header"
 msgstr "Nové záhlavie"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nová karta"
@@ -10671,6 +10743,11 @@ msgstr "Žiadny -> Šipka"
 msgid "None -> None"
 msgstr "Žiadny -> Žiadny"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normální"
 
@@ -10696,6 +10773,15 @@ msgstr "Nie je rovno"
 
 msgid "Not Time Series"
 msgstr "Nie je časový rad"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nie je platný súbor ZIP"
@@ -11628,6 +11714,9 @@ msgstr "Potvrďte prosím svoje heslo"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Zadejte prosím SQLAlchemy URI k otestovanie"
 
+msgid "Please enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Please enter a valid email"
 msgstr "Zadejte prosím platný e-mail"
@@ -11787,6 +11876,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl pripojenie."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+msgid "Position"
+msgstr "Pozícia"
+
 msgid "Position JSON"
 msgstr "JSON pozice"
 
@@ -11831,6 +11923,12 @@ msgstr "Predpona alebo prípona"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12264,6 +12362,9 @@ msgstr "Odstrániť položku"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Odstrániť skupinu"
+
 msgid "Remove item"
 msgstr "Odstrániť položku"
 
@@ -12496,6 +12597,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Požadované hodnoty ovládacích prvkov boli odstránenýy"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Převzorkovať"
@@ -13163,6 +13267,9 @@ msgstr "Schéma"
 msgid "Schema cache timeout"
 msgstr "Časový limit mezipameti schématu"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Schémata povolená pre nahranie súboru"
 
@@ -13490,6 +13597,9 @@ msgstr "Vybrať stĺpec"
 #, fuzzy
 msgid "Select column name"
 msgstr "Vybrať stĺpec"
+
+msgid "Select columns"
+msgstr "Vybrať stĺpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14952,6 +15062,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15190,6 +15304,9 @@ msgstr "Názov tabuľky nie je definován"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabuľka alebo pohled „%(table)s“ neexistuje."
+
+msgid "Table side"
+msgstr "Strana tabuľky"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15797,6 +15914,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16272,6 +16395,10 @@ msgstr ""
 "použito platné schéma."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16332,6 +16459,10 @@ msgid ""
 msgstr ""
 "Tabuľka „%(table)s“ neexistuje. Pre spustenie tohoto dotazu musí byť "
 "použita platná tabuľka."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16810,6 +16941,12 @@ msgstr "Pri náhledu vybraného dotazu došlo k problému. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16830,6 +16967,12 @@ msgstr "Toto sú sady dat, na ktoré bude tento filter aplikován."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16846,6 +16989,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16973,6 +17121,12 @@ msgstr ""
 "                  pohľadu odovčiné grafu obsahujúcimu data anotací."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17825,6 +17979,9 @@ msgstr "Úterý"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Typ"
@@ -18861,6 +19018,10 @@ msgid ""
 msgstr ""
 "Zdá se, že nemôžeme preložiť stĺpec „%(column_name)s“ na riadku "
 "%(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20078,6 +20239,13 @@ msgstr "tlačidlo (cmd + z), dokud neuložíte svoje zmeny."
 
 msgid "by using"
 msgstr "použitím"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdne"

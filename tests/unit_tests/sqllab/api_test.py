@@ -20,6 +20,7 @@ import re
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 
@@ -107,4 +108,48 @@ def test_format_sql_checks_access_before_rendering(
 
     assert response.status_code == 403
     raise_for_access.assert_called_once()
+    get_template_processor.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "template_params",
+    [
+        "[1, 2]",
+        "5",
+        '"abc"',
+        "true",
+        "null",
+    ],
+)
+def test_format_sql_non_dict_template_params(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    template_params: str,
+) -> None:
+    """Non-dict JSON template_params must not cause a 500 TypeError."""
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "presto"
+    mocker.patch(
+        "superset.sqllab.api.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    raise_for_access = mocker.patch(
+        "superset.sqllab.api.security_manager.raise_for_access",
+    )
+    get_template_processor = mocker.patch(
+        "superset.sqllab.api.get_template_processor",
+    )
+
+    response = client.post(
+        "/api/v1/sqllab/format_sql/",
+        json={
+            "sql": "SELECT 1",
+            "database_id": 1,
+            "template_params": template_params,
+        },
+    )
+
+    assert response.status_code == 200
+    raise_for_access.assert_not_called()
     get_template_processor.assert_not_called()

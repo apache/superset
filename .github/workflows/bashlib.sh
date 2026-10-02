@@ -161,108 +161,6 @@ celery-worker() {
   say "::endgroup::"
 }
 
-cypress-install() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  cache-restore cypress
-
-  say "::group::Install Cypress"
-  npm ci
-  say "::endgroup::"
-
-  cache-save cypress
-}
-
-cypress-run-all() {
-  local USE_DASHBOARD=$1
-  local APP_ROOT=$2
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  # Start the Superset backend via gunicorn (not `flask run`). The Flask
-  # development server is single-threaded and has no crash-recovery, so
-  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
-  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
-  # / `Missing CSRF token` cascades. Gunicorn gives us multiple workers,
-  # a request timeout, and worker-recycling under load.
-  local serverlog="${HOME}/superset-cypress.log"
-  local port=8081
-  CYPRESS_BASE_URL="http://localhost:${port}"
-  if [ -n "$APP_ROOT" ]; then
-    export SUPERSET_APP_ROOT=$APP_ROOT
-    CYPRESS_BASE_URL=${CYPRESS_BASE_URL}${APP_ROOT}
-  fi
-  export CYPRESS_BASE_URL
-
-  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
-  # gthread threads) to keep parity with production. Multi-worker
-  # configurations expose timing-sensitive races in the SQL Lab → Explore
-  # navigation flow under E2E. We diverge from the entrypoint on:
-  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
-  #     default
-  #   superset.app:create_app(): explicit factory so we don't depend on
-  #     FLASK_APP being exported
-  #
-  # No --max-requests, matching the entrypoint's default of 0 (recycling
-  # off). With a single worker a recycle takes the whole backend offline for
-  # the graceful-timeout drain — browser keep-alive connections hold it open
-  # for the full 30s — plus ~5s of app boot. A run issues ~3800 requests in
-  # ~8 minutes, so recycling every 500 produced seven ~35s outages per run
-  # and flaked whichever specs happened to navigate into one. Lowering
-  # --graceful-timeout is not enough: a dashboard load plus chart render
-  # needs 6-10s, which still lands inside the window.
-  nohup gunicorn \
-    --bind "127.0.0.1:$port" \
-    --workers 1 \
-    --worker-class gthread \
-    --threads 20 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    "superset.app:create_app()" \
-    >"$serverlog" 2>&1 </dev/null &
-  local serverPid=$!
-
-  # Ensure the backend is cleaned up and its log is emitted even when the
-  # test runner fails under `set -e`.
-  trap '
-    echo "::group::gunicorn log for Cypress run"
-    cat "'"$serverlog"'" || true
-    echo "::endgroup::"
-    kill '"$serverPid"' 2>/dev/null || true
-  ' EXIT
-
-  # Wait for the backend to be ready before launching Cypress; otherwise
-  # the first spec can race the server bind and see connection errors.
-  local timeout=60
-  say "Waiting for gunicorn server to start on port $port..."
-  while [ $timeout -gt 0 ]; do
-    if curl -f "http://localhost:${port}${APP_ROOT}/health" >/dev/null 2>&1; then
-      say "gunicorn server is ready"
-      break
-    fi
-    sleep 1
-    timeout=$((timeout - 1))
-  done
-  if [ $timeout -eq 0 ]; then
-    echo "::error::gunicorn server failed to start within 60 seconds"
-    echo "::group::Server startup log"
-    cat "$serverlog"
-    echo "::endgroup::"
-    return 1
-  fi
-
-  USE_DASHBOARD_FLAG=''
-  if [ "$USE_DASHBOARD" = "true" ]; then
-    USE_DASHBOARD_FLAG='--use-dashboard'
-  fi
-
-  # UNCOMMENT the next few commands to monitor memory usage
-  # monitor_memory &  # Start memory monitoring in the background
-  # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --retries 5 $USE_DASHBOARD_FLAG
-  # kill $memoryMonitorPid
-}
-
 playwright-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
@@ -278,9 +176,12 @@ playwright-run() {
   local APP_ROOT=$1
   local TEST_PATH=$2
 
-  # Start the Superset backend via gunicorn from the project root.
-  # See cypress-run-all() above for the rationale — the Flask dev server
-  # cannot survive the dashboard import/export tests under load.
+  # Start the Superset backend via gunicorn (not `flask run`). The Flask
+  # development server is single-threaded and has no crash-recovery, so
+  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
+  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
+  # / `Missing CSRF token` cascades. Gunicorn gives us a request timeout
+  # and a multi-threaded worker.
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
@@ -296,9 +197,22 @@ playwright-run() {
   fi
   export PLAYWRIGHT_BASE_URL
 
-  # See cypress-run-all() above for the args rationale (1 worker × 20
-  # gthread threads matching docker/entrypoints/run-server.sh, a 120s
-  # timeout for heavy E2E load, and why worker recycling is off).
+  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
+  # gthread threads) to keep parity with production. Multi-worker
+  # configurations expose timing-sensitive races in the SQL Lab → Explore
+  # navigation flow under E2E. We diverge from the entrypoint on:
+  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
+  #     default
+  #   superset.app:create_app(): explicit factory so we don't depend on
+  #     FLASK_APP being exported
+  #
+  # No --max-requests, matching the entrypoint's default of 0 (recycling
+  # off). With a single worker a recycle takes the whole backend offline for
+  # the graceful-timeout drain — browser keep-alive connections hold it open
+  # for the full 30s — plus ~5s of app boot, which flakes whichever specs
+  # happen to navigate into the outage. Lowering --graceful-timeout is not
+  # enough: a dashboard load plus chart render needs 6-10s, which still
+  # lands inside the window.
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \

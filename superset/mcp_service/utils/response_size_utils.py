@@ -116,6 +116,10 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
         "filters",
         # Search
         "search",
+        # Dashboard layout scope
+        "tab",
+        "tabs_only",
+        "untabbed_only",
     ]
     return {k: params[k] for k in extract_keys if k in params}
 
@@ -277,6 +281,175 @@ def _identify_large_fields(response: ToolResponse) -> List[str]:
     return large_fields
 
 
+# Tools whose oversized-response suggestions depend on the blocked payload, so
+# the size guard passes the parsed payload to format_size_limit_error.
+RESPONSE_AWARE_SUGGESTION_TOOLS = frozenset({"get_dashboard_layout"})
+
+_MAX_SUGGESTED_TAB_IDS = 5
+_MAX_SUGGESTED_TAB_ID_CHARS = 64
+
+
+def _format_tab_ids(tab_ids: List[str]) -> str:
+    """Quote a bounded sample of tab IDs for inclusion in a suggestion."""
+    from superset.utils import json
+
+    sample = [
+        json.dumps(tab_id[:_MAX_SUGGESTED_TAB_ID_CHARS])
+        for tab_id in tab_ids[:_MAX_SUGGESTED_TAB_IDS]
+    ]
+    suffix = ", ..." if len(tab_ids) > _MAX_SUGGESTED_TAB_IDS else ""
+    return ", ".join(sample) + suffix
+
+
+def _layout_tab_entries(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return the tab entries (full tabs or tab_tree summaries) in a payload."""
+    entries: List[Dict[str, Any]] = []
+    for key in ("tabs", "tab_tree"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            entries.extend(
+                entry
+                for entry in value
+                if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+            )
+    return entries
+
+
+def _selected_tab_suggestions(
+    selected_tab: str,
+    tabs: List[Dict[str, Any]],
+    *,
+    tabs_only: bool,
+    known: bool,
+    list_charts_hint: str,
+) -> List[str]:
+    """Suggest how to narrow a response already scoped to one tab."""
+    child_ids = [tab["id"] for tab in tabs if tab.get("parent_tab_id") == selected_tab]
+    if child_ids:
+        suggestions = [
+            f"Pass a nested tab ID ({_format_tab_ids(child_ids)}) as tab to "
+            "narrow the response further."
+        ]
+        if not tabs_only:
+            suggestions.append(
+                "Add tabs_only=true to the same tab to see its subtree with "
+                "chart counts but without chart positions."
+            )
+        return suggestions
+    if not known:
+        return [
+            "If this tab has nested tabs, pass one of their IDs (see tab_tree "
+            "from tabs_only=true) as tab. A tab without nested tabs cannot be "
+            "narrowed further by tab.",
+            list_charts_hint,
+        ]
+    if tabs_only:
+        return [
+            "This tab has no nested tabs, so its tab tree cannot be narrowed "
+            "further by tab."
+        ]
+    return [
+        "This tab has no nested tabs, so tab cannot narrow it further. "
+        "Add tabs_only=true for its chart count only.",
+        list_charts_hint,
+    ]
+
+
+def _unscoped_layout_suggestions(
+    tabs: List[Dict[str, Any]],
+    untabbed_count: int,
+    *,
+    known: bool,
+    list_charts_hint: str,
+) -> List[str]:
+    """Suggest how to narrow a full dashboard layout."""
+    if known and not tabs:
+        return [
+            "This dashboard has no tabs, so tab and tabs_only cannot narrow its "
+            "layout. " + list_charts_hint
+        ]
+    suggestions = [
+        "Call get_dashboard_layout with tabs_only=true to discover the tab tree "
+        "without chart positions.",
+        'Then pass tab="<ID or title>" to get only that tab\'s subtree and chart '
+        "positions; use a nested tab ID for a smaller response.",
+    ]
+    if untabbed_count or not known:
+        suggestions.append(
+            "Pass untabbed_only=true to get the charts placed outside every tab"
+            + (
+                f" ({untabbed_count} distinct "
+                f"{'chart' if untabbed_count == 1 else 'charts'})."
+                if untabbed_count
+                else "."
+            )
+        )
+    return suggestions
+
+
+def _dashboard_layout_suggestions(
+    query_params: Dict[str, Any], response: ToolResponse | None
+) -> List[str]:
+    """Suggest the next narrower get_dashboard_layout scope.
+
+    The blocked payload, when available, tells whether the dashboard has tabs,
+    whether the selected tab has nested tabs, and whether charts sit outside
+    every tab. Without it, suggestions depend on the request parameters only.
+    """
+    payload: Dict[str, Any] = {}
+    if isinstance(response, BaseModel):
+        payload = response.model_dump()
+    elif isinstance(response, dict):
+        payload = response
+    known = bool(payload)
+    tabs = _layout_tab_entries(payload)
+    raw_scope = payload.get("scope")
+    scope: Dict[str, Any] = raw_scope if isinstance(raw_scope, dict) else {}
+    dashboard_id = payload.get("id")
+    list_charts_hint = (
+        "Use list_charts with filters=[{col: 'dashboards', opr: 'eq', value: "
+        f"{dashboard_id if isinstance(dashboard_id, int) else '<ID>'}}}] and a "
+        "small page_size to page through chart metadata without layout positions."
+    )
+    tabs_only = bool(query_params.get("tabs_only"))
+
+    if query_params.get("untabbed_only"):
+        return [
+            "The charts outside every tab cannot be narrowed further by "
+            "get_dashboard_layout. " + list_charts_hint
+        ]
+
+    selected_tab = scope.get("tab_id") or query_params.get("tab")
+    if isinstance(selected_tab, str):
+        return _selected_tab_suggestions(
+            selected_tab,
+            tabs,
+            tabs_only=tabs_only,
+            known=known,
+            list_charts_hint=list_charts_hint,
+        )
+
+    if tabs_only:
+        top_level_ids = [tab["id"] for tab in tabs if tab.get("depth") == 0]
+        example = (
+            f" (top-level tabs: {_format_tab_ids(top_level_ids)})"
+            if top_level_ids
+            else ""
+        )
+        return [
+            'Keep tabs_only=true and pass tab="<top-level tab ID>" to get one '
+            f"branch of the tab tree at a time{example}."
+        ]
+
+    raw_untabbed = payload.get("untabbed_chart_count")
+    return _unscoped_layout_suggestions(
+        tabs,
+        raw_untabbed if isinstance(raw_untabbed, int) else 0,
+        known=known,
+        list_charts_hint=list_charts_hint,
+    )
+
+
 def _get_tool_specific_suggestions(
     tool_name: str,
     query_params: Dict[str, Any],
@@ -318,6 +491,9 @@ def _get_tool_specific_suggestions(
             "the chart's configuration (fewer columns, metrics, or filters) "
             "to shorten the generated query."
         )
+
+    elif tool_name == "get_dashboard_layout":
+        suggestions.extend(_dashboard_layout_suggestions(query_params, response))
 
     elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
         suggestions.append(
