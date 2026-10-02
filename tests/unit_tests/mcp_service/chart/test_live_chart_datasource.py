@@ -205,10 +205,15 @@ def test_objects_without_live_resolver_fall_back_to_stored_name() -> None:
 
 
 @pytest.mark.parametrize(
-    ("chart_attr", "id_attr", "expected_name"),
+    ("chart_attr", "id_attr", "expected_name", "expected_type"),
     [
-        ("table_chart_id", "table_id", "hubspot_customers.hs_flat_customer_events"),
-        ("view_chart_id", "view_id", "Orders"),
+        (
+            "table_chart_id",
+            "table_id",
+            "hubspot_customers.hs_flat_customer_events",
+            "table",
+        ),
+        ("view_chart_id", "view_id", "Orders", "semantic_view"),
     ],
 )
 def test_dashboard_chart_summary_reports_live_dataset(
@@ -217,6 +222,7 @@ def test_dashboard_chart_summary_reports_live_dataset(
     chart_attr: str,
     id_attr: str,
     expected_name: str,
+    expected_type: str,
 ) -> None:
     chart = _load(session, getattr(charts, chart_attr))
 
@@ -225,18 +231,24 @@ def test_dashboard_chart_summary_reports_live_dataset(
 
     assert summary is not None
     assert summary.datasource_id == getattr(charts, id_attr)
+    assert summary.datasource_type == expected_type
+    assert summary.model_dump()["datasource_type"] == expected_type
     assert summary.datasource_name == expected_name
     assert redacted is not None
     assert redacted.datasource_id is None
+    assert redacted.datasource_type is None
     assert redacted.datasource_name is None
 
 
 def test_redaction_clears_datasource_id() -> None:
     redacted = redact_chart_data_model_fields(
-        ChartInfo(id=1, datasource_id=14, datasource_name="orders")
+        ChartInfo(
+            id=1, datasource_id=14, datasource_type="table", datasource_name="orders"
+        )
     )
 
     assert redacted.datasource_id is None
+    assert redacted.datasource_type is None
     assert redacted.datasource_name is None
 
 
@@ -545,6 +557,13 @@ def test_non_dataset_chart_keeps_stored_name(
     assert result is not None
     assert result.datasource_name == "Saved analysis"
     assert result.datasource_id == 7
+    assert result.datasource_type == datasource_type
+    if surface == "dashboard":
+        redacted = serialize_chart_summary(chart)
+        assert redacted is not None
+        assert redacted.datasource_id is None
+        assert redacted.datasource_type is None
+        assert redacted.datasource_name is None
 
 
 def test_default_chart_info_includes_datasource_id() -> None:

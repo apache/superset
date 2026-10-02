@@ -436,6 +436,12 @@ class DashboardChartSummary(BaseModel):
     datasource_id: int | None = Field(
         None, description="ID of the dataset (or semantic view) the chart queries"
     )
+    datasource_type: str | None = Field(
+        None,
+        description=(
+            "Type of the datasource; datasource_id is only unique within this type"
+        ),
+    )
     datasource_name: str | None = Field(
         None,
         description=(
@@ -1881,6 +1887,9 @@ def serialize_chart_summary(
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
         datasource_id=resolve_chart_datasource_id(chart)
+        if include_data_model_metadata
+        else None,
+        datasource_type=getattr(chart, "datasource_type", None)
         if include_data_model_metadata
         else None,
         datasource_name=resolve_chart_datasource_name(chart)
