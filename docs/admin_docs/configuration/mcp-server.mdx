@@ -113,7 +113,11 @@ rolled back, so do not blindly retry mutating SQL.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, and time filters. Inverse-selection configurations are rejected.
+selection, time filters, numeric range filters, and time-grain filters. Range
+bounds must be finite numbers or null. Time grains must match the filter's
+configured allowlist; when that list is missing or empty, use a built-in
+Superset time grain or an ISO-8601 duration such as `P1D` or `PT2H`.
+Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a

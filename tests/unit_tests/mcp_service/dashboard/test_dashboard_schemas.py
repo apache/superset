@@ -33,6 +33,7 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     AddChartToDashboardRequest,
+    ApplyFilterValueSpec,
     dashboard_serializer,
     DashboardInfo,
     DuplicateDashboardRequest,
@@ -1307,3 +1308,19 @@ def test_native_filter_supported_predicates_remain_complete(
         [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
     )
     assert result["native_filter_values_incomplete"] is False
+
+
+@pytest.mark.parametrize(
+    "bound", ["NaN", "Infinity", "-Infinity", float("nan"), float("inf"), float("-inf")]
+)
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_non_finite_bounds(
+    bound: str | float, index: int
+) -> None:
+    """Reject non-finite strings and numbers in either range bound after coercion."""
+    bounds: list[str | float | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )

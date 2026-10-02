@@ -523,7 +523,7 @@ async def test_range_filter_without_target_column_is_rejected(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("grain", ["P1D", "PT2H", "P2D"])
+@pytest.mark.parametrize("grain", ["P1D", "PT2H", "P2D", "1969-12-28T00:00:00Z/P1W"])
 async def test_apply_timegrain(mcp_server: object, grain: str) -> None:
     """Apply a time grain value."""
     captured: dict[str, Any] = {}
@@ -615,6 +615,32 @@ async def test_invalid_timegrain_value_is_rejected(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("allowlist", [None, []])
+@pytest.mark.parametrize("grain", ["garbage", " ", "\t", "P", "PT"])
+async def test_timegrain_without_allowlist_rejects_unknown_or_blank(
+    mcp_server: object, allowlist: list[str] | None, grain: str
+) -> None:
+    """A missing or empty allowlist does not permit invalid time grains."""
+    conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Granularity", "time_grain": [grain]}
+                ],
+            },
+        )
+    assert "Invalid time grain" in data["error"]
+    assert "ISO-8601 duration" in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> None:
     """A valid duration cannot bypass the filter's configured options."""
     conf = {**TIMEGRAIN_FILTER, "time_grains": ["P1D", "P1W"]}
@@ -645,7 +671,7 @@ async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> No
 async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
     mcp_server: object, allowlist: list[str] | None, selection: list[str]
 ) -> None:
-    """Custom durations round-trip; empty/missing allowlists remain unrestricted."""
+    """Custom durations round-trip; empty/missing allowlists accept ISO durations."""
     conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     captured: dict[str, Any] = {}
     with (

@@ -67,6 +67,7 @@ Example usage:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
@@ -2557,7 +2558,11 @@ class ApplyFilterValueSpec(BaseModel):
     def _validate_range_order(
         cls, v: List[int | float | None] | None
     ) -> List[int | float | None] | None:
-        """Reject a lower bound greater than the upper bound."""
+        """Reject non-finite bounds and a lower bound greater than the upper bound."""
+        if v is not None and any(
+            bound is not None and not math.isfinite(bound) for bound in v
+        ):
+            raise ValueError("range bounds must be finite numbers or null.")
         if v is not None and v[0] is not None and v[1] is not None and v[0] > v[1]:
             raise ValueError(
                 f"range lower bound {v[0]} cannot be greater than upper bound {v[1]}."
