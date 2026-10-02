@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -155,12 +155,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
-msgstr "paerewa hei whakarite kia rite te rārangi kupu"
+msgstr ""
 
 msgid " to add calculated columns"
 msgstr " hei tāpiri i ngā tīwae tatau"
@@ -1018,6 +1018,9 @@ msgstr ""
 " \"My Chart\" }, tooltip: { trigger: \"item\" } }). Taipitopito: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1487,6 +1490,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Tāpiri tātari"
 
+msgid "Add group"
+msgstr "Tāpiri rōpū"
+
 msgid "Add item"
 msgstr "Tāpiri mea"
 
@@ -1531,6 +1537,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Tāpiri hīti"
+
+msgid "Add subgroup"
+msgstr "Tāpiri rōpū-iti"
 
 msgid "Add tag to entities"
 msgstr "Tāpiri tohu ki ngā pūtahi"
@@ -1674,6 +1683,9 @@ msgstr "Kauwhata Pānga"
 msgid "Affected Dashboards"
 msgstr "Papatohu Pānga"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1768,6 +1780,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3466,6 +3482,9 @@ msgstr "Tepe pūtau"
 msgid "Cell title template"
 msgstr "Muku tauira"
 
+msgid "Center"
+msgstr "Waenga"
+
 msgid "Center value"
 msgstr ""
 
@@ -4181,6 +4200,9 @@ msgstr "Hīngonga papa raraunga"
 msgid "Collapse row"
 msgstr "Hīngonga rārangi"
 
+msgid "Collapse settings"
+msgstr "Whakaiti tautuhinga"
+
 msgid "Collapse tab content"
 msgstr "Hīngonga ihirangi ripa"
 
@@ -4324,6 +4346,9 @@ msgstr "Tīwae kei roto ngā raraunga longitude"
 
 msgid "Column data types"
 msgstr "Momo raraunga tīwae"
+
+msgid "Column groups"
+msgstr "Ngā rōpū tīwae"
 
 msgid "Column header tooltip"
 msgstr "Kītukutuku pane tīwae"
@@ -4607,6 +4632,9 @@ msgstr "Whakaū tiaki"
 msgid "Confirm Password"
 msgstr "Whakaū Kupuhipa"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Whakaū tuhirua"
 
@@ -4616,6 +4644,9 @@ msgstr "Whakaū Kupuhipa"
 
 msgid "Confirm save"
 msgstr "Whakaū tiaki"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Whakaū i te kupuhipa o te kaiwhakamahi"
@@ -4849,6 +4880,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kāore i taea te whakaoti i te ingoa tūmau: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Kāore i taea te manatoko i te kaiwhakamahi i te wātaka o nāianei."
 
@@ -5011,6 +5048,9 @@ msgstr "Rā o nāianei"
 
 msgid "Current month"
 msgstr "Marama o nāianei"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Hautakiwā o nāianei"
@@ -5938,6 +5978,11 @@ msgstr "Muku tūranga"
 #, fuzzy
 msgid "Delete item"
 msgstr "Muku tauira"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7114,6 +7159,9 @@ msgstr "Tāuru Taipitopito Matua"
 msgid "Enter a name for this sheet"
 msgstr "Tāuru ingoa mō tēnei hīti"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Mēnā ka whakakī i ngā ahanoa"
@@ -7126,6 +7174,9 @@ msgstr "Tāuru roa i ngā hēkona"
 
 msgid "Enter fullscreen"
 msgstr "Uru mata katoa"
+
+msgid "Enter group name"
+msgstr "Tāuru i te ingoa rōpū"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7174,6 +7225,9 @@ msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Tāuru ingoa matohi"
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7425,6 +7479,9 @@ msgstr "Whakawhānui rārangi"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Whakawhānui rārangi"
+
+msgid "Expand settings"
+msgstr "Whakawhānui tautuhinga"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8486,6 +8543,10 @@ msgstr ""
 msgid "Group"
 msgstr "Rōpū mā"
 
+#, python-format
+msgid "Group %s"
+msgstr "Rōpū %s"
+
 msgid "Group By"
 msgstr "Rōpū Mā"
 
@@ -8497,6 +8558,12 @@ msgstr "Kī Rōpū"
 
 msgid "Group by"
 msgstr "Rōpū mā"
+
+msgid "Group columns"
+msgstr "Whakarōpū tīwae"
+
+msgid "Group name"
+msgstr "Ingoa rōpū"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8767,9 +8834,6 @@ msgstr "Kawemai %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Hapa wā-pau"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "I rahua te kawemai kauwhata mō tētahi take kāore e mōhiotia ana"
@@ -9135,10 +9199,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Kua hē te ingoa kaiwhakamahi, te kupuhipa rānei."
-
 msgid "Inverse"
 msgstr ""
 
@@ -9501,6 +9561,9 @@ msgstr "Momo hoahoa rākau"
 
 msgid "Least recently modified"
 msgstr "I whakarerekeahia tata nei iti rawa"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10492,6 +10555,12 @@ msgstr "Tātari atu"
 msgid "MotherDuck token"
 msgstr "Tohu MotherDuck"
 
+msgid "Move group left"
+msgstr "Nuku rōpū ki maui"
+
+msgid "Move group right"
+msgstr "Nuku rōpū ki matau"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Neke anake"
@@ -10524,6 +10593,9 @@ msgstr "Taumata-Maha"
 
 msgid "Multi-Variables"
 msgstr "Taurangi-Maha"
+
+msgid "Multi-level header"
+msgstr "Pane taumata-maha"
 
 msgid "Multiple"
 msgstr "Maha"
@@ -10687,6 +10759,9 @@ msgstr "Ingoa rārangi raraunga hou"
 
 msgid "New header"
 msgstr "Pane hou"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Ripa hou"
@@ -10995,6 +11070,15 @@ msgstr "Kāore e ōrite ki (≠)"
 
 msgid "Not Time Series"
 msgstr "Ehara i te Raupapa Wā"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Ehara i te kōnae ZIP whaimana"
@@ -11944,6 +12028,9 @@ msgstr "Tēnā whakaūngia tō kupuhipa"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Tēnā tāuru tētahi URI SQLAlchemy hei whakamātau"
 
+msgid "Please enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Please enter a valid email"
 msgstr "Tēnā tāuru tētahi wāhitau īmēra whaimana"
@@ -12106,6 +12193,9 @@ msgstr ""
 
 msgid "Port out of range 0-65535"
 msgstr "Tauranga i waho o te korahi 0-65535"
+
+msgid "Position"
+msgstr "Tūnga"
 
 msgid "Position JSON"
 msgstr "Tūnga JSON"
@@ -12606,6 +12696,9 @@ msgstr "Tango mea"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Tango rōpū"
+
 msgid "Remove item"
 msgstr "Tango mea"
 
@@ -12845,6 +12938,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Kua tangohia ngā uara whakahaere e hiahiatia ana"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Tauira-anō"
@@ -13523,6 +13619,9 @@ msgstr "Hanga"
 msgid "Schema cache timeout"
 msgstr "Wā kore-mahi keteroki hanga"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Hanga e whakāetia ana mō te tukuake kōnae"
 
@@ -13854,6 +13953,9 @@ msgstr "Tīpakohia tīwae"
 #, fuzzy
 msgid "Select column name"
 msgstr "Tīpakohia tīwae"
+
+msgid "Select columns"
+msgstr "Tīpakohia ngā tīwae"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15392,6 +15494,10 @@ msgstr "Kāwai"
 msgid "Subdomain"
 msgstr "Rohe-iti"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Rōpū-iti %s"
+
 msgid "Subject"
 msgstr "Kaupapa"
 
@@ -15640,6 +15746,9 @@ msgstr "Kāore i tautuhia te ingoa ripanga"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Karekau te Ripanga, te Tirohanga \"%(table)s\" rānei."
+
+msgid "Table side"
+msgstr "Taha ripanga"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16767,6 +16876,10 @@ msgstr ""
 " whakahaere i tēnei pātai."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16829,6 +16942,10 @@ msgid ""
 msgstr ""
 "Karekau te ripanga \"%(table)s\". Me whakamahi i tētahi ripanga whaimana "
 "hei whakahaere i tēnei pātai."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17321,6 +17438,12 @@ msgstr "I puta he take i te arokitenga o te pātai kua tīpakohia. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17340,6 +17463,12 @@ msgstr "Ko ēnei ngā rārangi raraunga ka whakahaeretia ki reira tēnei tātari
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17355,6 +17484,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -18392,6 +18526,9 @@ msgstr "Tūrei"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Momo"
@@ -19476,6 +19613,10 @@ msgid ""
 msgstr ""
 "Kāore e taea e mātou te whakaoti i te tīwae \"%(column_name)s\" i te "
 "rārangi %(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20716,6 +20857,12 @@ msgstr "pātene (cmd + z) tae noa koe ka tiaki i ō huringa."
 
 msgid "by using"
 msgstr "mā te whakamahi i"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "kāore e taea te noho kau"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -159,9 +159,6 @@ msgstr " สำหรับรายละเอียด"
 msgid " near '%(highlight)s'"
 msgstr " ใกล้ '%(highlight)s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -172,19 +169,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" "
-"มาตรฐานเพื่อให้แน่ใจว่าการเรียงลำดับตามพจนานุกรมสอดคล้องกับการเรียงลำดับตามลำดับเวลา"
-" หากรูปแบบการประทับเวลาไม่เป็นไปตามมาตรฐาน ISO 8601 "
-"คุณจะต้องกำหนดนิพจน์และประเภทสำหรับการแปลงสตริงเป็นวันที่หรือการประทับเวลา"
-" โปรดทราบว่าปัจจุบันไม่รองรับเขตเวลา หากเวลาถูกเก็บในรูปแบบ epoch ให้ใส่ "
-"`epoch_s` หรือ `epoch_ms` หากไม่ได้ระบุรูปแบบ "
-"เราจะใช้ค่าเริ่มต้นเสริมในระดับฐานข้อมูล/ชื่อคอลัมน์ผ่านพารามิเตอร์เสริม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -1395,6 +1385,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }) "
 "รายละเอียด: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -2128,6 +2121,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "เพิ่มโฟลเดอร์"
 
+msgid "Add group"
+msgstr "เพิ่มกลุ่ม"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2204,6 +2200,9 @@ msgstr ""
 #, fuzzy
 msgid "Add sheet"
 msgstr "เพิ่มแผ่นงาน"
+
+msgid "Add subgroup"
+msgstr "เพิ่มกลุ่มย่อย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2434,6 +2433,9 @@ msgstr "แผนภูมิที่ได้รับผลกระทบ"
 msgid "Affected Dashboards"
 msgstr "แดชบอร์ดที่ได้รับผลกระทบ"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -2583,6 +2585,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -5289,6 +5295,9 @@ msgstr "จำนวนเซลล์สูงสุด"
 msgid "Cell title template"
 msgstr "เทมเพลตชื่อเซลล์"
 
+msgid "Center"
+msgstr "กึ่งกลาง"
+
 msgid "Center value"
 msgstr ""
 
@@ -6413,6 +6422,9 @@ msgstr "ยุบแผงข้อมูล"
 msgid "Collapse row"
 msgstr "ยุบแถว"
 
+msgid "Collapse settings"
+msgstr "ยุบการตั้งค่า"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -6628,6 +6640,9 @@ msgstr "คอลัมน์ที่มีข้อมูลลองจิจ
 #, fuzzy
 msgid "Column data types"
 msgstr "ประเภทข้อมูลของคอลัมน์"
+
+msgid "Column groups"
+msgstr "กลุ่มคอลัมน์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -7070,6 +7085,9 @@ msgstr "ยืนยัน"
 msgid "Confirm Password"
 msgstr "ยืนยันรหัสผ่าน"
 
+msgid "Confirm new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -7087,6 +7105,9 @@ msgstr "ยืนยันรหัสผ่าน"
 #, fuzzy
 msgid "Confirm save"
 msgstr "ยืนยันการบันทึก"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -7470,6 +7491,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ไม่สามารถแปลงชื่อโฮสต์: \"%(host)s\""
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -7763,6 +7790,9 @@ msgstr "วันปัจจุบัน"
 #, fuzzy
 msgid "Current month"
 msgstr "เดือนปัจจุบัน"
+
+msgid "Current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -9290,6 +9320,11 @@ msgstr "ลบกลุ่ม"
 #, fuzzy
 msgid "Delete item"
 msgstr "ลบรายการ"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -11138,6 +11173,9 @@ msgstr "ป้อนข้อมูลรับรองหลัก"
 msgid "Enter a name for this sheet"
 msgstr "ป้อนชื่อสำหรับแผ่นงานนี้"
 
+msgid "Enter a new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -11161,6 +11199,9 @@ msgstr "ป้อนระยะเวลาเป็นวินาที"
 #, fuzzy
 msgid "Enter fullscreen"
 msgstr "เข้าสู่โหมดเต็มหน้าจอ"
+
+msgid "Enter group name"
+msgstr "ป้อนชื่อกลุ่ม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
@@ -11239,6 +11280,9 @@ msgstr "ป้อนชื่อผู้ใช้ของผู้ใช้"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "ป้อนชื่อธีม"
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, pt_BR, ru, sk, uk]
@@ -11658,6 +11702,9 @@ msgstr "ขยายแถว"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "ขยายแถว"
+
+msgid "Expand settings"
+msgstr "ขยายการตั้งค่า"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -13290,6 +13337,10 @@ msgstr ""
 msgid "Group"
 msgstr "กลุ่ม"
 
+#, python-format
+msgid "Group %s"
+msgstr "กลุ่ม %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13314,6 +13365,12 @@ msgstr "คีย์กลุ่ม"
 #, fuzzy
 msgid "Group by"
 msgstr "จัดกลุ่มตาม"
+
+msgid "Group columns"
+msgstr "จัดกลุ่มคอลัมน์"
+
+msgid "Group name"
+msgstr "ชื่อกลุ่ม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -13747,9 +13804,6 @@ msgstr "นำเข้า %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "ข้อผิดพลาดในการนำเข้า"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14339,12 +14393,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
 
 msgid "Inverse"
 msgstr ""
@@ -14971,6 +15019,9 @@ msgstr "ประเภทเค้าโครงของต้นไม้"
 #, fuzzy
 msgid "Least recently modified"
 msgstr "แก้ไขเมื่อนานที่สุด"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -16571,6 +16622,12 @@ msgstr "ตัวกรองเพิ่มเติม"
 msgid "MotherDuck token"
 msgstr "โทเคน MotherDuck"
 
+msgid "Move group left"
+msgstr "ย้ายกลุ่มไปทางซ้าย"
+
+msgid "Move group right"
+msgstr "ย้ายกลุ่มไปทางขวา"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16623,6 +16680,9 @@ msgstr "หลายระดับ"
 #, fuzzy
 msgid "Multi-Variables"
 msgstr "หลายตัวแปร"
+
+msgid "Multi-level header"
+msgstr "ส่วนหัวหลายระดับ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16894,6 +16954,9 @@ msgstr "ชื่อชุดข้อมูลใหม่"
 #, fuzzy
 msgid "New header"
 msgstr "ส่วนหัวใหม่"
+
+msgid "New password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -17422,6 +17485,15 @@ msgstr "ไม่เท่ากัน"
 #, fuzzy
 msgid "Not Time Series"
 msgstr "ไม่ใช่อนุกรมเวลา"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -18966,6 +19038,9 @@ msgstr "โปรดยืนยันรหัสผ่านของคุณ
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "โปรดป้อน SQLAlchemy URI เพื่อทดสอบ"
 
+msgid "Please enter a new password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -19220,6 +19295,9 @@ msgstr "พอร์ต %(port)s บนชื่อโฮสต์ \"%(hostname)
 #, fuzzy
 msgid "Port out of range 0-65535"
 msgstr "พอร์ตอยู่นอกช่วง 0-65535"
+
+msgid "Position"
+msgstr "ตำแหน่ง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -20064,6 +20142,9 @@ msgstr "ลบรายการ"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "ลบกลุ่ม"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20433,6 +20514,9 @@ msgstr ""
 #, fuzzy
 msgid "Required control values have been removed"
 msgstr "ค่าการควบคุมที่จำเป็นถูกลบออกแล้ว"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21564,6 +21648,9 @@ msgstr "สคีมา"
 msgid "Schema cache timeout"
 msgstr "หมดเวลาแคชสคีมา"
 
+msgid "Schema not found."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -22128,6 +22215,9 @@ msgstr "เลือกคอลัมน์"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
 msgid "Select column name"
+msgstr "เลือกคอลัมน์"
+
+msgid "Select columns"
 msgstr "เลือกคอลัมน์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -24486,6 +24576,10 @@ msgstr "หมวดหมู่ย่อย"
 msgid "Subdomain"
 msgstr "ซับโดเมน"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "กลุ่มย่อย %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -24893,6 +24987,9 @@ msgstr "ไม่ได้กำหนดชื่อตาราง"
 #, fuzzy, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "ตารางหรือมุมมอง \"%(table)s\" ไม่มีอยู่"
+
+msgid "Table side"
+msgstr "ด้านของตาราง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26446,6 +26543,10 @@ msgid ""
 "run this query."
 msgstr "สกีมา \"%(schema)s\" ไม่มีอยู่ ต้องใช้สกีมาที่ถูกต้องในการเรียกใช้คิวรีนี้"
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -26547,6 +26648,10 @@ msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
 msgstr "ตาราง \"%(table)s\" ไม่มีอยู่ ต้องใช้ตารางที่ถูกต้องในการเรียกใช้คิวรีนี้"
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27253,6 +27358,12 @@ msgstr "เกิดปัญหาในการแสดงตัวอย่
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -27274,6 +27385,12 @@ msgstr "นี่คือชุดข้อมูลที่ตัวกรอ
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -27288,6 +27405,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28773,6 +28895,9 @@ msgstr "วันอังคาร"
 #, fuzzy
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -30376,6 +30501,10 @@ msgid ""
 msgstr ""
 "ดูเหมือนว่าเราไม่สามารถแก้ไขคอลัมน์ \"%(column_name)s\" ที่บรรทัด "
 "%(location)s ได้"
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -32290,6 +32419,11 @@ msgstr "ปุ่ม (cmd + z) จนกว่าคุณจะบันทึ�
 #, fuzzy
 msgid "by using"
 msgstr "โดยใช้"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]

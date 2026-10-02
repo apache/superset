@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -151,28 +151,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" அகரவரிசை வரிசைமுறை (lexicographical ordering) காலவரிசை வரிசைமுறையுடன் "
-"(chronological ordering)\n"
-"                      ஒத்துப் போவதை உறுதி செய்வதற்கான தரநிலை. "
-"டைம்ஸ்டாம்ப் (timestamp) வடிவம்\n"
-"                      ISO 8601 தரநிலையுடன் இணங்கவில்லை என்றால், அந்த "
-"சரத்தை (string) தேதி அல்லது\n"
-"                      டைம்ஸ்டாம்பாக மாற்ற ஒரு எக்ஸ்பிரஷன் மற்றும் வகையை "
-"நீங்கள் வரையறுக்க வேண்டும்.\n"
-"                      குறிப்பு: தற்போது நேர மண்டலங்கள் (time zones) "
-"ஆதரிக்கப்படுவதில்லை. நேரம்\n"
-"                      epoch வடிவத்தில் சேமிக்கப்பட்டிருந்தால், `epoch_s` "
-"அல்லது `epoch_ms` என இடவும்.\n"
-"                      எந்தவொரு பேட்டர்னும் குறிப்பிடப்படவில்லை எனில், "
-"கூடுதல் அளவுருக்கள் வழியாக\n"
-"                      ஒவ்வொரு தரவுத்தளம்/நெடுவரிசைப் பெயருக்கும் உள்ள "
-"இயல்புநிலை மதிப்புகள் பயன்படுத்தப்படும்."
 
 msgid " to add calculated columns"
 msgstr " கணக்கிடப்பட்ட நெடுவரிசைகளைச் சேர்க்க"
@@ -992,6 +976,9 @@ msgid ""
 "https://echarts.apache.org/en/option.html. "
 msgstr ""
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1444,6 +1431,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "கோப்புறையைச் (folder) சேர்"
 
+msgid "Add group"
+msgstr "குழுவைச் சேர்"
+
 msgid "Add item"
 msgstr "உருப்படியைச் சேர்"
 
@@ -1486,6 +1476,9 @@ msgstr "அங்கீகாரத் தகவலைப் பதிவேற�
 
 msgid "Add sheet"
 msgstr "ஷீட்டைச் (sheet) சேர்"
+
+msgid "Add subgroup"
+msgstr "துணைக்குழுவைச் சேர்"
 
 msgid "Add tag to entities"
 msgstr "உருப்படிகளுக்கு டேக் (tag) சேர்க்கவும்"
@@ -1628,6 +1621,9 @@ msgstr "பாதிக்கப்பட்ட சார்ட்டுகள�
 msgid "Affected Dashboards"
 msgstr "பாதிக்கப்பட்ட டேஷ்போர்டுகள்"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1719,6 +1715,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3316,6 +3316,9 @@ msgstr "செல் வரம்பு"
 msgid "Cell title template"
 msgstr "செல் தலைப்பு டெம்ப்ளேட்"
 
+msgid "Center"
+msgstr "மையம்"
+
 msgid "Center value"
 msgstr ""
 
@@ -4006,6 +4009,9 @@ msgstr "தரவுப் பலகத்தைச் சுருக்கு"
 msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
 
+msgid "Collapse settings"
+msgstr "அமைப்புகளைச் சுருக்கு"
+
 msgid "Collapse tab content"
 msgstr "தாவல் உள்ளடக்கத்தைச் சுருக்கு"
 
@@ -4139,6 +4145,9 @@ msgstr "தீர்க்கரேகை (longitude) தரவுகளைக�
 
 msgid "Column data types"
 msgstr "நெடுவரிசைத் தரவு வகைகள்"
+
+msgid "Column groups"
+msgstr "நெடுவரிசைக் குழுக்கள்"
 
 msgid "Column header tooltip"
 msgstr "நெடுவரிசைத் தலைப்பு உதவிக்குறிப்பு (tooltip)"
@@ -4407,6 +4416,9 @@ msgstr "உறுதிப்படுத்து"
 msgid "Confirm Password"
 msgstr "கடவுச்சொல்லை உறுதிப்படுத்து"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "மேலெழுதுதலை உறுதிப்படுத்து"
 
@@ -4415,6 +4427,9 @@ msgstr "கடவுச்சொல்லை உறுதிப்படுத�
 
 msgid "Confirm save"
 msgstr "சேமிப்பதை உறுதிப்படுத்து"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "பயனரின் கடவுச்சொல்லை உறுதிப்படுத்தவும்"
@@ -4648,6 +4663,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
 
@@ -4807,6 +4828,9 @@ msgstr "இன்றைய நாள்"
 
 msgid "Current month"
 msgstr "இந்த மாதம்"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "இந்தக் காலாண்டு"
@@ -5672,6 +5696,11 @@ msgstr "குழுவை நீக்கு"
 
 msgid "Delete item"
 msgstr "உருப்படியை நீக்கு"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6775,6 +6804,9 @@ msgstr "முதன்மை நற்சான்றிதழ்களை (Cre
 msgid "Enter a name for this sheet"
 msgstr "இந்த விரிதாளுக்கு (sheet) ஒரு பெயரை உள்ளிடவும்"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
@@ -6786,6 +6818,9 @@ msgstr "கால அளவை விநாடிகளில் உள்ளி
 
 msgid "Enter fullscreen"
 msgstr "முழுத் திரைக்குச் செல்"
+
+msgid "Enter group name"
+msgstr "குழுவின் பெயரை உள்ளிடவும்"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
@@ -6828,6 +6863,9 @@ msgstr "பயனரின் பயனர் பெயரை உள்ளிட
 
 msgid "Enter theme name"
 msgstr "தீம் பெயரை உள்ளிடவும்"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "உங்கள் பயனர் பெயர் மற்றும் கடவுச்சொல்லை கீழே உள்ளிடவும்:"
@@ -7065,6 +7103,9 @@ msgstr "வரிசையை விரிவாக்கு"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "வரிசையை விரிவாக்கு"
+
+msgid "Expand settings"
+msgstr "அமைப்புகளை விரிவாக்கு"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8035,6 +8076,10 @@ msgstr ""
 msgid "Group"
 msgstr "குழு"
 
+#, python-format
+msgid "Group %s"
+msgstr "குழு %s"
+
 msgid "Group By"
 msgstr "இதன் படி குழுவாக்கு"
 
@@ -8048,6 +8093,12 @@ msgstr "குழுச் சாவி (Group Key)"
 
 msgid "Group by"
 msgstr "இதன் படி குழுவாக்கு"
+
+msgid "Group columns"
+msgstr "நெடுவரிசைகளைக் குழுவாக்கு"
+
+msgid "Group name"
+msgstr "குழுவின் பெயர்"
 
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
@@ -8290,9 +8341,6 @@ msgstr "%s ஐ இறக்குமதி செய்"
 
 msgid "Import Error"
 msgstr "இறக்குமதி பிழை"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "தெரியாத காரணத்தினால் சார்ட் இறக்குமதி தோல்வியுற்றது"
@@ -8625,9 +8673,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "தவறான பயனர் பெயர் அல்லது கடவுச்சொல்"
 
 msgid "Inverse"
 msgstr ""
@@ -8965,6 +9010,9 @@ msgstr "மரத்தின் (tree) அமைப்பு வகை"
 
 msgid "Least recently modified"
 msgstr "மிகக் குறைவாக மாற்றப்பட்டது"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9872,6 +9920,12 @@ msgstr "கூடுதல் வடிகட்டிகள்"
 msgid "MotherDuck token"
 msgstr "MotherDuck டோக்கன்"
 
+msgid "Move group left"
+msgstr "குழுவை இடதுபுறம் நகர்த்து"
+
+msgid "Move group right"
+msgstr "குழுவை வலதுபுறம் நகர்த்து"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "நகர்த்த மட்டும்"
@@ -9904,6 +9958,9 @@ msgstr "பல நிலைகள்"
 
 msgid "Multi-Variables"
 msgstr "பல மாறிகள்"
+
+msgid "Multi-level header"
+msgstr "பல நிலை தலைப்பு"
 
 msgid "Multiple"
 msgstr "பல"
@@ -10053,6 +10110,9 @@ msgstr "புதிய தரவுத்தொகுப்பு பெயர�
 
 msgid "New header"
 msgstr "புதிய தலைப்பு"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "புதிய தாவல் (tab)"
@@ -10341,6 +10401,15 @@ msgstr "சமமில்லை"
 
 msgid "Not Time Series"
 msgstr "நேரத் தொடர் அல்ல"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "செல்லுபடியாகும் ZIP கோப்பு அல்ல"
@@ -11209,6 +11278,9 @@ msgstr "உங்கள் கடவுச்சொல்லை உறுதி�
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "சோதிக்க ஒரு SQLAlchemy URI ஐ உள்ளிடவும்"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "செல்லுபடியாகும் மின்னஞ்சலை உள்ளிடவும்"
 
@@ -11361,6 +11433,9 @@ msgstr "ஹோஸ்ட் பெயர் \"%(hostname)s\" இல் உள்�
 
 msgid "Port out of range 0-65535"
 msgstr "போர்ட் 0-65535 வரம்பிற்கு வெளியே உள்ளது"
+
+msgid "Position"
+msgstr "நிலை"
 
 msgid "Position JSON"
 msgstr "நிலை JSON"
@@ -11830,6 +11905,9 @@ msgstr "உருப்படியை நீக்கு"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "குழுவை நீக்கு"
+
 msgid "Remove item"
 msgstr "உருப்படியை நீக்கு"
 
@@ -12062,6 +12140,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "தேவையான கட்டுப்பாட்டு மதிப்புகள் நீக்கப்பட்டுள்ளன"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "மறுமாதிரி (Resample)"
@@ -12677,6 +12758,9 @@ msgstr "ஸ்கீமா (Schema)"
 msgid "Schema cache timeout"
 msgstr "ஸ்கீமா கேச் காலாவதி"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "கோப்பு பதிவேற்றத்திற்கு அனுமதிக்கப்பட்ட ஸ்கீமாக்கள்"
 
@@ -12999,6 +13083,9 @@ msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
 #, fuzzy
 msgid "Select column name"
 msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
+
+msgid "Select columns"
+msgstr "நெடுவரிசைகளைத் தேர்ந்தெடு"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14354,6 +14441,10 @@ msgstr "துணைப்பிரிவுகள்"
 msgid "Subdomain"
 msgstr "துணைக்களம் (Subdomain)"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "துணைக்குழு %s"
+
 #, fuzzy
 msgid "Subject"
 msgstr "பொருளைத் (subject) தேர்ந்தெடு"
@@ -14590,6 +14681,9 @@ msgstr "அட்டவணை பெயர் வரையறுக்கப்�
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "அட்டவணை அல்லது பார்வை \"%(table)s\" இல்லை."
+
+msgid "Table side"
+msgstr "அட்டவணையின் பக்கம்"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15554,6 +15648,10 @@ msgstr ""
 "வேண்டும்."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -15617,6 +15715,10 @@ msgid ""
 msgstr ""
 "அட்டவணை \"%(table)s\" இல்லை. வினவலை இயக்க சரியான அட்டவணையைப் பயன்படுத்த "
 "வேண்டும்."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16054,6 +16156,12 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட வினவ�
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16073,6 +16181,12 @@ msgstr "இந்த வடிகட்டி பயன்படுத்தப�
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16088,6 +16202,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17003,6 +17122,9 @@ msgstr "செவ்வாய்"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "வகை"
@@ -17958,6 +18080,10 @@ msgid ""
 msgstr ""
 "வரிசை %(location)s இல் உள்ள நெடுவரிசை \"%(column_name)s\" ஐ எங்களால் "
 "கண்டறிய முடியவில்லை."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -19146,6 +19272,12 @@ msgstr "மாற்றங்களைச் சேமிக்கும் வ�
 
 msgid "by using"
 msgstr "பயன்படுத்துவதன் மூலம்"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "காலியாக இருக்க முடியாது"

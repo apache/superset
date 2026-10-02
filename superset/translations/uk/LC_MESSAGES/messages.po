@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -149,26 +149,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Стандарт для забезпечення того, щоб лексикографічне впорядкування\n"
-"                     збігалося з хронологічним. Якщо формат часової мітки"
-" не відповідає\n"
-"                     стандарту ISO 8601, потрібно визначити вираз і тип "
-"для\n"
-"                     перетворення рядка у дату або часову мітку. Зверніть"
-" увагу,\n"
-"                     що наразі часові пояси не підтримуються. Якщо час "
-"збережено\n"
-"                     у форматі epoch, використовуйте epoch_s або "
-"epoch_ms. Якщо шаблон\n"
-"                     не вказано, буде використано значення за "
-"замовчуванням на рівні\n"
-"                     бази даних/назви стовпця через параметр extra."
 
 msgid " to add calculated columns"
 msgstr " для додавання обчислювальних стовпців"
@@ -1059,6 +1045,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Деталі:"
 " https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1507,6 +1496,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додати теку"
 
+msgid "Add group"
+msgstr "Додати групу"
+
 msgid "Add item"
 msgstr "Додати обʼєкт"
 
@@ -1546,6 +1538,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Додати аркуш"
+
+msgid "Add subgroup"
+msgstr "Додати підгрупу"
 
 msgid "Add tag to entities"
 msgstr "Додати мітку для сутностей"
@@ -1688,6 +1683,9 @@ msgstr "Задіяні діаграми"
 msgid "Affected Dashboards"
 msgstr "Задіяні звіти"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1779,6 +1777,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3369,6 +3371,9 @@ msgstr "Обмеження комірки"
 msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -4042,6 +4047,9 @@ msgstr "Згорнути панель даних"
 msgid "Collapse row"
 msgstr "Згорнути рядок"
 
+msgid "Collapse settings"
+msgstr "Згорнути параметри"
+
 msgid "Collapse tab content"
 msgstr "Згорнути вміст вкладки"
 
@@ -4183,6 +4191,9 @@ msgstr "Стовпець з даними довготи"
 
 msgid "Column data types"
 msgstr "Типи даних стовпця"
+
+msgid "Column groups"
+msgstr "Групи стовпців"
 
 msgid "Column header tooltip"
 msgstr "Підказка для стовпця"
@@ -4449,6 +4460,9 @@ msgstr "Підтвердити"
 msgid "Confirm Password"
 msgstr "Підтвердьте пароль"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Підтвердьте перезапис"
 
@@ -4457,6 +4471,9 @@ msgstr "Підтвердьте пароль"
 
 msgid "Confirm save"
 msgstr "Підтвердьте збереження"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Підтвердьте пароль користувача"
@@ -4688,6 +4705,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не вдалося розпізнати вузол: «%(host)s»."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Не вдалося підтвердити користувача в поточному сеансі."
 
@@ -4847,6 +4870,9 @@ msgstr "Поточний день"
 
 msgid "Current month"
 msgstr "Поточний місяць"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Поточний квартал"
@@ -5726,6 +5752,11 @@ msgstr "Вилучити групу"
 
 msgid "Delete item"
 msgstr "Вилучити елемент"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6854,6 +6885,9 @@ msgstr "Введіть основні облікові дані"
 msgid "Enter a name for this sheet"
 msgstr "Введіть назву для цього аркуша"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Введіть частину назви об’єкта"
 
@@ -6865,6 +6899,9 @@ msgstr "Введіть тривалість у секундах"
 
 msgid "Enter fullscreen"
 msgstr "На весь екран"
+
+msgid "Enter group name"
+msgstr "Введіть назву групи"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введіть мінімальне та максимальне значення для фільтра діапазону"
@@ -6905,6 +6942,9 @@ msgstr "Введіть псевдонім користувача"
 
 msgid "Enter theme name"
 msgstr "Введіть назву теми"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Введіть вашого користувача і його пароль нижче:"
@@ -7143,6 +7183,9 @@ msgstr "Розгорнути рядок"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
+
+msgid "Expand settings"
+msgstr "Розгорнути параметри"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8123,6 +8166,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 msgid "Group By"
 msgstr "Групувати за"
 
@@ -8134,6 +8181,12 @@ msgstr "Група"
 
 msgid "Group by"
 msgstr "Групувати за"
+
+msgid "Group columns"
+msgstr "Групувати стовпці"
+
+msgid "Group name"
+msgstr "Назва групи"
 
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
@@ -8374,9 +8427,6 @@ msgstr "Імпортувати %s"
 
 msgid "Import Error"
 msgstr "Помилка імпортування"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Не вдалось імпортувати діаграму з невідомої причини"
@@ -8713,9 +8763,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Неправильний користувач або його пароль"
 
 msgid "Inverse"
 msgstr ""
@@ -9060,6 +9107,9 @@ msgstr "Тип розташування дерева"
 
 msgid "Least recently modified"
 msgstr "Давно без змін"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10012,6 +10062,12 @@ msgstr "Ще фільтри"
 msgid "MotherDuck token"
 msgstr "Токен MotherDuck"
 
+msgid "Move group left"
+msgstr "Перемістити групу ліворуч"
+
+msgid "Move group right"
+msgstr "Перемістити групу праворуч"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Тільки переміщення"
@@ -10044,6 +10100,9 @@ msgstr "Багаторівневий"
 
 msgid "Multi-Variables"
 msgstr "Багатозначний"
+
+msgid "Multi-level header"
+msgstr "Багаторівневий заголовок"
 
 msgid "Multiple"
 msgstr "Декілька"
@@ -10199,6 +10258,9 @@ msgstr "Нова назва набору даних"
 
 msgid "New header"
 msgstr "Новий заголовок"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Нова вкладка"
@@ -10497,6 +10559,15 @@ msgstr "Не дорівнює"
 
 msgid "Not Time Series"
 msgstr "Не часові ряди"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Неправильний архів"
@@ -11412,6 +11483,9 @@ msgstr "Будь ласка, підтвердьте пароль"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Введіть адресу SQLALCHEMY для тестування"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Будь ласка, введіть правильну електронну пошту"
 
@@ -11563,6 +11637,9 @@ msgstr "Порт %(port)s на вузлі «%(hostname)s» відхилив з�
 
 msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
+
+msgid "Position"
+msgstr "Положення"
 
 msgid "Position JSON"
 msgstr "Розміщення (JSON)"
@@ -12038,6 +12115,9 @@ msgstr "Вилучити елемент"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Вилучити групу"
+
 msgid "Remove item"
 msgstr "Вилучити елемент"
 
@@ -12271,6 +12351,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Обов’язкові значення параметрів вилучено"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Передискретизація"
@@ -12926,6 +13009,9 @@ msgstr "Схема"
 msgid "Schema cache timeout"
 msgstr "Тривалість кешу схеми"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Схеми, в які можна вивантажувати файли"
 
@@ -13240,6 +13326,9 @@ msgstr "Вибрати стовпець"
 #, fuzzy
 msgid "Select column name"
 msgstr "Вибрати стовпець"
+
+msgid "Select columns"
+msgstr "Вибрати стовпці"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14676,6 +14765,10 @@ msgstr "Підкатегорії"
 msgid "Subdomain"
 msgstr "Розділ"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Підгрупа %s"
+
 msgid "Subject"
 msgstr "Суб’єкт"
 
@@ -14910,6 +15003,9 @@ msgstr "Назву таблиці не визначено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблиця або представлення «%(table)s» не існує."
+
+msgid "Table side"
+msgstr "Бік таблиці"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15989,6 +16085,10 @@ msgstr ""
 "використовувати наявну схему."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16050,6 +16150,10 @@ msgid ""
 msgstr ""
 "Таблиця «%(table)s» не існує. Для виконання цього запиту потрібно "
 "використовувати наявну таблицю."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16512,6 +16616,12 @@ msgstr "Трапилась проблема огляду вибраного за
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16533,6 +16643,12 @@ msgstr "Фільтр буде застосовано до цих наборів 
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16550,6 +16666,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17514,6 +17635,9 @@ msgstr "Вівторок"
 
 msgid "Tukey"
 msgstr "Підхід Тьюкі"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Тип"
@@ -18517,6 +18641,10 @@ msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
 msgstr "Не вдається знайти стовпець «%(column_name)s» у рядку %(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -19738,6 +19866,14 @@ msgstr "натискайте кнопку (cmd + z), доки не збереж�
 
 msgid "by using"
 msgstr "через"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 msgid "cannot be empty"
 msgstr "не може бути порожнім"

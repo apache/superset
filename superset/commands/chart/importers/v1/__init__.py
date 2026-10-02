@@ -42,6 +42,10 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import (
+    consume_chart_semantic_reference,
+    resolve_bundle_references,
+)
 from superset.subjects.utils import get_default_viewers_for_current_user
 
 
@@ -77,10 +81,11 @@ class ImportChartsCommand(ImportModelsCommand):
         contents: dict[str, Any] | None = None,
     ) -> None:
         contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
-            if file_name.startswith("charts/"):
+            if file_name.startswith("charts/") and "dataset_uuid" in config:
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
@@ -104,7 +109,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=False)
+                dataset: SqlaTable = import_dataset(config, overwrite=False)
                 # Key on the bundle's own uuid, which is what the bundle's
                 # charts reference. An import that resolves onto an existing
                 # dataset by physical identity returns a row whose uuid
@@ -125,18 +130,24 @@ class ImportChartsCommand(ImportModelsCommand):
         # import charts with the correct parent ref
         chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
-            if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
+            if file_name.startswith("charts/") and (
+                "datasource_ref" in config or config.get("dataset_uuid") in datasets
+            ):
                 # Ignore obsolete filter-box charts.
                 if config["viz_type"] == "filter_box":
                     continue
 
                 # update datasource id, type, and name
-                dataset = datasets[config["dataset_uuid"]]
-                dataset_dict = {
-                    "datasource_id": dataset.id,
-                    "datasource_type": "table",
-                    "datasource_name": dataset.table_name,
-                }
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
+                    config, semantic_info
+                )
+                if dataset_dict is None:
+                    dataset = datasets[config["dataset_uuid"]]
+                    dataset_dict = {
+                        "datasource_id": dataset.id,
+                        "datasource_type": "table",
+                        "datasource_name": dataset.table_name,
+                    }
                 chart_configs.append(update_chart_config_dataset(config, dataset_dict))
 
         # Charts bundled only as annotation sources are reused when they exist,

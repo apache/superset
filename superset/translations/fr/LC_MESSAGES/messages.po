@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -150,20 +150,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" afin de garantir que l'ordre lexicographique coïncide avec l'ordre "
-"chronologique. Si le format de l'horodatage n'est pas conforme à la norme"
-" ISO 8601, vous devrez définir une expression et un type pour transformer"
-" la chaîne en date ou en horodatage. Notez que les fuseaux horaires ne "
-"sont pas pris en charge actuellement. Si l'heure est stockée au format "
-"epoch, mettez `epoch_s` ou `epoch_ms`. Si aucun modèle n'est spécifié, "
-"nous utilisons les valeurs par défaut optionnelles au niveau de chaque "
-"base de données/nom de colonne via le paramètre supplémentaire."
 
 msgid " to add calculated columns"
 msgstr " pour ajouter des colonnes calculées"
@@ -1004,6 +996,9 @@ msgstr ""
 "(ex. { title: { text: \"Mon graphique\" }, tooltip: { trigger: \"item\" }"
 " }). Détails : https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1461,6 +1456,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ajouter un répertoire"
 
+msgid "Add group"
+msgstr "Ajouter un groupe"
+
 msgid "Add item"
 msgstr "Ajouter un élément"
 
@@ -1501,6 +1499,9 @@ msgstr "Ajouter les paramètres d'authentification du service"
 
 msgid "Add sheet"
 msgstr "Ajouter une feuille"
+
+msgid "Add subgroup"
+msgstr "Ajouter un sous-groupe"
 
 msgid "Add tag to entities"
 msgstr "Ajouter un tag à des entités"
@@ -1641,6 +1642,9 @@ msgstr "Graphiques impactés"
 msgid "Affected Dashboards"
 msgstr "Tableaux de bord impactés"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1732,6 +1736,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3400,6 +3408,9 @@ msgstr "Limite de la cellule"
 msgid "Cell title template"
 msgstr "Modèle de titre de cellule"
 
+msgid "Center"
+msgstr "Centre"
+
 msgid "Center value"
 msgstr ""
 
@@ -4085,6 +4096,9 @@ msgstr "Réduire le panneau de données"
 msgid "Collapse row"
 msgstr "Réduire la ligne"
 
+msgid "Collapse settings"
+msgstr "Réduire les paramètres"
+
 msgid "Collapse tab content"
 msgstr "Réduire le contenu de l'onglet"
 
@@ -4226,6 +4240,9 @@ msgstr "Colonne contenant des données de longitude"
 
 msgid "Column data types"
 msgstr "Types de données des colonnes"
+
+msgid "Column groups"
+msgstr "Groupes de colonnes"
 
 msgid "Column header tooltip"
 msgstr "Infobulle de l'en-tête de colonne"
@@ -4497,6 +4514,9 @@ msgstr "Confirmer"
 msgid "Confirm Password"
 msgstr "Confirmer le mot de passe"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Confirmer le remplacement"
 
@@ -4505,6 +4525,9 @@ msgstr "Confirmer le mot de passe"
 
 msgid "Confirm save"
 msgstr "Confirmer la sauvegarde"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Confirmer le mot de passe de l'utilisateur"
@@ -4732,6 +4755,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Impossible de résoudre le nom d'hôte:\"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Impossible de valider l'utilisateur dans la session en cours."
 
@@ -4889,6 +4918,9 @@ msgstr "Aujourd'hui"
 
 msgid "Current month"
 msgstr "Ce mois"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Ce trimestre"
@@ -5786,6 +5818,11 @@ msgstr "Supprimer le groupe"
 
 msgid "Delete item"
 msgstr "Supprimer l'élément"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6915,6 +6952,9 @@ msgstr "Saisir les informations d'identification principales"
 msgid "Enter a name for this sheet"
 msgstr "Saisir un nom pour cette feuille"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Saisir une partie du nom de l'objet"
 
@@ -6926,6 +6966,9 @@ msgstr "Saisir la durée en secondes"
 
 msgid "Enter fullscreen"
 msgstr "Passer en plein écran"
+
+msgid "Enter group name"
+msgstr "Saisir le nom du groupe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6968,6 +7011,9 @@ msgstr "Saisir le nom de l'utilisateur"
 
 msgid "Enter theme name"
 msgstr "Saisir le nom du thème"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Saisir votre identifiant et votre mot de passe ci-dessous :"
@@ -7208,6 +7254,9 @@ msgstr "Agrandir la ligne"
 
 msgid "Expand row to edit"
 msgstr "Développer la ligne à modifier"
+
+msgid "Expand settings"
+msgstr "Développer les paramètres"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8205,6 +8254,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grouper par"
 
+#, python-format
+msgid "Group %s"
+msgstr "Groupe %s"
+
 msgid "Group By"
 msgstr "Grouper par"
 
@@ -8216,6 +8269,12 @@ msgstr "Clé de regroupement"
 
 msgid "Group by"
 msgstr "Grouper par"
+
+msgid "Group columns"
+msgstr "Grouper les colonnes"
+
+msgid "Group name"
+msgstr "Nom du groupe"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grouper le reste sous « Autres »"
@@ -8467,9 +8526,6 @@ msgstr "Importer %s"
 
 msgid "Import Error"
 msgstr "Erreur lors de l'importation"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "L'import du graphique a échoué pour une raison inconnue"
@@ -8813,9 +8869,6 @@ msgstr "Identifiants d'onglet non valides : %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Le nom d'utilisateur ou le mot de passe est incorrect."
 
 msgid "Inverse"
 msgstr ""
@@ -9163,6 +9216,9 @@ msgstr "Type de disposition de l'arbre"
 
 msgid "Least recently modified"
 msgstr "Dernière modification en date"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10115,6 +10171,12 @@ msgstr "Plus de filtres"
 msgid "MotherDuck token"
 msgstr "Jeton MotherDuck"
 
+msgid "Move group left"
+msgstr "Déplacer le groupe à gauche"
+
+msgid "Move group right"
+msgstr "Déplacer le groupe à droite"
+
 msgid "Move icon"
 msgstr "Déplacer l'icône"
 
@@ -10146,6 +10208,9 @@ msgstr "Niveaux multiples"
 
 msgid "Multi-Variables"
 msgstr "Multi-variables"
+
+msgid "Multi-level header"
+msgstr "En-tête à plusieurs niveaux"
 
 msgid "Multiple"
 msgstr "Multiple"
@@ -10304,6 +10369,9 @@ msgstr "Nom du jeu de données"
 
 msgid "New header"
 msgstr "Nouvel en-tête"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nouvel onglet"
@@ -10602,6 +10670,15 @@ msgstr "!= (N'est pas égal)"
 
 msgid "Not Time Series"
 msgstr "Pas de séries temporelles"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Fichier ZIP invalide"
@@ -11537,6 +11614,9 @@ msgstr "Veuillez confirmer votre mot de passe"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Veuillez saisir un URI SQLAlchemy à tester"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Veuillez saisir un courriel valide"
 
@@ -11696,6 +11776,9 @@ msgstr "Le port %(port)s sur l'hôte « %(hostname)s » a refusé la connexion
 
 msgid "Port out of range 0-65535"
 msgstr "Port hors de portée 0-65535"
+
+msgid "Position"
+msgstr "Position"
 
 msgid "Position JSON"
 msgstr "Position JSON"
@@ -12171,6 +12254,9 @@ msgstr "Supprimer le filtre"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Supprimer le groupe"
+
 msgid "Remove item"
 msgstr "Supprimer l'élément"
 
@@ -12421,6 +12507,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Les valeurs de contrôle requises ont été supprimées"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Rééchantillonner"
@@ -13072,6 +13161,9 @@ msgstr "Schéma"
 msgid "Schema cache timeout"
 msgstr "Délai d'attente pour le cache du schéma dépassé"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Schémas autorisés pour charger des fichiers"
 
@@ -13389,6 +13481,9 @@ msgstr "Sélectionner une colonne"
 
 msgid "Select column name"
 msgstr "Sélectionner un nom de colonne"
+
+msgid "Select columns"
+msgstr "Sélectionner les colonnes"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14838,6 +14933,10 @@ msgstr "Sous-catégories"
 msgid "Subdomain"
 msgstr "Sous-domaine"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Sous-groupe %s"
+
 msgid "Subject"
 msgstr "Sujet"
 
@@ -15073,6 +15172,9 @@ msgstr "Nom de la table non défini"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La table ou la vue « %(table)s » n'existe pas."
+
+msgid "Table side"
+msgstr "Côté de la table"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16213,6 +16315,10 @@ msgstr ""
 " pour cette requête."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16278,6 +16384,10 @@ msgid ""
 msgstr ""
 "Le tableau « %(table)s » n'existe pas. Un tableau valide doit être "
 "utilisé pour cette requête."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16788,6 +16898,12 @@ msgstr "Il y a eu un problème de prévisualisation de la requête sélectionné
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16807,6 +16923,12 @@ msgstr "Ce sont les jeux de données sur lesquelles vont s'appliquer les filtres
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16822,6 +16944,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17813,6 +17940,9 @@ msgstr "Mardi"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Type"
@@ -18848,6 +18978,10 @@ msgid ""
 msgstr ""
 "Nous ne pouvons résoudre la colonne « %(column_name)s » à la ligne "
 "%(location)s."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20108,6 +20242,12 @@ msgstr "(cmd + z) jusqu'à ce que vous sauvegardiez vos modifications."
 
 msgid "by using"
 msgstr "en utilisant"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "ne peut pas être vide"

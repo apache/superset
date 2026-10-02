@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 19:35+0600\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -165,26 +165,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standaard om ervoor te zorgen dat de lexicografische volgorde\n"
-"                      samenvalt met de chronologische volgorde. Als het "
-"tijdstempel\n"
-"                      niet overeenkomt met de ISO 8601 standaard\n"
-"                      dan moet u een expressie definiëren en typen voor\n"
-"                      om de tekenreeks om te zetten in een datum of "
-"tijdstempel. Note\n"
-"                      currently time zones are not supported Als de tijd "
-"wordt opgeslagen\n"
-"                      in epoch formaat, zet `epoch_s` of `epoch_ms`. Als "
-"er geen patroon\n"
-"                      is opgegeven, vallen we terug naar de optionele "
-"standaardwaarden op een\n"
-"                      database/kolom naam niveau via de extra parameter."
 
 msgid " to add calculated columns"
 msgstr " berekende kolommen toevoegen"
@@ -1041,6 +1027,9 @@ msgstr ""
 "title: { text: \"Mijn grafiek\" }, tooltip: { trigger: \"item\" } }). "
 "Details: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1525,6 +1514,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filter toevoegen"
 
+msgid "Add group"
+msgstr "Groep toevoegen"
+
 msgid "Add item"
 msgstr "Voeg item toe"
 
@@ -1567,6 +1559,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Voeg blad toe"
+
+msgid "Add subgroup"
+msgstr "Subgroep toevoegen"
 
 msgid "Add tag to entities"
 msgstr "Voeg tag toe aan entiteiten"
@@ -1716,6 +1711,9 @@ msgstr "Selecteer grafieken"
 msgid "Affected Dashboards"
 msgstr "Selecteer dashboards"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1813,6 +1811,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3590,6 +3592,9 @@ msgstr "Cel limiet"
 msgid "Cell title template"
 msgstr "Verwijder template"
 
+msgid "Center"
+msgstr "Midden"
+
 msgid "Center value"
 msgstr ""
 
@@ -4316,6 +4321,9 @@ msgstr "Paneel data samenvouwen"
 msgid "Collapse row"
 msgstr "Rij inklappen"
 
+msgid "Collapse settings"
+msgstr "Instellingen inklappen"
+
 msgid "Collapse tab content"
 msgstr "Tabbladinhoud inklappen"
 
@@ -4460,6 +4468,9 @@ msgstr "Kolom met lengtegraad gegevens"
 #, fuzzy
 msgid "Column data types"
 msgstr "Kolom gegevenstypen"
+
+msgid "Column groups"
+msgstr "Kolomgroepen"
 
 msgid "Column header tooltip"
 msgstr "Kolomkop tooltip"
@@ -4759,6 +4770,9 @@ msgstr "Opslaan bevestigen"
 msgid "Confirm Password"
 msgstr "Toon wachtwoord."
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Overschrijven bevestigen"
 
@@ -4768,6 +4782,9 @@ msgstr "Toon wachtwoord."
 
 msgid "Confirm save"
 msgstr "Opslaan bevestigen"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5019,6 +5036,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5186,6 +5209,9 @@ msgstr "Huidige dag"
 
 msgid "Current month"
 msgstr "Huidige maand"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Huidig kwartaal"
@@ -6165,6 +6191,11 @@ msgstr "verwijder"
 #, fuzzy
 msgid "Delete item"
 msgstr "Verwijder template"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -7373,6 +7404,9 @@ msgstr "Voer primaire aanmeldgegevens in"
 msgid "Enter a name for this sheet"
 msgstr "Voer een naam in voor dit blad"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Of de objecten moeten worden gevuld"
@@ -7386,6 +7420,9 @@ msgstr "Voer duur in seconden in"
 
 msgid "Enter fullscreen"
 msgstr "Open volledig scherm"
+
+msgid "Enter group name"
+msgstr "Groepsnaam invoeren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7446,6 +7483,9 @@ msgstr "Voer de gebruikersnaam van de gebruiker in"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Naam van de waarschuwing"
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7708,6 +7748,9 @@ msgstr "Rij uitklappen"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rij uitklappen"
+
+msgid "Expand settings"
+msgstr "Instellingen uitklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8798,6 +8841,10 @@ msgstr ""
 msgid "Group"
 msgstr "Groep per"
 
+#, python-format
+msgid "Group %s"
+msgstr "Groep %s"
+
 msgid "Group By"
 msgstr "Groeperen op"
 
@@ -8809,6 +8856,12 @@ msgstr "Groep Sleutel"
 
 msgid "Group by"
 msgstr "Groep per"
+
+msgid "Group columns"
+msgstr "Kolommen groeperen"
+
+msgid "Group name"
+msgstr "Groepsnaam"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9089,9 +9142,6 @@ msgstr "Importeer %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Timeout fout"
-
-msgid "Import annotation layer failed for an unknown reason"
-msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafiek mislukt om een onbekende reden"
@@ -9472,10 +9522,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Ofwel is de gebruikersnaam ofwel het wachtwoord verkeerd."
-
 msgid "Inverse"
 msgstr ""
 
@@ -9855,6 +9901,9 @@ msgstr "Indeling type van boomstructuur"
 
 msgid "Least recently modified"
 msgstr "Meest recente wijziging"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -10897,6 +10946,12 @@ msgstr "Meer filters"
 msgid "MotherDuck token"
 msgstr "MotherDuck-token"
 
+msgid "Move group left"
+msgstr "Groep naar links verplaatsen"
+
+msgid "Move group right"
+msgstr "Groep naar rechts verplaatsen"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Enkel verplaatsen"
@@ -10929,6 +10984,9 @@ msgstr "Multi-Niveaus"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabelen"
+
+msgid "Multi-level header"
+msgstr "Meerlagige koptekst"
 
 msgid "Multiple"
 msgstr "Meerdere"
@@ -11095,6 +11153,9 @@ msgstr "Nieuwe dataset naam"
 
 msgid "New header"
 msgstr "Nieuwe koptekst"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nieuw tabblad"
@@ -11407,6 +11468,15 @@ msgstr "Niet gelijk aan (≠)"
 
 msgid "Not Time Series"
 msgstr "Geen Tijdserie"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 #, fuzzy
 msgid "Not a valid ZIP file"
@@ -12397,6 +12467,9 @@ msgstr "Gelieve te bevestigen"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Voer een SQLAlchemy URI in om te testen"
 
+msgid "Please enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Please enter a valid email"
 msgstr "Voer een SQLAlchemy URI in om te testen"
@@ -12562,6 +12635,9 @@ msgstr "Poort %(port)s op hostnaam “%(hostname)s” weigerde de verbinding."
 
 msgid "Port out of range 0-65535"
 msgstr "Poort buiten bereik 0-65535"
+
+msgid "Position"
+msgstr "Positie"
 
 msgid "Position JSON"
 msgstr "Positie JSON"
@@ -13069,6 +13145,9 @@ msgstr "Item verwijderen"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Groep verwijderen"
+
 msgid "Remove item"
 msgstr "Item verwijderen"
 
@@ -13319,6 +13398,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Vereiste controlewaarden zijn verwijderd"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
@@ -14006,6 +14088,9 @@ msgstr "Schema"
 msgid "Schema cache timeout"
 msgstr "Schema cache time-out"
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr "Schemas toegestaan voor bestandsupload"
 
@@ -14345,6 +14430,9 @@ msgstr "Selecteer kolom"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selecteer kolom"
+
+msgid "Select columns"
+msgstr "Kolommen selecteren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15915,6 +16003,10 @@ msgstr "Categorie"
 msgid "Subdomain"
 msgstr "Subdomein"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgroep %s"
+
 msgid "Subject"
 msgstr "Subject"
 
@@ -16178,6 +16270,9 @@ msgstr "Tabelnaam niet gedefinieerd"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabel of Weergave \"%(table)s\" bestaat niet."
+
+msgid "Table side"
+msgstr "Tabelzijde"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17386,6 +17481,10 @@ msgstr ""
 "gebruikt om deze query uit te voeren."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -17457,6 +17556,10 @@ msgid ""
 msgstr ""
 "De tabel \"%(table)s\" bestaat niet. Een geldige tabel moet worden "
 "gebruikt om deze query uit te voeren."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17966,6 +18069,12 @@ msgstr "Er was een probleem met het bekijken van de geselecteerde query. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17985,6 +18094,12 @@ msgstr "Dit zijn de datasets waarop dit filter zal worden toegepast."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -18000,6 +18115,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -19062,6 +19182,9 @@ msgstr "Dinsdag"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Type"
@@ -20177,6 +20300,10 @@ msgid ""
 msgstr ""
 "Het lijkt erop dat de kolom \"%(column_name)s\" op regel %(location)s "
 "niet kan worden opgelost."
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -21457,6 +21584,12 @@ msgstr "knop (cmd + z) totdat je jouw wijzigingen opslaat."
 
 msgid "by using"
 msgstr "door te gebruiken"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "mag niet leeg zijn"

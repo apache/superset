@@ -49,9 +49,10 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        # Full version spread on push (master/release) + nightly; current only
-        # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
+        # Just "current" here, on both push and PR — the "next" Python minor is
+        # exercised separately by the nightly canary (python-nightly-canary.yml)
+        # so cross-version breaks don't cost a runner on every push/PR.
+        python-version: ["current"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
