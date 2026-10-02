@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1098,6 +1098,14 @@ msgstr "Перелік стовпців, розділених комами, як
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Перелік схем (через кому), у які можна вивантажувати файли."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Порт бази даних обовʼязковий для тунелів SSH."
 
@@ -1529,6 +1537,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додати теку"
 
+msgid "Add group"
+msgstr "Додати групу"
+
 msgid "Add item"
 msgstr "Додати обʼєкт"
 
@@ -1568,6 +1579,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Додати аркуш"
+
+msgid "Add subgroup"
+msgstr "Додати підгрупу"
 
 msgid "Add tag to entities"
 msgstr "Додати мітку для сутностей"
@@ -3401,6 +3415,9 @@ msgstr "Обмеження комірки"
 msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -3801,6 +3818,12 @@ msgstr "Виберіть стовпці, які розпізнавати як д
 msgid "Choose columns to read"
 msgstr "Виберіть стовпці, які читати"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4074,6 +4097,9 @@ msgstr "Згорнути панель даних"
 msgid "Collapse row"
 msgstr "Згорнути рядок"
 
+msgid "Collapse settings"
+msgstr "Згорнути параметри"
+
 msgid "Collapse tab content"
 msgstr "Згорнути вміст вкладки"
 
@@ -4215,6 +4241,9 @@ msgstr "Стовпець з даними довготи"
 
 msgid "Column data types"
 msgstr "Типи даних стовпця"
+
+msgid "Column groups"
+msgstr "Групи стовпців"
 
 msgid "Column header tooltip"
 msgstr "Підказка для стовпця"
@@ -6932,6 +6961,9 @@ msgstr "Введіть тривалість у секундах"
 msgid "Enter fullscreen"
 msgstr "На весь екран"
 
+msgid "Enter group name"
+msgstr "Введіть назву групи"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введіть мінімальне та максимальне значення для фільтра діапазону"
 
@@ -6971,6 +7003,9 @@ msgstr "Введіть псевдонім користувача"
 
 msgid "Enter theme name"
 msgstr "Введіть назву теми"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7152,6 +7187,9 @@ msgstr "Точне збігання (IN)"
 msgid "Example"
 msgstr "Приклад"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Приклади"
 
@@ -7212,6 +7250,9 @@ msgstr "Розгорнути рядок"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
+
+msgid "Expand settings"
+msgstr "Розгорнути параметри"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8212,6 +8253,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 msgid "Group By"
 msgstr "Групувати за"
 
@@ -8223,6 +8268,12 @@ msgstr "Група"
 
 msgid "Group by"
 msgstr "Групувати за"
+
+msgid "Group columns"
+msgstr "Групувати стовпці"
+
+msgid "Group name"
+msgstr "Назва групи"
 
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
@@ -10124,6 +10175,12 @@ msgstr "Ще фільтри"
 msgid "MotherDuck token"
 msgstr "Токен MotherDuck"
 
+msgid "Move group left"
+msgstr "Перемістити групу ліворуч"
+
+msgid "Move group right"
+msgstr "Перемістити групу праворуч"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Тільки переміщення"
@@ -10159,6 +10216,9 @@ msgstr "Багаторівневий"
 
 msgid "Multi-Variables"
 msgstr "Багатозначний"
+
+msgid "Multi-level header"
+msgstr "Багаторівневий заголовок"
 
 msgid "Multiple"
 msgstr "Декілька"
@@ -11736,6 +11796,9 @@ msgstr "Порт %(port)s на вузлі «%(hostname)s» відхилив з�
 msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
 
+msgid "Position"
+msgstr "Положення"
+
 msgid "Position JSON"
 msgstr "Розміщення (JSON)"
 
@@ -12210,6 +12273,9 @@ msgstr "Вилучити елемент"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Вилучити групу"
+
 msgid "Remove item"
 msgstr "Вилучити елемент"
 
@@ -12471,6 +12537,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Скинути"
 
@@ -12479,6 +12548,9 @@ msgstr "Скинути стовпці"
 
 msgid "Reset all folders to default"
 msgstr "Скинути всі теки до типових"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Скинути стовпці"
@@ -13052,6 +13124,14 @@ msgstr "Збережений запит не знайдено."
 msgid "Saved query parameters are invalid."
 msgstr "Збережені параметри запиту неправильні."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Збереження…"
 
@@ -13430,6 +13510,9 @@ msgstr "Вибрати стовпець"
 #, fuzzy
 msgid "Select column name"
 msgstr "Вибрати стовпець"
+
+msgid "Select columns"
+msgstr "Вибрати стовпці"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14734,6 +14817,21 @@ msgstr "Дата початку"
 msgid "Start date included in time range"
 msgstr "Дата початку входить у діапазон"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Почати вісь Y з нуля"
 
@@ -14871,6 +14969,10 @@ msgstr "Підкатегорії"
 msgid "Subdomain"
 msgstr "Розділ"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Підгрупа %s"
+
 msgid "Subject"
 msgstr "Суб’єкт"
 
@@ -14914,6 +15016,12 @@ msgstr "Суфікс"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Суфікс після відсотків"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15105,6 +15213,9 @@ msgstr "Назву таблиці не визначено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблиця або представлення «%(table)s» не існує."
+
+msgid "Table side"
+msgstr "Бік таблиці"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17227,6 +17338,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "Цей пароль занадто простий; будь ласка, оберіть більш складний."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18529,6 +18645,11 @@ msgstr "Значення"
 
 msgid "Values are dependent on other filters"
 msgstr "Значення залежать від інших фільтрів"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Значення, які залежать від"

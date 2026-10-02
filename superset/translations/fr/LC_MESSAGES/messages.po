@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1052,6 +1052,14 @@ msgstr ""
 "Une liste de schémas séparés par des virgules autorisés pour le "
 "chargement."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Un port de base de donnée est requis lors de la connexion en SSH."
 
@@ -1489,6 +1497,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ajouter un répertoire"
 
+msgid "Add group"
+msgstr "Ajouter un groupe"
+
 msgid "Add item"
 msgstr "Ajouter un élément"
 
@@ -1529,6 +1540,9 @@ msgstr "Ajouter les paramètres d'authentification du service"
 
 msgid "Add sheet"
 msgstr "Ajouter une feuille"
+
+msgid "Add subgroup"
+msgstr "Ajouter un sous-groupe"
 
 msgid "Add tag to entities"
 msgstr "Ajouter un tag à des entités"
@@ -3438,6 +3452,9 @@ msgstr "Limite de la cellule"
 msgid "Cell title template"
 msgstr "Modèle de titre de cellule"
 
+msgid "Center"
+msgstr "Centre"
+
 msgid "Center value"
 msgstr ""
 
@@ -3840,6 +3857,12 @@ msgstr "choisir les Colonnes à traiter comme des dates"
 msgid "Choose columns to read"
 msgstr "choisir les Colonnes à lire"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4123,6 +4146,9 @@ msgstr "Réduire le panneau de données"
 msgid "Collapse row"
 msgstr "Réduire la ligne"
 
+msgid "Collapse settings"
+msgstr "Réduire les paramètres"
+
 msgid "Collapse tab content"
 msgstr "Réduire le contenu de l'onglet"
 
@@ -4264,6 +4290,9 @@ msgstr "Colonne contenant des données de longitude"
 
 msgid "Column data types"
 msgstr "Types de données des colonnes"
+
+msgid "Column groups"
+msgstr "Groupes de colonnes"
 
 msgid "Column header tooltip"
 msgstr "Infobulle de l'en-tête de colonne"
@@ -6999,6 +7028,9 @@ msgstr "Saisir la durée en secondes"
 msgid "Enter fullscreen"
 msgstr "Passer en plein écran"
 
+msgid "Enter group name"
+msgstr "Saisir le nom du groupe"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -7040,6 +7072,9 @@ msgstr "Saisir le nom de l'utilisateur"
 
 msgid "Enter theme name"
 msgstr "Saisir le nom du thème"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7224,6 +7259,9 @@ msgstr "Correspondance exacte (IN)"
 msgid "Example"
 msgstr "Exemple"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Exemples"
 
@@ -7283,6 +7321,9 @@ msgstr "Agrandir la ligne"
 
 msgid "Expand row to edit"
 msgstr "Développer la ligne à modifier"
+
+msgid "Expand settings"
+msgstr "Développer les paramètres"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8300,6 +8341,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grouper par"
 
+#, python-format
+msgid "Group %s"
+msgstr "Groupe %s"
+
 msgid "Group By"
 msgstr "Grouper par"
 
@@ -8311,6 +8356,12 @@ msgstr "Clé de regroupement"
 
 msgid "Group by"
 msgstr "Grouper par"
+
+msgid "Group columns"
+msgstr "Grouper les colonnes"
+
+msgid "Group name"
+msgstr "Nom du groupe"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grouper le reste sous « Autres »"
@@ -10233,6 +10284,12 @@ msgstr "Plus de filtres"
 msgid "MotherDuck token"
 msgstr "Jeton MotherDuck"
 
+msgid "Move group left"
+msgstr "Déplacer le groupe à gauche"
+
+msgid "Move group right"
+msgstr "Déplacer le groupe à droite"
+
 msgid "Move icon"
 msgstr "Déplacer l'icône"
 
@@ -10267,6 +10324,9 @@ msgstr "Niveaux multiples"
 
 msgid "Multi-Variables"
 msgstr "Multi-variables"
+
+msgid "Multi-level header"
+msgstr "En-tête à plusieurs niveaux"
 
 msgid "Multiple"
 msgstr "Multiple"
@@ -11875,6 +11935,9 @@ msgstr "Le port %(port)s sur l'hôte « %(hostname)s » a refusé la connexion
 msgid "Port out of range 0-65535"
 msgstr "Port hors de portée 0-65535"
 
+msgid "Position"
+msgstr "Position"
+
 msgid "Position JSON"
 msgstr "Position JSON"
 
@@ -12349,6 +12412,9 @@ msgstr "Supprimer le filtre"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Supprimer le groupe"
+
 msgid "Remove item"
 msgstr "Supprimer l'élément"
 
@@ -12627,6 +12693,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Réinitialiser"
 
@@ -12637,6 +12706,9 @@ msgstr "Réinitialiser les colonnes"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Reset all folders to default"
 msgstr "Réinitialiser tous les dossiers aux valeurs par défaut"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Réinitialiser les colonnes"
@@ -13204,6 +13276,14 @@ msgstr "Requête enregistrée introuvable."
 msgid "Saved query parameters are invalid."
 msgstr "Les paramètres des requêtes enregistrée sont invalides."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Enregistrement..."
 
@@ -13585,6 +13665,9 @@ msgstr "Sélectionner une colonne"
 
 msgid "Select column name"
 msgstr "Sélectionner un nom de colonne"
+
+msgid "Select columns"
+msgstr "Sélectionner les colonnes"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14904,6 +14987,21 @@ msgstr "Date de début"
 msgid "Start date included in time range"
 msgstr "Date de début incluse de l'intervalle de temps"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Commencer l'axe Y à 0"
 
@@ -15039,6 +15137,10 @@ msgstr "Sous-catégories"
 msgid "Subdomain"
 msgstr "Sous-domaine"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Sous-groupe %s"
+
 msgid "Subject"
 msgstr "Sujet"
 
@@ -15081,6 +15183,12 @@ msgstr "Suffixe"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Suffixe à appliquer après l'affichage du pourcentage"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15274,6 +15382,9 @@ msgstr "Nom de la table non défini"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La table ou la vue « %(table)s » n'existe pas."
+
+msgid "Table side"
+msgstr "Côté de la table"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17527,6 +17638,11 @@ msgstr ""
 "deviner."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18851,6 +18967,11 @@ msgstr "Valeurs"
 
 msgid "Values are dependent on other filters"
 msgstr "Les valeurs dépendent d'autres filtres"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Valeurs dépendent de"

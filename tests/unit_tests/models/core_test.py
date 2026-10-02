@@ -16,6 +16,8 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import sqlite3
+from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Callable
 
@@ -42,6 +44,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
+    LockAlreadyHeldException,
     OAuth2Error,
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
@@ -2090,6 +2093,67 @@ def test_apply_limit_to_sql(
     assert limited == expected
 
 
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("force", [False, True])
+@pytest.mark.parametrize("limit", [1, 3])
+@pytest.mark.parametrize("sql_limit", ["(1 + 1)", "0"])
+def test_apply_limit_to_sql_preserves_restrictions(
+    method: LimitMethod,
+    force: bool,
+    limit: int,
+    sql_limit: str,
+    mocker: MockerFixture,
+) -> None:
+    """Preserve smaller SQL limits unless explicitly forced to replace them."""
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        db,
+        "get_db_engine_spec",
+        return_value=mocker.Mock(engine="sqlite", limit_method=method),
+    )
+    # The LIMIT expression comes only from the fixed test parameters above.
+    sql = (
+        "SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "  # noqa: S608
+        f"ORDER BY n LIMIT {sql_limit}"
+    )
+    limited = db.apply_limit_to_sql(sql, limit, force)
+
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        expected = (
+            [(1,), (2,), (3,)][:limit]
+            if force and method == LimitMethod.FORCE_LIMIT
+            else original_rows[:limit]
+        )
+        assert connection.execute(limited).fetchall() == expected
+
+
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(1 + 4)", "0", "1", "5"])
+@pytest.mark.parametrize(
+    "projection", ["COUNT(*)", "1, 2", "1 AS n, 2 AS n", "a.*, b.*"]
+)
+def test_apply_limit_to_sql_bounds_tsql_without_derived_tables(
+    top: str, projection: str, mocker: MockerFixture
+) -> None:
+    """Legacy SQL-only caps must work without relying on the executor cursor."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLScript
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=MssqlEngineSpec)
+    sql = (
+        f"SELECT TOP {top} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+    expected_limit = min(int(top), 2) if top.isdigit() else 2
+    expected = (
+        f"SELECT TOP {expected_limit} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+
+    assert database.apply_limit_to_sql(sql, 2) == SQLScript(expected, "mssql").format()
+
+
 def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
     """Test that Database.execute() delegates to SQLExecutor.execute()."""
     from unittest.mock import MagicMock
@@ -2526,3 +2590,353 @@ def test_function_names_returns_empty_list_when_engine_spec_raises(
 
     assert database.function_names == []
     assert logger.error.called
+
+
+def _login_rejecting_database(mocker: MockerFixture, engine: Any) -> Database:
+    """A database with a user token that its engine rejects at login."""
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    db_engine_spec.needs_oauth2.side_effect = lambda ex: "rejected" in str(ex)
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    metadata_db.session.query().filter_by().one_or_none.return_value = (
+        mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    )
+    return database
+
+
+def test_get_raw_connection_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A token the database rejects when the connection logs in is refreshed once
+    and the connection is opened again, instead of asking the user to sign in.
+    """
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    assert refresh.call_args.kwargs == {
+        "force": True,
+        "rejected_access_token": "stale-token",  # noqa: S106
+    }
+    start_dance.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_get_inspector_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Metadata (and the default schema chart data reads) log in the same way."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=[RuntimeError("token rejected"), inspector],
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    with database.get_inspector() as result:
+        assert result is inspector
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+
+
+def test_get_raw_connection_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            pass
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_outer_oauth2_retry_does_not_refresh_again_when_login_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Re-entering connection creation cannot exchange twice for one query."""
+    from superset.utils.oauth2 import execute_with_oauth2_retry, is_oauth2_retry_active
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    def operation() -> None:
+        """Open the connection inside the logical query's retry boundary."""
+        with database.get_raw_connection():
+            pytest.fail("A rejected token must not open a connection")
+
+    with pytest.raises(OAuth2RedirectError):
+        execute_with_oauth2_retry(database, operation)
+
+    refresh.assert_called_once()
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_called_once_with(database)
+    assert not is_oauth2_retry_active()
+
+
+def test_get_inspector_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A second inspector login rejection redirects instead of leaking the error."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    # Isolate inspector creation from get_sqla_engine's broader error handling.
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=RuntimeError("token rejected"),
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            pytest.fail("A rejected token must not create an inspector")
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_inspector_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inspector errors after login trigger sign-in without replaying metadata work.
+
+    Stubbing get_sqla_engine pins the defensive guard, not the real path.
+    """
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    mocker.patch.object(database, "get_sqla_engine", return_value=nullcontext(engine))
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch("superset.models.core.sqla.inspect", return_value=inspector)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_inspector():
+            raise RuntimeError("token rejected")
+
+    inspect.assert_called_once_with(engine)
+    refresh.assert_not_called()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_raw_connection_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Only opening the connection is retried, never work done with it."""
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            raise RuntimeError("token rejected")
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inside an operation that owns the recovery, the login is not retried."""
+    from superset.utils import oauth2
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    token = oauth2._oauth2_retry_active.set(True)
+    try:
+        with pytest.raises(RuntimeError, match="token rejected"):
+            with database.get_raw_connection():
+                pass
+    finally:
+        oauth2._oauth2_retry_active.reset(token)
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_without_oauth2_is_unchanged(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _login_rejecting_database(mocker, engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=False)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="token rejected"):
+        with database.get_raw_connection():
+            pass
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_survives_a_lost_refresh_race(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart that loses the refresh race opens with the token the winner stored.
+
+    Every chart on a dashboard whose token is rejected at login competes for the
+    non-blocking refresh lock. The losers must pick up the committed token rather
+    than failing with an opaque lock error.
+    """
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _login_rejecting_database(mocker, engine)
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=metadata_db.session)
+    # The rejected token is read first, then the winner's committed replacement.
+    metadata_db.session.query().filter_by().one_or_none.side_effect = [
+        mocker.MagicMock(access_token="stale-token"),  # noqa: S106
+        mocker.MagicMock(access_token="winning-token"),  # noqa: S106
+    ]
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=LockAlreadyHeldException("Lock already taken"),
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_not_called()
+
+
+@pytest.mark.parametrize("connection_method", ["get_raw_connection", "get_inspector"])
+def test_connection_does_not_re_exchange_a_refused_refresh_token(
+    mocker: MockerFixture,
+    connection_method: str,
+) -> None:
+    """A refused expired-token refresh starts sign-in without another exchange."""
+    from datetime import datetime, timedelta
+
+    from superset.exceptions import OAuth2TokenRefreshError
+    from superset.utils.oauth2 import get_oauth2_access_token
+
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    spec = database.db_engine_spec
+    mocker.patch.object(
+        spec,
+        "needs_oauth2",
+        side_effect=lambda ex: isinstance(ex, OAuth2TokenRefreshError),
+    )
+    spec.oauth2_exception = ValueError
+    exchange = mocker.patch.object(
+        spec, "get_oauth2_fresh_token", side_effect=ValueError("refresh refused")
+    )
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock(
+        access_token="expired-token",  # noqa: S106
+        access_token_expiration=datetime.now() - timedelta(seconds=1),
+        refresh_token="refused-token",  # noqa: S106
+    )
+    metadata_db.session.query().filter_by().one_or_none.return_value = token
+    # A coordination lock must not commit the caller's pending deletion.
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    isolated_session = mocker.patch("superset.utils.oauth2.Session")
+    mocker.patch.object(
+        Database,
+        "_get_sqla_engine",
+        side_effect=lambda *args, **kwargs: get_oauth2_access_token({}, 1, 2, spec),
+    )
+    start_dance = mocker.patch.object(
+        spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError) as exc:
+        with getattr(database, connection_method)():
+            pytest.fail("A refused refresh must not open a connection")
+
+    assert not isinstance(exc.value, OAuth2TokenRefreshError)
+    exchange.assert_called_once_with({}, "refused-token")
+    metadata_db.session.delete.assert_called_once_with(token)
+    metadata_db.session.flush.assert_called_once()
+    metadata_db.session.commit.assert_not_called()
+    isolated_session.assert_not_called()
+    start_dance.assert_called_once_with(database)
+    engine.raw_connection.assert_not_called()

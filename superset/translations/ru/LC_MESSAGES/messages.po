@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1064,6 +1064,14 @@ msgstr ""
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Разделенный запятыми список схем, в которые можно загружать файлы."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "При подключении через туннель SSH нужно указать порт базы данных"
 
@@ -1475,6 +1483,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Добавить папку"
 
+msgid "Add group"
+msgstr "Добавить группу"
+
 msgid "Add item"
 msgstr "Добавить запись"
 
@@ -1514,6 +1525,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Добавить лист"
+
+msgid "Add subgroup"
+msgstr "Добавить подгруппу"
 
 msgid "Add tag to entities"
 msgstr "Добавить тег к объектам"
@@ -3350,6 +3364,9 @@ msgstr "Лимит ячеек"
 msgid "Cell title template"
 msgstr "Шаблон заголовка ячейки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -3739,6 +3756,12 @@ msgstr "Выберите столбцы, которые должны быть и
 msgid "Choose columns to read"
 msgstr "Выберите столбцы для чтения"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4013,6 +4036,9 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
+msgid "Collapse settings"
+msgstr "Свернуть настройки"
+
 msgid "Collapse tab content"
 msgstr "Свернуть содержимое вкладки"
 
@@ -4149,6 +4175,9 @@ msgstr "Столбец, содержащий данные о долготе"
 
 msgid "Column data types"
 msgstr "Типы данных столбцов"
+
+msgid "Column groups"
+msgstr "Группы столбцов"
 
 msgid "Column header tooltip"
 msgstr "Всплывающая подсказка заголовка столбца"
@@ -6812,6 +6841,9 @@ msgstr "Введите время в секундах"
 msgid "Enter fullscreen"
 msgstr "Полноэкранный режим"
 
+msgid "Enter group name"
+msgstr "Введите имя группы"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введите минимальное и максимальное значения для диапазона"
 
@@ -6851,6 +6883,9 @@ msgstr "Введите имя пользователя"
 
 msgid "Enter theme name"
 msgstr "Введите имя темы"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7029,6 +7064,9 @@ msgstr "Точное совпадение (IN)"
 msgid "Example"
 msgstr "Пример"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Примеры"
 
@@ -7089,6 +7127,9 @@ msgstr "Развернуть строку"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Развернуть строку"
+
+msgid "Expand settings"
+msgstr "Развернуть настройки"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8073,6 +8114,10 @@ msgstr ""
 msgid "Group"
 msgstr "Группа"
 
+#, python-format
+msgid "Group %s"
+msgstr "Группа %s"
+
 msgid "Group By"
 msgstr "Группировать по"
 
@@ -8084,6 +8129,12 @@ msgstr "Группа"
 
 msgid "Group by"
 msgstr "Группировать по"
+
+msgid "Group columns"
+msgstr "Группировать столбцы"
+
+msgid "Group name"
+msgstr "Имя группы"
 
 msgid "Group remaining as \"Others\""
 msgstr "Группировать остальное в \"Другое\""
@@ -9967,6 +10018,12 @@ msgstr "Еще фильтры"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Переместить группу влево"
+
+msgid "Move group right"
+msgstr "Переместить группу вправо"
+
 msgid "Move icon"
 msgstr "Переместить иконку"
 
@@ -10001,6 +10058,9 @@ msgstr "Многоуровневый"
 
 msgid "Multi-Variables"
 msgstr "Несколько переменных"
+
+msgid "Multi-level header"
+msgstr "Многоуровневый заголовок"
 
 msgid "Multiple"
 msgstr "Несколько"
@@ -11563,6 +11623,9 @@ msgstr "Порт %(port)s хоста \"%(hostname)s\" отказал в подк
 msgid "Port out of range 0-65535"
 msgstr "Порт должен быть в диапазоне 0-65535"
 
+msgid "Position"
+msgstr "Положение"
+
 msgid "Position JSON"
 msgstr "Позиция (JSON)"
 
@@ -12026,6 +12089,9 @@ msgstr "Удалить фильтр"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Удалить группу"
+
 msgid "Remove item"
 msgstr "Удалить элемент"
 
@@ -12292,6 +12358,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Сбросить"
 
@@ -12300,6 +12369,9 @@ msgstr "Сбросить столбцы"
 
 msgid "Reset all folders to default"
 msgstr "Сбросить все папки к значениям по умолчанию"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Сбросить столбцы"
@@ -12857,6 +12929,14 @@ msgstr "Сохраненный запрос не найден"
 msgid "Saved query parameters are invalid."
 msgstr "Сохраненные параметры запроса недопустимы"
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Сохранение..."
 
@@ -13222,6 +13302,9 @@ msgstr "Выберите столбец"
 
 msgid "Select column name"
 msgstr "Выберите имя столбца"
+
+msgid "Select columns"
+msgstr "Выберите столбцы"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14458,6 +14541,21 @@ msgstr "Дата начала"
 msgid "Start date included in time range"
 msgstr "Начальная дата включена во временной интервал"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Начать ось Y в нуле"
 
@@ -14588,6 +14686,10 @@ msgstr "Подкатегории"
 msgid "Subdomain"
 msgstr "Подблок"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгруппа %s"
+
 msgid "Subject"
 msgstr "Субъект"
 
@@ -14631,6 +14733,12 @@ msgstr "Суффикс"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Текст после отображения процентной доли"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -14823,6 +14931,9 @@ msgstr "Имя таблицы не определено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблица или представление \"%(table)s\" не существует"
+
+msgid "Table side"
+msgstr "Сторона таблицы"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16921,6 +17032,11 @@ msgstr ""
 "который было бы сложнее угадать."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18205,6 +18321,11 @@ msgstr "Значения"
 
 msgid "Values are dependent on other filters"
 msgstr "Значения зависят от других фильтров"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Значения зависят от"

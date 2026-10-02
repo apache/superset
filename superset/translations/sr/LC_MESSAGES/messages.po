@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1222,6 +1222,14 @@ msgstr "Листа колона раздвојених запетама које
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Листа шема раздвојених запетама у које датотеке могу бити отпремљене."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Порт базе података је обавезан при повезивању преко SSH тунела."
@@ -1746,6 +1754,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додај фасциклу"
 
+msgid "Add group"
+msgstr "Додај групу"
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Add item"
@@ -1797,6 +1808,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add sheet"
 msgstr "Додај лист"
+
+msgid "Add subgroup"
+msgstr "Додај подгрупу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add tag to entities"
@@ -4079,6 +4093,9 @@ msgstr "Ограничење ћелија"
 msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
+msgid "Center"
+msgstr "Центар"
+
 msgid "Center value"
 msgstr ""
 
@@ -4565,6 +4582,12 @@ msgstr "Изаберите колоне које треба тумачити к�
 msgid "Choose columns to read"
 msgstr "Изаберите колоне за читање"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
@@ -4914,6 +4937,9 @@ msgstr "Скупи панел са подацима"
 msgid "Collapse row"
 msgstr "Скупи ред"
 
+msgid "Collapse settings"
+msgstr "Скупи подешавања"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Collapse tab content"
 msgstr "Скупи садржај картице"
@@ -5067,6 +5093,9 @@ msgstr "Колона која садржи податке о географск�
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Column data types"
 msgstr "Типови података колоне"
+
+msgid "Column groups"
+msgstr "Групе колона"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Column header tooltip"
@@ -8417,6 +8446,9 @@ msgstr "Унесите трајање у секундама"
 msgid "Enter fullscreen"
 msgstr "Уђи у режим целог екрана"
 
+msgid "Enter group name"
+msgstr "Унесите назив групе"
+
 # pt_BR, ru, sk, uk]
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Унесите минималну и максималну вредност за филтер опсега"
@@ -8469,6 +8501,9 @@ msgstr "Унесите корисничко име корисника"
 # uk]
 msgid "Enter theme name"
 msgstr "Унесите назив теме"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -8691,6 +8726,9 @@ msgstr "Тачно подударање (IN)"
 msgid "Example"
 msgstr "Пример"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Examples"
 msgstr "Примери"
@@ -8771,6 +8809,9 @@ msgstr "Прошири ред"
 
 msgid "Expand row to edit"
 msgstr "Прошири ред за измену"
+
+msgid "Expand settings"
+msgstr "Прошири подешавања"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -9967,6 +10008,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Group By"
 msgstr "Групиши по"
@@ -9983,6 +10028,12 @@ msgstr "Кључ групе"
 # zh_TW]
 msgid "Group by"
 msgstr "Групиши по"
+
+msgid "Group columns"
+msgstr "Групиши колоне"
+
+msgid "Group name"
+msgstr "Назив групе"
 
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
@@ -12308,6 +12359,12 @@ msgstr "Више филтера"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Помери групу улево"
+
+msgid "Move group right"
+msgstr "Помери групу удесно"
+
 msgid "Move icon"
 msgstr "Икона за померање"
 
@@ -12348,6 +12405,9 @@ msgstr "Више нивоа"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Више променљивих"
+
+msgid "Multi-level header"
+msgstr "Вишениво заглавље"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multiple"
@@ -14280,6 +14340,9 @@ msgstr "Port %(port)s на хосту „%(hostname)s“ је одбио вез�
 msgid "Port out of range 0-65535"
 msgstr "Port изван опсега 0-65535"
 
+msgid "Position"
+msgstr "Позиција"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Position JSON"
@@ -14871,6 +14934,9 @@ msgstr "Уклони филтер"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Уклони групу"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
 msgstr "Уклони ставку"
@@ -15189,6 +15255,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Reset"
 msgstr "Ресетуј"
@@ -15200,6 +15269,9 @@ msgstr "Ресетуј колоне"
 # ru, sk, uk]
 msgid "Reset all folders to default"
 msgstr "Ресетуј све фасцикле на подразумевано"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 # ja, lv, mi, ru, sk, uk]
 msgid "Reset columns"
@@ -15912,6 +15984,14 @@ msgstr "Сачувани упит није пронађен."
 msgid "Saved query parameters are invalid."
 msgstr "Параметри сачуваног упита су неважећи."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Saving..."
 msgstr "Чување..."
@@ -16376,6 +16456,9 @@ msgstr "Изаберите колону"
 
 msgid "Select column name"
 msgstr "Изаберите назив колоне"
+
+msgid "Select columns"
+msgstr "Изаберите колоне"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -17891,6 +17974,21 @@ msgstr "Датум почетка"
 msgid "Start date included in time range"
 msgstr "Датум почетка укључен у временски опсег"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Start y-axis at 0"
 msgstr "Почни Y-осу од 0"
@@ -18058,6 +18156,10 @@ msgstr "Подкатегорије"
 msgid "Subdomain"
 msgstr "Поддомен"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгрупа %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -18118,6 +18220,12 @@ msgstr "Суфикс"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Suffix to apply after the percentage display"
 msgstr "Суфикс који се примењује након приказа процента"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -18361,6 +18469,9 @@ msgstr "Назив табеле није дефинисан"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Табела или преглед \"%(table)s\" не постоји."
+
+msgid "Table side"
+msgstr "Страна табеле"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -20782,6 +20893,11 @@ msgstr ""
 "Ова лозинка је превише уобичајена; молимо одаберите лозинку коју је теже "
 "погодити."
 
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -22330,6 +22446,11 @@ msgstr "Вредности"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Values are dependent on other filters"
 msgstr "Вредности зависе од других филтера"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Values dependent on"

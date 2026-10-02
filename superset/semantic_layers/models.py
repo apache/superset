@@ -604,6 +604,9 @@ class SemanticView(AuditMixinNullable, Model):
             "semantic_view_features": sorted(
                 _feature_value(feature) for feature in self.implementation.features
             ),
+            "semantic_selection_version": (
+                self.implementation.selection_identity_version
+            ),
             "name": self.name,
             "columns": [
                 {

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1065,6 +1065,14 @@ msgstr ""
 "Una llista separada per comes d'esquemes als quals els fitxers poden "
 "pujar."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Es requereix un port de base de dades quan es connecta via túnel SSH."
 
@@ -1527,6 +1535,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Afegir Filtre"
 
+msgid "Add group"
+msgstr "Afegeix grup"
+
 msgid "Add item"
 msgstr "Afegir element"
 
@@ -1569,6 +1580,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Afegir full"
+
+msgid "Add subgroup"
+msgstr "Afegeix subgrup"
 
 msgid "Add tag to entities"
 msgstr "Afegir etiqueta a entitats"
@@ -3540,6 +3554,9 @@ msgstr "Límit de cel·les"
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
+msgid "Center"
+msgstr "Centre"
+
 msgid "Center value"
 msgstr ""
 
@@ -3948,6 +3965,12 @@ msgstr "Escull columnes per analitzar com a dates"
 msgid "Choose columns to read"
 msgstr "Escull columnes per llegir"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4255,6 +4278,9 @@ msgstr "Col·lapsar panell de dades"
 msgid "Collapse row"
 msgstr "Col·lapsar fila"
 
+msgid "Collapse settings"
+msgstr "Replega la configuració"
+
 msgid "Collapse tab content"
 msgstr "Col·lapsar contingut de la pestanya"
 
@@ -4398,6 +4424,9 @@ msgstr "Columna que conté dades de longitud"
 
 msgid "Column data types"
 msgstr "Tipus de dades de columna"
+
+msgid "Column groups"
+msgstr "Grups de columnes"
 
 msgid "Column header tooltip"
 msgstr "Informació d'ajuda de l'encapçalament de columna"
@@ -7271,6 +7300,9 @@ msgstr "Introdueix duració en segons"
 msgid "Enter fullscreen"
 msgstr "Entrar a pantalla completa"
 
+msgid "Enter group name"
+msgstr "Introduïu el nom del grup"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7318,6 +7350,9 @@ msgstr "Introdueix el nom d'usuari de l'usuari"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Introdueix nom de l'alerta"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7509,6 +7544,9 @@ msgstr "Coincidència exacta (IN)"
 msgid "Example"
 msgstr "Exemple"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Exemples"
 
@@ -7572,6 +7610,9 @@ msgstr "Expandir fila"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Expandir fila"
+
+msgid "Expand settings"
+msgstr "Expandeix la configuració"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8652,6 +8693,10 @@ msgstr ""
 msgid "Group"
 msgstr "Agrupar per"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grup %s"
+
 msgid "Group By"
 msgstr "Agrupar Per"
 
@@ -8663,6 +8708,12 @@ msgstr "Clau de Grup"
 
 msgid "Group by"
 msgstr "Agrupar per"
+
+msgid "Group columns"
+msgstr "Agrupa columnes"
+
+msgid "Group name"
+msgstr "Nom del grup"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10689,6 +10740,12 @@ msgstr "Més filtres"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mou el grup a l'esquerra"
+
+msgid "Move group right"
+msgstr "Mou el grup a la dreta"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Només moure"
@@ -10724,6 +10781,9 @@ msgstr "Multi-Nivells"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variables"
+
+msgid "Multi-level header"
+msgstr "Capçalera multinivell"
 
 msgid "Multiple"
 msgstr "Múltiple"
@@ -12371,6 +12431,9 @@ msgstr "El port %(port)s a l'hostname \"%(hostname)s\" ha refusat la connexió."
 msgid "Port out of range 0-65535"
 msgstr "Port fora del rang 0-65535"
 
+msgid "Position"
+msgstr "Posició"
+
 msgid "Position JSON"
 msgstr "JSON de Posició"
 
@@ -12870,6 +12933,9 @@ msgstr "Eliminar element"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Eliminar grup"
+
 msgid "Remove item"
 msgstr "Eliminar element"
 
@@ -13131,6 +13197,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Restablir"
 
@@ -13143,6 +13212,9 @@ msgstr "Restablir columnes"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "Restableix totes les carpetes als valors predeterminats"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Restablir columnes"
@@ -13733,6 +13805,14 @@ msgstr "Consulta desada no trobada."
 msgid "Saved query parameters are invalid."
 msgstr "Els paràmetres de la consulta desada són invàlids."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Desant..."
 
@@ -14130,6 +14210,9 @@ msgstr "Seleccionar columna"
 #, fuzzy
 msgid "Select column name"
 msgstr "Seleccionar columna"
+
+msgid "Select columns"
+msgstr "Seleccionar columnes"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15540,6 +15623,21 @@ msgstr "Data d'inici"
 msgid "Start date included in time range"
 msgstr "Data d'inici inclosa en el rang temporal"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Començar eix Y a 0"
 
@@ -15681,6 +15779,10 @@ msgstr "Categoria"
 msgid "Subdomain"
 msgstr "Subdomini"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrup %s"
+
 msgid "Subject"
 msgstr "Subjecte"
 
@@ -15724,6 +15826,12 @@ msgstr "Sufix"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Sufix a aplicar després de la visualització del percentatge"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15929,6 +16037,9 @@ msgstr "Nom de taula no definit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La Taula o Vista \"%(table)s\" no existeix."
+
+msgid "Table side"
+msgstr "Costat de la taula"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -18197,6 +18308,11 @@ msgstr ""
 "endevinable."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -19580,6 +19696,11 @@ msgstr "Valor"
 
 msgid "Values are dependent on other filters"
 msgstr "Els valors depenen d'altres filtres"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Valors dependents de"

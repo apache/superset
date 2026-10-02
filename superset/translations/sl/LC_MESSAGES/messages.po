@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1106,6 +1106,14 @@ msgstr "Seznam stolpcev, ločenih z vejico, ki jih je treba razčleniti kot datu
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Z vejicami ločen seznam shem, kjer je dovoljeno nalaganje datotek."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Pri povezavi preko SSH-tunela so potrebna vrata podatkovne baze."
 
@@ -1529,6 +1537,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Dodaj mapo"
 
+msgid "Add group"
+msgstr "Dodaj skupino"
+
 msgid "Add item"
 msgstr "Dodaj"
 
@@ -1567,6 +1578,9 @@ msgstr "Dodaj poverilnice storitve"
 
 msgid "Add sheet"
 msgstr "Dodaj preglednico"
+
+msgid "Add subgroup"
+msgstr "Dodaj podskupino"
 
 msgid "Add tag to entities"
 msgstr "Dodaj oznako elementom"
@@ -3450,6 +3464,9 @@ msgstr "Omejitev števila celic"
 msgid "Cell title template"
 msgstr "Predloga naslova celice"
 
+msgid "Center"
+msgstr "Sredina"
+
 msgid "Center value"
 msgstr ""
 
@@ -3848,6 +3865,12 @@ msgstr "Izberite stolpce, ki bodo prepoznani kot datumi"
 msgid "Choose columns to read"
 msgstr "Izberite stolpce za branje"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4132,6 +4155,9 @@ msgstr "Skrij podatkovni panel"
 msgid "Collapse row"
 msgstr "Skrij vrstico"
 
+msgid "Collapse settings"
+msgstr "Strni nastavitve"
+
 msgid "Collapse tab content"
 msgstr "Skrij vsebino zavihka"
 
@@ -4264,6 +4290,9 @@ msgstr "Stolpec s podatki zemljepisne dolžine"
 
 msgid "Column data types"
 msgstr "Podatkovni tipi stolpcev"
+
+msgid "Column groups"
+msgstr "Skupine stolpcev"
 
 msgid "Column header tooltip"
 msgstr "Opis glave stolpca"
@@ -7012,6 +7041,9 @@ msgstr "Vnesite trajanje v sekundah"
 msgid "Enter fullscreen"
 msgstr "Vklopi celozaslonski način"
 
+msgid "Enter group name"
+msgstr "Vnesite ime skupine"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -7059,6 +7091,9 @@ msgstr "Vnesite uporabniško ime uporabnika"
 
 msgid "Enter theme name"
 msgstr "Vnesite ime teme"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7243,6 +7278,9 @@ msgstr "Natančno ujemanje (IN)"
 msgid "Example"
 msgstr "Primer"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Vzorci"
 
@@ -7302,6 +7340,9 @@ msgstr "Razširi vrstico"
 
 msgid "Expand row to edit"
 msgstr "Razširite vrstico za urejanje"
+
+msgid "Expand settings"
+msgstr "Razširi nastavitve"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8326,6 +8367,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Združevanje po (Group by)"
 
@@ -8337,6 +8382,12 @@ msgstr "Ključ za združevanje"
 
 msgid "Group by"
 msgstr "Združevanje po (Group by)"
+
+msgid "Group columns"
+msgstr "Združi stolpce"
+
+msgid "Group name"
+msgstr "Ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10277,6 +10328,12 @@ msgstr "Več filtrov"
 msgid "MotherDuck token"
 msgstr "Žeton za MotherDuck"
 
+msgid "Move group left"
+msgstr "Premakni skupino levo"
+
+msgid "Move group right"
+msgstr "Premakni skupino desno"
+
 msgid "Move icon"
 msgstr "Premakni ikono"
 
@@ -10311,6 +10368,9 @@ msgstr "Večplastni"
 
 msgid "Multi-Variables"
 msgstr "Več spremenljivk"
+
+msgid "Multi-level header"
+msgstr "Večnivojska glava"
 
 msgid "Multiple"
 msgstr "Več"
@@ -11891,6 +11951,9 @@ msgstr "Vrata %(port)s na gostitelju \"%(hostname)s\" niso sprejela povezave."
 msgid "Port out of range 0-65535"
 msgstr "Vrata v razponu 0-65535"
 
+msgid "Position"
+msgstr "Položaj"
+
 msgid "Position JSON"
 msgstr "JSON za postavitev"
 
@@ -12371,6 +12434,9 @@ msgstr "Odstranite filter"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Odstrani skupino"
+
 msgid "Remove item"
 msgstr "Odstrani element"
 
@@ -12643,6 +12709,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Ponastavi"
 
@@ -12653,6 +12722,9 @@ msgstr "Ponastavi stolpce"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Reset all folders to default"
 msgstr "Ponastavite vse mape na privzete"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Ponastavi stolpce"
@@ -13223,6 +13295,14 @@ msgstr "Shranjena poizvedba ni najdena."
 msgid "Saved query parameters are invalid."
 msgstr "Parametri shranjene poizvedbe so neveljavni."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Shranjevanje ..."
 
@@ -13595,6 +13675,9 @@ msgstr "Izberite stolpec"
 
 msgid "Select column name"
 msgstr "Izberite ime stolpca"
+
+msgid "Select columns"
+msgstr "Izberite stolpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14893,6 +14976,21 @@ msgstr "Začetni datum"
 msgid "Start date included in time range"
 msgstr "Začetni datum je vključen v časovno obdobje"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Začni y-os z 0"
 
@@ -15024,6 +15122,10 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomena"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15066,6 +15168,12 @@ msgstr "Pripona"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Pripona za prikaz procenta"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15269,6 +15377,9 @@ msgstr "Ime tabele ni definirano"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ali pogled \"%(table)s\" ne obstaja."
+
+msgid "Table side"
+msgstr "Stran tabele"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17420,6 +17531,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "To geslo je prepogosto; izberite manj uganljivega."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18745,6 +18861,11 @@ msgstr "Vrednosti"
 
 msgid "Values are dependent on other filters"
 msgstr "Vrednosti so odvisne od drugih filtrov"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Vrednosti so odvisne od"

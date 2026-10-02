@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -1319,6 +1319,14 @@ msgstr ""
 "Uma lista separada por vírgulas de esquemas para os quais os ficheiros "
 "têm permissão para fazer upload."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "A database port is required when connecting via SSH Tunnel."
@@ -1869,6 +1877,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adicionar pasta"
 
+msgid "Add group"
+msgstr "Adicionar grupo"
+
 msgid "Add item"
 msgstr "Adicionar item"
 
@@ -1921,6 +1932,9 @@ msgstr "Adicionar credenciais de serviço"
 
 msgid "Add sheet"
 msgstr "Adicionar folha"
+
+msgid "Add subgroup"
+msgstr "Adicionar subgrupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4366,6 +4380,9 @@ msgstr "Limite de células"
 msgid "Cell title template"
 msgstr "Modelo do título da célula"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -4845,6 +4862,12 @@ msgstr "Escolher colunas a analisar como datas"
 msgid "Choose columns to read"
 msgstr "Escolha as colunas a ler"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -5229,6 +5252,9 @@ msgstr "Recolher painel de dados"
 msgid "Collapse row"
 msgstr "Recolher linha"
 
+msgid "Collapse settings"
+msgstr "Recolher definições"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Collapse tab content"
@@ -5392,6 +5418,9 @@ msgstr "Coluna que contém dados de longitude"
 
 msgid "Column data types"
 msgstr "Tipos de dados da coluna"
+
+msgid "Column groups"
+msgstr "Grupos de colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8868,6 +8897,9 @@ msgstr "Introduza a duração em segundos"
 msgid "Enter fullscreen"
 msgstr "Entrar em ecrã completo"
 
+msgid "Enter group name"
+msgstr "Introduza o nome do grupo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -8918,6 +8950,9 @@ msgstr "Introduza o nome de utilizador do utilizador"
 
 msgid "Enter theme name"
 msgstr "Introduza o nome do tema"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -9162,6 +9197,9 @@ msgstr "Correspondência exata (IN)"
 msgid "Example"
 msgstr "Exemplo"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9248,6 +9286,9 @@ msgstr "Expandir linha"
 
 msgid "Expand row to edit"
 msgstr "Expandir linha para editar"
+
+msgid "Expand settings"
+msgstr "Expandir definições"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10543,6 +10584,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupo"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupo %s"
+
 msgid "Group By"
 msgstr "Agrupar por"
 
@@ -10557,6 +10602,12 @@ msgstr "Chave de Grupo"
 
 msgid "Group by"
 msgstr "Agrupar por"
+
+msgid "Group columns"
+msgstr "Agrupar colunas"
+
+msgid "Group name"
+msgstr "Nome do grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -13135,6 +13186,12 @@ msgstr "Mais filtros"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mover grupo para a esquerda"
+
+msgid "Move group right"
+msgstr "Mover grupo para a direita"
+
 msgid "Move icon"
 msgstr "Mover ícone"
 
@@ -13187,6 +13244,9 @@ msgstr "Multiníveis"
 # uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Multi-Variáveis"
+
+msgid "Multi-level header"
+msgstr "Cabeçalho de vários níveis"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15349,6 +15409,9 @@ msgstr "A porta %(port)s no nome do servidor \"%(hostname)s\" recusou a ligaçã
 msgid "Port out of range 0-65535"
 msgstr "Porta fora do intervalo 0-65535"
 
+msgid "Position"
+msgstr "Posição"
+
 msgid "Position JSON"
 msgstr "Posição JSON"
 
@@ -15977,6 +16040,9 @@ msgstr "Remover filtro"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Remover grupo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16320,6 +16386,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Reset"
@@ -16332,6 +16401,9 @@ msgstr "Repor Colunas"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Reset all folders to default"
 msgstr "Repor todas as pastas para as predefinições"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Repor colunas"
@@ -17043,6 +17115,14 @@ msgstr "Consulta guardada não encontrada."
 msgid "Saved query parameters are invalid."
 msgstr "Os parâmetros da consulta guardada são inválidos."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, uk]
 msgid "Saving..."
@@ -17523,6 +17603,9 @@ msgstr "Selecionar coluna"
 
 msgid "Select column name"
 msgstr "Selecionar nome da coluna"
+
+msgid "Select columns"
+msgstr "Selecionar colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19165,6 +19248,21 @@ msgstr "Data de início"
 msgid "Start date included in time range"
 msgstr "Data de início incluída no intervalo de tempo"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19349,6 +19447,10 @@ msgstr "Subcategorias"
 msgid "Subdomain"
 msgstr "Subdomínio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrupo %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid "Subject"
@@ -19416,6 +19518,12 @@ msgstr "Sufixo"
 # uk, zh, zh_TW]
 msgid "Suffix to apply after the percentage display"
 msgstr "Sufixo para aplicar após a apresentação da percentagem"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -19677,6 +19785,9 @@ msgstr "Nome da tabela indefinido"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "A tabela ou vista \"%(table)s\" não existe."
+
+msgid "Table side"
+msgstr "Lado da tabela"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22396,6 +22507,11 @@ msgstr ""
 "Esta palavra-passe é demasiado comum; por favor escolha uma menos "
 "previsível."
 
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
@@ -24114,6 +24230,11 @@ msgstr "Valores"
 # uk, zh, zh_TW]
 msgid "Values are dependent on other filters"
 msgstr "Os valores dependem de outros filtros"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

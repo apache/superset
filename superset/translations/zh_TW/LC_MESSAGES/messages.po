@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1087,6 +1087,14 @@ msgstr "應作為日期解析的列的逗號分隔列表。"
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "允許以逗號分割的 CSV 文件上傳"
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -1577,6 +1585,9 @@ msgstr "為控制篩選器的源查詢增加篩選條件，但這只限於自動
 msgid "Add folder"
 msgstr "增加過濾條件"
 
+msgid "Add group"
+msgstr "新增群組"
+
 msgid "Add item"
 msgstr "增加條件"
 
@@ -1622,6 +1633,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "增加 sheet 頁"
+
+msgid "Add subgroup"
+msgstr "新增子群組"
 
 msgid "Add tag to entities"
 msgstr "給對象增加標籤"
@@ -3629,6 +3643,9 @@ msgstr "單元格限制"
 msgid "Cell title template"
 msgstr "删除模板"
 
+msgid "Center"
+msgstr "置中"
+
 msgid "Center value"
 msgstr ""
 
@@ -4053,6 +4070,12 @@ msgstr "應作為日期解析的列的逗號分隔列表。"
 msgid "Choose columns to read"
 msgstr "要讀取的列"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4360,6 +4383,9 @@ msgstr "折叠數據面板"
 msgid "Collapse row"
 msgstr "折叠行"
 
+msgid "Collapse settings"
+msgstr "摺疊設定"
+
 #, fuzzy
 msgid "Collapse tab content"
 msgstr "折叠選項卡内容"
@@ -4508,6 +4534,9 @@ msgstr "包含經度數據的列"
 #, fuzzy
 msgid "Column data types"
 msgstr "列數據類型"
+
+msgid "Column groups"
+msgstr "列群組"
 
 #, fuzzy
 msgid "Column header tooltip"
@@ -7486,6 +7515,9 @@ msgstr "输入間隔時間(秒)"
 msgid "Enter fullscreen"
 msgstr "全螢幕"
 
+msgid "Enter group name"
+msgstr "輸入群組名稱"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7545,6 +7577,9 @@ msgstr "輸入使用者的帳號名稱"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "告警名稱"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7745,6 +7780,9 @@ msgstr "精確比對 (IN)"
 msgid "Example"
 msgstr "例子"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "示例"
 
@@ -7818,6 +7856,9 @@ msgstr "標題行"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "標題行"
+
+msgid "Expand settings"
+msgstr "展開設定"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8966,6 +9007,10 @@ msgstr ""
 msgid "Group"
 msgstr "分組"
 
+#, python-format
+msgid "Group %s"
+msgstr "群組 %s"
+
 msgid "Group By"
 msgstr "分組"
 
@@ -8978,6 +9023,12 @@ msgstr "分組"
 
 msgid "Group by"
 msgstr "分組"
+
+msgid "Group columns"
+msgstr "將列分組"
+
+msgid "Group name"
+msgstr "群組名稱"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11162,6 +11213,12 @@ msgstr "更多過濾器"
 msgid "MotherDuck token"
 msgstr "MotherDuck 令牌"
 
+msgid "Move group left"
+msgstr "將群組向左移動"
+
+msgid "Move group right"
+msgstr "將群組向右移動"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "僅移動"
@@ -11197,6 +11254,9 @@ msgstr "多層次"
 
 msgid "Multi-Variables"
 msgstr "多元"
+
+msgid "Multi-level header"
+msgstr "多層級標題"
 
 msgid "Multiple"
 msgstr "多選"
@@ -12951,6 +13011,9 @@ msgstr "主機名 \"%(hostname)s\" 上的端口 %(port)s 拒绝連接。"
 msgid "Port out of range 0-65535"
 msgstr "端口超過 0-65535 的範圍"
 
+msgid "Position"
+msgstr "位置"
+
 msgid "Position JSON"
 msgstr "位置 JSON"
 
@@ -13484,6 +13547,9 @@ msgstr "删除項"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "刪除群組"
+
 msgid "Remove item"
 msgstr "删除項"
 
@@ -13762,6 +13828,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 #, fuzzy
 msgid "Reset"
 msgstr "重置"
@@ -13775,6 +13844,9 @@ msgstr "選擇列"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "將所有資料夾重設為預設值"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 #, fuzzy
 msgid "Reset columns"
@@ -14391,6 +14463,14 @@ msgstr "保存的查詢未找到"
 msgid "Saved query parameters are invalid."
 msgstr "保存的查詢参數無效"
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 #, fuzzy
 msgid "Saving..."
 msgstr "加载中..."
@@ -14822,6 +14902,9 @@ msgstr "選擇列"
 
 #, fuzzy
 msgid "Select column name"
+msgstr "選擇列"
+
+msgid "Select columns"
 msgstr "選擇列"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -16227,6 +16310,21 @@ msgstr "開始時間"
 msgid "Start date included in time range"
 msgstr "開始日期包含在時間範圍内"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Y 軸從 0 開始"
 
@@ -16369,6 +16467,10 @@ msgstr "分類"
 msgid "Subdomain"
 msgstr "子域"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "子群組 %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -16429,6 +16531,12 @@ msgstr "後缀"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "百分比顯示後要應用的後缀"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -16650,6 +16758,9 @@ msgstr "表名未定義"
 #, fuzzy, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "表或視圖 '%(table)s' 不存在"
+
+msgid "Table side"
+msgstr "表格側"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -18867,6 +18978,11 @@ msgstr "此頁面設計為嵌入 iframe，但目前似乎並非如此。"
 msgid "This password is too common; please choose a less guessable one."
 msgstr "此密碼過於常見，請選擇一個較難猜測的密碼。"
 
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -20294,6 +20410,11 @@ msgstr "值"
 
 msgid "Values are dependent on other filters"
 msgstr "這些值依賴於其他過濾器"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 #, fuzzy
 msgid "Values dependent on"

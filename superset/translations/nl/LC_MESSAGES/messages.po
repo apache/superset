@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 00:05+0000\n"
+"POT-Creation-Date: 2026-10-02 10:09+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1083,6 +1083,14 @@ msgstr ""
 "Een komma gescheiden lijst van schema's waar bestanden naar mogen "
 "uploaden."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -1547,6 +1555,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filter toevoegen"
 
+msgid "Add group"
+msgstr "Groep toevoegen"
+
 msgid "Add item"
 msgstr "Voeg item toe"
 
@@ -1589,6 +1600,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Voeg blad toe"
+
+msgid "Add subgroup"
+msgstr "Subgroep toevoegen"
 
 msgid "Add tag to entities"
 msgstr "Voeg tag toe aan entiteiten"
@@ -3622,6 +3636,9 @@ msgstr "Cel limiet"
 msgid "Cell title template"
 msgstr "Verwijder template"
 
+msgid "Center"
+msgstr "Midden"
+
 msgid "Center value"
 msgstr ""
 
@@ -4036,6 +4053,12 @@ msgstr "Kolommen die als datums worden geparsed"
 msgid "Choose columns to read"
 msgstr "Kolommen om te Lezen"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4348,6 +4371,9 @@ msgstr "Paneel data samenvouwen"
 msgid "Collapse row"
 msgstr "Rij inklappen"
 
+msgid "Collapse settings"
+msgstr "Instellingen inklappen"
+
 msgid "Collapse tab content"
 msgstr "Tabbladinhoud inklappen"
 
@@ -4492,6 +4518,9 @@ msgstr "Kolom met lengtegraad gegevens"
 #, fuzzy
 msgid "Column data types"
 msgstr "Kolom gegevenstypen"
+
+msgid "Column groups"
+msgstr "Kolomgroepen"
 
 msgid "Column header tooltip"
 msgstr "Kolomkop tooltip"
@@ -7453,6 +7482,9 @@ msgstr "Voer duur in seconden in"
 msgid "Enter fullscreen"
 msgstr "Open volledig scherm"
 
+msgid "Enter group name"
+msgstr "Groepsnaam invoeren"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7512,6 +7544,9 @@ msgstr "Voer de gebruikersnaam van de gebruiker in"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Naam van de waarschuwing"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7710,6 +7745,9 @@ msgstr "Exacte overeenkomst (IN)"
 msgid "Example"
 msgstr "Voorbeeld"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Voorbeelden"
 
@@ -7777,6 +7815,9 @@ msgstr "Rij uitklappen"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rij uitklappen"
+
+msgid "Expand settings"
+msgstr "Instellingen uitklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8887,6 +8928,10 @@ msgstr ""
 msgid "Group"
 msgstr "Groep per"
 
+#, python-format
+msgid "Group %s"
+msgstr "Groep %s"
+
 msgid "Group By"
 msgstr "Groeperen op"
 
@@ -8898,6 +8943,12 @@ msgstr "Groep Sleutel"
 
 msgid "Group by"
 msgstr "Groep per"
+
+msgid "Group columns"
+msgstr "Kolommen groeperen"
+
+msgid "Group name"
+msgstr "Groepsnaam"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11008,6 +11059,12 @@ msgstr "Meer filters"
 msgid "MotherDuck token"
 msgstr "MotherDuck-token"
 
+msgid "Move group left"
+msgstr "Groep naar links verplaatsen"
+
+msgid "Move group right"
+msgstr "Groep naar rechts verplaatsen"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Enkel verplaatsen"
@@ -11043,6 +11100,9 @@ msgstr "Multi-Niveaus"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabelen"
+
+msgid "Multi-level header"
+msgstr "Meerlagige koptekst"
 
 msgid "Multiple"
 msgstr "Meerdere"
@@ -12734,6 +12794,9 @@ msgstr "Poort %(port)s op hostnaam “%(hostname)s” weigerde de verbinding."
 msgid "Port out of range 0-65535"
 msgstr "Poort buiten bereik 0-65535"
 
+msgid "Position"
+msgstr "Positie"
+
 msgid "Position JSON"
 msgstr "Positie JSON"
 
@@ -13240,6 +13303,9 @@ msgstr "Item verwijderen"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Groep verwijderen"
+
 msgid "Remove item"
 msgstr "Item verwijderen"
 
@@ -13519,6 +13585,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Reset"
 
@@ -13531,6 +13600,9 @@ msgstr "Selecteer kolom"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "Alle mappen terugzetten naar standaard"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 #, fuzzy
 msgid "Reset columns"
@@ -14130,6 +14202,14 @@ msgstr "Opgeslagen query niet gevonden."
 msgid "Saved query parameters are invalid."
 msgstr "Opgeslagen query parameters zijn ongeldig."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 #, fuzzy
 msgid "Saving..."
 msgstr "Bezig met laden…"
@@ -14534,6 +14614,9 @@ msgstr "Selecteer kolom"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selecteer kolom"
+
+msgid "Select columns"
+msgstr "Kolommen selecteren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15968,6 +16051,21 @@ msgstr "Start datum"
 msgid "Start date included in time range"
 msgstr "Startdatum opgenomen in tijdsbereik"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Start y-as op 0"
 
@@ -16109,6 +16207,10 @@ msgstr "Categorie"
 msgid "Subdomain"
 msgstr "Subdomein"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgroep %s"
+
 msgid "Subject"
 msgstr "Subject"
 
@@ -16153,6 +16255,12 @@ msgstr "Achtervoegsel"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Achtervoegsel om toe te passen na het percentage"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -16372,6 +16480,9 @@ msgstr "Tabelnaam niet gedefinieerd"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabel of Weergave \"%(table)s\" bestaat niet."
+
+msgid "Table side"
+msgstr "Tabelzijde"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -18740,6 +18851,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "Dit wachtwoord is te gewoon; kies een minder voorspelbaar wachtwoord."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -20166,6 +20282,11 @@ msgstr "Waarde"
 
 msgid "Values are dependent on other filters"
 msgstr "Waarden zijn afhankelijk van andere filters"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Waarden afhankelijk van"

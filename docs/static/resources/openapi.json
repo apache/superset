@@ -1245,6 +1245,11 @@
             ],
             "type": "string"
           },
+          "semantic_selection_version": {
+            "description": "Identity encoding used for semantic member selections.",
+            "nullable": true,
+            "type": "string"
+          },
           "time_grain_sqla": {
             "description": "To what level of granularity should the temporal column be aggregated. Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
@@ -7152,6 +7157,12 @@
               "xlsx",
               "arrow"
             ]
+          },
+          "semantic_selection_version": {
+            "default": null,
+            "description": "Identity version from datasource metadata, after selecting its current metric and dimension IDs. Never infer legacy IDs.",
+            "nullable": true,
+            "type": "string"
           },
           "time_column": {
             "default": null,
@@ -19858,7 +19869,7 @@
     },
     "/api/v1/dashboard/{pk}/export_as_example/": {
       "get": {
-        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files.",
+        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files. Charts and native-filter targets that use semantic views are not supported.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19907,6 +19918,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "The dashboard contains unsupported semantic-view assets"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -25562,6 +25576,13 @@
                         ]
                       },
                       "type": "array"
+                    },
+                    "suggestions_status": {
+                      "description": "Suggestions are disabled for versioned semantic views; enter values manually.",
+                      "enum": [
+                        "unavailable_versioned_view"
+                      ],
+                      "type": "string"
                     }
                   },
                   "type": "object"
