@@ -597,10 +597,10 @@ class PartitionMappingPreviewSchema(Schema):
     value_transform = fields.String(
         required=True,
         allow_none=True,
-        # The stored column is `Text`, so this bounds the *request*, not the
-        # feature: a transform is one expression around `:value`, and 1024
-        # characters is far past anything that reads as one.
-        validate=Length(1, 1024),
+        # The same bound the typed column field and the import schema enforce:
+        # a transform is one expression around `:value`, and this is far past
+        # anything that reads as one.
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
         metadata={"description": "SQL expression containing a :value placeholder"},
     )
     sample_values = fields.List(
