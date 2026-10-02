@@ -78,30 +78,37 @@ test('interactive table selects the cell on click (text selection disabled) and 
 
 test('a JSON control click and the second click of a double-click skip cross-filtering', async () => {
   const setDataMask = jest.fn();
-  captured.props = undefined;
-  render(
-    ProviderWrapper({
-      children: (
-        <AgGridTableChart
-          {...transformProps(testData.basic)}
-          setDataMask={setDataMask}
-          slice_id={1}
-        />
-      ),
-    }),
-  );
+  const renderWithMask = () => {
+    captured.props = undefined;
+    render(
+      ProviderWrapper({
+        children: (
+          <AgGridTableChart
+            {...transformProps(testData.basic)}
+            setDataMask={setDataMask}
+            slice_id={1}
+          />
+        ),
+      }),
+    );
+  };
+  renderWithMask();
   await waitFor(() => expect(captured.props?.onCellClicked).toBeDefined());
+
+  const onCellClicked = captured.props?.onCellClicked as (event: {
+    event?: { target?: EventTarget | null; detail?: number } | null;
+  }) => void;
 
   const action = document.createElement('button');
   action.setAttribute('data-json-cell-action', 'true');
-  captured.props?.onCellClicked({ event: { target: action } });
+  onCellClicked({ event: { target: action } });
 
   const cell = document.createElement('div');
   cell.setAttribute('data-json-cell', 'true');
   const text = document.createElement('span');
   cell.appendChild(text);
   document.body.appendChild(cell);
-  captured.props?.onCellClicked({ event: { target: text, detail: 2 } });
+  onCellClicked({ event: { target: text, detail: 2 } });
 
   expect(setDataMask).not.toHaveBeenCalled();
   cell.remove();

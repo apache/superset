@@ -139,7 +139,9 @@ test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   expect(isJsonCellDoubleClick(null, text)).toBe(false);
   expect(isJsonCellDoubleClick(secondClick, null)).toBe(false);
   expect(isJsonCellDoubleClick(new Event('click'), text)).toBe(false);
-  expect(isJsonCellDoubleClick({ detail: '2' } as Event, text)).toBe(false);
+  expect(isJsonCellDoubleClick({ detail: '2' } as unknown as Event, text)).toBe(
+    false,
+  );
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {
