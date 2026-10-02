@@ -115,7 +115,8 @@ rolled back, so do not blindly retry mutating SQL.
 `apply_dashboard_filters` supports exact-match select filters without inverse
 selection, time filters, numeric range filters, and time-grain filters. Range
 bounds must be finite numbers representable as floats, or null. Range permalink
-labels use the dashboard's smart number formatting; time-grain labels come from
+labels use the dashboard's smart number formatting with ASCII minus signs, falling
+back to plain numeric representations if formatting overflows; time-grain labels come from
 the target datasource's grain names when available. Time grains must match the filter's
 configured allowlist; when that list is missing or empty, use a time grain
 supported by the filter's target dataset's database engine, as listed in the

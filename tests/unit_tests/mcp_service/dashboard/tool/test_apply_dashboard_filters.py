@@ -1761,7 +1761,7 @@ async def test_inherited_mask_drops_filters_the_dashboard_no_longer_has(
         ([1000, 2000000], "1k ≤ x ≤ 2M"),
         ([0.125, None], "x ≥ 0.125"),
         ([0, 0], "x = 0"),
-        ([None, -1234], "x ≤ −1.23k"),
+        ([None, -1234], "x ≤ -1.23k"),
     ],
 )
 def test_range_labels_use_frontend_smart_number_format(
@@ -1773,3 +1773,46 @@ def test_range_labels_use_frontend_smart_number_format(
     )
 
     assert _range_data_mask(RANGE_FILTER, bounds)["filterState"]["label"] == label
+
+
+@pytest.mark.parametrize(
+    "bounds, label, filters",
+    [
+        (
+            [1.7976931348623157e308, None],
+            "x ≥ 1.7976931348623157e+308",
+            [{"col": "cost", "op": ">=", "val": 1.7976931348623157e308}],
+        ),
+        (
+            [None, -1.7976931348623157e308],
+            "x ≤ -1.7976931348623157e+308",
+            [{"col": "cost", "op": "<=", "val": -1.7976931348623157e308}],
+        ),
+        (
+            [1.7976931348623157e308, 1.7976931348623157e308],
+            "x = 1.7976931348623157e+308",
+            [{"col": "cost", "op": "==", "val": 1.7976931348623157e308}],
+        ),
+        (
+            [1000, 1.7976931348623157e308],
+            "1k ≤ x ≤ 1.7976931348623157e+308",
+            [
+                {"col": "cost", "op": ">=", "val": 1000},
+                {"col": "cost", "op": "<=", "val": 1.7976931348623157e308},
+            ],
+        ),
+    ],
+)
+def test_range_labels_preserve_bounds_that_overflow_smart_number_format(
+    bounds: list[int | float | None], label: str, filters: list[dict[str, Any]]
+) -> None:
+    """Valid extreme bounds produce labels without changing the predicates."""
+    from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+        _range_data_mask,
+    )
+
+    mask = _range_data_mask(RANGE_FILTER, bounds)
+    assert mask == {
+        "extraFormData": {"filters": filters},
+        "filterState": {"value": bounds, "label": label},
+    }

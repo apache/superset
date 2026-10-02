@@ -228,6 +228,14 @@ def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
     }
 
 
+def _format_range_bound(value: int | float) -> str:
+    """Format a range bound, preserving finite values that overflow rounding."""
+    try:
+        return format_smart_number(value)
+    except OverflowError:
+        return repr(value)
+
+
 def _range_data_mask(
     conf: dict[str, Any], bounds: list[int | float | None]
 ) -> dict[str, Any]:
@@ -270,17 +278,17 @@ def _range_data_mask(
 
     if lower == upper:
         assert upper is not None
-        label = f"x = {format_smart_number(upper)}"
+        label = f"x = {_format_range_bound(upper)}"
     elif lower is not None and upper is not None:
-        label = f"{format_smart_number(lower)} ≤ x ≤ {format_smart_number(upper)}"
+        label = f"{_format_range_bound(lower)} ≤ x ≤ {_format_range_bound(upper)}"
     elif lower is not None:
-        label = f"x ≥ {format_smart_number(lower)}"
+        label = f"x ≥ {_format_range_bound(lower)}"
     else:
         assert upper is not None
-        label = f"x ≤ {format_smart_number(upper)}"
+        label = f"x ≤ {_format_range_bound(upper)}"
     return {
         "extraFormData": {"filters": filters},
-        "filterState": {"value": [lower, upper], "label": label.replace("-", "−")},
+        "filterState": {"value": [lower, upper], "label": label},
     }
 
 
