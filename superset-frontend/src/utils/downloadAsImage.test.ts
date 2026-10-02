@@ -1303,7 +1303,14 @@ test('shows a warning toast when the html2canvas capture rejects on Safari', asy
   const container = document.createElement('div');
   document.body.appendChild(container);
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler(syntheticEventFor(container));
 
   expect(mockAddWarningToast).toHaveBeenCalledWith(
