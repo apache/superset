@@ -25,6 +25,7 @@ import sys
 from typing import Any
 
 from fastmcp import FastMCP
+from fastmcp.server import create_proxy
 
 # Configure logging
 logging.basicConfig(
@@ -39,7 +40,7 @@ proxy: FastMCP | None = None
 def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals gracefully"""
     logger.info("Received signal %s, shutting down gracefully...", signum)
-    # FastMCP.as_proxy() handles its own cleanup
+    # create_proxy() handles its own cleanup
     sys.exit(0)
 
 
@@ -48,8 +49,6 @@ def main() -> None:
     global proxy
 
     try:
-        from fastmcp import FastMCP
-
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
@@ -57,7 +56,7 @@ def main() -> None:
         logger.info("Starting MCP proxy server...")
 
         # Create a proxy to the remote FastMCP server
-        proxy = FastMCP.as_proxy("http://localhost:5008/mcp/", name="MCP Proxy")
+        proxy = create_proxy("http://localhost:5008/mcp/", name="MCP Proxy")
 
         logger.info("Proxy created successfully, starting...")
 
