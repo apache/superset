@@ -152,22 +152,30 @@ class MissingDatasourceError(Exception):
         )
 
 
-def _verify_chart_datasource_exists(target_version: Any) -> None:
-    """Refuse a chart restore whose snapshot names a deleted datasource.
+def _lock_chart_datasource(model_cls: type, target_version: Any) -> Any | None:
+    """Lock and return the datasource a chart snapshot names, or refuse.
+
+    Restoring a snapshot does not restore its datasource, so the restore
+    refuses when that datasource no longer exists. The row is locked in the
+    restore's transaction, so it cannot be deleted between this check and
+    the chart write; SQLite drops ``FOR UPDATE``, so its write lock is
+    reserved before the lookup instead.
 
     A soft-deleted dataset still counts as existing: it is restorable from
     the trash with its permissions intact, so the restored chart works again
     once the dataset is restored. A snapshot without a datasource id has no
-    dependency to check.
+    dependency to check and returns ``None``, as does any non-chart model.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import Datasource, DatasourceDAO
     from superset.models.helpers import skip_visibility_filter
     from superset.utils.core import DatasourceType
 
+    if model_cls.__name__ != "Slice":
+        return None
     datasource_id: int | None = target_version.datasource_id
     if not datasource_id:
-        return
+        return None
     datasource_type: str = target_version.datasource_type
     label: str = (
         "semantic view"
@@ -177,13 +185,32 @@ def _verify_chart_datasource_exists(target_version: Any) -> None:
     src_class: type[Datasource] | None = DatasourceDAO.sources.get(datasource_type)
     if src_class is None:
         raise MissingDatasourceError(label)
+    _reserve_sqlite_write_lock()
     with skip_visibility_filter(db.session, src_class):
-        exists: bool = (
-            db.session.query(src_class.id).filter_by(id=datasource_id).first()
-            is not None
+        datasource: Datasource | None = (
+            db.session.query(src_class)
+            .enable_eagerloads(False)
+            .filter_by(id=datasource_id)
+            .with_for_update()
+            .one_or_none()
         )
-    if not exists:
+    if datasource is None:
         raise MissingDatasourceError(label)
+    return datasource
+
+
+def _sync_chart_perms(chart: Any, datasource: Any | None) -> None:
+    """Copy the restored datasource's permission fields onto the chart.
+
+    The chart's own listener resolves its datasource through the soft-delete
+    visibility filter, so for a soft-deleted dataset it would keep the
+    previous datasource's permission fields.
+    """
+    if datasource is None:
+        return
+    chart.perm = datasource.perm
+    chart.catalog_perm = datasource.catalog_perm
+    chart.schema_perm = datasource.schema_perm
 
 
 def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
@@ -604,13 +631,13 @@ def restore_version(
     if model_cls.__name__ == "SqlaTable":
         _verify_child_history_complete(entity, transaction_id)
         _verify_child_identities(entity, transaction_id)
-    if model_cls.__name__ == "Slice":
-        _verify_chart_datasource_exists(target_version)
+    chart_datasource: Any | None = _lock_chart_datasource(model_cls, target_version)
 
     skipped_slice_ids: list[int] = []
     try:
         with single_flush_scope(db.session):
             target_version.revert(relations=relations)
+            _sync_chart_perms(entity, chart_datasource)
             if model_cls.__name__ == "Dashboard":
                 skipped_slice_ids = _restore_dashboard_membership(
                     entity, transaction_id

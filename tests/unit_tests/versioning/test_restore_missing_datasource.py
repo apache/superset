@@ -129,7 +129,12 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     capture_session: Session,
 ) -> None:
     """A soft-deleted dataset is restorable from trash, so it is not missing:
-    the chart restore proceeds."""
+    the chart restore proceeds, and its permission fields follow the restored
+    dataset rather than keeping the previous one."""
+    from tests.unit_tests.charts.semantic_view_chart_filter_test import (
+        _apply_chart_filter,
+    )
+
     trashed: SqlaTable = _table(capture_session, "trashed")
     chart: Slice = Slice(
         slice_name="trashed chart",
@@ -140,7 +145,10 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     capture_session.add(chart)
     capture_session.commit()
     trashed_version: UUID = latest_version(capture_session, chart)
-    _rebind(capture_session, chart, _table(capture_session, "working"))
+    working: SqlaTable = _table(capture_session, "working")
+    _rebind(capture_session, chart, working)
+    working_perm: str = working.perm
+    assert chart.perm == working_perm
     trashed.deleted_at = datetime(2026, 1, 1)
     capture_session.commit()
     chart_uuid: UUID = chart.uuid
@@ -152,3 +160,11 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
     assert restored.datasource_id == trashed.id
     assert restored.slice_name == "trashed chart"
+    assert (restored.perm, restored.schema_perm, restored.catalog_perm) == (
+        trashed.perm,
+        trashed.schema_perm,
+        trashed.catalog_perm,
+    )
+    assert "trashed chart" not in _apply_chart_filter(
+        datasource_perms={working_perm}, accessible_databases=[]
+    )
