@@ -213,13 +213,15 @@ test('a click on the arrow expands the cell and a second click opens the dialog'
   fireEvent.dblClick(screen.getByTestId('json-cell-preview'));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-  const arrow = screen.getByRole('button', { name: 'Expand JSON' });
+  const cell = screen.getByTestId('json-cell');
+  const arrow = within(cell).getByRole('button', { name: 'Expand JSON' });
   fireEvent.click(arrow);
   fireEvent.click(arrow);
   expect(await screen.findByRole('dialog')).toHaveTextContent('Cell content');
   expect(
-    screen.queryByRole('button', { name: 'Expand address' }),
+    within(cell).queryByRole('button', { name: 'Expand address' }),
   ).not.toBeInTheDocument();
+  expect(within(cell).getByTestId('json-cell-preview')).toBeInTheDocument();
 });
 
 test('text cells render JSON, and leave other strings untouched', () => {
