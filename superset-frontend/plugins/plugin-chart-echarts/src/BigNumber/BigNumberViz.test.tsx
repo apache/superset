@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ComponentProps } from 'react';
 import {
   DTTM_ALIAS,
   getNumberFormatter,
@@ -248,6 +249,62 @@ describe('BigNumberViz trendline context menu', () => {
     });
 
     expect(onContextMenu).not.toHaveBeenCalled();
+  });
+});
+
+describe('BigNumberViz trendline and subheader rendering', () => {
+  beforeEach(() => {
+    mockedEchart.mockClear();
+  });
+
+  const renderViz = (
+    props: Partial<ComponentProps<typeof BigNumberVis>> = {},
+  ) =>
+    render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+        trendLineData={[
+          [1577836800000, 10],
+          [1577923200000, 20],
+        ]}
+        echartOptions={{ series: [] }}
+        {...props}
+      />,
+    );
+
+  test('renders the trendline chart when showTrendLine is true', () => {
+    renderViz({ showTrendLine: true });
+
+    expect(mockedEchart).toHaveBeenCalled();
+  });
+
+  test('does not render the trendline chart when showTrendLine is false', () => {
+    const { container } = renderViz({ showTrendLine: false });
+
+    expect(mockedEchart).not.toHaveBeenCalled();
+    expect(container.querySelector('.no-trendline')).toBeInTheDocument();
+  });
+
+  test('renders the subheader when one is provided', () => {
+    const { container } = renderViz({ subheader: '10.0% WoW' });
+
+    expect(container.querySelector('.subheader-line')).toHaveTextContent(
+      '10.0% WoW',
+    );
+  });
+
+  test('does not render a subheader when none is provided', () => {
+    const { container } = renderViz({ subheader: '' });
+
+    expect(container.querySelector('.subheader-line')).not.toBeInTheDocument();
   });
 });
 

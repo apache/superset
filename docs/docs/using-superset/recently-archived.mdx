@@ -115,6 +115,16 @@ The `deletion_retention.purge_soft_deleted` background task purges eligible
 archived objects older than the retention window. The default Celery beat
 configuration schedules it daily at 00:00 in the configured Celery timezone.
 The task skips purging when `SOFT_DELETE` is off or the window is zero.
+Before scanning a model's rows, it checks for a purge policy. Unsupported
+soft-deletable models are retained without a scan or a per-row purge attempt.
+Both live and dry runs report `unsupported_models`, a map from table name to
+`1` for each skipped model (not a row count), and log one warning per model.
+Each skip increments `deletion_retention.unsupported_models.<table>` once per
+run. Unsupported models are excluded from `would_purge` and do not count as
+`cascade_failures`; supported models continue to use their existing policies.
+An empty `unsupported_models` map means no registered models were skipped for
+this reason. This reporting does not add purge support for host-defined models.
+
 The window resolves in this order:
 
 1. A host policy, when one is installed as `SOFT_DELETE_RETENTION_DAYS_FUNC`.

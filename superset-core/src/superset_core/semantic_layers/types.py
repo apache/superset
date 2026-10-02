@@ -236,3 +236,4 @@ class SemanticQuery:
     limit: int | None = None
     offset: int | None = None
     group_limit: GroupLimit | None = None
+    selection_identity_version: str | None = None
