@@ -68,6 +68,8 @@ def latest_version(session: Session, entity: Any) -> UUID:
 def _table(session: Session, name: str) -> SqlaTable:
     dataset: SqlaTable = SqlaTable(
         table_name=name,
+        schema=f"{name}_schema",
+        catalog=f"{name}_catalog",
         database=Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://"),
     )
     session.add(dataset)
@@ -149,6 +151,11 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     _rebind(capture_session, chart, working)
     working_perm: str = working.perm
     assert chart.perm == working_perm
+    # Non-null optional fields, so the copy of every field below is checked.
+    assert trashed.schema_perm
+    assert trashed.catalog_perm
+    assert trashed.schema_perm != working.schema_perm
+    assert trashed.catalog_perm != working.catalog_perm
     trashed.deleted_at = datetime(2026, 1, 1)
     capture_session.commit()
     chart_uuid: UUID = chart.uuid
@@ -168,3 +175,51 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     assert "trashed chart" not in _apply_chart_filter(
         datasource_perms={working_perm}, accessible_databases=[]
     )
+
+
+def test_restore_locks_snapshot_datasource_before_chart(
+    capture_session: Session,
+) -> None:
+    """The snapshot's datasource row is locked before the chart row, the same
+    order a datasource rename takes when it updates the datasource and then
+    its charts, so the two cannot deadlock."""
+    from sqlalchemy.orm import Query
+
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="layer", type="test", configuration="{}"
+    )
+    capture_session.add(layer)
+    capture_session.flush()
+    view: SemanticView = SemanticView(
+        name="view", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    capture_session.add(view)
+    capture_session.flush()
+    chart: Slice = Slice(
+        slice_name="semantic chart",
+        datasource_type="semantic_view",
+        datasource_id=view.id,
+        viz_type="table",
+    )
+    capture_session.add(chart)
+    capture_session.commit()
+    semantic_version: UUID = latest_version(capture_session, chart)
+    _rebind(capture_session, chart, _table(capture_session, "working"))
+    chart_uuid: UUID = chart.uuid
+
+    locked: list[Any] = []
+    original: Any = Query.with_for_update
+
+    def recording_with_for_update(self: Query, *args: Any, **kwargs: Any) -> Query:
+        locked.append(self.column_descriptions[0]["entity"])
+        return original(self, *args, **kwargs)
+
+    with (
+        patch.object(security_manager, "raise_for_editorship"),
+        patch.object(Query, "with_for_update", recording_with_for_update),
+    ):
+        RestoreChartVersionCommand(chart_uuid, semantic_version).run()
+
+    assert Slice in locked
+    assert SemanticView in locked
+    assert locked.index(SemanticView) < locked.index(Slice)

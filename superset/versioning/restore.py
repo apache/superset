@@ -540,6 +540,42 @@ class RestoreResult:
     skipped_slice_ids: list[int] = field(default_factory=list)
 
 
+def _find_target_version(
+    model_cls: type, entity: Any, transaction_id: int
+) -> Any | None:
+    """Return *entity*'s version row at *transaction_id*, unless it is absent
+    or a DELETE row (never a valid restore target)."""
+    ver_cls = version_class(model_cls)
+    target_version = (
+        db.session.query(ver_cls)
+        .filter(
+            # Pin to (id, uuid): a hard delete frees the integer id, so
+            # matching on it alone can resolve a *predecessor's* version row
+            # and restore its content over the current entity.
+            ver_cls.id == entity.id,
+            ver_cls.uuid == entity.uuid,
+            ver_cls.transaction_id == transaction_id,
+        )
+        .one_or_none()
+    )
+    if target_version is None or target_version.operation_type == OPERATION_DELETE:
+        return None
+    return target_version
+
+
+def lock_snapshot_datasource(model_cls: type, entity: Any, transaction_id: int) -> None:
+    """Lock a chart version's datasource before the caller locks the chart.
+
+    A datasource rename updates the datasource row and then its charts, so
+    the restore takes its locks in the same order to avoid a deadlock;
+    ``restore_version`` re-checks under the same lock. A missing datasource
+    is refused here already. No-op for other models and absent versions.
+    """
+    target_version: Any | None = _find_target_version(model_cls, entity, transaction_id)
+    if target_version is not None:
+        _lock_chart_datasource(model_cls, target_version)
+
+
 def restore_version(
     model_cls: type,
     entity_uuid: UUID,
@@ -586,20 +622,8 @@ def restore_version(
             "identified by entity_uuid"
         )
 
-    ver_cls = version_class(model_cls)
-    target_version = (
-        db.session.query(ver_cls)
-        .filter(
-            # Pin to (id, uuid): a hard delete frees the integer id, so
-            # matching on it alone can resolve a *predecessor's* version row
-            # and restore its content over the current entity.
-            ver_cls.id == entity.id,
-            ver_cls.uuid == entity.uuid,
-            ver_cls.transaction_id == transaction_id,
-        )
-        .one_or_none()
-    )
-    if target_version is None or target_version.operation_type == OPERATION_DELETE:
+    target_version = _find_target_version(model_cls, entity, transaction_id)
+    if target_version is None:
         return None
 
     relations = _RESTORE_RELATIONS.get(model_cls.__name__)
