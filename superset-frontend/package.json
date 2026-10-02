@@ -163,7 +163,7 @@
     "content-disposition": "^3.0.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.23",
-    "dom-to-image-more": "^3.10.2",
+    "dom-to-image-more": "^3.11.0",
     "dom-to-pdf": "^0.3.2",
     "echarts": "^6.1.0",
     "fuse.js": "^7.5.0",
