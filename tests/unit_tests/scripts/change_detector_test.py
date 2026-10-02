@@ -186,3 +186,29 @@ def test_grype_config_changes_trigger_docker_build() -> None:
         [".grype.yaml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_detect_languages_classifies_js_outside_frontend_dir() -> None:
+    """A .js file outside superset-frontend/ is still "javascript", even
+    though PATTERNS groups it under "python" by directory -- the gap
+    https://github.com/apache/superset/issues/44822 tracks."""
+    files = ["superset/mcp_service/index.js"]
+    assert change_detector.detect_languages(files) == ["javascript"]
+    assert change_detector.detect_changes(files, change_detector.PATTERNS["python"])
+    assert not change_detector.detect_changes(
+        files, change_detector.PATTERNS["frontend"]
+    )
+
+
+def test_detect_languages_mixed_py_and_ts() -> None:
+    files = ["superset/foo.py", "superset-frontend/src/bar.tsx"]
+    assert change_detector.detect_languages(files) == ["javascript", "python"]
+
+
+def test_detect_languages_ignores_unmapped_extensions() -> None:
+    assert change_detector.detect_languages(["docs/intro.md", "Dockerfile"]) == []
+
+
+def test_detect_languages_none_means_every_language() -> None:
+    """workflow_dispatch/schedule runs assume everything changed."""
+    assert change_detector.detect_languages(None) == ["javascript", "python"]
