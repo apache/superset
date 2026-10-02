@@ -57,6 +57,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -533,6 +534,7 @@ const Select = forwardRef(
       allowNewOptions,
       fullSelectOptions,
       selectValue,
+      initialOptions,
       handleFilterOption,
       onSearch,
     });
@@ -543,6 +545,7 @@ const Select = forwardRef(
         allowNewOptions,
         fullSelectOptions,
         selectValue,
+        initialOptions,
         handleFilterOption,
         onSearch,
       };
@@ -556,6 +559,7 @@ const Select = forwardRef(
             allowNewOptions,
             fullSelectOptions,
             selectValue,
+            initialOptions,
             handleFilterOption,
             onSearch,
           } = stateRef.current;
@@ -568,11 +572,12 @@ const Select = forwardRef(
           if (allowNewOptions) {
             const optionsWithoutTemporary = ensureIsArray(
               fullSelectOptions,
-            ).filter(opt => !opt.isNewOption);
+            ).filter(opt => !isNewOption(opt));
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             const shouldCreateNewOption =
               unquotedSearch &&
-              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true) &&
+              !hasOption(unquotedSearch, initialOptions, true);
 
             const newOption = shouldCreateNewOption && {
               label: unquotedSearch,
@@ -580,7 +585,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]
