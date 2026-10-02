@@ -1324,3 +1324,17 @@ def test_apply_filter_range_rejects_non_finite_bounds(
         ApplyFilterValueSpec.model_validate(
             {"filter_name_or_id": "Cost", "range": bounds}
         )
+
+
+@pytest.mark.parametrize("bound", [10**1000, -(10**1000)])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_overflowing_integer_bounds(
+    bound: int, index: int
+) -> None:
+    """Huge integers yield validation errors instead of leaking OverflowError."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )

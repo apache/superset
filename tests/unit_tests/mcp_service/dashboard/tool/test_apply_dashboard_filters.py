@@ -330,7 +330,7 @@ async def test_apply_range_distinct_bounds(mcp_server: object) -> None:
             {"col": "cost", "op": "<=", "val": 100},
         ]
     }
-    assert entry["filterState"] == {"value": [10, 100]}
+    assert entry["filterState"] == {"value": [10, 100], "label": "10 ≤ x ≤ 100"}
 
 
 @pytest.mark.asyncio
@@ -357,7 +357,7 @@ async def test_apply_range_equal_bounds_produces_equality_predicate(
     assert entry["extraFormData"] == {
         "filters": [{"col": "cost", "op": "==", "val": 50}]
     }
-    assert entry["filterState"] == {"value": [50, 50]}
+    assert entry["filterState"] == {"value": [50, 50], "label": "x = 50"}
 
 
 @pytest.mark.asyncio
@@ -382,7 +382,7 @@ async def test_apply_range_one_sided_bounds(mcp_server: object) -> None:
     assert entry["extraFormData"] == {
         "filters": [{"col": "cost", "op": ">=", "val": 10}]
     }
-    assert entry["filterState"] == {"value": [10, None]}
+    assert entry["filterState"] == {"value": [10, None], "label": "x ≥ 10"}
 
 
 @pytest.mark.asyncio
@@ -407,7 +407,7 @@ async def test_apply_range_lower_unbounded(mcp_server: object) -> None:
     assert entry["extraFormData"] == {
         "filters": [{"col": "cost", "op": "<=", "val": 100}]
     }
-    assert entry["filterState"] == {"value": [None, 100]}
+    assert entry["filterState"] == {"value": [None, 100], "label": "x ≤ 100"}
 
 
 @pytest.mark.asyncio
@@ -430,7 +430,7 @@ async def test_null_range_clears_an_optional_range(mcp_server: object) -> None:
     assert data["error"] is None
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-cost"]
     assert entry["extraFormData"] == {}
-    assert entry["filterState"] == {"value": [None, None]}
+    assert entry["filterState"] == {"value": [None, None], "label": ""}
 
 
 @pytest.mark.asyncio
@@ -564,7 +564,14 @@ async def test_apply_timegrain(
     assert data["applied_filters"][0]["time_grain"] == [grain]
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-grain"]
     assert entry["extraFormData"] == {"time_grain_sqla": grain}
-    assert entry["filterState"] == {"value": [grain]}
+    assert entry["filterState"] == {
+        "value": [grain],
+        "label": next(
+            g["name"]
+            for g in sqlite_dataset.get_time_grains()
+            if g["duration"] == grain
+        ),
+    }
     get_dataset.assert_called_once_with(5)
 
 
@@ -598,6 +605,7 @@ async def test_apply_timegrain_custom_engine_option(
     assert data["error"] is None
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-grain"]
     assert entry["extraFormData"] == {"time_grain_sqla": "P2D"}
+    assert entry["filterState"] == {"value": ["P2D"], "label": "Two days"}
 
 
 @pytest.mark.asyncio
@@ -756,17 +764,20 @@ async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> No
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "allowlist, selection",
-    [(["P2D"], ["P2D"]), (["PT2H"], ["PT2H"]), (["P1D"], [])],
+    [(["P2D"], ["P2D"]), (["PT2H"], ["PT2H"]), (["P1D"], ["P1D"]), (["P1D"], [])],
 )
 async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
-    mcp_server: object, allowlist: list[str], selection: list[str]
+    mcp_server: object,
+    sqlite_dataset: SqlaTable,
+    allowlist: list[str],
+    selection: list[str],
 ) -> None:
-    """An explicit allowlist wins without resolving dataset options."""
+    """An explicit allowlist wins; datasource options supply display labels."""
     conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     captured: dict[str, Any] = {}
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
-        patch(DATASET_GET) as get_dataset,
+        patch(DATASET_GET, return_value=sqlite_dataset) as get_dataset,
         patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
     ):
         data = await _call(
@@ -785,8 +796,14 @@ async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
     assert entry["extraFormData"] == (
         {"time_grain_sqla": selection[0]} if selection else {}
     )
-    assert entry["filterState"] == {"value": selection or None}
-    get_dataset.assert_not_called()
+    expected_state: dict[str, Any] = {"value": selection or None}
+    if selection == ["P1D"]:
+        expected_state["label"] = "Day"
+    assert entry["filterState"] == expected_state
+    if selection:
+        get_dataset.assert_called_once_with(5)
+    else:
+        get_dataset.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -1736,3 +1753,23 @@ async def test_inherited_mask_drops_filters_the_dashboard_no_longer_has(
         "NATIVE_FILTER-region",
         "NATIVE_FILTER-time",
     }
+
+
+@pytest.mark.parametrize(
+    "bounds, label",
+    [
+        ([1000, 2000000], "1k ≤ x ≤ 2M"),
+        ([0.125, None], "x ≥ 0.125"),
+        ([0, 0], "x = 0"),
+        ([None, -1234], "x ≤ −1.23k"),
+    ],
+)
+def test_range_labels_use_frontend_smart_number_format(
+    bounds: list[int | float | None], label: str
+) -> None:
+    """Range labels mirror the plugin's operators and SMART_NUMBER formatter."""
+    from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+        _range_data_mask,
+    )
+
+    assert _range_data_mask(RANGE_FILTER, bounds)["filterState"]["label"] == label

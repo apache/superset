@@ -2559,9 +2559,13 @@ class ApplyFilterValueSpec(BaseModel):
         cls, v: List[int | float | None] | None
     ) -> List[int | float | None] | None:
         """Reject non-finite bounds and a lower bound greater than the upper bound."""
-        if v is not None and any(
-            bound is not None and not math.isfinite(bound) for bound in v
-        ):
+        try:
+            finite = v is None or all(
+                bound is None or math.isfinite(bound) for bound in v
+            )
+        except OverflowError:
+            finite = False
+        if not finite:
             raise ValueError("range bounds must be finite numbers or null.")
         if v is not None and v[0] is not None and v[1] is not None and v[0] > v[1]:
             raise ValueError(

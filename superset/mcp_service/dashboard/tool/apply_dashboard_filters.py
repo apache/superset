@@ -49,6 +49,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.manage_native_filters import (
     current_native_filter_config,
 )
+from superset.utils.number_format import format_smart_number
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +254,10 @@ def _range_data_mask(
                 f"Filter '{conf.get('name') or conf.get('id')}' requires a "
                 "value and cannot be cleared."
             )
-        return {"extraFormData": {}, "filterState": {"value": [None, None]}}
+        return {
+            "extraFormData": {},
+            "filterState": {"value": [None, None], "label": ""},
+        }
 
     filters: list[dict[str, Any]] = []
     if lower == upper:
@@ -264,9 +268,19 @@ def _range_data_mask(
         if upper is not None:
             filters.append({"col": column, "op": "<=", "val": upper})
 
+    if lower == upper:
+        assert upper is not None
+        label = f"x = {format_smart_number(upper)}"
+    elif lower is not None and upper is not None:
+        label = f"{format_smart_number(lower)} ≤ x ≤ {format_smart_number(upper)}"
+    elif lower is not None:
+        label = f"x ≥ {format_smart_number(lower)}"
+    else:
+        assert upper is not None
+        label = f"x ≤ {format_smart_number(upper)}"
     return {
         "extraFormData": {"filters": filters},
-        "filterState": {"value": [lower, upper]},
+        "filterState": {"value": [lower, upper], "label": label.replace("-", "−")},
     }
 
 
@@ -282,13 +296,14 @@ def _timegrain_data_mask(
             f"'{conf.get('name') or conf.get('id')}'. "
             f"Available time grains: {', '.join(allowed_grains)}."
         )
-    if is_set and not allowed_grains:
+    filter_state: dict[str, Any] = {"value": list(time_grain) if is_set else None}
+    if is_set:
         from superset.daos.dataset import DatasetDAO
 
         targets = [target for target in (conf.get("targets") or []) if target]
         dataset_id = targets[0].get("datasetId") if targets else None
         dataset = DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
-        if dataset is None:
+        if dataset is None and not allowed_grains:
             raise _FilterApplyError(
                 f"Cannot resolve target dataset (ID {dataset_id}) for filter "
                 f"'{conf.get('name') or conf.get('id')}'; "
@@ -296,14 +311,21 @@ def _timegrain_data_mask(
             )
         # Reuse the datasource options exposed to Explore and native filters.
         available_grains = [
-            duration for duration, _ in dataset.time_grain_sqla if duration is not None
+            duration
+            for duration, _ in (dataset.time_grain_sqla if dataset is not None else [])
+            if duration is not None
         ]
-        if time_grain[0] not in available_grains:
+        if not allowed_grains and time_grain[0] not in available_grains:
             raise _FilterApplyError(
                 f"Time grain '{time_grain[0]}' is not supported by dataset "
                 f"{dataset_id} for filter '{conf.get('name') or conf.get('id')}'. "
                 f"Available time grains: {', '.join(available_grains) or '(none)'}."
             )
+        if dataset is not None:
+            for grain in dataset.get_time_grains():
+                if grain["duration"] == time_grain[0]:
+                    filter_state["label"] = grain["name"]
+                    break
     if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
         raise _FilterApplyError(
             f"Filter '{conf.get('name') or conf.get('id')}' requires a time "
@@ -311,7 +333,7 @@ def _timegrain_data_mask(
         )
     return {
         "extraFormData": {"time_grain_sqla": time_grain[0]} if is_set else {},
-        "filterState": {"value": list(time_grain) if is_set else None},
+        "filterState": filter_state,
     }
 
 
