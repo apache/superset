@@ -2427,6 +2427,27 @@ class TestRBACToolVisibilityMiddleware:
         assert result == tools
 
     @pytest.mark.asyncio
+    async def test_fails_open_when_metadata_thread_setup_raises(self) -> None:
+        """Returns all tools when run_in_metadata_thread's own setup fails.
+
+        Unlike test_fails_open_on_exception, this failure happens before
+        _visible_tools ever runs -- e.g. the metadata pool is exhausted while
+        run_in_metadata_thread reloads the caller's ORM user -- so
+        _visible_tools's own try/except never gets a chance to fail open.
+        """
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            side_effect=RuntimeError("metadata pool exhausted"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
     async def test_fails_open_when_user_is_none(self, app) -> None:
         """Returns all tools when get_user_from_request returns None."""
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]

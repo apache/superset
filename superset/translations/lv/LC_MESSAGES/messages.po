@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -154,26 +154,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standarts, lai nodrošinātu, ka leksikogrāfiskā secība\n"
-"                      sakrīt ar hronoloģisko secību. Ja\n"
-"                      laika zīmoga formāts neatbilst ISO 8601 standartam,"
-"\n"
-"                      jums būs jādefinē izteiksme un tips, lai\n"
-"                      pārveidotu virkni datumā vai laika zīmogā. Ņemiet "
-"vērā, ka\n"
-"                      pašlaik laika zonas netiek atbalstītas. Ja laiks ir"
-" saglabāts\n"
-"                      epohas formātā, ievadiet `epoch_s` vai `epoch_ms`. "
-"Ja nav norādīts nekāds paraugs\n"
-"                      , mēs izmantojam papildu parametru, lai izmantotu "
-"papildu noklusējumus katram\n"
-"                      datubāzes/kolonnas nosaukuma līmenim."
 
 msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
@@ -361,9 +347,9 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Drošības papildus iestatījumi"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -377,9 +363,9 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "%s PAROLE"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Fizisks"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -397,9 +383,9 @@ msgstr "%s SSH TUNEĻA PRIVĀTĀS ATSLĒGAS PAROLE"
 msgid "%s Selected"
 msgstr "%s atlasīts"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "%s atlasīts"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -419,9 +405,9 @@ msgstr "%s Semantiskais skats"
 msgid "%s URL"
 msgstr "%s URL"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Virtuāls"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -480,10 +466,10 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "pirms 1 dienas"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -501,9 +487,9 @@ msgstr[0] "%s rinda"
 msgstr[1] "%s rindas"
 msgstr[2] "%s rindu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Dati importēti"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -524,17 +510,17 @@ msgstr ""
 "%s elementus nevar atzīmēt, jo jums nav rediģēšanas atļauju visiem "
 "atlasītajiem objektiem."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Kārtošanas metrika"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "pirms 1 mēneša"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -564,23 +550,23 @@ msgstr[2] "%s opcijas"
 msgid "%s option(s)"
 msgstr "%s opcija(-as)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Automātiskais kolonnas izmērs"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Kārtošanas metrika"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "Izvēlēta cilne %s"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -600,10 +586,10 @@ msgstr[0] "%s rinda"
 msgstr[1] "%s rindas"
 msgstr[2] "%s rindu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "pirms 30 dienām"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -611,10 +597,10 @@ msgstr[2] ""
 msgid "%s saved metric(s)"
 msgstr "%s saglabāts(-i) rādītājs(-i)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 sekundes"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -1038,6 +1024,9 @@ msgstr ""
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
 "informācija: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1052,8 +1041,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
-"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona "
-"analīzei."
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
+" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1490,6 +1479,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pievienot mapi"
 
+msgid "Add group"
+msgstr "Pievienot grupu"
+
 msgid "Add item"
 msgstr "Pievienot ierakstu"
 
@@ -1529,6 +1521,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Pievienot lapu"
+
+msgid "Add subgroup"
+msgstr "Pievienot apakšgrupu"
 
 msgid "Add tag to entities"
 msgstr "Pievienot birku ierakstiem"
@@ -1669,6 +1664,9 @@ msgstr "Ietekmētās diagrammas"
 msgid "Affected Dashboards"
 msgstr "Ietekmētie infopaneļi"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1760,6 +1758,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -2023,21 +2025,21 @@ msgid ""
 "administrator."
 msgstr "Radās kļūda, izvēršot tabulas shēmu. Lūdzu, sazinieties ar administratoru."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Radās kļūda, iegūstot %ss: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Radās kļūda, iegūstot %s informāciju: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Radās kļūda, ielādējot datu kopas saistītos datus"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Radās kļūda, iegūstot lietotāju vērtības: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2127,16 +2129,15 @@ msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Radās kļūda, lejupielādējot pieejamos motīvus"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
+msgstr ""
 
 msgid "An error occurred while fetching tab state"
 msgstr "Radās kļūda, ielādējot cilnes stāvokli"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Radās kļūda, ielādējot tabulas metadatus"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2208,9 +2209,8 @@ msgstr "Radās kļūda, apstrādājot atslēgu."
 msgid "An error occurred while pruning logs "
 msgstr "Radās kļūda, tīrot žurnālus "
 
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "Radās kļūda, attēlojot vizualizāciju: %s"
+msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2839,9 +2839,8 @@ msgstr "Bāzes eksponents"
 msgid "Base height"
 msgstr "Bāzes augstums"
 
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3369,6 +3368,9 @@ msgstr "Šūnu limits"
 msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
+msgid "Center"
+msgstr "Centrs"
+
 msgid "Center value"
 msgstr ""
 
@@ -3725,9 +3727,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Bērna apzīmējuma novietojums"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Izvēlēties avotu"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Izvēlieties diagrammu attēlošanai kartē"
@@ -3868,9 +3870,9 @@ msgstr "Nosacījums"
 msgid "Clear"
 msgstr "Notīrīt"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "Notīrīt visus filtrus"
+msgstr ""
 
 msgid "Clear Sort"
 msgstr "Nodzēst kārtošanu"
@@ -4041,6 +4043,9 @@ msgstr "Sakļaut datu paneli"
 msgid "Collapse row"
 msgstr "Sakļaut rindu"
 
+msgid "Collapse settings"
+msgstr "Sakļaut iestatījumus"
+
 msgid "Collapse tab content"
 msgstr "Sakļaut cilnes saturu"
 
@@ -4181,6 +4186,9 @@ msgstr "Kolonna, kas satur garuma datus"
 
 msgid "Column data types"
 msgstr "Kolonnas datu tipi"
+
+msgid "Column groups"
+msgstr "Kolonnu grupas"
 
 msgid "Column header tooltip"
 msgstr "Kolonnas galvenes padoms"
@@ -4396,9 +4404,9 @@ msgstr "Ticamības intervālam jābūt starp 0 un 1 (neieskaitot)"
 msgid "Configuration"
 msgstr "Konfigurācija"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Apstiprināt saglabāšanu"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurēt papildu laika diapazonu "
@@ -4450,6 +4458,9 @@ msgstr "Apstiprināt"
 msgid "Confirm Password"
 msgstr "Apstiprināt paroli"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Apstiprināt pārrakstīšanu"
 
@@ -4458,6 +4469,9 @@ msgstr "Apstiprināt paroli"
 
 msgid "Confirm save"
 msgstr "Apstiprināt saglabāšanu"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Apstiprināt lietotāja paroli"
@@ -4685,6 +4699,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
@@ -4770,9 +4790,9 @@ msgstr "Izveidoja"
 msgid "Created by me"
 msgstr "Mani izveidotie"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "Izveidoja"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -4844,6 +4864,9 @@ msgstr "Šodiena"
 
 msgid "Current month"
 msgstr "Šis mēnesis"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Šis ceturksnis"
@@ -5045,9 +5068,9 @@ msgstr "Tumšais režīms"
 msgid "Dashboard"
 msgstr "Infopanelis"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Diagramma %(id)s nav atrasta"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Infopaneļa filtrs"
@@ -5092,6 +5115,9 @@ msgstr "Informācijas paneli nevarēja atjaunot."
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Informācijas panelis neeksistē"
 
@@ -5100,6 +5126,9 @@ msgstr "Informācijas panelis veiksmīgi eksportēts kā piemērs"
 
 msgid "Dashboard exported successfully"
 msgstr "Informācijas panelis veiksmīgi eksportēts"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Infopanelis importēts"
@@ -5721,6 +5750,11 @@ msgstr "Dzēst grupu"
 msgid "Delete item"
 msgstr "Dzēst objektu"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -5836,9 +5870,9 @@ msgstr[2] "Dzēsti %(num)d motīvi"
 msgid "Deleted %s"
 msgstr "Dzēsts %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Dzēst objektu"
+msgstr ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6018,9 +6052,9 @@ msgstr "Dimensiju vērtības"
 msgid "Dimensions"
 msgstr "Dimensijas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensijas"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6501,9 +6535,9 @@ msgstr "Malas platums"
 msgid "Edit"
 msgstr "Rediģēt"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Rediģēt lietotāju"
+msgstr ""
 
 #, python-format
 msgid "Edit %s in modal"
@@ -6838,6 +6872,9 @@ msgstr "Ievadiet primāros akreditācijas datus"
 msgid "Enter a name for this sheet"
 msgstr "Ievadiet nosaukumu šai lapai"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Ievadiet daļu no objekta nosaukuma"
 
@@ -6849,6 +6886,9 @@ msgstr "Ievadiet ilgumu sekundēs"
 
 msgid "Enter fullscreen"
 msgstr "Pāriet pilnekrāna režīmā"
+
+msgid "Enter group name"
+msgstr "Ievadiet grupas nosaukumu"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
@@ -6889,6 +6929,9 @@ msgstr "Ievadiet lietotāja lietotājvārdu"
 
 msgid "Enter theme name"
 msgstr "Ievadiet motīva nosaukumu"
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Ievadiet savu lietotājvārdu un paroli zemāk:"
@@ -7076,9 +7119,6 @@ msgstr "Excel eksports"
 msgid "Excel XML Export"
 msgstr "Excel XML eksports"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nevar noteikt Excel faila formātu"
 
@@ -7130,6 +7170,9 @@ msgstr "Izvērst rindu"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Izvērst rindu"
+
+msgid "Expand settings"
+msgstr "Izvērst iestatījumus"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7245,6 +7288,11 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7396,9 +7444,9 @@ msgstr "Neizdevās atzīmēt vienumus"
 msgid "Failed to generate chart edit URL"
 msgstr "Neizdevās ģenerēt diagrammas rediģēšanas URL"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "Neizdevās ģenerēt diagrammas rediģēšanas URL"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Neizdevās ielādēt diagrammas datus"
@@ -7406,9 +7454,9 @@ msgstr "Neizdevās ielādēt diagrammas datus"
 msgid "Failed to load chart data."
 msgstr "Neizdevās ielādēt diagrammas datus."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Neizdevās ielādēt datu kopas %s kolonnas"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8107,6 +8155,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupa"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupa %s"
+
 msgid "Group By"
 msgstr "Grupēt pēc"
 
@@ -8118,6 +8170,12 @@ msgstr "Grupas atslēga"
 
 msgid "Group by"
 msgstr "Grupēt pēc"
+
+msgid "Group columns"
+msgstr "Grupēt kolonnas"
+
+msgid "Group name"
+msgstr "Grupas nosaukums"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
@@ -8690,16 +8748,13 @@ msgstr "Nederīgs rolling_type: %(type)s"
 msgid "Invalid state."
 msgstr "Nederīgs stāvoklis."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Nederīgi cilņu ID: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Nepareizs lietotājvārds vai parole"
 
 msgid "Inverse"
 msgstr ""
@@ -9045,6 +9100,9 @@ msgstr "Koka izkārtojuma tips"
 
 msgid "Least recently modified"
 msgstr "Visvecāk modificēts"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9803,9 +9861,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Metrikas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Metrikas"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9928,9 +9986,9 @@ msgstr "Minūte"
 msgid "Minutes %s"
 msgstr "Minūtes %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Trūkst datu kopas"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Trūkst OAuth2 žetona"
@@ -9999,6 +10057,12 @@ msgstr "Vairāk filtru"
 msgid "MotherDuck token"
 msgstr "MotherDuck žetons"
 
+msgid "Move group left"
+msgstr "Pārvietot grupu pa kreisi"
+
+msgid "Move group right"
+msgstr "Pārvietot grupu pa labi"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Tikai pārvietot"
@@ -10031,6 +10095,9 @@ msgstr "Daudzlīmeņu"
 
 msgid "Multi-Variables"
 msgstr "Daudzmainīgo"
+
+msgid "Multi-level header"
+msgstr "Vairāklīmeņu galvene"
 
 msgid "Multiple"
 msgstr "Vairāki"
@@ -10191,6 +10258,9 @@ msgstr "Jaunās datu kopas nosaukums"
 msgid "New header"
 msgstr "Jauna galvene"
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr "Jauna cilne"
 
@@ -10269,9 +10339,9 @@ msgstr ""
 msgid "No columns found"
 msgstr "Kolonnas nav atrastas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "Nav atrasta saderīga shēma"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Nav atrasts saderīgs katalogs"
@@ -10386,13 +10456,13 @@ msgstr "Nav lomu"
 msgid "No roles yet"
 msgstr "Pagaidām nav lomu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "Šai datu kopai netika atgrieztas rindas"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "Šai datu kopai netika atgriezti paraugi"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Nav atrastas saglabātas izteiksmes"
@@ -10414,9 +10484,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "Nav tabulas kolonnu"
 
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Pagaidām nav %s"
+msgstr ""
 
 msgid "No temporal columns found"
 msgstr "Nav atrastas laika kolonnas"
@@ -10459,6 +10528,11 @@ msgstr "Neviens -> Bulta"
 msgid "None -> None"
 msgstr "Neviens -> Neviens"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normāls"
 
@@ -10482,6 +10556,15 @@ msgstr "Nav vienāds"
 
 msgid "Not Time Series"
 msgstr "Nav laika sērija"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Nav derīgs ZIP fails"
@@ -11014,8 +11097,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, MA15, "
-"...). Ierakstiet pielāgotu periodu, lai to pievienotu."
+"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, "
+"MA15, ...). Ierakstiet pielāgotu periodu, lai to pievienotu."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11402,6 +11485,9 @@ msgstr "Lūdzu, apstipriniet savu paroli"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Lūdzu, ievadiet SQLAlchemy URI pārbaudei"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Lūdzu, ievadiet derīgu e-pasta adresi"
 
@@ -11460,9 +11546,9 @@ msgstr ""
 msgid "Please select at least one role or group"
 msgstr "Lūdzu, izvēlieties vismaz vienu lomu vai grupu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Lūdzu, atlasiet gan datu kopu, gan diagrammas veidu, lai turpinātu"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -11555,6 +11641,9 @@ msgstr "Ports %(port)s resursdatorā \"%(hostname)s\" noraidīja savienojumu."
 msgid "Port out of range 0-65535"
 msgstr "Ports ārpus diapazona 0-65535"
 
+msgid "Position"
+msgstr "Pozīcija"
+
 msgid "Position JSON"
 msgstr "Pozīcijas JSON"
 
@@ -11599,6 +11688,12 @@ msgstr "Prefikss vai piedēklis"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12024,6 +12119,9 @@ msgstr "Noņemt elementu"
 msgid "Remove from favorites"
 msgstr ""
 
+msgid "Remove group"
+msgstr "Noņemt grupu"
+
 msgid "Remove item"
 msgstr "Noņemt elementu"
 
@@ -12256,6 +12354,9 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Obligātās vadīklas vērtības ir noņemtas"
+
+msgid "Required if your account already has a password"
+msgstr ""
 
 msgid "Resample"
 msgstr "Atkārtota izlase"
@@ -12757,9 +12858,9 @@ msgstr "Saglabāt (pārrakstīt)"
 msgid "Save as"
 msgstr "Saglabāt kā"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Saglabāt kā"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Saglabāt kā datu kopu"
@@ -12904,6 +13005,9 @@ msgstr "Shēma"
 
 msgid "Schema cache timeout"
 msgstr "Shēmas kešatmiņas noilgums"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Shēmas, kurās atļauta failu augšupielāde"
@@ -13066,9 +13170,9 @@ msgstr "Skatīt vaicājuma detaļas"
 msgid "Select"
 msgstr "Izvēlēties"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Atlasīt shēmu vai ierakstiet, lai meklētu shēmās"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Atlasīt ..."
@@ -13094,9 +13198,9 @@ msgstr "Atlasīt birkas"
 msgid "Select Value"
 msgstr "Izvēlieties vērtību"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Atlasīt birkas"
+msgstr ""
 
 msgid "Select a CSS template"
 msgstr "Izvēlieties CSS veidni"
@@ -13221,6 +13325,9 @@ msgstr "Atlasīt kolonnu"
 #, fuzzy
 msgid "Select column name"
 msgstr "Atlasīt kolonnu"
+
+msgid "Select columns"
+msgstr "Atlasīt kolonnas"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14653,6 +14760,10 @@ msgstr "Apakškategorijas"
 msgid "Subdomain"
 msgstr "Apakšdomēns"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Apakšgrupa %s"
+
 msgid "Subject"
 msgstr "Subjekts"
 
@@ -14687,9 +14798,9 @@ msgstr "Veiksmīgi"
 msgid "Success message"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "Datu kopa veiksmīgi mainīta!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Piedēklis"
@@ -14742,9 +14853,9 @@ msgstr "Superset konstatēja neparedzētu kļūdu."
 msgid "Supported databases"
 msgstr "Atbalstītās datubāzes"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Nomainīt datu kopu"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Apmainīt rindas un kolonnas"
@@ -14888,6 +14999,9 @@ msgstr "Tabulas nosaukums nav definēts"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabula vai skats \"%(table)s\" nepastāv."
 
+msgid "Table side"
+msgstr "Tabulas puse"
+
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
 "statistical differences between groups."
@@ -14963,9 +15077,9 @@ msgstr "Mērķa vērtība"
 msgid "Task"
 msgstr "birkas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "Eksports atcelts"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -15086,9 +15200,9 @@ msgstr ""
 msgid "The %s"
 msgstr "Iegūts %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Ar šo diagrammu saistītā datu kopa, iespējams, ir dzēsta."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -15487,6 +15601,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -15964,6 +16084,10 @@ msgstr ""
 "derīga shēma."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16023,6 +16147,10 @@ msgid ""
 msgstr ""
 "Tabula \"%(table)s\" nepastāv. Lai izpildītu šo vaicājumu, jāizmanto "
 "derīga tabula."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16364,9 +16492,9 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Dzēšot %s, radās problēma: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -16384,9 +16512,9 @@ msgstr "Radās problēma, dzēšot lietotāja reģistrāciju: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "Dzēšot noteikumus, radās problēma: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Dzēšot atlasītos %s, radās problēma: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -16424,21 +16552,21 @@ msgstr "Radās problēma, dzēšot izvēlētos motīvus: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Dzēšot radās problēma: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Dublējot datu kopu, radās problēma."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Dzēšot atlasītos %s, radās problēma: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Radās problēma, eksportējot datu bāzi"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Radās problēma ar izvēlēto motīvu eksportēšanu"
+msgstr ""
 
 msgid "There was an issue exporting the selected charts"
 msgstr "Radās problēma, eksportējot atlasītās diagrammas"
@@ -16487,6 +16615,12 @@ msgstr "Priekšskatot atlasīto vaicājumu, radās problēma. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16507,6 +16641,12 @@ msgstr "Šīs ir datu kopas, kurām šis filtrs tiks piemērots."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16523,6 +16663,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16603,9 +16748,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Šī kolonna var būt nesaderīga ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Šī kolonna var būt nesaderīga ar pašreizējo datu kopu"
@@ -16648,6 +16793,12 @@ msgstr ""
 "                  skata jāpārsūta uz diagrammu, kas satur anotāciju datus."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16774,9 +16925,9 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Šis filtrs jau ir iekļauts pārskatā"
 
-#, fuzzy, python-format
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Šis filtrs var būt nesaderīgs ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "Šī mape pašlaik ir tukša"
@@ -16892,9 +17043,9 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Šī metrika var būt nesaderīga ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This name is already taken. Please choose another one."
 msgstr "Šis nosaukums jau ir aizņemts. Lūdzu, izvēlieties citu."
@@ -17478,6 +17629,9 @@ msgstr "Otrdiena"
 
 msgid "Tukey"
 msgstr "Tūkija"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tips"
@@ -18491,6 +18645,10 @@ msgstr ""
 "%(location)s."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "Mums ir šādas atslēgas: %s"
 
@@ -19300,9 +19458,9 @@ msgstr "Jums nav tiesību izveidot diagrammu"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Jums nav tiesību izveidot paneli"
 
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Jūs esat noņēmuši šo filtru."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Jūs esat noņēmuši šo filtru."
@@ -19703,6 +19861,13 @@ msgstr "pogu (cmd + z), kamēr saglabāsiet izmaiņas."
 
 msgid "by using"
 msgstr "izmantojot"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
