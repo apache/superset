@@ -138,6 +138,9 @@ function TextControl<T extends InputValueType = InputValueType>({
   if (safeStringify(prevValue) !== safeStringify(value)) {
     setPrevValue(value);
     setLocalValue(safeStringify(value));
+    // An external reset supersedes any in-flight edit; clearing it lets an
+    // identical edit afterwards register as a fresh change.
+    setPendingValue(null);
   }
   const displayValue = localValue;
 
