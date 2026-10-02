@@ -79,11 +79,8 @@ test('preserves an edit made while sorted after the sort is cleared', () => {
   expect(rowsDescending[0].textContent).toContain('b_col');
   expect(rowsDescending[1].textContent).toContain('a_col');
   expect(
-    (
-      container.querySelector(
-        '[data-test="type-input-2"]',
-      ) as HTMLInputElement
-    ).value,
+    (container.querySelector('[data-test="type-input-2"]') as HTMLInputElement)
+      .value,
   ).toBe('EDITED');
 
   // Cycle the sort back to unsorted (descend -> cancel).
