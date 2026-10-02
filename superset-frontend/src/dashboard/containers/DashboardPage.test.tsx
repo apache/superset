@@ -157,6 +157,7 @@ const MockCrudThemeProvider = CrudThemeProvider as unknown as jest.Mock;
 
 afterEach(() => {
   jest.restoreAllMocks();
+  localStorage.clear();
 });
 
 beforeEach(() => {
@@ -707,8 +708,6 @@ test('restores native filter state from localStorage when no URL key is present'
       }),
     }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__42__1');
 });
 
 test('skips localStorage restore for guest/embedded users (userId is undefined)', async () => {
@@ -760,8 +759,6 @@ test('skips localStorage restore for guest/embedded users (userId is undefined)'
   expect(hydrateDashboard).toHaveBeenCalledWith(
     expect.objectContaining({ dataMask: {} }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__1');
 });
 
 test('scopes localStorage key to userId when user is authenticated', async () => {
@@ -832,8 +829,6 @@ test('scopes localStorage key to userId when user is authenticated', async () =>
       }),
     }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__7__1');
 });
 
 test('does not restore localStorage filters when a nativeFiltersKey is in the URL', async () => {
@@ -886,8 +881,6 @@ test('does not restore localStorage filters when a nativeFiltersKey is in the UR
       }),
     }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__1');
 });
 
 test('ignores corrupted localStorage data (array) and uses empty dataMask', async () => {
@@ -922,8 +915,6 @@ test('ignores corrupted localStorage data (array) and uses empty dataMask', asyn
   expect(hydrateDashboard).toHaveBeenCalledWith(
     expect.objectContaining({ dataMask: {} }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__42__1');
 });
 
 test('restores versioned localStorage filters and drops them if targets change', async () => {
@@ -1037,8 +1028,6 @@ test('restores versioned localStorage filters and drops them if targets change',
       }),
     }),
   );
-
-  localStorage.removeItem('dashboard__native_filters__5__1');
 });
 
 test('skips localStorage restore when ?f= Rison link is present in URL', async () => {
@@ -1077,13 +1066,15 @@ test('skips localStorage restore when ?f= Rison link is present in URL', async (
     error: null,
   });
 
-  // Mock getUrlParam to simulate ?f= presence
-  jest.spyOn(require('src/dashboard/util/risonFilters'), 'getRisonFilterParam').mockReturnValue('{}');
+  // Mock getRisonFilterParam to simulate ?f= presence
+  jest
+    .spyOn(require('src/dashboard/util/risonFilters'), 'getRisonFilterParam')
+    .mockReturnValue('{}');
 
   render(
-    <React.Suspense fallback="loading">
+    <Suspense fallback="loading">
       <DashboardPage idOrSlug="1" />
-    </React.Suspense>,
+    </Suspense>,
     {
       useRedux: true,
       useRouter: true,
@@ -1108,7 +1099,6 @@ test('skips localStorage restore when ?f= Rison link is present in URL', async (
   );
 
   require('src/dashboard/util/risonFilters').getRisonFilterParam.mockRestore();
-  localStorage.removeItem('dashboard__native_filters__42__1');
 });
 
 test('skips localStorage save when historical version preview is active', async () => {
@@ -1129,9 +1119,9 @@ test('skips localStorage save when historical version preview is active', async 
   });
 
   render(
-    <React.Suspense fallback="loading">
+    <Suspense fallback="loading">
       <DashboardPage idOrSlug="1" />
-    </React.Suspense>,
+    </Suspense>,
     {
       useRedux: true,
       useRouter: true,
@@ -1144,8 +1134,8 @@ test('skips localStorage save when historical version preview is active', async 
               id: 'NATIVE_FILTER-xyz',
               filterType: 'filter_select',
               targets: [{ column: { name: 'state' } }],
-            }
-          }
+            },
+          },
         },
         dataMask: {
           'NATIVE_FILTER-xyz': {
@@ -1169,4 +1159,65 @@ test('skips localStorage save when historical version preview is active', async 
   // Simulate hydration and effect run
   // Expect no save to localStorage because isVersionPreviewActive is true
   expect(localStorage.getItem('dashboard__native_filters__42__1')).toBeNull();
+});
+
+test('saves to localStorage when historical version preview is inactive', async () => {
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-xyz',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: {
+          filters: {
+            'NATIVE_FILTER-xyz': {
+              id: 'NATIVE_FILTER-xyz',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'state' } }],
+            },
+          },
+        },
+        dataMask: {
+          'NATIVE_FILTER-xyz': {
+            filterState: { value: ['New Value'] },
+            extraFormData: {},
+          },
+        },
+        user: { userId: 42 },
+        versionHistory: {
+          entityType: 'dashboard',
+          preview: null
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // Verify it actually saves when preview is false
+  expect(
+    localStorage.getItem('dashboard__native_filters__42__1'),
+  ).not.toBeNull();
 });

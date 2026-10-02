@@ -90,7 +90,7 @@ import {
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
-const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
+export const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
 
 function getStorageKey(dashboardId: number, userId: number | undefined) {
   // Scope the key to userId to prevent one user's filter state from
@@ -134,6 +134,9 @@ function saveDashboardFilters(
         {
           targets: filter.targets,
           type: filter.filterType,
+          // Capture the default data mask so comparator changes (e.g. switching
+          // from exact-match to contains) also invalidate stale saved state.
+          defaultDataMask: filter.defaultDataMask,
         },
       ]),
     );
@@ -221,6 +224,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  // Tracks the JSON-stringified URL-derived filter mask (permalink, Rison, etc.)
+  // so the save effect can skip persisting it until the user interacts and
+  // diverges from this initial state.
+  const urlFilterMask = useRef<string | null>(null);
   const isRestoringUrlFilters = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
@@ -289,13 +296,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
-
-      isRestoringUrlFilters.current = Boolean(
-        permalinkKey ||
-        nativeFilterKeyValue ||
-        isOldRison ||
-        getRisonFilterParam()
-      );
 
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
@@ -379,13 +379,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
                   const savedDef = savedDefinitions?.[filterId];
                   if (!savedDef) return false;
 
-                  // Validate that the target column(s) and filter type have not changed
+                  // Validate that the target column(s), filter type, and
+                  // default data mask have not changed. This catches comparator
+                  // changes (e.g. exact-match → contains) that don't alter the
+                  // target or type but would produce incorrect query results.
                   const currentTargets = JSON.stringify(currentConfig.targets);
                   const savedTargets = JSON.stringify(savedDef.targets);
+                  const currentDefaultMask = JSON.stringify(
+                    currentConfig.defaultDataMask,
+                  );
+                  const savedDefaultMask = JSON.stringify(
+                    savedDef.defaultDataMask,
+                  );
 
                   if (
                     currentTargets !== savedTargets ||
-                    currentConfig.filterType !== savedDef.type
+                    currentConfig.filterType !== savedDef.type ||
+                    currentDefaultMask !== savedDefaultMask
                   ) {
                     return false;
                   }
@@ -475,6 +485,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             prettifyRisonFilterUrl();
           }
         }
+      }
+
+      // If the dashboard was loaded with explicit filters in the URL, capture
+      // the resulting mask so the persistence effect can skip saving it until
+      // the user interacts and diverges from this state.
+      if (
+        permalinkKey ||
+        nativeFilterKeyValue ||
+        isOldRison ||
+        risonFilterParam
+      ) {
+        isRestoringUrlFilters.current = true;
       }
 
       if (!isDashboardHydrated.current) {
@@ -574,11 +596,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       !isDashboardHydrated.current
     )
       return;
-
-    if (isRestoringUrlFilters.current) {
-      isRestoringUrlFilters.current = false;
-      return;
-    }
     // Persist only entries that correspond to configured native filters.
     // This avoids saving chart customization or other transient dataMask
     // entries that are not part of the user's filter selections.
@@ -600,6 +617,26 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // alone is not sufficient — a nativeFilterMask of {} would still overwrite
     // the user's saved selection.
     if (Object.keys(nativeFilterMask).length === 0) return;
+
+    const currentMaskStr = JSON.stringify(nativeFilterMask);
+
+    // If we just hydrated from a URL (permalink, ?f=, etc.), capture the initial
+    // state of the native filters. We use this snapshot to avoid saving the URL's
+    // state over the user's personal saved state until they actually interact.
+    if (isRestoringUrlFilters.current) {
+      urlFilterMask.current = currentMaskStr;
+      isRestoringUrlFilters.current = false;
+    }
+
+    if (urlFilterMask.current) {
+      if (urlFilterMask.current === currentMaskStr) {
+        return;
+      }
+      // The current mask diverged from the URL-hydrated mask! The user must have
+      // interacted. Clear the snapshot so normal saving resumes.
+      urlFilterMask.current = null;
+    }
+
     saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
   }, [
     id,

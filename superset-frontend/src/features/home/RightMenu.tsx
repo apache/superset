@@ -1,3 +1,4 @@
+import { DASHBOARD_FILTERS_STORAGE_PREFIX } from 'src/dashboard/containers/DashboardPage';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -379,7 +380,7 @@ const RightMenu = ({
       // filter selections (which may contain business-sensitive data) to the
       // next user logging in on the same browser profile.
       Object.keys(window.localStorage).forEach(key => {
-        if (key.startsWith('dashboard__native_filters__')) {
+        if (key.startsWith(DASHBOARD_FILTERS_STORAGE_PREFIX)) {
           window.localStorage.removeItem(key);
         }
       });
