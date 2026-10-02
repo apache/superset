@@ -83,7 +83,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
-from superset.commands.dashboard.export_example import ExportExampleCommand
+from superset.commands.dashboard.export_example import (
+    ExportExampleCommand,
+    ExportExampleSemanticViewError,
+)
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
@@ -180,6 +183,7 @@ from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
 )
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
@@ -1731,6 +1735,8 @@ class DashboardRestApi(
                     )
             except DashboardNotFoundError:
                 return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
         return send_export_zip(buf, filename)
@@ -1755,6 +1761,7 @@ class DashboardRestApi(
             Exports a dashboard with its charts and datasets in the example
             format used by the Superset example loading system. The export
             includes Parquet data files and YAML configuration files.
+            Charts and native-filter targets that use semantic views are not supported.
           parameters:
           - in: path
             schema:
@@ -1786,6 +1793,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              description: The dashboard contains unsupported semantic-view assets
             500:
               $ref: '#/components/responses/500'
         """
@@ -1807,6 +1816,8 @@ class DashboardRestApi(
                     bundle.writestr(filename, content_fn())
         except DashboardNotFoundError:
             return self.response_404()
+        except ExportExampleSemanticViewError as ex:
+            return self.response_422(message=str(ex))
 
         buf.seek(0)
 

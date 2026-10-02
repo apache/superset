@@ -432,6 +432,9 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
                 limit=limit,
                 offset=offset,
                 group_limit=group_limit,
+                selection_identity_version=query_object.extras.get(
+                    "semantic_selection_version"
+                ),
             )
         )
 
@@ -1145,6 +1148,9 @@ def validate_query_object(
 
     query_object = cast(ValidatedQueryObject, query_object)
 
+    query_object.datasource.implementation.validate_selection_version(
+        query_object.extras.get("semantic_selection_version")
+    )
     _validate_metrics(query_object)
     _validate_dimensions(query_object)
     _validate_filters(query_object)
