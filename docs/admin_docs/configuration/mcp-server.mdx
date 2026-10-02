@@ -1656,3 +1656,16 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Managing and applying dashboard native filters
+
+`manage_native_filters` requires a numeric dataset column when adding a
+`filter_range` filter or changing its dataset/column target. Select filters
+continue to accept nonnumeric columns.
+
+For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
+one datasource-supported duration (for example, `["P1D"]`). Custom engine and
+semantic-layer durations are accepted, rather than limited to a fixed enum.
+A nonempty `time_grains` list in the saved filter configuration restricts the
+allowed selection; missing or empty lists impose no restriction. Pass `[]` to
+clear an optional time-grain filter; required filters cannot be cleared.

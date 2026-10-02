@@ -104,8 +104,10 @@ def _time_data_mask(default_time_range: str | None) -> dict[str, Any]:
     }
 
 
-def _validate_dataset_column(dataset_id: int, column: str) -> None:
-    """Validate that the dataset exists and contains the given column."""
+def _validate_dataset_column(
+    dataset_id: int, column: str, *, require_numeric: bool = False
+) -> None:
+    """Validate column existence and, for range filters, its numeric type."""
     from superset.daos.dataset import DatasetDAO
 
     dataset = DatasetDAO.find_by_id(dataset_id)
@@ -115,10 +117,17 @@ def _validate_dataset_column(dataset_id: int, column: str) -> None:
             " Use list_datasets to get valid dataset IDs."
         )
     column_names = [c.column_name for c in dataset.columns]
-    if column not in column_names:
+    target_column = next((c for c in dataset.columns if c.column_name == column), None)
+    if target_column is None:
         raise _FilterValidationError(
             f"Column '{column}' not found in dataset {dataset_id}. "
             f"Available columns: {', '.join(sorted(column_names))}."
+        )
+
+    if require_numeric and not target_column.is_numeric:
+        raise _FilterValidationError(
+            f"Column '{column}' in dataset {dataset_id} must be numeric "
+            "for a filter_range filter."
         )
 
 
@@ -178,7 +187,7 @@ def _build_new_filter_config(
         }
 
     if isinstance(spec, FilterRangeSpec):
-        _validate_dataset_column(spec.dataset_id, spec.column)
+        _validate_dataset_column(spec.dataset_id, spec.column, require_numeric=True)
         return {
             "id": filter_id,
             "type": "NATIVE_FILTER",
@@ -268,7 +277,9 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
             f"Filter '{spec.id}' is missing a dataset or column target; "
             "provide both dataset_id and column to set the target."
         )
-    _validate_dataset_column(dataset_id, column)
+    _validate_dataset_column(
+        dataset_id, column, require_numeric=merged.get("filterType") == "filter_range"
+    )
     target["datasetId"] = dataset_id
     target["column"] = {"name": column}
     merged["targets"] = [target]

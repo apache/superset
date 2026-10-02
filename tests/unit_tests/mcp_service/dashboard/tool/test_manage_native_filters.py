@@ -164,6 +164,7 @@ def _mock_dataset(columns: list[str] | None = None) -> Mock:
     for name in columns or ["region", "country", "ds"]:
         col = Mock()
         col.column_name = name
+        col.is_numeric = name in {"cost", "price"}
         cols.append(col)
     dataset.columns = cols
     return dataset
@@ -389,6 +390,72 @@ async def test_add_filter_range_with_invalid_column(mcp_server):
         )
 
     assert "Column 'nonexistent' not found in dataset 5" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("column", ["region", "ds", "active", "unknown_type"])
+async def test_add_range_filter_rejects_nonnumeric_column(
+    mcp_server: object, column: str
+) -> None:
+    """Existing string, temporal, boolean, and unknown columns are not numeric."""
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard()),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset([column])),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_range",
+                        "name": "Range",
+                        "dataset_id": 5,
+                        "column": column,
+                    }
+                ],
+            },
+        )
+
+    assert "must be numeric" in data["error"]
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "target_update, columns",
+    [
+        ({"column": "region"}, ["region"]),
+        ({"dataset_id": 6}, ["cost"]),
+        ({"dataset_id": 6, "column": "region"}, ["region"]),
+    ],
+)
+async def test_update_range_filter_rejects_nonnumeric_target(
+    mcp_server: object, target_update: dict[str, Any], columns: list[str]
+) -> None:
+    """Validate the merged target on column-only, dataset-only, and full updates."""
+    dataset = _mock_dataset(columns)
+    for column in dataset.columns:
+        column.is_numeric = False
+    with (
+        patch(
+            DAO_FIND_BY_ID,
+            return_value=_mock_dashboard(filters=[EXISTING_RANGE_FILTER]),
+        ),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": EXISTING_RANGE_FILTER["id"], **target_update}],
+            },
+        )
+
+    assert "must be numeric" in data["error"]
+    command.assert_not_called()
 
 
 @pytest.mark.asyncio

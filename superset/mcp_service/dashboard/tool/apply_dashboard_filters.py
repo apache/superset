@@ -275,6 +275,13 @@ def _timegrain_data_mask(
 ) -> dict[str, Any]:
     """Build the data mask a filter_timegrain filter produces for ``time_grain``."""
     is_set = bool(time_grain)
+    allowed_grains = conf.get("time_grains")
+    if is_set and allowed_grains and time_grain[0] not in allowed_grains:
+        raise _FilterApplyError(
+            f"Time grain '{time_grain[0]}' is not allowed for filter "
+            f"'{conf.get('name') or conf.get('id')}'. "
+            f"Available time grains: {', '.join(allowed_grains)}."
+        )
     if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
         raise _FilterApplyError(
             f"Filter '{conf.get('name') or conf.get('id')}' requires a time "

@@ -88,7 +88,6 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
-from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
@@ -2535,12 +2534,14 @@ class ApplyFilterValueSpec(BaseModel):
             "[null, null] to clear the filter."
         ),
     )
-    time_grain: List[TimeGrain] | None = Field(
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None,
         max_length=1,
         description=(
             "Time grain to apply, for a filter_timegrain filter, as a list "
-            "with at most one value, e.g. ['P1D']. Pass an empty list to "
+            "with at most one datasource-supported duration, e.g. ['P1D']. "
+            "Custom engine and semantic-layer durations are accepted. "
+            "Pass an empty list to "
             "clear the filter."
         ),
     )
@@ -2639,7 +2640,7 @@ class AppliedFilterSummary(BaseModel):
     range: List[int | float | None] | None = Field(
         None, description="Applied [lower, upper] bounds, for a filter_range filter"
     )
-    time_grain: List[TimeGrain] | None = Field(
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None, description="Applied time grain, for a filter_timegrain filter"
     )
 
