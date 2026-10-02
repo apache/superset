@@ -33,7 +33,7 @@ annotated-types==0.7.0
     #   pydantic
 antlr4-python3-runtime==4.13.2
     # via pymongosql
-anyio==4.11.0
+anyio==4.15.1
     # via
     #   httpx
     #   mcp
@@ -824,7 +824,7 @@ pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==5.3.5
+pyfakefs==6.2.0
     # via apache-superset
 pygeohash==3.2.2
     # via
@@ -1021,7 +1021,6 @@ setuptools==84.0.0
     #   pandas-gbq
     #   pydata-google-auth
     #   zope-event
-    #   zope-interface
 shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
@@ -1041,8 +1040,6 @@ slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sniffio==1.3.1
-    # via anyio
 sqlalchemy==2.0.52
     # via
     #   -c requirements/base-constraint.txt
@@ -1272,7 +1269,9 @@ zipp==3.23.0
     # via importlib-metadata
 zope-event==5.0
     # via gevent
-zope-interface==5.4.0
-    # via gevent
+zope-interface==8.6
+    # via
+    #   -r requirements/development.in
+    #   gevent
 zstandard==0.23.0
     # via trino
