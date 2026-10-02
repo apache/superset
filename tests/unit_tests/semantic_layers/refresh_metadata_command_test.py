@@ -23,10 +23,14 @@ from uuid import UUID
 
 import pytest
 from flask import Flask, g
+from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.metadata import (
+    CatalogSnapshot,
     MetadataRefreshError,
     MetadataRefreshResult,
 )
+from werkzeug.test import TestResponse
 
 MODULE: str = "superset.commands.semantic_layer.refresh_metadata"
 VIEW_UUID: UUID = UUID("bd2f07da-c65e-40da-b75e-c62b7cdd67f1")
@@ -602,3 +606,108 @@ def test_opted_in_provider_without_adapter_fails_before_store_work(
         module.RefreshMetadataCommand(VIEW_UUID).run()
     provider.from_configuration.assert_called_once()
     cast(Mock, module.guarded_store).assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}],
+    indirect=True,
+)
+@pytest.mark.parametrize(
+    "operation", ["refresh_metadata", "invalidate_catalog", "invalidate_compatibility"]
+)
+@pytest.mark.parametrize(
+    "permissions,expected",
+    [
+        ({("can_read", "SemanticView")}, 403),
+        ({("can_read", "SemanticView"), ("can_read", "SemanticLayer")}, 403),
+        (
+            {
+                ("can_read", "SemanticView"),
+                ("can_write", "SemanticView"),
+                ("can_read", "SemanticLayer"),
+            },
+            403,
+        ),
+        (
+            {
+                ("can_read", "SemanticView"),
+                ("can_read", "SemanticLayer"),
+                ("can_write", "SemanticLayer"),
+            },
+            200,
+        ),
+    ],
+    ids=["view-read", "both-read", "view-edit", "connection-manager"],
+)
+def test_metadata_routes_read_gate_precedes_connection_write_authority(
+    app: Flask,
+    refresh_context: tuple[Mock, Mock, Mock],
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    operation: str,
+    permissions: set[tuple[str, str]],
+    expected: int,
+) -> None:
+    """Route admission cannot replace the owning connection's write policy."""
+    from superset import security_manager
+    from superset.commands.semantic_layer import refresh_metadata as module
+
+    def principal() -> None:
+        """Supply an authenticated principal at the request authentication boundary."""
+        g.user = Mock(
+            id=1,
+            is_anonymous=False,
+            is_authenticated=True,
+            is_guest_user=False,
+            is_active=True,
+        )
+        g._login_user = g.user
+
+    def has_permission(action: str, resource: str) -> bool:
+        """Evaluate the same explicit role grants at route and command boundaries."""
+        return (action, resource) in permissions
+
+    monkeypatch.setitem(
+        app.before_request_funcs,
+        None,
+        [*app.before_request_funcs.get(None, []), principal],
+    )
+    view: Mock
+    provider: Mock
+    manager: Mock
+    view, provider, manager = refresh_context
+    manager.can_access.side_effect = has_permission
+    provider.from_configuration.return_value.metadata_refresh.refresh.return_value = (
+        MetadataRefreshResult(
+            "unchanged", CatalogSnapshot("{}", "scope:token", "2026-10-02T00:00:00Z")
+        )
+    )
+    authority: Mock = mocker.spy(module, "authorize_metadata_refresh")
+    route_access: Mock
+    client: FlaskClient
+    with (
+        patch.object(security_manager, "is_item_public", return_value=False),
+        patch.object(
+            security_manager, "has_access", side_effect=has_permission
+        ) as route_access,
+        app.test_client() as client,
+    ):
+        response: TestResponse = client.post(
+            f"/api/v1/semantic_view/{VIEW_UUID}/{operation}/", json={}
+        )
+    assert response.status_code == expected
+    route_access.assert_called_once_with("can_read", "SemanticView")
+    authority.assert_any_call(view)
+    if expected == 403:
+        authority.assert_called_once_with(view)
+        provider.supports_metadata_refresh.assert_not_called()
+        provider.from_configuration.assert_not_called()
+        cast(Mock, module.guarded_store).assert_not_called()
+    else:
+        assert ("can_write", "SemanticView") not in permissions
+        manager.can_access.assert_any_call("can_write", "SemanticLayer")
+        cast(Mock, module.current_user_can_modify_object).assert_any_call(
+            view.semantic_layer
+        )
+        cast(Mock, module.guarded_store).assert_called_once()

@@ -20,7 +20,11 @@ specific language governing permissions and limitations under the License.
 Metadata maintenance resolves a stored semantic-view UUID and its owning
 connection. It requires the existing SemanticView read permission, SemanticLayer
 read/write permissions, view/layer data access, and permission to modify the
-connection. View editorship alone does not grant connection maintenance.
+connection. Per FR-015, all three maintenance routes deliberately use a
+SemanticView read gate, while their commands require write on the owning
+SemanticLayer and connection-modify authority; mapping the routes to write would
+add a SemanticView-write requirement outside that contract. View editorship
+alone does not grant connection maintenance.
 Anonymous and embedded guest principals cannot perform maintenance. Ordinary
 chart access retains its canonical guest/dashboard/viewer/editor policy.
 
