@@ -463,7 +463,7 @@ def test_first_versioned_flush_freezes_policy_through_finalization(
             marks=pytest.mark.xfail(
                 strict=True,
                 raises=sa.exc.OperationalError,
-                reason="SC-TBD: inherited Continuum savepoint rollback lifecycle bug",
+                reason="SC-124128: inherited Continuum savepoint rollback bug",
             ),
         ),
     ],
@@ -545,7 +545,7 @@ def test_lazy_capture_predicate_error_still_propagates(
 @pytest.mark.xfail(
     strict=True,
     raises=sa.exc.OperationalError,
-    reason="SC-TBD: inherited Continuum savepoint rollback lifecycle bug",
+    reason="SC-124128: inherited Continuum savepoint rollback bug",
 )
 def test_capture_after_savepoint_rollback_with_stable_policy(
     capture_session: Session,
