@@ -468,3 +468,26 @@ AdvancedPlayground.argTypes = {
     control: { type: 'number' },
   },
 };
+
+/**
+ * Demonstrates the allowNewOptions feature, allowing users to type and create
+ * custom options that are rendered with a subtle [new] visual badge, while
+ * ensuring existing options are deduplicated against typed terms.
+ */
+export const WithAllowNewOptions = (args: SelectProps) => (
+  <div style={{ width: DEFAULT_WIDTH }}>
+    <Select
+      {...args}
+      allowNewOptions
+      ariaLabel="select-allow-new-options"
+      options={options}
+    />
+  </div>
+);
+
+WithAllowNewOptions.args = {
+  ...AdvancedPlayground.args,
+  allowNewOptions: true,
+  mode: 'multiple',
+  placeholder: 'Type a custom value or pick existing...',
+};
