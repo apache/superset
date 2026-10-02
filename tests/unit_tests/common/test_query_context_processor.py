@@ -280,6 +280,32 @@ def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
     assert scope == {"access": None, "data_key": None}
 
 
+def test_annotation_source_scope_uses_resolved_datasource_for_semantic_views(
+    processor, mock_annotation_chart
+) -> None:
+    """``Slice.datasource`` is pinned to table-backed datasources and
+    resolves to ``None`` for a semantic-view-backed chart, which would
+    otherwise collapse every requester onto the same {access: None,
+    data_key: None} scope below regardless of their actual access.
+    ``resolved_datasource`` must be used instead so these charts still
+    participate in per-requester access scoping."""
+    mock_annotation_chart.datasource = None
+    mock_annotation_chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        security_manager.can_access_datasource.side_effect = [True, False]
+        security_manager.get_rls_cache_key.return_value = []
+        scope_a = processor._annotation_source_scope(1)
+        scope_b = processor._annotation_source_scope(1)
+    assert scope_a == {"access": True, "data_key": []}
+    assert scope_b == {"access": False, "data_key": []}
+    security_manager.can_access_datasource.assert_called_with(
+        mock_annotation_chart.resolved_datasource
+    )
+
+
 def test_get_data_table_like(processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
@@ -2465,6 +2491,95 @@ def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache()
     # The payload serves the freshly-resolved annotation data, not whatever
     # (stale) value happened to sit on the dataframe's cache object.
     assert result["annotation_data"] == {"a": [1, 2]}
+
+
+def test_get_df_payload_result_annotation_refresh_independent_of_df_marker():
+    """
+    A GTF forced refresh's idempotency marker is per (nonce, cache_key). Once
+    the dataframe's marker (keyed on the dataframe's own cache_key) is set,
+    force_query goes False for every later request carrying that nonce --
+    but a *different* annotation access scope (its own annotation_key) has
+    never actually forced its own entry, and must still force its recompute
+    rather than silently reading whatever's already sitting under its key.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = True
+    mock_query_context.force_nonce = "nonce-1"
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        annotation_layers=[
+            {
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "name": "a",
+                "value": 1,
+            }
+        ],
+    )
+    query_obj.force_nonce = None  # falls back to the context-level nonce above
+
+    class MockCache:
+        def __init__(self):
+            self.is_loaded = True
+            self.applied_filter_columns = ["col1"]
+            self.df = pd.DataFrame({"col1": [1, 2, 3]})
+            self.query = ""
+            self.status = "success"
+            self.cache_dttm = "2024-01-01T00:00:00"
+            self.queried_dttm = "2024-01-01T00:00:00"
+            self.stacktrace = None
+            self.error_message = None
+            self.is_cached = True
+            self.sql_rowcount = 0
+            self.cache_value = None
+            self.applied_template_filters = []
+            self.rejected_filter_columns = []
+            self.annotation_data = {}
+            self.bq_memory_limited = False
+            self.bq_memory_limited_row_count = 0
+            self.result_persisted = False
+            self.set_query_result = MagicMock()
+
+    mock_cache = MockCache()
+
+    def marker_lookup(key: str):
+        # Marker present only for the dataframe's own cache_key.
+        return 1 if key == "gtf-force-nonce:nonce-1:df-key" else None
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch("superset.common.query_context_processor.cache_manager") as cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="df-key"),
+        patch.object(processor, "annotation_cache_key", return_value="ann-key"),
+        patch.object(
+            processor, "_get_annotation_data_cached", return_value={}
+        ) as mock_get_annotation,
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        cache_manager.data_cache.get.side_effect = marker_lookup
+        mock_cache_manager.get.return_value = mock_cache
+        processor.get_df_payload(query_obj, force_cached=False)
+
+    # The dataframe's own marker is set, so its force_query resolves False.
+    assert mock_cache_manager.get.call_args.kwargs["force_query"] is False
+
+    # The annotation's marker was never set for this nonce, so its
+    # force_query must resolve True regardless of the dataframe's.
+    mock_get_annotation.assert_called_once()
+    _, kwargs = mock_get_annotation.call_args
+    assert kwargs["force_query"] is True
 
 
 def test_raise_for_access_evaluates_access_before_validate():

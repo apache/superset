@@ -264,6 +264,18 @@ class QueryContextProcessor:
             self._resolve_forced_query(query_obj, cache_key)
             or timeout == CACHE_DISABLED_TIMEOUT
         )
+        # Resolved separately from the dataframe's force_query, against its own
+        # annotation_key. A forced GTF refresh's nonce marker is per (nonce,
+        # cache_key): the dataframe's marker is keyed on cache_key, so once it's
+        # set, force_query goes False for every subsequent request carrying that
+        # nonce, including a request for a *different* annotation access scope
+        # (its own annotation_key) that has never actually forced-refreshed its
+        # own entry. Reusing the dataframe's force_query there would read that
+        # scope's existing annotation cache entry instead of refreshing it.
+        annotation_force_query = (
+            self._resolve_forced_query(query_obj, annotation_key)
+            or timeout == CACHE_DISABLED_TIMEOUT
+        )
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -342,7 +354,7 @@ class QueryContextProcessor:
                 annotation_data = self._get_annotation_data_cached(
                     query_obj=query_obj,
                     cache_key=annotation_key,
-                    force_query=force_query,
+                    force_query=annotation_force_query,
                     force_cached=force_cached,
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
@@ -537,7 +549,12 @@ class QueryContextProcessor:
             chart = (
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
-            datasource = chart.datasource if chart else None
+            # resolved_datasource, not datasource: the latter is pinned to
+            # table-backed datasources and resolves to None for a
+            # semantic-view-backed chart, which would otherwise collapse
+            # every requester onto the same {access: None, data_key: None}
+            # scope below regardless of their actual access.
+            datasource = chart.resolved_datasource if chart else None
             if chart is None or datasource is None:
                 return {"access": None, "data_key": None}
 
@@ -615,13 +632,17 @@ class QueryContextProcessor:
             raise CacheLoadError("Error loading annotation data from cache")
 
         annotation_data = self.get_annotation_data(query_obj)
-        set_and_log_cache(
+        persisted = set_and_log_cache(
             cache_manager.data_cache,
             cache_key,
             {"annotation_data": annotation_data},
             timeout,
             datasource_uid,
         )
+        # Mirrors the dataframe path's own marker write: only if the fresh
+        # value actually persisted, so a follow-up request carrying the same
+        # nonce reads this entry instead of forcing another recompute.
+        self._mark_force_executed(query_obj, cache_key, persisted)
         return annotation_data
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
