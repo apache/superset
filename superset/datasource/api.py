@@ -643,6 +643,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.query",
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def query(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Query a datasource using metric and dimension names.
         ---
@@ -851,6 +852,7 @@ class DatasourceRestApi(BaseSupersetApi):
         ),
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def datasource_info(
         self, datasource_type: str, datasource_id: int
     ) -> FlaskResponse:

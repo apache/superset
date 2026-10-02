@@ -29,9 +29,12 @@ from sqlalchemy.exc import OperationalError
 from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
     MetadataRefreshError,
+    MetadataRefreshErrorCategory,
     MetadataRefreshResult,
 )
 from werkzeug.test import TestResponse
+
+from superset.semantic_layers.models import SemanticView
 
 pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
     "app",
@@ -528,3 +531,164 @@ def test_metadata_operations_record_audit_action(
     assert response.status_code == 200
     log.assert_called_once()
     assert log.call_args.args[1] == f"SemanticViewRestApi.{route}"
+
+
+@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+@pytest.mark.parametrize("category,status", [("unavailable", 503), ("deadline", 504)])
+def test_datasource_http_boundaries_map_typed_discovery_errors(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    route: str,
+    category: MetadataRefreshErrorCategory,
+    status: int,
+) -> None:
+    """Real discovery after authorization keeps its typed HTTP failure category."""
+    from tests.unit_tests.semantic_layers.metadata_identity_test import (
+        ResultView,
+        view_for,
+    )
+
+    view: SemanticView = view_for(ResultView("captured", 1))
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    access: Mock = mocker.patch(
+        "superset.extensions.security_manager.raise_for_access"
+        if route == "explore"
+        else "superset.semantic_layers.models.SemanticView.raise_for_access"
+    )
+    mocker.patch(
+        "superset.semantic_layers.metadata_binding.participates", return_value=True
+    )
+    error: MetadataRefreshError = MetadataRefreshError(category)
+    error.__cause__ = RuntimeError("private provider detail")
+    provider: Mock = mocker.patch(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        side_effect=error,
+    )
+    response: TestResponse = _request_discovery_route(client, route)
+    assert response.status_code == status
+    assert response.json["error"] == category
+    assert "private" not in response.get_data(as_text=True)
+    access.assert_called_once()
+    provider.assert_called_once_with(view)
+
+
+def _request_discovery_route(client: FlaskClient, route: str) -> TestResponse:
+    """Exercise each HTTP boundary with valid stored-view input."""
+    if route == "query":
+        return client.post(
+            "/api/v1/datasource/semantic_view/11/query", json={"metrics": ["orders"]}
+        )
+    if route == "explore":
+        return client.get(
+            "/api/v1/explore/?datasource_type=semantic_view&datasource_id=11"
+        )
+    return client.get("/api/v1/datasource/semantic_view/11")
+
+
+@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+def test_discovery_http_mapping_preserves_denial_before_provider(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    route: str,
+) -> None:
+    """The new error boundary must not move discovery ahead of access checks."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from tests.unit_tests.semantic_layers.metadata_identity_test import (
+        ResultView,
+        view_for,
+    )
+
+    view: SemanticView = view_for(ResultView("captured", 1))
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch(
+        "superset.extensions.security_manager.raise_for_access"
+        if route == "explore"
+        else "superset.semantic_layers.models.SemanticView.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+    provider: Mock = mocker.patch(
+        "superset.semantic_layers.metadata_binding.view_implementation"
+    )
+    response: TestResponse = _request_discovery_route(client, route)
+    assert response.status_code == 403
+    provider.assert_not_called()
+
+
+@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_discovery_mapping_leaves_unrelated_database_errors_unchanged(
+    app: Flask,
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str,
+    enabled: bool,
+) -> None:
+    """Only typed metadata failures acquire the metadata response contract."""
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", enabled)
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        side_effect=OperationalError("statement", {}, Exception("unrelated")),
+    )
+    response: TestResponse = _request_discovery_route(client, route)
+    assert response.status_code == 500
+    assert response.json.get("error") != "unavailable"
+
+
+@pytest.mark.parametrize(
+    "category,status", [("unavailable", 503), ("deadline", 504), ("configuration", 422)]
+)
+def test_chart_cache_key_metadata_errors_reach_existing_http_mapping(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    category: MetadataRefreshErrorCategory,
+    status: int,
+) -> None:
+    """A real semantic extra-key failure propagates through chart execution."""
+    from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
+    from tests.unit_tests.semantic_layers.metadata_identity_test import (
+        context_for,
+        ResultView,
+        view_for,
+    )
+
+    view: SemanticView = view_for(ResultView("captured", 1))
+    context: QueryContext
+    query: QueryObject
+    context, query = context_for(view)
+    context.cache_values["queries"] = [query.to_dict()]
+    mocker.patch("superset.extensions.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.semantic_layers.metadata_binding.participates", return_value=True
+    )
+    mocker.patch(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        side_effect=MetadataRefreshError(category),
+    )
+    extra_keys: Mock = mocker.spy(view, "get_extra_cache_keys")
+    mocker.patch(
+        "superset.charts.data.api.ChartDataRestApi._create_query_context_from_form",
+        return_value=context,
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data", json={"result_format": "json", "result_type": "full"}
+    )
+    assert response.status_code == status
+    assert response.json["error"] == category
+    extra_keys.assert_called_once_with(query.to_dict())
