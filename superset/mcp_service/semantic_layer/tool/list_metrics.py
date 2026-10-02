@@ -218,6 +218,9 @@ async def _collect_external_metrics(
                         source="external",
                         view_id=view.id,
                         view_name=view.name,
+                        semantic_selection_version=(
+                            view.implementation.selection_identity_version
+                        ),
                         compatible_dimensions=compat_dims,
                     )
                 )

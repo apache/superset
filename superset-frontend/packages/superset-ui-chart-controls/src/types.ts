@@ -70,6 +70,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
 } & AnyDict;
 
 export interface Dataset {
+  semantic_selection_version?: string | null;
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
