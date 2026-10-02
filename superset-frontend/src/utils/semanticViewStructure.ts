@@ -77,6 +77,7 @@ export const mapSemanticTypeToGenericDataType = (
 /** The slice of `GET /api/v1/semantic_view/<id>/structure` consumers rely on. */
 export interface SemanticViewStructure {
   name?: string;
+  semantic_selection_version?: string;
   dimensions: { name: string; type: string }[];
   metrics: { name: string; definition: string }[];
 }
@@ -95,8 +96,18 @@ export const fetchSemanticViewStructure = async (
   const endpoint = `/api/v1/semantic_view/${semanticViewId}/structure`;
   try {
     const response = await cachedSupersetGet({ endpoint });
-    const { name, dimensions = [], metrics = [] } = response.json?.result ?? {};
-    return { name, dimensions, metrics };
+    const {
+      name,
+      dimensions = [],
+      metrics = [],
+      semantic_selection_version,
+    } = response.json?.result ?? {};
+    return {
+      name,
+      dimensions,
+      metrics,
+      semantic_selection_version: semantic_selection_version ?? undefined,
+    };
   } catch (error) {
     // cacheWrapper caches the promise itself and never evicts on rejection, so
     // a single failed response would poison this endpoint for the rest of the

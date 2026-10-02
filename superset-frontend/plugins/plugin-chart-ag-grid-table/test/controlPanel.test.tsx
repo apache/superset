@@ -360,7 +360,13 @@ test.each([
       },
     };
 
-    expect(panel.shouldMapStateToProps?.(state, state)).toBe(true);
+    expect(
+      panel.shouldMapStateToProps?.(
+        state,
+        state,
+        state.controls.server_pagination,
+      ),
+    ).toBe(true);
     expect(
       panel.mapStateToProps?.(state, state.controls.server_pagination),
     ).toMatchObject({
