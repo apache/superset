@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useState } from 'react';
+import { JsonObject } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -56,6 +58,38 @@ const renderForm = (
       </ControlFormRow>
     </ControlForm>,
   );
+  return { onChange };
+};
+
+// Mirrors a real parent: the debounced form change is fed back as the value.
+const renderStatefulForm = () => {
+  const onChange = jest.fn();
+  const Harness = () => {
+    const [value, setValue] = useState<JsonObject>({});
+    const handleChange = useCallback((next: JsonObject) => {
+      setValue(next);
+      onChange(next);
+    }, []);
+    return (
+      <ControlForm onChange={handleChange} value={value}>
+        <ControlFormRow>
+          <ControlFormItem
+            name="title"
+            controlType="Input"
+            label="Title"
+            description="Title description"
+          />
+          <ControlFormItem
+            name="note"
+            controlType="Input"
+            label="Note"
+            description="Note description"
+          />
+        </ControlFormRow>
+      </ControlForm>
+    );
+  };
+  render(<Harness />);
   return { onChange };
 };
 
@@ -105,4 +139,19 @@ test('skips validation for an emptied field and propagates the empty value', asy
 
   await waitFor(() => expect(onChange).toHaveBeenCalledWith({ title: '' }));
   expect(screen.queryByTestId('error-tooltip')).not.toBeInTheDocument();
+});
+
+test('keeps an earlier field edit when a later field is edited after the form change flushed', async () => {
+  const { onChange } = renderStatefulForm();
+  const [title, note] = screen.getAllByRole('textbox');
+
+  await userEvent.type(title, 'Hi');
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith({ title: 'Hi' }),
+  );
+  await userEvent.type(note, 'Yo');
+
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith({ title: 'Hi', note: 'Yo' }),
+  );
 });

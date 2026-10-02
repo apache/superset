@@ -146,7 +146,9 @@ test('edits a contour in place through its popover', async () => {
   const { onChange } = renderControl([isoline, isoband]);
 
   await userEvent.click(screen.getByText(isobandLabel));
-  await screen.findByRole('tooltip');
+  // Hovering the option also opens its summary tooltip (role "tooltip"), so
+  // wait on the edit popover's tab rather than on a tooltip role.
+  await screen.findByRole('tab', { name: 'Isoband' });
   const input = fields()[0];
   await userEvent.clear(input);
   await userEvent.type(input, '5');

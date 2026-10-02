@@ -99,7 +99,7 @@ test('opens the contour popover prefilled from the contour when clicked', async 
   expect(inputs.map(input => input.value)).toEqual(['6', '10']);
 });
 
-test('saves an edited contour through saveContour', async () => {
+test('saves the prefilled contour values unchanged through saveContour', async () => {
   const { saveContour } = renderOption({ contour: isoline });
 
   await userEvent.click(screen.getByTestId('option-label'));

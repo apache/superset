@@ -263,6 +263,55 @@ test('deletes a formatter with its close button', async () => {
   expect(screen.getByText('col_b < 2')).toBeInTheDocument();
 });
 
+test('edits the remaining formatter at its new index after an earlier one is deleted', async () => {
+  const { onChange } = renderCrud({ value: [greaterThanA, lessThanB] });
+
+  await userEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
+  await waitFor(() => expect(lastChange(onChange)).toEqual([lessThanB]));
+  await userEvent.click(screen.getByText('col_b < 2'));
+  await screen.findByText('Edit formatter');
+  const targetValue = screen.getByLabelText('Target value');
+  await userEvent.clear(targetValue);
+  await userEvent.type(targetValue, '8');
+  await userEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() =>
+    expect(lastChange(onChange)).toEqual([
+      expect.objectContaining({ column: 'col_b', targetValue: 8 }),
+    ]),
+  );
+  expect(screen.queryByText('col_a > 1')).not.toBeInTheDocument();
+  expect(screen.getByText('col_b < 8')).toBeInTheDocument();
+});
+
+test('keeps both edits when two formatters are edited one after the other', async () => {
+  const { onChange } = renderCrud({ value: [greaterThanA, lessThanB] });
+
+  await userEvent.click(screen.getByText('col_a > 1'));
+  await screen.findByText('Edit formatter');
+  let targetValue = screen.getByLabelText('Target value');
+  await userEvent.clear(targetValue);
+  await userEvent.type(targetValue, '5');
+  await userEvent.click(screen.getByText('Apply'));
+  await waitFor(() =>
+    expect(screen.queryByText('Edit formatter')).not.toBeInTheDocument(),
+  );
+
+  await userEvent.click(screen.getByText('col_b < 2'));
+  await screen.findByText('Edit formatter');
+  targetValue = screen.getByLabelText('Target value');
+  await userEvent.clear(targetValue);
+  await userEvent.type(targetValue, '6');
+  await userEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() =>
+    expect(lastChange(onChange)).toEqual([
+      expect.objectContaining({ column: 'col_a', targetValue: 5 }),
+      expect.objectContaining({ column: 'col_b', targetValue: 6 }),
+    ]),
+  );
+});
+
 test('deleting the only formatter reports an empty list', async () => {
   const { onChange } = renderCrud({ value: [greaterThanA] });
 
