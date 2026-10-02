@@ -533,7 +533,7 @@ def test_metadata_operations_record_audit_action(
     assert log.call_args.args[1] == f"SemanticViewRestApi.{route}"
 
 
-@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+@pytest.mark.parametrize("route", ["metadata", "query", "explore", "column"])
 @pytest.mark.parametrize("category,status", [("unavailable", 503), ("deadline", 504)])
 def test_datasource_http_boundaries_map_typed_discovery_errors(
     client: FlaskClient,
@@ -575,8 +575,29 @@ def test_datasource_http_boundaries_map_typed_discovery_errors(
     provider.assert_called_once_with(view)
 
 
+def _install_dashboard_view(mocker: MockerFixture, view: SemanticView) -> None:
+    """Use the real dashboard DAO, member resolution and serialization path."""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    chart: Slice = Slice(
+        datasource_id=view.id, datasource_type="semantic_view", semantic_view=view
+    )
+    dashboard: Dashboard = Dashboard(id=1, uuid=UUID(VIEW_UUID), slices=[chart])
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=dashboard)
+    mocker.patch(
+        "superset.extensions.security_manager.can_access_datasource", return_value=True
+    )
+
+
 def _request_discovery_route(client: FlaskClient, route: str) -> TestResponse:
     """Exercise each HTTP boundary with valid stored-view input."""
+    if route == "dashboard":
+        return client.get(f"/api/v1/dashboard/{VIEW_UUID}/datasets")
+    if route == "column":
+        return client.get(
+            "/api/v1/datasource/semantic_view/11/column/orders/values/?force=true"
+        )
     if route == "query":
         return client.post(
             "/api/v1/datasource/semantic_view/11/query", json={"metrics": ["orders"]}
@@ -588,7 +609,9 @@ def _request_discovery_route(client: FlaskClient, route: str) -> TestResponse:
     return client.get("/api/v1/datasource/semantic_view/11")
 
 
-@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+@pytest.mark.parametrize(
+    "route", ["metadata", "query", "explore", "column", "dashboard"]
+)
 def test_discovery_http_mapping_preserves_denial_before_provider(
     client: FlaskClient,
     full_api_access: None,
@@ -604,12 +627,14 @@ def test_discovery_http_mapping_preserves_denial_before_provider(
     )
 
     view: SemanticView = view_for(ResultView("captured", 1))
+    if route == "dashboard":
+        _install_dashboard_view(mocker, view)
     mocker.patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
     )
     mocker.patch(
         "superset.extensions.security_manager.raise_for_access"
-        if route == "explore"
+        if route in {"explore", "dashboard"}
         else "superset.semantic_layers.models.SemanticView.raise_for_access",
         side_effect=SupersetSecurityException(
             SupersetError(
@@ -627,7 +652,7 @@ def test_discovery_http_mapping_preserves_denial_before_provider(
     provider.assert_not_called()
 
 
-@pytest.mark.parametrize("route", ["metadata", "query", "explore"])
+@pytest.mark.parametrize("route", ["metadata", "query", "explore", "column"])
 @pytest.mark.parametrize("enabled", [False, True])
 def test_discovery_mapping_leaves_unrelated_database_errors_unchanged(
     app: Flask,
@@ -652,12 +677,14 @@ def test_discovery_mapping_leaves_unrelated_database_errors_unchanged(
 @pytest.mark.parametrize(
     "category,status", [("unavailable", 503), ("deadline", 504), ("configuration", 422)]
 )
+@pytest.mark.parametrize("method", ["GET", "POST"])
 def test_chart_cache_key_metadata_errors_reach_existing_http_mapping(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
     category: MetadataRefreshErrorCategory,
     status: int,
+    method: str,
 ) -> None:
     """A real semantic extra-key failure propagates through chart execution."""
     from superset.common.query_context import QueryContext
@@ -686,9 +713,74 @@ def test_chart_cache_key_metadata_errors_reach_existing_http_mapping(
         "superset.charts.data.api.ChartDataRestApi._create_query_context_from_form",
         return_value=context,
     )
-    response: TestResponse = client.post(
-        "/api/v1/chart/data", json={"result_format": "json", "result_type": "full"}
-    )
+    response: TestResponse
+    if method == "GET":
+        from superset.models.slice import Slice
+
+        chart: Slice = Slice(id=1, query_context="{}", params="{}")
+        mocker.patch(
+            "superset.charts.data.api.ChartDataRestApi.datamodel.get",
+            return_value=chart,
+        )
+        response = client.get("/api/v1/chart/1/data/")
+    else:
+        response = client.post(
+            "/api/v1/chart/data", json={"result_format": "json", "result_type": "full"}
+        )
     assert response.status_code == status
     assert response.json["error"] == category
     extra_keys.assert_called_once_with(query.to_dict())
+
+
+@pytest.mark.parametrize("category", ["unavailable", "deadline"])
+def test_dashboard_discovery_failure_preserves_other_datasets(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    category: MetadataRefreshErrorCategory,
+) -> None:
+    """A failed semantic provider retains the dashboard's healthy table metadata."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from tests.unit_tests.semantic_layers.metadata_identity_test import (
+        ResultView,
+        view_for,
+    )
+
+    view: SemanticView = view_for(ResultView("captured", 1))
+    chart: Slice = Slice(
+        datasource_id=view.id, datasource_type="semantic_view", semantic_view=view
+    )
+    table: SqlaTable = SqlaTable(id=12, table_name="healthy")
+    table_chart: Slice = Slice(
+        datasource_id=table.id, datasource_type="table", table=table
+    )
+    dashboard: Dashboard = Dashboard(
+        id=1, uuid=UUID(VIEW_UUID), slices=[chart, table_chart]
+    )
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=dashboard)
+    access: Mock = mocker.patch("superset.extensions.security_manager.raise_for_access")
+    mocker.patch(
+        "superset.extensions.security_manager.can_access_datasource", return_value=True
+    )
+    mocker.patch.object(
+        SqlaTable,
+        "data_for_slices",
+        return_value={"id": 12, "uid": "12__table", "type": "table", "name": "healthy"},
+    )
+    mocker.patch(
+        "superset.semantic_layers.metadata_binding.participates", return_value=True
+    )
+    error: MetadataRefreshError = MetadataRefreshError(category)
+    error.__cause__ = RuntimeError("private provider detail")
+    provider: Mock = mocker.patch(
+        "superset.semantic_layers.metadata_binding.view_implementation",
+        side_effect=error,
+    )
+    response: TestResponse = _request_discovery_route(client, "dashboard")
+    assert response.status_code == 200
+    assert [dataset["id"] for dataset in response.json["result"]] == [12]
+    assert "private" not in response.get_data(as_text=True)
+    access.assert_called_once_with(dashboard=dashboard)
+    provider.assert_called_once_with(view)

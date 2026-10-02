@@ -110,6 +110,7 @@ class DatasourceRestApi(BaseSupersetApi):
         ),
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str
     ) -> FlaskResponse:
