@@ -214,9 +214,23 @@ test('a filter with no comparator yet carries no glyph', () => {
   render(
     withMapping(
       MONOTONIC_MAPPING,
-      simpleAdhocFilter.duplicateWith({ comparator: '' }),
+      simpleAdhocFilter.duplicateWith({ comparator: null }),
     ),
   );
 
   expect(glyph()).not.toBeInTheDocument();
+});
+
+test('a filter on the empty-string sentinel still carries the glyph', () => {
+  // `''` is not an absent value: the backend's mirror collector skips only
+  // `None`, so `col = ''` does mirror and hiding the glyph would contradict the
+  // SQL it stands next to.
+  render(
+    withMapping(
+      MONOTONIC_MAPPING,
+      simpleAdhocFilter.duplicateWith({ comparator: '' }),
+    ),
+  );
+
+  expect(glyph()).toBeInTheDocument();
 });
