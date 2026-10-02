@@ -817,9 +817,9 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.series.var(series) if len(series) > 1 else 0,
+    "Sample Variance": lambda series: pd.Series.var(series) if len(series) > 1 else 0,
     "Sample Standard Deviation": (
-        lambda series: pd.series.std(series) if len(series) > 1 else 0,
+        lambda series: pd.Series.std(series) if len(series) > 1 else 0
     ),
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
