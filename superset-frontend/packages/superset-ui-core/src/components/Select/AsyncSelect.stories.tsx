@@ -318,3 +318,51 @@ AsynchronousSelect.argTypes = {
     },
   },
 };
+
+const createMockUserFetcher =
+  (responseTime = 0.3) =>
+  (
+    search: string,
+    page: number,
+    pageSize: number,
+  ): Promise<SelectOptionsTypePage> => {
+    const username = search.trim().toLowerCase();
+    const all = USERS.filter(
+      u => !username || u.toLowerCase().includes(username),
+    );
+    const totalCount = all.length;
+    const start = page * pageSize;
+    const deleteCount =
+      start + pageSize < totalCount ? pageSize : totalCount - start;
+    const pageData = all.slice(start, start + deleteCount).map(u => ({
+      label: u,
+      value: u,
+    }));
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({ data: pageData, totalCount });
+      }, responseTime * 1000);
+    });
+  };
+
+/**
+ * Demonstrates allowNewOptions in AsyncSelect. Optimistic custom options appear
+ * with a [new] badge and are automatically dropped if the server returns a matching
+ * option upon search completion.
+ */
+export const WithAllowNewOptions = (args: AsyncSelectProps) => (
+  <div style={{ width: DEFAULT_WIDTH }}>
+    <AsyncSelect
+      {...args}
+      allowNewOptions
+      ariaLabel="async-select-allow-new-options"
+      options={createMockUserFetcher(0.3)}
+    />
+  </div>
+);
+
+WithAllowNewOptions.args = {
+  ...AsynchronousSelect.args,
+  allowNewOptions: true,
+  placeholder: 'Type a name or create a new one...',
+};
