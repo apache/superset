@@ -34,6 +34,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { SQLLAB_TAB_OVERFLOW_POPUP_CLASS } from 'src/SqlLab/SqlLabGlobalStyles';
 import { menus, commands } from 'src/core';
 import { ViewLocations } from 'src/SqlLab/contributions';
+import { useExtensionsReady } from 'src/extensions/useExtensionsReady';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -108,13 +109,34 @@ const PlusIcon = (
   />
 );
 
+// Shown in place of PlusIcon while extensions are still loading — see the
+// extensionsReady guard in NewTabButton below.
+const LoadingIcon = (
+  <Icons.LoadingOutlined
+    iconSize="l"
+    css={css`
+      vertical-align: middle;
+    `}
+    data-test="add-tab-icon"
+  />
+);
+
 function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
   const [open, setOpen] = useState(false);
+  // Until this is true, menus.getMenu(sqllab.newTab) can't be trusted to
+  // reflect the final set of contributions — an extension that hasn't
+  // finished loading yet looks identical to "no extensions at all". Without
+  // this, clicking "+" during that window fell back to adding a plain SQL
+  // tab instead of waiting to show the real dropdown.
+  const extensionsReady = useExtensionsReady();
 
   // Resolved at render time rather than module load so `t()` runs after the
   // translator has been configured.
-  const newTabTooltip =
-    userOS === 'Windows' ? t('New tab (Ctrl + q)') : t('New tab (Ctrl + t)');
+  const newTabTooltip = !extensionsReady
+    ? t('Loading…')
+    : userOS === 'Windows'
+      ? t('New tab (Ctrl + q)')
+      : t('New tab (Ctrl + t)');
 
   const dropdownItems = useMemo<MenuItemType[]>(() => {
     if (!open) return [];
@@ -164,6 +186,13 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
   }, [open, onAddSqlEditor]);
 
   const activate = useCallback(() => {
+    if (!extensionsReady) {
+      // Still loading — ignore the click rather than guessing. The button
+      // shows a spinner for this window (see the render below), so there's
+      // no dropdown to open and no way yet to tell whether falling back to
+      // a plain tab would be correct.
+      return;
+    }
     const primaryItems =
       menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
     if (primaryItems.length === 0) {
@@ -171,7 +200,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
     } else {
       setOpen(prev => !prev);
     }
-  }, [onAddSqlEditor]);
+  }, [extensionsReady, onAddSqlEditor]);
 
   const anchorRef = useRef<HTMLSpanElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -257,7 +286,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
           </div>
         )}
       >
-        <span ref={anchorRef}>{PlusIcon}</span>
+        <span ref={anchorRef}>{extensionsReady ? PlusIcon : LoadingIcon}</span>
       </Dropdown>
     </Tooltip>
   );
