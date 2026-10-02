@@ -61,6 +61,7 @@ import type { FilterState } from './utils/filterStateManager';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
+import { isJsonCellActionTarget } from './utils/isJsonCellActionTarget';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -394,6 +395,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleCellClicked = useCallback(
     (event: CellClickedEvent) => {
+      if (isJsonCellActionTarget(event.event?.target ?? null)) return;
       if (!emitCrossFilters || !event.column) return;
       const colDef = event.column.getColDef();
       if (colDef.context?.isMetric || colDef.context?.isPercentMetric) return;

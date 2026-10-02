@@ -45,6 +45,10 @@ export const FILTER_CONDITION_BODY_INDEX = {
 
 export const ROW_NUMBER_COL_ID = '__row_number__';
 
+// Marks expand/view controls inside a JSON cell so a click on them does not
+// apply a cross-filter or change the row selection.
+export const JSON_CELL_ACTION_SELECTOR = '[data-json-cell-action]';
+
 // Symbol key used to attach a row's basic (increase/decrease) color formatter
 // to the row data object so it travels with the row through AG Grid client-side
 // sorting (#105973). A Symbol guarantees the key can never collide with a real

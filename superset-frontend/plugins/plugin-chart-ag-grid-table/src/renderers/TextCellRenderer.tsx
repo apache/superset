@@ -24,6 +24,8 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { CellRendererProps } from '../types';
 import { SummaryContainer, SummaryText } from '../styles';
+import { JsonCellRenderer } from './JsonCellRenderer';
+import { parseJsonCellValue } from './parseJsonCellValue';
 
 const SUMMARY_TOOLTIP_TEXT = t(
   'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
@@ -49,6 +51,23 @@ export const TextCellRenderer = (params: CellRendererProps) => {
     if (!value) {
       return null;
     }
+  }
+
+  // Object and array JSON is interactive. Plain text, URLs, and opt-in HTML
+  // stay on the paths below.
+  const parsedJson = parseJsonCellValue(value);
+  if (parsedJson) {
+    return (
+      <JsonCellRenderer
+        value={parsedJson}
+        rawText={typeof value === 'string' ? value : undefined}
+        colId={colDef?.field || colDef?.colId || 'json'}
+        autoHeight={Boolean(colDef?.autoHeight)}
+        api={api}
+        node={node}
+        eGridCell={params.eGridCell}
+      />
+    );
   }
 
   if (!(typeof value === 'string' || value instanceof Date)) {
