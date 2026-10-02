@@ -157,6 +157,9 @@ Theme Management:
 - get_theme_info: Get a theme's tokens (json_data) by ID or UUID
 - create_theme: Create a reusable theme from antd design tokens (requires write access)
 
+Asset Catalog:
+- get_catalog: Compact, permission-filtered page of databases, datasets, charts or dashboards (id, uuid, name, description, changed_on, url; cursor pagination, max 100 items / 32 KiB)
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -183,13 +186,16 @@ Dataset discovery and attribution:
 - If a dataset or operation is outside the configured MCP dataset scope, refuse plainly. Never silently substitute an allowed-but-different dataset.
 
 Dataset Management:
-- list_datasets: List datasets with advanced filters (1-based pagination)
+- list_datasets: List datasets with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed datasets the caller may restore)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- update_dataset: Update a dataset's name, SQL (virtual datasets), description, default datetime column or cache timeout, re-syncing columns when the SQL changes (requires dataset ownership)
 - create_dataset_metric: Add a saved metric to a dataset (requires dataset editorship)
 - delete_dataset_metric: Delete a saved metric and report referencing charts (requires dataset editorship)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
+- delete_dataset: Delete a dataset by ID/UUID (requires editor rights — owner or Admin; destructive; charts built on it stop working; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
+- restore_dataset: Restore a soft-deleted dataset from trash by ID/UUID (requires editor rights — owner or Admin; only applies to datasets trashed under the SOFT_DELETE feature flag)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Semantic Layer:
@@ -339,6 +345,8 @@ To explore metrics across all data sources (built-in datasets + external semanti
    }}) -> returns tabular results
    - Use "dataset_id" when list_metrics returned source="builtin"
    - Use "view_id" when list_metrics returned source="external"
+   - For external views, select current member IDs and pass semantic_selection_version
+     from list_metrics when non-null. Never infer a version or upgrade saved title keys.
 
 To progressively refine a query (compatible dimensions/metrics):
 - get_compatible_dimensions(request={{
@@ -519,8 +527,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
-  duplicate_dashboard, create_dataset, create_virtual_dataset, create_dataset_metric,
-  delete_dataset_metric, update_dataset_metric,
+  duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset,
+  create_dataset_metric, delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
   manage_dashboard_roles, manage_dashboard_certification) require write
@@ -799,6 +807,9 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     list_annotation_layers,
     list_layer_annotations,
 )
+from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
+    get_catalog,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,
@@ -843,10 +854,13 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
     create_dataset_metric,
     create_virtual_dataset,
+    delete_dataset,
     delete_dataset_metric,
     get_dataset_info,
     list_datasets,
     query_dataset,
+    restore_dataset,
+    update_dataset,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402

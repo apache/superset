@@ -21,12 +21,13 @@ import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
-from typing import Any, NamedTuple, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
@@ -53,6 +54,7 @@ from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -405,6 +407,39 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            if self.datasource and self.datasource.type == "semantic_view":
+                implementation: SemanticViewABC = cast(
+                    "SemanticView", self.datasource
+                ).implementation
+                try:
+                    implementation.validate_selection_version(
+                        self.extras.get("semantic_selection_version")
+                    )
+                except ValueError as ex:
+                    if self.extras.get("semantic_selection_version") == (
+                        "unverified-external-selections"
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                "A dashboard filter or display control has "
+                                "incompatible semantic selections. Dynamic group-by "
+                                "is unsupported on versioned semantic views; remove "
+                                "this chart from that control's scope. For other "
+                                "filters or controls, reset and reselect fields or "
+                                "saved values. If it targets another semantic view, "
+                                "remove this chart from its scope."
+                            )
+                        ) from ex
+                    raise QueryObjectValidationError(
+                        _(
+                            "Saved semantic selections use an older identity format. "
+                            "Reset and explicitly reselect the metrics and dimensions, "
+                            "then save the chart. Display titles cannot be recovered "
+                            "automatically. For API requests, select current member "
+                            "IDs and supply semantic_selection_version from "
+                            "datasource metadata or MCP list_metrics."
+                        )
+                    ) from ex
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()

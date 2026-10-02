@@ -68,6 +68,31 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 # This only narrows access and is not a substitute for permissions or RLS.
 MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
 
+# Maximum admitted warehouse-capable tool calls per application/process. There
+# is no waiting queue: a saturated pool returns a server-busy error. Timed-out
+# calls retain their slots until query/cancellation I/O finishes. Cancellation
+# has a separate equally bounded pool so a stuck query cannot starve its own
+# cancellation.
+#
+# Both bounds come out of one metadata-pool budget (capacity is pool_size +
+# max_overflow): 2 * MCP_TOOL_WORKERS (each call plus its cancellation) +
+# MCP_METADATA_TOOL_WORKERS + 1 transport-side metadata thread (tools/list
+# filtering, audit writes, error hooks) + 1 API-key lookup thread never exceeds
+# it, so no checkout waits for another holder even with every slot admitted.
+# None admits about a third of the remaining connections, up to 16 (4 with the
+# default 5 + 10 pool); larger values are reduced with a startup warning.
+MCP_TOOL_WORKERS: int | None = None
+
+# Maximum admitted calls of metadata-only tools (list_*, get_*_info, ...; see
+# METADATA_ONLY_TOOLS in superset/mcp_service/worker.py) per process, on top
+# of MCP_TOOL_WORKERS. They never hold a metadata connection across warehouse
+# I/O, so they keep answering while slow queries fill MCP_TOOL_WORKERS. One
+# that reaches a warehouse must also take an MCP_TOOL_WORKERS slot. None admits
+# what the budget above leaves, up to 16 (5 with the default 5 + 10 pool);
+# larger values are reduced with a startup warning. 0 admits them under
+# MCP_TOOL_WORKERS instead.
+MCP_METADATA_TOOL_WORKERS: int | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
@@ -373,6 +398,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "create_virtual_dataset",
         "delete_chart",
         "delete_dashboard",
+        "delete_dataset",
         "delete_dataset_metric",
         "duplicate_dashboard",
         "execute_sql",
@@ -386,10 +412,12 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "remove_chart_from_dashboard",
         "restore_chart",
         "restore_dashboard",
+        "restore_dataset",
         "save_sql_query",
         "update_chart",
         "update_chart_preview",
         "update_dashboard",
+        "update_dataset",
         "update_dataset_metric",
     ],
 }

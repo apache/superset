@@ -579,7 +579,7 @@ There are three types of assets you can build:
 
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
-3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from end-to-end tests
 
 If while using the above commands you encounter an error related to the limit of file watchers:
 
@@ -722,7 +722,7 @@ can find all of the workflows and other assets under the `.github/` folder. This
 
 - running the backend unit test suites (`tests/`)
 - running the frontend test suites (`superset-frontend/src/**.*.test.*`)
-- running our Playwright end-to-end tests (`superset-frontend/playwright/`) and legacy Cypress tests (`superset-frontend/cypress-base/`)
+- running our Playwright end-to-end tests (`superset-frontend/playwright/`)
 - linting the codebase, including all Python, Typescript and Javascript, yaml and beyond
 - checking for all sorts of other rules conventions
 
@@ -797,7 +797,7 @@ pytest tests/unit_tests/*
 
 #### Integration Tests
 
-For more complex pytest-defined integration tests (not to be confused with our end-to-end Cypress tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
+For more complex pytest-defined integration tests (not to be confused with our end-to-end Playwright tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
 
 ### Running Tests with `act`
 
@@ -908,8 +908,6 @@ superset:
     user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
-    environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 ```
 
 Start Superset as usual

@@ -34,6 +34,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
 import {
@@ -94,6 +95,7 @@ type SelectTestOverrides = {
   formData?: Partial<PluginFilterSelectQueryFormData>;
   filterState?: Partial<FilterState>;
   setDataMask?: jest.Mock;
+  filterBarOrientation?: FilterBarOrientation;
 };
 
 const buildSelectFilterProps = (overrides: SelectTestOverrides = {}) => {
@@ -112,6 +114,7 @@ const buildSelectFilterProps = (overrides: SelectTestOverrides = {}) => {
     isRefreshing: false,
     setDataMask: overrides.setDataMask ?? jest.fn(),
     showOverflow: false,
+    filterBarOrientation: overrides.filterBarOrientation,
   } as PluginFilterSelectProps;
 };
 
@@ -2187,4 +2190,42 @@ test('renders dashboard select dropdown popup under document body', async () => 
   });
 
   expect(dropdown?.parentElement).toBe(document.body);
+});
+
+const renderMultiValueSelect = (
+  filterBarOrientation?: FilterBarOrientation,
+) => {
+  const props = buildSelectFilterProps({
+    filterState: { value: ['boy', 'girl'] },
+    filterBarOrientation,
+  });
+
+  return render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy', 'girl'] },
+        },
+      },
+    },
+  });
+};
+
+test('horizontal filter bar collapses multiple selected values to an overflow indicator', () => {
+  renderMultiValueSelect(FilterBarOrientation.Horizontal);
+
+  expect(screen.getByText('boy')).toBeVisible();
+  expect(screen.queryByText('girl')).not.toBeInTheDocument();
+  expect(screen.getByText('+ 1 ...')).toBeVisible();
+});
+
+test('vertical filter bar shows every selected value without an overflow indicator', () => {
+  renderMultiValueSelect(FilterBarOrientation.Vertical);
+
+  expect(screen.getByText('boy')).toBeVisible();
+  expect(screen.getByText('girl')).toBeVisible();
+  expect(screen.queryByText(/^\+ \d+ \.\.\.$/)).not.toBeInTheDocument();
 });

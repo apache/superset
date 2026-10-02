@@ -649,7 +649,6 @@ const generateWebpackConfigWithCustomInputs = (env = {}, args = {}) => {
             '**/coverage',
             '**/*.test.*',
             '**/*.stories.*',
-            '**/cypress-base',
             '**/*.geojson',
           ],
           // Poll-based watching is needed in Docker/VM where native fs events

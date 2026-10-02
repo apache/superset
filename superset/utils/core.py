@@ -86,6 +86,7 @@ from typing_extensions import TypeGuard
 
 from superset.constants import (
     DEFAULT_USER_AGENT,
+    EPOCH_FORMATS,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -209,6 +210,42 @@ class AnnotationType(StrEnum):
     INTERVAL = "INTERVAL"
     EVENT = "EVENT"
     TIME_SERIES = "TIME_SERIES"
+
+
+# Annotation source types whose ``value`` field references another Chart
+# (resolved to a local Slice.id on import / serialised back to UUID on export).
+# Add new chart-referencing source types here; all consumers pick them up
+# automatically via this single definition.
+ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE: frozenset[str] = frozenset(
+    {
+        "table",
+        "line",
+    }
+)
+
+
+def get_annotation_layer_lists(
+    params: Any, query_context: Any
+) -> list[list[dict[str, Any]]]:
+    """
+    Return every ``annotation_layers`` list of a chart: the one in ``params``
+    plus those in ``query_context["queries"]`` and ``query_context["form_data"]``.
+
+    The lists are returned by reference so callers can rewrite them in place.
+    Containers that are missing or malformed are skipped.
+    """
+    containers: list[Any] = [params]
+    if isinstance(query_context, dict):
+        queries = query_context.get("queries")
+        if isinstance(queries, list):
+            containers.extend(queries)
+        containers.append(query_context.get("form_data"))
+    return [
+        container["annotation_layers"]
+        for container in containers
+        if isinstance(container, dict)
+        and isinstance(container.get("annotation_layers"), list)
+    ]
 
 
 class GenericDataType(IntEnum):
@@ -2046,7 +2083,7 @@ def _process_datetime_column(
     col: DateColumn,
 ) -> None:
     """Process a single datetime column with format detection."""
-    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+    if col.timestamp_format in EPOCH_FORMATS:
         dttm_series = df[col.col_label]
         if is_numeric_dtype(dttm_series):
             # Column is formatted as a numeric value
