@@ -1501,11 +1501,10 @@ async def test_query_dataset_returns_engine_time_bounds(
     ) -> dict[str, Any]:
         """Use production date resolution in place of database execution."""
         factory = QueryObjectFactory(current_app.config, MagicMock())
-        with freeze_time("2026-07-17 12:34:56"):
-            query = factory.create(
-                parent_result_type=ChartDataResultType.FULL,
-                **query_dict,
-            )
+        query = factory.create(
+            parent_result_type=ChartDataResultType.FULL,
+            **query_dict,
+        )
         payload = _mock_command_result()
         result = payload["queries"][0]
         result.update(from_dttm=query.from_dttm, to_dttm=query.to_dttm)
@@ -1522,7 +1521,10 @@ async def test_query_dataset_returns_engine_time_bounds(
     else:
         request["time_range"] = expression
 
+    # Freeze for the whole request, not temporarily inside the worker: changing
+    # a process-wide clock mid-call also changes another thread's deadline clock.
     with (
+        freeze_time("2026-07-17 12:34:56", real_asyncio=True),
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch.object(
             query_dataset_module, "execute_tabular_query", side_effect=execute

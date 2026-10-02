@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1496,6 +1496,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додати теку"
 
+msgid "Add group"
+msgstr "Додати групу"
+
 msgid "Add item"
 msgstr "Додати обʼєкт"
 
@@ -1535,6 +1538,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Додати аркуш"
+
+msgid "Add subgroup"
+msgstr "Додати підгрупу"
 
 msgid "Add tag to entities"
 msgstr "Додати мітку для сутностей"
@@ -1771,6 +1777,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3361,6 +3371,9 @@ msgstr "Обмеження комірки"
 msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -4034,6 +4047,9 @@ msgstr "Згорнути панель даних"
 msgid "Collapse row"
 msgstr "Згорнути рядок"
 
+msgid "Collapse settings"
+msgstr "Згорнути параметри"
+
 msgid "Collapse tab content"
 msgstr "Згорнути вміст вкладки"
 
@@ -4175,6 +4191,9 @@ msgstr "Стовпець з даними довготи"
 
 msgid "Column data types"
 msgstr "Типи даних стовпця"
+
+msgid "Column groups"
+msgstr "Групи стовпців"
 
 msgid "Column header tooltip"
 msgstr "Підказка для стовпця"
@@ -6881,6 +6900,9 @@ msgstr "Введіть тривалість у секундах"
 msgid "Enter fullscreen"
 msgstr "На весь екран"
 
+msgid "Enter group name"
+msgstr "Введіть назву групи"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введіть мінімальне та максимальне значення для фільтра діапазону"
 
@@ -7161,6 +7183,9 @@ msgstr "Розгорнути рядок"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
+
+msgid "Expand settings"
+msgstr "Розгорнути параметри"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8141,6 +8166,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 msgid "Group By"
 msgstr "Групувати за"
 
@@ -8152,6 +8181,12 @@ msgstr "Група"
 
 msgid "Group by"
 msgstr "Групувати за"
+
+msgid "Group columns"
+msgstr "Групувати стовпці"
+
+msgid "Group name"
+msgstr "Назва групи"
 
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
@@ -8728,9 +8763,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Неправильний користувач або його пароль"
 
 msgid "Inverse"
 msgstr ""
@@ -10030,6 +10062,12 @@ msgstr "Ще фільтри"
 msgid "MotherDuck token"
 msgstr "Токен MotherDuck"
 
+msgid "Move group left"
+msgstr "Перемістити групу ліворуч"
+
+msgid "Move group right"
+msgstr "Перемістити групу праворуч"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Тільки переміщення"
@@ -10062,6 +10100,9 @@ msgstr "Багаторівневий"
 
 msgid "Multi-Variables"
 msgstr "Багатозначний"
+
+msgid "Multi-level header"
+msgstr "Багаторівневий заголовок"
 
 msgid "Multiple"
 msgstr "Декілька"
@@ -11597,6 +11638,9 @@ msgstr "Порт %(port)s на вузлі «%(hostname)s» відхилив з�
 msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
 
+msgid "Position"
+msgstr "Положення"
+
 msgid "Position JSON"
 msgstr "Розміщення (JSON)"
 
@@ -12070,6 +12114,9 @@ msgstr "Вилучити елемент"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Вилучити групу"
 
 msgid "Remove item"
 msgstr "Вилучити елемент"
@@ -13279,6 +13326,9 @@ msgstr "Вибрати стовпець"
 #, fuzzy
 msgid "Select column name"
 msgstr "Вибрати стовпець"
+
+msgid "Select columns"
+msgstr "Вибрати стовпці"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14715,6 +14765,10 @@ msgstr "Підкатегорії"
 msgid "Subdomain"
 msgstr "Розділ"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Підгрупа %s"
+
 msgid "Subject"
 msgstr "Суб’єкт"
 
@@ -14949,6 +15003,9 @@ msgstr "Назву таблиці не визначено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблиця або представлення «%(table)s» не існує."
+
+msgid "Table side"
+msgstr "Бік таблиці"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

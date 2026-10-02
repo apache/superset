@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,13 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""ORM-free serialized references for semantic-view bundles."""
 
-# ------------------------------------------------------------------------
-# Creates the examples database and respective user. This database location
-# and access credentials are defined on the environment variables
-# ------------------------------------------------------------------------
-set -e
+from typing import Any
 
-psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" <<-EOSQL
-  CREATE DATABASE superset_cypress;
-EOSQL
+from marshmallow import fields, Schema, validate
+
+
+class SemanticViewReferenceSchema(Schema):
+    """A semantic reference never carries configuration or an environment-local ID."""
+
+    type: fields.String = fields.String(
+        required=True, validate=validate.Equal("semantic_view")
+    )
+    uuid: fields.UUID = fields.UUID(required=True)
+
+
+def reference_uuid(reference: Any) -> str:
+    """Validate the closed reference shape and canonicalize its UUID."""
+    parsed: dict[str, Any] = SemanticViewReferenceSchema().load(reference)
+    return str(parsed["uuid"])

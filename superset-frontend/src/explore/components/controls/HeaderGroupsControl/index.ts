@@ -16,26 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-{
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["cypress"],
-  "extends": ["plugin:cypress/recommended"],
-  "rules": {
-    "import/no-unresolved": 0,
-    "@typescript-eslint/explicit-function-return-type": 0,
-    "@typescript-eslint/explicit-module-boundary-types": 0,
-    "@typescript-eslint/no-var-requires": 0,
-    "@typescript-eslint/camelcase": 0,
-    "cypress/no-unnecessary-waiting": 0 // see issue https://github.com/cypress-io/eslint-plugin-cypress/issues/69
-  },
-  "settings": {
-    "import/resolver": {
-      "node": {
-        "extensions": [".js", ".jsx", ".ts", ".tsx"]
-      }
-    }
-  },
-  "env": {
-    "cypress/globals": true
-  }
-}
+export { default } from './HeaderGroupsControl';
+export type {
+  HeaderGroupConfig,
+  HeaderGroupColumnOption,
+  HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
+  HeaderGroupsControlProps,
+} from './types';
