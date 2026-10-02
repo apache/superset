@@ -2314,13 +2314,13 @@ async def test_query_dataset_returns_engine_time_bounds(
     result_kind: str,
 ) -> None:
     """Resolve MCP inputs with the real factory and serialize execution bounds."""
-    from datetime import datetime
 
     from flask import current_app
     from freezegun import freeze_time
 
     from superset.common.chart_data import ChartDataResultType
     from superset.common.query_object_factory import QueryObjectFactory
+    from superset.mcp_service.chart import query_result as query_result_module
 
     dataset = _make_dataset(main_dttm_col="order_date")
 
@@ -2335,20 +2335,26 @@ async def test_query_dataset_returns_engine_time_bounds(
         )
         payload = _mock_command_result()
         result = payload["queries"][0]
-        # freezegun returns datetime subclasses, while real query results contain
-        # plain datetimes and the MCP result validator intentionally rejects
-        # arbitrary scalar subclasses.
+
+        def plain_datetime(value: datetime | None) -> datetime | None:
+            if value is None:
+                return None
+            # Match the validator's exact datetime type, which freezegun swaps
+            # for its own class while the clock is frozen.
+            return query_result_module.datetime(
+                value.year,
+                value.month,
+                value.day,
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+                value.tzinfo,
+            )
+
         result.update(
-            from_dttm=(
-                datetime.fromisoformat(query.from_dttm.isoformat())
-                if query.from_dttm is not None
-                else None
-            ),
-            to_dttm=(
-                datetime.fromisoformat(query.to_dttm.isoformat())
-                if query.to_dttm is not None
-                else None
-            ),
+            from_dttm=plain_datetime(query.from_dttm),
+            to_dttm=plain_datetime(query.to_dttm),
         )
         result["is_cached"] = result_kind == "cached"
         if result_kind == "empty":
