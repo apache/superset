@@ -566,7 +566,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=_("Manage"),
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
-        appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,

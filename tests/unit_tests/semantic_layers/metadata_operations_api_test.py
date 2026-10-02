@@ -695,7 +695,15 @@ def test_chart_cache_key_metadata_errors_reach_existing_http_mapping(
         view_for,
     )
 
-    view: SemanticView = view_for(ResultView("captured", 1))
+    class FailingMetadataView(ResultView):
+        """Allow selection validation and fail at metadata cache-key acquisition."""
+
+        @property
+        def metadata_cache_token(self) -> str:
+            raise MetadataRefreshError(category)
+
+    provider: FailingMetadataView = FailingMetadataView("captured", 1)
+    view: SemanticView = view_for(provider)
     context: QueryContext
     query: QueryObject
     context, query = context_for(view)
@@ -706,7 +714,7 @@ def test_chart_cache_key_metadata_errors_reach_existing_http_mapping(
     )
     mocker.patch(
         "superset.semantic_layers.metadata_binding.view_implementation",
-        side_effect=MetadataRefreshError(category),
+        return_value=provider,
     )
     extra_keys: Mock = mocker.spy(view, "get_extra_cache_keys")
     mocker.patch(

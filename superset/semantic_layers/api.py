@@ -630,6 +630,9 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                 "name": view.name,
                 "uuid": str(view.uuid),
                 "can_refresh_metadata": can_refresh_metadata(view),
+                "semantic_selection_version": (
+                    view.implementation.selection_identity_version
+                ),
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
                 "dimensions": dimensions,

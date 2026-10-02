@@ -295,12 +295,13 @@ def test_gevent_transport_cancels_without_late_commands(mode: str) -> None:
             finally:
                 events.append("cancelled")
 
-        from gevent.hub import Hub
+        from gevent.threadpool import ThreadPool
+        from superset.coordination.deadline_backend import _metadata_threadpool
 
-        hub: Hub = gevent.get_hub()
+        pool: ThreadPool = _metadata_threadpool()
         if mode == "queued":
-            hub.threadpool.maxsize = 1
-            hub.threadpool.spawn(monkey.get_original("time", "sleep"), 0.3)
+            pool.maxsize = 1
+            pool.spawn(monkey.get_original("time", "sleep"), 0.3)
         started: float = time.monotonic()
         backend: DeadlineRedisBackend = DeadlineRedisBackend(
             {"CACHE_TYPE": "RedisCache"},
@@ -322,7 +323,7 @@ def test_gevent_transport_cancels_without_late_commands(mode: str) -> None:
             assert request.ready()
             # Wait for cleanup/queued expiry; an abandoned command cannot publish.
             with gevent.Timeout(1):
-                hub.threadpool.join()
+                pool.join()
             if mode == "queued":
                 assert events == [], events
             else:
@@ -340,3 +341,157 @@ def test_gevent_transport_cancels_without_late_commands(mode: str) -> None:
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "bounded cancellation passed" in result.stdout
+
+
+@pytest.mark.parametrize("patched", [False, True])
+def test_saturated_metadata_pool_leaves_hub_resolver_pool_free(patched: bool) -> None:
+    """A metadata outage must not occupy the hub's shared DNS worker pool."""
+    import subprocess
+    import sys
+    import textwrap
+
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent(
+        """
+        import sys
+        if sys.argv[1] == "True":
+            from gevent import monkey
+            monkey.patch_all()
+        import asyncio
+        import time
+        import gevent
+        from gevent.hub import Hub
+        from unittest.mock import patch
+        from superset.coordination import deadline_backend as module
+
+        hub: Hub = gevent.get_hub()
+        hub.threadpool.maxsize = 1
+        from gevent.threadpool import ThreadPool
+        pool: ThreadPool = getattr(
+            module, "_metadata_threadpool", lambda: hub.threadpool
+        )()
+        pool.maxsize = 1
+        started: list[str] = []
+        async def blocked(self: object, *args: object, **kwargs: object) -> bytes:
+            started.append("entered")
+            await asyncio.sleep(1)
+            return b"late"
+
+        backend: module.DeadlineRedisBackend = module.DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 3
+        )
+        requests: list[gevent.Greenlet] = []
+        with patch("redis.asyncio.Redis.execute_command", blocked):
+            try:
+                requests = [gevent.spawn(backend.get, "owned")]
+                with gevent.Timeout(1):
+                    while not started:
+                        gevent.sleep(0.001)
+                with gevent.Timeout(0.2):
+                    resolver_result: str = hub.threadpool.spawn(
+                        lambda: "resolver-slot"
+                    ).get()
+                    assert resolver_result == "resolver-slot"
+                assert not any(request.ready() for request in requests)
+            finally:
+                gevent.killall(requests, block=True)
+        print("resolver pool remains free")
+        """
+    )
+    # Execute fixed test source and boolean literals without a shell.
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, str(patched)],
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "resolver pool remains free" in result.stdout
+
+
+@pytest.mark.parametrize("mode", ["native_threads", "fork"])
+def test_metadata_pool_preserves_native_ownership_and_fork_lifecycle(mode: str) -> None:
+    """A dedicated pool stays with its hub and survives worker fork reinitialization."""
+    import subprocess
+    import sys
+    import textwrap
+
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent(
+        """
+        import sys
+        mode: str = sys.argv[1]
+        if mode == "fork":
+            from gevent import monkey
+            monkey.patch_all()
+        import os
+        import time
+        import traceback
+        import gevent
+        import gevent.os
+        from threading import Thread
+        from gevent.threadpool import ThreadPool
+        from unittest.mock import patch
+        from superset.coordination import deadline_backend as module
+
+        pools: list[ThreadPool] = []
+        async def command(self: object, *args: object, **kwargs: object) -> bytes:
+            return b"observed"
+
+        def request() -> None:
+            pool: ThreadPool = module._metadata_threadpool()
+            assert pool is module._metadata_threadpool()
+            assert pool.hub is gevent.get_hub()
+            backend: module.DeadlineRedisBackend = module.DeadlineRedisBackend(
+                {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 2
+            )
+            task: gevent.Greenlet = gevent.spawn(backend.get, "owned")
+            assert task.get(timeout=3) == b"observed"
+            assert pool.pid == os.getpid()
+            pools.append(pool)
+
+        with patch("redis.asyncio.Redis.execute_command", command):
+            if mode == "native_threads":
+                threads: list[Thread] = [Thread(target=request) for _ in range(2)]
+                thread: Thread
+                for thread in threads:
+                    thread.start()
+                for thread in threads:
+                    thread.join(timeout=4)
+                    assert not thread.is_alive()
+                assert len(pools) == 2 and pools[0] is not pools[1]
+            else:
+                request()
+                pid: int = gevent.os.fork()
+                if pid == 0:
+                    try:
+                        request()
+                    except BaseException:
+                        traceback.print_exc()
+                        os._exit(1)
+                    os._exit(0)
+                completed: bool = False
+                status: int
+                try:
+                    with gevent.Timeout(4):
+                        _, status = gevent.os.waitpid(pid, 0)
+                        completed = True
+                        assert os.waitstatus_to_exitcode(status) == 0
+                finally:
+                    if not completed:
+                        os.kill(pid, 9)
+                        gevent.os.waitpid(pid, 0)
+        print("pool lifecycle passed")
+        """
+    )
+    # Execute fixed test source and parametrized literals without a shell.
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, mode],
+        text=True,
+        capture_output=True,
+        timeout=12,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "pool lifecycle passed" in result.stdout
