@@ -552,3 +552,25 @@ def test_exhausted_owner_does_not_pin_the_next_cold_reader(budget: float) -> Non
         backend, "scope", deadline=follower_deadline, clock=clock, wait=clock.advance
     )
     assert follower.read(catalog, deadline=follower_deadline).payload == catalog(0)
+
+
+@pytest.mark.parametrize(
+    "number", ["0.12345678901234567890123456789", "1e400", "1e-400"]
+)
+def test_provider_numbers_survive_publication_and_cached_read(number: str) -> None:
+    """Normalization must preserve provider-owned numeric values."""
+    from decimal import Decimal
+
+    from superset.utils import json
+
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 5
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "tenant", deadline=deadline
+    )
+    fetch: Mock = Mock(return_value='{"value":' + number + "}")
+    first: CatalogSnapshot = store.read(fetch, deadline=deadline)
+    assert json.loads(first.payload, use_decimal=True)["value"] == Decimal(number)
+    assert store.read(fetch, deadline=deadline) == first
+    fetch.assert_called_once()
+    assert store.refresh(fetch, deadline=deadline).status == "unchanged"

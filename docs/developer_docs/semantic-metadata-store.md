@@ -51,7 +51,10 @@ a recovered fleet. This cache does not provide durable cross-failover ordering.
 Each successful catalog publication receives a fresh opaque token, even if the
 discovery JSON is unchanged. A discovery digest is not a complete upstream
 semantic-model revision. Hits retain the token and expiry. Failures retain the
-previous observation's original expiry, when it still exists.
+previous observation's original expiry, when it still exists. Catalog normalization
+preserves JSON numeric values, including decimals beyond binary floating-point
+precision and large or small exponents. Fresh metadata-database read failures
+report `unavailable` without driver or SQL details.
 
 A single lease admits one writer; publication atomically compares its owner,
 installs the observation and releases the lease. Catalog invalidation atomically
@@ -64,6 +67,15 @@ random generation: clearing compatibility retires all its selection variants
 without fetching metadata or invalidating query results. Late fills retain their
 old captured key. Existing query/RLS identity and selected-query force refresh
 remain in the query-cache path. No global key scan or upstream cache purge occurs.
+A SQL-backed chart's composite result key also captures participating semantic
+annotation sources. Async contribution tasks resolve totals using the dependent
+task's captured catalog: a matching entry is reused, while a different catalog
+requires recomputation before caching percentages. Pending participating tasks
+created without a serialized totals query fail closed; resubmit them after
+upgrading the fleet. Deploy workers before web nodes, or expect participating
+contribution tasks to fail until both are upgraded: an older worker cannot accept
+the serialized totals query sent by a newer web node.
+
 The compatibility endpoint captures its generation before resolving the provider
 view. A clear during that resolution cannot relabel the endpoint's old answer with
 the new generation. Callers must not pre-resolve the view before this capture.
@@ -92,11 +104,26 @@ already-captured layer or view remains valid after that budget expires, so a
 long-running chart query does not lose its observation. Further metadata I/O
 still fails at the original deadline. Provider instances and views are scoped to that operation, so reusing
 a SQLAlchemy model in a later request cannot reuse an old provider observation.
+Parsed configurations are cached only within that operation and by their stored
+JSON text; changing the stored configuration invalidates the parsed value.
+Provider mutation cannot alter the cached parse. Flag-off provider construction
+retains its existing cache behavior.
 
 Private Redis clients use the installed redis-py asyncio transport and one
 cancellation timeout per command, bounded by the operation's remaining time.
 This covers connection setup, Sentinel discovery and response parsing; retries
-are disabled. The synchronous bridge owns and closes each event loop/client,
+are disabled. Configured `CACHE_REDIS_SOCKET_TIMEOUT` and
+`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT` values are retained when shorter than the
+remaining budget, allowing Sentinel to try another node after a node timeout.
+For Sentinel deployments, start with finite positive per-node values such as
+`CACHE_REDIS_SOCKET_TIMEOUT = 1.0` and
+`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT = 1.0` (seconds), then tune them for the
+network and discovery latency. Unset or invalid values use the remaining
+operation budget, which can leave no time to try a second node. Each command
+creates a new Sentinel client and can pay the first node's timeout again.
+Unit tests verify timeout configuration, not live second-node failover.
+Cleanup supports both redis-py 5.0.0's `close()` and later `aclose()` clients.
+The synchronous bridge owns and closes each event loop/client,
 without changing shared coordinator pools. An uncancellable system DNS lookup
 may finish in its resolver thread after timeout; the cancelled command cannot
 connect or publish when that lookup finishes. Calling it inside an already-running
