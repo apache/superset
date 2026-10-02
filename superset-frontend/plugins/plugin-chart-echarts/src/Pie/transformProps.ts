@@ -611,7 +611,7 @@ export default function transformProps(
         showLegend,
         theme,
         false, // zoomable — Pie charts do not use the zoom control
-        undefined, // legendState — not tracked per-item in Pie
+        legendState,
         undefined, // padding — Pie passes width instead
         Math.min(width, 250), // horizontalLegendWidth: cap at 250px so long names don't consume the entire row
       ),

@@ -668,10 +668,22 @@ describe('Pie label max width and overflow', () => {
     expect(label).toMatchObject({ width: 80, overflow: 'break' });
   });
 
-  test('sets width but omits overflow field when labelOverflow is none', () => {
+  test('sets width and overflow=none when labelOverflow is none', () => {
     const label = getLabel(makeChartProps(100, 'none'));
-    expect(label).toMatchObject({ width: 100 });
-    expect(label).not.toHaveProperty('overflow');
+    expect(label).toMatchObject({ width: 100, overflow: 'none' });
+  });
+
+  test('passes horizontalLegendWidth through to legend textStyle and tooltip', () => {
+    const props = makeChartProps(120, 'truncate');
+    const transformed = transformProps(props);
+    const legend = transformed.echartOptions.legend as Record<string, unknown>;
+    // The horizontalLegendWidth argument to getLegendProps configures per-item
+    // truncation via textStyle and a hover tooltip for the full name.
+    expect(legend.textStyle).toEqual(
+      expect.objectContaining({ overflow: 'truncate' }),
+    );
+    expect(legend.tooltip).toBeDefined();
+    expect((legend.tooltip as Record<string, unknown>).show).toBe(true);
   });
 });
 

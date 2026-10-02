@@ -953,6 +953,11 @@ export function getLegendProps(
    * Returns a legend tooltip config that:
    * 1. Only appears when the label is actually truncated (name wider than maxTextWidth)
    * 2. Positions the tooltip ABOVE the legend item to avoid overlapping the chart
+   *
+   * Accessibility note: this tooltip is hover-only; keyboard and screen-reader
+   * users cannot currently discover the untruncated name. A non-hover
+   * affordance (e.g. aria-label or title attribute on the legend item) is
+   * tracked as a separate enhancement.
    */
   const makeLegendTooltip = (maxTextWidth: number): any => ({
     show: true,
@@ -978,12 +983,11 @@ export function getLegendProps(
       const y = elRect.y - tooltipHeight - 8;
       return [x, y];
     },
-    formatter: (params: { name: string }) => {
-      // Suppress tooltip when text fits
-      return measureTextWidth(params.name, theme) > maxTextWidth
+    // Suppress tooltip when text fits; show escaped full name only when truncated
+    formatter: (params: { name: string }) =>
+      measureTextWidth(params.name, theme) > maxTextWidth
         ? escape(params.name)
-        : '';
-    },
+        : '',
   });
 
   // Shared truncation style for horizontal (Top/Bottom) legends.

@@ -1134,7 +1134,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1153,7 +1153,7 @@ describe('getLegendProps', () => {
       right: 90,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
