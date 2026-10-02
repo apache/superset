@@ -20,8 +20,10 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -717,6 +719,7 @@ class TestGenerateDashboard:
             created = mock_dashboard_cls.return_value
             assert created.dashboard_title == ""
 
+    @pytest.mark.parametrize("stale_parents", [False, True])
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
@@ -727,6 +730,7 @@ class TestGenerateDashboard:
         mock_find_by_id,
         mock_dashboard_cls,
         mcp_server,
+        stale_parents,
     ) -> None:
         """An explicit ``position_json`` replaces the auto-generated layout
         in full — the tool uses the caller's structure (children, meta) as
@@ -746,24 +750,41 @@ class TestGenerateDashboard:
             mock_dashboard,
         )
 
-        custom_layout = {
-            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
-            "GRID_ID": {"type": "GRID", "children": ["ROW-custom"]},
+        custom_layout: dict[str, Any] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["GRID_ID"],
+            },
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["ROW-custom"],
+                "parents": ["ROOT_ID"],
+            },
             "ROW-custom": {
+                "id": "ROW-custom",
                 "type": "ROW",
                 "children": ["CHART-1"],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
             },
             "CHART-1": {
+                "id": "CHART-1",
                 "type": "CHART",
                 "children": [],
                 "meta": {"chartId": 1, "width": 12, "height": 100},
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-custom"],
             },
         }
+        submitted_layout = deepcopy(custom_layout)
+        if stale_parents:
+            submitted_layout["CHART-1"]["parents"] = []
         request = {
             "chart_ids": [1],
             "dashboard_title": "Custom Layout Dashboard",
-            "position_json": custom_layout,
+            "position_json": submitted_layout,
         }
 
         async with Client(mcp_server) as client:
@@ -831,31 +852,36 @@ class TestGenerateDashboard:
         # instead of the full ROOT_ID-rooted chain.
         truncated_layout = {
             "DASHBOARD_VERSION_KEY": "v2",
-            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
             "GRID_ID": {
+                "id": "GRID_ID",
                 "type": "GRID",
                 "children": ["TABS-lthree"],
                 "parents": ["ROOT_ID"],
             },
             "TABS-lthree": {
+                "id": "TABS-lthree",
                 "type": "TABS",
                 "children": ["TAB-out-quarter"],
                 "meta": {},
                 "parents": ["GRID_ID"],
             },
             "TAB-out-quarter": {
+                "id": "TAB-out-quarter",
                 "type": "TAB",
                 "children": ["ROW-out-prod"],
                 "meta": {"text": "Q4"},
                 "parents": ["TABS-lthree"],
             },
             "ROW-out-prod": {
+                "id": "ROW-out-prod",
                 "type": "ROW",
                 "children": ["CHART-1436"],
                 "meta": {},
                 "parents": ["TAB-out-quarter"],
             },
             "CHART-1436": {
+                "id": "CHART-1436",
                 "type": "CHART",
                 "children": [],
                 "meta": {"chartId": 1436},
@@ -872,6 +898,7 @@ class TestGenerateDashboard:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
+            assert result.structured_content["warnings"] == []
             created = mock_dashboard_cls.return_value
             stored = json.loads(created.position_json)
             assert stored["CHART-1436"]["parents"] == [
@@ -962,10 +989,7 @@ class TestGenerateDashboard:
         mock_dashboard_cls,
         mcp_server,
     ) -> None:
-        """``generate_dashboard`` has no layout pre-flight, so a caller can
-        hand it a ``ROOT_ID`` whose ``children`` is not a list. The rebuild
-        skips the malformed entry instead of raising, leaving the rest of the
-        layout untouched."""
+        """A malformed root falls back to a usable grid and reports a warning."""
         from superset.utils import json
 
         charts = [_mock_chart(id=1436, slice_name="Out of production")]
@@ -981,13 +1005,15 @@ class TestGenerateDashboard:
         malformed_layout = {
             "DASHBOARD_VERSION_KEY": "v2",
             # `children` is an int rather than a list of component ids.
-            "ROOT_ID": {"type": "ROOT", "children": 1},
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": 1},
             "GRID_ID": {
+                "id": "GRID_ID",
                 "type": "GRID",
                 "children": ["CHART-1436"],
                 "parents": ["ROOT_ID"],
             },
             "CHART-1436": {
+                "id": "CHART-1436",
                 "type": "CHART",
                 "children": [],
                 "meta": {"chartId": 1436},
@@ -1006,11 +1032,81 @@ class TestGenerateDashboard:
             assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
             stored = json.loads(created.position_json)
-            # Nothing is reachable from a malformed root, so every component
-            # keeps the `parents` it came in with.
-            assert stored["ROOT_ID"]["children"] == 1
+            assert stored["ROOT_ID"]["children"] == ["GRID_ID"]
             assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
-            assert stored["CHART-1436"]["parents"] == ["GRID_ID"]
+            assert stored["CHART-1436"]["parents"][:2] == ["ROOT_ID", "GRID_ID"]
+            assert len(stored["CHART-1436"]["parents"]) == 4
+            assert result.structured_content["warnings"] == [
+                "position_json was invalid; used an auto-generated layout."
+            ]
+
+    @pytest.mark.parametrize(
+        "position_json",
+        [
+            {
+                "ROOT": {
+                    "id": "ROOT",
+                    "type": "ROW",
+                    "children": [
+                        {"id": "1", "type": "CHART", "metadata": {"chart_id": 1}}
+                    ],
+                }
+            },
+            {
+                "DASHBOARD_VERSION_KEY": "v2",
+                "ROOT_ID": {
+                    "id": "ROOT_ID",
+                    "type": "ROOT",
+                    "children": ["GRID_ID"],
+                },
+                "GRID_ID": {
+                    "id": "GRID_ID",
+                    "type": "GRID",
+                    "children": [],
+                    "parents": ["ROOT_ID"],
+                },
+            },
+        ],
+        ids=["nested-component", "missing-requested-chart"],
+    )
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_invalid_position_json_falls_back(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+        position_json,
+    ) -> None:
+        """Malformed layouts and omitted charts fall back to a complete grid."""
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        dashboard = _mock_dashboard(id=71, title="Safe Layout Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            dashboard,
+        )
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Safe Layout Dashboard",
+            "position_json": position_json,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+        stored = json.loads(mock_dashboard_cls.return_value.position_json)
+        assert stored["ROOT_ID"]["type"] == "ROOT"
+        assert stored["ROOT_ID"]["children"] == ["GRID_ID"]
+        assert stored["CHART-1"]["meta"]["chartId"] == 1
+        assert result.structured_content["warnings"] == [
+            "position_json was invalid; used an auto-generated layout."
+        ]
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")

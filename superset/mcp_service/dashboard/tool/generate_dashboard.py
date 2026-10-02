@@ -37,7 +37,10 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
-from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -208,10 +211,10 @@ def generate_dashboard(  # noqa: C901
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Layout: by default, charts are arranged in an auto-generated 2-column
-      grid. When ``position_json`` is supplied, that explicit layout is used
-      instead and the auto-generated grid is skipped — use this to compose
-      custom rows, header bands, or MARKDOWN/HEADER components. Each
-      component's ``parents`` is recomputed from its ``children`` edges
+      grid. A valid ``position_json`` replaces that grid for custom rows,
+      header bands, or MARKDOWN/HEADER components. Invalid explicit layouts
+      fall back to the auto-generated grid and return a warning.
+      Each component's ``parents`` is recomputed from its ``children`` edges
       before saving, so an omitted or incomplete ``parents`` array is fine.
 
     Returns:
@@ -220,7 +223,7 @@ def generate_dashboard(  # noqa: C901
     # Advisory messages (e.g. title sanitization) surfaced to the caller
     # alongside the created dashboard so they can tell when their input
     # was altered.
-    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+    warnings = list(getattr(request, "sanitization_warnings", []) or [])
 
     try:
         # avoids ImportError before Flask app initialisation:
@@ -268,11 +271,13 @@ def generate_dashboard(  # noqa: C901
                     )
 
         # Create dashboard layout with chart objects.
-        # If the caller provided an explicit position_json, use its
-        # children/meta as given; otherwise auto-generate a packed-grid
-        # layout from the chart ids (which already carries correct parents).
+        # Invalid explicit layouts make frontend hydration fail before chart
+        # queries start, so fall back to the known-good packed grid.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            if request.position_json:
+            if request.position_json and (
+                validate_dashboard_layout(request.position_json, found_chart_ids)
+                is None
+            ):
                 # A caller-supplied layout may carry only an immediate
                 # parent (or omit `parents` altogether); rebuild the full
                 # ancestor chains so server-side filter-scope derivation
@@ -281,6 +286,10 @@ def generate_dashboard(  # noqa: C901
                 layout = rebuild_parent_chains(repair_position(request.position_json))
             else:
                 layout = _create_dashboard_layout(chart_objects)
+                if request.position_json:
+                    warnings.append(
+                        "position_json was invalid; used an auto-generated layout."
+                    )
 
         # Resolve dashboard title: use provided title or derive from chart names
         dashboard_title = (
@@ -496,7 +505,7 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
-                warnings=sanitization_warnings
+                warnings=warnings
                 + [
                     "Dashboard created but response metadata is partial "
                     "(post-create refresh failed); some fields are omitted. "
@@ -552,7 +561,7 @@ def generate_dashboard(  # noqa: C901
             dashboard=dashboard_info,
             dashboard_url=dashboard_url,
             error=None,
-            warnings=sanitization_warnings,
+            warnings=warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
