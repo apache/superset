@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 13:30+0000\n"
+"POT-Creation-Date: 2026-10-02 00:01+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -973,6 +973,12 @@ msgstr ">= (பெரியது அல்லது சமம்)"
 msgid ""
 "@import is blocked to prevent a dashboard from loading arbitrary remote "
 "CSS. Convert it to inline CSS to keep using it."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
 msgstr ""
 
 #, python-format

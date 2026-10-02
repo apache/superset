@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 13:30+0000\n"
+"POT-Creation-Date: 2026-10-02 00:01+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -987,6 +987,12 @@ msgstr ">= (plus grand ou égal)"
 msgid ""
 "@import is blocked to prevent a dashboard from loading arbitrary remote "
 "CSS. Convert it to inline CSS to keep using it."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
 msgstr ""
 
 #, python-format

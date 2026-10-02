@@ -172,9 +172,9 @@ that call non-deterministic functions are rejected when you save. That includes 
 means "now" on Hive and Impala. The one-argument `unix_timestamp(:value)` is fine.
 
 Session-dependent behaviour that Superset cannot detect is still your responsibility:
-`unix_timestamp()` is timezone-dependent on Hive and Impala, so if the evaluating session and
-the query session resolve different timezones the emitted bounds will disagree with the
-timestamp bounds they mirror. Prefer explicitly-anchored transforms.
+`unix_timestamp(:value)` is timezone-dependent on Hive and Impala, so if the evaluating
+session and the query session resolve different timezones the emitted bounds will disagree
+with the timestamp bounds they mirror. Prefer explicitly-anchored transforms.
 
 Jinja templating is not supported in a transform. The template would render in a different
 context and at a different time from the chart query.
