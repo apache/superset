@@ -42,6 +42,7 @@ import {
   CellContextMenuEvent,
   SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { hasRenderableHeaderGroups } from '@superset-ui/chart-controls';
 import {
   AgGridTableChartTransformedProps,
   InputColumn,
@@ -61,6 +62,7 @@ import type { FilterState } from './utils/filterStateManager';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
+import { isMainComparisonLabel } from './utils/mainComparison';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
@@ -99,6 +101,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     metricSqlExpressions,
     rawSummaryColumns,
     showNumberedColumn,
+    headerGroups = [],
     zebraStriping,
     onContextMenu,
     formData,
@@ -333,7 +336,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       .filter(
         col =>
           !col.originalLabel ||
-          (col?.label || '').includes('Main') ||
+          isMainComparisonLabel(col?.label) ||
           selectedComparisonColumns.includes(col.label),
       )
       .filter(col => col?.config?.visible !== false);
@@ -360,6 +363,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     alignPositiveNegative,
     slice_id,
+    headerGroups,
     conditionalFormatting: formData?.conditional_formatting,
     comparisonColorEnabled: formData?.comparison_color_enabled,
     comparisonColorScheme: formData?.comparison_color_scheme,
@@ -733,6 +737,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         chartState={chartState}
         onClientViewChange={handleClientViewChange}
         zebraStriping={!!zebraStriping}
+        resetColumnOrder={hasRenderableHeaderGroups(headerGroups, columns)}
       />
     </StyledChartContainer>
   );

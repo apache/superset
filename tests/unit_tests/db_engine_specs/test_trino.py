@@ -1951,3 +1951,20 @@ def test_impersonate_user_with_token_no_verify_configured() -> None:
     connect_args = new_kwargs["connect_args"]
     assert "verify" not in connect_args
     assert connect_args["http_session"].verify is True
+
+
+def test_get_cancel_query_id_reads_the_running_query() -> None:
+    """The queryId is only known once execution has started."""
+    import trino.dbapi
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    cursor = trino.dbapi.connect(host="localhost", user="superset").cursor()
+    # SQL Lab and chart-data tasks ask before executing: nothing to record.
+    assert TrinoEngineSpec.get_cancel_query_id(cursor, Mock()) is None
+    running = Mock(query_id="20261001_000000_00001_abcde")
+    assert (
+        TrinoEngineSpec.get_cancel_query_id(running, Mock())
+        == "20261001_000000_00001_abcde"
+    )
+    assert TrinoEngineSpec.has_query_id_during_execute is True

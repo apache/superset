@@ -22,6 +22,7 @@ contract for viz_type ``gauge_chart`` — a single ``metric`` with an optional
 multi ``groupby`` producing one dial per row), and registry integration.
 """
 
+import asyncio
 from collections.abc import Callable
 from typing import Any
 
@@ -407,7 +408,7 @@ class TestGaugeRecommendationCategory:
             "superset.mcp_service.auth.get_user_from_request",
             lambda: Mock(id=1, username="admin"),
         )
-        resource = json.loads(get_chart_configs_resource())
+        resource = json.loads(asyncio.run(get_chart_configs_resource()))
         example = resource["gauge_configs"]["attainment_gauge"]["config"]
         assert example["chart_type"] == "gauge"
         assert "gauge_charts" in resource["best_practices"]

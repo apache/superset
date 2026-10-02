@@ -26,7 +26,7 @@ under the License.
 
 We feel that tests are an important part of a feature and not an additional or optional effort. That's why we colocate test files with functionality and sometimes write tests upfront to help validate requirements and shape the API of our components. Every new component or file added should have an associated test file with the `.test` extension.
 
-We use Jest, React Testing Library (RTL), and Cypress to write our unit, integration, and end-to-end tests. For each type, we have a set of best practices/tips described below:
+We use Jest, React Testing Library (RTL), and Playwright to write our unit, integration, and end-to-end tests. For each type, we have a set of best practices/tips described below:
 
 ## Jest
 
@@ -80,9 +80,9 @@ Prefer the [user-event](https://github.com/testing-library/user-event) library, 
 
 You can find an example of a test [here](https://github.com/apache/superset/blob/master/superset-frontend/src/dashboard/components/PublishedStatus/PublishedStatus.test.tsx).
 
-## Cypress
+## Playwright
 
-### Prefer to use Cypress for e2e testing and RTL for integration testing
+### Prefer to use Playwright for e2e testing and RTL for integration testing
 
 Here it's important to make the distinction between e2e and integration testing. This [article](https://www.onpathtesting.com/blog/end-to-end-vs-integration-testing) gives an excellent definition:
 
@@ -91,30 +91,11 @@ Here it's important to make the distinction between e2e and integration testing.
 > A typical software project consists of multiple software units, usually coded by different developers. Integration testing combines those software units logically and tests them as a group.
 > Essentially, integration testing verifies whether or not the individual modules or services that make up your application work well together. The purpose of this level of testing is to expose defects in the interaction between these software modules when they are integrated.
 
-Do not use Cypress when RTL can do it better and faster. Many of the Cypress tests that we have right now, fall into the integration testing category and can be ported to RTL which is much faster and gives more immediate feedback. Cypress should be used mainly for end-to-end testing, replicating the user experience, with positive and negative flows.
+Do not use Playwright when RTL can do it better and faster. Tests that fall into the integration testing category belong in RTL, which is much faster and gives more immediate feedback. Playwright should be used mainly for end-to-end testing, replicating the user experience, with positive and negative flows. See [End-to-End Testing](./e2e-testing.md) for the Playwright setup and conventions.
 
 ### Isolated and standalone tests
 
-Tests should never rely on other tests to pass. This might be hard when a single user is used for testing as data will be stored in the database. At every new test, we should reset the database.
-
-### Cleaning state
-
-Cleaning the state of the application, such as resetting the DB, or in general, any state that might affect consequent tests should always be done in the `beforeEach` hook and never in the `afterEach` one as the `beforeEach` is guaranteed to run, while the test might never reach the point to run the `afterEach` hook. One example would be if you refresh Cypress in the middle of the test. At this point, you will have built up a partial state in the database, and your clean-up function will never get called. You can read more about it [here](https://docs.cypress.io/guides/references/best-practices#Using-after-or-afterEach-hooks).
-
-### Unnecessary use of `cy.wait`
-
-- Unnecessary when using `cy.request()` as it will resolve when a response is received from the server
-- Unnecessary when using `cy.visit()` as it resolves only when the page fires the load event
-- Unnecessary when using `cy.get()`. When the selector should wait for a request to happen, aliases would come in handy:
-
-```js
-cy.intercept('GET', '/users', [{ name: 'Maggy' }, { name: 'Joan' }]).as(
-  'getUsers',
-);
-cy.get('#fetch').click();
-cy.wait('@getUsers'); // <--- wait explicitly for this route to finish
-cy.get('table tr').should('have.length', 2);
-```
+Tests should never rely on other tests to pass. Create the data a test needs through the API helpers and the `testAssets` fixture, which cleans up what it tracked, instead of depending on state left behind by another test.
 
 ### Accessibility and Resilience
 
@@ -127,5 +108,5 @@ The same accessibility principles in the RTL section apply here. Use accessible 
 - [Fix the "not wrapped in act(...)" warning](https://kentcdodds.com/blog/fix-the-not-wrapped-in-act-warning)
 - [Common mistakes with React Testing Library](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
 - [ARIA Roles](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles)
-- [Cypress - Best Practices](https://docs.cypress.io/guides/references/best-practices)
+- [Playwright - Best Practices](https://playwright.dev/docs/best-practices)
 - [End-to-end vs integration tests: what's the difference?](https://www.onpathtesting.com/blog/end-to-end-vs-integration-testing)
