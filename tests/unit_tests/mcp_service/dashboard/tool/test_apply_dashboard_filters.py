@@ -382,6 +382,31 @@ async def test_apply_range_one_sided_bounds(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
+async def test_apply_range_lower_unbounded(mcp_server: object) -> None:
+    """A null lower bound produces only the upper side's predicate."""
+    captured: dict[str, Any] = {}
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([RANGE_FILTER])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [None, 100]}],
+            },
+        )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-cost"]
+    assert entry["extraFormData"] == {
+        "filters": [{"col": "cost", "op": "<=", "val": 100}]
+    }
+    assert entry["filterState"] == {"value": [None, 100]}
+
+
+@pytest.mark.asyncio
 async def test_null_range_clears_an_optional_range(mcp_server: object) -> None:
     """[null, null] clears an optional range filter."""
     captured: dict[str, Any] = {}
@@ -455,6 +480,41 @@ async def test_range_on_a_select_filter_is_rejected(mcp_server: object) -> None:
 
     assert "is a filter_select filter" in data["error"]
     assert "provide 'values'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_values_on_a_range_filter_is_rejected(mcp_server: object) -> None:
+    """Values on a range filter is rejected."""
+    with patch(DAO_GET, return_value=_mock_dashboard([RANGE_FILTER])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "values": [1]}],
+            },
+        )
+
+    assert "is a filter_range filter" in data["error"]
+    assert "provide 'range'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_range_filter_without_target_column_is_rejected(
+    mcp_server: object,
+) -> None:
+    """A range filter with no target column cannot have a value applied."""
+    filter_without_target = {**RANGE_FILTER, "targets": [{}]}
+
+    with patch(DAO_GET, return_value=_mock_dashboard([filter_without_target])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [10, 100]}],
+            },
+        )
+
+    assert "has no target column" in data["error"]
 
 
 # ---------------------------------------------------------------------------
@@ -567,6 +627,22 @@ async def test_timegrain_on_a_select_filter_is_rejected(mcp_server: object) -> N
 
     assert "is a filter_select filter" in data["error"]
     assert "provide 'values'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_values_on_a_timegrain_filter_is_rejected(mcp_server: object) -> None:
+    """Values on a time grain filter is rejected."""
+    with patch(DAO_GET, return_value=_mock_dashboard([TIMEGRAIN_FILTER])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Granularity", "values": ["P1D"]}],
+            },
+        )
+
+    assert "is a filter_timegrain filter" in data["error"]
+    assert "provide 'time_grain'" in data["error"]
 
 
 @pytest.mark.asyncio
