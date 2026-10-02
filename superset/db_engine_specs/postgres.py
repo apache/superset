@@ -649,9 +649,9 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     ),
                 },
                 "notes": (
-                    "In ClickHouse Cloud, open Connect with via PgBouncer turned "
-                    "off. Download the instance-specific CA certificate from "
-                    "Settings and make it available to each Superset process "
+                    "In ClickHouse Cloud, open the Connect menu and use the "
+                    "Directly option. Download the instance-specific CA certificate "
+                    "from Settings and make it available to each Superset process "
                     "that connects to the database. Use verify-full to verify "
                     "the certificate and hostname."
                 ),
