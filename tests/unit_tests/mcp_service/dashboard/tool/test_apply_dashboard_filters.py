@@ -44,9 +44,13 @@ from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardNotFoundError,
 )
+from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs.base import TimeGrain
+from superset.models.core import Database
 from superset.utils import json
 
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
+DATASET_GET = "superset.daos.dataset.DatasetDAO.find_by_id"
 CREATE_PERMALINK = (
     "superset.mcp_service.dashboard.permalink.CreateDashboardPermalinkCommand"
 )
@@ -105,7 +109,7 @@ TIMEGRAIN_FILTER: dict[str, Any] = {
     "type": "NATIVE_FILTER",
     "filterType": "filter_timegrain",
     "name": "Granularity",
-    "targets": [{}],
+    "targets": [{"datasetId": 5}],
     "controlValues": {},
 }
 
@@ -522,14 +526,28 @@ async def test_range_filter_without_target_column_is_rejected(
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture
+def sqlite_dataset() -> SqlaTable:
+    """Expose datasource time-grain options from SQLite without querying it."""
+    return SqlaTable(database=Database(sqlalchemy_uri="sqlite://"))
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("grain", ["P1D", "PT2H", "P2D", "1969-12-28T00:00:00Z/P1W"])
-async def test_apply_timegrain(mcp_server: object, grain: str) -> None:
-    """Apply a time grain value."""
+@pytest.mark.parametrize("allowlist", [None, []])
+@pytest.mark.parametrize("grain", ["P1D", "PT1H", "1969-12-28T00:00:00Z/P1W"])
+async def test_apply_timegrain(
+    mcp_server: object,
+    sqlite_dataset: SqlaTable,
+    allowlist: list[str] | None,
+    grain: str,
+) -> None:
+    """Without an allowlist, apply only a datasource-supported time grain."""
+    conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     captured: dict[str, Any] = {}
 
     with (
-        patch(DAO_GET, return_value=_mock_dashboard([TIMEGRAIN_FILTER])),
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET, return_value=sqlite_dataset) as get_dataset,
         patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
     ):
         data = await _call(
@@ -547,6 +565,39 @@ async def test_apply_timegrain(mcp_server: object, grain: str) -> None:
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-grain"]
     assert entry["extraFormData"] == {"time_grain_sqla": grain}
     assert entry["filterState"] == {"value": [grain]}
+    get_dataset.assert_called_once_with(5)
+
+
+@pytest.mark.asyncio
+async def test_apply_timegrain_custom_engine_option(
+    mcp_server: object, sqlite_dataset: SqlaTable
+) -> None:
+    """Custom engine options are accepted through the datasource property."""
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([TIMEGRAIN_FILTER])),
+        patch(DATASET_GET, return_value=sqlite_dataset),
+        patch.object(
+            sqlite_dataset.database,
+            "grains",
+            return_value=[
+                TimeGrain("Two days", "Two days", "custom expression", "P2D")
+            ],
+        ),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Granularity", "time_grain": ["P2D"]}
+                ],
+            },
+        )
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-grain"]
+    assert entry["extraFormData"] == {"time_grain_sqla": "P2D"}
 
 
 @pytest.mark.asyncio
@@ -616,14 +667,18 @@ async def test_invalid_timegrain_value_is_rejected(mcp_server: object) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("allowlist", [None, []])
-@pytest.mark.parametrize("grain", ["garbage", " ", "\t", "P", "PT"])
-async def test_timegrain_without_allowlist_rejects_unknown_or_blank(
-    mcp_server: object, allowlist: list[str] | None, grain: str
+@pytest.mark.parametrize("grain", ["P2D", "PT2H", "garbage", " ", "\t", "P", "PT"])
+async def test_timegrain_without_allowlist_rejects_unsupported(
+    mcp_server: object,
+    sqlite_dataset: SqlaTable,
+    allowlist: list[str] | None,
+    grain: str,
 ) -> None:
-    """A missing or empty allowlist does not permit invalid time grains."""
+    """Parseable durations and built-in grains must be supported by the engine."""
     conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET, return_value=sqlite_dataset),
         patch(CREATE_PERMALINK) as create,
     ):
         data = await _call(
@@ -635,8 +690,41 @@ async def test_timegrain_without_allowlist_rejects_unknown_or_blank(
                 ],
             },
         )
-    assert "Invalid time grain" in data["error"]
-    assert "ISO-8601 duration" in data["error"]
+    assert f"Time grain '{grain}' is not supported by dataset 5" in data["error"]
+    assert "Granularity" in data["error"]
+    supported = [duration for duration, _ in sqlite_dataset.time_grain_sqla if duration]
+    assert f"Available time grains: {', '.join(supported)}." in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("targets", [[], [{}], [{"datasetId": 999}]])
+async def test_timegrain_without_allowlist_rejects_unresolvable_dataset(
+    mcp_server: object, targets: list[dict[str, int]]
+) -> None:
+    """Missing or unknown target datasets cannot validate a time grain."""
+    conf = {**TIMEGRAIN_FILTER, "targets": targets}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET, return_value=None) as get_dataset,
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}
+                ],
+            },
+        )
+    assert "Cannot resolve target dataset" in data["error"]
+    assert "Granularity" in data["error"]
+    assert "supported time grains cannot be determined" in data["error"]
+    if targets and targets[0].get("datasetId") is not None:
+        get_dataset.assert_called_once_with(999)
+    else:
+        get_dataset.assert_not_called()
     create.assert_not_called()
 
 
@@ -646,6 +734,7 @@ async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> No
     conf = {**TIMEGRAIN_FILTER, "time_grains": ["P1D", "P1W"]}
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET) as get_dataset,
         patch(CREATE_PERMALINK) as create,
     ):
         data = await _call(
@@ -660,22 +749,24 @@ async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> No
 
     assert "not allowed" in data["error"]
     assert "Available time grains: P1D, P1W" in data["error"]
+    get_dataset.assert_not_called()
     create.assert_not_called()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "allowlist, selection",
-    [(["PT2H"], ["PT2H"]), (["P1D"], []), ([], ["P2D"]), (None, ["P2D"])],
+    [(["P2D"], ["P2D"]), (["PT2H"], ["PT2H"]), (["P1D"], [])],
 )
 async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
-    mcp_server: object, allowlist: list[str] | None, selection: list[str]
+    mcp_server: object, allowlist: list[str], selection: list[str]
 ) -> None:
-    """Custom durations round-trip; empty/missing allowlists accept ISO durations."""
+    """An explicit allowlist wins without resolving dataset options."""
     conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     captured: dict[str, Any] = {}
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET) as get_dataset,
         patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
     ):
         data = await _call(
@@ -695,6 +786,7 @@ async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
         {"time_grain_sqla": selection[0]} if selection else {}
     )
     assert entry["filterState"] == {"value": selection or None}
+    get_dataset.assert_not_called()
 
 
 @pytest.mark.asyncio

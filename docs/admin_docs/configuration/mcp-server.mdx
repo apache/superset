@@ -115,8 +115,9 @@ rolled back, so do not blindly retry mutating SQL.
 `apply_dashboard_filters` supports exact-match select filters without inverse
 selection, time filters, numeric range filters, and time-grain filters. Range
 bounds must be finite numbers or null. Time grains must match the filter's
-configured allowlist; when that list is missing or empty, use a built-in
-Superset time grain or an ISO-8601 duration such as `P1D` or `PT2H`.
+configured allowlist; when that list is missing or empty, use a time grain
+supported by the filter's target dataset's database engine, as listed in the
+datasource's `time_grain_sqla` options. An unresolved target dataset is rejected.
 Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
@@ -1668,8 +1669,10 @@ latency.
 continue to accept nonnumeric columns.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
-one datasource-supported duration (for example, `["P1D"]`). Custom engine and
-semantic-layer durations are accepted, rather than limited to a fixed enum.
+one datasource-supported duration (for example, `["P1D"]`). Custom engine
+durations are accepted when exposed in the datasource's time-grain options,
+rather than limited to a fixed enum.
 A nonempty `time_grains` list in the saved filter configuration restricts the
-allowed selection; missing or empty lists impose no restriction. Pass `[]` to
+allowed selection and takes precedence over dataset options; missing or empty
+lists use the target dataset's supported time grains. Pass `[]` to
 clear an optional time-grain filter; required filters cannot be cleared.

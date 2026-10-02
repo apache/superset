@@ -30,10 +30,9 @@ from collections.abc import Sequence
 from typing import Any
 
 from fastmcp import Context
-from isodate import ISO8601Error, parse_duration
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE, TimeGrain
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
     build_dashboard_permalink_url,
@@ -283,18 +282,28 @@ def _timegrain_data_mask(
             f"'{conf.get('name') or conf.get('id')}'. "
             f"Available time grains: {', '.join(allowed_grains)}."
         )
-    if is_set and not allowed_grains and time_grain[0] not in set(TimeGrain):
-        grain = time_grain[0]
-        try:
-            if not grain.startswith("P") or grain in {"P", "PT"}:
-                raise ValueError("Expected an ISO-8601 duration")
-            parse_duration(grain)
-        except (ISO8601Error, ValueError, OverflowError) as ex:
+    if is_set and not allowed_grains:
+        from superset.daos.dataset import DatasetDAO
+
+        targets = [target for target in (conf.get("targets") or []) if target]
+        dataset_id = targets[0].get("datasetId") if targets else None
+        dataset = DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+        if dataset is None:
             raise _FilterApplyError(
-                f"Invalid time grain '{grain}' for filter "
-                f"'{conf.get('name') or conf.get('id')}'. "
-                "Use a built-in time grain or an ISO-8601 duration, e.g. 'P1D'."
-            ) from ex
+                f"Cannot resolve target dataset (ID {dataset_id}) for filter "
+                f"'{conf.get('name') or conf.get('id')}'; "
+                "supported time grains cannot be determined."
+            )
+        # Reuse the datasource options exposed to Explore and native filters.
+        available_grains = [
+            duration for duration, _ in dataset.time_grain_sqla if duration is not None
+        ]
+        if time_grain[0] not in available_grains:
+            raise _FilterApplyError(
+                f"Time grain '{time_grain[0]}' is not supported by dataset "
+                f"{dataset_id} for filter '{conf.get('name') or conf.get('id')}'. "
+                f"Available time grains: {', '.join(available_grains) or '(none)'}."
+            )
     if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
         raise _FilterApplyError(
             f"Filter '{conf.get('name') or conf.get('id')}' requires a time "
