@@ -815,3 +815,64 @@ test('a superseded preview response does not overwrite the current one', async (
   });
   expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
 });
+
+/**
+ * Like `EchoingEditor`, but the committed value comes back *only* after the
+ * delay -- no synchronous echo.
+ *
+ * That is the real editor's shape: a commit travels through
+ * `DatasourceEditor`'s state and `onChangeInternal` before it returns as a
+ * prop, so the round trip can finish after the owner has typed more.
+ */
+function LateEchoingEditor({
+  onCommit,
+  echoDelay = 80,
+}: {
+  onCommit: (value: string | null) => void;
+  echoDelay?: number;
+}) {
+  const [value, setValue] = useState('');
+  return (
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value={value}
+      onChange={next => {
+        onCommit(next);
+        const replayed = next ?? '';
+        setTimeout(() => setValue(replayed), echoDelay);
+      }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />
+  );
+}
+
+test('a commit landing mid-typing does not revert the keystrokes after it', async () => {
+  // Enter flushes the pending commit immediately, so the echo can arrive while
+  // the owner is still typing -- the one case the debounce does not cover. The
+  // re-seed cannot tell an echo from a genuine external value, so without a
+  // record of what was just committed it reset the input to the committed text
+  // and dropped everything typed since.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onCommit = jest.fn();
+
+  render(<LateEchoingEditor onCommit={onCommit} echoDelay={80} />);
+  const input = screen.getByLabelText('Value transform');
+
+  await userEvent.type(input, 'lower(:value');
+  await userEvent.keyboard('{Enter}');
+  // Keep typing across the echo's arrival: 20ms/char against an 80ms echo, so
+  // the committed value lands back as a prop with later characters already in
+  // the box.
+  await userEvent.type(input, ') -- x', { delay: 20 });
+
+  await waitFor(() => {
+    expect(input).toHaveValue('lower(:value) -- x');
+  });
+});

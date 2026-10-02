@@ -119,3 +119,30 @@ test('an inactive or absent mapping is not mirrored', () => {
     ),
   ).toBeNull();
 });
+
+test('a missing time range counts as "No filter"', () => {
+  // A legacy saved chart predating this control, or a render before the
+  // defaults populate, has no `time_range` key at all rather than the sentinel.
+  expect(
+    partitionMapping(
+      { partition_filter_mapping: MAPPING },
+      { granularity_sqla: 'event_time' },
+    ),
+  ).toBeNull();
+});
+
+test('always_filter_main_dttm needs a temporal column to be selected', () => {
+  // The backend collects that mirror inside the `if granularity:` branch, so
+  // with no temporal column the query has no such filter -- and the glyph would
+  // stand next to SQL that never mentions the partition column.
+  expect(
+    partitionMapping(
+      {
+        partition_filter_mapping: MAPPING,
+        always_filter_main_dttm: true,
+        main_dttm_col: 'event_time',
+      },
+      { time_range: 'Last week' },
+    ),
+  ).toBeNull();
+});

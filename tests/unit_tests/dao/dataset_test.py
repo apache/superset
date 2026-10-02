@@ -729,3 +729,122 @@ def test_clearing_the_partition_column_disarms_the_transforms_too(
     db.session.flush()
 
     assert _transforms(table)["event_time2"] == (None, False)
+
+
+def _partition_mapped_table(session: Session) -> Any:
+    """A dataset mirroring `event_time` onto `dt_epoch` through a transform."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pfm_dao_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pfm_dao_t", schema="main", database=database)
+    table.main_dttm_col = "event_time"
+    table.columns = [
+        TableColumn(
+            column_name="event_time",
+            is_dttm=True,
+            partition_value_transform="unix_timestamp(:value)",
+            partition_transform_is_monotonic=True,
+        ),
+        TableColumn(column_name="dt_epoch"),
+        TableColumn(column_name="country"),
+    ]
+    table.partition_column = "dt_epoch"
+    db.session.add_all([database, table])
+    db.session.flush()
+    return table
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unrelated_save_leaves_a_stray_transform_alone(session: Session) -> None:
+    """
+    Clearing discards stored configuration, so it only runs when the request can
+    change which column is mirrored. Running it on every write meant a
+    description-only PUT -- or a client that GETs the dataset and PUTs it back
+    unchanged -- silently dropped a transform parked on a non-mapped column.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    stray = next(c for c in table.columns if c.column_name == "country")
+    stray.partition_value_transform = "lower(:value)"
+    db.session.flush()
+
+    DatasetDAO.update(table, {"description": "unrelated edit"})
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["country"].partition_value_transform == "lower(:value)"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_repointing_the_mapping_still_clears_a_stray_transform(
+    session: Session,
+) -> None:
+    """The guard narrows when clearing runs, not whether it works."""
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    stray = next(c for c in table.columns if c.column_name == "country")
+    stray.partition_value_transform = "lower(:value)"
+    db.session.flush()
+
+    DatasetDAO.update(table, {"partition_mapped_column": "event_time"})
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["country"].partition_value_transform is None
+    assert by_name["event_time"].partition_value_transform == "unix_timestamp(:value)"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_on_a_column_added_in_the_same_request_is_cleared(
+    session: Session,
+) -> None:
+    """
+    `_upsert_columns` inserts a new column by FK rather than through the
+    `columns` relationship, and `BaseDAO.update` does not flush -- so a column
+    created *and* given a transform in one request was invisible to the clearing
+    loop and kept it, waiting for the mapping to resolve back to it.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    existing = {
+        column.column_name: column.id
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"column_name": "event_time", "id": existing["event_time"]},
+                {"column_name": "dt_epoch", "id": existing["dt_epoch"]},
+                {
+                    "column_name": "region_key",
+                    "partition_value_transform": "lower(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+            ],
+        },
+    )
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["region_key"].partition_value_transform is None
+    assert by_name["region_key"].partition_transform_is_monotonic is False
