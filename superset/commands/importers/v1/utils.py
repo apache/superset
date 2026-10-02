@@ -192,7 +192,7 @@ def load_configs(
         if not content:
             continue
 
-        config: Any = None
+        config: dict[str, Any] | None = None
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:

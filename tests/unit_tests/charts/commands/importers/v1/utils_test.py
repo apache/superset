@@ -289,20 +289,21 @@ def test_migrate_chart_table_migrates_when_flag_enabled(
 
 def test_get_dependency_chart_uuids_uses_selection_file() -> None:
     """Charts missing from the selection file are dependencies."""
-    configs = [{"uuid": "a"}, {"uuid": "b"}, {"uuid": "c"}]
-    contents = {SELECTED_CHARTS_FILE_NAME: "chart_uuids:\n- a\n"}
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}, {"uuid": "c"}]
+    contents: dict[str, str] = {SELECTED_CHARTS_FILE_NAME: "chart_uuids:\n- a\n"}
     assert get_dependency_chart_uuids(contents, configs) == {"b", "c"}
 
 
 def test_get_dependency_chart_uuids_without_selection_file() -> None:
     """Without a selection file every bundled chart counts as selected."""
-    configs = [{"uuid": "a"}, {"uuid": "b"}]
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}]
     assert get_dependency_chart_uuids({}, configs) == set()
 
 
 def test_get_dependency_chart_uuids_ignores_malformed_selection_file() -> None:
     """A malformed selection file is ignored rather than failing the import."""
-    configs = [{"uuid": "a"}, {"uuid": "b"}]
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}]
+    raw: str
     for raw in ("chart_uuids: a", "- a", "chart_uuids: [a"):
-        contents = {SELECTED_CHARTS_FILE_NAME: raw}
+        contents: dict[str, str] = {SELECTED_CHARTS_FILE_NAME: raw}
         assert get_dependency_chart_uuids(contents, configs) == set()
