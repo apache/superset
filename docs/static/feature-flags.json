@@ -94,6 +94,13 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SEMANTIC_LAYER_CONTAINMENT_CACHE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Superset-owned containment caching for opted-in semantic providers. Requires shared DATA_CACHE_CONFIG and Redis-backed DISTRIBUTED_COORDINATION_CONFIG.",
+        "docs": "https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache"
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",
