@@ -184,3 +184,38 @@ class WaterfallChartPlugin(BaseChartPlugin):
             ],
             error_code="WATERFALL_VALIDATION_ERROR",
         )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import (
+            build_single_query_dict,
+            normalize_groupby,
+            resolve_shared_metrics,
+        )
+
+        # Match Waterfall buildQuery: the x-axis category (or legacy time
+        # column) plus breakdown, ordered by those columns so the running total
+        # and grand total follow the axis.
+        axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
+        columns = list(axis) if isinstance(axis, list) else [axis] if axis else []
+        columns.extend(normalize_groupby(form_data))
+        query = build_single_query_dict(
+            form_data, columns, resolve_shared_metrics(form_data), row_limit=row_limit
+        )
+        query["orderby"] = [(column, True) for column in columns]
+        # Bind the time grain to the SQL time column, as extractExtras does.
+        granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+        if granularity is not None:
+            query["granularity"] = granularity
+        if form_data.get("time_grain_sqla") is not None:
+            query.setdefault("extras", {})["time_grain_sqla"] = form_data[
+                "time_grain_sqla"
+            ]
+        return [query]

@@ -20,13 +20,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.chart.chart_helpers import (
-    _build_single_query_dict,
     _deck_gl_null_filters,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
     _resolve_x_axis_sort_target,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
+    build_single_query_dict,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
@@ -1216,11 +1216,13 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
             [
                 {
                     "columns": ["event_time", "region"],
+                    "series_columns": ["region"],
                     "metrics": ["count"],
                     "filters": [],
                 },
                 {
                     "columns": ["event_time", "product"],
+                    "series_columns": ["product"],
                     "metrics": ["sum_sales"],
                     "filters": [],
                 },
@@ -1314,12 +1316,14 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
 
     assert primary == {
         "columns": ["event_time", "region"],
+        "series_columns": ["region"],
         "metrics": ["count"],
         "orderby": [["count", True]],
         "filters": [],
     }
     expected_secondary: dict[str, object] = {
         "columns": ["event_time", "product"],
+        "series_columns": ["product"],
         "metrics": ["sum_sales"],
         "filters": [],
     }
@@ -1331,7 +1335,7 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
 
 def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
     """
-    Verify _build_single_query_dict maps x_axis_sort metric label to
+    Verify build_single_query_dict maps x_axis_sort metric label to
     query orderby.
     """
     metric = {
@@ -1343,13 +1347,13 @@ def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
         "x_axis_sort": "SUM(sales)",
         "x_axis_sort_asc": False,
     }
-    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    qd = build_single_query_dict(form_data, ["category"], [metric])
     assert qd["orderby"] == [(metric, False)]
 
 
 def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
     """
-    Verify _build_single_query_dict matches x_axis_sort column name to
+    Verify build_single_query_dict matches x_axis_sort column name to
     metric dict.
     """
     metric = {
@@ -1361,27 +1365,27 @@ def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
         "x_axis_sort": "sales",
         "x_axis_sort_asc": True,
     }
-    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    qd = build_single_query_dict(form_data, ["category"], [metric])
     assert qd["orderby"] == [(metric, True)]
 
 
 def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
-    """Verify _build_single_query_dict handles saved string metric in x_axis_sort."""
+    """Verify build_single_query_dict handles saved string metric in x_axis_sort."""
     form_data = {
         "x_axis_sort": "revenue",
         "x_axis_sort_asc": False,
     }
-    qd = _build_single_query_dict(form_data, ["category"], ["revenue"])
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
     assert qd["orderby"] == [("revenue", False)]
 
 
 def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
-    """Verify _build_single_query_dict preserves dimension column sort."""
+    """Verify build_single_query_dict preserves dimension column sort."""
     form_data = {
         "x_axis_sort": "category",
         "x_axis_sort_asc": True,
     }
-    qd = _build_single_query_dict(form_data, ["category"], ["revenue"])
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
     assert qd["orderby"] == [("category", True)]
 
 
@@ -1392,7 +1396,7 @@ def test_build_single_query_dict_prefers_existing_orderby() -> None:
         "x_axis_sort": "sales",
         "x_axis_sort_asc": False,
     }
-    qd = _build_single_query_dict(form_data, ["category"], ["sales"])
+    qd = build_single_query_dict(form_data, ["category"], ["sales"])
     assert qd["orderby"] == [["count", True]]
 
 
@@ -1412,7 +1416,7 @@ def test_build_single_query_dict_temporal_chart_guards_against_x_axis_sort() -> 
         "x_axis_sort": "SUM(sales)",
         "x_axis_sort_asc": False,
     }
-    qd = _build_single_query_dict(
+    qd = build_single_query_dict(
         form_data, ["order_date"], [metric], is_timeseries=True
     )
     assert "orderby" not in qd
@@ -1425,18 +1429,24 @@ def test_build_single_query_dict_temporal_chart_guards_against_x_axis_sort() -> 
         "x_axis_sort": "SUM(sales)",
         "x_axis_sort_asc": False,
     }
-    qd_temporal = _build_single_query_dict(form_data_temporal, ["order_date"], [metric])
+    qd_temporal = build_single_query_dict(form_data_temporal, ["order_date"], [metric])
     assert "orderby" not in qd_temporal
 
-    # Case 3: mixed_timeseries chart type
+    # Case 3: mixed_timeseries chart type via plugin dispatch
     form_data_mixed = {
         "viz_type": "mixed_timeseries",
         "x_axis": "order_date",
         "x_axis_sort": "sales",
         "x_axis_sort_asc": True,
+        "metrics": [metric],
+        "metrics_b": [metric],
     }
-    qd_mixed = _build_single_query_dict(form_data_mixed, ["order_date"], [metric])
-    assert "orderby" not in qd_mixed
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries_mixed = build_query_dicts_from_form_data(form_data_mixed, 1, "table")
+    assert "orderby" not in queries_mixed[0]
 
 
 def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
@@ -1515,7 +1525,7 @@ def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
 
 def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> None:
     """
-    Verify _build_single_query_dict does not set orderby when x_axis_sort
+    Verify build_single_query_dict does not set orderby when x_axis_sort
     contains a series-sort value (like 'sum' or 'max') that is neither
     a metric nor a column, preventing 'Unknown column used in orderby: sum'.
     """
@@ -1528,7 +1538,7 @@ def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> 
         "x_axis_sort": "sum",
         "x_axis_sort_asc": False,
     }
-    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    qd = build_single_query_dict(form_data, ["category"], [metric])
     assert "orderby" not in qd
 
     # Also test with 'max'
@@ -1536,7 +1546,7 @@ def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> 
         "x_axis_sort": "max",
         "x_axis_sort_asc": True,
     }
-    qd_max = _build_single_query_dict(form_data_max, ["category"], [metric])
+    qd_max = build_single_query_dict(form_data_max, ["category"], [metric])
     assert "orderby" not in qd_max
 
 
@@ -1572,7 +1582,7 @@ def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None
 
 def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
     """
-    Verify _build_single_query_dict does not set orderby from x_axis_sort
+    Verify build_single_query_dict does not set orderby from x_axis_sort
     when form_data has groupby set (multi-series chart).
     """
     metric = {
@@ -1586,9 +1596,118 @@ def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
         "x_axis_sort_asc": False,
         "groupby": ["region"],
     }
-    qd = _build_single_query_dict(
+    qd = build_single_query_dict(
         form_data,
         columns=["category", "region"],
         metrics=[metric],
     )
     assert "orderby" not in qd
+
+
+@pytest.mark.parametrize("groupby", [[], ["region"]])
+@pytest.mark.parametrize("having", [False, True])
+def test_histogram_query_matches_frontend_contract(
+    monkeypatch: pytest.MonkeyPatch, groupby: list[str], having: bool
+) -> None:
+    """Histogram queries select raw observations and run the binning operator."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    form_data = {
+        "viz_type": "histogram_v2",
+        "column": "value",
+        "groupby": groupby,
+        "bins": 3,
+        "normalize": True,
+        "cumulative": True,
+        "row_limit": 100,
+        "adhoc_filters": [
+            {
+                "clause": "HAVING",
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*) > 0",
+            }
+        ]
+        if having
+        else [],
+    }
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+    assert query["columns"] == [*groupby, "value"]
+    assert bool(query["metrics"]) is having
+    assert query["post_processing"] == [
+        {
+            "operation": "histogram",
+            "options": {
+                "column": "value",
+                "groupby": groupby,
+                "bins": 3,
+                "normalize": True,
+                "cumulative": True,
+            },
+        }
+    ]
+    assert query["row_limit"] == 100
+
+
+@pytest.mark.parametrize("axis_key", ["x_axis", "granularity_sqla"])
+def test_waterfall_query_preserves_category_and_order(
+    monkeypatch: pytest.MonkeyPatch, axis_key: str
+) -> None:
+    """Waterfall queries retain the axis and breakdown instead of a grand total."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "waterfall",
+            axis_key: "category",
+            "groupby": ["region"],
+            "metric": "revenue",
+            "row_limit": 20,
+        },
+        1,
+        "table",
+    )[0]
+    assert query["columns"] == ["category", "region"]
+    assert query["metrics"] == ["revenue"]
+    assert query["orderby"] == [("category", True), ("region", True)]
+
+
+@pytest.mark.parametrize("legacy_axis", [False, True])
+@pytest.mark.parametrize("time_grain", ["P1M", None])
+def test_waterfall_query_preserves_temporal_binding(
+    monkeypatch: pytest.MonkeyPatch, legacy_axis: bool, time_grain: str | None
+) -> None:
+    """A typed Waterfall's grain stays bound to its selected temporal column."""
+    from superset.mcp_service.chart.chart_utils import map_waterfall_config
+    from superset.mcp_service.chart.schemas import WaterfallChartConfig
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    form_data = map_waterfall_config(
+        WaterfallChartConfig.model_validate(
+            {
+                "x_axis": {"name": "event_time"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "breakdown": {"name": "region"},
+                "time_grain": time_grain,
+            }
+        )
+    )
+    if legacy_axis:
+        form_data["granularity_sqla"] = form_data.pop("x_axis")
+
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+
+    assert query["columns"] == ["event_time", "region"]
+    assert query["orderby"] == [("event_time", True), ("region", True)]
+    assert query["metrics"] == [form_data["metric"]]
+    if time_grain or legacy_axis:
+        assert query["granularity"] == "event_time"
+    else:
+        assert "granularity" not in query
+    assert query.get("extras", {}).get("time_grain_sqla") == time_grain
