@@ -37,13 +37,14 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isUndefined } from 'lodash-es';
+import { debounce, isUndefined } from 'lodash-es';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
   LabeledValue,
   Select,
   Space,
+  Constants,
   Input,
 } from '@superset-ui/core/components';
 import {
@@ -182,6 +183,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [initialColtypeMap] = useState(coltypeMap);
   const [searchInput, setSearchInput] = useState('');
   const deferredSearchInput = useDeferredValue(searchInput);
+  // Trails searchInput by a quiet period; only this value drives the server
+  // search dispatch, since useDeferredValue lowers render priority but does
+  // not coalesce keystrokes by time.
+  const [settledSearch, setSettledSearch] = useState('');
+  const settleSearch = useMemo(
+    () => debounce(setSettledSearch, Constants.SLOW_DEBOUNCE),
+    [],
+  );
+  useEffect(() => () => settleSearch.cancel(), [settleSearch]);
   // Set true the first time the user actually searches; distinguishes a real
   // search from the clearAllTrigger reset below, which must not re-trigger
   // the searchAllOptions dispatch once the deferred value catches up.
@@ -215,7 +225,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // from the clearAllTrigger reset below, which also clears likeInputValue
   // but must not re-trigger a dispatch once the deferred value catches up.
   const [pendingLikeValue, setPendingLikeValue] = useState<string | null>(null);
-  const deferredPendingLikeValue = useDeferredValue(pendingLikeValue);
+  const settleLikeValue = useMemo(
+    () => debounce(setPendingLikeValue, Constants.SLOW_DEBOUNCE),
+    [],
+  );
+  useEffect(() => () => settleLikeValue.cancel(), [settleLikeValue]);
 
   useEffect(() => {
     const externalValue =
@@ -296,10 +310,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const isDisabled =
     appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
-  const handleSearch = useCallback((value: string) => {
-    hasSearchedRef.current = true;
-    setSearchInput(value);
-  }, []);
+  const handleSearch = useCallback(
+    (value: string) => {
+      hasSearchedRef.current = true;
+      setSearchInput(value);
+      settleSearch(value);
+    },
+    [settleSearch],
+  );
 
   // Read through a ref so a parent re-render that hands down new identities
   // for these doesn't, by itself, re-fire the dispatch below -- only an
@@ -336,11 +354,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         // The dropdown offers `stripSurroundingQuotes(search)` as the
         // creatable option, so the server has to be asked for the same
         // string or the two disagree about what was searched for.
-        search: stripSurroundingQuotes(deferredSearchInput).trim(),
+        search: stripSurroundingQuotes(settledSearch).trim(),
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deferredSearchInput]);
+  }, [settledSearch]);
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
@@ -567,7 +585,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       });
 
       updateDataMask(null);
+      settleSearch.cancel();
+      settleLikeValue.cancel();
       setSearchInput('');
+      setSettledSearch('');
       hasSearchedRef.current = false;
       setLikeInputValue('');
       setPendingLikeValue(null);
@@ -612,40 +633,28 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // doesn't replay text typed under the previous mode.
   useEffect(() => {
     if (!isLikeOperator) {
+      settleLikeValue.cancel();
       setPendingLikeValue(null);
     }
-  }, [isLikeOperator]);
+  }, [isLikeOperator, settleLikeValue]);
 
   useEffect(() => {
-    // A deferred value that lags the live one is stale (e.g. the pending
-    // edit was just invalidated by clear-all or an operator switch), so it
-    // must not be dispatched while the deferred value catches up.
-    if (
-      deferredPendingLikeValue === null ||
-      deferredPendingLikeValue !== pendingLikeValue ||
-      !isLikeOperator ||
-      clearAllTrigger
-    ) {
+    if (pendingLikeValue === null || !isLikeOperator || clearAllTrigger) {
       return;
     }
-    if (deferredPendingLikeValue) {
-      updateDataMaskRef.current([deferredPendingLikeValue]);
+    if (pendingLikeValue) {
+      updateDataMaskRef.current([pendingLikeValue]);
     } else {
       updateDataMaskRef.current(null);
     }
-  }, [
-    deferredPendingLikeValue,
-    pendingLikeValue,
-    isLikeOperator,
-    clearAllTrigger,
-  ]);
+  }, [pendingLikeValue, isLikeOperator, clearAllTrigger]);
 
   const handleLikeInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLikeInputValue(e.target.value);
-      setPendingLikeValue(e.target.value);
+      settleLikeValue(e.target.value);
     },
-    [],
+    [settleLikeValue],
   );
 
   const getSelectPopupContainer = useCallback(
