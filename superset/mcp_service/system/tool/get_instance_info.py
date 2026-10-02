@@ -35,12 +35,8 @@ from superset.mcp_service.system.schemas import (
     serialize_user_object,
 )
 from superset.mcp_service.system.system_utils import (
-    calculate_dashboard_breakdown,
-    calculate_database_breakdown,
-    calculate_feature_availability,
-    calculate_instance_summary,
-    calculate_popular_content,
-    calculate_recent_activity,
+    INSTANCE_INFO_METRIC_CALCULATORS,
+    INSTANCE_INFO_TIME_WINDOWS,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,19 +53,8 @@ _instance_info_core = InstanceInfoCore(
         "tags": None,  # type: ignore[dict-item]
     },
     output_schema=InstanceInfo,
-    metric_calculators={
-        "instance_summary": calculate_instance_summary,
-        "recent_activity": calculate_recent_activity,
-        "dashboard_breakdown": calculate_dashboard_breakdown,
-        "database_breakdown": calculate_database_breakdown,
-        "popular_content": calculate_popular_content,
-        "feature_availability": calculate_feature_availability,
-    },
-    time_windows={
-        "recent": 7,
-        "monthly": 30,
-        "quarterly": 90,
-    },
+    metric_calculators=INSTANCE_INFO_METRIC_CALCULATORS,
+    time_windows=INSTANCE_INFO_TIME_WINDOWS,
     logger=logger,
 )
 

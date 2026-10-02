@@ -58,11 +58,8 @@ def get_instance_metadata_resource() -> str:
         from superset.mcp_service.mcp_core import InstanceInfoCore
         from superset.mcp_service.system.schemas import InstanceInfo
         from superset.mcp_service.system.system_utils import (
-            calculate_dashboard_breakdown,
-            calculate_database_breakdown,
-            calculate_instance_summary,
-            calculate_popular_content,
-            calculate_recent_activity,
+            INSTANCE_INFO_METRIC_CALCULATORS,
+            INSTANCE_INFO_TIME_WINDOWS,
         )
         from superset.utils import json
 
@@ -76,18 +73,8 @@ def get_instance_metadata_resource() -> str:
                 "tags": cast(Type[BaseDAO[Any]], TagDAO),
             },
             output_schema=InstanceInfo,
-            metric_calculators={
-                "instance_summary": calculate_instance_summary,
-                "recent_activity": calculate_recent_activity,
-                "dashboard_breakdown": calculate_dashboard_breakdown,
-                "database_breakdown": calculate_database_breakdown,
-                "popular_content": calculate_popular_content,
-            },
-            time_windows={
-                "recent": 7,
-                "monthly": 30,
-                "quarterly": 90,
-            },
+            metric_calculators=INSTANCE_INFO_METRIC_CALCULATORS,
+            time_windows=INSTANCE_INFO_TIME_WINDOWS,
             logger=logger,
         )
 
