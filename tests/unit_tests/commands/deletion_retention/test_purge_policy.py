@@ -42,6 +42,7 @@ from superset.commands.deletion_retention.purge_policy import (
     DependencyKey,
     DependencyPolicy,
     discover_dependencies,
+    ExecutionPhase,
     get_purge_policy,
     HOST_POLICIES_CONFIG_KEY,
     listener_responsibilities,
@@ -713,3 +714,96 @@ def test_host_policy_cannot_redeclare_a_builtin_root() -> None:
 
     with _installed(lambda: [replace(builtin, dependencies=())]):
         assert purge_policy_registry()[Slice] is builtin
+
+
+def _host_chain(prefix: str) -> type[Any]:
+    """Map a root that reaches a detail table only through a link table."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    sa.Table(
+        f"{prefix}_link",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
+    )
+    sa.Table(
+        f"{prefix}_detail",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("link_id", sa.Integer, sa.ForeignKey(f"{prefix}_link.id")),
+    )
+
+    class HostChainRoot:
+        """Temporary mapped root with a two-hop ownership path."""
+
+    registry().map_imperatively(HostChainRoot, root_table)
+    return HostChainRoot
+
+
+def _host_chain_edges(
+    prefix: str, link: DependencyClassification
+) -> tuple[DependencyPolicy, ...]:
+    """Classify the chain, varying only how the intermediate hop is declared."""
+    entity: str = f"{prefix}_entity"
+    link_table: str = f"{prefix}_link"
+    detail: str = f"{prefix}_detail"
+    link_phase: ExecutionPhase = (
+        ExecutionPhase.ASSOCIATIONS
+        if link is DependencyClassification.ASSOCIATION
+        else ExecutionPhase.OWNED
+    )
+    return (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", entity, link_table, ("id",), ("entity_id",), "inbound"
+            ),
+            link,
+            link_phase,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", link_table, detail, ("id",), ("link_id",), "inbound"
+            ),
+            DependencyClassification.OWNED,
+            ExecutionPhase.OWNED,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", link_table, entity, ("entity_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", detail, link_table, ("link_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+
+
+def test_owned_table_behind_an_association_is_rejected() -> None:
+    """Associations are emptied first, so owning through one cannot execute."""
+    model: type[Any] = _host_chain("behind")
+    policy: PurgeEntityPolicy = _host_policy(
+        model, _host_chain_edges("behind", DependencyClassification.ASSOCIATION)
+    )
+
+    with _installed(lambda: [policy]):
+        with pytest.raises(RuntimeError, match="associations are deleted first"):
+            get_purge_policy(model)
+
+
+def test_owned_table_behind_an_owned_link_is_accepted() -> None:
+    """Declaring the intermediate hop owned puts both in the same phase."""
+    model: type[Any] = _host_chain("owned")
+    policy: PurgeEntityPolicy = _host_policy(
+        model, _host_chain_edges("owned", DependencyClassification.OWNED)
+    )
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(model) is policy

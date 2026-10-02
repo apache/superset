@@ -1005,6 +1005,58 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     return policy
 
 
+def _ownership_dependency(
+    policy: PurgeEntityPolicy, related_table: str
+) -> DependencyPolicy | None:
+    """The single owned/association edge attaching *related_table*, if clear."""
+    candidates: tuple[DependencyPolicy, ...] = tuple(
+        dependency
+        for dependency in policy.dependencies
+        if dependency.classification
+        in {DependencyClassification.OWNED, DependencyClassification.ASSOCIATION}
+        and dependency.key.related_table == related_table
+        and dependency.key.direction == "inbound"
+    )
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
+    """Reject an owned table reachable only through an association.
+
+    ``cascade_hard_delete`` empties associations before owned children, while
+    an owned table's predicate selects its rows *through* its ownership path
+    (see ``_owner_value_select``). If a hop on that path is an association,
+    its rows are already gone when the owned delete runs: the statement
+    matches nothing, leaving the descendants orphaned where foreign keys are
+    unenforced and blocking the root's delete where they are not.
+
+    Refused at declaration time rather than executed. The shape has a
+    remedy -- classify the intermediate table as owned, which places it in
+    the same phase as what it leads to.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        table_name: str = dependency.key.owner_table
+        visited: set[str] = set()
+        while table_name != root_table and table_name not in visited:
+            visited.add(table_name)
+            hop: DependencyPolicy | None = _ownership_dependency(policy, table_name)
+            if hop is None:
+                # An absent or ambiguous path is reported by coverage and by
+                # _ownership_edge at execution; not this check's business.
+                break
+            if hop.classification is DependencyClassification.ASSOCIATION:
+                raise RuntimeError(
+                    f"Owned dependency {dependency.key.describe()} is reachable "
+                    f"only through association {hop.key.describe()}; "
+                    "associations are deleted first, so the owned rows would "
+                    "be orphaned"
+                )
+            table_name = hop.key.owner_table
+
+
 def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     """Reject executable classifications missing their required action metadata."""
     for dependency in policy.dependencies:
@@ -1022,6 +1074,7 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
             raise RuntimeError(
                 f"Missing version target column for {dependency.key.describe()}"
             )
+    _validate_owned_traversal(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
