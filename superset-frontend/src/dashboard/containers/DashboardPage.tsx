@@ -40,7 +40,11 @@ import {
   getRelevantDataMask,
 } from 'src/dashboard/util/activeAllDashboardFilters';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
+import {
+  LocalStorageKeys,
+  setItem,
+  DASHBOARD_FILTERS_STORAGE_PREFIX,
+} from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
@@ -89,8 +93,6 @@ import {
 } from '../util/risonFilters';
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
-
-export const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
 
 function getStorageKey(dashboardId: number, userId: number | undefined) {
   // Scope the key to userId to prevent one user's filter state from

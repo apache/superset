@@ -20,6 +20,8 @@
 import { TableTab } from 'src/views/CRUD/types';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
+export const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
+
 export enum LocalStorageKeys {
   /**
    * START LEGACY LOCAL STORAGE KEYS

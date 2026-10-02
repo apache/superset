@@ -1,4 +1,4 @@
-import { DASHBOARD_FILTERS_STORAGE_PREFIX } from 'src/dashboard/containers/DashboardPage';
+import { DASHBOARD_FILTERS_STORAGE_PREFIX } from 'src/utils/localStorageHelpers';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
