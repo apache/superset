@@ -1206,7 +1206,7 @@ test('saves to localStorage when historical version preview is inactive', async 
         user: { userId: 42 },
         versionHistory: {
           entityType: 'dashboard',
-          preview: null
+          preview: null,
         },
       },
     },
