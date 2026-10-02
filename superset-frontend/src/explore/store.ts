@@ -22,6 +22,7 @@ import {
   getChartControlPanelRegistry,
   VizType,
 } from '@superset-ui/core';
+import { ColorSchemeEnum } from '@superset-ui/chart-controls';
 import type { QueryFormData } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
@@ -118,9 +119,13 @@ export function handleDeprecatedControls(formData: FormData): void {
     formData.increase_color === undefined &&
     formData.decrease_color === undefined
   ) {
-    const legacyReversed = formData.comparison_color_scheme === 'Red';
-    formData.increase_color = legacyReversed ? 'Red' : 'Green';
-    formData.decrease_color = legacyReversed ? 'Green' : 'Red';
+    const legacyReversed = formData.comparison_color_scheme === ColorSchemeEnum.Red;
+    formData.increase_color = legacyReversed
+      ? ColorSchemeEnum.Red
+      : ColorSchemeEnum.Green;
+    formData.decrease_color = legacyReversed
+      ? ColorSchemeEnum.Green
+      : ColorSchemeEnum.Red;
   }
 
   // #42910: migrate the legacy Gauge `interval_color_indices`
