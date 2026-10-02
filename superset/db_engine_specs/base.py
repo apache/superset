@@ -720,9 +720,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # it a "database", Trino calls it a "catalog", etc.
     #
     # When this is changed to true in a DB engine spec it MUST support the
-    # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
-    # a database migration updating any existing schema permissions using the helper
-    # `upgrade_catalog_perms`.
+    # `get_default_catalog` and `get_catalog_names` methods.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?
