@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 19:36-0700\n"
+"POT-Creation-Date: 2026-10-01 12:46+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1468,6 +1468,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Añadir carpeta"
 
+msgid "Add group"
+msgstr "Añadir grupo"
+
 msgid "Add item"
 msgstr "Añadir elemento"
 
@@ -1512,6 +1515,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Añadir hoja"
+
+msgid "Add subgroup"
+msgstr "Añadir subgrupo"
 
 msgid "Add tag to entities"
 msgstr "Añadir etiqueta a las entidades"
@@ -1752,6 +1758,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3456,6 +3466,9 @@ msgstr "Límite de celda"
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -4163,6 +4176,9 @@ msgstr "Contraer el panel de datos"
 msgid "Collapse row"
 msgstr "Contraer fila"
 
+msgid "Collapse settings"
+msgstr "Contraer ajustes"
+
 msgid "Collapse tab content"
 msgstr "Contraer el contenido de la pestaña"
 
@@ -4307,6 +4323,9 @@ msgstr "Columna que contiene datos de longitud"
 
 msgid "Column data types"
 msgstr "Tipos de datos de columna"
+
+msgid "Column groups"
+msgstr "Grupos de columnas"
 
 msgid "Column header tooltip"
 msgstr "Información sobre herramientas del encabezado de columna"
@@ -7137,6 +7156,9 @@ msgstr "Introduce la duración en segundos"
 msgid "Enter fullscreen"
 msgstr "Ir a pantalla completa"
 
+msgid "Enter group name"
+msgstr "Introducir el nombre del grupo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ru]
 #, fuzzy
 msgid "Enter minimum and maximum values for the range filter"
@@ -7438,6 +7460,9 @@ msgstr "Expandir fila"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Expandir fila"
+
+msgid "Expand settings"
+msgstr "Expandir ajustes"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8480,6 +8505,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupo"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupo %s"
+
 msgid "Group By"
 msgstr "Agrupar por"
 
@@ -8491,6 +8520,12 @@ msgstr "Clave de grupo"
 
 msgid "Group by"
 msgstr "Agrupar por"
+
+msgid "Group columns"
+msgstr "Agrupar columnas"
+
+msgid "Group name"
+msgstr "Nombre del grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -9123,10 +9158,6 @@ msgstr "ID de pestaña no válidos: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "El nombre de usuario o la contraseña son incorrectos."
 
 msgid "Inverse"
 msgstr ""
@@ -10488,6 +10519,12 @@ msgstr "Más filtros"
 msgid "MotherDuck token"
 msgstr "Token de MotherDuck"
 
+msgid "Move group left"
+msgstr "Mover el grupo a la izquierda"
+
+msgid "Move group right"
+msgstr "Mover el grupo a la derecha"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Solo mover"
@@ -10520,6 +10557,9 @@ msgstr "Multiniveles"
 
 msgid "Multi-Variables"
 msgstr "Multivariable"
+
+msgid "Multi-level header"
+msgstr "Encabezado de varios niveles"
 
 msgid "Multiple"
 msgstr "Múltiple"
@@ -12127,6 +12167,9 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr "Puerto fuera del intervalo 0-65535"
 
+msgid "Position"
+msgstr "Posición"
+
 msgid "Position JSON"
 msgstr "Posición JSON"
 
@@ -12618,6 +12661,9 @@ msgstr "Eliminar elemento"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Eliminar grupo"
 
 msgid "Remove item"
 msgstr "Eliminar elemento"
@@ -13873,6 +13919,9 @@ msgstr "Seleccionar columna"
 #, fuzzy
 msgid "Select column name"
 msgstr "Seleccionar columna"
+
+msgid "Select columns"
+msgstr "Seleccionar columnas"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15385,6 +15434,10 @@ msgstr "Categoría"
 msgid "Subdomain"
 msgstr "Subdominio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrupo %s"
+
 #, fuzzy
 msgid "Subject"
 msgstr "asunto del correo"
@@ -15634,6 +15687,9 @@ msgstr "No se ha definido el nombre de la tabla"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La tabla o vista \"%(table)s\" no existe"
+
+msgid "Table side"
+msgstr "Lado de la tabla"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
