@@ -31,7 +31,10 @@ import {
 } from '../src/renderers/parseJsonCellValue';
 import { syncJsonCellRowHeight } from '../src/renderers/jsonCellRowHeight';
 import { TextCellRenderer } from '../src/renderers/TextCellRenderer';
-import { isJsonCellActionTarget } from '../src/utils/isJsonCellActionTarget';
+import {
+  isJsonCellActionTarget,
+  isJsonCellDoubleClick,
+} from '../src/utils/isJsonCellActionTarget';
 import { CellRendererProps } from '../src/types';
 
 const nestedJson = '{"user":"ada","address":{"city":"London"}}';
@@ -95,12 +98,22 @@ test('syncJsonCellRowHeight ignores a collapse that was never expanded', () => {
 
 test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   document.body.innerHTML =
-    '<div data-json-cell-action="true"><span id="json-action"></span></div><span id="plain"></span>';
+    '<div data-json-cell="true"><div data-json-cell-action="true"><span id="json-action"></span></div><span id="json-text"></span></div><span id="plain"></span>';
   expect(isJsonCellActionTarget(document.getElementById('json-action'))).toBe(
     true,
   );
   expect(isJsonCellActionTarget(document.getElementById('plain'))).toBe(false);
   expect(isJsonCellActionTarget(null)).toBe(false);
+
+  const text = document.getElementById('json-text');
+  const secondClick = new MouseEvent('click', { detail: 2 });
+  expect(isJsonCellDoubleClick(secondClick, text)).toBe(true);
+  expect(
+    isJsonCellDoubleClick(new MouseEvent('click', { detail: 1 }), text),
+  ).toBe(false);
+  expect(
+    isJsonCellDoubleClick(secondClick, document.getElementById('plain')),
+  ).toBe(false);
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {
@@ -167,7 +180,7 @@ test('expanded JSON asks an auto-height grid to remeasure the row', async () => 
   expect(resetRowHeights).toHaveBeenCalled();
 });
 
-test('the default cell is a collapsed preview without an arrow', () => {
+test('the default cell is a collapsed preview without an arrow', async () => {
   const onParentClick = jest.fn();
   const raw = '{\n  "user": "ada"\n}';
   const { container } = render(
@@ -188,6 +201,14 @@ test('the default cell is a collapsed preview without an arrow', () => {
   fireEvent.click(preview);
   expect(onParentClick).toHaveBeenCalled();
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  fireEvent.dblClick(preview);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  onParentClick.mockClear();
+  await userEvent.click(screen.getByRole('button', { name: 'Open JSON' }));
+  expect(onParentClick).not.toHaveBeenCalled();
+  expect(await screen.findByRole('dialog')).toHaveTextContent('Cell content');
 });
 
 test('a click on the arrow expands the cell and a second click opens the dialog', async () => {
@@ -205,9 +226,6 @@ test('a click on the arrow expands the cell and a second click opens the dialog'
       jsonInCell
     />,
   );
-
-  fireEvent.dblClick(screen.getByTestId('json-cell-preview'));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
   const cell = screen.getByTestId('json-cell');
   const arrow = within(cell).getByRole('button', { name: 'Expand JSON' });

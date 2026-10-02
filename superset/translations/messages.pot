@@ -9578,6 +9578,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr ""
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr ""
 

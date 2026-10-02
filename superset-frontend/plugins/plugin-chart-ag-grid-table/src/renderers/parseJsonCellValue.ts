@@ -26,6 +26,10 @@ const PARSE_CACHE_LIMIT = 200;
 
 const parsedJsonCache = new Map<string, JsonContainer | null>();
 
+function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
+  return isJsonContainer(value) && !Array.isArray(value);
+}
+
 function isJsonContainer(value: unknown): value is JsonContainer {
   if (value === null || typeof value !== 'object') {
     return false;
@@ -144,7 +148,7 @@ function exceedsPreviewBudget(
     budget.left -= value.length;
     return value.some(item => exceedsPreviewBudget(item, budget));
   }
-  if (isJsonContainer(value)) {
+  if (isPlainJsonObject(value)) {
     const keys = Object.keys(value);
     budget.left -= keys.length;
     return keys.some(key => exceedsPreviewBudget(value[key], budget));

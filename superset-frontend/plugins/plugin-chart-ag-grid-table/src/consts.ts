@@ -47,6 +47,7 @@ export const ROW_NUMBER_COL_ID = '__row_number__';
 
 // Marks expand/view controls inside a JSON cell so a click on them does not
 // apply a cross-filter or change the row selection.
+export const JSON_CELL_SELECTOR = '[data-json-cell]';
 export const JSON_CELL_ACTION_SELECTOR = '[data-json-cell-action]';
 
 // Symbol key used to attach a row's basic (increase/decrease) color formatter

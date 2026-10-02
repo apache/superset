@@ -485,7 +485,7 @@ export function JsonCellRenderer({
   }, [rawText, value]);
 
   return (
-    <Root ref={rootRef} data-test="json-cell">
+    <Root ref={rootRef} data-json-cell data-test="json-cell">
       {jsonInCell ? (
         <Toolbar>
           <JsonActionButton
@@ -513,14 +513,23 @@ export function JsonCellRenderer({
           {expanded && <span>{openBrace}</span>}
         </Toolbar>
       ) : (
-        <Preview
-          data-test="json-cell-preview"
-          title={
-            preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
-          }
-        >
-          {preview}
-        </Preview>
+        <Toolbar>
+          <JsonActionButton
+            label={t('Open JSON')}
+            testId="json-cell-open"
+            onActivate={() => setModalOpen(true)}
+          >
+            <Icons.FullscreenOutlined iconSize="xs" />
+          </JsonActionButton>
+          <Preview
+            data-test="json-cell-preview"
+            title={
+              preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
+            }
+          >
+            {preview}
+          </Preview>
+        </Toolbar>
       )}
       {showTree && (
         <>
