@@ -67,6 +67,16 @@ class ExtensionsLoader {
 
   private initializationPromise: Promise<string[]> | null = null;
 
+  // Tracks whether the first initializeExtensions() call has settled (either
+  // way), so UI that needs to distinguish "still loading" from "loaded, and
+  // there's genuinely nothing registered" — e.g. the sqllab.newTab dropdown
+  // deciding whether to show a spinner vs. fall back to a plain add — has
+  // something to check. A failed retry (initializationPromise reset to null)
+  // still counts as settled: there's no more loading happening either way.
+  private ready = false;
+
+  private readyListeners = new Set<() => void>();
+
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -123,7 +133,38 @@ class ExtensionsLoader {
         throw error;
       }
     })();
+    // Attached separately (not reassigning this.initializationPromise) so
+    // ready-tracking is purely a side effect and every caller still sees the
+    // original promise's own resolve/reject value.
+    this.initializationPromise.finally(() => this.markReady());
     return this.initializationPromise;
+  }
+
+  /**
+   * Whether the first initializeExtensions() call has settled — either
+   * because it succeeded, or because loading the list itself failed. False
+   * before the first call, and while a call is in flight.
+   */
+  public isReady(): boolean {
+    return this.ready;
+  }
+
+  /**
+   * Subscribes to the ready transition (fires at most once — readiness never
+   * reverts to false once reached, even across a failed-then-retried load).
+   * Returns an unsubscribe function.
+   */
+  public onReady(listener: () => void): () => void {
+    this.readyListeners.add(listener);
+    return () => {
+      this.readyListeners.delete(listener);
+    };
+  }
+
+  private markReady(): void {
+    if (this.ready) return;
+    this.ready = true;
+    this.readyListeners.forEach(listener => listener());
   }
 
   /**
