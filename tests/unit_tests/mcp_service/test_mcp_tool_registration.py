@@ -271,6 +271,7 @@ def _run(coro):
 OMITTED_MEANS_UNCHANGED_TOOLS = (
     "update_chart",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 )
 

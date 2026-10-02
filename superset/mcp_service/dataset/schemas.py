@@ -947,7 +947,7 @@ UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class UpdateDatasetRequest(BaseModel):
+class UpdateDatasetRequest(OmittedMeansUnchanged):
     """Request schema for update_dataset."""
 
     model_config = ConfigDict(populate_by_name=True)
