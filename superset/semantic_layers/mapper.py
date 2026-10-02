@@ -58,6 +58,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.superset_typing import AdhocColumn
@@ -1209,6 +1210,11 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
     # no limit
     if query_object.series_limit == 0:
         return
+
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        raise QueryObjectValidationError(
+            "Group limit requires series columns in this Semantic View."
+        )
 
     if (
         query_object.series_columns

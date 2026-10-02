@@ -42,6 +42,7 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -1592,6 +1593,25 @@ def test_validate_query_object_group_limit_not_supported_error(
     )
 
     with pytest.raises(ValueError, match="Group limit is not supported"):
+        validate_query_object(query_object)
+
+
+def test_validate_query_object_empty_series_columns_with_limit_error(
+    mock_datasource: MagicMock,
+) -> None:
+    """Reject a requested series limit without a series dimension."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=[],
+        series_limit=2,
+        series_limit_metric="total_sales",
+    )
+
+    with pytest.raises(
+        QueryObjectValidationError, match="Group limit requires series columns"
+    ):
         validate_query_object(query_object)
 
 
