@@ -83,6 +83,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_PAGE_SIZE,
@@ -921,7 +922,16 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => <Space>{option.label || option.value}</Space>}
+          optionRender={option => (
+            <Space>
+              {option.label || option.value}
+              {(isNewOption(option.data) || isNewOption(option)) && (
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('new')}
+                </StyledNewOptionBadge>
+              )}
+            </Space>
+          )}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}

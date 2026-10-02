@@ -67,6 +67,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
@@ -1060,7 +1061,16 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => <Space>{option.label || option.value}</Space>}
+          optionRender={option => (
+            <Space>
+              {option.label || option.value}
+              {(isNewOption(option.data) || isNewOption(option)) && (
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('new')}
+                </StyledNewOptionBadge>
+              )}
+            </Space>
+          )}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
