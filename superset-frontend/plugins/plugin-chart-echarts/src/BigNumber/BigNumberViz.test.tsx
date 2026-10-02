@@ -272,7 +272,9 @@ describe('BigNumberViz alignment', () => {
     const container = renderViz();
 
     const textContainer = container.querySelector('.text-container');
-    expect(container.firstElementChild).toHaveStyle({ alignItems: 'flex-start' });
+    expect(container.firstElementChild).toHaveStyle({
+      alignItems: 'flex-start',
+    });
     expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
     const headerLine = container.querySelector('.header-line');
     expect(headerLine).toHaveStyle({ justifyContent: 'flex-start' });
