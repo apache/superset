@@ -481,9 +481,18 @@ class WebDriverSelenium(WebDriverProxy):
         webdriver_config = self._normalize_timeout_values(webdriver_config)
         kwargs.update(webdriver_config)
 
-        # Set the binary location if provided
+        # Set the binary location if provided, either at the top level or nested
+        # under "options" (which is where the default config documents it).
         # We need to pop it from the dict due to selenium_version < 4.10.0
-        options.binary_location = webdriver_config.pop("binary_location", "")
+        nested_options = webdriver_config.get("options")
+        nested_binary_location = (
+            nested_options.get("binary_location")
+            if isinstance(nested_options, dict)
+            else None
+        )
+        options.binary_location = (
+            webdriver_config.pop("binary_location", "") or nested_binary_location or ""
+        )
 
         if version.parse(selenium_version) < version.parse("4.10.0"):
             kwargs |= webdriver_config
