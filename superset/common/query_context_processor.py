@@ -459,6 +459,7 @@ class QueryContextProcessor:
         user and, for chart-backed layers, the RLS clauses of the referenced
         chart's datasource and any captured semantic metadata identity.
         """
+        from superset.semantic_layers.metadata_cache import annotation_cache_token
         from superset.semantic_layers.models import SemanticView
 
         source_metadata: dict[str, str] = {}
@@ -480,7 +481,7 @@ class QueryContextProcessor:
                 chart.resolved_datasource if chart else None
             )
             if isinstance(metadata_datasource, SemanticView):
-                token: str | None = metadata_datasource.metadata_cache_token
+                token: str | None = annotation_cache_token(metadata_datasource)
                 if token is not None:
                     source_metadata[str(layer.get("value"))] = token
         return {
