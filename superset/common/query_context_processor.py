@@ -580,6 +580,7 @@ class QueryContextProcessor:
                 if annotation_query_context is not None
                 else security_manager.get_rls_cache_key(datasource)
             )
+<<<<<<< HEAD
             annotation_datasource: Datasource | None = chart.resolved_datasource
             if isinstance(chart.query_context, str):
                 try:
@@ -603,21 +604,27 @@ class QueryContextProcessor:
             if isinstance(annotation_datasource, SemanticView):
                 metadata_version = annotation_datasource.metadata_generation
                 result_discriminator = annotation_datasource.result_cache_discriminator
-        except SupersetException:
-            # The annotation fetch raises these same errors and persists
-            # nothing, so a fallback key never stores real data; fail closed
-            # so this scope can't silently dedupe onto a successfully-derived
-            # one.
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            # Derivation can fail well beyond SupersetException: the RLS
+            # lookup is a live DB query and a virtual dataset's
+            # get_extra_cache_keys() renders Jinja, either of which can raise
+            # a driver/template error. None of that should ever 500 the whole
+            # chart-data request; fail closed instead so this scope can't
+            # silently dedupe onto a successfully-derived one.
             logger.warning(
                 "Could not derive annotation cache key for chart %s; "
                 "falling back to a fail-closed scope",
                 layer_value,
                 exc_info=True,
             )
-            return {
-                "access": False,
-                "data_key": security_manager.get_rls_cache_key(datasource),
-            }
+            try:
+                fallback_data_key = security_manager.get_rls_cache_key(datasource)
+            except Exception:  # noqa: BLE001  pylint: disable=broad-except
+                # The fallback's own lookup can fail the same way (e.g. the
+                # same DB outage that failed the primary derivation) -- don't
+                # let that escape either.
+                fallback_data_key = None
+            return {"access": False, "data_key": fallback_data_key}
         return {
             "access": access,
             "data_key": data_key,
