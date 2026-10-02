@@ -2635,7 +2635,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # Opt out of pandas' deprecated silent downcasting inside ``replace`` and
+        # then downcast explicitly, which keeps the existing dtype behavior.
+        with pd.option_context("future.no_silent_downcasting", True):
+            df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df = df.infer_objects(copy=False)
 
         return df
 
