@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Example export (`/export_as_example/`) rejects dashboards whose charts or
+  native-filter targets use semantic views; use the ordinary chart/dashboard
+  bundle export instead.
+
+- Semantic-view chart and dashboard bundles use typed UUID references and require
+  a destination with support for this format and an already provisioned, accessible
+  view with the same UUID. They do not provision semantic layers/views or export
+  their configuration or credentials. Older readers cannot import these semantic
+  bundles. Older dashboard bundles with semantic filter targets but no typed
+  `datasourceRef` are also rejected; re-export them with this version rather than
+  binding their local IDs to unrelated destination tables. Imports fail explicitly
+  if a semantic dependency is missing, inaccessible, feature-disabled or
+  provider-unregistered. Chart and dashboard exports omit references for missing
+  views so unrelated assets can still be archived; orphaned charts and dashboard
+  targets cannot be imported without repairing their datasources. Existing-view
+  access, feature and provider checks remain enforced, including in full asset
+  exports. Ordinary table bundles retain their existing format. The examples
+  loader rejects semantic bundles;
+  use the chart, dashboard or assets importer instead.
+
 ### Semantic-view Table charts without a temporal axis
 
 Semantic-view Table charts omit recognized dormant time grains from
@@ -88,6 +108,32 @@ format. Use a consistent timezone and precision for stored strings and bounds.
   `GET /register/activation/<hash>`, which previously stayed reachable and
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
+
+### SQL execution request limits are safety caps
+
+The MCP `execute_sql` request's `limit` no longer overrides a smaller outer SQL
+LIMIT. It caps the last statement at the smaller of the SQL LIMIT and the request
+limit, subject to `SQL_MAX_ROW`. For example, SQL `LIMIT 5` with request `limit: 10`
+keeps `LIMIT 5`. To return more rows, increase or remove the SQL LIMIT explicitly.
+Omitting the request limit still leaves SQL limits unchanged. Inner query and CTE
+limits are not changed.
+
+This contract change also applies to the public `Database.execute()` and
+`Database.execute_async()` APIs through `QueryOptions.limit`, including dry runs.
+
+SQL Lab also recognizes literal `FETCH FIRST` counts and parenthesized literal
+limits. SQL Server `TOP ... PERCENT` and `TOP ... WITH TIES` are no longer
+interpreted as fixed row counts: SQL Lab uses the row-limit dropdown (subject to
+server limits) and rewrites these clauses to a fixed `TOP` cap. For example,
+`TOP 5 PERCENT` with a 1000-row dropdown can return up to 1000 rows rather than
+the previous five.
+
+`BigQueryEngineSpec.fetch_data` no longer falls back to a plain `fetchall()` once
+it has read its initial sample, since a forward-only cursor cannot replay those
+rows. A BigQuery driver error after the sample now fails the query instead of
+returning the remaining rows as a success. This applies to every caller,
+including legacy SQL Lab execution and dataset column discovery. An error on the
+initial read still falls back as before.
 
 ### Doris SSL requests require TLS
 
@@ -872,6 +918,54 @@ placeholder back verbatim in the rendered URL and a warning in the logs; the
 substitution is deliberately not blanked so the broken link is visible rather than
 silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
 to your access-request system, and resolve the name there.
+
+### Semantic member selection versions
+
+Semantic providers can declare `selection_identity_version` when changing their
+member identity encoding. Cube's stable-member-ID adapter requires
+`cube-member-id-v1`. Deploy the compatible core library, host, frontend and Cube
+adapter together; do not roll back to title-keyed code after saving ID-based charts.
+
+Saved Cube selections without this version are rejected, even when a saved title
+happens to equal a member ID. No historical title mapping is recovered. Open each
+chart in Explore, choose **Start field selection**, reselect its metrics,
+dimensions, filters and sorting, then save. Reset also clears field-dependent
+formatting; it does not overwrite the saved chart until Save is chosen. Native
+filters and chart customizations have a separate reset in their configuration
+form that clears fields, pre-filters, sorting, defaults and dependencies.
+
+Dashboard filters retain their own saved generation. Old filter state and
+unversioned external member overrides cannot borrow a chart's version. Recreate
+old dashboard permalink/filter state after reselection. Cross-view overlays are
+rejected unless their source identity matches the receiving semantic view;
+matching display titles are not proof of matching members.
+
+Dynamic group-by display controls are unsupported on versioned semantic views,
+including Cube. Remove those charts from the control's scope; resetting or
+reselecting the group-by fields cannot repair this control's missing selection
+identity evidence. Static chart group-by selections remain available after the
+chart's explicit reselection. Supporting dynamic group-by requires preserving the
+version in target rebuilds and recording the source identity in the emitted mask;
+that follow-up is not included here.
+
+Matrixify All mode with A to Z or Z to A sorting cannot populate or refresh values
+for versioned semantic views. Saved values are preserved; for a new selection,
+switch to Members and enter values manually. The control explains this limitation
+when suggestions are unavailable.
+
+The marker is a compatibility contract, not an authorization credential. API
+clients must rebuild their selections from current member IDs before supplying
+`extras.semantic_selection_version` on each query. Providers without a required
+version retain their existing behavior. No metadata-database migration or
+automatic rewrite of saved charts is performed.
+
+Programmatic clients must explicitly select current member IDs. Chart-data API
+queries send `extras.semantic_selection_version`; name-based datasource queries
+and MCP `get_table` requests send top-level `semantic_selection_version`.
+Discover the value from datasource metadata (or each external metric returned by
+MCP `list_metrics`). The server never adds a missing marker from metadata.
+Explore query controls remain unavailable until explicit field initialization,
+so legacy filter subjects cannot trigger value suggestions before reselection.
 
 ### MCP tool results preserve stored string values
 

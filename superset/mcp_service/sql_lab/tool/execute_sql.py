@@ -373,6 +373,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
                 original_sql=stmt.original_sql,
                 executed_sql=stmt.executed_sql,
                 row_count=stmt.row_count,
+                truncated=stmt.truncated,
                 execution_time_ms=stmt.execution_time_ms,
                 data=stmt_data,
             )
