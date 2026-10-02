@@ -22,7 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Set as AbstractSet
+from collections.abc import Sequence, Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -69,6 +69,7 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
+from sqlalchemy.engine import Row
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -4333,6 +4334,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         )
                         .values(perm=new_view_perm)
                     )
+
+    def semantic_layer_before_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Remove child view permissions before the layer row is deleted.
+
+        Views the session has not loaded are deleted by the database
+        ``ON DELETE CASCADE`` (``passive_deletes=True``), so their ORM
+        ``after_delete`` hook never runs. Read their perms through the
+        connection while the rows still exist; views the ORM deletes itself
+        are already gone by now and clean up in ``semantic_view_after_delete``.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table = SemanticView.__table__  # pylint: disable=no-member
+        views: Sequence[Row[Any]] = connection.execute(
+            sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
+        ).fetchall()
+        view_row: Row[Any]
+        for view_row in views:
+            if view_row.perm:
+                self._delete_pvm_on_sqla_event(
+                    mapper, connection, "datasource_access", view_row.perm
+                )
 
     def semantic_layer_after_delete(
         self,

@@ -1792,6 +1792,20 @@ def test_semantic_layer_after_delete_calls_security_manager() -> None:
     mock_hook.assert_called_once_with(mapper, connection, target)
 
 
+def test_semantic_layer_before_delete_calls_security_manager() -> None:
+    """Test SemanticLayer.before_delete delegates to security manager."""
+    from superset import security_manager
+
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    target: MagicMock = MagicMock(spec=SemanticLayer)
+
+    with patch.object(security_manager, "semantic_layer_before_delete") as mock_hook:
+        SemanticLayer.before_delete(mapper, connection, target)
+
+    mock_hook.assert_called_once_with(mapper, connection, target)
+
+
 def test_semantic_view_after_delete_calls_security_manager() -> None:
     """Test SemanticView.after_delete delegates to security manager."""
     from superset import security_manager
@@ -2404,3 +2418,63 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize("children_loaded", [False, True])
+def test_layer_delete_removes_child_view_permissions(
+    session: Any, children_loaded: bool
+) -> None:
+    """sc-123444: deleting a layer removes each child view's datasource_access
+    PVM and its role grants, whether or not the views are loaded in the session.
+
+    Unloaded views are removed by the database ``ON DELETE CASCADE``
+    (``passive_deletes=True``), so their ORM ``after_delete`` hook never runs.
+    Superset enables SQLite foreign keys on its metadata engines; enable them
+    here so the cascade behaves as it does in production.
+    """
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    # Two children: while ``semantic_views`` is mapped as a scalar (SC-123445),
+    # loading it brings in only one, leaving the other to the database cascade.
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer_uuid=layer.uuid, configuration="{}")
+        for name in ("Child View", "Second Child View")
+    ]
+    session.add_all(views)
+    session.flush()
+    view_perms: list[str] = [view.perm for view in views]
+    pvms: list[PermissionView | None] = [
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        for view_perm in view_perms
+    ]
+    assert all(pvms)
+    role: Role = Role(name="child view reader", permissions=pvms)
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    if children_loaded:
+        assert layer.semantic_views
+    else:
+        session.expire(layer, ["semantic_views"])
+    session.delete(layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert all(
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        is None
+        for view_perm in view_perms
+    )
+    assert session.get(Role, role_id).permissions == []
