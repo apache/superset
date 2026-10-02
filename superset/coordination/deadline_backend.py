@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import math
 import time
+from _thread import LockType
 from contextlib import AsyncExitStack
 from typing import Any
 
@@ -62,6 +63,35 @@ end
 redis.call('set', KEYS[1], ARGV[1], 'EX', ARGV[2])
 return ARGV[1]
 """
+
+
+class _CommandCancellation:
+    """Transfer caller cancellation to its private native-thread asyncio task."""
+
+    def __init__(self, lock: LockType) -> None:
+        self._lock: LockType = lock
+        self._cancelled: bool = False
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._task: asyncio.Task[Any] | None = None
+
+    def bind(self, loop: asyncio.AbstractEventLoop, task: asyncio.Task[Any]) -> None:
+        """A cancelled queued command must not begin Redis work."""
+        with self._lock:
+            self._loop, self._task = loop, task
+            if self._cancelled:
+                task.cancel()
+
+    def cancel(self) -> None:
+        """Schedule cancellation without calling task methods across threads."""
+        with self._lock:
+            self._cancelled = True
+            if self._loop is not None and self._task is not None:
+                self._loop.call_soon_threadsafe(self._task.cancel)
+
+    def detach(self) -> None:
+        """Prevent racing cancellation from targeting a closed loop."""
+        with self._lock:
+            self._loop, self._task = None, None
 
 
 class DeadlineRedisBackend:
@@ -165,7 +195,38 @@ class DeadlineRedisBackend:
             return await client.execute_command(*args)
 
     def execute(self, *args: str | int) -> Any:
-        """Run one command with no automatic retry or detached Redis commands."""
+        """Keep request greenlets from sharing asyncio's native-thread loop state."""
+        self._remaining()
+        try:
+            from gevent import get_hub, getcurrent, Greenlet, Timeout
+            from gevent.event import AsyncResult
+            from gevent.monkey import get_original
+        except ImportError:
+            return self._execute_sync(*args)
+        if not isinstance(getcurrent(), Greenlet):
+            return self._execute_sync(*args)
+        cancellation: _CommandCancellation = _CommandCancellation(
+            get_original("_thread", "allocate_lock")()
+        )
+        try:
+            # The hub's bounded native pool isolates loop TLS without blocking
+            # other requests. Its queue wait consumes the original deadline too.
+            with Timeout(
+                self._remaining(), RedisTimeoutError("Metadata deadline expired")
+            ):
+                result: AsyncResult = get_hub().threadpool.spawn(
+                    self._execute_sync, *args, cancellation=cancellation
+                )
+                return result.get()
+        finally:
+            cancellation.cancel()
+
+    def _execute_sync(
+        self,
+        *args: str | int,
+        cancellation: _CommandCancellation | None = None,
+    ) -> Any:
+        """Run a private loop and cancel its socket work within the call budget."""
         self._remaining()
         try:
             asyncio.get_running_loop()
@@ -174,9 +235,14 @@ class DeadlineRedisBackend:
         else:
             raise RedisError("Metadata backend requires a synchronous caller")
         loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
+        task: asyncio.Task[Any] = loop.create_task(self._command(*args))
+        if cancellation is not None:
+            cancellation.bind(loop, task)
         try:
             try:
-                return loop.run_until_complete(self._command(*args))
+                return loop.run_until_complete(task)
+            except asyncio.CancelledError:
+                raise RedisTimeoutError("Metadata command cancelled") from None
             except TimeoutError:
                 raise RedisTimeoutError("Metadata deadline expired") from None
         finally:
@@ -184,6 +250,8 @@ class DeadlineRedisBackend:
             # uncancellable system DNS resolution. Closing our private loop does
             # not wait for that resolver. The cancelled command cannot connect or
             # publish when the resolver eventually finishes.
+            if cancellation is not None:
+                cancellation.detach()
             loop.close()
 
     def get(self, name: str) -> bytes | None:

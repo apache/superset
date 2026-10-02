@@ -213,3 +213,13 @@ refresh cannot store the result under a different observation. Refreshing the ca
 changes the identity for subsequent operations. If the snapshot
 is missing, expired or unreadable, a unique key forces a miss; an unknown identity never
 reuses cached annotation data. Flag-off and nonparticipating providers keep legacy keys.
+
+### Gevent request isolation
+
+Synchronous request greenlets run each private Redis asyncio loop in the gevent
+hub's bounded native thread pool. Queueing consumes the same operation deadline;
+expired queued work cannot begin a Redis command. Request cancellation signals
+the private task with a thread-safe callback, so abandoning a request does not
+leave an uncancelled command running. Other requests' loop state, clients, retry
+policy and timeouts remain independent. Ordinary native-thread callers keep the private-loop path and reject an
+already-running asyncio loop.
