@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import re
 import time
@@ -150,15 +149,25 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """Cancel the live operation and release its handles."""
         try:
             cursor.cancel_operation()
+        except SoftTimeLimitExceeded:
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.warning("Query %s: cancel_operation() failed", query_id)
         # The handles are released even when the cancel RPC failed, so a stopped
         # query does not leave an operation open on the coordinator for the rest
         # of the connection's life.
-        with contextlib.suppress(Exception):
+        try:
             cursor.close_operation()
-        with contextlib.suppress(Exception):
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %s: close_operation() failed", query_id)
+        try:
             cursor.close()
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %s: close() failed", query_id)
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
@@ -179,7 +188,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
             status = cursor.status()
             while status in unfinished_states:
                 db.session.refresh(query)
-                query = db.session.query(Query).filter_by(id=query_id).one()
                 # Stop was requested: either before a cancel handle was published
                 # (early-cancel flag) or through SQL Lab's stop, which persists
                 # STOPPED once cancel_query() succeeds.

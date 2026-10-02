@@ -39,8 +39,7 @@ def test_cancel_unfinished_operation(state: str) -> None:
     query: Mock = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
     cursor: Mock = Mock()
     cursor.status.side_effect = [state, "FINISHED_STATE"]
-    with patch("superset.db_engine_specs.impala.db") as db:
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
+    with patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
@@ -61,8 +60,7 @@ def test_pending_operation_is_polled_without_progress() -> None:
         "FINISHED_STATE",
     ]
     cursor.get_log.return_value = "Query abc: 25% Complete"
-    with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
+    with app.app_context(), patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert cursor.status.call_count == 4
     cursor.get_log.assert_called_once_with()
@@ -103,8 +101,7 @@ def test_stopped_status_cancels_pending_operation() -> None:
     query: Mock = Mock(id=1, extra={}, status="stopped", progress=0)
     cursor: Mock = Mock()
     cursor.status.return_value = "PENDING_STATE"
-    with patch("superset.db_engine_specs.impala.db") as db:
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
+    with patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
@@ -122,7 +119,6 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
     cursor.status.side_effect = ["RUNNING_STATE", "FINISHED_STATE"]
     cursor.get_log.return_value = log
     with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert cursor.status.call_count == 2
     assert query.progress == 0
@@ -135,8 +131,7 @@ def test_failed_cancel_still_releases_the_operation() -> None:
     cursor: Mock = Mock()
     cursor.status.return_value = "PENDING_STATE"
     cursor.cancel_operation.side_effect = RuntimeError("rpc failed")
-    with patch("superset.db_engine_specs.impala.db") as db:
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
+    with patch("superset.db_engine_specs.impala.db"):
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
@@ -155,6 +150,7 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
     query.database.db_engine_spec = ImpalaEngineSpec
 
     def set_extra_json_key(key: str, value: bool) -> None:
+        """Record the early-cancel flag in query.extra."""
         query.extra[key] = value
 
     query.set_extra_json_key.side_effect = set_extra_json_key
@@ -172,7 +168,6 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
 
         cursor: Mock = Mock()
         cursor.status.return_value = "PENDING_STATE"
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
         ImpalaEngineSpec.handle_cursor(cursor, query)
 
     assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
@@ -209,9 +204,10 @@ def test_pending_operation_polls_with_backoff() -> None:
         patch("superset.db_engine_specs.impala.db") as db,
         patch("superset.db_engine_specs.impala.time.sleep") as sleep,
     ):
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert [call.args[0] for call in sleep.call_args_list] == [0.1, 0.2, 0.3, 0.3]
+    assert db.session.refresh.call_count == 4
+    db.session.query.assert_not_called()
 
 
 @pytest.mark.parametrize("state", ["PENDING_STATE", "RUNNING_STATE"])
@@ -228,15 +224,80 @@ def test_soft_time_limit_cancels_the_operation(state: str) -> None:
     cursor.get_log.return_value = ""
     with (
         app.app_context(),
-        patch("superset.db_engine_specs.impala.db") as db,
+        patch("superset.db_engine_specs.impala.db"),
         patch(
             "superset.db_engine_specs.impala.time.sleep",
             side_effect=SoftTimeLimitExceeded(),
         ),
     ):
-        db.session.query.return_value.filter_by.return_value.one.return_value = query
         with pytest.raises(SoftTimeLimitExceeded):
             ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
+def test_cancel_operation_propagates_soft_time_limit(method: str) -> None:
+    """Timeouts in each cleanup RPC must escape the cancellation helper."""
+    cursor: Mock = Mock()
+    getattr(cursor, method).side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        ImpalaEngineSpec._cancel_operation(cursor, 1)
+
+
+@pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
+@pytest.mark.parametrize("repeat_timeout", [False, True])
+def test_stop_cleanup_propagates_soft_time_limit(
+    method: str, repeat_timeout: bool
+) -> None:
+    """A timeout during Stop must escape whether or not cleanup also times out."""
+    query: Mock = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "PENDING_STATE"
+    timeout: SoftTimeLimitExceeded = SoftTimeLimitExceeded()
+    getattr(cursor, method).side_effect = timeout if repeat_timeout else [timeout, None]
+
+    with patch("superset.db_engine_specs.impala.db"):
+        with pytest.raises(SoftTimeLimitExceeded):
+            ImpalaEngineSpec.handle_cursor(cursor, query)
+    if not repeat_timeout:
+        cursor.close.assert_called()
+
+
+@pytest.mark.parametrize("method", ["cancel_operation", "close_operation", "close"])
+def test_cancel_operation_tolerates_rpc_failures(method: str) -> None:
+    """Ordinary RPC failures must not prevent the remaining cleanup calls."""
+    cursor: Mock = Mock()
+    getattr(cursor, method).side_effect = RuntimeError("rpc failed")
+
+    ImpalaEngineSpec._cancel_operation(cursor, 1)
+
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+
+
+def test_pending_refresh_observes_stop() -> None:
+    """Refreshing the existing query must observe a Stop without a second SELECT."""
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 0}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "PENDING_STATE"
+
+    def refresh_query(refreshed_query: Mock) -> None:
+        """Simulate a stop arriving on the second metadata refresh."""
+        if db.session.refresh.call_count == 2:
+            refreshed_query.status = "stopped"
+
+    with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
+        db.session.refresh.side_effect = refresh_query
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+
+    assert db.session.refresh.call_count == 2
+    db.session.query.assert_not_called()
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
