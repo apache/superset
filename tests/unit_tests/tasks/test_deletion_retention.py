@@ -342,9 +342,8 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
     from superset.models.helpers import SoftDeleteMixin
     from superset.tasks import deletion_retention as task
 
-    registered_models: list[type[SoftDeleteMixin]] = task._soft_delete_models()
     supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
-    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", registered_models[:])
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", supported_models[:])
 
     class UnsupportedModel(SoftDeleteMixin):
         """An unsupported root that must never reach the row-processing boundary."""
@@ -355,11 +354,12 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
     monkeypatch.setattr(
         SoftDeleteMixin,
         "_registered_subclasses",
-        [UnsupportedModel, *registered_models],
+        [UnsupportedModel, *supported_models],
     )
     monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
     purge: MagicMock
     counter: MagicMock
+    gauge: MagicMock
     with (
         patch.object(
             task, "_purge_model", return_value=(0, 1, 0, 0) if dry_run else (1, 0, 0, 0)
@@ -370,7 +370,7 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
             task.feature_flag_manager, "is_feature_enabled", return_value=True
         ),
         patch.object(task.stats_logger_manager.instance, "incr") as counter,
-        patch.object(task.stats_logger_manager.instance, "gauge"),
+        patch.object(task.stats_logger_manager.instance, "gauge") as gauge,
     ):
         result: dict[str, Any] = task.purge_soft_deleted.run()
 
@@ -383,6 +383,16 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
         "slices": 1,
         "tables": 1,
     }
+    outcome: str = "would_purge" if dry_run else "purged"
+    assert gauge.call_count == 3
+    gauge.assert_has_calls(
+        [
+            call(f"deletion_retention.{outcome}.dashboards", 1),
+            call(f"deletion_retention.{outcome}.slices", 1),
+            call(f"deletion_retention.{outcome}.tables", 1),
+        ],
+        any_order=True,
+    )
     assert result["unsupported_models"] == {"unsupported_mixed_purge_test": 1}
     counter.assert_called_once_with(
         "deletion_retention.unsupported_models.unsupported_mixed_purge_test"
