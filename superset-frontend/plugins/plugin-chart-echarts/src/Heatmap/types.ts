@@ -25,6 +25,12 @@ import {
 } from '@superset-ui/core';
 import { BaseChartProps, BaseTransformedProps } from '../types';
 
+// Sentinel value for the Sort Y Axis control's explicit "keep original
+// order" choice. Shared between controlPanel.tsx (where the choice is
+// defined) and transformProps.ts (where it's interpreted) so the two
+// stay in sync if the value ever changes.
+export const SORT_Y_AXIS_NONE = 'none';
+
 export interface HeatmapFormData extends QueryFormData {
   bottomMargin: string;
   currencyFormat?: Currency;
