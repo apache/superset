@@ -882,7 +882,10 @@ def build_query_dicts_from_form_data(
                 qd["filters"] = [*(qd.get("filters") or []), *null_filters]
         return [qd]
 
-    if viz_type.startswith("echarts_timeseries"):
+    # Heatmap puts its x_axis in the query columns too: the frontend folds it
+    # into groupby in buildQuery, and the MCP path builds the query dict
+    # directly, so without this the x axis never reaches GROUP BY.
+    if viz_type.startswith("echarts_timeseries") or viz_type == "heatmap_v2":
         groupby = with_x_axis_column(form_data, groupby)
 
     return [

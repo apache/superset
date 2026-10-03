@@ -160,6 +160,53 @@ def test_merge_bubble_preserves_omitted_defaults(
     assert {key: merged[key] for key in expected} == expected
 
 
+@pytest.mark.parametrize(
+    "updates,expected",
+    [
+        ({}, {"row_limit": 42}),
+        ({"row_limit": 200}, {"row_limit": 200}),
+    ],
+)
+def test_merge_heatmap_preserves_omitted_row_limit(
+    updates: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """Normalizing a heatmap config must not mark unsent fields as set.
+
+    ``merge_chart_form_data`` keeps an omitted row limit only when the field
+    is absent from ``model_fields_set``. Dumping the config without
+    ``exclude_unset`` hands back one where every field is set, so an update
+    that never mentions the row limit still resets it. (Heatmap has no
+    ``color_scheme`` control, so only the row limit applies here.)
+    """
+    from superset.mcp_service.chart.chart_utils import map_heatmap_config
+    from superset.mcp_service.chart.schemas import HeatmapChartConfig
+
+    config = HeatmapChartConfig(
+        chart_type="heatmap_v2",
+        x_axis=ColumnRef(name="product"),
+        y_axis=ColumnRef(name="revenue"),
+        metric=ColumnRef(name="revenue", aggregate="SUM"),
+        **updates,
+    )
+    config = DatasetValidator.normalize_column_names(
+        config,
+        dataset_id=1,
+        dataset_context=DatasetContext(
+            id=1,
+            table_name="sales",
+            database_name="db",
+            available_columns=[{"name": "Product"}, {"name": "Revenue"}],
+            available_metrics=[],
+        ),
+    )
+    new_form_data = map_heatmap_config(config)
+    existing = {"viz_type": new_form_data["viz_type"], "row_limit": 42}
+
+    merged = merge_chart_form_data(existing, new_form_data, config)
+
+    assert {key: merged[key] for key in expected} == expected
+
+
 @pytest.mark.parametrize("dataset_rebind", [False, True])
 def test_merge_chart_defaults_on_viz_change_or_dataset_rebind(
     dataset_rebind: bool,
