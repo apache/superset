@@ -36,7 +36,6 @@ import statistics
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from functools import cmp_to_key
 from typing import Any, cast
 
 from superset.mcp_service.chart.schemas import BigNumberHeadline
@@ -274,7 +273,7 @@ def _trend_values(
     *,
     newest_first: bool,
 ) -> list[int | float]:
-    """Non-null metric values, using the frontend's stable timestamp sort."""
+    """Non-null metrics, ordered by usable timestamps for latest-value picks."""
     if not newest_first:
         return [
             value
@@ -292,17 +291,15 @@ def _trend_values(
         for row in rows
     ]
 
-    def compare(
-        left: tuple[float | None, int | float | None],
-        right: tuple[float | None, int | float | None],
-    ) -> int:
-        """Keep rows with unusable timestamps stable, as the frontend does."""
-        if left[0] is None or right[0] is None:
-            return 0
-        return (right[0] > left[0]) - (right[0] < left[0])
-
-    dated.sort(key=cmp_to_key(compare))
-    return [value for _, value in dated if value is not None]
+    # Dated rows come first, newest first; ties retain their input order.
+    dated.sort(key=lambda item: (item[0] is None, -(item[0] or 0)))
+    # An undated metric cannot establish a latest value, even if dated metrics
+    # are all null. Order-independent aggregations above still include it.
+    return [
+        value
+        for timestamp, value in dated
+        if timestamp is not None and value is not None
+    ]
 
 
 def compute_big_number_headline(

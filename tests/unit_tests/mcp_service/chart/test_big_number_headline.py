@@ -23,6 +23,7 @@ BigNumber transformProps.
 
 from datetime import datetime, timezone
 from decimal import Decimal
+from itertools import permutations
 from types import SimpleNamespace
 from typing import Any
 
@@ -357,20 +358,58 @@ def test_no_rolling_window_needs_no_post_processing(rolling_type: Any) -> None:
     assert headline.value == 6
 
 
-@pytest.mark.parametrize("timestamp", [None, "invalid", float("nan")])
-@pytest.mark.parametrize("missing_first", [False, True])
-def test_last_value_keeps_unusable_timestamp_rows_stable(
-    timestamp: str | float | None, missing_first: bool
+@pytest.mark.parametrize("timestamp", [None, "invalid", float("nan"), float("inf")])
+@pytest.mark.parametrize("aggregation", ["LAST_VALUE", "RAW"])
+@pytest.mark.parametrize("row_order", list(permutations(range(3))))
+def test_latest_value_never_selects_an_undated_row(
+    timestamp: str | float | None,
+    aggregation: str,
+    row_order: tuple[int, ...],
 ) -> None:
-    """An unusable timestamp preserves order rather than hiding the headline."""
-    undated = {"__timestamp": timestamp, METRIC: 1}
-    dated = {"__timestamp": 5, METRIC: 2}
-    rows: list[dict[str, Any]] = [undated, dated] if missing_first else [dated, undated]
+    """Mixed timestamps select the newest dated value in every input order."""
+    rows: list[dict[str, Any]] = [
+        {"__timestamp": timestamp, METRIC: 1},
+        {"__timestamp": 5, METRIC: 2},
+        {"__timestamp": 3, METRIC: 3},
+    ]
 
-    headline = _headline(rows, aggregation="LAST_VALUE")
+    headline = _headline([rows[index] for index in row_order], aggregation=aggregation)
 
     assert headline is not None
-    assert headline.value == (1 if missing_first else 2)
+    assert headline.value == 2
+    assert headline.rows_used == 2
+
+
+@pytest.mark.parametrize("aggregation", ["LAST_VALUE", "RAW"])
+@pytest.mark.parametrize("has_dated_null", [False, True])
+def test_latest_value_requires_a_dated_non_null_metric(
+    aggregation: str, has_dated_null: bool
+) -> None:
+    """Missing timestamps cannot supply a latest value, even as a fallback."""
+    rows: list[dict[str, Any]] = [{METRIC: 1}, {"__timestamp": None, METRIC: 3}]
+    if has_dated_null:
+        rows.append({"__timestamp": 5, METRIC: None})
+
+    headline = _headline(rows, aggregation=aggregation)
+
+    assert headline is not None
+    assert headline.value is None
+    assert headline.reason
+
+
+def test_latest_value_preserves_input_order_for_equal_timestamps() -> None:
+    """Equal dated timestamps use the first non-null metric in input order."""
+    headline = _headline(
+        [
+            {"__timestamp": 5, METRIC: None},
+            {METRIC: 99},
+            {"__timestamp": 5, METRIC: 2},
+            {"__timestamp": 5, METRIC: 3},
+        ]
+    )
+
+    assert headline is not None
+    assert headline.value == 2
     assert headline.rows_used == 2
 
 
@@ -490,7 +529,7 @@ def test_simple_adhoc_metric_column_aliases(
     """Simple adhoc labels accept both aliases, preferring camelCase."""
     metric = {"expressionType": "SIMPLE", "aggregate": "SUM", "column": column}
     headline = compute_big_number_headline(
-        viz_type, {"metric": metric}, [{"data": [{METRIC: 7}]}]
+        viz_type, {"metric": metric}, [{"data": [{"__timestamp": 0, METRIC: 7}]}]
     )
 
     assert headline is not None
