@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Input, InputNumber } from '@superset-ui/core/components';
+import { Button, Input, InputNumber } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
+import CacheMetadata from './CacheMetadata';
+import { metadataSyncError } from './metadataSyncError';
 import {
   Table,
   type ColumnsType,
@@ -57,6 +59,8 @@ interface SemanticMetric {
 }
 
 interface SemanticViewStructure {
+  uuid?: string;
+  can_refresh_metadata?: boolean;
   // Optional because an older backend may not emit them (deploy skew); the
   // hydration effect only overwrites the form when they are present.
   description?: string | null;
@@ -69,6 +73,7 @@ interface SemanticViewEditModalProps {
   show: boolean;
   onHide: () => void;
   onSave: () => void;
+  onMetadataSync?: (isCurrent: () => boolean) => void | Promise<void>;
   addDangerToast?: (msg: string) => void;
   addSuccessToast?: (msg: string) => void;
   semanticView: {
@@ -103,10 +108,16 @@ const STRUCTURE_INFO_MESSAGE = t(
   'Structure is managed by the upstream semantic layer and is read-only.',
 );
 
+type SyncState =
+  | { status: 'idle' | 'syncing' }
+  | { status: 'reloading' | 'done' | 'reload-error'; changed: boolean }
+  | { status: 'error'; message: string };
+
 export default function SemanticViewEditModal({
   show,
   onHide,
   onSave,
+  onMetadataSync,
   addDangerToast,
   addSuccessToast,
   semanticView,
@@ -118,65 +129,69 @@ export default function SemanticViewEditModal({
     null,
   );
   const [structureLoading, setStructureLoading] = useState(false);
-
-  // Seeds the form from the caller's copy — what the form falls back to if
-  // /structure fails (a spinner covers the form while that fetch is in
-  // flight). Keyed to open/identity rather than the semanticView object so a
-  // parent re-render cannot clobber in-progress edits.
-  useEffect(() => {
-    if (semanticView) {
-      setDescription(semanticView.description || '');
-      setCacheTimeout(semanticView.cache_timeout ?? null);
-    }
-  }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' });
+  const [activeTab, setActiveTab] = useState('details');
+  const generation = useRef(0);
+  const busy = useRef(false);
+  const syncing =
+    syncState.status === 'syncing' || syncState.status === 'reloading';
 
   useEffect(() => {
-    if (!show || !semanticView) {
-      setStructure(null);
-      setStructureLoading(false);
-      return undefined;
-    }
+    generation.current += 1;
+    const requestGeneration = generation.current;
+    const isCurrent = () => requestGeneration === generation.current;
+    busy.current = false;
+    setSaving(false);
+    setSyncState({ status: 'idle' });
+    setActiveTab('details');
+    setStructure(null);
+    setStructureLoading(false);
+    if (!show || !semanticView) return undefined;
 
-    let cancelled = false;
+    // Only initial hydration touches the draft. Sync reloads structure alone.
+    setDescription(semanticView.description || '');
+    setCacheTimeout(semanticView.cache_timeout ?? null);
     setStructureLoading(true);
     SupersetClient.get({
       endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
     })
       .then(({ json }) => {
-        if (cancelled) return;
+        if (!isCurrent()) return;
         setStructure(json.result);
-        // The caller's copy of these fields goes stale the moment this modal
-        // saves, so re-open hydrates from the server rather than the prop.
-        // Only overwrite when the response carries the field: an older
-        // backend that omits it (deploy skew) must not blank the form — while
-        // an explicit null still means "cleared on the server".
-        if ('description' in json.result) {
+        if ('description' in json.result)
           setDescription(json.result.description || '');
-        }
-        if ('cache_timeout' in json.result) {
+        if ('cache_timeout' in json.result)
           setCacheTimeout(json.result.cache_timeout ?? null);
-        }
       })
       .catch(async error => {
-        if (cancelled) return;
+        if (!isCurrent()) return;
         const clientError = await getClientErrorObject(error);
-        if (cancelled) return;
+        if (!isCurrent()) return;
         addDangerToast?.(
           clientError.error ||
             t('An error occurred while fetching the semantic view structure'),
         );
       })
       .finally(() => {
-        if (!cancelled) setStructureLoading(false);
+        if (isCurrent()) setStructureLoading(false);
       });
-
     return () => {
-      cancelled = true;
+      generation.current += 1;
     };
   }, [show, semanticView?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleHide = () => {
+    generation.current += 1;
+    busy.current = false;
+    onHide();
+  };
+
   const handleSave = async () => {
-    if (!semanticView) return;
+    if (!semanticView || busy.current || structureLoading) return;
+    busy.current = true;
+    generation.current += 1;
+    const requestGeneration = generation.current;
+    const isCurrent = () => requestGeneration === generation.current;
     setSaving(true);
     try {
       await SupersetClient.put({
@@ -188,7 +203,7 @@ export default function SemanticViewEditModal({
       });
       addSuccessToast?.(t('Semantic view updated'));
       onSave();
-      onHide();
+      if (isCurrent()) handleHide();
     } catch (error) {
       const clientError = await getClientErrorObject(error);
       addDangerToast?.(
@@ -196,7 +211,79 @@ export default function SemanticViewEditModal({
           t('An error occurred while saving the semantic view'),
       );
     } finally {
-      setSaving(false);
+      if (isCurrent()) {
+        busy.current = false;
+        setSaving(false);
+      }
+    }
+  };
+
+  const reloadFields = async (
+    viewId: number,
+    changed: boolean,
+    isCurrent: () => boolean,
+  ) => {
+    setSyncState({ status: 'reloading', changed });
+    try {
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/semantic_view/${viewId}/structure`,
+      });
+      if (!isCurrent()) return;
+      setStructure(json.result);
+      await onMetadataSync?.(isCurrent);
+      if (!isCurrent()) return;
+      setSyncState({ status: 'done', changed });
+    } catch {
+      if (isCurrent()) setSyncState({ status: 'reload-error', changed });
+    }
+  };
+
+  const handleSync = async () => {
+    if (
+      !semanticView ||
+      !structure?.uuid ||
+      structure.can_refresh_metadata !== true ||
+      busy.current ||
+      syncState.status === 'reload-error'
+    )
+      return;
+    busy.current = true;
+    generation.current += 1;
+    const requestGeneration = generation.current;
+    const isCurrent = () => requestGeneration === generation.current;
+    setSyncState({ status: 'syncing' });
+    try {
+      const { json } = await SupersetClient.post({
+        endpoint: `/api/v1/semantic_view/${structure.uuid}/refresh_metadata/`,
+        jsonPayload: {},
+      });
+      if (!isCurrent()) return;
+      await reloadFields(
+        semanticView.id,
+        json.result.status === 'changed',
+        isCurrent,
+      );
+    } catch (error) {
+      if (!isCurrent()) return;
+      const message = await metadataSyncError(error);
+      if (!isCurrent()) return;
+      setSyncState({ status: 'error', message });
+    } finally {
+      if (isCurrent()) busy.current = false;
+    }
+  };
+
+  const handleReload = async () => {
+    if (!semanticView || busy.current || syncState.status !== 'reload-error')
+      return;
+    busy.current = true;
+    generation.current += 1;
+    const requestGeneration = generation.current;
+    const isCurrent = () => requestGeneration === generation.current;
+    try {
+      await reloadFields(semanticView.id, syncState.changed, isCurrent);
+    } finally {
+      if (isCurrent()) busy.current = false;
     }
   };
 
@@ -206,17 +293,68 @@ export default function SemanticViewEditModal({
   return (
     <StandardModal
       show={show}
-      onHide={onHide}
+      onHide={handleHide}
       onSave={handleSave}
       title={t('Edit %s', semanticView?.table_name || '')}
       icon={<Icons.EditOutlined />}
       isEditMode
       width={MODAL_LARGE_WIDTH}
       saveLoading={saving}
+      saveDisabled={syncing}
       contentLoading={structureLoading}
     >
       <ModalContent>
-        <Tabs>
+        {syncing && <output>{t('Syncing metadata…')}</output>}
+        {syncState.status === 'done' && (
+          <output>
+            {syncState.changed
+              ? t('Metadata synced')
+              : t('Metadata is up to date')}
+          </output>
+        )}
+        {syncState.status === 'error' && (
+          <Alert
+            type="error"
+            role="alert"
+            message={syncState.message}
+            showIcon
+          />
+        )}
+        {syncState.status === 'reload-error' && (
+          <Alert
+            type="warning"
+            closable={false}
+            role="alert"
+            message={t('Metadata synced; unable to reload fields')}
+            action={
+              <Button buttonSize="small" onClick={handleReload}>
+                {t('Reload fields')}
+              </Button>
+            }
+            showIcon
+          />
+        )}
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          tabBarExtraContent={
+            structure?.uuid && structure.can_refresh_metadata === true ? (
+              <Button
+                aria-label={t('Sync metadata')}
+                buttonSize="small"
+                buttonStyle="tertiary"
+                onClick={handleSync}
+                disabled={
+                  saving || syncing || syncState.status === 'reload-error'
+                }
+                loading={syncing}
+              >
+                <Icons.DatabaseOutlined iconSize="m" aria-hidden />
+                {t('Sync metadata')}
+              </Button>
+            ) : undefined
+          }
+        >
           <Tabs.TabPane tab={t('Details')} key="details">
             <ModalFormField label={t('Description')}>
               <Input.TextArea
@@ -270,6 +408,13 @@ export default function SemanticViewEditModal({
               defaultPageSize={STRUCTURE_PAGINATION_THRESHOLD}
             />
           </Tabs.TabPane>
+          {structure?.uuid && structure.can_refresh_metadata === true && (
+            <Tabs.TabPane tab={t('Cache metadata')} key="cache-metadata">
+              {show && !syncing && !saving && (
+                <CacheMetadata key={structure.uuid} viewUuid={structure.uuid} />
+              )}
+            </Tabs.TabPane>
+          )}
         </Tabs>
       </ModalContent>
     </StandardModal>

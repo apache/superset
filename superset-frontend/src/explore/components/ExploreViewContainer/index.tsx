@@ -41,7 +41,6 @@ import {
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
-  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -91,6 +90,7 @@ import {
 } from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import { getCompatibilitySelection } from 'src/explore/utils/getCompatibilitySelection';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -466,25 +466,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // M3 + M4: fire compatibility check on mount and whenever the metric /
   // dimension selection changes.  Only semantic views use the endpoint;
   // SQL datasets short-circuit to null inside fetchCompatibility.
-  const selectedMetrics = useMemo(
-    () =>
-      ensureIsArray(props.form_data.metrics).filter(
-        (m): m is string => typeof m === 'string',
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(props.form_data.metrics)],
-  );
-  const selectedDimensions = useMemo(
-    () =>
-      [
-        ...ensureIsArray(props.form_data.groupby),
-        ...ensureIsArray(props.form_data.columns),
-        ...(typeof props.form_data.x_axis === 'string'
-          ? [props.form_data.x_axis]
-          : []),
-      ].filter((d): d is string => typeof d === 'string'),
+  const { selectedMetrics, selectedDimensions } = useMemo(
+    () => getCompatibilitySelection(props.form_data),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
+      JSON.stringify(props.form_data.metrics),
+      props.form_data.metric,
       JSON.stringify(props.form_data.groupby),
       JSON.stringify(props.form_data.columns),
       props.form_data.x_axis,

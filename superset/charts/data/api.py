@@ -55,6 +55,7 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.semantic_layers.metadata_errors import metadata_api_errors
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
@@ -86,6 +87,7 @@ class ChartDataRestApi(ChartRestApi):
         log_to_statsd=False,
         allow_extra_payload=True,
     )
+    @metadata_api_errors
     def get_data(  # noqa: C901
         self,
         pk: int,
@@ -261,6 +263,7 @@ class ChartDataRestApi(ChartRestApi):
         log_to_statsd=False,
         allow_extra_payload=True,
     )
+    @metadata_api_errors
     def data(  # noqa: C901
         self, add_extra_log_payload: Callable[..., None] = lambda **kwargs: None
     ) -> Response:

@@ -1600,6 +1600,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         show={!!svCurrentlyEditing}
         onHide={() => setSvCurrentlyEditing(null)}
         onSave={refreshData}
+        onMetadataSync={() => refreshData()}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         semanticView={svCurrentlyEditing}

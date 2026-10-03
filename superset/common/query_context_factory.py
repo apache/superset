@@ -20,6 +20,7 @@ from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app
 
+from superset import security_manager
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
@@ -28,6 +29,7 @@ from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
 from superset.models.slice import Slice
+from superset.semantic_layers.metadata_binding import metadata_refresh_enabled
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
@@ -79,30 +81,38 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             bool(form_data.get("server_pagination")) if form_data else False
         )
 
-        queries_ = [
-            self._process_query_object(
-                datasource_model_instance,
-                form_data,
-                self._query_object_factory.create(
-                    result_type,
-                    datasource=datasource,
-                    datasource_model_instance=cast(
-                        "BaseDatasource", datasource_model_instance
-                    ),
-                    server_pagination=server_pagination,
-                    preserve_null_row_limit=preserve_null_row_limit,
-                    **query_obj,
+        # Build the full chart context before semantic column discovery, so
+        # canonical guest/dashboard/viewer policy sees the actual request.
+        defer_discovery: bool = (
+            datasource_model_instance is not None
+            and datasource_model_instance.type == DatasourceType.SEMANTIC_VIEW
+            and metadata_refresh_enabled()
+        )
+        queries_: list[QueryObject] = [
+            self._query_object_factory.create(
+                result_type,
+                datasource=datasource,
+                datasource_model_instance=cast(
+                    "BaseDatasource", datasource_model_instance
                 ),
+                server_pagination=server_pagination,
+                preserve_null_row_limit=preserve_null_row_limit,
+                **query_obj,
             )
             for query_obj in queries
         ]
-        cache_values = {
+        if not defer_discovery:
+            queries_ = [
+                self._process_query_object(datasource_model_instance, form_data, query)
+                for query in queries_
+            ]
+        cache_values: dict[str, Any] = {
             "datasource": datasource,
             "queries": queries,
             "result_type": result_type,
             "result_format": result_format,
         }
-        return QueryContext(
+        context: QueryContext = QueryContext(
             datasource=datasource_model_instance,
             queries=queries_,
             slice_=slice_,
@@ -114,6 +124,12 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
+        if defer_discovery:
+            security_manager.raise_for_access(query_context=context)
+            query: QueryObject
+            for query in queries_:
+                self._process_query_object(datasource_model_instance, form_data, query)
+        return context
 
     def _convert_to_model(self, datasource: DatasourceDict) -> Explorable:
         return DatasourceDAO.get_datasource(

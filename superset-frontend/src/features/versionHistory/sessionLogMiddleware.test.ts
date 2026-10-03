@@ -262,5 +262,8 @@ test('inlined action-type literals match the real explore constants', async () =
   expect(middleware.SET_EXPLORE_CONTROLS).toBe(
     exploreActions.SET_EXPLORE_CONTROLS,
   );
+  expect(middleware.SYNC_SEMANTIC_METADATA).toBe(
+    exploreActions.SYNC_SEMANTIC_METADATA,
+  );
   expect(middleware.HYDRATE_EXPLORE).toBe(hydrateExplore.HYDRATE_EXPLORE);
 });

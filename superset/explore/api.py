@@ -32,6 +32,7 @@ from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointE
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
+from superset.semantic_layers.metadata_errors import metadata_api_errors
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class ExploreRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=True,
     )
+    @metadata_api_errors
     def get(self) -> Response:
         """Assemble Explore related information (form_data, slice, dataset)
         in a single endpoint.

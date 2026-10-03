@@ -17645,3 +17645,167 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+#: superset/semantic_layers/api.py:289
+msgid "Send an empty JSON object to sync metadata."
+msgstr ""
+
+#: superset/semantic_layers/api.py:315
+msgid "Send an empty JSON object to invalidate metadata."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:36
+msgid "This semantic layer does not support metadata sync."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:41
+msgid "Complete the semantic layer configuration before syncing metadata."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:46
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:52
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:59
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:63
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:65
+msgid "Metadata sync timed out. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:68
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:74
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+#: superset/semantic_layers/metadata_errors.py:101
+msgid "Metadata database is unavailable. Try again later."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:79
+msgid "Present"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:80
+msgid "Missing"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:82
+msgid "Unsupported"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:83
+msgid "Unavailable"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:88
+msgid "Inspect catalog and compatibility cache timing. Compatibility is inspected with no metrics or dimensions selected. No metadata is fetched from the provider."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:98
+msgid "Inspect cache metadata"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:101
+msgid "Inspecting cache metadata…"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:108
+msgid "Catalog cache"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:108
+msgid "Compatibility cache"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:118
+msgid "Unable to inspect this cache. Try again later."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:124
+msgid "Inspected at"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:126
+msgid "Created at"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:128
+msgid "Source observed at"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:132
+msgid "Estimated expiry"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:133
+msgid "Expiry"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:137
+msgid "No expiry"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/CacheMetadata.tsx:142
+msgid "Remaining seconds at inspection"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:26
+msgid "Unable to sync metadata. Try again later."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:47
+msgid "Metadata storage is unavailable. Try again later."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:48
+msgid "Metadata sync could not be confirmed. Reopen the editor to reload fields before trying again."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:53
+msgid "You no longer have permission to sync metadata. Reopen the editor or sign in again."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:58
+msgid "This semantic view is no longer available. Reopen the editor."
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:310
+msgid "Syncing metadata…"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:314
+msgid "Metadata synced"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:315
+msgid "Metadata is up to date"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:330
+msgid "Metadata synced; unable to reload fields"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:333
+msgid "Reload fields"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:345
+msgid "Sync metadata"
+msgstr ""
+
+#: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:414
+msgid "Cache metadata"
+msgstr ""
