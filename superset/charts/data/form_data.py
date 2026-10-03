@@ -35,12 +35,6 @@ def _as_form_data_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
-def _as_query_list(value: Any) -> list[Any]:
-    if isinstance(value, (list, tuple)):
-        return list(value)
-    return []
-
-
 def _serialize_query(
     query: QueryObject,
     form_data: dict[str, Any],
@@ -72,9 +66,12 @@ def set_query_context_form_data(
     time_range: str | None = None,
 ) -> None:
     """Expose a programmatically-created query like a chart data API request."""
-    form_data = _as_form_data_dict(getattr(query_context, "form_data", None))
-    queries = _as_query_list(getattr(query_context, "queries", None))
-    serialized = [_serialize_query(query, form_data, time_range) for query in queries]
+    # form_data is typed as optional on QueryContext; queries is always a list.
+    form_data = _as_form_data_dict(query_context.form_data)
+    serialized = [
+        _serialize_query(query, form_data, time_range)
+        for query in query_context.queries
+    ]
     set_form_data(
         {
             "datasource": {"id": datasource_id, "type": datasource_type},

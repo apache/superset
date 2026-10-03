@@ -150,6 +150,8 @@ def test_one_sided_comparison_on_other_column_is_not_time_range() -> None:
 def test_query_context_form_data_tolerates_missing_queries() -> None:
     """A query context with no queries still publishes the datasource for Jinja."""
     with current_app.test_request_context():
-        set_query_context_form_data(cast(Any, SimpleNamespace()), 7, "table")
+        set_query_context_form_data(
+            cast(Any, SimpleNamespace(form_data=None, queries=[])), 7, "table"
+        )
         assert g.form_data["datasource"] == {"id": 7, "type": "table"}
         assert g.form_data["queries"] == []
