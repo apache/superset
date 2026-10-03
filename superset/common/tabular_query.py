@@ -408,9 +408,10 @@ def build_query_dict(
     return query_dict
 
 
-def _time_range_from_filters(filters: Any) -> str | None:
+def _temporal_range_in_filters(filters: Any) -> str | None:
     """Read a TEMPORAL_RANGE clause from the pre-factory query dict.
 
+    Opposite of ``_time_range_filters``, which builds filters from a range.
     Do not reconstruct ``>=`` / ``<`` comparisons. ``get_table`` sets
     granularity from ``time_column`` even when no ``time_range`` is given,
     and ``GetTableFilter.op`` is a free string, so a comparison on that
@@ -469,7 +470,7 @@ def execute_tabular_query(
         query_context,
         datasource_id,
         datasource_type,
-        time_range=time_range or _time_range_from_filters(query_dict.get("filters")),
+        time_range=time_range or _temporal_range_in_filters(query_dict.get("filters")),
     )
 
     command = ChartDataCommand(query_context)
