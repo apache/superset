@@ -378,3 +378,36 @@ def test_get_query_falls_back_when_datasource_has_no_extended_form() -> None:
 
     assert result["query"] == "SELECT 1;"
     assert "rejected_filters" not in result
+
+
+def _drill_detail_query_context() -> MagicMock:
+    datasource = MagicMock()
+    datasource.columns = [
+        MagicMock(column_name="order_date"),
+        MagicMock(column_name="sales"),
+    ]
+    query_context = MagicMock()
+    query_context.datasource = datasource
+    return query_context
+
+
+def test_prepare_drill_detail_query_preserves_supplied_orderby() -> None:
+    """A caller-supplied orderby (e.g. column-header sort) must be preserved."""
+    query_obj = QueryObject(
+        columns=["order_date", "sales"],
+        metrics=["count"],
+        orderby=[("sales", False)],
+    )
+
+    prepared = _prepare_drill_detail_query(_drill_detail_query_context(), query_obj)
+
+    assert prepared.orderby == [("sales", False)]
+
+
+def test_prepare_drill_detail_query_defaults_orderby_to_first_column() -> None:
+    """With no orderby supplied, it falls back to the first column ascending."""
+    query_obj = QueryObject(columns=["order_date", "sales"], metrics=["count"])
+
+    prepared = _prepare_drill_detail_query(_drill_detail_query_context(), query_obj)
+
+    assert prepared.orderby == [("order_date", True)]

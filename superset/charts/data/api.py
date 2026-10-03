@@ -315,6 +315,10 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_400(message=_("Request is not JSON"))
 
         try:
+            # Sort direction is validated for every query object by
+            # ChartDataQueryObjectSchema (orderby's second tuple element is a
+            # fields.Boolean()), so this is consistent with get_data(), which
+            # also builds its query context through this same schema.
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
