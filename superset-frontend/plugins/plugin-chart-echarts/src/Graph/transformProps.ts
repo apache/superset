@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  getLabelsColorMap,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
@@ -36,6 +37,7 @@ import {
   EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
+import { NULL_STRING } from '../constants';
 import {
   getChartPadding,
   getColtypesMapping,
@@ -142,17 +144,43 @@ function getKeyByValue(
   return Object.keys(object).find(key => object[key] === value) as string;
 }
 
-function getCategoryName(columnName: string, name?: DataRecordValue) {
-  if (name === false) {
-    return `${columnName}: false`;
-  }
-  if (name === true) {
-    return `${columnName}: true`;
-  }
+const NULL_CATEGORY_KEY = '__superset_null__';
+
+/** Keep the null identity separate from literal labels, escaping reserved keys. */
+function getCategoryKey(columnName: string, name?: DataRecordValue) {
   if (name == null) {
-    return 'N/A';
+    return NULL_CATEGORY_KEY;
   }
-  return String(name);
+  let label: string;
+  if (name === false) {
+    label = `${columnName}: false`;
+  } else if (name === true) {
+    label = `${columnName}: true`;
+  } else {
+    label = String(name);
+  }
+  // The color scale trims labels before lookup, so guard leading whitespace too.
+  return label.trimStart().startsWith(NULL_CATEGORY_KEY)
+    ? `${NULL_CATEGORY_KEY}${label}`
+    : label;
+}
+
+/** Recover the original literal value for color lookup and display. */
+function getCategoryValue(key: string) {
+  return key.startsWith(NULL_CATEGORY_KEY)
+    ? key.slice(NULL_CATEGORY_KEY.length)
+    : key;
+}
+
+/** Format category identities for display without changing legend selection keys. */
+function getCategoryLabel(key: string) {
+  if (key === NULL_CATEGORY_KEY) {
+    return NULL_STRING;
+  }
+  const label = getCategoryValue(key);
+  return label === NULL_STRING || label.startsWith('"')
+    ? JSON.stringify(label)
+    : label;
 }
 
 export default function transformProps(
@@ -237,7 +265,6 @@ export default function transformProps(
     }
     const node = echartNodes[nodes[name]];
     if (category) {
-      categories.add(category);
       // category may be empty when one of `sourceCategory`
       // or `targetCategory` is not set.
       if (!node.category) {
@@ -248,6 +275,50 @@ export default function transformProps(
   }
 
   data.forEach(link => {
+    if (link[metricLabel]) {
+      [sourceCategory, targetCategory].forEach(column => {
+        if (column) {
+          const category = getCategoryKey(column, link[column]);
+          if (category) categories.add(category);
+        }
+      });
+    }
+  });
+
+  const hasNullCategory = categories.has(NULL_CATEGORY_KEY);
+  // Resolve literal colors under their original keys before assigning null a color.
+  if (sliceId || hasNullCategory) {
+    categories.forEach(category => {
+      if (category !== NULL_CATEGORY_KEY) {
+        colorFn(getCategoryValue(category), sliceId);
+      }
+    });
+  }
+
+  let nullColor = firstColor;
+  if (hasNullCategory) {
+    const reservedColorKeys = new Set([
+      ...colorFn.chartLabelsColorMap.keys(),
+      ...Object.keys(colorFn.forcedColors),
+      ...getLabelsColorMap().getColorMap().keys(),
+    ]);
+    let nullColorKey = NULL_CATEGORY_KEY;
+    while (reservedColorKeys.has(nullColorKey)) {
+      nullColorKey += NULL_CATEGORY_KEY;
+    }
+    // Keep this lookup local: shared color settings belong to literal values.
+    nullColor = colorFn(nullColorKey);
+  }
+
+  function getCategoryColor(category: string) {
+    if (category === NULL_CATEGORY_KEY) return nullColor;
+    const value = getCategoryValue(category);
+    return hasNullCategory
+      ? (colorFn.chartLabelsColorMap.get(value.trim()) ?? firstColor)
+      : colorFn(value, sliceId);
+  }
+
+  data.forEach(link => {
     const value = link[metricLabel] as number;
     if (!value) {
       return;
@@ -255,16 +326,16 @@ export default function transformProps(
     const sourceName = link[source] as string;
     const targetName = link[target] as string;
     const sourceCategoryName = sourceCategory
-      ? getCategoryName(sourceCategory, link[sourceCategory])
+      ? getCategoryKey(sourceCategory, link[sourceCategory])
       : undefined;
     const targetCategoryName = targetCategory
-      ? getCategoryName(targetCategory, link[targetCategory])
+      ? getCategoryKey(targetCategory, link[targetCategory])
       : undefined;
     const sourceNodeColor = sourceCategoryName
-      ? colorFn(sourceCategoryName)
+      ? getCategoryColor(sourceCategoryName)
       : firstColor;
     const targetNodeColor = targetCategoryName
-      ? colorFn(targetCategoryName)
+      ? getCategoryColor(targetCategoryName)
       : firstColor;
 
     const sourceNode = getOrCreateNode(
@@ -304,12 +375,13 @@ export default function transformProps(
   const categoryList = [...categories];
   const legendData = categoryList.sort((a: string, b: string) => {
     if (!legendSort) return 0;
-    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    const comparison = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
+    return legendSort === 'asc' ? comparison : -comparison;
   });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
-    legendItems: legendData,
+    legendItems: legendData.map(getCategoryLabel),
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
@@ -323,7 +395,7 @@ export default function transformProps(
       categories: categoryList.map(c => ({
         name: c,
         itemStyle: {
-          color: colorFn(c, sliceId),
+          color: getCategoryColor(c),
         },
       })),
       layout,
@@ -381,6 +453,7 @@ export default function transformProps(
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
+      formatter: getCategoryLabel,
     },
     series,
   };
