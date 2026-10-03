@@ -884,7 +884,7 @@ const config: ControlPanelConfig = {
                       })),
                     ]
                   : [];
-                const numericColumns = hasColumns
+                const eligibleColumns = hasColumns
                   ? colnames.reduce((acc, colname, index) => {
                       if (
                         coltypes[index] === GenericDataType.Numeric ||
@@ -905,10 +905,10 @@ const config: ControlPanelConfig = {
                   : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
-                      numericColumns || [],
+                      eligibleColumns || [],
                       ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
-                  : numericColumns;
+                  : eligibleColumns;
 
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',

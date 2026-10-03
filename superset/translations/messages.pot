@@ -2120,6 +2120,9 @@ msgstr ""
 msgid "Apply another dashboard filter"
 msgstr ""
 
+msgid "Apply conditional color formatting to columns"
+msgstr ""
+
 msgid "Apply conditional color formatting to metric"
 msgstr ""
 

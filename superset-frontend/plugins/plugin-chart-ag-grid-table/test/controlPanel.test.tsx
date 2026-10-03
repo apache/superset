@@ -201,8 +201,15 @@ test('numericColumns resolves dataType by position, not a stale name lookup', ()
   );
 
   // Resolving dataType via `colnames.indexOf(colname)` would always find
-  // the first "metric" (String) and misclassify this numeric column.
+  // the first "metric" (String) and misclassify the second, numeric
+  // column as String too. Both entries are eligible (String columns are
+  // included alongside Numeric ones when there is no time comparison),
+  // so assert each keeps its own position-correct dataType.
   expect(result.columnOptions).toEqual([
+    expect.objectContaining({
+      value: 'metric',
+      dataType: GenericDataType.String,
+    }),
     expect.objectContaining({
       value: 'metric',
       dataType: GenericDataType.Numeric,

@@ -822,9 +822,7 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
+              description: t('Apply conditional color formatting to columns'),
               shouldMapStateToProps() {
                 return true;
               },
@@ -895,29 +893,37 @@ const config: ControlPanelConfig = {
                       })),
                     ]
                   : [];
-                const numericColumns = hasColumns
+                // Paired with its dataType by original index before
+                // filtering, so a column's type stays correct even when
+                // colnames has duplicates (filtering first and re-deriving
+                // the type afterwards, by value or by post-filter index,
+                // both break on a duplicate colname). String/Boolean columns
+                // are excluded during time comparison: the synthetic
+                // Main/#/△/% columns processComparisonColumns() generates
+                // below don't carry a categorical dataType of their own.
+                const eligibleColumns = hasColumns
                   ? colnames
-                      .filter(
-                        (colname: string, index: number) =>
-                          coltypes[index] === GenericDataType.Numeric,
-                      )
-                      .map((colname: string) => ({
+                      .map((colname: string, index: number) => ({
                         value: colname,
                         label: Array.isArray(verboseMap)
                           ? colname
                           : (verboseMap?.[colname] ?? colname),
-                        // Every entry here already passed the Numeric filter
-                        // above, so the type is always Numeric — no need to
-                        // re-look it up (which breaks on duplicate colnames).
-                        dataType: GenericDataType.Numeric,
+                        dataType: coltypes[index],
                       }))
+                      .filter(
+                        col =>
+                          col.dataType === GenericDataType.Numeric ||
+                          (!hasTimeComparison &&
+                            (col.dataType === GenericDataType.String ||
+                              col.dataType === GenericDataType.Boolean)),
+                      )
                   : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
-                      numericColumns || [],
+                      eligibleColumns || [],
                       ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
-                  : numericColumns;
+                  : eligibleColumns;
 
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
