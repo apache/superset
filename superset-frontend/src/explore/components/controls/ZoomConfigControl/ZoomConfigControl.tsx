@@ -72,7 +72,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
     }
 
     const newValue = { ...value };
-    newValue.configs.width = width;
+    newValue.configs = { ...newValue.configs, width };
     newValue.values = computeConfigValues(newValue);
     onChange(newValue);
   };
@@ -84,7 +84,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
     }
 
     const newValue = { ...value };
-    newValue.configs.height = height;
+    newValue.configs = { ...newValue.configs, height };
     newValue.values = computeConfigValues(newValue);
     onChange(newValue);
   };
@@ -92,8 +92,10 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   const onBaseSlopeChange = (slope: number) => {
     setBaseSlope(slope);
     if (value && isZoomConfigsLinear(value)) {
-      const newValue = { ...value };
-      newValue.configs.slope = slope;
+      const newValue = {
+        ...value,
+        configs: { ...value.configs, slope },
+      };
       newValue.values = computeConfigValues(newValue);
       onChange(newValue);
     }
@@ -102,8 +104,10 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   const onBaseExponentChange = (exponent: number) => {
     setBaseExponent(exponent);
     if (value && isZoomConfigsExp(value)) {
-      const newValue = { ...value };
-      newValue.configs.exponent = exponent;
+      const newValue = {
+        ...value,
+        configs: { ...value.configs, exponent },
+      };
       newValue.values = computeConfigValues(newValue);
       onChange(newValue);
     }
