@@ -2978,3 +2978,76 @@ def test_waterfall_query_preserves_temporal_binding(
     assert query["metrics"] == [form_data["metric"]]
     assert query["granularity"] == "event_time"
     assert query.get("extras", {}).get("time_grain_sqla") == time_grain
+
+
+@pytest.mark.parametrize(
+    ("saved_limit", "caller_limit", "expected_page", "expected_count"),
+    [
+        ("250", None, 25, 250),
+        (None, 1000, 25, 1000),
+        (100, 10, 10, 10),
+    ],
+)
+def test_table_server_pagination_narrows_normalized_limit(
+    monkeypatch: pytest.MonkeyPatch,
+    saved_limit: Any,
+    caller_limit: int | None,
+    expected_page: int,
+    expected_count: int,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "server_pagination": True,
+        "server_page_length": 25,
+    }
+    if saved_limit is not None:
+        form_data["row_limit"] = saved_limit
+
+    query_dicts = build_query_dicts_from_form_data(
+        form_data, 1, "table", row_limit=caller_limit
+    )
+
+    assert query_dicts[0]["row_limit"] == expected_page
+    assert query_dicts[1]["row_limit"] == expected_count
+    assert query_dicts[1]["is_rowcount"] is True
+
+
+def test_mixed_timeseries_request_adhoc_filters_apply_to_both_layers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    region = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "Region",
+        "operator": "==",
+        "comparator": "North",
+    }
+    primary, secondary = build_query_dicts_from_form_data(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sales"],
+            "metrics_b": ["costs"],
+            "adhoc_filters": [],
+            "adhoc_filters_b": [],
+        },
+        1,
+        "table",
+        extra_form_data={"adhoc_filters": [region]},
+    )
+
+    for query in (primary, secondary):
+        assert [
+            (item["col"], item["op"], item["val"]) for item in query["filters"]
+        ] == [("Region", "==", "North")]

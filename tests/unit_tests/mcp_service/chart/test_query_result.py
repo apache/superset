@@ -2518,3 +2518,49 @@ def test_raw_gauge_mode_still_rejects_scalar_subclasses() -> None:
     assert data is None
     assert failure is not None
     assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_preserves_binary_column_contract() -> None:
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "text": b"abc",
+                            "blob": b"\xff\xfe\x00",
+                            "view": memoryview(b"\xff\x01"),
+                            "array": bytearray(b"hi"),
+                        }
+                    ],
+                    "rowcount": 1,
+                }
+            ]
+        }
+    )
+
+    assert failure is None
+    assert data is not None
+    assert data[0][0] == {
+        "text": "abc",
+        "blob": "base64://4A",
+        "view": "base64:/wE=",
+        "array": "hi",
+    }
+
+
+def test_query_result_rejects_oversized_binary_value() -> None:
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [{"blob": b"\xff" * (MAX_QUERY_RESULT_STRING_BYTES + 1)}],
+                    "rowcount": 1,
+                }
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "oversized binary value" in failure.error

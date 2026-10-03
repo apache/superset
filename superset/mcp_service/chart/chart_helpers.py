@@ -1922,6 +1922,15 @@ def build_pie_query_dicts(
     return [query]
 
 
+def _positive_int(value: Any) -> int:
+    """Coerce a stored limit (int, numeric string, or empty) to a positive int or 0."""
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return coerced if coerced > 0 else 0
+
+
 def build_table_query_dicts(  # noqa: C901
     form_data: dict[str, Any],
     *,
@@ -2006,10 +2015,12 @@ def build_table_query_dicts(  # noqa: C901
         )
     query["post_processing"] = post_processing
 
-    configured_limit = form_data.get("row_limit")
+    # ``query["row_limit"]`` is the normalized caller limit (explicit request
+    # limit or the saved row_limit, which may be stored as a string); page
+    # sizing narrows it but never replaces it.
+    configured_limit = _positive_int(query.get("row_limit"))
     if form_data.get("server_pagination"):
-        page_size = form_data.get("server_page_length") or 0
-        if page_size:
+        if page_size := _positive_int(form_data.get("server_page_length")):
             query["row_limit"] = (
                 min(page_size, configured_limit) if configured_limit else page_size
             )
@@ -2198,7 +2209,17 @@ def build_mixed_timeseries_query_dicts(  # noqa: C901
         if secondary and form_data.get("adhoc_filters_b") is not None:
             for key in ("filters", "where", "having"):
                 layer.pop(key, None)
-            layer["adhoc_filters"] = form_data.get("adhoc_filters_b") or []
+            secondary_filters = list(form_data.get("adhoc_filters_b") or [])
+            # Request-level filters (extra_form_data / extra_filters) are not
+            # suffixed, so they apply to both layers on top of the layer's own.
+            secondary_filters.extend(
+                filter_
+                for filter_ in form_data.get("adhoc_filters") or []
+                if isinstance(filter_, dict)
+                and filter_.get("isExtra")
+                and filter_ not in secondary_filters
+            )
+            layer["adhoc_filters"] = secondary_filters
             split_adhoc_filters_into_base_filters(layer, engine)
         layer_metrics = _timeseries_base_metrics(layer)
         layer_groupby = _as_list(layer.get("groupby"))

@@ -511,6 +511,28 @@ class TestValidateAndCompileTier2:
         assert result.success
         mock_compile.assert_called_once_with(form_data, 3)
 
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_dataset_only_native_rebind_prefers_exact_saved_metric(
+        self, mock_compile
+    ) -> None:
+        mock_compile.return_value = CompileResult(success=True)
+        ds = _orm_dataset(metric_names=["Revenue", "revenue"])
+        form_data = {
+            "viz_type": "pie",
+            "groupby": ["gender"],
+            "metric": "Revenue",
+            "datasource": "3__table",
+        }
+
+        result = validate_and_compile(None, form_data, ds, run_compile_check=True)
+
+        assert result.success
+
+        ambiguous = validate_and_compile(
+            None, {**form_data, "metric": "REVENUE"}, ds, run_compile_check=True
+        )
+        assert not ambiguous.success
+
     @pytest.mark.parametrize(
         "form_data",
         [

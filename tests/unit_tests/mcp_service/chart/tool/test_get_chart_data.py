@@ -4086,6 +4086,28 @@ class TestChartDataTotalRowsCoercion:
         assert chart_data.total_rows == 5
         assert isinstance(chart_data.total_rows, int)
 
+    def test_float_total_rows_serializes_without_error(self) -> None:
+        import pydantic_core
+
+        chart_data = _make_chart_data(total_rows=5.0)
+        result = pydantic_core.to_json(chart_data, fallback=str).decode()
+        assert '"total_rows":5' in result
+
+    def test_none_total_rows_passes_through(self) -> None:
+        chart_data = _make_chart_data(total_rows=None)
+        assert chart_data.total_rows is None
+
+    def test_int_total_rows_unchanged(self) -> None:
+        chart_data = _make_chart_data(total_rows=42)
+        assert chart_data.total_rows == 42
+        assert isinstance(chart_data.total_rows, int)
+
+    def test_non_integer_float_total_rows_is_truncated(self) -> None:
+        """A non-integer float (e.g. 5.9) is coerced via int(), truncating."""
+        chart_data = _make_chart_data(total_rows=5.9)
+        assert chart_data.total_rows == 5
+        assert isinstance(chart_data.total_rows, int)
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -5224,28 +5246,6 @@ async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
         assert query_result["data"] == []
         assert query_result["row_count"] == 0
         assert query_result["total_rows"] == 0
-
-    def test_float_total_rows_serializes_without_error(self) -> None:
-        import pydantic_core
-
-        chart_data = _make_chart_data(total_rows=5.0)
-        result = pydantic_core.to_json(chart_data, fallback=str).decode()
-        assert '"total_rows":5' in result
-
-    def test_none_total_rows_passes_through(self) -> None:
-        chart_data = _make_chart_data(total_rows=None)
-        assert chart_data.total_rows is None
-
-    def test_int_total_rows_unchanged(self) -> None:
-        chart_data = _make_chart_data(total_rows=42)
-        assert chart_data.total_rows == 42
-        assert isinstance(chart_data.total_rows, int)
-
-    def test_non_integer_float_total_rows_is_truncated(self) -> None:
-        """A non-integer float (e.g. 5.9) is coerced via int(), truncating."""
-        chart_data = _make_chart_data(total_rows=5.9)
-        assert chart_data.total_rows == 5
-        assert isinstance(chart_data.total_rows, int)
 
 
 class TestGuestScoping:

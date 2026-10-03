@@ -1944,6 +1944,43 @@ def merge_bullet_form_data(
             continue
         if key in existing_form_data and key not in new_form_data:
             new_form_data[key] = existing_form_data[key]
+            if key == "orderby" and "groupby" in new_form_data:
+                new_form_data[key] = _orderby_without_removed_dimensions(
+                    existing_form_data, new_form_data
+                )
+
+
+def _orderby_without_removed_dimensions(
+    existing_form_data: Mapping[str, Any], new_form_data: Mapping[str, Any]
+) -> Any:
+    """Drop saved sort entries whose dimension an update removed from groupby.
+
+    Metric sorts and sorts on dimensions that are still grouped are retained.
+    """
+    saved = existing_form_data.get("orderby")
+    if not isinstance(saved, list):
+        return saved
+    previous = {
+        str(name).casefold()
+        for name in existing_form_data.get("groupby") or []
+        if isinstance(name, str)
+    }
+    current = {
+        str(name).casefold()
+        for name in new_form_data.get("groupby") or []
+        if isinstance(name, str)
+    }
+    removed = previous - current
+    return [
+        entry
+        for entry in saved
+        if not (
+            isinstance(entry, (list, tuple))
+            and entry
+            and isinstance(entry[0], str)
+            and entry[0].casefold() in removed
+        )
+    ]
 
 
 def _filter_identity(filter_: Any) -> tuple[Any, ...] | None:
@@ -2063,7 +2100,15 @@ def merge_update_form_data(  # noqa: C901
     This helper is used by immediate saves, preview-first saved updates, and
     cached-preview updates so omission, clear, replacement, and temporal
     overrides have identical behavior.
+
+    State never crosses a visualization boundary: a viz-type change starts from
+    the mapper's output, so the previous chart's predicates are not restored.
     """
+    existing_viz_type = existing_form_data.get("viz_type")
+    if isinstance(existing_viz_type, str) and existing_viz_type != new_form_data.get(
+        "viz_type"
+    ):
+        return
     existing_filters = list(existing_form_data.get("adhoc_filters") or [])
     incoming_filters = list(new_form_data.get("adhoc_filters") or [])
     existing_subject = existing_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
@@ -2090,6 +2135,26 @@ def merge_update_form_data(  # noqa: C901
         filter_ for filter_ in incoming_filters if filter_ is not incoming_binding
     ]
     temporal_explicit = range_explicit or subject_authoritative
+    if (
+        existing_binding is None
+        and incoming_binding is not None
+        and isinstance(incoming_subject, str)
+        and "filters" not in explicit_fields
+        and temporal_explicit
+    ):
+        # A saved temporal filter that Explore wrote has no MCP provenance
+        # marker. When it is the only native filter for the incoming subject,
+        # the update replaces it in place instead of appending a duplicate.
+        native_matches = [
+            filter_
+            for filter_ in existing_filters
+            if isinstance(filter_, dict)
+            and filter_.get("subject") == incoming_subject
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        ]
+        if len(native_matches) == 1:
+            existing_binding = native_matches[0]
+            existing_subject = incoming_subject
 
     chosen_binding: dict[str, Any] | None = None
     chosen_subject: Any = None

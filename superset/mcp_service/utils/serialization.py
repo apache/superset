@@ -83,7 +83,7 @@ _PASSTHROUGH_TYPES = (datetime, date, time, timedelta, UUID)
 _UNHANDLED = object()
 
 
-def _decode_binary(value: bytes | bytearray | memoryview) -> str:
+def decode_binary(value: bytes | bytearray | memoryview) -> str:
     """Render binary column data as a JSON-safe string."""
     raw = bytes(value)
     try:
@@ -147,7 +147,7 @@ def _sanitize_scalar(value: Any) -> Any:
         # Call the base descriptor, not subclass hooks or float conversion.
         return value if Decimal.is_finite(value) else None
     if isinstance(value, (bytes, bytearray, memoryview)):
-        return _decode_binary(value)
+        return decode_binary(value)
     return _UNHANDLED
 
 

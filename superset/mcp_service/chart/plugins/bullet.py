@@ -334,6 +334,7 @@ class BulletChartPlugin(BaseChartPlugin):
     ) -> tuple[list[Any], ChartError | None]:
         """Expose rows through the same strict model the renderers use."""
         from superset.mcp_service.chart.preview_utils import (
+            _safe_enum_backing,
             BulletOutputError,
             resolve_bullet_render_model,
         )
@@ -345,11 +346,24 @@ class BulletChartPlugin(BaseChartPlugin):
             return [], ChartError(
                 error=safe_exception_message(ex), error_type=ex.error_type
             )
+        if not data:
+            # The strict model's zero-valued ungrouped row is a render-only
+            # frontend fallback, not source query data, so an empty query
+            # exposes no rows to get-data and exports.
+            return [], None
         # The strict model retains exact result keys while replacing unselected
-        # values with None and normalizing the selected roles. Its zero-valued
-        # ungrouped row is a render-only frontend fallback, not source query
-        # data, so an empty query exposes no rows to get-data and exports.
-        return (model.rows if data else []), None
+        # values with None and normalizing the dimensions. Its float measure is
+        # render-only: exported rows keep the validated source metric so exact
+        # BIGINT/Decimal values are not rounded to binary64.
+        rows: list[Any] = []
+        for source, row in zip(data, model.rows, strict=False):
+            exposed = dict(row)
+            if model.metric_field in source:
+                exposed[model.metric_field] = _safe_enum_backing(
+                    source[model.metric_field]
+                )
+            rows.append(exposed)
+        return rows, None
 
     def ascii_preview(
         self, data: list[Any], form_data: dict[str, Any], width: int

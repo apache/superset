@@ -41,6 +41,7 @@ from pydantic import BaseModel
 from pydantic_core import to_json
 
 from superset.mcp_service.chart.schemas import ChartError
+from superset.mcp_service.utils.serialization import decode_binary
 from superset.utils.core import GenericDataType
 from superset.utils.dates import datetime_to_epoch, EPOCH
 
@@ -1171,6 +1172,23 @@ def _normalize_trusted_scalar(  # noqa: C901
             return None, "contains an invalid NumPy timedelta"
         if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
             return None, "contains an oversized NumPy timedelta"
+        return text, None
+
+    if value_type is bytes or value_type is bytearray or value_type is memoryview:
+        # Exact binary column values follow the documented serialization
+        # contract: UTF-8 text, otherwise a ``base64:``-prefixed string.
+        try:
+            raw_size = value.nbytes if value_type is memoryview else len(value)
+        except (TypeError, ValueError):
+            return None, "contains an unreadable binary value"
+        if raw_size > max_string_bytes:
+            return None, "contains an oversized binary value"
+        try:
+            text = decode_binary(value)
+        except (TypeError, ValueError):
+            return None, "contains an unreadable binary value"
+        if _bounded_utf8_length(text, max_string_bytes) is None:
+            return None, "contains an oversized binary value"
         return text, None
 
     return None, "contains an unsupported or subclassed value"

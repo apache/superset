@@ -971,12 +971,30 @@ async def update_chart(  # noqa: C901
                 if request.config is not None
                 else None
             )
+            resolve_form_data = _get_existing_form_data(chart)
+            resolve_rebind = (
+                request.dataset_id is not None
+                and request.dataset_id != chart.datasource_id
+            )
+            if (
+                config_plugin is not None
+                and request.config is not None
+                and request.dataset_id is not None
+                and resolve_rebind
+                and not config_plugin.strict_dataset_rebind
+            ):
+                # Match the cached-preview path: retain only the saved roles
+                # that resolve against the replacement dataset, then resolve
+                # omitted roles as a same-dataset update.
+                resolve_form_data = _prune_inherited_query_state(
+                    resolve_form_data, {}, request.config, request.dataset_id
+                )
+                resolve_rebind = False
             parsed_config = (
                 config_plugin.resolve_update_config(
                     request.config,
-                    _get_existing_form_data(chart),
-                    dataset_rebind=request.dataset_id is not None
-                    and request.dataset_id != chart.datasource_id,
+                    resolve_form_data,
+                    dataset_rebind=resolve_rebind,
                 )
                 if config_plugin is not None
                 else request.config

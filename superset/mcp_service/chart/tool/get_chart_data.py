@@ -168,6 +168,17 @@ def _compute_effective_force(request: GetChartDataRequest) -> bool:
     return request.force_refresh or not request.use_cache
 
 
+def _download_form_data(form_data: dict[str, Any], request: Any) -> dict[str, Any]:
+    """Return form_data without UI page sizing for CSV/Excel downloads.
+
+    Server-paginated tables size a query to the UI page; a download keeps the
+    caller's limit instead of shrinking to that page.
+    """
+    if request.format in {"csv", "excel"} and form_data.get("server_pagination"):
+        return {**form_data, "server_pagination": False}
+    return form_data
+
+
 def _coerce_row_limit(value: Any, default: int) -> int:
     """Coerce a row_limit (which may arrive as a str from chart.params) to int,
     falling back to ``default`` when it is missing, non-numeric, or non-positive.
@@ -652,7 +663,7 @@ async def execute_chart_data(  # noqa: C901
                 )
 
                 query_context = build_query_context_from_form_data(
-                    cached_form_data_dict,
+                    _download_form_data(cached_form_data_dict, request),
                     chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
@@ -707,7 +718,7 @@ async def execute_chart_data(  # noqa: C901
                 viz_type = chart_viz_type or ""
 
                 fallback_queries = build_query_dicts_from_form_data(
-                    form_data,
+                    _download_form_data(form_data, request),
                     chart_datasource_id,
                     chart_datasource_type,
                     chart=chart_facts,
@@ -1172,7 +1183,7 @@ async def _query_from_form_data(  # noqa: C901
 
     try:
         query_context = build_query_context_from_form_data(
-            form_data,
+            _download_form_data(form_data, request),
             extra_form_data=request.extra_form_data,
             row_limit=row_limit,
             order_desc=form_data.get("order_desc", True),

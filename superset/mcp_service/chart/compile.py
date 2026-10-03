@@ -436,11 +436,15 @@ def _native_reference_error(  # noqa: C901
             return _native_validation_error(role, repr(value)[:200])
         kind, name = ref
         if kind == "saved_metric":
-            matches = [
-                item
-                for item in saved_metrics
-                if item == name or item.casefold() == name.casefold()
-            ]
+            # Native lookup selects an exact name unambiguously; only a
+            # case-folded reference has to be unique.
+            matches = (
+                [name]
+                if name in saved_metrics
+                else [
+                    item for item in saved_metrics if item.casefold() == name.casefold()
+                ]
+            )
             if len(set(matches)) != 1:
                 saved_role = f"{role.removesuffix(' metric')} saved metric"
                 return _native_validation_error(saved_role, name)

@@ -4026,3 +4026,211 @@ def test_cached_table_rebind_does_not_restore_invalid_query_roles() -> None:
     assert not merged.get("groupby_b")
     assert not merged.get("order_by_cols")
     assert not merged.get("adhoc_filters")
+
+
+def test_bullet_time_range_update_replaces_unmarked_native_binding() -> None:
+    existing: dict[str, object] = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "groupby": ["Region"],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "OrderDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            }
+        ],
+    }
+    for time_range in ("Last 30 days", "Last 7 days"):
+        config = BulletChartConfig(metric=_simple_metric(), time_range=time_range)
+        with (
+            patch(
+                "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+                return_value=_orm_dataset(),
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+                return_value=True,
+            ),
+        ):
+            merged = map_config_to_form_data(config, dataset_id=7)
+        merge_update_form_data(existing, merged, config)
+
+        assert [
+            (item["subject"], item["comparator"]) for item in merged["adhoc_filters"]
+        ] == [("OrderDate", time_range)]
+        assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+        # The next update sees the recorded provenance and a single binding.
+        existing = {**merged}
+
+
+async def _run_saved_bullet_update(
+    existing: dict[str, Any], config: dict[str, Any], *, dataset_id: int | None = None
+) -> dict[str, Any]:
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=6 if dataset_id else 7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+        viz_type="bullet",
+        uuid="bullet-uuid",
+    )
+    updated_chart = SimpleNamespace(
+        id=9,
+        datasource_id=dataset_id or 7,
+        slice_name="Saved Bullet",
+        viz_type="bullet",
+        uuid="bullet-uuid",
+    )
+    command = MagicMock()
+    command.return_value.run.return_value = updated_chart
+    request = UpdateChartRequest(
+        identifier=9,
+        config={"chart_type": "bullet", **config},
+        dataset_id=dataset_id,
+        generate_preview=False,
+        preview_formats=[],
+    )
+    ctx = MagicMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=_tool_user(),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+            return_value=chart,
+        ),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=SimpleNamespace(is_valid=True, error=None),
+        ),
+        patch.object(
+            DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, dataset_id, **_: config,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart."
+            "_validate_update_against_dataset",
+            return_value=None,
+        ),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch("superset.commands.chart.update.UpdateChartCommand", command),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.analyze_chart_capabilities",
+            return_value=None,
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.analyze_chart_semantics",
+            return_value=None,
+        ),
+    ):
+        result = await update_chart(request, ctx=ctx)
+
+    assert result.success is True, result
+    return __import__("json").loads(command.call_args.args[1]["params"])
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_rebind_with_metric_sort_keeps_compatible_hierarchy() -> (
+    None
+):
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "datasource": "6__table",
+            "metric": "old_metric",
+            "groupby": ["Region"],
+        },
+        {
+            "metric": _simple_metric("Revenue"),
+            "order_by": [{"column": "SUM(Revenue)", "ascending": False}],
+        },
+        dataset_id=7,
+    )
+
+    assert persisted["groupby"] == ["Region"]
+    assert persisted["orderby"][0][1] is False
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_clearing_dimensions_drops_their_sorts_only() -> None:
+    metric_sort = ["SavedRevenue", False]
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region"],
+            "orderby": [["Region", True], metric_sort],
+        },
+        {"metric": _simple_metric("Revenue"), "dimensions": []},
+    )
+
+    assert persisted["groupby"] == []
+    assert persisted["orderby"] == [metric_sort]
+
+
+def test_viz_change_with_omitted_filters_does_not_restore_previous_predicates() -> None:
+    from superset.mcp_service.chart.schemas import PieChartConfig
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_replacement_form_data,
+    )
+
+    previous = {
+        "viz_type": "table",
+        "datasource": "7__table",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "Region",
+                "operator": "==",
+                "comparator": "US",
+            }
+        ],
+    }
+    config = PieChartConfig(
+        dimension={"name": "Region"}, metric={"name": "Revenue", "aggregate": "SUM"}
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=None,
+    ):
+        merged = _build_replacement_form_data(previous, config, 7)
+
+    assert merged["viz_type"] == "pie"
+    assert not merged.get("adhoc_filters")
+
+
+def test_bullet_sanitized_rows_keep_exact_source_metric() -> None:
+    plugin = BulletChartPlugin()
+    form_data = {"viz_type": "bullet", "metric": "Revenue", "groupby": ["Region"]}
+
+    rows, error = plugin.sanitize_data_rows(
+        [
+            {"Region": "North", "Revenue": 9007199254740993, "Other": "x"},
+            {"Region": "South", "Revenue": "9007199254740993", "Other": "y"},
+            {"Region": "East", "Revenue": Decimal("1.10"), "Other": "z"},
+        ],
+        form_data,
+    )
+
+    assert error is None
+    assert [row["Revenue"] for row in rows] == [
+        9007199254740993,
+        "9007199254740993",
+        Decimal("1.10"),
+    ]
+    assert [row["Region"] for row in rows] == ["North", "South", "East"]
+    assert all(row["Other"] is None for row in rows)
