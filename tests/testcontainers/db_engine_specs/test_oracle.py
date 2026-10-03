@@ -119,6 +119,7 @@ def test_cancel_query_stops_a_running_statement(engine: Engine) -> None:
     """
     query_conn = engine.raw_connection()
     cancel_conn = engine.raw_connection()
+    thread: threading.Thread | None = None
     try:
         query_cursor = query_conn.cursor()
         # get_cancel_query_id runs on the same cursor that is about to
@@ -154,12 +155,27 @@ def test_cancel_query_stops_a_running_statement(engine: Engine) -> None:
             except Exception as ex:  # noqa: BLE001  # pylint: disable=broad-except
                 outcome["error"] = ex
 
-        thread = threading.Thread(target=run_slow_query)
+        thread = threading.Thread(target=run_slow_query, daemon=True)
         start = time.monotonic()
         thread.start()
-        time.sleep(1.5)  # let the statement actually start executing
 
+        # Wait until the session is actually executing the statement rather
+        # than sleeping for a fixed time.
+        sid, serial, _instance = cancel_query_id.split(",")
         cancel_cursor = cancel_conn.cursor()
+        deadline = time.monotonic() + 30
+        while True:
+            cancel_cursor.execute(
+                "SELECT status FROM v$session "
+                f"WHERE sid = {int(sid)} AND serial# = {int(serial)}"  # noqa: S608
+            )
+            row = cancel_cursor.fetchone()
+            if row is not None and row[0] == "ACTIVE":
+                break
+            assert thread.is_alive(), "the statement ended before it could be cancelled"
+            assert time.monotonic() < deadline, "the statement never became ACTIVE"
+            time.sleep(0.1)
+
         cancelled = OracleEngineSpec.cancel_query(
             cancel_cursor, Query(), cancel_query_id
         )
@@ -177,5 +193,10 @@ def test_cancel_query_stops_a_running_statement(engine: Engine) -> None:
         # statement would have finished on its own regardless.
         assert elapsed < 30
     finally:
+        # Make sure the worker has finished before closing its connection, even
+        # when an assertion above failed; a still-running worker would otherwise
+        # race the close or hang pytest at exit.
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=60)
         query_conn.close()
         cancel_conn.close()
