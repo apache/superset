@@ -761,7 +761,7 @@ class BaseReportState:
                         user_friendly=user_friendly,
                     )
                     return urls
-                except json.JSONDecodeError:
+                except (TypeError, json.JSONDecodeError):
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
             # Skip the permalink when there is nothing meaningful to encode —
