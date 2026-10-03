@@ -69,13 +69,13 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
     # standard host/port/username/password/database URI, so ``BasicParametersMixin``
     # can build it as ``mssql+pymssql://user:pass@host:port/db``.
     default_driver = "pymssql"
-    parameters_schema = BasicParametersSchema()
+    # pymssql negotiates TLS at the TDS protocol level rather than through a URI
+    # query parameter, so there is no encryption flag to inject into the URL and
+    # the form does not offer an SSL toggle.
+    parameters_schema = BasicParametersSchema(exclude=("encryption",))
     sqlalchemy_uri_placeholder = (
         "mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]"
     )
-    # pymssql negotiates TLS at the TDS protocol level rather than through a URI
-    # query parameter, so there is no encryption flag to inject into the URL.
-    encryption_parameters: dict[str, str] = {}
 
     metadata = {
         "description": (
@@ -188,12 +188,11 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
         cls, uri: str, encrypted_extra: Optional[dict[str, Any]] = None
     ) -> BasicParametersType:
         parameters = super().get_parameters_from_uri(uri, encrypted_extra)
-        # pymssql negotiates TLS at the protocol level and has no encryption
-        # query parameter, so `encryption` is always reported as disabled. The
-        # base implementation derives it from an ``all(...)`` over the (empty)
-        # ``encryption_parameters``, which would vacuously return True and, on
-        # edit, make ``build_sqlalchemy_uri`` reject the connection.
-        parameters["encryption"] = False
+        # ``encryption`` is not part of the parameters schema. The base
+        # implementation derives it from an ``all(...)`` over the (empty)
+        # ``encryption_parameters``, which would vacuously return True; dropping
+        # it keeps edit-mode saves loadable by ``parameters_schema``.
+        parameters.pop("encryption", None)
         return parameters
 
     @classmethod
@@ -359,6 +358,9 @@ class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
+    sqlalchemy_uri_placeholder = (
+        "mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]"
+    )
 
     metadata = {
         "description": (

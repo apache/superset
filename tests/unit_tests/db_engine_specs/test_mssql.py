@@ -948,8 +948,35 @@ def test_get_parameters_from_uri_roundtrip() -> None:
         "port": 1433,
         "database": "db",
         "query": {},
-        "encryption": False,
     }
+
+
+def test_parameters_schema_has_no_encryption_toggle() -> None:
+    """
+    DB Eng Specs (mssql): pymssql has no URI-level encryption parameter, so the
+    parameters schema omits ``encryption`` and the dynamic form shows no SSL
+    toggle. Parameters read back from a URI load cleanly into the schema.
+    """
+    from marshmallow import ValidationError
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    schema = MssqlEngineSpec.parameters_json_schema()
+    assert "encryption" not in schema["properties"]
+    assert {"host", "port", "username", "password", "database"} <= set(
+        schema["properties"]
+    )
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    loaded = MssqlEngineSpec.parameters_schema.load(parameters)
+    assert MssqlEngineSpec.build_sqlalchemy_uri(loaded) == (
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+
+    with pytest.raises(ValidationError):
+        MssqlEngineSpec.parameters_schema.load(_basic_parameters(encryption=True))
 
 
 def test_validate_parameters_reports_missing() -> None:
@@ -980,3 +1007,4 @@ def test_azure_synapse_keeps_pyodbc_driver() -> None:
     assert AzureSynapseSpec.default_driver == "pyodbc"
     uri = AzureSynapseSpec.build_sqlalchemy_uri(_basic_parameters())  # type: ignore[arg-type]
     assert uri == "mssql+pyodbc://user:password@localhost:1433/db"
+    assert AzureSynapseSpec.sqlalchemy_uri_placeholder.startswith("mssql+pyodbc://")
