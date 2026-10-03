@@ -343,7 +343,7 @@ test('shows an error when fetching datasource metadata fails', async () => {
   await waitFor(() =>
     expect(
       (
-        store.getState() as {
+        store.getState() as unknown as {
           messageToasts: { text: string }[];
         }
       ).messageToasts,
