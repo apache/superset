@@ -50,9 +50,13 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json  # noqa: TID251 - standalone script, don't depend on superset.utils
+import os
 import sys
 from dataclasses import dataclass
 from typing import Any
+
+# Default directory for engine spec modules (monkeypatchable in tests)
+SPECS_DIR: str = os.path.dirname(__file__)
 
 # Schema definition - fields grouped by importance
 REQUIRED_FIELDS = {
@@ -231,10 +235,9 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
     Returns a list of dicts with engine_name, module, and metadata.
     """
     import ast
-    import os
 
     specs = []
-    db_engine_specs_dir = os.path.dirname(__file__)
+    db_engine_specs_dir = SPECS_DIR
 
     for filename in os.listdir(db_engine_specs_dir):
         if not filename.endswith(".py"):
@@ -284,6 +287,11 @@ def get_all_engine_specs_ast() -> list[dict[str, Any]]:  # noqa: C901
                             isinstance(item.target, ast.Name)
                             and item.target.id == "engine"
                         ):
+                            if item.value is None:
+                                # Bare annotation without initializer
+                                # (e.g. `engine: str`); keep scanning for
+                                # the actual assignment below.
+                                continue
                             if isinstance(item.value, ast.Constant):
                                 has_non_empty_engine = bool(item.value.value)
                             break

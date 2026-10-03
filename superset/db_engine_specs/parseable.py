@@ -46,14 +46,14 @@ class ParseableEngineSpec(BaseEngineSpec):
         "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["sqlalchemy-parseable"],
         "connection_string": (
-            "parseable://{username}:{password}@{hostname}:{port}/{stream_name}"
+            "parseable+http://{username}:{password}@{hostname}:{port}/{stream_name}"
         ),
         "default_port": 8000,
         "connection_examples": [
             {
                 "description": "Example connection",
                 "connection_string": (
-                    "parseable://admin:admin@demo.parseable.com:443/ingress-nginx"
+                    "parseable+http://admin:admin@demo.parseable.com:443/ingress-nginx"
                 ),
             },
         ],
