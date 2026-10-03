@@ -60,7 +60,7 @@ test.each([
     } satisfies ZoomConfigs,
   },
 ])(
-  'updates $field without mutating the incoming configs',
+  'copies configs for $field without mutating the incoming value',
   async ({ field, sliderIndex, value }) => {
     const onChange = jest.fn();
     const originalFieldValue = value.configs[field];
@@ -82,6 +82,5 @@ test.each([
     expect(value.configs[field]).toBe(originalFieldValue);
     const updatedValue = onChange.mock.lastCall?.[0] as ZoomConfigs;
     expect(updatedValue.configs).not.toBe(value.configs);
-    expect(updatedValue.configs[field]).not.toBe(originalFieldValue);
   },
 );

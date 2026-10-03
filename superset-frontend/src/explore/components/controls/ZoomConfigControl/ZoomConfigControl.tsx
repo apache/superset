@@ -71,10 +71,8 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
       return;
     }
 
-    const newValue = {
-      ...value,
-      configs: { ...value.configs, width },
-    };
+    const newValue = { ...value };
+    newValue.configs = { ...newValue.configs, width };
     newValue.values = computeConfigValues(newValue);
     onChange(newValue);
   };
@@ -85,10 +83,8 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
       return;
     }
 
-    const newValue = {
-      ...value,
-      configs: { ...value.configs, height },
-    };
+    const newValue = { ...value };
+    newValue.configs = { ...newValue.configs, height };
     newValue.values = computeConfigValues(newValue);
     onChange(newValue);
   };
