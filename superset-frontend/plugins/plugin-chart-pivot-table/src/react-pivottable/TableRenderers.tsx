@@ -904,16 +904,6 @@ export function TableRenderer(props: TableRendererProps) {
         return null;
       }
 
-      const spaceCell =
-        attrIdx === 0 && settingsRowAttrs.length !== 0 ? (
-          <th
-            key="padding"
-            colSpan={settingsRowAttrs.length}
-            rowSpan={settingsColAttrs.length}
-            aria-hidden="true"
-          />
-        ) : null;
-
       const needToggle =
         settingsColSubtotalDisplay.enabled === true &&
         attrIdx !== settingsColAttrs.length - 1;
@@ -927,8 +917,24 @@ export function TableRenderer(props: TableRendererProps) {
         subArrow =
           attrIdx + 1 < maxColVisible! ? arrowExpanded : arrowCollapsed;
       }
+      // With row dimensions, the corner block above the frozen row labels
+      // is rowAttrs.length + 1 columns wide: the row-attribute columns plus
+      // the padding column that renderTableRow folds into the last row
+      // label. Span the column-attribute name across that whole block so a
+      // single cell can freeze it when sticky positioning applies (see
+      // canFreezeRowLabels below, which limits that to a single row
+      // dimension; with more it falls back to `position: inherit`), rather
+      // than a rowAttrs-wide spacer that leaves the name's own column
+      // scrolling through the corner.
+      const hasRowAttrs = settingsRowAttrs.length !== 0;
       const attrNameCell = (
-        <th key="label" className="pvtAxisLabel">
+        <th
+          key="label"
+          className={
+            hasRowAttrs ? 'pvtAxisLabel pvtCornerLabel' : 'pvtAxisLabel'
+          }
+          colSpan={hasRowAttrs ? settingsRowAttrs.length + 1 : undefined}
+        >
           {displayHeaderCell(
             needToggle,
             subArrow,
@@ -1112,7 +1118,7 @@ export function TableRenderer(props: TableRendererProps) {
           </th>
         ) : null;
 
-      const cells = [spaceCell, attrNameCell, ...attrValueCells, totalCell];
+      const cells = [attrNameCell, ...attrValueCells, totalCell];
       return <tr key={`colAttr-${attrIdx}`}>{cells}</tr>;
     },
     [
@@ -1147,12 +1153,33 @@ export function TableRenderer(props: TableRendererProps) {
         namesMapping,
         allowRenderHtml: settingsAllowRenderHtml,
       } = settings;
+      // When column attributes are present, renderTableRow gives the last
+      // row-label cell in the body an extra colSpan to absorb the corner
+      // placeholder column (see colIncrSpan below) -- except for a subtotal
+      // row, where that extra span instead lands on the separate
+      // attrValuePaddingCell rendered after the row's own label cells.
+      // Mirror the full-row case here by folding the trailing placeholder
+      // into the last axis-label cell instead of rendering it separately,
+      // so the corner block in the header spans the same columns as the
+      // cell(s) it sits above when sticky positioning applies (a single row
+      // dimension only; canFreezeRowLabels falls back to non-sticky for more).
+      const mergeTotalLabel =
+        settingsColAttrs.length !== 0 && settingsRowAttrs.length !== 0;
+      const totalLabelClickHandler = clickHeaderHandler(
+        pivotData,
+        [],
+        rows,
+        0,
+        tableOptions.clickRowHeaderCallback,
+        false,
+        true,
+      );
       return (
-        <tr key="rowHdr">
+        <tr key="rowHdr" className="pvtRowHeaderRow">
           {settingsRowAttrs.map((r, i) => {
+            const isLastRowAttr = i === settingsRowAttrs.length - 1;
             const needLabelToggle =
-              settingsRowSubtotalDisplay.enabled === true &&
-              i !== settingsRowAttrs.length - 1;
+              settingsRowSubtotalDisplay.enabled === true && !isLastRowAttr;
             let arrowClickHandle = null;
             let subArrow = null;
             if (needLabelToggle) {
@@ -1164,7 +1191,16 @@ export function TableRenderer(props: TableRendererProps) {
                 i + 1 < maxRowVisible! ? arrowExpanded : arrowCollapsed;
             }
             return (
-              <th className="pvtAxisLabel" key={`rowAttr-${i}`}>
+              <th
+                className="pvtAxisLabel"
+                key={`rowAttr-${i}`}
+                colSpan={isLastRowAttr && mergeTotalLabel ? 2 : undefined}
+                onClick={
+                  isLastRowAttr && mergeTotalLabel
+                    ? totalLabelClickHandler
+                    : undefined
+                }
+              >
                 {displayHeaderCell(
                   needLabelToggle,
                   subArrow,
@@ -1176,21 +1212,15 @@ export function TableRenderer(props: TableRendererProps) {
               </th>
             );
           })}
-          <th
-            className="pvtTotalLabel"
-            key="padding"
-            onClick={clickHeaderHandler(
-              pivotData,
-              [],
-              rows,
-              0,
-              tableOptions.clickRowHeaderCallback,
-              false,
-              true,
-            )}
-          >
-            {settingsColAttrs.length === 0 ? t('Total') : null}
-          </th>
+          {mergeTotalLabel ? null : (
+            <th
+              className="pvtTotalLabel"
+              key="padding"
+              onClick={totalLabelClickHandler}
+            >
+              {t('Total')}
+            </th>
+          )}
         </tr>
       );
     },
@@ -1506,7 +1536,10 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   return (
-    <Styles isDashboardEditMode={isDashboardEditMode()}>
+    <Styles
+      isDashboardEditMode={isDashboardEditMode()}
+      canFreezeRowLabels={rowAttrs.length <= 1}
+    >
       <table className="pvtTable" role="grid">
         <thead>
           {colAttrs.map((c: string, j: number) =>
