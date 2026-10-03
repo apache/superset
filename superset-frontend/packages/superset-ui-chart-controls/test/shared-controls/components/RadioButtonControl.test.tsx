@@ -99,6 +99,16 @@ test('calls onChange when radio button is clicked', () => {
   expect(onChange).toHaveBeenCalledWith('option2');
 });
 
+test('does not call onChange when clicking the already selected option', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option1', onChange });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test('handles multiple clicks correctly', () => {
   const onChange = jest.fn();
   setup({ onChange });
