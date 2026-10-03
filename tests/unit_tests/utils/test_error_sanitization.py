@@ -20,6 +20,7 @@ from typing import Iterator, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+from flask import request
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.error_sanitization import (
@@ -238,6 +239,30 @@ def test_unresolvable_principal_with_form_guest_token_is_redacted(
         ),
         is_guest_user as mock_is_guest_user,
     ):
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_with_unreadable_body_fails_closed(
+    app: SupersetApp,
+) -> None:
+    """
+    ``request.form`` parses the body lazily, so the fallback's form read raises
+    ``RequestEntityTooLarge`` for an oversized body. That must not escape the
+    error handler; the token can't be ruled out, so it fails closed.
+    """
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context(
+            "/", method="POST", data={"guest_token": "a.guest.token"}
+        ),
+        is_guest_user as mock_is_guest_user,
+    ):
+        request.max_content_length = 1
         assert is_sanitization_required() is True
         assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
         assert mock_is_guest_user.called

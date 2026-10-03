@@ -32,6 +32,7 @@ from typing import Any
 
 from flask import current_app, has_request_context, request
 from flask_babel import lazy_gettext as _
+from werkzeug.exceptions import HTTPException
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -98,8 +99,8 @@ def is_sanitization_required() -> bool:
     When it does raise the principal is unknown, so this makes a deliberate
     availability-over-confidentiality trade-off rather than guessing "not a
     guest". Inside a request context it falls back to whether the request even
-    carries a guest token: reading headers and form fields cannot raise, anyone
-    presenting a token is redacted (failing closed for the only principal whose
+    carries a guest token: anyone presenting a token, or whose body can't be read
+    to check for one, is redacted (failing closed for the only principal whose
     errors are redacted), and a genuinely anonymous request keeps its error so
     ordinary failures are not over-sanitized. Outside a request context (e.g. a
     Celery worker, where a guest principal may be active via ``override_user`` and
@@ -124,14 +125,20 @@ def is_sanitization_required() -> bool:
             # ``override_user``). Fail closed: a guest principal may be active
             # and the redacted payload is delivered to the embedded viewer.
             return True
-        # Reading the token header and form field cannot raise, so this fallback
-        # is itself incapable of breaking the error handler. ``.get`` on the
-        # config keeps that guarantee even if the key is somehow absent.
+        # ``.get`` on the config keeps the header read from raising even if the
+        # key is somehow absent.
         header_name = current_app.config.get("GUEST_TOKEN_HEADER_NAME")
-        return bool(
-            (header_name and request.headers.get(header_name))
-            or request.form.get("guest_token")
-        )
+        if header_name and request.headers.get(header_name):
+            return True
+        try:
+            # ``request.form`` parses the body lazily on first access, which
+            # raises ``RequestEntityTooLarge``/``ClientDisconnected`` for an
+            # oversized or truncated body, or an ``OSError`` from the WSGI
+            # server's input stream or the multipart temp-file spool.
+            return bool(request.form.get("guest_token"))
+        except (HTTPException, OSError):
+            # The body can't be inspected, so fail closed.
+            return True
 
 
 def sanitize_error_message(
