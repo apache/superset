@@ -60,6 +60,7 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
     OptionalRowCount,
@@ -635,7 +636,7 @@ UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class MetricCurrency(BaseModel):
+class MetricCurrency(OmittedMeansUnchanged):
     """Currency formatting configuration for a metric."""
 
     symbol: str | None = Field(
@@ -648,7 +649,7 @@ class MetricCurrency(BaseModel):
     )
 
 
-class DatasetMetricProperties(BaseModel):
+class DatasetMetricProperties(OmittedMeansUnchanged):
     """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -946,7 +947,7 @@ UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class UpdateDatasetRequest(BaseModel):
+class UpdateDatasetRequest(OmittedMeansUnchanged):
     """Request schema for update_dataset."""
 
     model_config = ConfigDict(populate_by_name=True)
