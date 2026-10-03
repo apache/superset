@@ -244,12 +244,12 @@ def register_password_change_enforcement(app: Any) -> None:
         if not user or getattr(user, "is_anonymous", True):
             return None
 
-        if _is_exempt_endpoint(request.endpoint):
-            return None
-
-        # Exempt the whole registered health blueprint, including version(),
+        # The whole registered health blueprint, including version(), is exempt
         # independently of individual route paths or view function names.
-        if request.blueprint == health_blueprint.name:
+        if (
+            _is_exempt_endpoint(request.endpoint)
+            or request.blueprint == health_blueprint.name
+        ):
             return None
 
         if not password_change_required(user):
