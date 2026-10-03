@@ -24,6 +24,7 @@ import {
   getChartControlPanelRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
+  SupersetClient,
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
@@ -311,6 +312,48 @@ test('fetches datasource metadata when the datasource changes', async () => {
         `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
       ),
     ).toBe(true),
+  );
+});
+
+test('shows an error when fetching datasource metadata fails', async () => {
+  const datasourceKey = '3__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValueOnce(new Error('Request failed'));
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      (
+        store.getState() as {
+          messageToasts: { text: string }[];
+        }
+      ).messageToasts,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: 'Failed to load datasource metadata',
+        }),
+      ]),
+    ),
   );
 });
 
