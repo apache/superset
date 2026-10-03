@@ -3563,6 +3563,7 @@ class TestBigNumberHeadline:
         viz_type: str = "big_number",
         post_processing: list[dict[str, Any]] | None = None,
         limit: int | None = None,
+        cached_viz_type: str | None = None,
     ) -> dict[str, Any] | None:
         module = importlib.import_module(
             "superset.mcp_service.chart.tool.get_chart_data"
@@ -3586,7 +3587,23 @@ class TestBigNumberHeadline:
             def run(self) -> dict[str, Any]:
                 return {"queries": queries}
 
+        cached_form_data = {
+            "viz_type": cached_viz_type,
+            "metric": self._METRIC,
+            "datasource": "1__table",
+            **form_data,
+        }
         with (
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value=json.dumps(cached_form_data),
+            ),
+            patch.object(
+                module,
+                "build_query_context_from_form_data",
+                return_value=fake_load(None, {"queries": [{"row_limit": 50}]}),
+            ),
             patch.object(
                 module,
                 "find_chart_by_identifier",
@@ -3607,6 +3624,8 @@ class TestBigNumberHeadline:
         ):
             async with Client(mcp_server) as client:
                 request: dict[str, Any] = {"identifier": "108"}
+                if cached_viz_type:
+                    request["form_data_key"] = "big-number-edits"
                 if limit:
                     request["limit"] = limit
                 result = await client.call_tool("get_chart_data", {"request": request})
@@ -3705,3 +3724,38 @@ class TestBigNumberHeadline:
         )
 
         assert headline is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("saved_viz_type", "cached_viz_type", "expected_value", "expected_aggregation"),
+        [
+            ("table", "big_number", 6, "sum"),
+            ("big_number", "big_number_total", 1, "total"),
+            ("big_number_total", "big_number", 6, "sum"),
+            ("big_number", "table", None, None),
+        ],
+    )
+    async def test_headline_uses_the_unsaved_visualization_type(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        saved_viz_type: str,
+        cached_viz_type: str,
+        expected_value: int | None,
+        expected_aggregation: str | None,
+    ) -> None:
+        """Unsaved visualization changes determine which headline is displayed."""
+        headline = await self._headline(
+            mcp_server,
+            {"aggregation": "sum"},
+            [self._query([1, 2, 3])],
+            viz_type=saved_viz_type,
+            cached_viz_type=cached_viz_type,
+        )
+
+        if expected_aggregation is None:
+            assert headline is None
+        else:
+            assert headline is not None
+            assert headline["value"] == expected_value
+            assert headline["aggregation"] == expected_aggregation

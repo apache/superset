@@ -1078,7 +1078,10 @@ async def execute_chart_data(  # noqa: C901
                 data=data[: request.limit] if request.limit else data,
                 query_results=_build_query_results(result["queries"], request.limit),
                 headline=_big_number_headline(
-                    chart_viz_type, form_data, result["queries"], query_context
+                    form_data.get("viz_type") or chart_viz_type,
+                    form_data,
+                    result["queries"],
+                    query_context,
                 ),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),

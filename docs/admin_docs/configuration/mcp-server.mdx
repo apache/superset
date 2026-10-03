@@ -1519,7 +1519,9 @@ rather than being interpreted as one or zero rows.
 
 ## Chart data column counts
 
-Big Number headlines in `get_chart_data` accept both `columnName` and
+Big Number headlines in `get_chart_data` use the unsaved visualization type when
+`form_data_key` is supplied, including when switching to or from a Big Number
+chart. They accept both `columnName` and
 `column_name` for simple adhoc metrics. Latest-value computation uses the
 frontend's stable timestamp comparison: missing or unusable timestamps do not
 make the entire headline unavailable. Metric integers beyond floating-point range
