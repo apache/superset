@@ -81,6 +81,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     ExactJsonSafeMapping,
     ExactJsonSafeRows,
@@ -802,7 +803,7 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class BaseChartConfig(UnknownFieldCheckMixin):
+class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Fields shared by every MCP chart configuration."""
 
     temporal_column: str | None = Field(
@@ -829,7 +830,7 @@ class BaseChartConfig(UnknownFieldCheckMixin):
         )
 
 
-class ColumnRef(UnknownFieldCheckMixin):
+class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str | None = Field(
@@ -963,7 +964,7 @@ class ColumnRef(UnknownFieldCheckMixin):
         )
 
 
-class AxisConfig(UnknownFieldCheckMixin):
+class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore")
 
     title: str | None = Field(None, max_length=200)
@@ -1001,7 +1002,7 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(UnknownFieldCheckMixin):
+class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
@@ -3457,7 +3458,7 @@ class BigNumberChartConfig(BaseChartConfig):
         return self
 
 
-class TableColumnConfig(UnknownFieldCheckMixin):
+class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Display formatting supported by the MCP table-chart schema."""
 
     model_config = ConfigDict(
@@ -5308,7 +5309,9 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     )
 
 
-class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class UpdateChartRequest(
+    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: int | str = Field(

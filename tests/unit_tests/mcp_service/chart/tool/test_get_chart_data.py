@@ -813,6 +813,42 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(  # noqa: C901
     assert validated_values == [(Decimal("12.50"), Decimal("0.10000000000000000001"))]
 
 
+_UNSAVED_TABLE_FORM_DATA: dict[str, Any] = {
+    "datasource_id": 7,
+    "datasource_type": "table",
+    "datasource": "7__table",
+    "viz_type": "table",
+    "all_columns": ["value"],
+}
+
+
+def _patch_unsaved_get_data(
+    monkeypatch: pytest.MonkeyPatch,
+    command_cls: type,
+    form_data: dict[str, Any] | None = None,
+) -> None:
+    """Stub the collaborators ``get_chart_data`` uses for a cached form-data key."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    payload = json.dumps(form_data or _UNSAVED_TABLE_FORM_DATA)
+    monkeypatch.setattr(command_module, "ChartDataCommand", command_cls)
+    monkeypatch.setattr(module, "get_cached_form_data", lambda _key: payload)
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+
 @pytest.mark.asyncio
 async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
     app: Any,
@@ -907,17 +943,6 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
     """The chart entry point preserves dateutil's selected offset and instant."""
     from fastmcp import Client
 
-    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
-    command_module = importlib.import_module(
-        "superset.commands.chart.data.get_data_command"
-    )
-    form_data = {
-        "datasource_id": 7,
-        "datasource_type": "table",
-        "datasource": "7__table",
-        "viz_type": "table",
-        "all_columns": ["value"],
-    }
     values = [
         datetime(
             2024,
@@ -972,22 +997,7 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
         def run(self) -> dict[str, Any]:
             return producer_result
 
-    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
-    monkeypatch.setattr(
-        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
-    )
-    monkeypatch.setattr(
-        module,
-        "build_query_context_from_form_data",
-        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
-    )
-    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
-    monkeypatch.setattr(
-        module,
-        "event_logger",
-        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
-    )
-    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+    _patch_unsaved_get_data(monkeypatch, _Command)
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
@@ -1012,10 +1022,6 @@ async def test_unsaved_get_data_rejects_hostile_timezone_without_hooks(
     """The chart entry point rejects an untrusted timezone without invoking it."""
     from fastmcp import Client
 
-    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
-    command_module = importlib.import_module(
-        "superset.commands.chart.data.get_data_command"
-    )
     hostile = HostileTimezone()
     frame = pd.DataFrame(index=range(1))
     frame["value"] = pd.Series([datetime(2024, 1, 1, tzinfo=hostile)], dtype=object)
@@ -1031,29 +1037,7 @@ async def test_unsaved_get_data_rejects_hostile_timezone_without_hooks(
         def run(self) -> dict[str, Any]:
             return producer_result
 
-    form_data = {
-        "datasource_id": 7,
-        "datasource_type": "table",
-        "datasource": "7__table",
-        "viz_type": "table",
-        "all_columns": ["value"],
-    }
-    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
-    monkeypatch.setattr(
-        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
-    )
-    monkeypatch.setattr(
-        module,
-        "build_query_context_from_form_data",
-        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
-    )
-    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
-    monkeypatch.setattr(
-        module,
-        "event_logger",
-        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
-    )
-    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+    _patch_unsaved_get_data(monkeypatch, _Command)
 
     async with Client(mcp_server) as client:
         result = await client.call_tool(
