@@ -15,10 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from superset.dashboards.filter_scope import (
+    build_chart_layout_items,
     derive_json_metadata,
     derive_metadata_scopes,
     derive_scopes,
@@ -231,3 +235,57 @@ def test_derive_json_metadata_passes_through_unparsable_metadata() -> None:
 
     assert derive_json_metadata(dashboard, "not json") == "not json"  # type: ignore[arg-type]
     assert derive_json_metadata(dashboard, "[]") == "[]"  # type: ignore[arg-type]
+
+
+def test_derive_scopes_when_layout_is_not_a_mapping(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Valid JSON that is not an object yields empty scopes instead of raising.
+
+    ``Dashboard.position`` hands back whatever ``position_json`` parses to, so a
+    layout stored as a JSON string or array reaches the derivation as-is.
+    """
+    caplog.set_level(logging.WARNING, logger="superset.dashboards.filter_scope")
+    metadata = {
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-1",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "chartsInScope": [1, 2],
+                "tabsInScope": ["TAB-1"],
+            }
+        ],
+    }
+
+    position_data: Any
+    for position_data in ("not a layout", [], None):
+        assert build_chart_layout_items(position_data) == {}
+        derived = derive_scopes(metadata, position_data, CHART_IDS)
+        native_filter = derived["native_filter_configuration"][0]
+        assert native_filter["chartsInScope"] == []
+        assert native_filter["tabsInScope"] == []
+
+    assert caplog.text.count("layout is not a mapping") == 6
+
+
+def test_derive_json_metadata_when_layout_is_not_a_mapping() -> None:
+    """The ``GET /api/v1/dashboard/{id}`` path for a string ``position_json``."""
+    dashboard = SimpleNamespace(
+        position=json.loads(json.dumps("not a layout")),
+        slices=[SimpleNamespace(id=1)],
+    )
+    stored = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [1],
+                }
+            ]
+        }
+    )
+
+    derived = json.loads(derive_json_metadata(dashboard, stored))  # type: ignore[arg-type]
+
+    assert derived["native_filter_configuration"][0]["chartsInScope"] == []
