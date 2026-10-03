@@ -134,8 +134,8 @@ def test_cancel_query_stops_a_running_statement(engine: Engine) -> None:
                 # A tight PL/SQL loop: CPU-bound with O(1) memory, needs no
                 # privileges beyond CREATE SESSION, and (measured directly
                 # against this same image) ~8s at 500M iterations -- plenty
-                # of margin over the 1.5s delay below. Two things this is
-                # NOT, both tried first:
+                # of margin over the cancel, which fires as soon as the
+                # session reports ACTIVE. Two things this is NOT, both tried first:
                 #   - `CONNECT BY LEVEL <= n`: materializes the whole
                 #     hierarchy and hits ORA-30009 "not enough memory" long
                 #     before a count this large finishes -- that failure has
