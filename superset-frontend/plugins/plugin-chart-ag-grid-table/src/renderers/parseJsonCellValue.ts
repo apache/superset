@@ -182,10 +182,7 @@ function exceedsPreviewBudget(value: JsonContainer): boolean {
       return true;
     }
     for (let index = keys.length - 1; index >= 0; index -= 1) {
-      const key = keys[index];
-      if (key !== undefined) {
-        stack.push({ node: node[key], depth: depth + 1 });
-      }
+      stack.push({ node: node[keys[index]], depth: depth + 1 });
     }
   }
   return false;

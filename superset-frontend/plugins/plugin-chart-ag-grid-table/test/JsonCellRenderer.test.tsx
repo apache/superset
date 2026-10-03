@@ -42,6 +42,16 @@ import { CellRendererProps } from '../src/types';
 
 const nestedJson = '{"user":"ada","address":{"city":"London"}}';
 
+const textCellParams = {
+  value: nestedJson,
+  valueFormatted: nestedJson,
+  node: { rowPinned: undefined },
+  api: {},
+  colDef: { field: 'payload', autoHeight: true },
+  columns: [],
+  allowRenderHtml: true,
+} as unknown as CellRendererProps;
+
 test('parseJsonCellValue accepts objects and arrays only', () => {
   expect(parseJsonCellValue('{"a":1}')).toEqual({ a: 1 });
   expect(parseJsonCellValue('  [1, 2]  ')).toEqual([1, 2]);
@@ -515,38 +525,30 @@ test('copy reports failure when the clipboard is missing or rejects', async () =
 });
 
 test('text cells render JSON, and leave other strings untouched', () => {
-  const jsonParams = {
-    value: nestedJson,
-    valueFormatted: nestedJson,
-    node: { rowPinned: undefined },
-    api: {},
-    colDef: { field: 'payload', autoHeight: true },
-    columns: [],
-    allowRenderHtml: true,
-  } as unknown as CellRendererProps;
-
-  const { unmount } = render(<TextCellRenderer {...jsonParams} />);
+  const { unmount } = render(<TextCellRenderer {...textCellParams} />);
   expect(screen.getByTestId('json-cell-preview')).toHaveTextContent('ada');
   unmount();
 
-  const textParams = {
-    ...jsonParams,
-    value: 'plain text',
-    valueFormatted: 'plain text',
-  } as CellRendererProps;
-  const { unmount: unmountText } = render(<TextCellRenderer {...textParams} />);
+  const { unmount: unmountText } = render(
+    <TextCellRenderer
+      {...textCellParams}
+      value="plain text"
+      valueFormatted="plain text"
+    />,
+  );
   expect(screen.getByText('plain text')).toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: 'Expand JSON' }),
   ).not.toBeInTheDocument();
   unmountText();
 
-  const linkParams = {
-    ...jsonParams,
-    value: 'https://example.com',
-    valueFormatted: 'https://example.com',
-  } as CellRendererProps;
-  render(<TextCellRenderer {...linkParams} />);
+  render(
+    <TextCellRenderer
+      {...textCellParams}
+      value="https://example.com"
+      valueFormatted="https://example.com"
+    />,
+  );
   expect(screen.getByRole('link')).toHaveAttribute(
     'href',
     'https://example.com',
@@ -556,14 +558,10 @@ test('text cells render JSON, and leave other strings untouched', () => {
 test('JSON that the HTML renderer would claim stays HTML', () => {
   const htmlJson = '{"message":"<b>ok</b>"}';
   const params = {
+    ...textCellParams,
     value: htmlJson,
     valueFormatted: htmlJson,
-    node: { rowPinned: undefined },
-    api: {},
-    colDef: { field: 'payload', autoHeight: true },
-    columns: [],
-    allowRenderHtml: true,
-  } as unknown as CellRendererProps;
+  };
 
   const { container, unmount } = render(<TextCellRenderer {...params} />);
   expect(screen.queryByTestId('json-cell')).not.toBeInTheDocument();
