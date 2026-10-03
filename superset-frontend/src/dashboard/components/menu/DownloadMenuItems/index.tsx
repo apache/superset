@@ -37,6 +37,11 @@ import handleResourceExport, {
   getFilenameFromResponse,
 } from 'src/utils/export';
 import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+  withDownloadReason,
+} from 'src/utils/downloadReason';
+import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
@@ -312,13 +317,24 @@ export const useDownloadMenuItems = (
   };
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
+    let downloadReason = '';
+    if (isDownloadReasonRequired()) {
+      const reason = await requestDownloadReason();
+      if (reason === null) {
+        return; // the user cancelled the download reason dialog
+      }
+      downloadReason = reason;
+    }
     setExportingXlsx(mode);
     const progressToast = addInfoToast(t('Preparing dashboard Excel export…'), {
       duration: -1,
     });
     try {
       const response = await SupersetClient.post({
-        endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+        endpoint: withDownloadReason(
+          `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+          downloadReason,
+        ),
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
         // Parse the queued response or workbook after checking its status.
         parseMethod: 'raw',
