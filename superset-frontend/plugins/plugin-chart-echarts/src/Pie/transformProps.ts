@@ -368,7 +368,9 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn =
+    chartProps.colorScale ??
+    CategoricalColorNamespace.getScale(colorScheme as string);
 
   let totalValue = 0;
 
