@@ -227,6 +227,18 @@ test('a wrapping column shows the original JSON across lines', () => {
   expect(preview).toHaveAttribute('data-wrap', 'true');
 });
 
+test('a wrapping column abbreviates an oversized parsed value', () => {
+  render(
+    <JsonCellRenderer
+      value={Array.from({ length: 100_001 }, () => 1)}
+      colId="payload"
+      autoHeight
+      wrapText
+    />,
+  );
+  expect(screen.getByTestId('json-cell-preview')).toHaveTextContent('[…]');
+});
+
 test('JSON in cell keeps a one-line preview in a wrapping column', () => {
   const raw = '{\n  "user": "ada"\n}';
   render(

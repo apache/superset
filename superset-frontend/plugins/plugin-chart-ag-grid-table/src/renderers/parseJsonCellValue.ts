@@ -216,3 +216,15 @@ export function jsonCellPreview(
     return Array.isArray(value) ? '[…]' : '{…}';
   }
 }
+
+/** Multiline text for a wrapping column. Oversized values stay abbreviated. */
+export function jsonCellWrappedText(value: JsonContainer): string {
+  if (exceedsPreviewBudget(value)) {
+    return jsonCellPreview(value);
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return jsonCellPreview(value);
+  }
+}

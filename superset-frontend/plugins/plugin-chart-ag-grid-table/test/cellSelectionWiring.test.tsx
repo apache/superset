@@ -130,7 +130,7 @@ test('a JSON control click skips cross-filtering and a text click still applies 
 
   onCellClicked({
     ...untoggleEvent,
-    event: { target: document.createElement('span'), detail: 2 },
+    event: { target: document.createElement('span') },
   });
   expect(setDataMask).toHaveBeenCalledTimes(1);
 });

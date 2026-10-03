@@ -28,7 +28,11 @@ import {
 import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Button, Icons, Modal } from '@superset-ui/core/components';
-import { type JsonContainer, jsonCellPreview } from './parseJsonCellValue';
+import {
+  type JsonContainer,
+  jsonCellPreview,
+  jsonCellWrappedText,
+} from './parseJsonCellValue';
 import { syncJsonCellRowHeight } from './jsonCellRowHeight';
 
 const MAX_JSON_DEPTH = 32;
@@ -398,6 +402,7 @@ export function JsonCellRenderer({
 
   const showTree = jsonInCell && expanded;
   const wrapPreview = wrapText && !jsonInCell;
+  const dataWrap = wrapPreview ? 'true' : 'false';
   const preview = useMemo(() => {
     if (!wrapPreview) {
       return jsonCellPreview(value, rawText);
@@ -405,11 +410,7 @@ export function JsonCellRenderer({
     if (rawText !== undefined) {
       return rawText;
     }
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch {
-      return jsonCellPreview(value);
-    }
+    return jsonCellWrappedText(value);
   }, [rawText, value, wrapPreview]);
   const openBrace = Array.isArray(value) ? '[' : '{';
   const closeBrace = Array.isArray(value) ? ']' : '}';
@@ -500,7 +501,7 @@ export function JsonCellRenderer({
 
   return (
     <Root ref={rootRef} data-test="json-cell">
-      <Toolbar data-wrap={wrapPreview ? 'true' : 'false'}>
+      <Toolbar data-wrap={dataWrap}>
         {jsonInCell && (
           <JsonActionButton
             label={expanded ? t('Collapse JSON') : t('Expand JSON')}
@@ -521,7 +522,7 @@ export function JsonCellRenderer({
           ) : (
             <Preview
               data-test="json-cell-preview"
-              data-wrap={wrapPreview ? 'true' : 'false'}
+              data-wrap={dataWrap}
               title={
                 preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
               }
