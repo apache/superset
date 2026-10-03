@@ -19,6 +19,7 @@
 import copy
 from collections.abc import Generator
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -767,9 +768,9 @@ EXISTING_UUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 FRESH_UUID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 
 
-def _make_bundle(slug: str | None) -> dict[str, str]:
+def _make_bundle(slug: str | None) -> dict[str, Any]:
     """Minimal dashboard bundle: metadata + one dashboard config."""
-    dashboard = {
+    dashboard: dict[str, Any] = {
         "dashboard_title": "Incoming dash",
         "description": None,
         "css": "",
@@ -864,6 +865,33 @@ def test_import_slug_collision_same_uuid_not_flagged(
 
     # exactly one validation error, from the UUID branch, not two
     assert len(excinfo.value._exceptions) == 1
+    assert excinfo.value._exceptions[0].messages["dashboards/incoming.yaml"] == (
+        "Dashboard already exists and `overwrite=true` was not passed"
+    )
+
+
+def test_import_empty_slug_collision_is_flagged(session: Session) -> None:
+    """``import_dashboard()`` treats ``slug=""`` as an identity value (its
+    collision branch tests ``is not None``), so the overwrite gate has to as
+    well: an incoming empty slug resolving onto an active dashboard that
+    already carries one is a silent merge, not a no-op."""
+    engine = session.get_bind()
+    Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+
+    existing = Dashboard(
+        dashboard_title="Empty slug dash",
+        slug="",
+        slices=[],
+        published=True,
+        uuid=EXISTING_UUID,
+    )
+    session.add(existing)
+    session.flush()
+
+    command = ImportDashboardsCommand(_make_bundle(""), overwrite=False)
+    with pytest.raises(CommandInvalidError) as excinfo:
+        command.validate()
+
     assert excinfo.value._exceptions[0].messages["dashboards/incoming.yaml"] == (
         "Dashboard already exists and `overwrite=true` was not passed"
     )

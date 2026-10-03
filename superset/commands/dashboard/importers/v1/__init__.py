@@ -108,7 +108,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
             return
         for file_name, config in self._configs.items():
             slug = config.get("slug")
-            if not slug or not file_name.startswith(self.prefix):
+            # ``slug is None`` rather than ``not slug``: ``import_dashboard()``
+            # resolves a slug collision with ``is not None``, so an empty-string
+            # slug is an identity value there and must be gated here too.
+            if slug is None or not file_name.startswith(self.prefix):
                 continue
             owner = (
                 db.session.query(Dashboard)
