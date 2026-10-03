@@ -31,6 +31,7 @@ import pytest
 from superset.mcp_service.chart.big_number_headline import (
     compute_big_number_headline,
     executed_query_facts,
+    is_big_number_viz_type,
 )
 
 METRIC = "SUM(ytd_sales)"
@@ -356,17 +357,35 @@ def test_no_rolling_window_needs_no_post_processing(rolling_type: Any) -> None:
     assert headline.value == 6
 
 
-def test_last_value_without_usable_times_has_no_headline() -> None:
-    rows: list[dict[str, Any]] = [
-        {"__timestamp": None, METRIC: 1},
-        {"__timestamp": 5, METRIC: 2},
-    ]
+@pytest.mark.parametrize("timestamp", [None, "invalid", float("nan")])
+@pytest.mark.parametrize("missing_first", [False, True])
+def test_last_value_keeps_unusable_timestamp_rows_stable(
+    timestamp: str | float | None, missing_first: bool
+) -> None:
+    """An unusable timestamp preserves order rather than hiding the headline."""
+    undated = {"__timestamp": timestamp, METRIC: 1}
+    dated = {"__timestamp": 5, METRIC: 2}
+    rows: list[dict[str, Any]] = [undated, dated] if missing_first else [dated, undated]
 
     headline = _headline(rows, aggregation="LAST_VALUE")
 
     assert headline is not None
-    assert headline.value is None
-    assert "time" in (headline.reason or "")
+    assert headline.value == (1 if missing_first else 2)
+    assert headline.rows_used == 2
+
+
+def test_last_value_with_missing_timestamp_skips_null_metric() -> None:
+    """A null metric with no timestamp does not prevent the latest headline."""
+    headline = _headline(
+        [
+            {METRIC: None},
+            {"__timestamp": 1, METRIC: 2},
+            {"__timestamp": 2, METRIC: 3},
+        ]
+    )
+
+    assert headline is not None
+    assert headline.value == 3
 
 
 def test_order_independent_aggregations_need_no_times() -> None:
@@ -454,3 +473,56 @@ def test_executed_query_facts_reads_limit_and_operations() -> None:
 )
 def test_executed_query_facts_tolerates_missing_attributes(query_context: Any) -> None:
     assert executed_query_facts(query_context) == (None, [])
+
+
+@pytest.mark.parametrize("viz_type", ["big_number", "big_number_total"])
+@pytest.mark.parametrize(
+    "column",
+    [
+        {"columnName": "ytd_sales"},
+        {"column_name": "ytd_sales"},
+        {"columnName": "ytd_sales", "column_name": "other"},
+    ],
+)
+def test_simple_adhoc_metric_column_aliases(
+    viz_type: str, column: dict[str, str]
+) -> None:
+    """Simple adhoc labels accept both aliases, preferring camelCase."""
+    metric = {"expressionType": "SIMPLE", "aggregate": "SUM", "column": column}
+    headline = compute_big_number_headline(
+        viz_type, {"metric": metric}, [{"data": [{METRIC: 7}]}]
+    )
+
+    assert headline is not None
+    assert headline.value == 7
+    assert metric["column"] == column
+
+
+@pytest.mark.parametrize("viz_type", ["big_number", "big_number_total"])
+@pytest.mark.parametrize("value", [10**400, -(10**400)])
+def test_huge_integer_metric_is_unavailable(viz_type: str, value: int) -> None:
+    """Integers beyond float range return a null headline without crashing."""
+    headline = _headline(_trend_rows([value]), viz_type=viz_type)
+
+    assert headline is not None
+    assert headline.value is None
+    assert headline.reason
+
+
+@pytest.mark.parametrize("viz_type", ["big_number", "big_number_total"])
+def test_empty_form_data_is_safe(viz_type: str) -> None:
+    """Empty form data lacks a metric but remains a valid mapping."""
+    headline = compute_big_number_headline(viz_type, {}, [{"data": [{METRIC: 7}]}])
+
+    assert headline is not None
+    assert headline.value is None
+    assert "metric column" in (headline.reason or "")
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "expected"),
+    [("big_number", True), ("big_number_total", True), ("table", False), (None, False)],
+)
+def test_is_big_number_viz_type(viz_type: str | None, expected: bool) -> None:
+    """Only the two Big Number visualization types have a headline."""
+    assert is_big_number_viz_type(viz_type) is expected

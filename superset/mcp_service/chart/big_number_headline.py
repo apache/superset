@@ -36,9 +36,11 @@ import statistics
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any
+from functools import cmp_to_key
+from typing import Any, cast
 
 from superset.mcp_service.chart.schemas import BigNumberHeadline
+from superset.superset_typing import Metric
 from superset.utils.core import DTTM_ALIAS, get_metric_name
 
 BIG_NUMBER_TRENDLINE_VIZ_TYPE = "big_number"
@@ -71,6 +73,7 @@ _ROLLING_OPERATIONS = {
 
 
 def is_big_number_viz_type(viz_type: str | None) -> bool:
+    """Whether the visualization displays a Big Number headline."""
     return viz_type in (BIG_NUMBER_TRENDLINE_VIZ_TYPE, BIG_NUMBER_TOTAL_VIZ_TYPE)
 
 
@@ -94,6 +97,7 @@ def executed_query_facts(query_context: Any) -> tuple[int | None, list[str]]:
 
 
 def _unavailable(aggregation: str | None, reason: str) -> BigNumberHeadline:
+    """Return an unavailable headline with its explanation."""
     return BigNumberHeadline(value=None, aggregation=aggregation, reason=reason)
 
 
@@ -118,7 +122,10 @@ def _parse_metric_value(value: Any) -> int | float | None:
     if isinstance(value, Decimal):
         value = float(value)
     if isinstance(value, (int, float)):
-        return value if math.isfinite(value) else None
+        try:
+            return value if math.isfinite(value) else None
+        except OverflowError:
+            return None
     if isinstance(value, datetime):
         if value.tzinfo is None:
             value = value.replace(tzinfo=timezone.utc)
@@ -132,16 +139,25 @@ def _timestamp_ms(value: Any) -> float | None:
     """Sortable time value for an x-axis cell (the API serializes these as epoch
     ms; direct query results may carry datetimes)."""
     if isinstance(value, date) and not isinstance(value, datetime):
-        value = datetime(value.year, value.month, value.day)
+        value = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
     return _parse_metric_value(value)
 
 
 def _metric_label(form_data: Mapping[str, Any]) -> str | None:
+    """Resolve the metric label using the frontend column-name aliases."""
     metric = form_data.get("metric")
     if not metric:
         return None
+    if (
+        isinstance(metric, Mapping)
+        and not metric.get("label")
+        and metric.get("expressionType") == "SIMPLE"
+    ):
+        column = metric.get("column")
+        if isinstance(column, Mapping) and column.get("columnName"):
+            return f"{metric.get('aggregate')}({column['columnName']})"
     try:
-        return get_metric_name(metric) or None
+        return get_metric_name(cast(Metric, metric)) or None
     except (ValueError, TypeError, AttributeError):
         return None
 
@@ -257,24 +273,36 @@ def _trend_values(
     rows: Sequence[Mapping[str, Any]],
     *,
     newest_first: bool,
-) -> list[int | float] | None:
-    """Non-null metric values; ordered newest first when `newest_first`. None
-    when that order cannot be established from the rows."""
-    x_label = next((name for name in x_labels if name in rows[0]), None)
-    dated: list[tuple[float | None, int | float]] = []
-    for row in rows:
-        value = _parse_metric_value(row.get(label))
-        if value is not None:
-            timestamp = _timestamp_ms(row.get(x_label)) if x_label else None
-            dated.append((timestamp, value))
-    if not newest_first or len(dated) < 2:
-        return [value for _, value in dated]
-    stamped = [(ts, value) for ts, value in dated if ts is not None]
-    if len(stamped) != len(dated):
-        return None
-    # Stable, like the frontend's descending sort by timestamp.
-    stamped.sort(key=lambda item: item[0], reverse=True)
-    return [value for _, value in stamped]
+) -> list[int | float]:
+    """Non-null metric values, using the frontend's stable timestamp sort."""
+    if not newest_first:
+        return [
+            value
+            for row in rows
+            if (value := _parse_metric_value(row.get(label))) is not None
+        ]
+    x_label = next(
+        (name for name in x_labels if any(name in row for row in rows)), None
+    )
+    dated = [
+        (
+            _timestamp_ms(row.get(x_label)) if x_label else None,
+            _parse_metric_value(row.get(label)),
+        )
+        for row in rows
+    ]
+
+    def compare(
+        left: tuple[float | None, int | float | None],
+        right: tuple[float | None, int | float | None],
+    ) -> int:
+        """Keep rows with unusable timestamps stable, as the frontend does."""
+        if left[0] is None or right[0] is None:
+            return 0
+        return (right[0] > left[0]) - (right[0] < left[0])
+
+    dated.sort(key=cmp_to_key(compare))
+    return [value for _, value in dated if value is not None]
 
 
 def compute_big_number_headline(
@@ -334,10 +362,6 @@ def compute_big_number_headline(
         rows,
         newest_first=key in (DEFAULT_AGGREGATION, RAW_AGGREGATION),
     )
-    if values is None:
-        return _unavailable(
-            key, "The rows have no usable time values to find the latest one."
-        )
     result = _AGGREGATIONS[key](values)
     if result is None:
         return _unavailable(key, "The series has no non-null values.")
