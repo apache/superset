@@ -196,8 +196,8 @@ function checkNoDirectAntdImports(ast, filepath) {
   }
 
   traverse(ast, {
-    ImportDeclaration(path) {
-      const source = path.node.source.value;
+    'ImportDeclaration|ExportNamedDeclaration|ExportAllDeclaration'(path) {
+      const source = path.node.source?.value ?? '';
       if (source === 'antd' || source.startsWith('antd/')) {
         if (hasEslintDisable(path, 'no-restricted-imports')) return;
 
