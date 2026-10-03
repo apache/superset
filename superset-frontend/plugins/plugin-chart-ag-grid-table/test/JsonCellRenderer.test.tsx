@@ -34,10 +34,7 @@ import {
 } from '../src/renderers/parseJsonCellValue';
 import { syncJsonCellRowHeight } from '../src/renderers/jsonCellRowHeight';
 import { TextCellRenderer } from '../src/renderers/TextCellRenderer';
-import {
-  isJsonCellActionTarget,
-  isJsonCellDoubleClick,
-} from '../src/utils/isJsonCellActionTarget';
+import { isJsonCellActionTarget } from '../src/utils/isJsonCellActionTarget';
 import { CellRendererProps } from '../src/types';
 
 const nestedJson = '{"user":"ada","address":{"city":"London"}}';
@@ -77,13 +74,14 @@ test('parseJsonCellValue reuses a parsed string and skips oversized text', () =>
 });
 
 test('parseJsonCellValue drops the oldest cached string when the cache is full', () => {
-  const first = parseJsonCellValue('{"n":0}');
-  for (let index = 1; index < 200; index += 1) {
-    parseJsonCellValue(`{"n":${index}}`);
+  const filler = 'x'.repeat(40_000);
+  const firstText = `{"n":"0${filler}"}`;
+  const first = parseJsonCellValue(firstText);
+  for (let index = 1; index <= 12; index += 1) {
+    parseJsonCellValue(`{"n":"${index}${filler}"}`);
   }
-  parseJsonCellValue('{"extra":1}');
-  expect(parseJsonCellValue('{"n":0}')).not.toBe(first);
-  expect(parseJsonCellValue('{"n":0}')).toEqual({ n: 0 });
+  expect(parseJsonCellValue(firstText)).not.toBe(first);
+  expect(parseJsonCellValue(firstText)).toEqual({ n: `0${filler}` });
 });
 
 test('jsonCellPreview collapses formatting whitespace and keeps string contents', () => {
@@ -141,28 +139,12 @@ test('syncJsonCellRowHeight ignores a collapse that was never expanded', () => {
 
 test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   document.body.innerHTML =
-    '<div data-json-cell="true"><div data-json-cell-action="true"><span id="json-action"></span></div><span id="json-text"></span></div><span id="plain"></span>';
+    '<div data-json-cell-action="true"><span id="json-action"></span></div><span id="plain"></span>';
   expect(isJsonCellActionTarget(document.getElementById('json-action'))).toBe(
     true,
   );
   expect(isJsonCellActionTarget(document.getElementById('plain'))).toBe(false);
   expect(isJsonCellActionTarget(null)).toBe(false);
-
-  const text = document.getElementById('json-text');
-  const secondClick = new MouseEvent('click', { detail: 2 });
-  expect(isJsonCellDoubleClick(secondClick, text)).toBe(true);
-  expect(
-    isJsonCellDoubleClick(new MouseEvent('click', { detail: 1 }), text),
-  ).toBe(false);
-  expect(
-    isJsonCellDoubleClick(secondClick, document.getElementById('plain')),
-  ).toBe(false);
-  expect(isJsonCellDoubleClick(null, text)).toBe(false);
-  expect(isJsonCellDoubleClick(secondClick, null)).toBe(false);
-  expect(isJsonCellDoubleClick(new Event('click'), text)).toBe(false);
-  expect(isJsonCellDoubleClick({ detail: '2' } as unknown as Event, text)).toBe(
-    false,
-  );
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {
@@ -227,6 +209,39 @@ test('expanded JSON asks an auto-height grid to remeasure the row', async () => 
     await screen.findByRole('button', { name: 'Collapse JSON' }),
   ).toBeInTheDocument();
   expect(resetRowHeights).toHaveBeenCalled();
+});
+
+test('a wrapping column shows the original JSON across lines', () => {
+  const raw = '{\n  "user": "ada"\n}';
+  render(
+    <JsonCellRenderer
+      value={{ user: 'ada' }}
+      rawText={raw}
+      colId="payload"
+      autoHeight
+      wrapText
+    />,
+  );
+  const preview = screen.getByTestId('json-cell-preview');
+  expect(preview.textContent).toBe(raw);
+  expect(preview).toHaveAttribute('data-wrap', 'true');
+});
+
+test('JSON in cell keeps a one-line preview in a wrapping column', () => {
+  const raw = '{\n  "user": "ada"\n}';
+  render(
+    <JsonCellRenderer
+      value={{ user: 'ada' }}
+      rawText={raw}
+      colId="payload"
+      autoHeight
+      wrapText
+      jsonInCell
+    />,
+  );
+  const preview = screen.getByTestId('json-cell-preview');
+  expect(preview.textContent).toBe('{ "user": "ada" }');
+  expect(preview).toHaveAttribute('data-wrap', 'false');
 });
 
 test('the default cell is a collapsed preview without an arrow', async () => {

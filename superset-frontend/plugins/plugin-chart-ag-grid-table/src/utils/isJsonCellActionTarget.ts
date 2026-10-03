@@ -17,28 +17,11 @@
  * under the License.
  */
 
-import { JSON_CELL_ACTION_SELECTOR, JSON_CELL_SELECTOR } from '../consts';
+import { JSON_CELL_ACTION_SELECTOR } from '../consts';
 
 export function isJsonCellActionTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
     target.closest(JSON_CELL_ACTION_SELECTOR) !== null
   );
-}
-
-/** The second click of a double-click on JSON text. It leaves the cross-filter applied by the first click in place. */
-export function isJsonCellDoubleClick(
-  nativeEvent: Event | null | undefined,
-  target: EventTarget | null,
-): boolean {
-  if (
-    !nativeEvent ||
-    !('detail' in nativeEvent) ||
-    typeof nativeEvent.detail !== 'number' ||
-    nativeEvent.detail < 2 ||
-    !(target instanceof Element)
-  ) {
-    return false;
-  }
-  return target.closest(JSON_CELL_SELECTOR) !== null;
 }

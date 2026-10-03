@@ -20,11 +20,13 @@
 export type JsonContainer = Record<string, unknown> | unknown[];
 
 // Visible cells are parsed on the render path. Above this size the cell stays
-// plain text. Parsed results are reused for the same string.
+// plain text. Parsed results are reused for the same string, up to a total
+// length so a session of large values cannot keep every one of them.
 const MAX_JSON_CELL_LENGTH = 100_000;
-const PARSE_CACHE_LIMIT = 200;
+const PARSE_CACHE_MAX_LENGTH = 500_000;
 
 const parsedJsonCache = new Map<string, JsonContainer | null>();
+let parsedJsonCacheLength = 0;
 
 function isJsonContainer(value: unknown): value is JsonContainer {
   if (value === null || typeof value !== 'object') {
@@ -48,13 +50,22 @@ function rememberParse(
   text: string,
   parsed: JsonContainer | null,
 ): JsonContainer | null {
-  if (parsedJsonCache.size >= PARSE_CACHE_LIMIT) {
+  if (text.length > PARSE_CACHE_MAX_LENGTH) {
+    return parsed;
+  }
+  while (
+    parsedJsonCacheLength + text.length > PARSE_CACHE_MAX_LENGTH &&
+    parsedJsonCache.size > 0
+  ) {
     const oldest = parsedJsonCache.keys().next().value;
-    if (oldest !== undefined) {
-      parsedJsonCache.delete(oldest);
+    if (oldest === undefined) {
+      break;
     }
+    parsedJsonCache.delete(oldest);
+    parsedJsonCacheLength -= oldest.length;
   }
   parsedJsonCache.set(text, parsed);
+  parsedJsonCacheLength += text.length;
   return parsed;
 }
 

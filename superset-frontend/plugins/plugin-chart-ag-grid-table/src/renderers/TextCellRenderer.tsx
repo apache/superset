@@ -86,6 +86,7 @@ export const TextCellRenderer = (params: CellRendererProps) => {
         rawText={typeof value === 'string' ? value : undefined}
         colId={colDef?.field || colDef?.colId || 'json'}
         autoHeight={Boolean(colDef?.autoHeight)}
+        wrapText={Boolean(colDef?.wrapText)}
         jsonInCell={jsonInCell}
         api={api}
         node={node}

@@ -51,6 +51,7 @@ export type JsonCellRendererProps = {
   rawText?: string;
   colId: string;
   autoHeight: boolean;
+  wrapText?: boolean;
   jsonInCell?: boolean;
   api?: JsonCellGridApi;
   node?: JsonCellRowNode;
@@ -75,6 +76,10 @@ const Toolbar = styled.div`
     align-items: center;
     gap: ${theme.sizeUnit}px;
     min-width: 0;
+
+    &[data-wrap='true'] {
+      align-items: flex-start;
+    }
   `}
 `;
 
@@ -91,6 +96,13 @@ const Preview = styled.span`
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+
+  &[data-wrap='true'] {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 `;
 
 const JsonToggle = styled.button`
@@ -364,6 +376,7 @@ export function JsonCellRenderer({
   rawText,
   colId,
   autoHeight,
+  wrapText = false,
   jsonInCell = false,
   api,
   node,
@@ -384,10 +397,20 @@ export function JsonCellRenderer({
   });
 
   const showTree = jsonInCell && expanded;
-  const preview = useMemo(
-    () => jsonCellPreview(value, rawText),
-    [rawText, value],
-  );
+  const wrapPreview = wrapText && !jsonInCell;
+  const preview = useMemo(() => {
+    if (!wrapPreview) {
+      return jsonCellPreview(value, rawText);
+    }
+    if (rawText !== undefined) {
+      return rawText;
+    }
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return jsonCellPreview(value);
+    }
+  }, [rawText, value, wrapPreview]);
   const openBrace = Array.isArray(value) ? '[' : '{';
   const closeBrace = Array.isArray(value) ? ']' : '}';
 
@@ -476,8 +499,8 @@ export function JsonCellRenderer({
   }, [rawText, value]);
 
   return (
-    <Root ref={rootRef} data-json-cell data-test="json-cell">
-      <Toolbar>
+    <Root ref={rootRef} data-test="json-cell">
+      <Toolbar data-wrap={wrapPreview ? 'true' : 'false'}>
         {jsonInCell && (
           <JsonActionButton
             label={expanded ? t('Collapse JSON') : t('Expand JSON')}
@@ -498,6 +521,7 @@ export function JsonCellRenderer({
           ) : (
             <Preview
               data-test="json-cell-preview"
+              data-wrap={wrapPreview ? 'true' : 'false'}
               title={
                 preview.length <= PREVIEW_TITLE_MAX_LENGTH ? preview : undefined
               }

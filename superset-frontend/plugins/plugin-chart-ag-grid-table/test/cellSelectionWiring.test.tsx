@@ -76,7 +76,7 @@ test('interactive table selects the cell on click (text selection disabled) and 
   expect(typeof captured.props?.onCellKeyDown).toBe('function');
 });
 
-test('a JSON control click and the second click of a double-click skip cross-filtering', async () => {
+test('a JSON control click skips cross-filtering and a text click still applies it', async () => {
   const setDataMask = jest.fn();
   const renderWithMask = () => {
     captured.props = undefined;
@@ -128,14 +128,11 @@ test('a JSON control click and the second click of a double-click skip cross-fil
   onCellClicked({ ...untoggleEvent, event: { target: action, detail: 1 } });
   expect(setDataMask).not.toHaveBeenCalled();
 
-  const cell = document.createElement('div');
-  cell.setAttribute('data-json-cell', 'true');
-  const text = document.createElement('span');
-  cell.appendChild(text);
-  document.body.appendChild(cell);
-  onCellClicked({ ...untoggleEvent, event: { target: text, detail: 2 } });
-  expect(setDataMask).not.toHaveBeenCalled();
-  cell.remove();
+  onCellClicked({
+    ...untoggleEvent,
+    event: { target: document.createElement('span'), detail: 2 },
+  });
+  expect(setDataMask).toHaveBeenCalledTimes(1);
 });
 
 test('the wired onCellKeyDown copies the focused cell value on Ctrl/Cmd+C', async () => {

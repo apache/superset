@@ -45,10 +45,6 @@ export const FILTER_CONDITION_BODY_INDEX = {
 
 export const ROW_NUMBER_COL_ID = '__row_number__';
 
-// The JSON cell root. The second click of a double-click on its text leaves
-// an existing cross-filter in place.
-export const JSON_CELL_SELECTOR = '[data-json-cell]';
-
 // Expand and view controls inside a JSON cell. A click on them skips
 // cross-filtering and row selection.
 export const JSON_CELL_ACTION_SELECTOR = '[data-json-cell-action]';
