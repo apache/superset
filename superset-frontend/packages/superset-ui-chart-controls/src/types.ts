@@ -98,12 +98,32 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Self-contained summary for the partition pruning indicator. Kept separate
+  // from `columns` because the dashboard payload prunes columns no chart
+  // references, and the partition column is typically referenced by none.
+  partition_filter_mapping?: PartitionFilterMapping | null;
   extra?: object | string;
   /**
    * Stable string values of the features a semantic view's provider declares.
    * Only present for semantic views; absent elsewhere.
    */
   semantic_view_features?: string[];
+}
+
+export interface PartitionFilterMapping {
+  partition_column: string;
+  mapped_column: string | null;
+  active: boolean;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
 }
 
 export interface ControlPanelState {
@@ -271,6 +291,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */

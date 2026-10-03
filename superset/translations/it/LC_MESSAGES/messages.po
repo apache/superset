@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -274,6 +274,10 @@ msgid "%(name)s deleted successfully"
 msgstr "%(name)s eliminato con successo"
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr "%(name)s ripristinato con successo"
 
@@ -311,6 +315,12 @@ msgstr[1] "%(num)d secondi"
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s non esiste in questo database."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1197,6 +1207,18 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "Un Numero Grande"
 
@@ -1213,6 +1235,11 @@ msgstr ""
 "sovrascrive le altre opzioni di controllo con priorità più elevata. (ad "
 "es. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Dettagli: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
@@ -1444,6 +1471,12 @@ msgstr "Raggiunto timeout nel generare uno screenshot."
 # uk, zh, zh_TW]
 msgid "A valid color scheme is required"
 msgstr "È richiesta una combinazione di colori valida"
+
+#, python-format
+msgid ""
+"A value transform is required on %(name)s, which is not a temporal "
+"column. Use :value for each value."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -3961,6 +3994,9 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr "Si possono selezionare più valori"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -5223,6 +5259,11 @@ msgstr ""
 msgid "Column type"
 msgstr "Tipo di colonna"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "Caricamento colonnare"
 
@@ -6225,6 +6266,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -8276,6 +8320,9 @@ msgstr "La dashboard embedded non può essere cancellata."
 msgid "Embedding deactivated."
 msgstr "Incorporamento disattivato."
 
+msgid "Emitted predicate"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9560,12 +9607,32 @@ msgstr "Filtra per valori maggiori o uguali."
 msgid "Filters for values less than or equal."
 msgstr "Filtra per valori inferiori o uguali."
 
+#, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Filtri fuori ambito (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11160,6 +11227,12 @@ msgstr "Gennaio"
 msgid "Jinja templating"
 msgstr "Template Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12025,6 +12098,12 @@ msgstr "Errore..."
 msgid "Map Style"
 msgstr "Stile Mappa"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
@@ -12047,6 +12126,13 @@ msgstr "Mapbox (richiesta API key)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapboc richiede che venga configurata sul server una MAPBOX_API_KEY."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
+msgstr ""
 
 msgid "March"
 msgstr "Marzo"
@@ -12667,6 +12753,13 @@ msgstr "Modificato dal template \"%s\""
 msgid "Monday"
 msgstr "Lunedì"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "Mese"
 
@@ -12699,6 +12792,9 @@ msgstr "Sposta il gruppo a destra"
 
 msgid "Move icon"
 msgstr "Sposta icona"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "Sposta solo"
@@ -13117,6 +13213,9 @@ msgstr ""
 msgid "No items"
 msgstr "Nessun elemento"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "Nessun record corrispondente trovato"
 
@@ -13127,6 +13226,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
+
+msgid "No partition column is set."
+msgstr ""
 
 msgid "No records found"
 msgstr "Nessun record trovato"
@@ -13176,6 +13278,9 @@ msgstr "Nessuna metrica salvata trovata"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Nessun risultato memorizzato trovato, è necessario eseguire nuovamente la"
@@ -13219,6 +13324,17 @@ msgid ""
 msgstr ""
 "Nessun validatore denominato %(validator_name)s trovato (configurato per "
 "il motore %(engine_spec)s)"
+
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
 
 msgid "Node label position"
 msgstr "Posizione etichetta nodo"
@@ -13275,6 +13391,9 @@ msgstr "Normalizza nomi delle colonne"
 msgid "Normalized"
 msgstr "Normalizzato"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "Non contiene"
 
@@ -13306,6 +13425,9 @@ msgstr ""
 
 msgid "Not available"
 msgstr "Non diponibile"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "Non definito"
@@ -14061,10 +14183,16 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "PDF download failed, please refresh and try again."
 msgstr "Download del PDF non riuscito, aggiorna e riprova."
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "Pagina"
@@ -14146,6 +14274,19 @@ msgstr "Limite della partizione"
 # uk, zh, zh_TW]
 msgid "Partition Threshold"
 msgstr "Soglia di partizione"
+
+msgid "Partition column"
+msgstr ""
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15334,6 +15475,9 @@ msgstr "Rimuovi gruppo"
 msgid "Remove item"
 msgstr "Rimuovi elemento"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr "Rimuovi metodo di notifica"
 
@@ -15649,7 +15793,13 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "I valori di controllo richiesti sono stati rimossi"
 
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
 msgid "Required if your account already has a password"
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -16227,6 +16377,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -17417,6 +17570,11 @@ msgstr "Imposta aggiornamento automatico"
 # uk, zh, zh_TW]
 msgid "Set filter mapping"
 msgstr "Imposta la mappatura dei filtri"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19422,6 +19580,11 @@ msgstr "La colonna da usare come destinazione del bordo."
 msgid "The column was deleted or renamed in the database."
 msgstr "La colonna è stata cancellata o rinominata nel database."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "La configurazione dei livelli della mappa"
 
@@ -19967,6 +20130,15 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Il parametro %(parameters)s nella query non è definito."
 msgstr[1] "I seguenti parametri nella query non sono definiti: %(parameters)s."
 
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20076,6 +20248,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20102,6 +20279,9 @@ msgstr "La porta è chiusa."
 # uk, zh, zh_TW]
 msgid "The port number is invalid."
 msgstr "Il numero di porta non è valido."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20489,6 +20669,13 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "L'unità di tempo utilizzata per il raggruppamento dei blocchi"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Le due password inserite non corrispondono"
 
@@ -20544,6 +20731,34 @@ msgstr "L'utente \"%(username)s\" non esiste."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Il nome utente fornito durante la connessione a un database non è valido."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -21117,6 +21332,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
+msgid "This column holds the mapping instead of the default datetime column."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -21365,6 +21583,11 @@ msgstr ""
 # ro, ru, sr, sr_Latn, uk]
 msgid "This filter already exist on the report"
 msgstr "Questo filtro esiste già nel report"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22037,6 +22260,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI Richiesta Token"
 
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, python-format
 msgid ""
@@ -22135,6 +22361,9 @@ msgstr "Totale: %s"
 # uk, zh, zh_TW]
 msgid "Track job"
 msgstr "Tieni traccia del lavoro"
+
+msgid "Transform preserves ordering"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22900,6 +23129,9 @@ msgstr "Utilizzo"
 msgid "Use %s to open in a new tab."
 msgstr "Usa %s per aprire in una nuova scheda"
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Utilizza Proporzioni Area"
 
@@ -23130,6 +23362,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Utilizza i primi 25 valori se la dimensione ne contiene di più."
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "Espressione SQL valida"
 
@@ -23210,6 +23445,9 @@ msgstr "Il valore deve essere 0 o maggiore"
 
 msgid "Value must be greater than 0"
 msgstr "Il valore deve essere maggiore di 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -26246,6 +26484,10 @@ msgstr "somma"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "syntax."
@@ -26301,6 +26543,9 @@ msgstr "superiore"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "undo"
 msgstr "annulla"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -26408,6 +26653,9 @@ msgstr "area zoom"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "© Layer attribution"
 msgstr "© Attribuzione del livello"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

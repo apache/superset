@@ -31,6 +31,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import stored_expression_error
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -85,6 +86,51 @@ def _load_dataset_for_samples(
     except SupersetSecurityException:
         return None, json_error_response(_("Forbidden"), status=403)
     return dataset, None
+
+
+def _partition_transform_error(
+    orm_datasource: Any,
+    datasource_dict: dict[str, Any],
+) -> str | None:
+    """
+    The first column whose incoming value transform may not be stored, if any.
+
+    Only datasets carry a partition mapping, and only a transform the request
+    actually changes is worth refusing over -- re-sending a value already in
+    storage is what a GET-then-PUT client does, and a transform stored before
+    this check existed is disarmed at probe time instead.
+    """
+    incoming = [
+        column
+        for column in datasource_dict.get("columns") or []
+        if column.get("partition_value_transform")
+    ]
+    database = getattr(orm_datasource, "database", None)
+    if not incoming or database is None:
+        return None
+
+    stored = {
+        column.column_name: column.partition_value_transform
+        for column in orm_datasource.columns
+    }
+    for column in incoming:
+        transform = column["partition_value_transform"]
+        if transform == stored.get(column.get("column_name")):
+            continue
+        if reason := stored_expression_error(
+            database,
+            orm_datasource.catalog,
+            orm_datasource.schema,
+            transform,
+        ):
+            return str(
+                _(
+                    "The value transform on %(column)s cannot be saved: %(reason)s",
+                    column=column.get("column_name"),
+                    reason=reason,
+                )
+            )
+    return None
 
 
 class Datasource(BaseSupersetView):
@@ -157,6 +203,18 @@ class Datasource(BaseSupersetView):
                 ),
                 status=409,
             )
+        # `partition_value_transform` rides in on `update_from_object`, which
+        # writes every field in `update_from_object_fields` straight onto the
+        # column. That bypasses `UpdateDatasetCommand`, and with it the gate
+        # the REST PUT and the mapping preview both apply -- so without this
+        # the deprecated endpoint is a way to store arbitrary SQL that the
+        # partition probe later runs. Refused rather than dropped, unlike the
+        # importer: this is one interactive edit whose author is present to
+        # correct it, not a bundle where failing the whole dataset over one
+        # expression is the worse trade.
+        if error := _partition_transform_error(orm_datasource, datasource_dict):
+            return json_error_response(error, status=422)
+
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
         db.session.commit()  # pylint: disable=consider-using-transaction

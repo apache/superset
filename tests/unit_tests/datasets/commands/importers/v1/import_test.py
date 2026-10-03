@@ -41,6 +41,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
+    drop_unusable_partition_transforms,
     import_dataset,
     validate_data_uri,
 )
@@ -57,6 +58,7 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config as dataset_fixture,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
@@ -2804,3 +2806,205 @@ def test_load_data_bounds_gzip_download_before_decompression(
     mock_gzip_open.assert_called_once_with(bounded_raw)
     # ...and the decompressed output is bounded again before parsing.
     assert mock_read_bounded.call_args_list[1].args[0] is decompressed
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_drops_a_transform_the_mapping_does_not_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An import is a writer like any other, and it bypasses the editor entirely.
+
+    A bundle carrying a transform on a column the mapping does not mirror would
+    otherwise land a value nothing renders and nothing can edit, waiting for the
+    mapped column to resolve back to it.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms == {
+        "event_time": None,
+        "event_time2": "to_unixtime(:value)",
+        "dt_epoch": None,
+    }
+
+
+def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
+    return {
+        "table_name": "web_events",
+        "uuid": uuid.uuid4(),
+        "database_id": database_id,
+        "main_dttm_col": "event_time",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": transform,
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "metrics": [],
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp({{ current_username() }})", "rand() + 0 * :value"],
+    ids=["jinja", "non-deterministic"],
+)
+def test_import_drops_a_transform_the_save_path_would_reject(
+    session: Session, transform: str
+) -> None:
+    """
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform that will never
+    mirror a filter. Dropping it leaves a state an owner can see and fix rather
+    than a stored expression that looks configured and is not.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_keeps_a_usable_transform(session: Session) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_leaves_transforms_alone_while_the_feature_is_off(
+    session: Session,
+) -> None:
+    """
+    No *usability* check runs with the flag off: nothing mirrors, so there is
+    only stored configuration to lose. The structural check still runs, and
+    Jinja passes it -- balanced blocks are substituted out before parsing.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(
+        database.id, "unix_timestamp({{ current_username() }})"
+    )
+    drop_unusable_partition_transforms(config)
+
+    assert (
+        config["columns"][0]["partition_value_transform"]
+        == "unix_timestamp({{ current_username() }})"
+    )
+
+
+#: Expressions the save path refuses outright, rather than ones that merely
+#: never mirror. The probe splices a transform into SQL and runs it, so a
+#: bundle carrying one of these is a way to execute arbitrary SQL without the
+#: `sql_lab` role.
+UNSTORABLE_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement"],
+)
+
+
+def _assert_import_drops(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_a_transform_that_is_not_a_storable_expression(
+    session: Session, transform: str
+) -> None:
+    _assert_import_drops(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_an_unstorable_transform_even_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """
+    The one check the flag does not switch off.
+
+    Everything else here asks whether a transform will mirror, which is a
+    question about a live feature. This asks whether the expression is one the
+    product stores at all, and a bundle imported with the flag off would
+    otherwise sit in the metadata DB fully armed, waiting for an operator to
+    turn the flag on.
+    """
+    _assert_import_drops(transform)

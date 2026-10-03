@@ -27,6 +27,7 @@ from sqlalchemy.orm.session import Session
 from superset.daos.base import BaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.sql.parse import Table
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_validate_update_uniqueness(session: Session) -> None:
@@ -423,3 +424,549 @@ def test_override_columns_rename_flushes_delete_before_insert(
     db.session.flush()
     cols = db.session.query(TableColumn).filter_by(table_id=table.id).all()
     assert [c.column_name for c in cols] == ["new"]
+
+
+def test_upsert_columns_clears_a_dangling_partition_mapping(
+    session: Session,
+) -> None:
+    """The upsert path deletes every column the payload omits — including, when
+    a metadata sync drops it, the dataset's partition column. The mapping has to
+    be cleared with it, exactly as on the ``override_columns=true`` path."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pm_t", schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time"
+    db.session.add_all([database, table])
+    db.session.flush()
+    event_time_id = next(c.id for c in table.columns if c.column_name == "event_time")
+
+    # The payload keeps only "event_time", so "dt_epoch" is deleted.
+    DatasetDAO.update_columns(
+        table,
+        [{"id": event_time_id, "column_name": "event_time"}],
+        override_columns=False,
+    )
+    db.session.flush()
+
+    assert table.partition_column is None
+    assert table.partition_mapped_column is None
+
+
+def test_upsert_columns_keeps_a_live_partition_mapping(session: Session) -> None:
+    """A payload that keeps both columns must leave the mapping alone."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_db2", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pm_t2", schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time"
+    db.session.add_all([database, table])
+    db.session.flush()
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update_columns(
+        table,
+        [
+            {"id": ids["event_time"], "verbose_name": "Event time"},
+            {"id": ids["dt_epoch"]},
+        ],
+        override_columns=False,
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column == "event_time"
+
+
+def _mapped_dataset(session: Session, name: str) -> Any:
+    """
+    A dataset whose mapping sits explicitly on ``event_time2``.
+
+    ``event_time`` is the default datetime column, so it is what the mapping
+    falls back to the moment the override is cleared -- which is exactly why it
+    must not be allowed to hold a transform of its own while the override is
+    somewhere else.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name=name, schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="event_time2"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.main_dttm_col = "event_time"
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time2"
+    db.session.add_all([database, table])
+    db.session.flush()
+    return table
+
+
+def _transforms(table: Any) -> dict[str, Any]:
+    return {
+        column.column_name: (
+            column.partition_value_transform,
+            bool(column.partition_transform_is_monotonic),
+        )
+        for column in table.columns
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_update_drops_a_transform_the_mapping_does_not_mirror(
+    session: Session,
+) -> None:
+    """
+    Only the mapped column may hold a transform, whoever is writing.
+
+    The editor enforces this client-side, but a PUT or an import bypasses the
+    editor entirely, and a transform parked on any other column is invisible --
+    no row but the mapped one renders it -- while still being saved.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api1")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "unix_timestamp(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {
+                    "id": ids["event_time2"],
+                    "partition_value_transform": "to_unixtime(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    assert _transforms(table) == {
+        "event_time": (None, False),
+        "event_time2": ("to_unixtime(:value)", True),
+        "dt_epoch": (None, False),
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_clearing_the_override_cannot_resurrect_a_transform(
+    session: Session,
+) -> None:
+    """
+    The API half of BUG-1.
+
+    A null override means "follow the default datetime column", so clearing it
+    moves the mapping to ``event_time``. That is fine on its own -- what must
+    never happen is the move landing on a transform nobody chose, turning a
+    request to drop a mapping into a request to activate a different one.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api2")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    # A caller tries to park a transform on the fallback column.
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "unix_timestamp(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {
+                    "id": ids["event_time2"],
+                    "partition_value_transform": "to_unixtime(:value)",
+                },
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    DatasetDAO.update(table, {"partition_mapped_column": None})
+    db.session.flush()
+
+    assert table.partition_mapped_column is None
+    # The mapping now follows `event_time`, and finds nothing there to mirror.
+    assert _transforms(table)["event_time"] == (None, False)
+    assert table.partition_filter_mapping_summary["active"] is False
+
+
+def _park_transform(table: Any, column_name: str, transform: str) -> None:
+    """
+    Write a transform straight onto a column, around `DatasetDAO.update`.
+
+    The shape of data this feature has to cope with but cannot have produced:
+    rows stored before the cleanup existed, and rows written while the feature
+    flag was off, when the cleanup deliberately stands down. Going through the
+    DAO instead would let the cleanup run and there would be nothing parked.
+    """
+    from superset import db
+
+    for column in table.columns:
+        if column.column_name == column_name:
+            column.partition_value_transform = transform
+            column.partition_transform_is_monotonic = True
+    db.session.flush()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    ("name", "mapping_change"),
+    [
+        ("pfm_parked1", {"partition_mapped_column": None}),
+        ("pfm_parked2", {"partition_mapped_column": "event_time"}),
+    ],
+    ids=["remove", "re-point"],
+)
+def test_a_mapping_change_disarms_a_transform_parked_in_storage(
+    session: Session,
+    name: str,
+    mapping_change: dict[str, Any],
+) -> None:
+    """
+    Removing or re-pointing a mapping never activates a transform nobody saw.
+
+    The cleanup skips the mapped column, so running it only after the update
+    skipped the column the update had just mapped -- and whatever was parked
+    there became the mapping, which is the one thing dropping a mapping must
+    not do. Both doors onto `event_time` are the same bug: clearing the
+    override falls back to it, and naming it explicitly moves to it.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, name)
+    # `event_time2` holds the mapping's own transform; `event_time` holds one
+    # no current code path would have left there.
+    _park_transform(table, "event_time2", "to_unixtime(:value)")
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(table, dict(mapping_change))
+    db.session.flush()
+
+    assert _transforms(table) == {
+        "event_time": (None, False),
+        "event_time2": (None, False),
+        "dt_epoch": (None, False),
+    }
+    assert table.partition_filter_mapping_summary["active"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_supplied_with_the_mapping_it_arms_survives(
+    session: Session,
+) -> None:
+    """
+    The limit of the rule above: clearing is for transforms the owner did not
+    choose, and one sent in the same request is one they did.
+
+    The pre-update pass clears what is parked, `update_columns` then writes
+    what the request carries, and the post-update pass keeps it because it is
+    now the mapped column's.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_parked3")
+    ids = {c.column_name: c.id for c in table.columns}
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(
+        table,
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "to_unixtime(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {"id": ids["event_time2"]},
+                {"id": ids["dt_epoch"]},
+            ],
+        },
+    )
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("to_unixtime(:value)", True)
+    assert table.partition_filter_mapping_summary["active"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_save_that_cannot_move_the_mapping_keeps_a_parked_transform(
+    session: Session,
+) -> None:
+    """
+    A description-only save still discards nothing.
+
+    Clearing costs stored configuration, so it is owed only to requests that
+    can change which column is mirrored. This one cannot, and the transform it
+    leaves parked is inert until something does -- at which point the pair of
+    cleanups above disarms it.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_parked4")
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(table, {"description": "unrelated edit"})
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", True)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_repointing_the_default_datetime_column_leaves_nothing_behind(
+    session: Session,
+) -> None:
+    """
+    The API half of BUG-2.
+
+    While the mapping follows the default datetime column, re-pointing that
+    column moves the mapping. The transform must not stay behind on the old
+    column, where it is invisible and still saved.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api3")
+    ids = {c.column_name: c.id for c in table.columns}
+    DatasetDAO.update(
+        table,
+        {
+            "partition_mapped_column": None,
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "unix_timestamp(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {"id": ids["event_time2"]},
+                {"id": ids["dt_epoch"]},
+            ],
+        },
+    )
+    db.session.flush()
+    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", True)
+
+    DatasetDAO.update(table, {"main_dttm_col": "event_time2"})
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == (None, False)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_transforms_are_left_alone_while_the_feature_is_off(
+    session: Session,
+) -> None:
+    """
+    Nothing mirrors with the flag off, so there is no stale mapping to disarm --
+    only an operator's stored configuration to lose if this ran anyway.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api4")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "unix_timestamp(:value)",
+                },
+                {"id": ids["event_time2"]},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", False)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_clearing_the_partition_column_disarms_the_transforms_too(
+    session: Session,
+) -> None:
+    """
+    With no partition column there is no mapped column, so no column may hold a
+    transform.
+
+    The same argument `nextMappedColumnOverride` makes about the override in the
+    editor: a value left behind here does nothing now and silently re-arms the
+    next partition column the owner picks.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api5")
+    ids = {c.column_name: c.id for c in table.columns}
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {
+                    "id": ids["event_time2"],
+                    "partition_value_transform": "to_unixtime(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {"id": ids["event_time"]},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+    assert _transforms(table)["event_time2"] == ("to_unixtime(:value)", True)
+
+    DatasetDAO.update(table, {"partition_column": None})
+    db.session.flush()
+
+    assert _transforms(table)["event_time2"] == (None, False)
+
+
+def _partition_mapped_table(session: Session) -> Any:
+    """A dataset mirroring `event_time` onto `dt_epoch` through a transform."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pfm_dao_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pfm_dao_t", schema="main", database=database)
+    table.main_dttm_col = "event_time"
+    table.columns = [
+        TableColumn(
+            column_name="event_time",
+            is_dttm=True,
+            partition_value_transform="unix_timestamp(:value)",
+            partition_transform_is_monotonic=True,
+        ),
+        TableColumn(column_name="dt_epoch"),
+        TableColumn(column_name="country"),
+    ]
+    table.partition_column = "dt_epoch"
+    db.session.add_all([database, table])
+    db.session.flush()
+    return table
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unrelated_save_leaves_a_stray_transform_alone(session: Session) -> None:
+    """
+    Clearing discards stored configuration, so it only runs when the request can
+    change which column is mirrored. Running it on every write meant a
+    description-only PUT -- or a client that GETs the dataset and PUTs it back
+    unchanged -- silently dropped a transform parked on a non-mapped column.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    stray = next(c for c in table.columns if c.column_name == "country")
+    stray.partition_value_transform = "lower(:value)"
+    db.session.flush()
+
+    DatasetDAO.update(table, {"description": "unrelated edit"})
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["country"].partition_value_transform == "lower(:value)"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_repointing_the_mapping_still_clears_a_stray_transform(
+    session: Session,
+) -> None:
+    """The guard narrows when clearing runs, not whether it works."""
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    stray = next(c for c in table.columns if c.column_name == "country")
+    stray.partition_value_transform = "lower(:value)"
+    db.session.flush()
+
+    DatasetDAO.update(table, {"partition_mapped_column": "event_time"})
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["country"].partition_value_transform is None
+    assert by_name["event_time"].partition_value_transform == "unix_timestamp(:value)"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_on_a_column_added_in_the_same_request_is_cleared(
+    session: Session,
+) -> None:
+    """
+    `_upsert_columns` inserts a new column by FK rather than through the
+    `columns` relationship, and `BaseDAO.update` does not flush -- so a column
+    created *and* given a transform in one request was invisible to the clearing
+    loop and kept it, waiting for the mapping to resolve back to it.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _partition_mapped_table(session)
+    existing = {
+        column.column_name: column.id
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"column_name": "event_time", "id": existing["event_time"]},
+                {"column_name": "dt_epoch", "id": existing["dt_epoch"]},
+                {
+                    "column_name": "region_key",
+                    "partition_value_transform": "lower(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+            ],
+        },
+    )
+    db.session.flush()
+
+    by_name = {
+        column.column_name: column
+        for column in db.session.query(TableColumn).filter_by(table_id=table.id)
+    }
+    assert by_name["region_key"].partition_value_transform is None
+    assert by_name["region_key"].partition_transform_is_monotonic is False

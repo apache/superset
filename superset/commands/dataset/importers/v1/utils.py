@@ -35,7 +35,7 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.types import TypeEngine
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
@@ -48,6 +48,11 @@ from superset.commands.importers.v1.utils import (
     find_existing_for_import,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    stored_expression_error,
+    validate_transform,
+)
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
@@ -265,6 +270,72 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
         )
         return {}
     return params if isinstance(params, dict) else {}
+
+
+def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
+    """
+    Drop a partition value transform the save path would have rejected.
+
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform holding Jinja or
+    calling a non-deterministic function -- one that will never mirror a filter,
+    and that the editor can only report as broken after the fact. Dropping it on
+    the way in leaves the column with no transform, a state an owner can see and
+    fix, rather than a stored expression that looks configured and is not.
+
+    Deliberately sanitizes rather than raises. A bundle is imported as a whole,
+    and failing someone's entire dataset over one unusable expression is a worse
+    trade than importing the dataset without it. This is the same bargain
+    `DatasetDAO.clear_dangling_partition_mapping` already strikes for a mapping
+    whose column went away.
+
+    Two kinds of check, and only one of them answers to the feature flag. The
+    usability checks ask whether a transform will ever mirror a filter, which
+    is a question about a live feature; with the flag off nothing mirrors, so
+    rewriting the bundle would discard configuration for no gain. The
+    structural check asks whether the expression is one this product stores at
+    all, and that answer does not change with a flag -- an import written while
+    the flag was off would otherwise sit in the metadata DB fully armed,
+    waiting for an operator to turn the flag on.
+    """
+    columns = config.get("columns")
+    if not columns:
+        return
+    if not any(column.get("partition_value_transform") for column in columns):
+        return
+
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        return
+
+    check_usability = is_feature_enabled(PARTITION_FILTER_MAPPING)
+    catalog = config.get("catalog")
+    schema = config.get("schema")
+
+    for column in columns:
+        transform = column.get("partition_value_transform")
+        if not transform:
+            continue
+
+        reasons: list[str] = []
+        if reason := stored_expression_error(database, catalog, schema, transform):
+            reasons.append(reason)
+        if check_usability:
+            reasons.extend(
+                str(issue.message)
+                for issue in validate_transform(transform, database.backend)
+                if issue.blocking
+            )
+
+        if reasons:
+            logger.warning(
+                "Dropping the partition value transform on %s.%s during import: %s",
+                config.get("table_name"),
+                column.get("column_name"),
+                "; ".join(reasons),
+            )
+            column["partition_value_transform"] = None
+            column["partition_transform_is_monotonic"] = False
 
 
 def import_dataset(  # noqa: C901
@@ -506,6 +577,8 @@ def import_dataset(  # noqa: C901
                     )
                     attributes["extra"] = None
 
+    drop_unusable_partition_transforms(config)
+
     # should we delete columns and metrics not present in the current import?
     # Restore-via-import of a soft-deleted dataset is implicitly a clean
     # replacement (Option C): the user is bringing the dataset back by
@@ -581,6 +654,12 @@ def import_dataset(  # noqa: C901
 
     if dataset.id is None:
         db.session.flush()
+
+    # A bundle can name a mapped column and still carry transforms on other
+    # columns; the editor's client-side guard never runs here. Left in place, a
+    # transform on an unmirrored column is invisible and still stored, ready to
+    # go live the moment the mapped column resolves back to it.
+    DatasetDAO.clear_unmapped_partition_transforms(dataset)
 
     if not ignore_permissions:
         try:

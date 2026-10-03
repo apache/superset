@@ -7238,6 +7238,41 @@ def test_rls_returns_whether_applied(
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
+        # Hive's parser resolves the zero-argument form to CURRENT_TIMESTAMP,
+        # which is what it actually means, so that is the name reported.
+        ("SELECT unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp( )", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds) - unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        # Dialects that do not special-case it report the name as written.
+        ("SELECT unix_timestamp()", "sqlite", {"UNIX_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds)", "hive", set()),
+        ("SELECT unix_timestamp(ds)", "sqlite", set()),
+        ("SELECT lower(country)", "hive", set()),
+        ("SELECT * FROM some_table", "hive", set()),
+        # A named node whose arguments span all three shapes sqlglot uses: a
+        # scalar (`this`), a list (`expressions`), and unset optional slots
+        # left as `None`. Reading only `this` would count this as niladic.
+        ("SELECT coalesce(a, b)", "hive", set()),
+        # `expressions` is the only argument here, so the list branch is what
+        # decides whether the call looks niladic at all.
+        ("SELECT concat(a, b)", "hive", set()),
+    ],
+)
+def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_niladic_functions` method.
+
+    Some functions mean something entirely different with no arguments -- on
+    Hive and Impala `unix_timestamp()` is the current time while
+    `unix_timestamp(x)` is a pure conversion -- so callers that care about
+    determinism need to distinguish the two by arity, not by name.
+    """
+    assert SQLStatement(sql, engine).get_niladic_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
         ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
         (
             "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
@@ -7260,6 +7295,26 @@ def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> 
     that table extraction cannot see.
     """
     assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country)", "hive", 1),
+        ("SELECT unix_timestamp(ds)", "hive", 1),
+        # The case this exists for: a caller wrapping a user-supplied fragment
+        # in `SELECT <fragment>` parses the same whether the fragment is one
+        # expression or a list, and the two return a different column count.
+        ("SELECT lower(country), 'x'", "hive", 2),
+        ("SELECT a, b, c", "hive", 3),
+        ("SELECT * FROM some_table", "hive", 1),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", 0),
+    ],
+)
+def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
+    """Check the `count_select_expressions` method."""
+    assert SQLStatement(sql, engine).count_select_expressions() == expected
 
 
 @pytest.mark.parametrize(

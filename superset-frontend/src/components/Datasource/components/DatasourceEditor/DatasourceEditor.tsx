@@ -94,8 +94,25 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
 import Field from '../Field';
-import { fetchSyncedColumns, updateColumns } from '../../utils';
+import {
+  clearDanglingPartitionMapping,
+  fetchSyncedColumns,
+  updateColumns,
+} from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
+import {
+  PartitionColumnFields,
+  PartitionMappingSection,
+} from './components/PartitionFilterMapping';
+import {
+  applyImplicitMappingMove,
+  applyMappingMove,
+  applyPartitionColumnDefaults,
+  clearMappingTransforms,
+  defaultTransformFor,
+  nextMappedColumnOverride,
+  partitionMappingErrors,
+} from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_FOLDERS_COUNT,
@@ -156,6 +173,8 @@ interface Column {
   certified_by?: string;
   certification_details?: string;
   is_certified?: boolean;
+  partition_value_transform?: string | null;
+  partition_transform_is_monotonic?: boolean;
 }
 
 interface Database {
@@ -198,6 +217,10 @@ interface DatasourceObject {
   cache_timeout?: number;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
+  partition_value_transform_default?: string | null;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -342,6 +365,15 @@ interface ColumnCollectionTableProps {
   columnLabelTooltips?: Record<string, string>;
   filterTerm?: string;
   filterFields?: string[];
+  /**
+   * Partition filter mapping. Only the physical columns table gets these --
+   * a calculated column cannot be a partition key.
+   */
+  datasource?: DatasourceObject;
+  onMoveMappingHere?: (columnName: string) => void;
+  onRemoveMapping?: () => void;
+  onMonotonicChange?: (columnName: string, isMonotonic: boolean) => void;
+  expandedColumnName?: string | null;
 }
 
 interface StackedFieldProps {
@@ -442,6 +474,26 @@ const StyledLabelWrapper = styled.div`
   span {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
+`;
+
+// The partition column is a technical key rather than something an analyst
+// works with, so its row recedes. Muted, not hidden: an owner who wants the raw
+// column exposed can still toggle it back on.
+const StyledColumnsTableWrapper = styled.div`
+  ${({ theme }) => `
+    .partition-column-row > td {
+      background-color: ${theme.colorFillQuaternary};
+      color: ${theme.colorTextTertiary};
+    }
+    /* An expanded row sizes to its content, so a long line inside it -- an
+       engine error, say, whose length we do not control -- widens the whole
+       table and pushes everything past the modal edge. A zero max-width on
+       the cell is the standard way to make it respect the table width and
+       wrap instead. */
+    .ant-table-expanded-row > td {
+      max-width: 0;
+    }
+  `}
 `;
 
 const StyledTableTabWrapper = styled.div`
@@ -588,6 +640,11 @@ function ColumnCollectionTable({
   columnLabelTooltips,
   filterTerm,
   filterFields,
+  datasource,
+  onMoveMappingHere,
+  onRemoveMapping,
+  onMonotonicChange,
+  expandedColumnName,
 }: ColumnCollectionTableProps): JSX.Element {
   const tableColumns = [
     'column_name',
@@ -617,100 +674,160 @@ function ColumnCollectionTable({
     />
   );
 
+  const partitionMappingEnabled =
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionColumn = partitionMappingEnabled
+    ? datasource?.partition_column
+    : null;
+
+  // The two `itemRenderers` variants below differ only in which widget edits
+  // the name, so the certified badge and the PARTITION tag are shared here
+  // rather than written out four times.
+  const renderColumnName =
+    (EditControl: 'editableTitle' | 'textControl') =>
+    (
+      v: unknown,
+      onItemChange: (value: any) => void,
+      _: unknown,
+      record: Column,
+    ): ReactNode => (
+      <StyledLabelWrapper>
+        {record.is_certified && (
+          <CertifiedBadge
+            certifiedBy={record.certified_by}
+            details={record.certification_details}
+          />
+        )}
+        {editableColumnName ? (
+          EditControl === 'editableTitle' ? (
+            <EditableTitle
+              canEdit
+              title={v as string}
+              onSaveTitle={onItemChange}
+            />
+          ) : (
+            <TextControl value={v as string} onChange={onItemChange} />
+          )
+        ) : (
+          (v as ReactNode)
+        )}
+        {partitionColumn === record.column_name && (
+          <Tooltip
+            title={t(
+              'Filters on the mapped column are mirrored onto this column so the engine can prune partitions.',
+            )}
+          >
+            <Label data-test="partition-tag">
+              <Icons.FilterOutlined iconSize="s" /> {t('PARTITION')}
+            </Label>
+          </Tooltip>
+        )}
+      </StyledLabelWrapper>
+    );
+
   return (
-    <CollectionTable
-      tableColumns={tableColumns}
-      sortColumns={tableColumns}
-      allowDeletes
-      allowAddItem={allowAddItem}
-      itemGenerator={itemGenerator}
-      collection={columns}
-      columnLabelTooltips={columnLabelTooltips}
-      filterTerm={filterTerm}
-      filterFields={filterFields}
-      stickyHeader
-      expandFieldset={
-        <FormContainer>
-          <Fieldset compact>
-            {showExpression && (
-              <Field
-                fieldKey="expression"
-                label={t('SQL expression')}
-                control={
-                  <TextAreaControl
-                    language="sql"
-                    offerEditInModal={false}
-                    maxLines={25}
-                    debounceDelay={300}
-                  />
-                }
-              />
-            )}
-            <Field
-              fieldKey="verbose_name"
-              label={t('Label')}
-              control={
-                <TextControl
-                  controlId="verbose_name"
-                  placeholder={t('Label')}
+    <StyledColumnsTableWrapper>
+      <CollectionTable
+        tableColumns={tableColumns}
+        sortColumns={tableColumns}
+        allowDeletes
+        allowAddItem={allowAddItem}
+        itemGenerator={itemGenerator}
+        collection={columns}
+        columnLabelTooltips={columnLabelTooltips}
+        filterTerm={filterTerm}
+        filterFields={filterFields}
+        rowClassName={record =>
+          partitionColumn === record.column_name ? 'partition-column-row' : ''
+        }
+        expandItemWhere={
+          expandedColumnName
+            ? record => record.column_name === expandedColumnName
+            : undefined
+        }
+        stickyHeader
+        expandFieldset={
+          <FormContainer>
+            <Fieldset compact>
+              {showExpression && (
+                <Field
+                  fieldKey="expression"
+                  label={t('SQL expression')}
+                  control={
+                    <TextAreaControl
+                      language="sql"
+                      offerEditInModal={false}
+                      maxLines={25}
+                      debounceDelay={300}
+                    />
+                  }
                 />
-              }
-            />
-            <Field
-              fieldKey="description"
-              label={t('Description')}
-              control={
-                <TextControl
-                  controlId="description"
-                  placeholder={t('Description')}
-                />
-              }
-            />
-            {allowEditDataType && (
+              )}
               <Field
-                fieldKey="type"
-                label={t('Data type')}
-                control={
-                  <Select
-                    ariaLabel={t('Data type')}
-                    header={<FormLabel>{t('Data type')}</FormLabel>}
-                    options={DATA_TYPES}
-                    name="type"
-                    allowNewOptions
-                    allowClear
-                  />
-                }
-              />
-            )}
-            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
-              <Field
-                fieldKey="advanced_data_type"
-                label={t('Advanced data type')}
+                fieldKey="verbose_name"
+                label={t('Label')}
                 control={
                   <TextControl
-                    controlId="advanced_data_type"
-                    placeholder={t('Advanced Data type')}
+                    controlId="verbose_name"
+                    placeholder={t('Label')}
                   />
                 }
               />
-            ) : (
-              <></>
-            )}
-            <Field
-              fieldKey="python_date_format"
-              label={t('Datetime format')}
-              description={
-                /* Note the fragmented translations may not work. */
-                <div>
-                  {t('The pattern of timestamp format. For strings use ')}
-                  <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                    {t('Python datetime string pattern')}
-                  </Typography.Link>
-                  {t(' expression which needs to adhere to the ')}
-                  <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
-                    {t('ISO 8601')}
-                  </Typography.Link>
-                  {t(` standard to ensure that the lexicographical ordering
+              <Field
+                fieldKey="description"
+                label={t('Description')}
+                control={
+                  <TextControl
+                    controlId="description"
+                    placeholder={t('Description')}
+                  />
+                }
+              />
+              {allowEditDataType && (
+                <Field
+                  fieldKey="type"
+                  label={t('Data type')}
+                  control={
+                    <Select
+                      ariaLabel={t('Data type')}
+                      header={<FormLabel>{t('Data type')}</FormLabel>}
+                      options={DATA_TYPES}
+                      name="type"
+                      allowNewOptions
+                      allowClear
+                    />
+                  }
+                />
+              )}
+              {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
+                <Field
+                  fieldKey="advanced_data_type"
+                  label={t('Advanced data type')}
+                  control={
+                    <TextControl
+                      controlId="advanced_data_type"
+                      placeholder={t('Advanced Data type')}
+                    />
+                  }
+                />
+              ) : (
+                <></>
+              )}
+              <Field
+                fieldKey="python_date_format"
+                label={t('Datetime format')}
+                description={
+                  /* Note the fragmented translations may not work. */
+                  <div>
+                    {t('The pattern of timestamp format. For strings use ')}
+                    <Typography.Link href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                      {t('Python datetime string pattern')}
+                    </Typography.Link>
+                    {t(' expression which needs to adhere to the ')}
+                    <Typography.Link href="https://en.wikipedia.org/wiki/ISO_8601">
+                      {t('ISO 8601')}
+                    </Typography.Link>
+                    {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
                       you will need to define an expression and type for
@@ -719,132 +836,109 @@ function ColumnCollectionTable({
                       in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
                       is specified we fall back to using the optional defaults on a per
                       database/column name level via the extra parameter.`)}
-                </div>
-              }
-              control={
-                <TextControl
-                  controlId="python_date_format"
-                  placeholder="%Y-%m-%d"
-                />
-              }
-            />
-            <Field
-              fieldKey="certified_by"
-              label={t('Certified By')}
-              description={t('Person or group that has certified this metric')}
-              control={
-                <TextControl
-                  controlId="certified"
-                  placeholder={t('Certified by')}
-                />
-              }
-            />
-            <Field
-              fieldKey="certification_details"
-              label={t('Certification details')}
-              description={t('Details of the certification')}
-              control={
-                <TextControl
-                  controlId="certificationDetails"
-                  placeholder={t('Certification details')}
-                />
-              }
-            />
-          </Fieldset>
-        </FormContainer>
-      }
-      columnLabels={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? {
-              column_name: t('Column'),
-              expression: t('SQL expression'),
-              advanced_data_type: t('Advanced data type'),
-              type: t('Data type'),
-              groupby: t('Is dimension'),
-              is_dttm: t('Is temporal'),
-              filterable: t('Is filterable'),
-            }
-          : {
-              column_name: t('Column'),
-              expression: t('SQL expression'),
-              type: t('Data type'),
-              groupby: t('Is dimension'),
-              is_dttm: t('Is temporal'),
-              filterable: t('Is filterable'),
-            }
-      }
-      onChange={onColumnsChange}
-      itemCellProps={{
-        column_name: () => ({ className: 'datasource-key-cell' }),
-        expression: () => ({ className: 'datasource-sql-cell' }),
-      }}
-      itemRenderers={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? {
-              column_name: (v, onItemChange, _, record) =>
-                editableColumnName ? (
-                  <StyledLabelWrapper>
-                    {record.is_certified && (
-                      <CertifiedBadge
-                        certifiedBy={record.certified_by}
-                        details={record.certification_details}
-                      />
-                    )}
-                    <EditableTitle
-                      canEdit
-                      title={v as string}
-                      onSaveTitle={onItemChange}
+                  </div>
+                }
+                control={
+                  <TextControl
+                    controlId="python_date_format"
+                    placeholder="%Y-%m-%d"
+                  />
+                }
+              />
+              <Field
+                fieldKey="certified_by"
+                label={t('Certified By')}
+                description={t(
+                  'Person or group that has certified this metric',
+                )}
+                control={
+                  <TextControl
+                    controlId="certified"
+                    placeholder={t('Certified by')}
+                  />
+                }
+              />
+              <Field
+                fieldKey="certification_details"
+                label={t('Certification details')}
+                description={t('Details of the certification')}
+                control={
+                  <TextControl
+                    controlId="certificationDetails"
+                    placeholder={t('Certification details')}
+                  />
+                }
+              />
+              {partitionMappingEnabled && datasource ? (
+                <Field
+                  fieldKey="partition_value_transform"
+                  label={t('Partition filter mapping')}
+                  // The section keys off the whole column record -- its name
+                  // decides which of the three treatments it gets -- not just the
+                  // transform it edits.
+                  passItemToControl
+                  control={
+                    <PartitionMappingSection
+                      datasource={datasource}
+                      onMoveMappingHere={onMoveMappingHere ?? (() => {})}
+                      onRemoveMapping={onRemoveMapping ?? (() => {})}
+                      onMonotonicChange={onMonotonicChange ?? (() => {})}
                     />
-                  </StyledLabelWrapper>
-                ) : (
-                  <StyledLabelWrapper>
-                    {record.is_certified && (
-                      <CertifiedBadge
-                        certifiedBy={record.certified_by}
-                        details={record.certification_details}
-                      />
-                    )}
-                    {v}
-                  </StyledLabelWrapper>
-                ),
-              type: d => (d ? <Label>{String(d)}</Label> : null),
-              advanced_data_type: d => <Label>{d as string}</Label>,
-              expression: renderExpressionCell,
-              is_dttm: checkboxGenerator,
-              filterable: checkboxGenerator,
-              groupby: checkboxGenerator,
-            }
-          : {
-              column_name: (v, onItemChange, _, record) =>
-                editableColumnName ? (
-                  <StyledLabelWrapper>
-                    {record.is_certified && (
-                      <CertifiedBadge
-                        certifiedBy={record.certified_by}
-                        details={record.certification_details}
-                      />
-                    )}
-                    <TextControl value={v as string} onChange={onItemChange} />
-                  </StyledLabelWrapper>
-                ) : (
-                  <StyledLabelWrapper>
-                    {record.is_certified && (
-                      <CertifiedBadge
-                        certifiedBy={record.certified_by}
-                        details={record.certification_details}
-                      />
-                    )}
-                    {v}
-                  </StyledLabelWrapper>
-                ),
-              type: d => (d ? <Label>{String(d)}</Label> : null),
-              expression: renderExpressionCell,
-              is_dttm: checkboxGenerator,
-              filterable: checkboxGenerator,
-              groupby: checkboxGenerator,
-            }
-      }
-    />
+                  }
+                />
+              ) : (
+                <></>
+              )}
+            </Fieldset>
+          </FormContainer>
+        }
+        columnLabels={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? {
+                column_name: t('Column'),
+                expression: t('SQL expression'),
+                advanced_data_type: t('Advanced data type'),
+                type: t('Data type'),
+                groupby: t('Is dimension'),
+                is_dttm: t('Is temporal'),
+                filterable: t('Is filterable'),
+              }
+            : {
+                column_name: t('Column'),
+                expression: t('SQL expression'),
+                type: t('Data type'),
+                groupby: t('Is dimension'),
+                is_dttm: t('Is temporal'),
+                filterable: t('Is filterable'),
+              }
+        }
+        onChange={onColumnsChange}
+        itemCellProps={{
+          column_name: () => ({ className: 'datasource-key-cell' }),
+          expression: () => ({ className: 'datasource-sql-cell' }),
+        }}
+        itemRenderers={
+          isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+            ? {
+                column_name: renderColumnName('editableTitle'),
+                type: d => (d ? <Label>{String(d)}</Label> : null),
+                advanced_data_type: d => <Label>{d as string}</Label>,
+                expression: renderExpressionCell,
+                is_dttm: checkboxGenerator,
+                filterable: checkboxGenerator,
+                groupby: checkboxGenerator,
+              }
+            : {
+                column_name: renderColumnName('textControl'),
+                type: d => (d ? <Label>{String(d)}</Label> : null),
+                expression: renderExpressionCell,
+                is_dttm: checkboxGenerator,
+                filterable: checkboxGenerator,
+                groupby: checkboxGenerator,
+              }
+        }
+      />
+    </StyledColumnsTableWrapper>
   );
 }
 
@@ -1128,10 +1222,22 @@ function DatasourceEditor({
         validationErrors = validationErrors.concat(folderValidation.errors);
       }
 
+      // Validate the partition filter mapping. `databaseColumns` rather than
+      // `datasource.columns`, because the two only meet in `onChangeInternal`
+      // when the payload is assembled -- `datasource.columns` does not carry the
+      // transform the owner just typed.
+      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+        validationErrors = validationErrors.concat(
+          partitionMappingErrors(datasource, databaseColumns).map(
+            issue => issue.message,
+          ),
+        );
+      }
+
       setErrors(validationErrors);
       callback(validationErrors);
     },
-    [datasource, calculatedColumns, folders, findDuplicates],
+    [datasource, databaseColumns, calculatedColumns, folders, findDuplicates],
   );
 
   const onChangeInternal = useCallback(
@@ -1248,6 +1354,124 @@ function DatasourceEditor({
       }
     },
     [],
+  );
+
+  // Which column's row expand to open, for the "map a different column" links.
+  // Consumed by the Columns tab, which scrolls the row into view and expands it.
+  //
+  // Carries a nonce because the request is an event, not a state: clicking the
+  // same link twice -- after collapsing the row by hand in between -- asks for
+  // the same column name, and a bare string would make the second
+  // `setColumnToReveal` a no-op. React would bail out of the render, nothing
+  // downstream would see a change, and the row would stay shut.
+  const [columnToReveal, setColumnToReveal] = useState<{
+    name: string;
+    nonce: number;
+  } | null>(null);
+
+  const handlePartitionColumnChange = useCallback(
+    (columnName: string | null) => {
+      setDatasource(prev => ({
+        ...prev,
+        partition_column: columnName,
+        partition_mapped_column: nextMappedColumnOverride(
+          prev.partition_mapped_column,
+          columnName,
+        ),
+      }));
+      if (columnName) {
+        setDatabaseColumns(prev =>
+          applyPartitionColumnDefaults(prev, columnName),
+        );
+      }
+    },
+    [],
+  );
+
+  const handleNavigateToColumn = useCallback((columnName: string) => {
+    setActiveTabKey(TABS_KEYS.COLUMNS);
+    // Filter to the column as well as expanding it: on a wide table the row
+    // would otherwise open somewhere below the fold, which reads as the link
+    // having done nothing.
+    setColumnSearchTerm(columnName);
+    setColumnToReveal(previous => ({
+      name: columnName,
+      nonce: (previous?.nonce ?? 0) + 1,
+    }));
+  }, []);
+
+  const handleMoveMappingHere = useCallback(
+    (columnName: string) => {
+      setDatabaseColumns(prev =>
+        applyMappingMove(
+          prev,
+          columnName,
+          defaultTransformFor(
+            datasource,
+            prev.find(column => column.column_name === columnName),
+          ),
+        ),
+      );
+      // Always explicit from here: the owner picked this column, so the mapping
+      // must not drift back the next time the default datetime column moves.
+      setDatasource(prev => ({ ...prev, partition_mapped_column: columnName }));
+    },
+    [datasource],
+  );
+
+  const handleRemoveMapping = useCallback(() => {
+    // Every column, not just the one that resolved as mapped: with the override
+    // gone the mapping falls back to the default datetime column, so a
+    // transform left anywhere else would come straight back to life -- which is
+    // the one thing "remove" has to rule out. `main_dttm_col` can name a
+    // calculated column, so both lists are cleared.
+    setDatabaseColumns(prev => clearMappingTransforms(prev));
+    setCalculatedColumns(prev => clearMappingTransforms(prev));
+    // The partition column stays designated; only the mapping goes away, which
+    // is the 1g state -- hidden from Explore, nothing mirrored onto it, and the
+    // panel's warning saying so.
+    setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
+  }, []);
+
+  const handleMonotonicChange = useCallback(
+    (columnName: string, isMonotonic: boolean) => {
+      setDatabaseColumns(prev =>
+        prev.map(column =>
+          column.column_name === columnName
+            ? { ...column, partition_transform_is_monotonic: isMonotonic }
+            : column,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleMainDttmColChange = useCallback(
+    (value?: string) => {
+      // Without an override the mapped column *is* the default datetime column,
+      // so re-pointing it moves the mapping. The value transform stays behind
+      // and is cleared: it was written about the old column, and the mapping
+      // arrives inert rather than mirroring an expression nobody checked
+      // against its new home. Tested on the partition column plus the absent
+      // override rather than on `mappedColumnIsImplicit`, which needs a
+      // datetime column already set and so misses the transition that sets the
+      // first one.
+      if (datasource.partition_column && !datasource.partition_mapped_column) {
+        setDatabaseColumns(prev =>
+          applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
+        );
+        // A calculated column can be the default datetime column but can never
+        // show a transform, and anything already stored on one still has to go
+        // either way, because it is saved and the query path reads it.
+        setCalculatedColumns(prev => clearMappingTransforms(prev));
+      }
+      setDatasource(prev => ({ ...prev, main_dttm_col: value }));
+    },
+    [
+      datasource.main_dttm_col,
+      datasource.partition_column,
+      datasource.partition_mapped_column,
+    ],
   );
 
   // Effect to trigger validation after user-initiated column changes
@@ -1369,6 +1593,27 @@ function DatasourceEditor({
         ) as Column[],
       });
 
+      // A sync can remove the partition column at the source. Leave the editor
+      // showing a mapping that points at a column the table no longer has and
+      // the owner has no way to tell why pruning stopped.
+      const clearedMapping = clearDanglingPartitionMapping(
+        datasource,
+        columnChanges.finalColumns,
+      );
+      if (clearedMapping) {
+        onDatasourcePropChange(
+          'partition_column',
+          clearedMapping.partition_column,
+        );
+        onDatasourcePropChange(
+          'partition_mapped_column',
+          clearedMapping.partition_mapped_column,
+        );
+        addSuccessToast(
+          t('The partition filter mapping was cleared: its column is gone'),
+        );
+      }
+
       if (datasource.id !== undefined) {
         clearDatasetCache(datasource.id);
       }
@@ -1392,7 +1637,13 @@ function DatasourceEditor({
     } finally {
       abortControllers.current.syncMetadata = null;
     }
-  }, [datasource, addSuccessToast, addDangerToast, setColumns]);
+  }, [
+    datasource,
+    addSuccessToast,
+    addDangerToast,
+    setColumns,
+    onDatasourcePropChange,
+  ]);
 
   // After a physical table change, refresh columns from the new table, matching
   // the legacy class component's tableChangeAndSyncMetadata path. Declared after
@@ -1709,10 +1960,7 @@ function DatasourceEditor({
               options={datetimeColumns}
               value={datasource.main_dttm_col}
               onChange={value =>
-                onDatasourceChange({
-                  ...datasource,
-                  main_dttm_col: value as string | undefined,
-                })
+                handleMainDttmColChange(value as string | undefined)
               }
               placeholder={t('Select datetime column')}
               allowClear
@@ -1743,12 +1991,23 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
+          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+            <PartitionColumnFields
+              datasource={datasource}
+              columns={databaseColumns}
+              onPartitionColumnChange={handlePartitionColumnChange}
+              onNavigateToColumn={handleNavigateToColumn}
+            />
+          )}
         </Flex>
       </DefaultColumnSettingsContainer>
     );
   }, [
     databaseColumns,
     calculatedColumns,
+    handlePartitionColumnChange,
+    handleNavigateToColumn,
+    handleMainDttmColChange,
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,
@@ -2626,6 +2885,11 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              datasource={datasource}
+              onMoveMappingHere={handleMoveMappingHere}
+              onRemoveMapping={handleRemoveMapping}
+              onMonotonicChange={handleMonotonicChange}
+              expandedColumnName={columnToReveal?.name ?? null}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
@@ -2764,6 +3028,10 @@ function DatasourceEditor({
       folderCount,
       handleFoldersChange,
       renderCertificationFieldset,
+      handleMoveMappingHere,
+      handleRemoveMapping,
+      handleMonotonicChange,
+      columnToReveal,
       renderSettingsFieldset,
       renderAdvancedFieldset,
       // `renderSpatialTab` is intentionally retained (see its definition above)
