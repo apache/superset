@@ -222,7 +222,12 @@ test('the default cell is a collapsed preview without an arrow', async () => {
   container.addEventListener('click', onParentClick);
 
   const preview = screen.getByTestId('json-cell-preview');
+  const openJson = screen.getByRole('button', { name: 'Open JSON' });
   expect(preview.textContent).toBe('{ "user": "ada" }');
+  expect(
+    preview.compareDocumentPosition(openJson) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
   expect(
     screen.queryByRole('button', { name: 'Expand JSON' }),
   ).not.toBeInTheDocument();
@@ -239,7 +244,7 @@ test('the default cell is a collapsed preview without an arrow', async () => {
   expect(await screen.findByRole('dialog')).toHaveTextContent('Cell content');
 });
 
-test('a click on the arrow expands the cell and a second click opens the dialog', async () => {
+test('the arrow expands the cell and the right icon opens the dialog', async () => {
   const writeText = jest.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
@@ -256,15 +261,36 @@ test('a click on the arrow expands the cell and a second click opens the dialog'
   );
 
   const cell = screen.getByTestId('json-cell');
+  const preview = within(cell).getByTestId('json-cell-preview');
   const arrow = within(cell).getByRole('button', { name: 'Expand JSON' });
-  fireEvent.click(arrow);
-  fireEvent.click(arrow);
+  const openJson = within(cell).getByRole('button', { name: 'Open JSON' });
+  expect(
+    arrow.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(
+    preview.compareDocumentPosition(openJson) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+
+  await userEvent.click(
+    within(cell).getByRole('button', { name: 'Expand JSON' }),
+  );
+  expect(
+    within(cell).getByRole('button', { name: 'Expand address' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(
+    within(cell).queryByTestId('json-cell-preview'),
+  ).not.toBeInTheDocument();
+
+  await userEvent.click(
+    within(cell).getByRole('button', { name: 'Open JSON' }),
+  );
   const dialog = await screen.findByRole('dialog');
   expect(dialog).toHaveTextContent('Cell content');
   expect(
-    within(cell).queryByRole('button', { name: 'Expand address' }),
-  ).not.toBeInTheDocument();
-  expect(within(cell).getByTestId('json-cell-preview')).toBeInTheDocument();
+    within(cell).getByRole('button', { name: 'Expand address' }),
+  ).toBeInTheDocument();
 
   await userEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
   expect(writeText).toHaveBeenCalledWith(nestedJson);
@@ -356,30 +382,6 @@ test('the copied label clears after two seconds', async () => {
     expect(
       within(dialog).getByRole('button', { name: 'Copy' }),
     ).toBeInTheDocument();
-  } finally {
-    jest.useRealTimers();
-  }
-});
-
-test('a pending arrow click does not expand after unmount', () => {
-  jest.useFakeTimers();
-  try {
-    const { unmount } = render(
-      <JsonCellRenderer
-        value={{ a: 1 }}
-        colId="payload"
-        autoHeight={false}
-        jsonInCell
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Expand JSON' }));
-    unmount();
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    expect(
-      screen.queryByRole('button', { name: 'Collapse JSON' }),
-    ).not.toBeInTheDocument();
   } finally {
     jest.useRealTimers();
   }

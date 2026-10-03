@@ -1179,7 +1179,7 @@ msgstr ""
 msgid "Add an annotation layer"
 msgstr ""
 
-msgid "Add an arrow beside collapsed JSON. A click expands the value in the row, and a double-click on the arrow opens it in a dialog."
+msgid "Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog."
 msgstr ""
 
 msgid "Add an item"

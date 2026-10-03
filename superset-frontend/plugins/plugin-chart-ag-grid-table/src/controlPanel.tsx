@@ -543,7 +543,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t(
-                'Add an arrow beside collapsed JSON. A click expands the value in the row, and a double-click on the arrow opens it in a dialog.',
+                'Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog.',
               ),
             },
           },

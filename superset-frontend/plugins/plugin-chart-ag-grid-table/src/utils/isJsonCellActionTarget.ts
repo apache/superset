@@ -26,7 +26,7 @@ export function isJsonCellActionTarget(target: EventTarget | null): boolean {
   );
 }
 
-/** The second click of a double-click on JSON text. It opens the dialog and must not clear the cross-filter applied by the first click. */
+/** The second click of a double-click on JSON text. It leaves the cross-filter applied by the first click in place. */
 export function isJsonCellDoubleClick(
   nativeEvent: Event | null | undefined,
   target: EventTarget | null,
