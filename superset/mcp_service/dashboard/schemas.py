@@ -2243,6 +2243,14 @@ class DeleteDashboardResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _reject_bool_dataset_id(value: object) -> object:
+    """bool is a subclass of int, so dataset_id=true would coerce to dataset ID 1
+    and target the wrong dataset; reject it outright."""
+    if isinstance(value, bool):
+        raise ValueError("dataset_id must be an integer dataset ID")
+    return value
+
+
 class BaseNewFilterSpec(BaseModel):
     """Common fields shared by all new native filter specs."""
 
@@ -2256,6 +2264,11 @@ class BaseNewFilterSpec(BaseModel):
             "charts that are on the dashboard."
         ),
     )
+
+    @field_validator("dataset_id", mode="before", check_fields=False)
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
 
 
 class FilterSelectSpec(BaseNewFilterSpec):
@@ -2406,6 +2419,11 @@ class NativeFilterUpdateSpec(BaseModel):
     @classmethod
     def _validate_default_time_range(cls, v: str | None) -> str | None:
         return validate_time_range(v)
+
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
 
 
 class ManageNativeFiltersRequest(BaseModel):

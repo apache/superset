@@ -47,6 +47,11 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import TimeGrain
+from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+    _SINGLE_VALUE_EXACT,
+    _SINGLE_VALUE_MAXIMUM,
+    _SINGLE_VALUE_MINIMUM,
+)
 from superset.models.core import Database
 from superset.utils import json
 
@@ -525,7 +530,10 @@ async def test_range_filter_without_target_column_is_rejected(
 @pytest.mark.asyncio
 async def test_range_minimum_mode_rejects_an_upper_bound(mcp_server: object) -> None:
     """A single lower-bound range filter cannot be given an upper bound."""
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 0}}
+    conf = {
+        **RANGE_FILTER,
+        "controlValues": {"enableSingleValue": _SINGLE_VALUE_MINIMUM},
+    }
     with patch(DAO_GET, return_value=_mock_dashboard([conf])):
         data = await _call(
             mcp_server,
@@ -542,7 +550,10 @@ async def test_range_minimum_mode_rejects_an_upper_bound(mcp_server: object) -> 
 async def test_range_minimum_mode_accepts_a_lower_bound(mcp_server: object) -> None:
     """A single lower-bound range filter accepts [value, null]."""
     captured: dict[str, Any] = {}
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 0}}
+    conf = {
+        **RANGE_FILTER,
+        "controlValues": {"enableSingleValue": _SINGLE_VALUE_MINIMUM},
+    }
 
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
@@ -566,7 +577,10 @@ async def test_range_minimum_mode_accepts_a_lower_bound(mcp_server: object) -> N
 @pytest.mark.asyncio
 async def test_range_maximum_mode_rejects_a_lower_bound(mcp_server: object) -> None:
     """A single upper-bound range filter cannot be given a lower bound."""
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 2}}
+    conf = {
+        **RANGE_FILTER,
+        "controlValues": {"enableSingleValue": _SINGLE_VALUE_MAXIMUM},
+    }
     with patch(DAO_GET, return_value=_mock_dashboard([conf])):
         data = await _call(
             mcp_server,
@@ -583,7 +597,10 @@ async def test_range_maximum_mode_rejects_a_lower_bound(mcp_server: object) -> N
 async def test_range_maximum_mode_accepts_an_upper_bound(mcp_server: object) -> None:
     """A single upper-bound range filter accepts [null, value]."""
     captured: dict[str, Any] = {}
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 2}}
+    conf = {
+        **RANGE_FILTER,
+        "controlValues": {"enableSingleValue": _SINGLE_VALUE_MAXIMUM},
+    }
 
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
@@ -607,7 +624,7 @@ async def test_range_maximum_mode_accepts_an_upper_bound(mcp_server: object) -> 
 @pytest.mark.asyncio
 async def test_range_exact_mode_rejects_mismatched_bounds(mcp_server: object) -> None:
     """A single exact-value range filter cannot be given distinct bounds."""
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 1}}
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": _SINGLE_VALUE_EXACT}}
     with patch(DAO_GET, return_value=_mock_dashboard([conf])):
         data = await _call(
             mcp_server,
@@ -624,7 +641,7 @@ async def test_range_exact_mode_rejects_mismatched_bounds(mcp_server: object) ->
 async def test_range_exact_mode_accepts_matching_bounds(mcp_server: object) -> None:
     """A single exact-value range filter accepts [value, value]."""
     captured: dict[str, Any] = {}
-    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 1}}
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": _SINGLE_VALUE_EXACT}}
 
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf])),

@@ -38,6 +38,9 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
+    FilterRangeSpec,
+    FilterSelectSpec,
+    FilterTimeGrainSpec,
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
     GetDashboardLayoutRequest,
@@ -45,6 +48,7 @@ from superset.mcp_service.dashboard.schemas import (
     ManageDashboardOwnersResponse,
     ManageDashboardRolesResponse,
     NativeFilterSummary,
+    NativeFilterUpdateSpec,
     redact_filter_state_data_model_metadata,
     serialize_chart_summary,
     serialize_dashboard_object,
@@ -1338,3 +1342,21 @@ def test_apply_filter_range_rejects_overflowing_integer_bounds(
         ApplyFilterValueSpec.model_validate(
             {"filter_name_or_id": "Cost", "range": bounds}
         )
+
+
+@pytest.mark.parametrize(
+    "model, payload",
+    [
+        (FilterSelectSpec, {"filter_type": "filter_select", "column": "region"}),
+        (FilterRangeSpec, {"filter_type": "filter_range", "column": "cost"}),
+        (FilterTimeGrainSpec, {"filter_type": "filter_timegrain"}),
+        (NativeFilterUpdateSpec, {"id": "NATIVE_FILTER-1"}),
+    ],
+)
+def test_filter_specs_reject_boolean_dataset_id(
+    model: Any, payload: dict[str, Any]
+) -> None:
+    """bool coerces to int in pydantic lax mode; dataset_id=true must not become 1."""
+    with pytest.raises(ValidationError, match="dataset_id must be an integer"):
+        model.model_validate({**payload, "name": "Filter", "dataset_id": True})
+    assert model.model_validate({**payload, "name": "Filter", "dataset_id": 1})
