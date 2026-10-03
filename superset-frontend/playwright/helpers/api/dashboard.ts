@@ -161,6 +161,34 @@ export async function apiGetDashboard(
 }
 
 /**
+ * A chart placed on a dashboard, as returned by the dashboard charts endpoint.
+ */
+export interface DashboardChartResult {
+  id: number;
+  slice_name: string;
+  /** Omitted by the backend when the requesting user cannot access the chart. */
+  form_data?: { viz_type: string } & Record<string, unknown>;
+}
+
+/**
+ * Fetch every chart placed on a dashboard.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param dashboardId - ID of the dashboard whose charts to fetch
+ * @returns The dashboard's charts
+ */
+export async function getDashboardCharts(
+  page: Page,
+  dashboardId: number,
+): Promise<DashboardChartResult[]> {
+  const response = await apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}${dashboardId}/charts`,
+  );
+  const body: { result: DashboardChartResult[] } = await response.json();
+  return body.result;
+}
+
+/**
  * GET request to resolve a native-filter `filter_state` key for a dashboard.
  * The key is the `native_filters_key` URL param the filter bar publishes; a
  * 200 response carries `{ value: string }`, the serialized data mask.
