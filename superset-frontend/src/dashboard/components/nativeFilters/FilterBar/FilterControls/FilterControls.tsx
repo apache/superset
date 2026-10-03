@@ -101,10 +101,6 @@ type FilterControlsProps = {
   hideHeader?: boolean;
 };
 
-const SectionContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-`;
-
 const SectionHeader = styled.button`
   appearance: none;
   border: none;
@@ -321,7 +317,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <>
         {filtersInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
                 type="button"
@@ -347,7 +343,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
             )}
             {(hideHeader || sectionsOpen.filters) && <StyledDivider />}
-          </SectionContainer>
+          </div>
         )}
 
         {showFiltersOutOfScope && (
@@ -359,7 +355,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         )}
 
         {customizationsInScope.length > 0 && (
-          <SectionContainer>
+          <div>
             {!hideHeader && (
               <SectionHeader
                 type="button"
@@ -396,7 +392,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             {(hideHeader || sectionsOpen.chartCustomization) && (
               <StyledDivider />
             )}
-          </SectionContainer>
+          </div>
         )}
 
         {showCustomizationCollapsePanel &&
