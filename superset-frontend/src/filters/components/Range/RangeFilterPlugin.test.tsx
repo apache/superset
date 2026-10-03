@@ -19,7 +19,7 @@
 import { AppSection, type ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
 import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
@@ -470,6 +470,51 @@ describe('RangeFilterPlugin', () => {
         validateStatus: undefined,
         validateMessage: '',
       },
+    });
+  });
+
+  test('required range cascade clear keeps the validation error instead of re-applying the stale value', async () => {
+    const setDataMaskMock = jest.fn();
+    const renderWith = (filterState: PluginFilterRangeProps['filterState']) => (
+      <RangeFilterPlugin
+        {...(transformProps({
+          ...rangeProps,
+          formData: { ...rangeProps.formData, enableEmptyFilter: true },
+          filterState,
+        } as unknown as ChartProps) as PluginFilterRangeProps)}
+        setDataMask={setDataMaskMock}
+      />
+    );
+
+    // Required range sitting at its selected value.
+    const { rerender } = render(renderWith({ value: [10, 70] }));
+    setDataMaskMock.mockClear();
+
+    // A parent filter change stages the canonical [null, null] clear with an
+    // 'error' status for required filters.
+    rerender(renderWith({ value: [null, null], validateStatus: 'error' }));
+
+    // The stale [10, 70] value must never be re-applied.
+    await waitFor(() => {
+      expect(setDataMaskMock).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterState: expect.objectContaining({ value: [10, 70] }),
+        }),
+      );
+    });
+
+    // The required error mask is emitted with no clauses.
+    await waitFor(() => {
+      expect(setDataMaskMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extraFormData: {},
+          filterState: expect.objectContaining({
+            value: null,
+            validateStatus: 'error',
+            validateMessage: 'Please provide a valid min or max value',
+          }),
+        }),
+      );
     });
   });
 });
