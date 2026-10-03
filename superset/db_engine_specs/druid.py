@@ -94,10 +94,13 @@ class DruidEngineSpec(BasicParametersMixin, BaseEngineSpec):
     allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
-    # pydruid connects over HTTP (`druid+https` selects the TLS dialect); the SQL
-    # endpoint path is fixed and never entered by the user, so it is injected here
-    # instead of being exposed as a form field.
-    default_driver = ""
+    # Every pydruid dialect (`druid`, `druid+http`, `druid+https`) reports its
+    # driver as "rest", which is what `get_available_engine_specs` detects; the
+    # default driver must match it for the dynamic form to be offered. "rest" is
+    # not a registered dialect name, so `build_sqlalchemy_uri` writes the `druid`
+    # / `druid+https` schemes explicitly. The SQL endpoint path is fixed and never
+    # entered by the user, so it is injected instead of exposed as a form field.
+    default_driver = "rest"
     sqlalchemy_uri_placeholder = "druid://user:password@host:port/druid/v2/sql/"
     sqlalchemy_uri_database = "druid/v2/sql/"
     parameters_schema = DruidParametersSchema()
@@ -225,14 +228,16 @@ class DruidEngineSpec(BasicParametersMixin, BaseEngineSpec):
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
         query = parameters.get("query", {}).copy()
-        # `druid+https` selects pydruid's TLS dialect; the bare `druid` driver
+        # `druid+https` selects pydruid's TLS dialect; the bare `druid` scheme
         # connects over plain HTTP.
-        driver = "https" if parameters.get("encryption") else cls.default_driver
+        drivername = (
+            f"{cls.engine}+https" if parameters.get("encryption") else cls.engine
+        )
 
         # SQLAlchemy 2.0 hides the password from `URL.__str__()`, so render it
         # explicitly since this URI is used to connect, not just displayed.
         return URL.create(
-            f"{cls.engine}+{driver}".rstrip("+"),
+            drivername,
             username=parameters.get("username"),
             password=parameters.get("password"),
             host=parameters["host"],

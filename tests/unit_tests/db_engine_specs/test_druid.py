@@ -428,3 +428,78 @@ def test_parameters_schema_reloads_emitted_parameters() -> None:
     assert "database" not in loaded
     assert loaded["host"] == "localhost"
     assert loaded["encryption"] is True
+
+
+def test_default_driver_matches_pydruid_dialects() -> None:
+    """
+    ``/available`` only returns form parameters when the spec's default driver is
+    among the detected drivers, so it must match what pydruid's dialects report.
+    """
+    sqlalchemy_dialect = pytest.importorskip("pydruid.db.sqlalchemy")
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    detected = {
+        sqlalchemy_dialect.DruidHTTPDialect.driver,
+        sqlalchemy_dialect.DruidHTTPSDialect.driver,
+    }
+
+    assert detected == {"rest"}
+    assert DruidEngineSpec.default_driver in detected
+
+
+def test_build_sqlalchemy_uri_uses_registered_dialect_names() -> None:
+    """
+    The default driver ("rest") is not a registered dialect name, so it must
+    never leak into the generated URI scheme.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    for encryption in (True, False):
+        uri = DruidEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+        assert "rest" not in make_url(uri).drivername
+
+
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "druid://user:pwd@localhost:8082/druid/v2/sql/",
+        "druid+https://user:pwd@localhost:8082/druid/v2/sql/",
+    ],
+)
+def test_existing_uris_resolve_to_druid_spec(uri: str) -> None:
+    """Existing Druid connections keep resolving to the Druid engine spec."""
+    from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    url = make_url(uri)
+    driver = url.drivername.split("+")[1] if "+" in url.drivername else "rest"
+
+    assert get_engine_spec(url.get_backend_name(), driver) is DruidEngineSpec
+
+
+@pytest.mark.parametrize(
+    "denylist,expect_available",
+    [
+        ({"druid": {"rest"}}, False),
+        ({"druid": {"other"}}, True),
+        ({}, True),
+    ],
+)
+def test_available_engine_specs_druid_denylist(
+    mocker: Any, denylist: dict[str, set[str]], expect_available: bool
+) -> None:
+    """``DBS_AVAILABLE_DENYLIST`` disables Druid by its "rest" driver name."""
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=[DruidEngineSpec],
+    )
+    mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
+    app = mocker.patch("superset.db_engine_specs.app")
+    app.config = {"DBS_AVAILABLE_DENYLIST": dict(denylist)}
+
+    available = get_available_engine_specs()
+
+    assert (DruidEngineSpec in available) is expect_available

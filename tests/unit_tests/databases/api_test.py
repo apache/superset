@@ -2670,3 +2670,46 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+@pytest.mark.parametrize(
+    "drivers,expect_parameters",
+    [
+        # every pydruid dialect (`druid`, `druid+http`, `druid+https`) reports "rest"
+        ({"rest"}, True),
+        ({"other"}, False),
+    ],
+)
+def test_available_druid_dynamic_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+    expect_parameters: bool,
+) -> None:
+    """
+    Druid is offered with the dynamic connection form when pydruid's "rest"
+    driver is detected, and falls back to the SQLAlchemy URI box otherwise.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DruidEngineSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+    assert response.status_code == 200
+
+    (druid,) = response.json["databases"]
+    assert druid["engine"] == "druid"
+    assert druid["default_driver"] == "rest"
+    assert druid["available_drivers"] == sorted(drivers)
+    assert ("parameters" in druid) is expect_parameters
+    if expect_parameters:
+        assert set(druid["parameters"]["required"]) == {"host", "port"}
+        assert "database" not in druid["parameters"]["properties"]
+        assert (
+            druid["sqlalchemy_uri_placeholder"]
+            == "druid://user:password@host:port/druid/v2/sql/"
+        )
