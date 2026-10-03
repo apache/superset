@@ -173,11 +173,13 @@ The MCP process and websocket transport must use the same
 Framework feature flag.
 
 The response's `live_update_pushed` field reports publication success, not
-browser receipt or application. Without a backend, an identifiable principal,
-or a successful publish, it is `false`; the created `dashboard_url` remains
-the fallback. An open dashboard resolves matching notifications through the
-existing dashboard permalink API and applies the returned filters without a
-reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+browser receipt or application. When `WEBSOCKET_ENABLE` is disabled or unset,
+no notification is published and this field is `false`. Without a backend,
+`can_read` on `Realtime` for the calling principal, an identifiable principal,
+or a successful publish, it is also `false`; the created
+`dashboard_url` remains the fallback. An open dashboard resolves matching
+notifications through the existing dashboard permalink API and applies the
+returned filters without a reload. A “Filters applied from chat” toast offers **Undo**, restoring the
 affected filters' previous selections. The toast carries an action, so it has
 no auto-dismiss timer and stays up until Undo or its close button is used,
 which keeps the action reachable for keyboard and assistive-technology users.
