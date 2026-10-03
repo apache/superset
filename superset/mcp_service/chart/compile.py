@@ -39,6 +39,7 @@ from typing import Any, Dict, List, Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
@@ -117,6 +118,7 @@ def _compile_chart(
             force=False,
         )
 
+        set_query_context_form_data(query_context, dataset_id, "table")
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
