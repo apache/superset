@@ -28,7 +28,13 @@ from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
+    DatabaseCategory,
+)
 from superset.errors import SupersetErrorType
 from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
@@ -50,7 +56,7 @@ CONNECTION_HOST_DOWN_REGEX = re.compile(
 )
 
 
-class MssqlEngineSpec(BaseEngineSpec):
+class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "mssql"
     engine_name = "Microsoft SQL Server"
 
@@ -58,6 +64,18 @@ class MssqlEngineSpec(BaseEngineSpec):
     # needs escaping (by doubling).
     identifier_quote_start: str = "["
     identifier_quote_end: str = "]"
+
+    # Enables the dynamic connection form: the recommended pymssql driver uses a
+    # standard host/port/username/password/database URI, so ``BasicParametersMixin``
+    # can build it as ``mssql+pymssql://user:pass@host:port/db``.
+    default_driver = "pymssql"
+    # pymssql negotiates TLS at the TDS protocol level rather than through a URI
+    # query parameter, so there is no encryption flag to inject into the URL and
+    # the form does not offer an SSL toggle.
+    parameters_schema = BasicParametersSchema(exclude=("encryption",))
+    sqlalchemy_uri_placeholder = (
+        "mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]"
+    )
 
     metadata = {
         "description": (
@@ -164,6 +182,18 @@ class MssqlEngineSpec(BaseEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[dict[str, Any]] = None
+    ) -> BasicParametersType:
+        parameters = super().get_parameters_from_uri(uri, encrypted_extra)
+        # ``encryption`` is not part of the parameters schema. The base
+        # implementation derives it from an ``all(...)`` over the (empty)
+        # ``encryption_parameters``, which would vacuously return True; dropping
+        # it keeps edit-mode saves loadable by ``parameters_schema``.
+        parameters.pop("encryption", None)
+        return parameters
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -328,6 +358,9 @@ class AzureSynapseSpec(MssqlEngineSpec):
     engine = "mssql"
     engine_name = "Azure Synapse"
     default_driver = "pyodbc"
+    sqlalchemy_uri_placeholder = (
+        "mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]"
+    )
 
     metadata = {
         "description": (

@@ -392,3 +392,107 @@ def test_get_available_engine_specs_with_denylist(mocker: MockerFixture) -> None
     )
     available = get_available_engine_specs()
     assert list(available.keys()) == [DatabricksNativeEngineSpec]
+
+
+class _MissingDBAPIDialect(DefaultDialect):
+    """A native dialect whose DBAPI is not installed."""
+
+    driver = "pyodbc"
+
+    @classmethod
+    def import_dbapi(cls) -> object:
+        raise ModuleNotFoundError("No module named 'pyodbc'")
+
+
+def test_get_available_engine_specs_detects_non_default_native_driver(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With only pymssql installed, MSSQL is available with the pymssql driver even
+    though SQLAlchemy's default ``mssql`` dialect (pyodbc) is missing.
+    """
+    import sqlalchemy.dialects
+    from sqlalchemy.dialects.mssql.pymssql import MSDialect_pymssql
+
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", ["mssql"])
+    mocker.patch.object(
+        sqlalchemy.dialects.registry, "load", return_value=_MissingDBAPIDialect
+    )
+    mocker.patch.object(MSDialect_pymssql, "import_dbapi", return_value=object())
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([MssqlEngineSpec, AzureSynapseSpec]),
+    )
+    mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
+
+    available = get_available_engine_specs()
+
+    assert available[MssqlEngineSpec] == {"pymssql"}
+    assert available[AzureSynapseSpec] == {"pymssql"}
+
+
+def test_get_available_engine_specs_non_default_native_driver_not_installed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    MSSQL has no drivers when neither pyodbc nor pymssql is installed.
+    """
+    import sqlalchemy.dialects
+    from sqlalchemy.dialects.mssql.pymssql import MSDialect_pymssql
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", ["mssql"])
+    mocker.patch.object(
+        sqlalchemy.dialects.registry, "load", return_value=_MissingDBAPIDialect
+    )
+    mocker.patch.object(
+        MSDialect_pymssql,
+        "import_dbapi",
+        side_effect=ModuleNotFoundError("No module named 'pymssql'"),
+    )
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([MssqlEngineSpec]),
+    )
+    mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
+
+    assert get_available_engine_specs()[MssqlEngineSpec] == set()
+
+
+def test_get_available_engine_specs_only_probes_native_backends(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The ``default_driver`` probe is limited to SQLAlchemy's bundled dialects:
+    specs whose default driver was already detected, or whose backend is not a
+    native SQLAlchemy dialect, are not probed.
+    """
+    import sqlalchemy.dialects
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class MySQLDialect(DefaultDialect):
+        driver = "mysqldb"
+
+        @classmethod
+        def import_dbapi(cls) -> object:
+            return object()
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", ["mysql"])
+    mocker.patch.object(sqlalchemy.dialects.registry, "load", return_value=MySQLDialect)
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([MySQLEngineSpec, SnowflakeEngineSpec]),
+    )
+    mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
+    find_spec = mocker.patch("superset.db_engine_specs.find_spec")
+
+    available = get_available_engine_specs()
+
+    find_spec.assert_not_called()
+    assert available[MySQLEngineSpec] == {"mysqldb"}
+    assert available[SnowflakeEngineSpec] == set()
