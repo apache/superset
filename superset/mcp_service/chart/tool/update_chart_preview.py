@@ -24,9 +24,10 @@ import time
 from collections.abc import Callable
 from contextlib import ExitStack
 from functools import wraps
-from typing import Any, cast, Dict
+from typing import Annotated, Any, cast, Dict
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -158,7 +159,20 @@ def _preflight_update_preview_result(
 )
 @_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
-    request: UpdateChartPreviewRequest, ctx: Context
+    request: Annotated[
+        UpdateChartPreviewRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "Cached preview only, not saved. Supplied form_data_key "
+                "is invalidated; "
+                "use the returned key. MUST display explore_url. "
+                "For a fresh preview provide config + dataset_id "
+                "and omit form_data_key."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> UpdateChartPreviewResponse:
     """Update cached chart preview without saving.
 
