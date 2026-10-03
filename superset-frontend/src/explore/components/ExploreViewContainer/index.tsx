@@ -37,6 +37,7 @@ import {
   isMatrixifyEnabled,
   isFeatureEnabled,
   FeatureFlag,
+  SupersetClient,
   QueryFormData,
   JsonObject,
   MatrixifyFormData,
@@ -591,8 +592,26 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 
   function onStop() {
-    if (props.chart && props.chart.queryController) {
+    // Abort the in-flight HTTP request so the UI stops waiting immediately.
+    if (props.chart?.queryController) {
       props.chart.queryController.abort();
+    }
+
+    // Aborting only drops the response; the database keeps executing the query.
+    // Ask the backend to cancel it too. The backend resolves `client_id` within
+    // the requesting user's own in-flight queries, so this can only ever cancel
+    // our own query. A falsy `stopped` just means there was nothing running to
+    // cancel (or the engine has no cancel support), which is not an error.
+    const clientId = props.chart?.latestQueryId;
+    if (clientId) {
+      SupersetClient.post({
+        endpoint: '/api/v1/chart/data/stop',
+        body: JSON.stringify({ client_id: clientId }),
+        headers: { 'Content-Type': 'application/json' },
+      }).catch((error: unknown) => {
+        logging.error('Failed to stop chart query', error);
+        props.addDangerToast(t('Failed to stop query.'));
+      });
     }
   }
 
