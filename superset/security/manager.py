@@ -22,7 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Set as AbstractSet
+from collections.abc import Sequence, Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -70,6 +70,7 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
+from sqlalchemy.engine import Row
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -4335,6 +4336,74 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .values(perm=new_view_perm)
                     )
 
+    def semantic_layer_before_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Remove child view permissions before the layer row is deleted.
+
+        Views the session has not loaded are deleted by the database
+        ``ON DELETE CASCADE`` (``passive_deletes=True``), so their ORM
+        ``after_delete`` hook never runs. Read their perms through the
+        connection while the rows still exist; views the ORM deletes itself
+        are already gone by now and clean up in ``semantic_view_after_delete``.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table = SemanticView.__table__  # pylint: disable=no-member
+        views: Sequence[Row[Any]] = connection.execute(
+            sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
+        ).fetchall()
+        deleted_view_ids: set[int] = {view_row.id for view_row in views}
+        view_row: Row[Any]
+        for view_row in views:
+            if view_row.perm and not self._semantic_view_perm_owned_elsewhere(
+                connection, view_row.perm, deleted_view_ids
+            ):
+                self._delete_pvm_on_sqla_event(
+                    mapper, connection, "datasource_access", view_row.perm
+                )
+
+    def _semantic_view_perm_owned_elsewhere(
+        self,
+        connection: Connection,
+        perm: str,
+        deleted_view_ids: set[int],
+    ) -> bool:
+        """
+        Whether a live resource other than the deleted views owns *perm*.
+
+        A deleted view's permission is removed only when no dataset and no
+        other semantic view still uses the same permission name; removing it
+        would otherwise revoke that resource's grants.
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        table = SqlaTable.__table__  # pylint: disable=no-member
+        if connection.execute(
+            table.select().where(table.c.perm == perm).limit(1)
+        ).first():
+            return True
+        sv_table = SemanticView.__table__  # pylint: disable=no-member
+        return (
+            connection.execute(
+                sv_table.select()
+                .where(sv_table.c.perm == perm, sv_table.c.id.not_in(deleted_view_ids))
+                .limit(1)
+            ).first()
+            is not None
+        )
+
     def semantic_layer_after_delete(
         self,
         mapper: Mapper,
@@ -4462,11 +4531,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Handle permission cleanup when a semantic view is deleted.
 
-        Removes the datasource_access PVM.
+        Removes the datasource_access PVM unless another live resource still
+        owns the same permission name.
         """
-        self._delete_pvm_on_sqla_event(
-            mapper, connection, "datasource_access", target.perm
-        )
+        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+            connection, target.perm, {target.id}
+        ):
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", target.perm
+            )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
         self,
