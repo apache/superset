@@ -347,6 +347,20 @@ def _in_current_streak(target: sa.FromClause, now: datetime) -> sa.ColumnElement
     return sa.or_(boundary.is_(None), target.c.created_on > boundary)
 
 
+#: Column names of the timestamp-groups derived table used by the window
+#: repeat check. The groups' labels, the named window's ``ORDER BY`` and the
+#: ``LAG`` columns are all built from these, so renaming one cannot drift the
+#: others: the window text is raw SQL and would otherwise keep the old name.
+_GROUP_TS = "ts"
+_GROUP_LAG_COLUMNS: tuple[str, ...] = (
+    _GROUP_TS,
+    "n",
+    "n_coded",
+    "min_reason",
+    "max_reason",
+)
+
+
 def _repeat_path() -> Literal["legacy", "window"]:
     """Select a query using initialized, vendor-normalized server capabilities."""
     dialect: sa.engine.Dialect = db.session.get_bind().dialect
@@ -530,7 +544,7 @@ def _window_repeats_an_earlier_block(
         sa.select(
             source.c.entity_type,
             source.c.entity_uuid,
-            source.c.created_on.label("ts"),
+            source.c.created_on.label(_GROUP_TS),
             sa.func.count().label("n"),
             sa.func.count(source.c.reason).label("n_coded"),
             sa.func.min(source.c.reason).label("min_reason"),
@@ -545,11 +559,11 @@ def _window_repeats_an_earlier_block(
     # A raw-text named WINDOW clause: the one construct SQLAlchemy Core
     # cannot emit. ``groups_name`` is the literal alias every LAG column
     # below must qualify with, so the FROM clause and the WINDOW clause
-    # stay on the same alias; the column names, however, are hardcoded in
-    # both places and must be kept in step by hand.
+    # stay on the same alias. The ordering and LAG column names come from
+    # the module constants shared with the groups' labels.
     window_body: str = (
         f"{groups_name}.entity_type, {groups_name}.entity_uuid "
-        f"ORDER BY {groups_name}.ts"
+        f"ORDER BY {groups_name}.{_GROUP_TS}"
     )
     grp: sa.Subquery = (
         sa.select(
@@ -563,7 +577,7 @@ def _window_repeats_an_earlier_block(
                 sa.literal_column(
                     f"lag({groups_name}.{name}) OVER w", type_=groups.c[name].type
                 ).label(f"prev_{name}")
-                for name in ("ts", "n", "n_coded", "min_reason", "max_reason")
+                for name in _GROUP_LAG_COLUMNS
             ],
         )
         .select_from(groups)

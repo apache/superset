@@ -52,6 +52,7 @@ from superset.models.purge_audit_log import (
     STATUS_PENDING,
     STATUS_TARGET_ABSENT,
 )
+from superset.utils import json
 from superset.utils.core import backend
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.deletion_retention._base import (
@@ -1127,3 +1128,85 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
                     )
         # Guard against a generator regression that quietly checks nothing.
         assert checked_rows > 1000
+
+
+def _windowing_nodes(plan: Any) -> list[dict[str, Any]]:
+    """Every ``windowing`` node in a MySQL ``EXPLAIN FORMAT=JSON`` document."""
+    nodes: list[dict[str, Any]] = []
+    if isinstance(plan, dict):
+        for key, value in plan.items():
+            if key == "windowing":
+                nodes.append(value)
+            nodes.extend(_windowing_nodes(value))
+    elif isinstance(plan, list):
+        for item in plan:
+            nodes.extend(_windowing_nodes(item))
+    return nodes
+
+
+class TestRepeatQueryPlan(SupersetTestCase):
+    """The repeat query's window functions execute as one MySQL pass."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._cleanup()
+
+    def tearDown(self) -> None:
+        self._cleanup()
+        super().tearDown()
+
+    def _cleanup(self) -> None:
+        db.session.rollback()
+        db.session.execute(
+            sa.delete(PurgeAuditLog.__table__).where(
+                PurgeAuditLog.__table__.c.entity_type == _EQUIV_ENTITY_TYPE
+            )
+        )
+        db.session.commit()
+
+    def test_mysql_repeat_query_evaluates_all_lag_columns_in_one_window_pass(
+        self,
+    ) -> None:
+        """Assert the plan, not just the SQL text.
+
+        MySQL 8 sorts and buffers once per distinct window specification, so
+        five identical inline ``OVER (PARTITION BY ... ORDER BY ...)`` clauses
+        cost five passes over the timestamp groups. The named window must show
+        up in ``EXPLAIN FORMAT=JSON`` as a single windowing step carrying every
+        ``LAG``; the compiled-SQL shape checks alone would not notice the
+        server planning it differently.
+        """
+        dialect: sa.engine.Dialect = db.session.get_bind().dialect
+        if dialect.name != "mysql" or getattr(dialect, "is_mariadb", False):
+            pytest.skip("MySQL-specific execution plan")
+        if prune_audit._repeat_path() != "window":
+            pytest.skip("this server runs the legacy correlated repeat check")
+
+        now: datetime = audit.utc_now()
+        rows: list[dict[str, Any]] = _random_history(random.Random(0), now)  # noqa: S311 — deterministic test data, not crypto
+        db.session.execute(sa.insert(PurgeAuditLog.__table__), rows)
+        db.session.commit()
+
+        table: sa.Table = PurgeAuditLog.__table__
+        query: sa.sql.Select = sa.select(table.c.id).where(
+            table.c.entity_type == _EQUIV_ENTITY_TYPE,
+            *prune_audit._duplicate_predicates(
+                table, now, [(_EQUIV_ENTITY_TYPE, rows[0]["entity_uuid"])]
+            ),
+        )
+        compiled: str = str(
+            query.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+        # The statement is compiled from this module's own constants and
+        # literal-rendered bind values; EXPLAIN takes no bind parameters.
+        plan: dict[str, Any] = json.loads(
+            db.session.execute(sa.text("EXPLAIN FORMAT=JSON " + compiled)).scalar_one()
+        )
+
+        windowing: list[dict[str, Any]] = _windowing_nodes(plan)
+        assert len(windowing) == 1, "the repeat query must plan one windowing step"
+        windows: list[dict[str, Any]] = windowing[0]["windows"]
+        assert len(windows) == 1, (
+            "the LAG columns must share one window, not one sort each"
+        )
+        assert windows[0]["functions"] == ["lag"] * len(prune_audit._GROUP_LAG_COLUMNS)
