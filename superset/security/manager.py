@@ -854,7 +854,13 @@ def _native_filter_allowed_targets(
         return None
 
     datasource = getattr(query_context, "datasource", None)
-    datasource_id = datasource.data.get("id") if datasource else None
+    datasource_id: int | None = (
+        datasource.id
+        if datasource and datasource.type == "semantic_view"
+        else datasource.data.get("id")
+        if datasource
+        else None
+    )
 
     allowed_columns: set[str] = set()
     allowed_metrics: set[str] = set()
@@ -5250,7 +5256,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.data["id"]
+                                target.get("datasetId")
+                                == (
+                                    datasource.id
+                                    if datasource.type == "semantic_view"
+                                    else datasource.data["id"]
+                                )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],

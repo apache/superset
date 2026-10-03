@@ -46,8 +46,16 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.metadata_binding import participates
+from superset.semantic_layers.metadata_cache import (
+    compatibility_identity,
+    CompatibilityIdentity,
+)
+from superset.semantic_layers.metadata_errors import metadata_api_errors
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -102,6 +110,7 @@ class DatasourceRestApi(BaseSupersetApi):
         ),
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str
     ) -> FlaskResponse:
@@ -498,6 +507,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return metrics and dimensions compatible with the current selection.
         ---
@@ -575,23 +585,38 @@ class DatasourceRestApi(BaseSupersetApi):
         selected_metrics = body.get("selected_metrics", [])
         selected_dimensions = body.get("selected_dimensions", [])
 
-        # Build a stable cache key from the datasource identity and the
-        # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = (
-            "compatible:"
-            + hashlib.sha256(
-                json.dumps(
-                    {
-                        "uid": datasource.uid,
-                        "m": sorted(selected_metrics),
-                        "d": sorted(selected_dimensions),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
+        identity: CompatibilityIdentity | None = None
+        if isinstance(datasource, SemanticView) and participates(
+            datasource.semantic_layer
+        ):
+            identity = compatibility_identity(
+                datasource, selected_metrics, selected_dimensions
+            )
+        cache_key: str = (
+            identity.key
+            if identity is not None
+            else (
+                "compatible:"
+                + hashlib.sha256(
+                    json.dumps(
+                        {
+                            "uid": datasource.uid,
+                            "m": sorted(selected_metrics),
+                            "d": sorted(selected_dimensions),
+                        },
+                        sort_keys=True,
+                    ).encode()
+                ).hexdigest()
+            )
         )
-
+        cached: dict[str, Any] | None
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+            if identity is not None:
+                # Timing is additive cache metadata, never part of the public result.
+                cached = {
+                    name: cached[name]
+                    for name in ("compatible_metrics", "compatible_dimensions")
+                }
             return self.response(200, result=cached)
 
         result = {
@@ -606,7 +631,15 @@ class DatasourceRestApi(BaseSupersetApi):
         timeout = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        if identity is None:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        else:
+            set_and_log_cache(
+                cache_manager.data_cache,
+                cache_key,
+                {**result, "source_observed_at": identity.source_observed_at},
+                cache_timeout=timeout,
+            )
 
         return self.response(200, result=result)
 
@@ -642,6 +675,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.query",
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def query(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Query a datasource using metric and dimension names.
         ---
@@ -851,6 +885,7 @@ class DatasourceRestApi(BaseSupersetApi):
         ),
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def datasource_info(
         self, datasource_type: str, datasource_id: int
     ) -> FlaskResponse:

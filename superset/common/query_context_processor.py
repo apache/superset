@@ -52,6 +52,7 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.result_inspection import capture_result_identity
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -73,6 +74,7 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -257,7 +259,7 @@ class QueryContextProcessor:
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key = self.query_cache_key(query_obj)
+        cache_key: str | None = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
@@ -290,6 +292,7 @@ class QueryContextProcessor:
         data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
             data_acquisition_start_ns = time.perf_counter_ns()
+            cacheable: bool = True
             try:
                 if invalid_columns := [
                     col
@@ -309,6 +312,16 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+                if query_obj.annotation_layers:
+                    from superset.semantic_layers.metadata_binding import (
+                        metadata_refresh_enabled,
+                    )
+
+                    if metadata_refresh_enabled():
+                        # Discovery on a miss can capture a newer annotation
+                        # snapshot than the lookup peek. Store only under the
+                        # identity actually used by that annotation query.
+                        cache_key, cacheable = self._query_cache_key(query_obj)
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -318,8 +331,9 @@ class QueryContextProcessor:
                 )
 
             if cache.status != QueryStatus.FAILED:
+                assert cache_key is not None
                 cache.set_query_result(
-                    key=cache_key,
+                    key=cache_key if cacheable else "",
                     query_result=query_result,
                     annotation_data=annotation_data,
                     force_query=force_query,
@@ -428,15 +442,33 @@ class QueryContextProcessor:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
-        datasource = self._qc_datasource
-        extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
+        return self._query_cache_key(query_obj, **kwargs)[0]
+
+    def _query_cache_key(
+        self, query_obj: QueryObject, **kwargs: Any
+    ) -> tuple[str | None, bool]:
+        """Keep annotation cacheability alongside the opaque hashed result key."""
+        datasource: Explorable = self._qc_datasource
+        extra_cache_keys: list[Any] = datasource.get_extra_cache_keys(
+            query_obj.to_dict()
+        )
+        cacheable: bool = True
 
         # Annotation data is cached on the same entry as the dataframe, so the
         # key must also bind the annotation sources' security context.
         if query_obj and query_obj.annotation_layers:
-            kwargs["annotation_context"] = self._annotation_cache_context(query_obj)
+            annotation_context: dict[str, Any] = self._annotation_cache_context(
+                query_obj
+            )
+            kwargs["annotation_context"] = annotation_context
+            source_metadata: dict[str, str] = annotation_context.get(
+                "source_metadata", {}
+            )
+            cacheable = not any(
+                token.startswith("uncaptured:") for token in source_metadata.values()
+            )
 
-        cache_key = (
+        cache_key: str | None = (
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
@@ -447,7 +479,9 @@ class QueryContextProcessor:
             if query_obj
             else None
         )
-        return cache_key
+        if cache_key is not None:
+            capture_result_identity(self._query_context, query_obj, cache_key)
+        return cache_key, cacheable
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
@@ -457,8 +491,12 @@ class QueryContextProcessor:
         Annotation payloads are fetched per requesting user and stored on the
         same cache entry as the dataframe, so the key also binds the requesting
         user and, for chart-backed layers, the RLS clauses of the referenced
-        chart's datasource.
+        chart's datasource and any captured semantic metadata identity.
         """
+        from superset.semantic_layers.metadata_cache import annotation_cache_token
+        from superset.semantic_layers.models import SemanticView
+
+        source_metadata: dict[str, str] = {}
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
             if (
@@ -476,7 +514,18 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            metadata_datasource: Datasource | None = (
+                chart.resolved_datasource if chart else None
+            )
+            if isinstance(metadata_datasource, SemanticView):
+                token: str | None = annotation_cache_token(metadata_datasource)
+                if token is not None:
+                    source_metadata[str(layer.get("value"))] = token
+        return {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            **({"source_metadata": source_metadata} if source_metadata else {}),
+        }
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """

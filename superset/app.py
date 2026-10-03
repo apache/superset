@@ -46,6 +46,11 @@ def create_app(
 ) -> Flask:
     app = SupersetApp(__name__)
 
+    # Avoid circular import: superset.__init__ exports db after importing app.
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+
+    app.before_request(request_metadata_budget)
+
     try:
         # Allow user to override our config completely
         config_module = superset_config_module or os.environ.get(

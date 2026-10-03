@@ -252,8 +252,8 @@ def test_semantic_layer_implementation() -> None:
         {"test_type": mock_class},
     ):
         # Clear cached property if it exists
-        if "implementation" in layer.__dict__:
-            del layer.__dict__["implementation"]
+        if "_legacy_implementation" in layer.__dict__:
+            del layer.__dict__["_legacy_implementation"]
 
         result = layer.implementation
 
@@ -350,7 +350,7 @@ def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     view.perm = "[Test Layer].[Orders View](id:1)"
 
     # Persist mocked implementation on this instance
-    view.__dict__["implementation"] = mock_implementation
+    view.__dict__["_legacy_implementation"] = mock_implementation
 
     return view
 
@@ -1154,8 +1154,8 @@ def test_semantic_view_implementation() -> None:
     view.semantic_layer = mock_semantic_layer
 
     # Clear cached property if it exists
-    if "implementation" in view.__dict__:
-        del view.__dict__["implementation"]
+    if "_legacy_implementation" in view.__dict__:
+        del view.__dict__["_legacy_implementation"]
 
     result = view.implementation
 

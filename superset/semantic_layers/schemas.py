@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from typing import Any
+
+from marshmallow import fields, Schema, validate, validates_schema, ValidationError
 
 
 class SemanticViewPutSchema(Schema):
@@ -43,3 +45,20 @@ class SemanticViewPostSchema(Schema):
     configuration = fields.Dict(load_default=dict)
     description = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
+
+
+class MetadataInspectionSchema(Schema):
+    """Select an inspectable cache without accepting keys or provider configuration."""
+
+    kind: fields.String = fields.String(
+        required=True, validate=validate.OneOf(["catalog", "compatibility"])
+    )
+    selected_metrics: fields.List = fields.List(fields.String(), load_default=list)
+    selected_dimensions: fields.List = fields.List(fields.String(), load_default=list)
+
+    @validates_schema
+    def validate_selection(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if data["kind"] == "catalog" and (
+            data["selected_metrics"] or data["selected_dimensions"]
+        ):
+            raise ValidationError("Catalog inspection does not accept selections.")

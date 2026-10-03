@@ -239,6 +239,7 @@ def loads(
     encoding: Union[str, None] = None,
     allow_nan: bool = False,
     object_hook: Union[Callable[[dict[Any, Any]], Any], None] = None,
+    use_decimal: bool = False,
 ) -> Any:
     """
     deserializable instance to a Python object.
@@ -247,6 +248,7 @@ def loads(
     :param encoding: determines the encoding used to interpret the obj
     :param allow_nan: if True it will allow the parser to accept nan values
     :param object_hook: function that will be called to decode objects values
+    :param use_decimal: preserve non-integer JSON numbers as exact Decimal values
     :returns: A Python object deserialized from string
     """
     return simplejson.loads(
@@ -254,6 +256,7 @@ def loads(
         encoding=encoding,
         allow_nan=allow_nan,
         object_hook=object_hook,
+        use_decimal=use_decimal,
     )
 
 
