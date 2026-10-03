@@ -1076,7 +1076,7 @@ class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
         return self
 
 
-class SortByConfig(UnknownFieldCheckMixin):
+class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Sort specification with explicit direction.
 
     Accepts either this object or a bare column-name string in `sort_by`
