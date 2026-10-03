@@ -711,24 +711,54 @@ test('restores native filter state from localStorage when no URL key is present'
 });
 
 test('skips localStorage restore for guest/embedded users (userId is undefined)', async () => {
-  // Guest users have no stable identity; reading localStorage could share
-  // filter state across different guest-token sessions, so the restore path
-  // must be skipped entirely when userId is null/undefined.
+  const FILTER_ID = 'NATIVE_FILTER-guest';
+  const filterConfig = {
+    id: FILTER_ID,
+    name: 'Team',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 1, column: { name: 'col' } }],
+    defaultDataMask: {},
+  };
+
+  // Give the dashboard a matching native filter definition so that it would be restored if not a guest
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [filterConfig],
+      },
+      json_metadata: JSON.stringify({
+        native_filter_configuration: [filterConfig],
+      }),
+    },
+    error: null,
+  });
+
+  const nativeFilters = {
+    filters: {
+      [FILTER_ID]: filterConfig,
+    },
+  };
+
   const savedVersioned = {
     dataMask: {
-      'NATIVE_FILTER-guest': {
+      [FILTER_ID]: {
+        id: FILTER_ID,
         filterState: { value: ['SomeValue'] },
         extraFormData: {},
       },
     },
     filterDefinitions: {
-      'NATIVE_FILTER-guest': {
-        targets: [{ column: { name: 'col' } }],
-        type: 'filter_select',
+      [FILTER_ID]: {
+        id: FILTER_ID,
+        targets: filterConfig.targets,
+        type: filterConfig.filterType,
+        defaultDataMask: filterConfig.defaultDataMask,
       },
     },
   };
-  // Write under the guest (dashboard-only) key — should never be read.
+
+  // Write under the guest (dashboard-only) key
   localStorage.setItem(
     'dashboard__native_filters__1',
     JSON.stringify(savedVersioned),
@@ -742,9 +772,12 @@ test('skips localStorage restore for guest/embedded users (userId is undefined)'
       useRedux: true,
       useRouter: true,
       initialState: {
-        dashboardInfo: { id: 1, metadata: {} },
+        dashboardInfo: {
+          id: 1,
+          metadata: { native_filter_configuration: [filterConfig] },
+        },
         dashboardState: { sliceIds: [] },
-        nativeFilters: { filters: {} },
+        nativeFilters,
         dataMask: {},
         user: { userId: undefined },
       },
@@ -759,6 +792,8 @@ test('skips localStorage restore for guest/embedded users (userId is undefined)'
   expect(hydrateDashboard).toHaveBeenCalledWith(
     expect.objectContaining({ dataMask: {} }),
   );
+
+  window.localStorage.clear();
 });
 
 test('scopes localStorage key to userId when user is authenticated', async () => {
