@@ -95,7 +95,7 @@ def _assert_saved_metric_hint(error: Any) -> None:
     ``SUM(num)`` — a valid chart answering a different question.
     """
     assert error.error_type == "column_not_found"
-    hint = next(
+    hint: str = next(
         s for s in error.suggestions if s.startswith("Did you mean the saved metric")
     )
     assert "'sum_boys'" in hint
@@ -470,7 +470,7 @@ class TestAdhocFiltersFromFormData:
     )
     def test_metric_suggestions_follow_the_filter_clause(
         self, clause: str, suggested: bool
-    ):
+    ) -> None:
         """A stale HAVING subject gets the metric back; WHERE must not.
 
         A HAVING subject may legitimately name a saved metric, so a misspelled

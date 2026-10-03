@@ -771,6 +771,14 @@ class DatasetValidator:
         ]
 
     @staticmethod
+    def _candidates_first(all_names: List[str], candidates: List[str]) -> List[str]:
+        """Order *all_names* with the fuzzy *candidates* leading, no repeats."""
+        known = set(all_names)
+        ranked = [name for name in dict.fromkeys(candidates) if name in known]
+        leading = set(ranked)
+        return ranked + [name for name in all_names if name not in leading]
+
+    @staticmethod
     def _bounded_error_context(
         dataset_context: DatasetContext,
         candidates: List[str],
@@ -784,14 +792,13 @@ class DatasetValidator:
         the list by the count bound. Saved metrics get the same treatment so a
         hinted saved metric is never missing from ``available_metrics``.
         """
-        all_names = [col["name"] for col in dataset_context.available_columns]
-        ranked = [name for name in candidates if name in all_names]
-        ranked += [name for name in all_names if name not in ranked]
-        all_metrics = [metric["name"] for metric in dataset_context.available_metrics]
-        ranked_metrics = [
-            name for name in (metric_candidates or []) if name in all_metrics
-        ]
-        ranked_metrics += [name for name in all_metrics if name not in ranked_metrics]
+        ranked = DatasetValidator._candidates_first(
+            [col["name"] for col in dataset_context.available_columns], candidates
+        )
+        ranked_metrics = DatasetValidator._candidates_first(
+            [metric["name"] for metric in dataset_context.available_metrics],
+            metric_candidates or [],
+        )
         return DatasetContext(
             id=dataset_context.id,
             table_name=dataset_context.table_name,

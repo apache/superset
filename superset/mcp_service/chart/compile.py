@@ -35,7 +35,7 @@ from __future__ import annotations
 import logging
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -236,7 +236,7 @@ def _validate_adhoc_filter_columns(
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
     # (column, clause) pairs: the clause decides whether a saved metric is a
     # legal reference, and so whether metrics belong in the suggestions.
-    invalid: List[Tuple[str, str]] = []
+    invalid: list[tuple[str, str]] = []
     for f in adhoc_filters:
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
