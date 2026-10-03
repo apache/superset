@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SankeyChartConfig,
     TableChartConfig,
     TreemapChartConfig,
     WaterfallChartConfig,
@@ -77,6 +78,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
     "bubble_v2": TypeAdapter(BubbleChartConfig),
+    "sankey_v2": TypeAdapter(SankeyChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
     "gantt": TypeAdapter(GanttChartConfig),
 }
@@ -219,6 +221,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "x": {"name": "gdp", "aggregate": "AVG"},
             "y": {"name": "life_expectancy", "aggregate": "AVG"},
             "size": {"name": "population", "aggregate": "SUM"},
+        },
+    ],
+    "sankey_v2": [
+        {
+            "chart_type": "sankey_v2",
+            "source": {"name": "from_stage"},
+            "target": {"name": "to_stage"},
+            "metric": {"name": "users", "aggregate": "SUM"},
         },
     ],
     "waterfall": [
@@ -365,8 +375,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, bubble_v2, pivot_table, mixed_timeseries,
-    handlebars, big_number, histogram, box_plot, waterfall, and gantt.
+    table, pie, gauge, treemap_v2, bubble_v2, sankey_v2, pivot_table,
+    mixed_timeseries, handlebars, big_number, histogram, box_plot,
+    waterfall, and gantt.
     Deployments that enable an AG Grid pivot extension also expose
     interactive_pivot.
 
