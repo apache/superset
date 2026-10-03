@@ -18,6 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import downloadAsPdf from './downloadAsPdf';
+import { forceLoadAllCharts } from './downloadUtils';
 
 jest.mock('dom-to-pdf', () => ({
   __esModule: true,
@@ -99,5 +100,29 @@ test('warns the user via the bound toast callback when PDF generation fails', as
 
   expect(addWarningToast).toHaveBeenCalledWith(
     'PDF download failed, please refresh and try again.',
+  );
+});
+
+test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
+  const element = document.createElement('div');
+  jest.spyOn(document, 'querySelector').mockReturnValue(element);
+  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
+  domToPdf.mockResolvedValue(undefined);
+  const addWarningToast = jest.fn();
+  const addInfoToast = jest.fn();
+
+  await downloadAsPdf(
+    '.some-selector',
+    'test-file',
+    true,
+    addWarningToast,
+    addInfoToast,
+  )({} as SyntheticEvent);
+
+  expect(forceLoadAllCharts).toHaveBeenCalledWith(
+    element,
+    undefined,
+    addWarningToast,
+    addInfoToast,
   );
 });

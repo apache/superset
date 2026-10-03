@@ -20,6 +20,7 @@ import domToImage from 'dom-to-image-more';
 import html2canvas from 'html2canvas';
 import { getInstanceByDom } from 'echarts/core';
 import { isSafari } from 'src/utils/common';
+import { forceLoadAllCharts } from './downloadUtils';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -47,6 +48,14 @@ jest.mock('echarts/core', () => ({
 jest.mock('@apache-superset/core/translation', () => ({
   t: (str: string) => str,
 }));
+
+jest.mock('./downloadUtils', () => {
+  const actual = jest.requireActual('./downloadUtils');
+  return {
+    ...actual,
+    forceLoadAllCharts: jest.fn(actual.forceLoadAllCharts),
+  };
+});
 
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
@@ -1482,4 +1491,28 @@ test('keeps the on-screen capture size as a floor when the clone is not larger',
   expect(captured?.width).toBe(800);
 
   document.body.removeChild(container);
+});
+
+test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
+  const el = document.createElement('div');
+  document.body.appendChild(el);
+  const addInfoToast = jest.fn();
+
+  await downloadAsImageOptimized(
+    '.dashboard',
+    'test',
+    false,
+    undefined,
+    {},
+    mockAddWarningToast,
+    addInfoToast,
+  )(syntheticEventFor(el));
+
+  expect(forceLoadAllCharts).toHaveBeenCalledWith(
+    el,
+    undefined,
+    mockAddWarningToast,
+    addInfoToast,
+  );
+  document.body.removeChild(el);
 });
