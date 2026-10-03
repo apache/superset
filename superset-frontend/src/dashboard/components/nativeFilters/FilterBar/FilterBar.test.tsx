@@ -41,6 +41,7 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import { setCrossFiltersEnabled } from 'src/dashboard/actions/dashboardInfo';
 
 jest.useFakeTimers({ advanceTimers: true });
 
@@ -1531,7 +1532,7 @@ test('FilterBar preserves a selected time range when its applied data mask is re
     }),
   );
 
-  expect(store.getState().dataMask[filterId]).toEqual(
+  expect((store.getState() as typeof state).dataMask[filterId]).toEqual(
     expect.objectContaining({
       filterState: expect.objectContaining({
         value: 'Current month',
@@ -1575,4 +1576,59 @@ test('FilterBar preserves a selected time range when its applied data mask is re
   );
 
   updateDataMaskSpy.mockRestore();
+});
+
+test('FilterBar clears selected state when cross-filtering is disabled', async () => {
+  const filterId = 'NATIVE_FILTER-cross-filter-clear';
+
+  const filter = createFilter({
+    id: filterId,
+    name: 'Time range',
+    filterType: 'filter_time',
+    targets: [{ datasetId: 7, column: { name: 'ds' } }],
+    defaultDataMask: {
+      filterState: { value: 'Last week' },
+      extraFormData: { time_range: 'Last week' },
+    },
+    chartsInScope: [18],
+  });
+
+  const state = createStateWithFilter(
+    filter,
+    createDataMask(filterId, 'Last week', {
+      time_range: 'Last week',
+    }),
+    {
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+  );
+
+  state.dashboardInfo.crossFiltersEnabled = true;
+
+  const store = createStore(state, reducerIndex);
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    store,
+    useDnd: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('Last week')).toBeInTheDocument();
+
+  await act(async () => {
+    store.dispatch(dataMaskActions.clearDataMaskState());
+    store.dispatch(setCrossFiltersEnabled(false));
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(store.getState().dataMask[filterId]).toBeUndefined();
+  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
 });

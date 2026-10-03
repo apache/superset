@@ -206,6 +206,10 @@ const FilterBar: FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
   const previousDashboardId = usePrevious(dashboardId);
+  const crossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
+  );
+  const previousCrossFiltersEnabled = usePrevious(crossFiltersEnabled);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -369,8 +373,12 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     const dashboardChanged = dashboardId !== previousDashboardId;
+    const crossFiltersDisabled =
+      previousCrossFiltersEnabled === true && crossFiltersEnabled === false;
 
     if (dashboardChanged) {
+      setDataMaskSelected(() => dataMaskApplied);
+    } else if (crossFiltersDisabled) {
       setDataMaskSelected(() => dataMaskApplied);
     } else {
       const prevApplied = prevDataMaskAppliedRef.current;
@@ -410,6 +418,8 @@ const FilterBar: FC<FiltersBarProps> = ({
     dashboardId,
     previousDashboardId,
     filters,
+    crossFiltersEnabled,
+    previousCrossFiltersEnabled,
   ]);
 
   useEffect(() => {
