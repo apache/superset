@@ -455,6 +455,25 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # out of `attributes`, so by the time the partition-mapping cleanup runs
         # the dict no longer says what the request contained.
         attribute_names = set(attributes or {})
+        touches_mapping = not PARTITION_MAPPING_ATTRIBUTES.isdisjoint(attribute_names)
+
+        # Once before the update and once after, because one pass can only ever
+        # see one of the two resolutions and the bug lives between them.
+        #
+        # The cleanup skips whichever column the mapping currently mirrors. Run
+        # only afterwards, it therefore skips the column this very request has
+        # just *made* the mapped one -- and a transform parked there, invisible
+        # because no row but the mapped one renders one, goes live. That turns
+        # removing a mapping into adding a different one, exactly what
+        # `clear_unmapped_partition_transforms` exists to prevent.
+        #
+        # This pass clears what is unmapped under the *old* resolution, which
+        # includes the column about to become mapped. The pass after clears
+        # what the *new* resolution strands. A transform the request itself
+        # supplies lands between the two, via `update_columns`, and survives --
+        # correctly, since the owner typed it.
+        if item is not None and touches_mapping:
+            cls.clear_unmapped_partition_transforms(item)
 
         if item and delete_metric_ids:
             for metric in item.metrics:
@@ -463,30 +482,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
         if item and attributes:
-            force_update: bool = False
-            if "columns" in attributes:
-                cls.update_columns(
-                    item,
-                    attributes.pop("columns"),
-                    override_columns=bool(attributes.get("override_columns")),
-                )
-                force_update = True
-
-            if "metrics" in attributes:
-                metrics = attributes.pop("metrics")
-                if preserve_existing_metrics:
-                    cls.update_metrics(item, metrics, preserve_existing=True)
-                else:
-                    cls.update_metrics(item, metrics)
-                force_update = True
-
-            if force_update:
-                attributes["changed_on"] = datetime.now()
+            cls._update_children(item, attributes, preserve_existing_metrics)
 
         updated = super().update(item, attributes)
-        # After the dataset-level attributes land, not before: the mapped column
-        # is `partition_mapped_column or main_dttm_col`, and either can be part
-        # of this very request.
+        # The second half of the pair above: after the dataset-level attributes
+        # land, because the mapped column is `partition_mapped_column or
+        # main_dttm_col` and either can be part of this very request.
         #
         # Only when the request touches the mapping, though. This discards
         # stored configuration, so running it unconditionally meant a
@@ -494,9 +495,44 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # back -- silently dropped a transform parked on a non-mapped column.
         # Nothing about such a request changes which column is mirrored, so
         # there is nothing for it to enforce.
-        if not PARTITION_MAPPING_ATTRIBUTES.isdisjoint(attribute_names):
+        if touches_mapping:
             cls.clear_unmapped_partition_transforms(updated)
         return updated
+
+    @classmethod
+    def _update_children(
+        cls,
+        item: SqlaTable,
+        attributes: dict[str, Any],
+        preserve_existing_metrics: bool,
+    ) -> None:
+        """
+        Apply the `columns` and `metrics` members of an update, if present.
+
+        Both are popped rather than handed to `BaseDAO.update`, which only
+        knows how to set scalar attributes. Editing either is a change to the
+        dataset even when no scalar moved, so `changed_on` is bumped here
+        rather than left to the generic path that will not see it.
+        """
+        force_update = False
+        if "columns" in attributes:
+            cls.update_columns(
+                item,
+                attributes.pop("columns"),
+                override_columns=bool(attributes.get("override_columns")),
+            )
+            force_update = True
+
+        if "metrics" in attributes:
+            metrics = attributes.pop("metrics")
+            if preserve_existing_metrics:
+                cls.update_metrics(item, metrics, preserve_existing=True)
+            else:
+                cls.update_metrics(item, metrics)
+            force_update = True
+
+        if force_update:
+            attributes["changed_on"] = datetime.now()
 
     @classmethod
     def _validate_column_date_formats(
@@ -528,6 +564,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         one writer: a PUT, an `override_columns=true` metadata sync and an
         import all reach the columns directly. The same argument
         `clear_dangling_partition_mapping` makes about dangling columns.
+
+        `DatasetDAO.update` calls this twice, before and after it applies the
+        request, and the reason is here rather than only at the call site: this
+        reads the mapping as it stands, so a single call can only enforce the
+        invariant against one of the two resolutions a mapping change has.
 
         Gated on the feature flag, unlike its sibling, because this discards
         stored configuration rather than repairing a broken reference. With the

@@ -622,6 +622,128 @@ def test_clearing_the_override_cannot_resurrect_a_transform(
     assert table.partition_filter_mapping_summary["active"] is False
 
 
+def _park_transform(table: Any, column_name: str, transform: str) -> None:
+    """
+    Write a transform straight onto a column, around `DatasetDAO.update`.
+
+    The shape of data this feature has to cope with but cannot have produced:
+    rows stored before the cleanup existed, and rows written while the feature
+    flag was off, when the cleanup deliberately stands down. Going through the
+    DAO instead would let the cleanup run and there would be nothing parked.
+    """
+    from superset import db
+
+    for column in table.columns:
+        if column.column_name == column_name:
+            column.partition_value_transform = transform
+            column.partition_transform_is_monotonic = True
+    db.session.flush()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    ("name", "mapping_change"),
+    [
+        ("pfm_parked1", {"partition_mapped_column": None}),
+        ("pfm_parked2", {"partition_mapped_column": "event_time"}),
+    ],
+    ids=["remove", "re-point"],
+)
+def test_a_mapping_change_disarms_a_transform_parked_in_storage(
+    session: Session,
+    name: str,
+    mapping_change: dict[str, Any],
+) -> None:
+    """
+    Removing or re-pointing a mapping never activates a transform nobody saw.
+
+    The cleanup skips the mapped column, so running it only after the update
+    skipped the column the update had just mapped -- and whatever was parked
+    there became the mapping, which is the one thing dropping a mapping must
+    not do. Both doors onto `event_time` are the same bug: clearing the
+    override falls back to it, and naming it explicitly moves to it.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, name)
+    # `event_time2` holds the mapping's own transform; `event_time` holds one
+    # no current code path would have left there.
+    _park_transform(table, "event_time2", "to_unixtime(:value)")
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(table, dict(mapping_change))
+    db.session.flush()
+
+    assert _transforms(table) == {
+        "event_time": (None, False),
+        "event_time2": (None, False),
+        "dt_epoch": (None, False),
+    }
+    assert table.partition_filter_mapping_summary["active"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_supplied_with_the_mapping_it_arms_survives(
+    session: Session,
+) -> None:
+    """
+    The limit of the rule above: clearing is for transforms the owner did not
+    choose, and one sent in the same request is one they did.
+
+    The pre-update pass clears what is parked, `update_columns` then writes
+    what the request carries, and the post-update pass keeps it because it is
+    now the mapped column's.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_parked3")
+    ids = {c.column_name: c.id for c in table.columns}
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(
+        table,
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": ids["event_time"],
+                    "partition_value_transform": "to_unixtime(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+                {"id": ids["event_time2"]},
+                {"id": ids["dt_epoch"]},
+            ],
+        },
+    )
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("to_unixtime(:value)", True)
+    assert table.partition_filter_mapping_summary["active"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_save_that_cannot_move_the_mapping_keeps_a_parked_transform(
+    session: Session,
+) -> None:
+    """
+    A description-only save still discards nothing.
+
+    Clearing costs stored configuration, so it is owed only to requests that
+    can change which column is mirrored. This one cannot, and the transform it
+    leaves parked is inert until something does -- at which point the pair of
+    cleanups above disarms it.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_parked4")
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(table, {"description": "unrelated edit"})
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", True)
+
+
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_repointing_the_default_datetime_column_leaves_nothing_behind(
     session: Session,
