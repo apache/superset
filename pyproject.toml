@@ -405,14 +405,16 @@ module = [
 ]
 warn_unused_ignores = false
 
-# The mirror case: superset-core declares SqlaTable's id/uuid/perm as plain
-# value types, so column expressions like SqlaTable.uuid.in_() only need a
-# type: ignore when superset-core's sources are part of the same mypy run
-# (full-repo lint) and not when only changed files are checked.
+# The mirror case: superset-core declares SqlaTable's id/uuid/perm, and
+# Chart's uuid, as plain value types, so column expressions like
+# SqlaTable.uuid.in_() and Slice.uuid.in_() only need a type: ignore when
+# superset-core's sources are part of the same mypy run (full-repo lint)
+# and not when only changed files are checked.
 [[tool.mypy.overrides]]
 module = [
     "superset.mcp_service.dataset_scope",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
+    "superset.commands.chart.importers.v1",
 ]
 warn_unused_ignores = false
 
