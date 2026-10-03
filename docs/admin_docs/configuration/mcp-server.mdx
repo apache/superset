@@ -1377,13 +1377,37 @@ the saved binding. Bullet Vega previews keep separate indexed rows even when
 dimension display labels are identical, and support both `SMART_NUMBER` and
 `SMART_NUMBER_SIGNED` number formats.
 
-### Chart query result limits
+### Query result limits
 
 MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`
 array emitted by Chart Data uses the same 50,000-entry limit, rather than the
 4,096-entry limit for other metadata arrays. Index entries count toward the
 shared row-data work budget and retain the 1 MiB aggregate metadata byte limit.
 Nested containers within an index entry retain the standard container limits.
+
+The shared query-result validator also enforces **non-configurable hard limits**:
+
+- **64 KiB (65,536 UTF-8 bytes) per text cell/string value**. A single
+  65,537-byte cell fails even in a one-row result. Binary cells must also fit
+  the cell limit before and after conversion to UTF-8 or a `base64:` string.
+- **16 MiB (16,777,216 bytes) of aggregate JSON-encoded result data and
+  metadata** across all queries, including escaped strings, keys, and container
+  syntax. Metadata additionally has its own 1 MiB allowance.
+
+These limits apply before rendering or exporting in `get_chart_data`,
+`get_chart_preview`, chart generation/update compile checks, `query_dataset`,
+and semantic-layer `get_table`. They include inline/table responses and MCP
+CSV, Excel, and Parquet export paths; exports do not bypass source validation.
+Exceeding either limit returns `MalformedQueryResult` rather than truncating a
+cell or partially exporting a result. Generation/update compile checks surface
+the same malformed-result reason as a chart compile error.
+Increasing the configurable response-size
+guard does not raise these hard caps. Select fewer columns/rows, shorten large
+text values in the query, or use Superset's non-MCP query/export interfaces.
+
+Trusted NumPy extended-precision floating-point values are returned as
+round-trippable decimal strings in these responses and exports, rather than
+silently narrowed to binary64. Rendering may still use binary64 values.
 
 ### Reporting query dates
 

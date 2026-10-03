@@ -2564,3 +2564,23 @@ def test_query_result_rejects_oversized_binary_value() -> None:
     assert data is None
     assert failure is not None
     assert "oversized binary value" in failure.error
+
+
+@pytest.mark.parametrize("text", ["1.000000000000000001", "1e400"])
+def test_query_result_preserves_extended_numpy_float_precision(text: str) -> None:
+    """Trusted extended floats retain precision and range in the wire value."""
+    if np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant:
+        pytest.skip("Platform longdouble has no extended precision")
+    from superset.dataframe import df_to_records
+
+    value = np.longdouble(text)
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+    assert type(records[0]["value"]) is np.longdouble
+    assert records[0]["value"] == value
+    data, failure = query_result_data({"queries": [{"data": records}]})
+    assert failure is None
+    assert data is not None
+    wire = data[0][0]["value"]
+    assert isinstance(wire, str)
+    assert np.longdouble(wire) == value
+    assert wire != "1.0"

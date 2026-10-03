@@ -123,6 +123,11 @@ _NUMPY_FLOAT_TYPES = frozenset(
     type(value)
     for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
 )
+_NUMPY_EXTENDED_FLOAT_TYPES = frozenset(
+    type_
+    for type_ in _NUMPY_FLOAT_TYPES
+    if np.finfo(type_).nmant > np.finfo(np.float64).nmant
+)
 _PANDAS_NAT_TYPE = type(pd.NaT)
 _PANDAS_NA_TYPE = type(pd.NA)
 _PANDAS_PERIOD_TYPE = type(pd.Period("2000-01", freq="M"))
@@ -1140,6 +1145,14 @@ def _normalize_trusted_scalar(  # noqa: C901
     if any(value_type is type_ for type_ in _NUMPY_INTEGER_TYPES):
         normalized_integer = int(value)
         return normalized_integer, _integer_failure(normalized_integer)
+    if any(value_type is type_ for type_ in _NUMPY_EXTENDED_FLOAT_TYPES):
+        if np.isnan(value):
+            return None, None
+        if not np.isfinite(value):
+            return None, "contains a non-finite NumPy number"
+        # JSON has no extended floating-point type. Preserve the trusted scalar
+        # as a round-trippable decimal string instead of narrowing to binary64.
+        return np.format_float_scientific(value, unique=True, trim="-"), None
     if any(value_type is type_ for type_ in _NUMPY_FLOAT_TYPES):
         normalized_float = float(value)
         if math.isnan(normalized_float):

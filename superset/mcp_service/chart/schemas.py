@@ -2550,13 +2550,36 @@ def _require_unique_bullet_order_match(
     return None
 
 
+def normalize_metric_aggregate(aggregate: str | None) -> str:
+    """Return the native aggregate, including defaulting and shorthand aliases."""
+    aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
+    native = aliases.get((aggregate or "SUM").upper(), (aggregate or "SUM").upper())
+    valid = {
+        "SUM",
+        "COUNT",
+        "AVG",
+        "MIN",
+        "MAX",
+        "COUNT_DISTINCT",
+        "STDDEV_SAMP",
+        "VAR_SAMP",
+        "MEDIAN",
+        "PERCENTILE",
+    }
+    return native if native in valid else "SUM"
+
+
 def _bullet_metric_output_label(metric: ColumnRef) -> str:
     """Return the field name emitted by Bullet's native metric shape."""
     if metric.saved_metric:
         # Saved metrics are serialized as a bare metric-name string; a
         # ColumnRef display label does not change the query output alias.
         return metric.name or ""
-    return _metric_display_label(metric)
+    if metric.sql_expression:
+        return metric.label or ""
+    return (
+        metric.label or f"{normalize_metric_aggregate(metric.aggregate)}({metric.name})"
+    )
 
 
 def resolve_bullet_order_target(

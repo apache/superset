@@ -647,9 +647,15 @@ def _native_reference_error(  # noqa: C901
         subject = filter_.get("subject")
         clause = str(filter_.get("clause") or "WHERE").upper()
         if clause == "HAVING" and isinstance(subject, str):
-            metric_matches = [
-                name for name in saved_metrics if name.casefold() == subject.casefold()
-            ]
+            metric_matches = (
+                [subject]
+                if subject in saved_metrics
+                else [
+                    name
+                    for name in saved_metrics
+                    if name.casefold() == subject.casefold()
+                ]
+            )
             if len(metric_matches) == 1:
                 continue
         if subject is not None and (
@@ -664,11 +670,8 @@ def _native_reference_error(  # noqa: C901
             if temporal is not None and not temporal.get("is_temporal", False):
                 return _native_validation_error("temporal filter column", subject)
 
-    temporal_lookup = form_data.get("temporal_columns_lookup")
-    if isinstance(temporal_lookup, dict):
-        for column, enabled in temporal_lookup.items():
-            if enabled and (error := column_error(column, "temporal lookup column")):
-                return error
+    # temporal_columns_lookup describes the entire datasource, not selected
+    # roles. The physical form/query column checks validate selected references.
 
     for query_index, query in enumerate(queries, 1):
         metric_labels: set[str] = set()

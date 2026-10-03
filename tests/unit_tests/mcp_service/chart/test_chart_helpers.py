@@ -3051,3 +3051,62 @@ def test_mixed_timeseries_request_adhoc_filters_apply_to_both_layers(
         assert [
             (item["col"], item["op"], item["val"]) for item in query["filters"]
         ] == [("Region", "==", "North")]
+
+
+@pytest.mark.parametrize("secondary_limit", [None, 10])
+def test_mixed_secondary_retains_shared_row_limit(
+    monkeypatch: pytest.MonkeyPatch, secondary_limit: int | None
+) -> None:
+    """The secondary layer inherits the shared limit unless explicitly overridden."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "ds",
+        "metrics": ["sales"],
+        "metrics_b": ["costs"],
+        "row_limit": 25,
+    }
+    if secondary_limit is not None:
+        form_data["row_limit_b"] = secondary_limit
+    primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
+    assert primary["row_limit"] == 25
+    assert secondary["row_limit"] == (secondary_limit or 25)
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["created_at", "updated_at"], ["category", "created_at", "updated_at"]],
+)
+def test_table_buckets_only_first_temporal_axis(
+    monkeypatch: pytest.MonkeyPatch, columns: list[str]
+) -> None:
+    """Table wraps and moves only its first eligible temporal column."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": columns,
+            "metrics": ["sales"],
+            "time_grain_sqla": "P1D",
+            "temporal_columns_lookup": {"created_at": True, "updated_at": True},
+        },
+        1,
+        "table",
+    )[0]
+    assert query["columns"] == [
+        {
+            "timeGrain": "P1D",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "created_at",
+            "label": "created_at",
+            "expressionType": "SQL",
+        },
+        *[column for column in columns if column != "created_at"],
+    ]

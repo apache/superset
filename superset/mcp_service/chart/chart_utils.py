@@ -52,6 +52,7 @@ from superset.mcp_service.chart.schemas import (
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
+    normalize_metric_aggregate,
     PieChartConfig,
     PivotTableChartConfig,
     resolve_bullet_order_target,
@@ -1166,31 +1167,7 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     if col.saved_metric:
         return col.name  # type: ignore[return-value]
 
-    # Ensure aggregate is valid - default to SUM if not specified or invalid
-    valid_aggregates = {
-        "SUM",
-        "COUNT",
-        "AVG",
-        "MIN",
-        "MAX",
-        "COUNT_DISTINCT",
-        "STDDEV_SAMP",
-        "VAR_SAMP",
-        "MEDIAN",
-        "PERCENTILE",
-    }
-    # Accept the pre-SIP shorthand names too, mapped onto the real,
-    # unambiguous aggregate names Superset actually supports (bare
-    # "STDDEV"/"VAR" are ambiguous between sample and population statistics,
-    # and differ by engine -- see docs/sip/median-stddev-variance-aggregates.md).
-    aggregate_aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
-    aggregate = aggregate_aliases.get(
-        (col.aggregate or "SUM").upper(), col.aggregate or "SUM"
-    )
-
-    # Validate aggregate function (final safety check)
-    if aggregate.upper() not in valid_aggregates:
-        aggregate = "SUM"  # Safe fallback
+    aggregate = normalize_metric_aggregate(col.aggregate)
 
     return {
         "aggregate": aggregate.upper(),
@@ -1919,6 +1896,7 @@ def merge_bullet_form_data(
         "y_axis_format",
         "show_labels",
         "show_legend",
+        "url_params",
         MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     }
 
@@ -1934,6 +1912,9 @@ def merge_bullet_form_data(
         if values_key in new_form_data and labels_key not in new_form_data:
             new_form_data[labels_key] = ""
 
+    preserve_orderby = (
+        "orderby" not in new_form_data and "orderby" in existing_form_data
+    )
     for key in preserved_keys:
         if (
             key == MCP_DASHBOARD_TIME_FILTER_SUBJECT
@@ -1944,53 +1925,39 @@ def merge_bullet_form_data(
             continue
         if key in existing_form_data and key not in new_form_data:
             new_form_data[key] = existing_form_data[key]
-            if key == "orderby" and "groupby" in new_form_data:
-                new_form_data[key] = _orderby_without_removed_dimensions(
-                    existing_form_data, new_form_data
-                )
+    if preserve_orderby:
+        new_form_data["orderby"] = _orderby_for_final_output_roles(
+            existing_form_data, new_form_data
+        )
 
 
-def _orderby_without_removed_dimensions(
+def _orderby_for_final_output_roles(
     existing_form_data: Mapping[str, Any], new_form_data: Mapping[str, Any]
 ) -> Any:
-    """Drop saved sort entries whose dimension an update removed from groupby.
-
-    Metric sorts and sorts on dimensions that are still grouped are retained.
-    """
+    """Drop saved sorts that no longer target a final exact query output."""
     saved = existing_form_data.get("orderby")
     if not isinstance(saved, list):
         return saved
-    previous = {
-        str(name).casefold()
-        for name in existing_form_data.get("groupby") or []
-        if isinstance(name, str)
+    outputs = {
+        name for name in new_form_data.get("groupby") or [] if isinstance(name, str)
     }
-    current = {
-        str(name).casefold()
-        for name in new_form_data.get("groupby") or []
-        if isinstance(name, str)
-    }
-    removed = previous - current
-    metric_labels: set[str] = set()
-    for form_data in (existing_form_data, new_form_data):
-        metrics = form_data.get("metrics") or []
-        if not isinstance(metrics, (list, tuple)):
-            metrics = [metrics]
-        for metric in [form_data.get("metric"), *metrics]:
-            label = metric.get("label") if isinstance(metric, Mapping) else metric
-            if isinstance(label, str):
-                metric_labels.add(label.casefold())
-    return [
-        entry
-        for entry in saved
-        if not (
-            isinstance(entry, (list, tuple))
-            and entry
-            and isinstance(entry[0], str)
-            and entry[0].casefold() in removed
-            and entry[0].casefold() not in metric_labels
-        )
-    ]
+    metrics = new_form_data.get("metrics") or []
+    if not isinstance(metrics, (list, tuple)):
+        metrics = [metrics]
+    for metric in [new_form_data.get("metric"), *metrics]:
+        label = metric.get("label") if isinstance(metric, Mapping) else metric
+        if isinstance(label, str):
+            outputs.add(label)
+    retained = []
+    for entry in saved:
+        if isinstance(entry, (list, tuple)) and entry:
+            target = entry[0]
+            if isinstance(target, Mapping):
+                target = target.get("label") or target.get("metric_name")
+            if isinstance(target, str) and target not in outputs:
+                continue
+        retained.append(entry)
+    return retained
 
 
 def _filter_identity(filter_: Any) -> tuple[Any, ...] | None:

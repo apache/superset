@@ -1459,3 +1459,46 @@ def test_compile_classification_handles_engine_failure() -> None:
     dataset = Mock(database=Mock(db_engine_spec=engine_spec))
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset):
         assert not _classify_as_database_error(ValueError("query failed"), 1)
+
+
+@pytest.mark.parametrize("subject", ["Revenue", "revenue"])
+def test_native_having_prefers_exact_saved_metric(subject: str) -> None:
+    """Exact saved metric names win over ambiguous case-folded HAVING matches."""
+    dataset = _orm_dataset(metric_names=["Revenue", "revenue"])
+    form_data = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["gender"],
+        "metrics": ["Revenue"],
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "HAVING",
+                "subject": subject,
+                "operator": ">",
+                "comparator": 0,
+            }
+        ],
+    }
+    result = validate_and_compile(None, form_data, dataset, run_compile_check=False)
+    assert result.success, result.error
+
+
+def test_table_rebind_ignores_unselected_temporal_lookup_metadata() -> None:
+    """A rebind validates selected roles rather than old datasource metadata."""
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_replacement_form_data,
+    )
+
+    dataset = _orm_dataset(column_names=["gender", "num", "ds"])
+    config = TableChartConfig(columns=[ColumnRef(name="gender")])
+    previous = {
+        "viz_type": "table",
+        "query_mode": "raw",
+        "all_columns": ["gender"],
+        "temporal_columns_lookup": {"ds": True, "unused_old_date": True},
+    }
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset):
+        merged = _build_replacement_form_data(previous, config, 3, 3)
+    result = validate_and_compile(config, merged, dataset, run_compile_check=False)
+    assert result.success, result.error

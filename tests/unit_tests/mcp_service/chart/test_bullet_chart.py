@@ -47,7 +47,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_update_form_data,
     validate_merged_bullet_form_data,
 )
-from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.compile import _compile_chart, CompileResult
 from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
@@ -191,6 +191,8 @@ def _orm_dataset() -> SimpleNamespace:
             column("Revenue", "NUMERIC", numeric=True),
             column("Region", "VARCHAR"),
             column("Team", "VARCHAR"),
+            column("Country", "VARCHAR"),
+            column("region", "VARCHAR"),
             column("Status", "VARCHAR"),
             column("OrderDate", "TIMESTAMP", temporal=True),
             column("EventDate", "TIMESTAMP", temporal=True),
@@ -4109,15 +4111,9 @@ async def _run_saved_bullet_update(
             "superset.mcp_service.auth.check_chart_data_access",
             return_value=SimpleNamespace(is_valid=True, error=None),
         ),
-        patch.object(
-            DatasetValidator,
-            "normalize_column_names",
-            side_effect=lambda config, dataset_id, **_: config,
-        ),
         patch(
-            "superset.mcp_service.chart.tool.update_chart."
-            "_validate_update_against_dataset",
-            return_value=None,
+            "superset.mcp_service.chart.compile._compile_chart",
+            return_value=CompileResult(success=True),
         ),
         patch(
             "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
@@ -4178,7 +4174,7 @@ async def test_saved_bullet_clearing_dimensions_drops_their_sorts_only() -> None
     )
 
     assert persisted["groupby"] == []
-    assert persisted["orderby"] == [metric_sort]
+    assert persisted["orderby"] == []
 
 
 @pytest.mark.asyncio
@@ -4188,7 +4184,7 @@ async def test_saved_bullet_clearing_dimensions_drops_their_sorts_only() -> None
 async def test_saved_bullet_removed_dimension_keeps_colliding_metric_sort(
     metric_key: str, adhoc: bool, metric_source: str
 ) -> None:
-    """Keep sorts matching saved or updated metric labels despite removed dimensions."""
+    """Only final metric output labels survive dimension removal."""
     saved_label = "Revenue" if metric_source == "saved" else "OldRevenue"
     saved_metric = {"label": saved_label} if adhoc else saved_label
     metric_sort = ["Revenue", False]
@@ -4209,7 +4205,11 @@ async def test_saved_bullet_removed_dimension_keeps_colliding_metric_sort(
     )
 
     assert persisted["groupby"] == ["Country"]
-    assert persisted["orderby"] == [metric_sort, ["Country", True]]
+    assert persisted["orderby"] == (
+        [metric_sort, ["Country", True]]
+        if metric_source == "new"
+        else [["Country", True]]
+    )
 
 
 def test_viz_change_with_omitted_filters_does_not_restore_previous_predicates() -> None:
@@ -4265,3 +4265,126 @@ def test_bullet_sanitized_rows_keep_exact_source_metric() -> None:
     ]
     assert [row["Region"] for row in rows] == ["North", "South", "East"]
     assert all(row["Other"] is None for row in rows)
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "output"),
+    [
+        (None, "SUM(Revenue)"),
+        ("STDDEV", "STDDEV_SAMP(Revenue)"),
+        ("VAR", "VAR_SAMP(Revenue)"),
+    ],
+)
+def test_bullet_output_roles_match_mapped_aggregate(
+    aggregate: str | None, output: str
+) -> None:
+    """Validation and mapping agree on defaulted and aliased metric outputs."""
+    metric = {"name": "Revenue"}
+    if aggregate is not None:
+        metric["aggregate"] = aggregate
+    config = BulletChartConfig(
+        metric=metric,
+        dimensions=[{"name": "Revenue"}],
+        order_by=[{"column": output, "ascending": False}],
+    )
+    mapped = map_bullet_config(config)
+    assert mapped["metric"]["label"] == output
+    assert mapped["orderby"] == [[mapped["metric"], False]]
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_removes_only_exact_obsolete_dimension_sort() -> None:
+    """Case-distinct dimensions retain only their exact final output sorts."""
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region", "region"],
+            "orderby": [["Region", True], ["region", False]],
+        },
+        {"metric": _simple_metric(), "dimensions": [{"name": "region"}]},
+    )
+    assert persisted["orderby"] == [["region", False]]
+
+
+@pytest.mark.parametrize("path", ["save", "preview"])
+def test_bullet_presentation_update_preserves_query_metadata(path: str) -> None:
+    """Save and preview retain omitted SQL template inputs on the same dataset."""
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "url_params": {"region": "EU"},
+    }
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(
+        metric={"name": "SavedRevenue", "saved_metric": True}, show_labels=True
+    )
+    request = UpdateChartRequest(identifier=9, config=config, generate_preview=False)
+    if path == "save":
+        payload = _build_update_payload(request, chart, config)
+        assert isinstance(payload, dict)
+        merged = __import__("json").loads(payload["params"])
+    else:
+        merged = _build_preview_form_data(request, chart, config)
+    assert isinstance(merged, dict)
+    assert merged["url_params"] == {"region": "EU"}
+
+
+@pytest.mark.parametrize("field", ["Revenue.total", "Revenue[total]", r"Revenue\total"])
+def test_bullet_vega_metric_references_literal_result_key(field: str) -> None:
+    """Vega field paths escape punctuation without changing literal result keys."""
+    preview = _generate_vega_lite_preview_from_data(
+        [{"Region": "North", field: 10}],
+        {"viz_type": "bullet", "metric": field, "groupby": ["Region"]},
+    )
+    assert isinstance(preview, VegaLitePreview)
+    spec = preview.specification
+    escaped = "".join("\\" + char if char in ".[]\\" else char for char in field)
+    bar = next(layer for layer in spec["layer"] if layer["mark"]["type"] == "bar")
+    assert bar["encoding"]["x"]["field"] == escaped
+    assert bar["encoding"]["tooltip"][1]["field"] == escaped
+    assert spec["data"]["values"][0][field] == 10
+
+
+@pytest.mark.parametrize("role", ["ranges", "markers", "marker_lines"])
+def test_bullet_native_thresholds_use_javascript_number_tokens(role: str) -> None:
+    """Saved threshold strings follow the frontend Number tokenizer grammar."""
+    model = resolve_bullet_render_model(
+        [{"Revenue": 10}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            role: "0x64,0b11,0o10,1_000,+0x10,-0b1,1e2,.5,1.,NaN,inf,"
+            "\ufeff0x10\ufeff,\u008520,\x1c30,١٠",
+        },
+    )
+    assert getattr(model, role) == [100, 3, 8, 100, 0.5, 1, 16]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("native_metric_sort", [False, True])
+async def test_saved_bullet_replaced_metric_prunes_sort_with_omitted_hierarchy(
+    native_metric_sort: bool,
+) -> None:
+    """Metric replacement prunes stale native sorts after restoring dimensions."""
+    old_metric = map_bullet_config(
+        BulletChartConfig(metric={**_simple_metric(), "label": "OldRevenue"})
+    )["metric"]
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": old_metric,
+            "groupby": ["Region"],
+            "orderby": [
+                [old_metric if native_metric_sort else "OldRevenue", False],
+                ["Region", True],
+            ],
+        },
+        {"metric": _simple_metric()},
+    )
+    assert persisted["orderby"] == [["Region", True]]

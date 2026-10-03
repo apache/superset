@@ -1467,7 +1467,6 @@ def _mixed_layer_form_data(
         "timeseries_limit_metric",
         "series_limit_metric",
         "order_desc",
-        "row_limit",
         "truncate_metric",
         "time_compare",
         "comparison_type",
@@ -1969,9 +1968,16 @@ def build_table_query_dicts(  # noqa: C901
         orderby=table_orderby,
     )
     if not raw_mode:
-        query["columns"] = [
-            _temporal_column(column, form_data) for column in table_columns
-        ]
+        # Table selects one temporal axis and places it before the other roles.
+        for index, column in enumerate(table_columns):
+            temporal_column = _temporal_column(column, form_data)
+            if temporal_column is not column:
+                query["columns"] = [
+                    temporal_column,
+                    *table_columns[:index],
+                    *table_columns[index + 1 :],
+                ]
+                break
     offsets = _table_time_offsets(form_data, query)
     query["time_offsets"] = offsets
     post_processing: list[dict[str, Any]] = []

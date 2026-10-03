@@ -24,6 +24,7 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
@@ -53,6 +54,11 @@ SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
 _MAX_BULLET_FIELDS = 256
 _MAX_BULLET_FIELD_BYTES = 1000
 _MAX_BULLET_TEXT_BYTES = 2000
+# ECMAScript WhiteSpace and LineTerminator characters used by trim/Number.
+_JAVASCRIPT_WHITESPACE = (
+    "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004"
+    "\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+)
 _MAX_BULLET_TOKENS = 256
 _ENUM_SCALAR_TYPES = (str, int, float, bool, Decimal)
 
@@ -1118,7 +1124,7 @@ def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noq
     if type(value) is str:
         if len(value) > _MAX_BULLET_TEXT_BYTES:
             raise BulletOutputError(f"Bullet {role} exceeds the size limit")
-        tokens: list[Any] = [token.strip() for token in value.split(",")]
+        tokens: list[Any] = value.split(",")
     elif type(value) is list:
         tokens = [
             list.__getitem__(value, index) for index in range(list.__len__(value))
@@ -1131,6 +1137,8 @@ def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noq
     numbers: list[float] = []
     for index, token in enumerate(tokens):
         token = _safe_enum_backing(token)
+        if type(token) is str:
+            token = token.strip(_JAVASCRIPT_WHITESPACE)
         if type(token) is str and token == "":
             continue
         if type(token) is bool or not (
@@ -1142,6 +1150,14 @@ def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noq
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
         if type(token) is str and len(token) > _MAX_BULLET_TEXT_BYTES:
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
+        if type(token) is str:
+            if re.fullmatch(r"0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+", token):
+                token = int(token, 0)
+            elif not re.fullmatch(
+                r"[+-]?(?:Infinity|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)",
+                token,
+            ):
+                continue
         try:
             number = float(token)
         except ValueError:
@@ -1163,6 +1179,9 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     """Build a horizontal layered preview from the shared strict model."""
     model = resolve_bullet_render_model(data, form_data)
 
+    metric_reference = "".join(
+        "\\" + char if char in ".[]\\" else char for char in model.metric_field
+    )
     category_field = _unique_bullet_category_field(model.rows)
     row_field = _unique_bullet_derived_field(
         model.rows, "__mcp_bullet_row", (category_field,)
@@ -1221,8 +1240,9 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             "title": ", ".join(model.dimensions) if model.dimensions else None,
         },
         {
-            "field": model.metric_field,
+            "field": metric_reference,
             "type": "quantitative",
+            "title": model.metric_field,
             "format": vega_format,
         },
     ]
@@ -1317,7 +1337,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             "mark": {"type": "bar", "tooltip": True, "size": 16},
             "encoding": {
                 "x": {
-                    "field": model.metric_field,
+                    "field": metric_reference,
                     "type": "quantitative",
                     "title": model.metric_field,
                     "scale": {"domain": [axis_min, axis_max]},
