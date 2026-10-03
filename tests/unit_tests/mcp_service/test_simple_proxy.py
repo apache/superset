@@ -20,6 +20,7 @@
 from unittest.mock import patch
 
 from fastmcp import FastMCP
+from fastmcp.server import create_proxy
 
 from superset.mcp_service import simple_proxy
 
@@ -32,9 +33,7 @@ def test_main_builds_real_proxy_and_runs_it() -> None:
     removed in FastMCP 4).
     """
     with (
-        patch.object(
-            simple_proxy, "create_proxy", wraps=simple_proxy.create_proxy
-        ) as spy,
+        patch("fastmcp.server.create_proxy", wraps=create_proxy) as spy,
         patch.object(FastMCP, "run") as mock_run,
         patch.object(simple_proxy.signal, "signal"),
         patch.object(simple_proxy, "proxy", None),

@@ -25,7 +25,6 @@ import sys
 from typing import Any
 
 from fastmcp import FastMCP
-from fastmcp.server import create_proxy
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +48,8 @@ def main() -> None:
     global proxy
 
     try:
+        from fastmcp.server import create_proxy
+
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)

@@ -899,6 +899,14 @@ msgstr ""
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr ""
 
@@ -3225,6 +3233,12 @@ msgid "Choose columns to be parsed as dates"
 msgstr ""
 
 msgid "Choose columns to read"
+msgstr ""
+
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
 msgstr ""
 
 msgid "Choose from existing dashboard filters and select a value to refine your report results."
@@ -5962,6 +5976,9 @@ msgstr ""
 msgid "Enter theme name"
 msgstr ""
 
+msgid "Enter values"
+msgstr ""
+
 msgid "Enter your current password"
 msgstr ""
 
@@ -6135,6 +6152,9 @@ msgid "Exact match (IN)"
 msgstr ""
 
 msgid "Example"
+msgstr ""
+
+msgid "Example export does not support charts or filters using semantic views."
 msgstr ""
 
 msgid "Examples"
@@ -7294,6 +7314,9 @@ msgid "Import %s"
 msgstr ""
 
 msgid "Import Error"
+msgstr ""
+
+msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
 msgid "Import chart failed for an unknown reason"
@@ -9156,6 +9179,9 @@ msgstr ""
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 
@@ -10835,6 +10861,9 @@ msgstr ""
 msgid "Resample rule would project %(rows)s rows, exceeding the limit of %(max)s rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr ""
 
@@ -10842,6 +10871,9 @@ msgid "Reset Columns"
 msgstr ""
 
 msgid "Reset all folders to default"
+msgstr ""
+
+msgid "Reset and reselect values"
 msgstr ""
 
 msgid "Reset columns"
@@ -11355,6 +11387,14 @@ msgid "Saved query not found."
 msgstr ""
 
 msgid "Saved query parameters are invalid."
+msgstr ""
+
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
 msgstr ""
 
 msgid "Saving..."
@@ -12749,6 +12789,21 @@ msgstr ""
 msgid "Start date included in time range"
 msgstr ""
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr ""
 
@@ -12909,6 +12964,12 @@ msgid "Suffix"
 msgstr ""
 
 msgid "Suffix to apply after the percentage display"
+msgstr ""
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
 msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
@@ -14539,6 +14600,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -15591,6 +15657,11 @@ msgid "Values"
 msgstr ""
 
 msgid "Values are dependent on other filters"
+msgstr ""
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
 msgstr ""
 
 msgid "Values dependent on"

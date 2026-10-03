@@ -325,7 +325,17 @@ development = [
     "pre-commit",
     "progress>=1.6.1,<2",
     "psutil",
-    "pyfakefs",
+    # 5.3.5 (the previously resolved version) predates pyfakefs's own Python
+    # 3.13 support: under 3.13 it leaves os.chdir patched to the fake
+    # filesystem after the `fs` fixture is undone, so the chdir back to the
+    # rootdir in pytest-cov's own teardown aborts the whole session with an
+    # INTERNALERROR. 5.6.0 added preliminary 3.13 support, which is what stops
+    # that crash, and 5.7.0 made 3.13 support official. 5.7.4 is the floor
+    # rather than 5.7.0 because it also fixes module/session-scoped fixtures
+    # under 3.13 (pyfakefs #1101), and the `fs` tests in
+    # tests/integration_tests/cli_tests.py -- the only consumers of that
+    # fixture -- run alongside session- and module-scoped fixtures.
+    "pyfakefs>=5.7.4",
     "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces

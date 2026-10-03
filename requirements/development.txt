@@ -476,7 +476,7 @@ humanize==4.12.3
     #   apache-superset
 identify==2.5.36
     # via pre-commit
-idna==3.20
+idna==3.15
     # via
     #   -c requirements/base-constraint.txt
     #   anyio
@@ -835,7 +835,7 @@ pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==5.3.5
+pyfakefs==6.2.0
     # via apache-superset
 pygeohash==3.2.2
     # via
