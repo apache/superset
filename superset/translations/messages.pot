@@ -14625,6 +14625,9 @@ msgstr ""
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 msgid "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly."
 msgstr ""
 
@@ -15073,6 +15076,9 @@ msgid "Tuesday"
 msgstr ""
 
 msgid "Tukey"
+msgstr ""
+
+msgid "Turn off server pagination"
 msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"

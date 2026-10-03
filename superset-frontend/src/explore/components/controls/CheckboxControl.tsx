@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useId, type ReactNode } from 'react';
 import { styled, css } from '@apache-superset/core/theme';
-import { Checkbox } from '@superset-ui/core/components';
+import { Button, Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
 interface CheckboxControlProps {
@@ -31,6 +31,9 @@ interface CheckboxControlProps {
   validationErrors?: string[];
   placeholder?: string;
   debounceDelay?: number;
+  disabled?: boolean;
+  disabledReason?: string;
+  resetLabel?: string;
 }
 
 const CheckBoxControlWrapper = styled.div`
@@ -50,24 +53,60 @@ const CheckBoxControlWrapper = styled.div`
 export default function CheckboxControl({
   value = false,
   label,
+  disabled = false,
+  disabledReason,
+  resetLabel,
   onChange = () => {},
   ...restProps
 }: CheckboxControlProps): JSX.Element {
+  const explanationId = useId();
   const handleChange = useCallback((): void => {
-    onChange(!value);
-  }, [onChange, value]);
+    if (!disabled) {
+      onChange(!value);
+    }
+  }, [disabled, onChange, value]);
 
-  const checkbox = <Checkbox onChange={handleChange} checked={!!value} />;
+  const checkbox = (
+    <Checkbox
+      onChange={handleChange}
+      checked={!!value}
+      disabled={disabled}
+      aria-describedby={disabled && disabledReason ? explanationId : undefined}
+    >
+      {disabled ? label : undefined}
+    </Checkbox>
+  );
+  const explanation = disabled && disabledReason && (
+    <p id={explanationId}>{disabledReason}</p>
+  );
 
   if (label) {
     return (
       <CheckBoxControlWrapper>
-        <ControlHeader
-          {...restProps}
-          label={label}
-          leftNode={checkbox}
-          onClick={handleChange}
-        />
+        {disabled ? (
+          checkbox
+        ) : (
+          <ControlHeader
+            {...restProps}
+            label={label}
+            leftNode={checkbox}
+            onClick={handleChange}
+          />
+        )}
+        {explanation}
+        {disabled && value && resetLabel && (
+          <Button buttonSize="small" onClick={() => onChange(false)}>
+            {resetLabel}
+          </Button>
+        )}
+      </CheckBoxControlWrapper>
+    );
+  }
+  if (explanation) {
+    return (
+      <CheckBoxControlWrapper>
+        {checkbox}
+        {explanation}
       </CheckBoxControlWrapper>
     );
   }

@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ControlPanelState } from '../types';
 
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export * from './getTotalsMetrics';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './buildSortMetricOrderby';
-export * from './isServerPaginationUnsupported';
-export * from './headerGroups';
+/** Keep semantic pagination disabled until the view declares offset support. */
+export function isServerPaginationUnsupported({
+  datasource,
+  form_data,
+}: ControlPanelState): boolean {
+  const isSemanticView =
+    datasource?.type === 'semantic_view' ||
+    (!datasource && form_data.datasource?.endsWith('__semantic_view'));
+  const features =
+    datasource && 'semantic_view_features' in datasource
+      ? datasource.semantic_view_features
+      : undefined;
+  return Boolean(isSemanticView && !features?.includes('ROW_OFFSET'));
+}
