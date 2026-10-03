@@ -3526,3 +3526,182 @@ async def test_malformed_gantt_query_returns_validation_error(
     assert isinstance(result, ChartError)
     assert result.error_type == "ValidationError"
     assert message in result.error
+
+
+class TestBigNumberHeadline:
+    """get_chart_data returns the Big Number headline, computed from the full
+    result set the query returned (not a sample) and the executed query."""
+
+    _METRIC = "SUM(ytd_sales)"
+
+    def _chart(self, form_data: dict[str, Any], viz_type: str = "big_number") -> Any:
+        return SimpleNamespace(
+            id=108,
+            slice_name="Total Sales",
+            viz_type=viz_type,
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [{"metrics": [self._METRIC], "row_limit": 50}],
+                    "result_format": "json",
+                    "result_type": "full",
+                }
+            ),
+            params=json.dumps(
+                {"viz_type": viz_type, "metric": self._METRIC, **form_data}
+            ),
+        )
+
+    async def _headline(
+        self,
+        mcp_server: Any,
+        form_data: dict[str, Any],
+        queries: list[dict[str, Any]],
+        *,
+        viz_type: str = "big_number",
+        post_processing: list[dict[str, Any]] | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any] | None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            query_objects = [
+                SimpleNamespace(
+                    filter=[],
+                    time_range=None,
+                    row_limit=data["queries"][0]["row_limit"],
+                    post_processing=post_processing or [],
+                    to_dict=lambda: {},
+                )
+            ]
+            return SimpleNamespace(queries=query_objects, form_data={})
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return {"queries": queries}
+
+        with (
+            patch.object(
+                module,
+                "find_chart_by_identifier",
+                return_value=self._chart(form_data, viz_type),
+            ),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                request: dict[str, Any] = {"identifier": "108"}
+                if limit:
+                    request["limit"] = limit
+                result = await client.call_tool("get_chart_data", {"request": request})
+        return json.loads(result.content[0].text)["headline"]
+
+    def _query(self, values: list[Any]) -> dict[str, Any]:
+        return {
+            "data": [
+                {"__timestamp": index * 604800000, self._METRIC: value}
+                for index, value in enumerate(values)
+            ],
+            "colnames": ["__timestamp", self._METRIC],
+            "rowcount": len(values),
+        }
+
+    @pytest.mark.asyncio
+    async def test_headline_aggregates_every_row(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        values = list(range(1, 20))
+        headline = await self._headline(
+            mcp_server, {"aggregation": "sum"}, [self._query(values)]
+        )
+
+        assert headline is not None
+        assert headline["value"] == sum(values)
+        assert headline["aggregation"] == "sum"
+
+    @pytest.mark.asyncio
+    async def test_headline_is_null_when_the_fetch_hit_the_row_limit(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        headline = await self._headline(
+            mcp_server, {"aggregation": "sum"}, [self._query([1, 2, 3])], limit=3
+        )
+
+        assert headline is not None
+        assert headline["value"] is None
+        assert "truncated" in headline["reason"]
+
+    @pytest.mark.asyncio
+    async def test_headline_is_null_when_rolling_is_not_in_the_executed_query(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        form_data = {"aggregation": "sum", "rolling_type": "mean"}
+        queries = [self._query([1, 2, 3])]
+
+        without = await self._headline(mcp_server, form_data, queries)
+        with_rolling = await self._headline(
+            mcp_server,
+            form_data,
+            queries,
+            post_processing=[{"operation": "rolling"}],
+        )
+
+        assert without is not None
+        assert without["value"] is None
+        assert with_rolling is not None
+        assert with_rolling["value"] == 6
+
+    @pytest.mark.asyncio
+    async def test_raw_headline_comes_from_the_overall_value_layer(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        overall = {"data": [{self._METRIC: 99}], "colnames": [self._METRIC]}
+        headline = await self._headline(
+            mcp_server,
+            {"aggregation": "raw"},
+            [self._query([1, 2, 3]), overall],
+        )
+
+        assert headline is not None
+        assert headline["value"] == 99
+
+    @pytest.mark.asyncio
+    async def test_big_number_total_headline(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        headline = await self._headline(
+            mcp_server,
+            {},
+            [{"data": [{self._METRIC: 4321}], "colnames": [self._METRIC]}],
+            viz_type="big_number_total",
+        )
+
+        assert headline is not None
+        assert headline["value"] == 4321
+        assert headline["aggregation"] == "total"
+
+    @pytest.mark.asyncio
+    async def test_other_chart_types_have_no_headline(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        headline = await self._headline(
+            mcp_server, {}, [self._query([1, 2, 3])], viz_type="table"
+        )
+
+        assert headline is None

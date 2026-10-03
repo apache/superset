@@ -91,6 +91,7 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
+    BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
 )
@@ -3080,6 +3081,15 @@ class DashboardChartData(BaseModel):
     queries: list[DashboardChartQueryData] | None = Field(
         None,
         description="Per-query layers for multi-query charts; null for single-query",
+    )
+    headline: BigNumberHeadline | None = Field(
+        None,
+        description=(
+            "Big Number charts only (big_number, big_number_total): the headline "
+            "number the chart displays, computed from the full result rather than "
+            "sample_data. Report this as the chart's value; do not derive it from "
+            "the sample rows. Null for other chart types."
+        ),
     )
     filtered: bool = Field(
         False, description="Whether active filters were applied to this chart"
