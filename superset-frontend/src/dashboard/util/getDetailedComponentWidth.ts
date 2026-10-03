@@ -24,6 +24,7 @@ import {
   MARKDOWN_TYPE,
   CHART_TYPE,
   DYNAMIC_TYPE,
+  FILTER_TYPE,
 } from './componentTypes';
 import { DashboardComponent, DashboardComponentMap } from '../types';
 
@@ -108,7 +109,8 @@ export default function getDetailedComponentWidth({
   } else if (
     component.type === DYNAMIC_TYPE ||
     component.type === MARKDOWN_TYPE ||
-    component.type === CHART_TYPE
+    component.type === CHART_TYPE ||
+    component.type === FILTER_TYPE
   ) {
     result.minimumWidth = GRID_MIN_COLUMN_COUNT;
   }
