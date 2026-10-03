@@ -568,7 +568,7 @@ mako==1.4.1
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.10.3
+markdown==3.11
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
