@@ -235,6 +235,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const externalValue =
       filterState.value?.[0] != null ? String(filterState.value[0]) : '';
     setLikeInputValue(externalValue);
+    // A parent-driven value change supersedes any settled edit, so re-entering
+    // the same text afterwards registers as a fresh edit.
+    setPendingLikeValue(null);
   }, [filterState.value]);
 
   const prevExcludeFilterValues = useRef(excludeFilterValues);
@@ -587,6 +590,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       updateDataMask(null);
       settleSearch.cancel();
       settleLikeValue.cancel();
+      // A search the user already ran left a server-side subset in ownState;
+      // publish the empty search so the cleared filter lists every option.
+      const {
+        searchAllOptions: currentSearchAllOptions,
+        dispatchDataMask: currentDispatchDataMask,
+        initialColtypeMap: currentInitialColtypeMap,
+      } = searchDispatchRef.current;
+      if (hasSearchedRef.current && currentSearchAllOptions) {
+        currentDispatchDataMask({
+          type: 'ownState',
+          ownState: { coltypeMap: currentInitialColtypeMap, search: '' },
+        });
+      }
       setSearchInput('');
       setSettledSearch('');
       hasSearchedRef.current = false;

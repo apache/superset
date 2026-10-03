@@ -2071,6 +2071,9 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
   });
 
   await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
 
   // Rerendering with fresh (non-memoized) props can independently re-run
   // this plugin's own default-value initialisation, unrelated to the LIKE
@@ -2125,12 +2128,18 @@ test('switching Exact then back to LIKE does not replay the discarded pending ed
     );
   });
   await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
 
   const callsBeforeReturn = setDataMaskMock.mock.calls.length;
   rerender(
     <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
   );
   await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
 
   expect(
     setDataMaskMock.mock.calls.slice(callsBeforeReturn).map(call => call[0]),
@@ -2186,6 +2195,9 @@ test('clear-all does not restore a LIKE edit still pending in the deferred value
   const callsBeforeRelease = setDataMaskMock.mock.calls.length;
   rerender(<SelectFilterPlugin {...likeProps} clearAllTrigger={undefined} />);
   await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
 
   expect(input).toHaveValue('');
   expect(
