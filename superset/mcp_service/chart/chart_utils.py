@@ -2702,7 +2702,25 @@ def merge_geographic_update_form_data(  # noqa: C901
     patch = dict(mapped)
     if "temporal_column" in fields and config.temporal_column is None:
         patch["adhoc_filters"] = _without_generated_dashboard_time_filter(patch)
-        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    elif (
+        "temporal_column" not in fields
+        and not dataset_rebind
+        and existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    ):
+        # Omission keeps the saved dashboard-time binding instead of remapping
+        # it to the dataset default the mapper generated for this update.
+        saved_binding = [
+            filter_
+            for filter_ in existing.get("adhoc_filters", [])
+            if filter_ not in _without_generated_dashboard_time_filter(existing)
+        ]
+        patch["adhoc_filters"] = [
+            *saved_binding,
+            *_without_generated_dashboard_time_filter(patch),
+        ]
+        patch[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = existing[
+            MCP_DASHBOARD_TIME_FILTER_SUBJECT
+        ]
     # Native UI-only presentation controls are not part of this public config.
     for key in (
         "color_by",

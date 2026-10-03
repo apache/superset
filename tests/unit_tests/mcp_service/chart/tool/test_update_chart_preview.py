@@ -21,19 +21,21 @@ Unit tests for update_chart_preview MCP tool
 
 import asyncio
 import importlib
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
 from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 
+import superset.mcp_service.chart.registry as registry_module
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import (
     map_big_number_config,
     preserve_previous_adhoc_filters,
 )
+from superset.mcp_service.chart.registry import _PluginFilterConfig
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     BigNumberChartConfig,
@@ -47,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     XYChartConfig,
 )
+from superset.mcp_service.chart.tool.get_chart_type_schema import _CHART_EXAMPLES
 
 # The package ``__init__.py`` re-exports the ``update_chart_preview`` tool
 # function under the same dotted path as the module, so mock.patch's string
@@ -1525,17 +1528,11 @@ def test_disabled_geographic_preview_requires_existing_same_type(
     mock_auth: Mock,
 ) -> None:
     """Disabled types allow same-type iteration, not fresh previews or conversions."""
-    from contextlib import ExitStack
-
-    import superset.mcp_service.chart.registry as registry_module
-    from superset.mcp_service.chart.registry import _PluginFilterConfig
-    from superset.mcp_service.chart.tool.get_chart_type_schema import _CHART_EXAMPLES
-
     monkeypatch.setattr(
         registry_module, "_filter_config", _PluginFilterConfig(frozenset({kind}))
     )
-    dataset = _mock_dataset(id=3)
-    previous = (
+    dataset: Mock = _mock_dataset(id=3)
+    previous: dict[str, Any] | None = (
         None
         if previous_type in {None, "expired"}
         else {
@@ -1543,7 +1540,7 @@ def test_disabled_geographic_preview_requires_existing_same_type(
             "datasource": "3__table",
         }
     )
-    request = UpdateChartPreviewRequest.model_validate(
+    request: UpdateChartPreviewRequest = UpdateChartPreviewRequest.model_validate(
         {
             "dataset_id": 3,
             "config": _CHART_EXAMPLES[kind][0],
@@ -1580,7 +1577,7 @@ def test_disabled_geographic_preview_requires_existing_same_type(
                 side_effect=lambda config, *args, **kwargs: config,
             )
         )
-        result = asyncio.run(
+        result: dict[str, Any] = asyncio.run(
             update_chart_preview_module.update_chart_preview(
                 request=request, ctx=Mock()
             )

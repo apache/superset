@@ -182,6 +182,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   // Track mouse position to distinguish clicks from drags
   let mousedownPos: { x: number; y: number } | null = null;
 
+  // Without a source map the ISO code is the raw entity value (legacy path).
+  // With one, a code absent from it has no source row, so interactions on it
+  // are suppressed by returning undefined.
   const sourceValue = (code: string) => {
     if (!sourceValues) return code;
     return Object.prototype.hasOwnProperty.call(sourceValues, code)
@@ -197,9 +200,12 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
 
     const selected = filterState?.selectedValues || [];
     const iso = source?.properties?.ISO;
-    if (!iso || sourceValue(iso) === undefined) return undefined;
+    if (!iso) return undefined;
 
+    // An already-selected boundary must stay clearable even when a later
+    // dashboard filter removed its source row.
     const isSelected = selected.includes(iso);
+    if (!isSelected && sourceValue(iso) === undefined) return undefined;
     const values = isSelected ? [] : [iso];
 
     return {

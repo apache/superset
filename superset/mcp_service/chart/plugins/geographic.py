@@ -254,7 +254,8 @@ class GeographicChartPlugin(BaseChartPlugin):
             existing_form_data, new_form_data, config, dataset_rebind=dataset_rebind
         )
         # Native query and compile validation must cover the same bounded rows.
-        merged["row_limit"] = _typed_row_limit(merged)
+        if merged.get("mcp_geographic"):
+            merged["row_limit"] = _typed_row_limit(merged)
         return merged
 
     def extract_column_refs(self, config: GeographicConfig) -> list[ColumnRef]:
@@ -402,6 +403,11 @@ class CountryMapChartPlugin(GeographicChartPlugin):
         )
 
 
+def _bubbles_shown(form_data: Mapping[str, Any]) -> bool:
+    """Whether the world map renders its secondary metric as bubble sizes."""
+    return bool(form_data.get("show_bubbles"))
+
+
 class WorldMapChartPlugin(GeographicChartPlugin):
     """Register the World Map visualization."""
 
@@ -428,6 +434,33 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         entity = form_data.get("entity")
         return metrics, [entity] if entity else []
 
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Any = None,
+    ) -> Any | None:
+        """Reject merged color and bubble metrics that share a label.
+
+        An update can keep a saved ``secondary_metric`` while replacing
+        ``metric`` with a different expression under the same label. Query
+        deduplication would then size bubbles from the color metric.
+        """
+        metric = form_data.get("metric")
+        secondary = form_data.get("secondary_metric")
+        if (
+            _bubbles_shown(form_data)
+            and metric is not None
+            and secondary is not None
+            and metric != secondary
+            and metric_result_label(metric) == metric_result_label(secondary)
+        ):
+            raise ValueError(
+                "metric and secondary_metric must have distinct result labels; "
+                "rename one or send both metrics in the update"
+            )
+        return None
+
     def result_metrics(self, form_data: Mapping[str, Any]) -> list[Any]:
         """Require the color metric, plus the bubble metric when bubbles show.
 
@@ -435,7 +468,7 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         rendered, so its values do not gate the choropleth.
         """
         metrics = [form_data.get("metric")]
-        if not form_data.get("show_bubbles"):
+        if not _bubbles_shown(form_data):
             return metrics
         secondary = form_data.get("secondary_metric")
         if secondary is None:
@@ -447,7 +480,7 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         self, form_data: Mapping[str, Any], labels: list[str]
     ) -> set[str]:
         """Bubble sizes come from the secondary metric when bubbles show."""
-        if not form_data.get("show_bubbles"):
+        if not _bubbles_shown(form_data):
             return set()
         secondary = metric_result_label(form_data.get("secondary_metric"))
         return {secondary} if secondary is not None else set()
@@ -516,7 +549,17 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
         return [qd]
 
     def result_metrics(self, form_data: Mapping[str, Any]) -> list[Any]:
+        """Require the radius metric when the radius is metric-backed.
+
+        Legacy native charts store a bare saved-metric key (or a numeric
+        string for a fixed radius) instead of the typed ``fix``/``metric``
+        object; both stay valid when an unrelated update preserves them.
+        """
+        from superset.mcp_service.chart.chart_helpers import _is_metric_ref
+
         radius = form_data.get("point_radius_fixed")
+        if isinstance(radius, str) and radius:
+            return [radius] if _is_metric_ref(radius) else []
         if not isinstance(radius, Mapping) or radius.get("type") not in {
             "fix",
             "metric",

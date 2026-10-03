@@ -154,59 +154,69 @@ test('an ISO selection is recognised as selected and toggles the filter off', ()
   }
 });
 
-test('a region with a blank metric still cross-filters on its source value', () => {
-  const loader = d3 as unknown as {
-    json: (
-      url: string,
-      callback: (error: Error | null, data: unknown) => void,
-    ) => void;
-  };
+type Loader = {
+  json: (
+    url: string,
+    callback: (error: Error | null, data: unknown) => void,
+  ) => void;
+};
+
+function renderUsaMap(
+  rows: Record<string, unknown>[],
+  options: { selectedValues?: string[] } = {},
+) {
   const json = jest
-    .spyOn(loader, 'json')
+    .spyOn(d3 as unknown as Loader, 'json')
     .mockImplementation((_url, callback) => {
       callback(null, usa);
     });
   const setDataMask = jest.fn();
   const onContextMenu = jest.fn();
-  try {
-    const props = transformProps(
-      new ChartProps({
-        theme: supersetTheme,
-        width: 800,
-        height: 600,
-        formData: {
-          entity: 'state',
-          metric: 'sales',
-          select_country: 'usa',
-          region_format: 'abbreviation',
-          linear_color_scheme: 'schemeBlues',
-        },
-        queriesData: [
-          {
-            data: [
-              { state: 'CA', sales: null },
-              { state: 'TX', sales: 10 },
-            ],
-          },
-        ],
-        datasource: { currencyFormats: {}, columnFormats: {} },
-        hooks: { setDataMask, onContextMenu },
-        emitCrossFilters: true,
-      }),
+  const props = transformProps(
+    new ChartProps({
+      theme: supersetTheme,
+      width: 800,
+      height: 600,
+      formData: {
+        entity: 'state',
+        metric: 'sales',
+        select_country: 'usa',
+        region_format: 'abbreviation',
+        linear_color_scheme: 'schemeBlues',
+      },
+      queriesData: [{ data: rows }],
+      datasource: { currencyFormats: {}, columnFormats: {} },
+      hooks: { setDataMask, onContextMenu },
+      emitCrossFilters: true,
+      filterState: options.selectedValues
+        ? { selectedValues: options.selectedValues }
+        : {},
+    }),
+  );
+  const { container } = render(<ReactCountryMap {...props} />);
+  const region = (iso: string) =>
+    [...container.querySelectorAll<SVGPathElement>('path.region')].find(
+      path => (d3.select(path).datum() as RegionFeature).properties.ISO === iso,
     );
-    const { container } = render(<ReactCountryMap {...props} />);
-    const california = [
-      ...container.querySelectorAll<SVGPathElement>('path.region'),
-    ].find(
-      path =>
-        (d3.select(path).datum() as RegionFeature).properties.ISO === 'US-CA',
-    );
-    expect(california).toBeDefined();
-    if (california) {
-      fireEvent.mouseDown(california);
-      fireEvent.click(california);
-      fireEvent.contextMenu(california);
+  const interact = (iso: string) => {
+    const target = region(iso);
+    expect(target).toBeDefined();
+    if (target) {
+      fireEvent.mouseDown(target);
+      fireEvent.click(target);
+      fireEvent.contextMenu(target);
     }
+  };
+  return { container, interact, json, onContextMenu, setDataMask };
+}
+
+test('a region with a blank metric still cross-filters on its source value', () => {
+  const { interact, json, onContextMenu, setDataMask } = renderUsaMap([
+    { state: 'CA', sales: null },
+    { state: 'TX', sales: 10 },
+  ]);
+  try {
+    interact('US-CA');
     expect(setDataMask).toHaveBeenCalledWith(
       expect.objectContaining({
         extraFormData: { filters: [{ col: 'state', op: 'IN', val: ['CA'] }] },
@@ -227,53 +237,36 @@ test('a region with a blank metric still cross-filters on its source value', () 
 });
 
 test('unmapped boundaries do not guess identifiers with an explicit region format', () => {
-  const loader = d3 as unknown as {
-    json: (
-      url: string,
-      callback: (error: Error | null, data: unknown) => void,
-    ) => void;
-  };
-  const json = jest
-    .spyOn(loader, 'json')
-    .mockImplementation((_url, callback) => {
-      callback(null, usa);
-    });
-  const setDataMask = jest.fn();
-  const onContextMenu = jest.fn();
+  const { container, interact, json, onContextMenu, setDataMask } =
+    renderUsaMap([{ state: 'CA', sales: 10 }]);
   try {
-    const props = transformProps(
-      new ChartProps({
-        theme: supersetTheme,
-        width: 800,
-        height: 600,
-        formData: {
-          entity: 'state',
-          metric: 'sales',
-          select_country: 'usa',
-          region_format: 'abbreviation',
-          linear_color_scheme: 'schemeBlues',
-        },
-        queriesData: [{ data: [{ state: 'CA', sales: 10 }] }],
-        datasource: { currencyFormats: {}, columnFormats: {} },
-        hooks: { setDataMask, onContextMenu },
-        emitCrossFilters: true,
-      }),
+    expect(container.querySelectorAll('path.region')).toHaveLength(
+      usa.features.length,
     );
-    const { container } = render(<ReactCountryMap {...props} />);
-    const regions = container.querySelectorAll<SVGPathElement>('path.region');
-    expect(regions).toHaveLength(usa.features.length);
-    const texas = [...regions].find(
-      path =>
-        (d3.select(path).datum() as RegionFeature).properties.ISO === 'US-TX',
-    );
-    expect(texas).toBeDefined();
-    if (texas) {
-      fireEvent.mouseDown(texas);
-      fireEvent.click(texas);
-      fireEvent.contextMenu(texas);
-    }
+    interact('US-TX');
     expect(setDataMask).not.toHaveBeenCalled();
     expect(onContextMenu).not.toHaveBeenCalled();
+  } finally {
+    json.mockRestore();
+  }
+});
+
+test('a selected boundary stays clearable after another filter drops its row', () => {
+  const { interact, json, setDataMask } = renderUsaMap(
+    [{ state: 'TX', sales: 10 }],
+    { selectedValues: ['US-CA'] },
+  );
+  try {
+    interact('US-CA');
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: { filters: [] },
+        filterState: { value: null, selectedValues: null },
+      }),
+    );
+    setDataMask.mockClear();
+    interact('US-NY');
+    expect(setDataMask).not.toHaveBeenCalled();
   } finally {
     json.mockRestore();
   }

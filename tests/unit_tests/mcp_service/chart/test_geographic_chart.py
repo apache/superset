@@ -44,6 +44,7 @@ from superset.mcp_service.chart.query_result import (
     metric_result_label,
     normalize_chart_query_result,
 )
+from superset.mcp_service.chart.registry import get_registry
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ChartError,
@@ -926,6 +927,67 @@ def test_explicit_temporal_binding_clear_preserves_user_filters(kind: str) -> No
     merged = merge_chart_form_data(old, mapped, config)
     assert merged["adhoc_filters"] == [user_filter]
     assert "_mcp_dashboard_time_filter_subject" not in merged
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_omitted_temporal_column_keeps_saved_dashboard_binding(kind: str) -> None:
+    """An update that omits temporal_column must not remap to the dataset default."""
+    old = form_for(kind)
+    saved = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "No filter",
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+    }
+    old.update(_mcp_dashboard_time_filter_subject="event_time", adhoc_filters=[saved])
+    config = config_for(kind)
+    dataset = Mock(main_dttm_col="created_at")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    assert mapped["_mcp_dashboard_time_filter_subject"] == "created_at"
+    merged = merge_chart_form_data(old, mapped, config)
+    assert merged["_mcp_dashboard_time_filter_subject"] == "event_time"
+    assert merged["adhoc_filters"] == [saved]
+
+
+def test_world_map_merged_metrics_with_shared_label_are_rejected() -> None:
+    """A kept secondary metric cannot alias a replaced color metric."""
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    form = form_for("world_map")
+    form["show_bubbles"] = True
+    form["secondary_metric"] = form["metric"]
+    form["metric"] = {
+        "expressionType": "SQL",
+        "sqlExpression": "AVG(sales)",
+        "label": metric_result_label(form["secondary_metric"]),
+    }
+    with pytest.raises(ValueError, match="distinct result labels"):
+        plugin.validate_merged_form_data(form, 3)
+    form["secondary_metric"] = form["metric"]
+    assert plugin.validate_merged_form_data(form, 3) is None
+
+
+@pytest.mark.parametrize(
+    ("radius", "expects_metric"), [("count", True), ("100", False), ("2.5", False)]
+)
+def test_legacy_string_point_radius_is_valid(radius: str, expects_metric: bool) -> None:
+    """A preserved legacy radius string is a metric key or a fixed size."""
+    plugin = get_registry().get("deck_scatter")
+    assert plugin is not None
+    assert plugin.result_metrics({"point_radius_fixed": radius}) == (
+        [radius] if expects_metric else []
+    )
 
 
 def test_points_use_native_units_and_keyless_map_renderer() -> None:

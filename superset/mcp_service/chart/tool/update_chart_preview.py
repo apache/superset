@@ -212,12 +212,11 @@ def update_chart_preview(  # noqa: C901
                     raise ValueError(
                         f"Chart type '{config.chart_type}' is disabled or unavailable"
                     )
-                if plugin is not None:
-                    config = plugin.resolve_update_config(
-                        config,
-                        previous_form_data or {},
-                        dataset_rebind=dataset_rebind,
-                    )
+                config = plugin.resolve_update_config(
+                    config,
+                    previous_form_data or {},
+                    dataset_rebind=dataset_rebind,
+                )
             except ValueError as ex:
                 return {
                     "chart": None,
