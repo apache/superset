@@ -213,6 +213,10 @@ def tls_ca_path(mysql_container: MySqlContainer) -> Iterator[str]:
     assert result.exit_code == 0, "could not read the auto-generated CA cert"
     with tempfile.NamedTemporaryFile(mode="wb", suffix=".pem", delete=False) as ca_file:
         ca_file.write(result.output)
+        # Flush so the CA is on disk before the client library reads the path;
+        # an unflushed (empty) file makes the driver fall back to default
+        # system trust paths and fail.
+        ca_file.flush()
         yield ca_file.name
 
 
