@@ -9769,6 +9769,11 @@ msgstr "Velikost markerja"
 msgid "Markers"
 msgstr "Markerji"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tip označevanja"
 

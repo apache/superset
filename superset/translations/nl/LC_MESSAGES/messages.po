@@ -10463,6 +10463,11 @@ msgstr "Marker grootte"
 msgid "Markers"
 msgstr "Markeringen"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Opmaaktype(Markup type)"
 

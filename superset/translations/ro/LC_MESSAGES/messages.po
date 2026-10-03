@@ -10311,6 +10311,11 @@ msgstr "Dimensiune marker"
 msgid "Markers"
 msgstr "Markeri"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tip markup"
 

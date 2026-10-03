@@ -8931,6 +8931,11 @@ msgstr "マーカーのサイズ"
 msgid "Markers"
 msgstr "マーカー"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "マークアップの種類"
 

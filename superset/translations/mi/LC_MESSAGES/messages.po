@@ -10109,6 +10109,11 @@ msgstr "Rahi tohu"
 msgid "Markers"
 msgstr "Tohu"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Momo tohu"
 

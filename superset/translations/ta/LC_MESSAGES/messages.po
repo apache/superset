@@ -9517,6 +9517,11 @@ msgstr "மார்க்கர் அளவு"
 msgid "Markers"
 msgstr "மார்க்கர்கள்"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "மார்க்கப் வகை"
 

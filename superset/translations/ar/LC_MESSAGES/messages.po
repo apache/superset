@@ -10565,6 +10565,11 @@ msgstr "حجم العلامة"
 msgid "Markers"
 msgstr "علامات"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "نوع الترميز"
 

@@ -9634,6 +9634,11 @@ msgstr "Marķiera izmērs"
 msgid "Markers"
 msgstr "Marķieri"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Iezīmēšanas tips"
 

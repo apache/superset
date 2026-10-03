@@ -9830,6 +9830,11 @@ msgstr "Veľkosť značky"
 msgid "Markers"
 msgstr "Značky"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Typ značkovanie"
 

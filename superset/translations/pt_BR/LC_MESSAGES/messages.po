@@ -10513,6 +10513,11 @@ msgstr "Tamanho do marcador"
 msgid "Markers"
 msgstr "Marcadores"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tipo de marcação"
 

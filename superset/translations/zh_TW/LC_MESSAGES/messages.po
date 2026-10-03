@@ -10606,6 +10606,11 @@ msgstr "標記大小"
 msgid "Markers"
 msgstr "標記"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Markup 類型"
 

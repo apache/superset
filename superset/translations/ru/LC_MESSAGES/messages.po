@@ -9484,6 +9484,11 @@ msgstr "Размер маркера"
 msgid "Markers"
 msgstr "Маркеры"
 
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Тип разметки"
 

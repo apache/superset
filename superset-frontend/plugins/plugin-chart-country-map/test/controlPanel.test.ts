@@ -27,7 +27,7 @@ const controlNames = (): string[] =>
         ? item
         : (item as { name?: string } | null)?.name,
     )
-    .filter(Boolean);
+    .filter((name): name is string => Boolean(name));
 
 test('keeps the MCP geographic marker and row limit through Explore hydration', () => {
   expect(controlNames()).toEqual(

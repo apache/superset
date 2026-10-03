@@ -36,6 +36,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
 )
 from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.plugins.geographic import DeckScatterChartPlugin
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
@@ -984,7 +985,7 @@ def test_world_map_merged_metrics_with_shared_label_are_rejected() -> None:
 def test_legacy_string_point_radius_is_valid(radius: str, expects_metric: bool) -> None:
     """A preserved legacy radius string is a metric key or a fixed size."""
     plugin = get_registry().get("deck_scatter")
-    assert plugin is not None
+    assert isinstance(plugin, DeckScatterChartPlugin)
     assert plugin.result_metrics({"point_radius_fixed": radius}) == (
         [radius] if expects_metric else []
     )
