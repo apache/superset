@@ -7367,6 +7367,10 @@ msgstr ""
 msgid "Extensions"
 msgstr "Розширення"
 
+#, python-format
+msgid "Extensions failed to load: %s"
+msgstr ""
+
 msgid "Extent"
 msgstr "Межі"
 
@@ -12762,6 +12766,9 @@ msgstr "вер"
 msgid "SQL"
 msgstr "Запити"
 
+msgid "SQL Editor"
+msgstr ""
+
 msgid "SQL Lab"
 msgstr "Майстерня запитів"
 
@@ -14393,6 +14400,10 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+#, python-format
+msgid "Some extensions failed to load: %s"
 msgstr ""
 
 msgid ""

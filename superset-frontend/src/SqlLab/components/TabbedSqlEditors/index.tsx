@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
-import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { Dropdown, EmptyState, Tooltip } from '@superset-ui/core/components';
+import { MenuItemType } from '@superset-ui/core/components/Menu';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SQLLAB_TAB_OVERFLOW_POPUP_CLASS } from 'src/SqlLab/SqlLabGlobalStyles';
+import { menus, commands } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import { useExtensionsReady } from 'src/extensions/useExtensionsReady';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -94,6 +99,199 @@ const TabTitle = styled.span`
 // Get the user's OS
 const userOS = detectOS();
 
+const PlusIcon = (
+  <Icons.PlusOutlined
+    iconSize="l"
+    css={css`
+      vertical-align: middle;
+    `}
+    data-test="add-tab-icon"
+  />
+);
+
+// Shown in place of PlusIcon while extensions are still loading — see the
+// extensionsReady guard in NewTabButton below.
+const LoadingIcon = (
+  <Icons.LoadingOutlined
+    iconSize="l"
+    css={css`
+      vertical-align: middle;
+    `}
+    data-test="add-tab-icon"
+  />
+);
+
+function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
+  const [open, setOpen] = useState(false);
+  // Until this is true, menus.getMenu(sqllab.newTab) can't be trusted to
+  // reflect the final set of contributions — an extension that hasn't
+  // finished loading yet looks identical to "no extensions at all". Without
+  // this, clicking "+" during that window fell back to adding a plain SQL
+  // tab instead of waiting to show the real dropdown.
+  const extensionsReady = useExtensionsReady();
+
+  // Resolved at render time rather than module load so `t()` runs after the
+  // translator has been configured.
+  const newTabTooltip = !extensionsReady
+    ? t('Loading…')
+    : userOS === 'Windows'
+      ? t('New tab (Ctrl + q)')
+      : t('New tab (Ctrl + t)');
+
+  const dropdownItems = useMemo<MenuItemType[]>(() => {
+    if (!open) return [];
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    return [
+      {
+        key: 'sql-editor',
+        label: t('SQL Editor'),
+        icon: <Icons.TableOutlined iconSize="m" />,
+        onClick: () => {
+          setOpen(false);
+          onAddSqlEditor();
+        },
+      },
+      ...primaryItems.flatMap(item => {
+        const command = commands.getCommand(item.command);
+        if (!command) {
+          // An extension contributed this menu item but its command isn't
+          // registered (load is still pending or failed). Skip it so clicking
+          // can't throw "Command not found" and break the add-tab flow.
+          return [];
+        }
+        const Icon = command.icon
+          ? ((Icons as Record<string, typeof Icons.FileOutlined>)[
+              command.icon
+            ] ?? Icons.FileOutlined)
+          : Icons.FileOutlined;
+        return [
+          {
+            key: command.id,
+            label: command.title ?? item.command,
+            icon: <Icon iconSize="m" />,
+            onClick: () => {
+              setOpen(false);
+              commands.executeCommand(item.command).catch(error => {
+                logging.error(
+                  `Failed to execute command ${item.command}`,
+                  error,
+                );
+              });
+            },
+          } as MenuItemType,
+        ];
+      }),
+    ];
+  }, [open, onAddSqlEditor]);
+
+  const activate = useCallback(() => {
+    if (!extensionsReady) {
+      // Still loading — ignore the click rather than guessing. The button
+      // shows a spinner for this window (see the render below), so there's
+      // no dropdown to open and no way yet to tell whether falling back to
+      // a plain tab would be correct.
+      return;
+    }
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    if (primaryItems.length === 0) {
+      onAddSqlEditor();
+    } else {
+      setOpen(prev => !prev);
+    }
+  }, [extensionsReady, onAddSqlEditor]);
+
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    // `trigger={[]}` opts the Dropdown out of rc-trigger's own outside-click
+    // handling (it derives that from the trigger actions), so provide the
+    // equivalent here: a mousedown anywhere outside the "+" button and the
+    // menu, or an Escape keypress, closes the dropdown. Mousedowns on the
+    // button and on menu items are left to their click handlers.
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      const button = anchorRef.current?.closest('button') ?? anchorRef.current;
+      if (
+        target &&
+        (button?.contains(target) || popupRef.current?.contains(target))
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleMouseDown, true);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>,
+    // and that button is the element that actually receives focus and activation.
+    // Intercept on the button itself in the capture phase so the extension
+    // dropdown is reached before antd's default add-tab path runs. A native button
+    // synthesizes a click for both mouse and keyboard (Enter/Space) activation, so
+    // a single capture-phase click listener keeps keyboard and mouse behavior in
+    // sync — a handler on the inner span only fires when the span is the event
+    // target and is bypassed when the button is activated via the keyboard.
+    const button = anchorRef.current?.closest('button');
+    if (!button) {
+      return undefined;
+    }
+    const handleActivate = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      activate();
+    };
+    button.addEventListener('click', handleActivate, true);
+    return () => {
+      button.removeEventListener('click', handleActivate, true);
+    };
+  }, [activate]);
+
+  return (
+    <Tooltip id="add-tab" placement="left" title={newTabTooltip}>
+      <Dropdown
+        open={open}
+        onOpenChange={setOpen}
+        menu={{ items: dropdownItems }}
+        trigger={[]}
+        popupRender={node => (
+          // The popup is DOM-portaled to document.body, but it's still a
+          // React-tree descendant of this button — and antd's Tabs wraps
+          // addIcon in its own <button onClick={() => onEdit('add')}>.
+          // React's synthetic events bubble along the React tree (piercing
+          // straight through the portal), so without this, clicking any
+          // item here also fires that ancestor button's onEdit('add'),
+          // creating an unwanted second plain tab alongside whatever was
+          // actually picked.
+          // Pure event-boundary wrapper: only stops the click from reaching
+          // antd's ancestor add-tab button, not itself interactive.
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+          <div ref={popupRef} onClick={e => e.stopPropagation()}>
+            {node}
+          </div>
+        )}
+      >
+        <span ref={anchorRef}>{extensionsReady ? PlusIcon : LoadingIcon}</span>
+      </Dropdown>
+    </Tooltip>
+  );
+}
+
 type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
 function TabbedSqlEditors({
@@ -140,6 +338,10 @@ function TabbedSqlEditors({
   }, [queries, activeQueryEditor, actions, displayLimit]);
 
   const newQueryEditor = useCallback(() => {
+    // Mark the timing origin for add-tab performance telemetry. Centralized here
+    // so every add-tab entry point (the "+" button, its dropdown, and antd's
+    // onEdit) records it consistently.
+    Logger.markTimeOrigin();
     actions.addNewQueryEditor();
   }, [actions]);
 
@@ -173,7 +375,6 @@ function TabbedSqlEditors({
         }
       }
       if (action === 'add') {
-        Logger.markTimeOrigin();
         newQueryEditor();
       }
     },
@@ -181,10 +382,12 @@ function TabbedSqlEditors({
   );
 
   const onTabClicked = useCallback(() => {
-    Logger.markTimeOrigin();
     const noQueryEditors = queryEditors?.length === 0;
     if (noQueryEditors) {
+      // newQueryEditor marks the timing origin itself.
       newQueryEditor();
+    } else {
+      Logger.markTimeOrigin();
     }
   }, [queryEditors, newQueryEditor]);
 
@@ -219,23 +422,11 @@ function TabbedSqlEditors({
   const emptyTab = (
     <StyledTab>
       <TabTitle>{t('Add a new tab')}</TabTitle>
-      <Tooltip
-        id="add-tab"
-        placement="bottom"
-        title={
-          userOS === 'Windows'
-            ? t('New tab (Ctrl + q)')
-            : t('New tab (Ctrl + t)')
-        }
-      >
-        <Icons.PlusCircleOutlined
-          iconSize="s"
-          css={css`
-            vertical-align: middle;
-          `}
-          data-test="add-tab-icon"
-        />
-      </Tooltip>
+      {/* Reuses the toolbar's own add-tab control (dropdown when an
+          extension contributes to sqllab.newTab, plain create otherwise)
+          instead of a bare icon, so this empty-state entry point offers the
+          same choices as the "+" in the tab bar once tabs exist. */}
+      <NewTabButton onAddSqlEditor={newQueryEditor} />
     </StyledTab>
   );
 
@@ -265,25 +456,7 @@ function TabbedSqlEditors({
       onEdit={handleEdit}
       popupClassName={SQLLAB_TAB_OVERFLOW_POPUP_CLASS}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
-      addIcon={
-        <Tooltip
-          id="add-tab"
-          placement="left"
-          title={
-            userOS === 'Windows'
-              ? t('New tab (Ctrl + q)')
-              : t('New tab (Ctrl + t)')
-          }
-        >
-          <Icons.PlusOutlined
-            iconSize="l"
-            css={css`
-              vertical-align: middle;
-            `}
-            data-test="add-tab-icon"
-          />
-        </Tooltip>
-      }
+      addIcon={<NewTabButton onAddSqlEditor={newQueryEditor} />}
       items={tabItems}
     />
   );

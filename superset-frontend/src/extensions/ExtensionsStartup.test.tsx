@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { ToastType } from 'src/components/MessageToasts/types';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsLoader from './ExtensionsLoader';
 
@@ -39,6 +41,26 @@ const mockInitialState = {
 const mockInitialStateNoUser = {
   user: { userId: undefined },
 };
+
+// Several tests below swap this out for a jest mock; restoring it in
+// afterEach (rather than at the end of each test) means a failed
+// assertion can never leave the prototype mocked for later tests.
+const originalInitializeExtensions =
+  ExtensionsLoader.prototype.initializeExtensions;
+
+// Shared by the toast-assertion tests below so the store's message-toast
+// shape and text-matching logic only need to be kept in sync in one place.
+const getToasts = (
+  store: ReturnType<typeof createStore>,
+): { text: string; toastType: ToastType }[] => {
+  const { messageToasts } = store.getState() as unknown as {
+    messageToasts: { text: string; toastType: ToastType }[];
+  };
+  return messageToasts;
+};
+
+const getToastTexts = (store: ReturnType<typeof createStore>): string[] =>
+  getToasts(store).map(({ text }) => text);
 
 // Clean up global state before each test
 beforeEach(() => {
@@ -63,6 +85,8 @@ afterEach(() => {
   // Clean up after each test
   delete (window as any).superset;
   (ExtensionsLoader as any).instance = undefined;
+  ExtensionsLoader.prototype.initializeExtensions =
+    originalInitializeExtensions;
 
   // Reset mocks
   mockIsFeatureEnabled.mockReset();
@@ -85,7 +109,7 @@ test('sets up global superset object when user is logged in', async () => {
   const loader = ExtensionsLoader.getInstance();
   const initializeSpy = jest
     .spyOn(loader, 'initializeExtensions')
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -127,7 +151,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
   const loader = ExtensionsLoader.getInstance();
   const initializeSpy = jest
     .spyOn(loader, 'initializeExtensions')
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -170,7 +194,7 @@ test('only initializes once even with multiple renders', async () => {
 
   loader.initializeExtensions = jest.fn().mockImplementation(() => {
     initializeCallCount += 1;
-    return Promise.resolve();
+    return Promise.resolve([]);
   });
 
   const { rerender } = render(<ExtensionsStartup />, {
@@ -205,10 +229,9 @@ test('initializes ExtensionsLoader when EnableExtensions feature flag is enabled
   );
 
   // Mock the initializeExtensions method to succeed
-  const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockImplementation(() => Promise.resolve([]));
 
   render(<ExtensionsStartup />, {
     useRedux: true,
@@ -226,9 +249,6 @@ test('initializes ExtensionsLoader when EnableExtensions feature flag is enabled
       ExtensionsLoader.prototype.initializeExtensions,
     ).toHaveBeenCalledTimes(1);
   });
-
-  // Restore original method
-  ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
 });
 
 test('does not initialize ExtensionsLoader when EnableExtensions feature flag is disabled', async () => {
@@ -260,26 +280,49 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
   initializeSpy.mockRestore();
 });
 
-test('continues rendering children even when ExtensionsLoader initialization fails', async () => {
+test('surfaces a warning toast naming the extensions that failed to initialize', async () => {
+  mockIsFeatureEnabled.mockReturnValue(true);
+
+  // A single extension's remote entry failing does not reject the aggregate;
+  // the loader resolves with the names of the failed extensions instead.
+  ExtensionsLoader.prototype.initializeExtensions = jest
+    .fn()
+    .mockResolvedValue(['Broken Extension']);
+
+  const store = createStore(mockInitialState, reducerIndex);
+
+  render(
+    <ExtensionsStartup>
+      <div data-testid="child" />
+    </ExtensionsStartup>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => {
+    const toast = getToasts(store).find(({ text }) =>
+      /Some extensions failed to load: Broken Extension/.test(text),
+    );
+    expect(toast).toBeDefined();
+    expect(toast?.toastType).toBe(ToastType.Warning);
+  });
+});
+
+test('renders children and surfaces a warning toast when init fails', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  // Mock the initializeExtensions method to reject — ExtensionsLoader handles
-  // its own error logging internally
-  const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
+  // Mock the initializeExtensions method to reject so the caller's .catch runs.
   ExtensionsLoader.prototype.initializeExtensions = jest
     .fn()
-    .mockImplementation(() => Promise.resolve());
+    .mockRejectedValue(new Error('boom'));
+
+  const store = createStore(mockInitialState, reducerIndex);
 
   const { container } = render(
     <ExtensionsStartup>
       <div data-testid="child" />
     </ExtensionsStartup>,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: mockInitialState,
-    },
+    { store, useRouter: true },
   );
 
   await waitFor(() => {
@@ -291,6 +334,46 @@ test('continues rendering children even when ExtensionsLoader initialization fai
     ).toBeInTheDocument();
   });
 
-  // Restore original method
-  ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
+  // The failure must reach the user as a warning toast rather than being
+  // swallowed silently.
+  await waitFor(() => {
+    const toast = getToasts(store).find(({ text }) =>
+      /Extensions failed to load/.test(text),
+    );
+    expect(toast).toBeDefined();
+    expect(toast?.toastType).toBe(ToastType.Warning);
+  });
+});
+
+test('surfaces the response detail when the extension list fetch rejects', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.EnableExtensions,
+  );
+
+  // A failed SupersetClient call rejects with a Response, whose String()
+  // form is "[object Response]" and says nothing about what went wrong.
+  ExtensionsLoader.prototype.initializeExtensions = jest.fn().mockRejectedValue(
+    new Response(JSON.stringify({ message: 'Extensions are disabled' }), {
+      status: 403,
+      statusText: 'Forbidden',
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  );
+
+  const store = createStore(mockInitialState, reducerIndex);
+
+  render(
+    <ExtensionsStartup>
+      <div data-testid="child" />
+    </ExtensionsStartup>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => {
+    const toastText = getToastTexts(store).find(text =>
+      /Extensions failed to load/.test(text),
+    );
+    expect(toastText).toContain('Extensions are disabled');
+    expect(toastText).not.toContain('[object');
+  });
 });

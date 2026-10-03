@@ -21,6 +21,7 @@ import {
   render,
   screen,
   waitFor,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
@@ -29,6 +30,8 @@ import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
 import { Store } from 'redux';
 import { RootState } from 'src/views/store';
 import { QueryEditor } from 'src/SqlLab/types';
+import { commands, menus } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 jest.mock('src/SqlLab/components/SqlEditor', () =>
   // eslint-disable-next-line react/display-name
@@ -175,4 +178,203 @@ test('should have an empty state when query editors is empty', async () => {
   await waitFor(() =>
     expect(getByText('Add a new tab to create SQL Query')).toBeInTheDocument(),
   );
+});
+
+// The new-tab "+" button (NewTabButton) opens a dropdown of contributed
+// actions when an extension registers something under sqllab.newTab, and
+// otherwise falls back to adding a SQL editor tab directly. These tests cover
+// that branching plus the resilience to a contributed-but-unregistered command.
+const newTabDisposables: ReturnType<typeof menus.registerMenuItem>[] = [];
+
+afterEach(() => {
+  while (newTabDisposables.length) {
+    newTabDisposables.pop()?.dispose();
+  }
+});
+
+const contributeNewTabItem = (command: string) =>
+  newTabDisposables.push(
+    menus.registerMenuItem(
+      { view: 'builtin.editor', command },
+      ViewLocations.sqllab.newTab,
+      'primary',
+    ),
+  );
+
+test('new tab button opens a dropdown listing SQL Editor and the contributed item', async () => {
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  setup(undefined, initialState);
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+
+  expect(await screen.findByText('SQL Editor')).toBeInTheDocument();
+  expect(screen.getByText('Contributed Tab')).toBeInTheDocument();
+});
+
+test('new tab button runs the contributed command when its menu item is clicked', async () => {
+  const handler = jest.fn();
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      handler,
+    ),
+  );
+
+  const { getAllByRole } = setup(undefined, initialState);
+  const tabCount = () =>
+    getAllByRole('tab').filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    ).length;
+  const countBefore = tabCount();
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+  fireEvent.click(await screen.findByText('Contributed Tab'));
+
+  await waitFor(() => expect(handler).toHaveBeenCalledTimes(1));
+  // Regression: `handler` is a no-op mock that never touches tabs itself, so
+  // any tab appearing here can only be the bug's side effect. The dropdown
+  // popup is DOM-portaled, but stays a React-tree descendant of the native
+  // <button onClick={() => onEdit('add')}> that antd's Tabs wraps addIcon
+  // in. React's synthetic events bubble along the React tree (piercing the
+  // portal), so without stopping propagation in the popup, this click also
+  // fired that ancestor's onEdit('add') and created an unwanted plain tab.
+  expect(tabCount()).toEqual(countBefore);
+});
+
+test('clicking SQL Editor in the dropdown adds exactly one tab, not two', async () => {
+  // Same regression as above, exercised via the built-in "SQL Editor" item
+  // instead of a contributed one — this is the path a plain SQL tab actually
+  // goes through once any extension contribution makes the dropdown appear
+  // at all (with zero contributions, "+" adds a tab directly and never
+  // renders this dropdown — see the no-contributions test below).
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  const { getAllByRole } = setup(undefined, initialState);
+  const tabCount = () =>
+    getAllByRole('tab').filter(
+      tab => !tab.classList.contains('ant-tabs-tab-remove'),
+    ).length;
+  const countBefore = tabCount();
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+  fireEvent.click(await screen.findByText('SQL Editor'));
+
+  await waitFor(() => expect(tabCount()).toEqual(countBefore + 1));
+  // Give any second (buggy) tab creation a chance to land before asserting
+  // the count didn't grow further.
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(tabCount()).toEqual(countBefore + 1);
+});
+
+test('new tab button adds a tab directly when there are no contributions', async () => {
+  const { getAllByLabelText, getAllByRole, queryByText } = setup(
+    undefined,
+    initialState,
+  );
+  const tabCount = getAllByRole('tab').filter(
+    tab => !tab.classList.contains('ant-tabs-tab-remove'),
+  ).length;
+
+  fireEvent.click(getAllByLabelText('Add tab')[0]);
+
+  // No dropdown appears; a new editor tab is created immediately.
+  expect(queryByText('SQL Editor')).not.toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      getAllByRole('tab').filter(
+        tab => !tab.classList.contains('ant-tabs-tab-remove'),
+      ).length,
+    ).toEqual(tabCount + 1),
+  );
+});
+
+test('new tab button skips a contributed item whose command is not registered', async () => {
+  // Menu item registered, but its command never is — the item must be dropped
+  // rather than throwing "Command not found" when the dropdown renders.
+  contributeNewTabItem('ext.missing');
+
+  setup(undefined, initialState);
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+
+  expect(await screen.findByText('SQL Editor')).toBeInTheDocument();
+  expect(screen.queryByText('ext.missing')).not.toBeInTheDocument();
+});
+
+test('new tab dropdown closes on a mousedown outside the button and menu', async () => {
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  setup(undefined, initialState);
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+  const menu = () =>
+    screen.getByText('Contributed Tab').closest('.ant-dropdown');
+  await waitFor(() => expect(menu()).not.toHaveClass('ant-dropdown-hidden'));
+
+  // trigger={[]} disables antd's own outside-click dismissal, so this is the
+  // component's explicit window listener at work.
+  fireEvent.mouseDown(document.body);
+
+  await waitFor(() => expect(menu()).toHaveClass('ant-dropdown-hidden'));
+});
+
+test('new tab dropdown closes on Escape', async () => {
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  setup(undefined, initialState);
+
+  fireEvent.click(screen.getAllByLabelText('Add tab')[0]);
+  const menu = () =>
+    screen.getByText('Contributed Tab').closest('.ant-dropdown');
+  await waitFor(() => expect(menu()).not.toHaveClass('ant-dropdown-hidden'));
+
+  fireEvent.keyDown(document.body, { key: 'Escape' });
+
+  await waitFor(() => expect(menu()).toHaveClass('ant-dropdown-hidden'));
+});
+
+test('new tab button opens the dropdown on keyboard activation', async () => {
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  setup(undefined, initialState);
+
+  const addButton = screen.getAllByLabelText('Add tab')[0];
+  addButton.focus();
+  // Enter on a focused native button synthesizes a click, which the
+  // capture-phase listener intercepts just like a mouse click.
+  userEvent.type(addButton, '{enter}', { skipClick: true });
+
+  expect(await screen.findByText('Contributed Tab')).toBeInTheDocument();
 });
