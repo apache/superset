@@ -108,6 +108,14 @@ test('formats bytes in human readable format with additional binary option', () 
   expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB');
 });
 
+test('formats values decoded from bigint columns (normalized to Number by formatValue.ts)', () => {
+  // BigInt values from json-bigint are normalized to Number in formatValue.ts
+  // before reaching any formatter factory (see #44007). The factory therefore
+  // always receives a regular Number, even when the original DB value was BigInt.
+  const big = Number(BigInt('1425300509404304697'));
+  expect(createMemoryFormatter({ binary: true })(big)).toBe('1.24EiB');
+});
+
 test('formats bytes in human readable format with additional transfer option', () => {
   const formatter = createMemoryFormatter({ transfer: true });
   expect(formatter(0)).toBe('0B/s');
