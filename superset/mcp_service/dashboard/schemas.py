@@ -2331,6 +2331,13 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     filter_type: Literal["filter_timegrain"] = Field(
         ..., description="Discriminator - must be 'filter_timegrain'"
     )
+    dataset_id: int = Field(
+        ...,
+        description=(
+            "ID of the dataset whose supported time grains this filter "
+            "offers and validates selections against"
+        ),
+    )
     enable_empty_filter: bool = Field(
         False, description="Require a value before the filter is applied"
     )
@@ -2356,7 +2363,9 @@ class NativeFilterUpdateSpec(BaseModel):
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
-        description="New target dataset ID (filter_select, filter_range only)",
+        description=(
+            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
+        ),
     )
     column: str | None = Field(
         None,

@@ -521,6 +521,129 @@ async def test_range_filter_without_target_column_is_rejected(
     assert "has no target column" in data["error"]
 
 
+@pytest.mark.asyncio
+async def test_range_minimum_mode_rejects_an_upper_bound(mcp_server: object) -> None:
+    """A single lower-bound range filter cannot be given an upper bound."""
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 0}}
+    with patch(DAO_GET, return_value=_mock_dashboard([conf])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [10, 100]}],
+            },
+        )
+
+    assert "configured for a single lower-bound value" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_range_minimum_mode_accepts_a_lower_bound(mcp_server: object) -> None:
+    """A single lower-bound range filter accepts [value, null]."""
+    captured: dict[str, Any] = {}
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 0}}
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [10, None]}],
+            },
+        )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-cost"]
+    assert entry["extraFormData"] == {
+        "filters": [{"col": "cost", "op": ">=", "val": 10}]
+    }
+
+
+@pytest.mark.asyncio
+async def test_range_maximum_mode_rejects_a_lower_bound(mcp_server: object) -> None:
+    """A single upper-bound range filter cannot be given a lower bound."""
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 2}}
+    with patch(DAO_GET, return_value=_mock_dashboard([conf])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [10, 100]}],
+            },
+        )
+
+    assert "configured for a single upper-bound value" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_range_maximum_mode_accepts_an_upper_bound(mcp_server: object) -> None:
+    """A single upper-bound range filter accepts [null, value]."""
+    captured: dict[str, Any] = {}
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 2}}
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [None, 100]}],
+            },
+        )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-cost"]
+    assert entry["extraFormData"] == {
+        "filters": [{"col": "cost", "op": "<=", "val": 100}]
+    }
+
+
+@pytest.mark.asyncio
+async def test_range_exact_mode_rejects_mismatched_bounds(mcp_server: object) -> None:
+    """A single exact-value range filter cannot be given distinct bounds."""
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 1}}
+    with patch(DAO_GET, return_value=_mock_dashboard([conf])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [10, 100]}],
+            },
+        )
+
+    assert "configured for a single exact value" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_range_exact_mode_accepts_matching_bounds(mcp_server: object) -> None:
+    """A single exact-value range filter accepts [value, value]."""
+    captured: dict[str, Any] = {}
+    conf = {**RANGE_FILTER, "controlValues": {"enableSingleValue": 1}}
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": [50, 50]}],
+            },
+        )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-cost"]
+    assert entry["extraFormData"] == {
+        "filters": [{"col": "cost", "op": "==", "val": 50}]
+    }
+
+
 # ---------------------------------------------------------------------------
 # filter_timegrain
 # ---------------------------------------------------------------------------
@@ -761,18 +884,62 @@ async def test_timegrain_outside_allowlist_is_rejected(mcp_server: object) -> No
     create.assert_not_called()
 
 
+@pytest.fixture
+def postgres_dataset() -> SqlaTable:
+    """Expose datasource time-grain options from Postgres without querying it."""
+    return SqlaTable(database=Database(sqlalchemy_uri="postgresql://u:p@h/db"))
+
+
+@pytest.mark.asyncio
+async def test_timegrain_in_allowlist_but_unsupported_by_dataset_is_rejected(
+    mcp_server: object, postgres_dataset: SqlaTable
+) -> None:
+    """An allowlisted grain still has to be one the dataset can produce.
+
+    The allowlist and the dataset's own grains can drift apart (the dataset
+    is repointed at another database, or the dashboard is imported), and
+    the frontend plugin intersects both sets rather than trusting the
+    allowlist alone: PT6H has no grain expression on Postgres even though
+    it is a valid TimeGrain value, so a chart would fail to render it.
+    """
+    conf = {**TIMEGRAIN_FILTER, "time_grains": ["PT6H", "P1D"]}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET, return_value=postgres_dataset),
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Granularity", "time_grain": ["PT6H"]}
+                ],
+            },
+        )
+
+    assert "is not supported by dataset 5" in data["error"]
+    assert "Granularity" in data["error"]
+    create.assert_not_called()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "allowlist, selection",
-    [(["P2D"], ["P2D"]), (["PT2H"], ["PT2H"]), (["P1D"], ["P1D"]), (["P1D"], [])],
+    [(["P1D"], ["P1D"]), (["P1D"], [])],
 )
-async def test_timegrain_allowlist_accepts_allowed_custom_and_clear_values(
+async def test_timegrain_allowlist_accepts_dataset_supported_and_clear_values(
     mcp_server: object,
     sqlite_dataset: SqlaTable,
     allowlist: list[str],
     selection: list[str],
 ) -> None:
-    """An explicit allowlist wins; datasource options supply display labels."""
+    """A grain the allowlist and the dataset both support, or a clear, apply.
+
+    The allowlist narrows which of the dataset's own grains are offered; it
+    cannot widen that set to a grain the dataset cannot produce (see
+    ``test_timegrain_in_allowlist_but_unsupported_by_dataset_is_rejected``).
+    """
     conf = {**TIMEGRAIN_FILTER, "time_grains": allowlist}
     captured: dict[str, Any] = {}
     with (
@@ -836,6 +1003,88 @@ async def test_values_on_a_timegrain_filter_is_rejected(mcp_server: object) -> N
 
     assert "is a filter_timegrain filter" in data["error"]
     assert "provide 'time_grain'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_timegrain_filter_created_by_manage_native_filters_accepts_a_grain(
+    mcp_server: object, sqlite_dataset: SqlaTable
+) -> None:
+    """A filter_timegrain filter manage_native_filters creates is usable here.
+
+    Regression test for the two tools disagreeing on target shape:
+    ``_timegrain_data_mask`` needs a dataset target to resolve supported
+    grains, but manage_native_filters used to create filter_timegrain
+    filters with a dataset-less target (``targets: [{}]``), so a filter it
+    had just created could never have a value applied to it by this tool.
+    """
+    create_payload: dict[str, Any] = {}
+
+    def create_command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
+        """Capture the manage_native_filters write payload."""
+        create_payload["payload"] = payload
+        command = Mock()
+        command.run = lambda: [payload["modified"][0]]
+        return command
+
+    create_dashboard = Mock()
+    create_dashboard.id = 1
+    create_dashboard.dashboard_title = "Test Dashboard"
+    create_dashboard.json_metadata = json.dumps({"native_filter_configuration": []})
+    create_dashboard.slices = []
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id",
+            return_value=create_dashboard,
+        ),
+        patch(DATASET_GET, return_value=sqlite_dataset),
+        patch(
+            "superset.commands.dashboard.update.UpdateDashboardNativeFiltersCommand",
+            side_effect=create_command_factory,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            create_result = await client.call_tool(
+                "manage_native_filters",
+                {
+                    "request": {
+                        "dashboard_id": 1,
+                        "add": [
+                            {
+                                "filter_type": "filter_timegrain",
+                                "name": "Granularity",
+                                "dataset_id": 5,
+                            }
+                        ],
+                    }
+                },
+            )
+            create_data = json.loads(create_result.content[0].text)
+
+    assert create_data["error"] is None
+    created_conf = create_payload["payload"]["modified"][0]
+    assert created_conf["targets"] == [{"datasetId": 5}]
+
+    captured: dict[str, Any] = {}
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([created_conf])),
+        patch(DATASET_GET, return_value=sqlite_dataset),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        apply_data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}
+                ],
+            },
+        )
+
+    assert apply_data["error"] is None
+    entry = captured["state"]["dataMask"][created_conf["id"]]
+    assert entry["extraFormData"] == {"time_grain_sqla": "P1D"}
 
 
 @pytest.mark.asyncio

@@ -59,6 +59,14 @@ SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
     {"filter_select", "filter_time", "filter_range", "filter_timegrain"}
 )
 
+# Mirrors the frontend's SingleValueType enum
+# (superset-frontend/src/filters/components/Range/SingleValueType.ts),
+# which a filter_range filter's controlValues.enableSingleValue may hold to
+# restrict the slider to one side of the range.
+_SINGLE_VALUE_MINIMUM = 0
+_SINGLE_VALUE_EXACT = 1
+_SINGLE_VALUE_MAXIMUM = 2
+
 # Display strings the frontend uses when labelling a selected value; mirrored
 # here so a permalink's label reads the same as a UI-applied one.
 _NULL_LABEL = "<NULL>"
@@ -236,6 +244,31 @@ def _format_range_bound(value: int | float) -> str:
         return repr(value)
 
 
+def _validate_single_value_mode(
+    conf: dict[str, Any], lower: int | float | None, upper: int | float | None
+) -> None:
+    """Reject non-null bounds that don't match a configured single-value mode."""
+    single_value_type = (conf.get("controlValues") or {}).get("enableSingleValue")
+    if single_value_type == _SINGLE_VALUE_MINIMUM and upper is not None:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single lower-bound value; provide 'range: [value, "
+            "null]', not an upper bound."
+        )
+    if single_value_type == _SINGLE_VALUE_MAXIMUM and lower is not None:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single upper-bound value; provide 'range: [null, "
+            "value]', not a lower bound."
+        )
+    if single_value_type == _SINGLE_VALUE_EXACT and lower != upper:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single exact value; provide 'range: [value, value]' "
+            "with matching bounds."
+        )
+
+
 def _range_data_mask(
     conf: dict[str, Any], bounds: list[int | float | None]
 ) -> dict[str, Any]:
@@ -266,6 +299,8 @@ def _range_data_mask(
             "extraFormData": {},
             "filterState": {"value": [None, None], "label": ""},
         }
+
+    _validate_single_value_mode(conf, lower, upper)
 
     filters: list[dict[str, Any]] = []
     if lower == upper:
@@ -311,29 +346,30 @@ def _timegrain_data_mask(
         targets = [target for target in (conf.get("targets") or []) if target]
         dataset_id = targets[0].get("datasetId") if targets else None
         dataset = DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
-        if dataset is None and not allowed_grains:
+        if dataset is None:
             raise _FilterApplyError(
                 f"Cannot resolve target dataset (ID {dataset_id}) for filter "
                 f"'{conf.get('name') or conf.get('id')}'; "
                 "supported time grains cannot be determined."
             )
         # Reuse the datasource options exposed to Explore and native filters.
+        # Checked even when an allowlist is set: the two can drift apart (the
+        # dataset is repointed at another database, or the dashboard is
+        # imported), and the frontend plugin intersects both sets rather
+        # than trusting the allowlist alone.
         available_grains = [
-            duration
-            for duration, _ in (dataset.time_grain_sqla if dataset is not None else [])
-            if duration is not None
+            duration for duration, _ in dataset.time_grain_sqla if duration is not None
         ]
-        if not allowed_grains and time_grain[0] not in available_grains:
+        if time_grain[0] not in available_grains:
             raise _FilterApplyError(
                 f"Time grain '{time_grain[0]}' is not supported by dataset "
                 f"{dataset_id} for filter '{conf.get('name') or conf.get('id')}'. "
                 f"Available time grains: {', '.join(available_grains) or '(none)'}."
             )
-        if dataset is not None:
-            for grain in dataset.get_time_grains():
-                if grain["duration"] == time_grain[0]:
-                    filter_state["label"] = grain["name"]
-                    break
+        for grain in dataset.get_time_grains():
+            if grain["duration"] == time_grain[0]:
+                filter_state["label"] = grain["name"]
+                break
     if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
         raise _FilterApplyError(
             f"Filter '{conf.get('name') or conf.get('id')}' requires a time "

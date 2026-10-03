@@ -130,7 +130,7 @@ EXISTING_TIMEGRAIN_FILTER = {
     "name": "Granularity",
     "description": "",
     "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
-    "targets": [{}],
+    "targets": [{"datasetId": 5}],
     "controlValues": {"enableEmptyFilter": False},
     "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
     "cascadeParentIds": [],
@@ -460,11 +460,13 @@ async def test_update_range_filter_rejects_nonnumeric_target(
 
 @pytest.mark.asyncio
 async def test_add_filter_timegrain(mcp_server):
+    """A time grain filter carries a dataset target so grains can resolve."""
     captured: dict = {"current_config": []}
     dashboard = _mock_dashboard(filters=[])
 
     with (
         patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
         patch(COMMAND_PATH, side_effect=_mock_command(captured)),
     ):
         data = await _call(
@@ -475,6 +477,7 @@ async def test_add_filter_timegrain(mcp_server):
                     {
                         "filter_type": "filter_timegrain",
                         "name": "Granularity",
+                        "dataset_id": 5,
                         "enable_empty_filter": False,
                     }
                 ],
@@ -486,12 +489,38 @@ async def test_add_filter_timegrain(mcp_server):
     config = captured["payload"]["modified"][0]
     assert config["id"] == new_id
     assert config["filterType"] == "filter_timegrain"
-    assert config["targets"] == [{}]
+    assert config["targets"] == [{"datasetId": 5}]
     assert config["controlValues"] == {"enableEmptyFilter": False}
     assert config["defaultDataMask"] == {
         "filterState": {"value": None},
         "extraFormData": {},
     }
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timegrain_with_invalid_dataset(mcp_server):
+    """A time grain filter's dataset is validated at creation."""
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=None),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timegrain",
+                        "name": "Granularity",
+                        "dataset_id": 999,
+                    }
+                ],
+            },
+        )
+
+    assert "Dataset with ID 999 not found" in data["error"]
+    command.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -642,7 +671,8 @@ async def test_update_timegrain_enable_empty_filter(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_dataset_field_on_timegrain_filter_rejected(mcp_server):
+async def test_update_column_field_on_timegrain_filter_rejected(mcp_server):
+    """A time grain filter has no column target, unlike select and range."""
     dashboard = _mock_dashboard(filters=[EXISTING_TIMEGRAIN_FILTER])
 
     with patch(DAO_FIND_BY_ID, return_value=dashboard):
@@ -650,19 +680,38 @@ async def test_update_dataset_field_on_timegrain_filter_rejected(mcp_server):
             mcp_server,
             {
                 "dashboard_id": 1,
-                "update": [
-                    {
-                        "id": "NATIVE_FILTER-existing4",
-                        "dataset_id": 5,
-                        "column": "cost",
-                    }
-                ],
+                "update": [{"id": "NATIVE_FILTER-existing4", "column": "cost"}],
             },
         )
 
     assert "has type 'filter_timegrain'" in data["error"]
-    assert "dataset_id" in data["error"]
     assert "column" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_timegrain_dataset_target(mcp_server):
+    """A time grain filter's dataset target can be repointed after creation."""
+    captured: dict = {"current_config": [EXISTING_TIMEGRAIN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMEGRAIN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing4", "dataset_id": 6}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timegrain"
+    assert config["targets"] == [{"datasetId": 6}]
+    get_dataset.assert_called_once_with(6)
 
 
 @pytest.mark.asyncio
