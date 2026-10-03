@@ -17,7 +17,7 @@
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from unittest import mock
 from uuid import uuid4
 
@@ -527,3 +527,79 @@ def test_inject_contribution_totals_includes_decimal_metrics(
     totals = query_obj.post_processing[0]["options"]["contribution_totals"]
     assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
     assert "label" not in totals
+
+
+@pytest.mark.parametrize("refreshed", [False, True])
+@pytest.mark.parametrize("totals_state", ["available", "missing_query", "failed_query"])
+def test_scheduled_semantic_contribution_resolves_totals_in_dependent_catalog(
+    mocker: MockerFixture,
+    refreshed: bool,
+    totals_state: str,
+) -> None:
+    """Run the scheduled dependent, retaining a stale prerequisite denominator."""
+    import pandas as pd
+
+    from superset.semantic_layers.models import SemanticView
+    from superset.tasks.async_queries import (
+        execute_chart_query,
+        submit_chart_data_query_tasks,
+    )
+
+    scheduled: list[dict[str, Any]] = _patch_schedule(mocker)
+    submit: mock.MagicMock = _fake_query_context(2, contribution_idx=1)
+    view: mock.MagicMock = mocker.MagicMock(spec=SemanticView)
+    view.metadata_cache_token = "T1" if refreshed else "T0"
+    submit.datasource = view
+    submit_chart_data_query_tasks(submit, user_id=7)
+    dependent: dict[str, Any] = scheduled[1]
+    query: mock.MagicMock = mocker.MagicMock()
+    query.post_processing = [{"operation": "contribution", "options": {}}]
+    main: mock.MagicMock = mocker.MagicMock()
+    main.datasource = view
+    main.queries = [query]
+    totals: mock.MagicMock = mocker.MagicMock()
+    totals.datasource = view
+    totals.get_df_payload_result.return_value.payload = {
+        "df": pd.DataFrame({"orders": [40 if refreshed else 20]}),
+    }
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        side_effect=lambda payload: main if payload == {"query": 1} else totals,
+    )
+    stale: mock.MagicMock = mocker.MagicMock()
+    stale.df = pd.DataFrame({"orders": [20]})
+    mocker.patch(
+        "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+        return_value=stale,
+    )
+    task_context: mock.MagicMock = mocker.MagicMock()
+    task_context.get_dependency_payloads.return_value = [{"cache_key": "T0-totals"}]
+    mocker.patch("superset.tasks.async_queries.get_context", return_value=task_context)
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    mocker.patch("superset.tasks.async_queries._capture_query_cancellation")
+    kwargs: dict[str, Any] = {
+        key: value for key, value in dependent["kwargs"].items() if key != "options"
+    }
+    if totals_state == "missing_query":
+        from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+        kwargs.pop("serialized_totals")
+        with pytest.raises(MetadataRefreshError, match="configuration_changed"):
+            execute_chart_query.func(*dependent["args"], **kwargs)
+        main.get_df_payload_result.assert_not_called()
+        return
+    if totals_state == "failed_query":
+        from superset.exceptions import SupersetException
+
+        totals.get_df_payload_result.return_value.payload["df"] = None
+        with pytest.raises(SupersetException, match="did not return data"):
+            execute_chart_query.func(*dependent["args"], **kwargs)
+        main.get_df_payload_result.assert_not_called()
+        return
+    execute_chart_query.func(*dependent["args"], **kwargs)
+    assert query.post_processing[0]["options"]["contribution_totals"] == {
+        "orders": 40 if refreshed else 20,
+    }
+    main.get_df_payload_result.assert_called_once_with(query)

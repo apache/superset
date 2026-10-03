@@ -27,6 +27,10 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.metadata import (
+    MetadataRefreshAdapter,
+    MetadataRefreshError,
+)
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -62,6 +66,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers import metadata_binding
 from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -731,10 +736,19 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
-                layer.implementation.configuration,  # type: ignore[attr-defined]
-                runtime_data,
-            )
+            schema: dict[str, Any]
+            if metadata_binding.participates(layer):
+                adapter: MetadataRefreshAdapter | None = (
+                    layer.implementation.metadata_refresh
+                )
+                if adapter is None:
+                    raise MetadataRefreshError("configuration")
+                schema = adapter.get_runtime_schema(runtime_data)
+            else:
+                schema = cls.get_runtime_schema(
+                    layer.implementation.configuration,  # type: ignore[attr-defined]
+                    runtime_data,
+                )
         except Exception as ex:  # pylint: disable=broad-except
             return self.response_400(message=str(ex))
 
