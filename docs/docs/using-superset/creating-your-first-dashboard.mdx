@@ -190,6 +190,32 @@ Semantic views and native filter support for them are part of the experimental S
 feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
 :::
 
+### Viewing provider requests for semantic views
+
+With the experimental `SEMANTIC_LAYERS` feature flag enabled, you can inspect the provider requests
+that produced a semantic-view chart's data:
+
+1. Run the chart and wait for its data to load.
+2. In Explore, open the chart's more options menu and select **View query**. On a dashboard, select
+   **View query** from the chart's header menu.
+3. Select **Copy** below a displayed block to copy its complete text, including the request-kind
+   headers. Long requests are scrollable and are not truncated when copied.
+
+View query shows the requests from the chart's latest completed run in the current session. After
+changing filters or other chart settings, let the chart run again to inspect the updated requests.
+Opening View query does not execute a query or provide a preview before the chart runs.
+
+Requests are displayed verbatim, in the order reported, with headers identifying their kind, such as
+SQL, JSON, or GraphQL. Recognized kinds receive syntax highlighting; other kinds appear as plain
+text. The text is not reformatted, and a block can contain multiple requests from the same run.
+
+If no run report is available, the message is **The provider query will be available after the chart
+runs.** Run the chart to make its reported requests available. If a run report is present but has no
+request text for an entry, the message is **No provider query is available for this run.** This can
+occur when a provider does not report request text; it does not mean the chart returned no data.
+
+View query for regular dataset charts is unchanged.
+
 ### Creating charts in Explore view
 
 Superset has 2 main interfaces for exploring data:
