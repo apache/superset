@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core/spec';
 import { JsonCellRenderer } from '../src/renderers/JsonCellRenderer';
 import {
+  type JsonContainer,
   jsonCellPreview,
   parseJsonCellValue,
 } from '../src/renderers/parseJsonCellValue';
@@ -58,6 +59,8 @@ test('parseJsonCellValue reuses a parsed string and skips oversized text', () =>
   const first = parseJsonCellValue('{"a":1}');
   expect(parseJsonCellValue('{"a":1}')).toBe(first);
   expect(parseJsonCellValue(`{"a":"${'x'.repeat(100_000)}"}`)).toBeNull();
+  expect(parseJsonCellValue(`${' '.repeat(100_001)}{}`)).toBeNull();
+  expect(parseJsonCellValue('   {"a":1}   ')).toEqual({ a: 1 });
   expect(parseJsonCellValue('')).toBeNull();
   expect(parseJsonCellValue('   ')).toBeNull();
   expect(parseJsonCellValue(Object.create(null))).toEqual({});
@@ -84,6 +87,14 @@ test('jsonCellPreview collapses formatting whitespace and keeps string contents'
   expect(jsonCellPreview(Array.from({ length: 100_001 }, () => 1))).toBe('[…]');
   expect(jsonCellPreview({ a: BigInt(1) })).toBe('{…}');
   expect(jsonCellPreview([BigInt(1)])).toBe('[…]');
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  expect(jsonCellPreview(cyclic)).toBe('{…}');
+  let deep: unknown = { leaf: 'end' };
+  for (let index = 0; index < 1001; index += 1) {
+    deep = [deep];
+  }
+  expect(jsonCellPreview(deep as JsonContainer)).toBe('[…]');
   expect(jsonCellPreview({ a: 1 })).toBe('{"a":1}');
   expect(jsonCellPreview([1, 2])).toBe('[1,2]');
 });
@@ -540,4 +551,25 @@ test('text cells render JSON, and leave other strings untouched', () => {
     'href',
     'https://example.com',
   );
+});
+
+test('JSON that the HTML renderer would claim stays HTML', () => {
+  const htmlJson = '{"message":"<b>ok</b>"}';
+  const params = {
+    value: htmlJson,
+    valueFormatted: htmlJson,
+    node: { rowPinned: undefined },
+    api: {},
+    colDef: { field: 'payload', autoHeight: true },
+    columns: [],
+    allowRenderHtml: true,
+  } as unknown as CellRendererProps;
+
+  const { container, unmount } = render(<TextCellRenderer {...params} />);
+  expect(screen.queryByTestId('json-cell')).not.toBeInTheDocument();
+  expect(container.querySelector('b')).toHaveTextContent('ok');
+  unmount();
+
+  render(<TextCellRenderer {...params} allowRenderHtml={false} />);
+  expect(screen.getByTestId('json-cell-preview')).toHaveTextContent('ok');
 });

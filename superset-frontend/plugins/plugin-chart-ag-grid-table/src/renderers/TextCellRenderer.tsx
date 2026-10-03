@@ -61,8 +61,23 @@ export const TextCellRenderer = (params: CellRendererProps) => {
     }
   }
 
-  // Object and array JSON is interactive. Plain text, URLs, and opt-in HTML
-  // stay on the paths below.
+  // URLs and opt-in HTML keep their existing renderers. JSON is only used
+  // when those paths do not claim the value.
+  if (typeof value === 'string') {
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return (
+        <a href={value} target="_blank" rel="noopener noreferrer">
+          {value}
+        </a>
+      );
+    }
+    if (allowRenderHtml && isProbablyHTML(value)) {
+      // Safe: HTML is sanitized before rendering
+      // eslint-disable-next-line react/no-danger
+      return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} />;
+    }
+  }
+
   const parsedJson = parseJsonCellValue(value);
   if (parsedJson) {
     return (
@@ -81,21 +96,6 @@ export const TextCellRenderer = (params: CellRendererProps) => {
 
   if (!(typeof value === 'string' || value instanceof Date)) {
     return valueFormatted ?? value;
-  }
-
-  if (typeof value === 'string') {
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-      return (
-        <a href={value} target="_blank" rel="noopener noreferrer">
-          {value}
-        </a>
-      );
-    }
-    if (allowRenderHtml && isProbablyHTML(value)) {
-      // Safe: HTML is sanitized before rendering
-      // eslint-disable-next-line react/no-danger
-      return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} />;
-    }
   }
 
   return (

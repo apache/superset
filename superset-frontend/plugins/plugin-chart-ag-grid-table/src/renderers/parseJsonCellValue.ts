@@ -67,15 +67,11 @@ export function parseJsonCellValue(value: unknown): JsonContainer | null {
   if (isJsonContainer(value)) {
     return value;
   }
-  if (typeof value !== 'string') {
+  if (typeof value !== 'string' || value.length > MAX_JSON_CELL_LENGTH) {
     return null;
   }
   const trimmed = value.trim();
-  if (
-    trimmed.length === 0 ||
-    trimmed.length > MAX_JSON_CELL_LENGTH ||
-    (trimmed[0] !== '{' && trimmed[0] !== '[')
-  ) {
+  if (trimmed.length === 0 || (trimmed[0] !== '{' && trimmed[0] !== '[')) {
     return null;
   }
   const cached = parsedJsonCache.get(trimmed);
@@ -133,25 +129,64 @@ function collapseFormattingWhitespace(source: string): string {
   return collapsed.trim();
 }
 
-function exceedsPreviewBudget(
-  value: unknown,
-  budget: { left: number },
-): boolean {
-  if (budget.left < 0) {
-    return true;
-  }
-  if (typeof value === 'string') {
-    budget.left -= value.length;
-    return budget.left < 0;
-  }
-  if (Array.isArray(value)) {
-    budget.left -= value.length;
-    return value.some(item => exceedsPreviewBudget(item, budget));
-  }
-  if (isPlainJsonObject(value)) {
-    const keys = Object.keys(value);
-    budget.left -= keys.length;
-    return keys.some(key => exceedsPreviewBudget(value[key], budget));
+// Deep enough to cover real payloads, and shallow enough that the later
+// JSON.stringify cannot overflow the call stack.
+const PREVIEW_MAX_DEPTH = 1_000;
+
+function exceedsPreviewBudget(value: JsonContainer): boolean {
+  let left = MAX_JSON_CELL_LENGTH;
+  const seen = new Set<object>();
+  const stack: Array<{ node: unknown; depth: number }> = [
+    { node: value, depth: 0 },
+  ];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      break;
+    }
+    const { node, depth } = current;
+    if (depth > PREVIEW_MAX_DEPTH) {
+      return true;
+    }
+    if (typeof node === 'string') {
+      left -= node.length;
+      if (left < 0) {
+        return true;
+      }
+      continue;
+    }
+    if (node === null || typeof node !== 'object') {
+      continue;
+    }
+    if (seen.has(node)) {
+      return true;
+    }
+    seen.add(node);
+    if (Array.isArray(node)) {
+      left -= node.length;
+      if (left < 0) {
+        return true;
+      }
+      for (let index = node.length - 1; index >= 0; index -= 1) {
+        stack.push({ node: node[index], depth: depth + 1 });
+      }
+      continue;
+    }
+    if (!isPlainJsonObject(node)) {
+      continue;
+    }
+    const keys = Object.keys(node);
+    left -= keys.length;
+    if (left < 0) {
+      return true;
+    }
+    for (let index = keys.length - 1; index >= 0; index -= 1) {
+      const key = keys[index];
+      if (key !== undefined) {
+        stack.push({ node: node[key], depth: depth + 1 });
+      }
+    }
   }
   return false;
 }
@@ -164,7 +199,7 @@ export function jsonCellPreview(
   if (rawText !== undefined) {
     return collapseFormattingWhitespace(rawText);
   }
-  if (exceedsPreviewBudget(value, { left: MAX_JSON_CELL_LENGTH })) {
+  if (exceedsPreviewBudget(value)) {
     return Array.isArray(value) ? '[…]' : '{…}';
   }
   try {
