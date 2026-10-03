@@ -644,6 +644,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       saveFaveStar: boundActionCreators.saveFaveStar,
       isStarred,
       showTooltip: true,
+      overlayClassName: 'dashboard-header-tooltip',
     }),
     [
       boundActionCreators.fetchFaveStar,
