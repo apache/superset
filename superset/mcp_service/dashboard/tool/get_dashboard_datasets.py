@@ -25,6 +25,7 @@ native filters on a dashboard (e.g. picking filter target columns).
 
 import logging
 from datetime import datetime, timezone
+from functools import partial
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -79,7 +80,10 @@ async def get_dashboard_datasets(
     cannot be loaded, are excluded and reported via inaccessible_dataset_count.
     Provider failures are logged. Column and metric lists are
     capped per dataset; when truncated, columns_truncated/metrics_truncated
-    are set and total counts are reported.
+    are set and total counts are reported. Set max_columns (0-100, default 100)
+    to reduce column details per dataset. Use max_columns=0 to list datasets
+    without column details, then get_dataset_info for individual dataset details.
+    Counts and metrics are retained even when column details are omitted.
 
     Requires data-model metadata permission (same as the dataset tools); a
     dashboard-only viewer without that permission receives a structured
@@ -131,7 +135,9 @@ async def get_dashboard_datasets(
                 dao_class=DashboardDAO,
                 output_schema=DashboardDatasets,
                 error_schema=DashboardError,
-                serializer=dashboard_datasets_serializer,
+                serializer=partial(
+                    dashboard_datasets_serializer, max_columns=request.max_columns
+                ),
                 supports_slug=True,
                 logger=logger,
                 query_options=eager_options,

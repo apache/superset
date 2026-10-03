@@ -417,6 +417,13 @@ class GetDashboardLayoutRequest(BaseModel):
         return self
 
 
+# Per-dataset caps keep responses small enough for LLM context: wide
+# datasets can have hundreds of columns, which would dwarf the fields an
+# agent actually needs to configure native filters.
+MAX_DASHBOARD_DATASET_COLUMNS: int = 100
+MAX_DASHBOARD_DATASET_METRICS: int = 50
+
+
 class GetDashboardDatasetsRequest(BaseModel):
     """Request schema for get_dashboard_datasets."""
 
@@ -426,6 +433,16 @@ class GetDashboardDatasetsRequest(BaseModel):
             description="Dashboard identifier - can be numeric ID, UUID string, or slug"
         ),
     ]
+
+    max_columns: int = Field(
+        MAX_DASHBOARD_DATASET_COLUMNS,
+        ge=0,
+        le=MAX_DASHBOARD_DATASET_COLUMNS,
+        description=(
+            "Column limit per dataset; 0 omits column details. "
+            "Total column counts retained. Defaults to 100."
+        ),
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -2637,12 +2654,6 @@ class ApplyDashboardFiltersResponse(BaseModel):
 # get_dashboard_datasets schemas
 # ---------------------------------------------------------------------------
 
-# Per-dataset caps keep responses small enough for LLM context: wide
-# datasets can have hundreds of columns, which would dwarf the fields an
-# agent actually needs to configure native filters.
-MAX_DASHBOARD_DATASET_COLUMNS: int = 100
-MAX_DASHBOARD_DATASET_METRICS: int = 50
-
 
 class DashboardDatasetColumn(BaseModel):
     """Lean column representation for dashboard dataset context."""
@@ -2763,6 +2774,8 @@ def _serialize_dashboard_dataset(
     datasource: SqlaTable | SemanticView,
     chart_count: int,
     datasource_type: Literal["table", "semantic_view"] = "table",
+    *,
+    max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS,
 ) -> DashboardDatasetSummary:
     """Serialize a datasource to a lean, LLM-safe dataset summary."""
     all_columns = list(getattr(datasource, "columns", None) or [])
@@ -2775,7 +2788,7 @@ def _serialize_dashboard_dataset(
             type=getattr(column, "type", None),
             is_dttm=getattr(column, "is_dttm", None),
         )
-        for column in all_columns[:MAX_DASHBOARD_DATASET_COLUMNS]
+        for column in all_columns[:max_columns]
     ]
     metrics = [
         DashboardDatasetMetric(
@@ -2826,7 +2839,7 @@ def _serialize_dashboard_dataset(
         metrics=metrics,
         total_column_count=len(all_columns),
         total_metric_count=len(all_metrics),
-        columns_truncated=len(all_columns) > MAX_DASHBOARD_DATASET_COLUMNS,
+        columns_truncated=len(all_columns) > max_columns,
         metrics_truncated=len(all_metrics) > MAX_DASHBOARD_DATASET_METRICS,
     )
 
@@ -2856,15 +2869,17 @@ def _has_dashboard_dataset_access(
         return False
 
 
-def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
+def dashboard_datasets_serializer(
+    dashboard: "Dashboard", *, max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS
+) -> DashboardDatasets:
     """List the datasets and semantic views used by a dashboard's charts.
 
     Groups the dashboard's charts by datasource (mirroring
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
-    metric lists (capped) since native-filter configuration regularly needs
-    columns that no chart references. Datasets the current user cannot
-    access, or whose semantic provider metadata cannot be loaded, are excluded
-    and only counted. Provider failures are logged.
+    metric lists (capped, with a configurable column cap) since native-filter
+    configuration regularly needs columns that no chart references. Datasets
+    the current user cannot access, or whose semantic provider metadata cannot
+    be loaded, are excluded and only counted. Provider failures are logged.
     Each entry identifies its datasource_type and display name, with
     semantic_layer metadata for views and database metadata for tables.
     """
@@ -2903,7 +2918,7 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
             continue
         try:
             summary: DashboardDatasetSummary = _serialize_dashboard_dataset(
-                datasource, len(slices), kind
+                datasource, len(slices), kind, max_columns=max_columns
             )
         except Exception as exc:  # noqa: BLE001
             if kind != "semantic_view":
