@@ -58,13 +58,13 @@
       "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/core/*": ["./packages/superset-core/src/*"],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
-      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
       "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
     }
   },
   "include": [
     "./src/**/*",
+    "./custom-lint-rules/**/*",
     "./spec/**/*",
     "./plugins/**/*",
     "./packages/**/*",
