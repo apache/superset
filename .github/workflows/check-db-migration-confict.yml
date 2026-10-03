@@ -60,21 +60,36 @@ jobs:
                 pull_number: pull.number,
               });
               const files = await github.paginate(listFilesOpts);
+              // Match on `filename`, not `contents_url`: the API percent-encodes
+              // path separators in `contents_url` (`/contents/superset%2Fmigrations%2F...`),
+              // so a substring test for `/contents/superset/migrations` never matches.
               if (
-                files.some(x => x.contents_url.includes('/contents/superset/migrations'))
+                files.some(x => x.filename.startsWith('superset/migrations/'))
               ) {
                 console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
                 await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pull.number,
                   body:
-                    `# 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️ 🙅‍♂️` +
-                    `❗ @${pull.user.login} Your base branch \`${currentBranch}\` has ` +
-                    'also updated `superset/migrations`.\n' +
+                    `### ⚠️ Possible DB migration conflict\n` +
+                    `\n` +
+                    `@${pull.user.login} the base branch \`${currentBranch}\` picked up a new database ` +
+                    'migration under `superset/migrations/` after this PR was opened, and this PR adds or ' +
+                    'modifies migration files too. Alembic migrations form a single linear chain, so if both ' +
+                    'branch off the same parent revision, merging this PR as-is could leave the migration ' +
+                    'history with two heads instead of one, which makes `superset db upgrade` fail with ' +
+                    '`Multiple head revisions are present`.\n' +
                     '\n' +
-                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://superset.apache.org/docs/contributing/development#merging-db-migrations).**',
+                    'To check and, if needed, fix this:\n' +
+                    '\n' +
+                    `1. Rebase this branch onto the latest \`${currentBranch}\`.\n` +
+                    '2. Run `superset db heads`. If it lists more than one revision, you have a conflict.\n' +
+                    "3. In your new migration's script, update `down_revision` (and the `Revises` comment) " +
+                    'to point at the other head instead, so the chain has a single head again.\n' +
+                    '\n' +
+                    'See [Merging DB Migrations](https://superset.apache.org/docs/contributing/development#merging-db-migrations) ' +
+                    'in the contributing guide for a worked example.',
                 });
               }
             }

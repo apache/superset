@@ -20,6 +20,28 @@ import { render, screen, waitFor } from '@superset-ui/core/spec';
 import type { ColumnsType } from 'antd/es/table';
 import { Table } from './index';
 
+// jsdom never measures the container, so tests that need a width set this one.
+let mockTableWidth: number | undefined;
+jest.mock('react-resize-detector', () => {
+  const { useEffect } = jest.requireActual('react');
+  return {
+    useResizeDetector: ({
+      onResize,
+    }: {
+      onResize?: (width?: number) => void;
+    }) => {
+      useEffect(() => {
+        if (mockTableWidth !== undefined) onResize?.(mockTableWidth);
+      }, [onResize]);
+      return { ref: () => undefined };
+    },
+  };
+});
+
+afterEach(() => {
+  mockTableWidth = undefined;
+});
+
 // These tests exercise VirtualTable's react-window v2 `Grid` wiring
 // (`cellComponent`/`cellProps`/`gridRef`), which previously had no direct
 // coverage - `Table.test.tsx` only exercises the non-virtualized code path.
@@ -119,4 +141,65 @@ test('cell render functions receive their row data via cellProps rather than a s
   await waitFor(() => {
     expect(screen.getByText('rendered:Number')).toBeInTheDocument();
   });
+});
+
+// The header is antd's own <table>; the body Grid is sized to the columns.
+const virtualHeaderWidth = (columns: ColumnsType<BasicData>) => {
+  const { container } = render(
+    <Table
+      columns={columns}
+      data={testData}
+      virtualize
+      height={200}
+      usePagination={false}
+    />,
+  );
+  return () =>
+    container
+      .querySelector<HTMLTableElement>('.virtual-table thead')
+      ?.closest('table')?.style.width;
+};
+
+test('virtualized table header is as wide as its columns, not the viewport', async () => {
+  const width = virtualHeaderWidth(testColumns);
+  await waitFor(() => expect(width()).toBe('300px'));
+});
+
+test('virtualized table header width ignores non-numeric column widths', async () => {
+  const width = virtualHeaderWidth([
+    testColumns[0],
+    { ...testColumns[1], width: '20%' },
+  ]);
+  await waitFor(() => expect(width()).toBe('150px'));
+});
+
+test('virtualized table header width survives a non-numeric width beside an unsized column', async () => {
+  const width = virtualHeaderWidth([
+    { ...testColumns[0], width: '20%' },
+    { title: 'Column Type', dataIndex: 'columnType', key: 'columnType' },
+  ]);
+  // The unsized column gets the 50px minimum; the '20%' one adds nothing.
+  await waitFor(() => expect(width()).toBe('50px'));
+});
+
+test('virtualized table header includes the stretched last column', async () => {
+  mockTableWidth = 400;
+  const width = virtualHeaderWidth(testColumns);
+  await waitFor(() => expect(width()).toBe('400px'));
+});
+
+test('virtualized table does not stretch a non-numeric last column', async () => {
+  mockTableWidth = 400;
+  const width = virtualHeaderWidth([
+    testColumns[0],
+    { ...testColumns[1], width: '20%' },
+  ]);
+  await waitFor(() => expect(width()).toBe('150px'));
+});
+
+test('virtualized table header falls back to the given scroll.x when no width is numeric', async () => {
+  const width = virtualHeaderWidth(
+    testColumns.map(column => ({ ...column, width: '50%' })),
+  );
+  await waitFor(() => expect(width()).toBe('100vw'));
 });

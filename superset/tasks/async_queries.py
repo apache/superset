@@ -181,6 +181,7 @@ def _inject_contribution_totals(
     populated instead of re-running the totals query. ``contribution_totals`` is
     stripped from the cache key, so this affects only the result, not the key.
     """
+    from superset.common.query_context_processor import is_summable
     from superset.common.utils.query_cache_manager import QueryCacheManager
 
     cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
@@ -195,7 +196,7 @@ def _inject_contribution_totals(
             f"Contribution totals not found in cache under {totals_cache_key}"
         )
     df = cache.df
-    totals = {col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"}
+    totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
     for post_processing in query_obj.post_processing or []:
         if post_processing.get("operation") == "contribution":
             post_processing.setdefault("options", {})["contribution_totals"] = totals

@@ -943,6 +943,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["pyhive"],
         "install_instructions": 'pip install "apache-superset[presto]"',
+        "version_requirements": (
+            "PyHive 0.7.0 or later is required for SQLAlchemy 2. "
+            "PyHive 0.6.5 imports the removed sqlalchemy.databases module."
+        ),
         "connection_string": "presto://{hostname}:{port}/{database}",
         "default_port": 8080,
         "parameters": {

@@ -63,6 +63,7 @@ export type QueryObjectFilterClause =
   | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
+  semantic_selection_version?: string;
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
@@ -245,6 +246,7 @@ export const ErrorTypeEnum = {
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
   MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
+  CSRF_ERROR: 'CSRF_ERROR',
 
   // Report errors
   REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR',

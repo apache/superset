@@ -62,6 +62,7 @@ from superset.versioning.activity.queries import (
     check_entity_tombstones,
     resolve_historical_entity_uuids,
 )
+from superset.versioning.activity.visibility import resolve_editorship
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
@@ -111,6 +112,7 @@ def apply_record_decoration(
     tombstones = check_entity_tombstones(distinct)
     live_uuids = _lookup_entity_uuids(distinct, tombstones)
     historical_uuids = resolve_historical_entity_uuids(records)
+    can_edit: dict[tuple[str, int], bool] = resolve_editorship(distinct)
     # Pre-compute impact payloads (affected-chart ids + names) for the
     # whole page in one batch query instead of one query per related
     # record (was N+1).
@@ -209,6 +211,19 @@ def apply_record_decoration(
                 #     primary use of the impact detail, and it is exactly the
                 #     tombstoned-related case, so redacting here would gut it.
                 # Not a SECURITY.md role/capability matrix row.
+            elif not can_edit.get((api_kind, entity_id), False):
+                # sc-120470 extends the sc-120001 edit gate to related detail:
+                # withhold the editor identity and raw diff from non-editors.
+                # Name and presence remain read-gated by the visibility filter.
+                # Rebuild the summary only from fields surviving redaction, so
+                # it cannot carry diff content. Impact remains dashboard-scoped
+                # under the same explicit #43838 decision as the tombstone case.
+                # Self records retain the endpoint's path-entity edit gate.
+                record["changed_by"] = None
+                record["from_value"] = None
+                record["to_value"] = None
+                record["path"] = None
+                record["summary"] = _build_summary(api_kind, record)
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (

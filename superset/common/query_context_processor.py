@@ -26,6 +26,8 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
+from pandas.api.types import infer_dtype
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
@@ -41,9 +43,11 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
@@ -52,6 +56,7 @@ from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -111,6 +116,23 @@ def normalize_contribution_totals(
             raw_queries[totals_idx]["row_limit"] = None
 
     return queries_needing_totals, totals_idx
+
+
+def is_summable(series: pd.Series) -> bool:
+    """
+    Whether a column holds values the contribution totals can be summed over.
+
+    A dtype-kind test alone is not enough. `decimal.Decimal` metrics -- how
+    drivers such as psycopg2 hand back NUMERIC/DECIMAL columns -- are stored
+    with an object dtype, so they fall outside the numeric kinds even though
+    they sum and divide perfectly well. Omitting them leaves the totals
+    dictionary without an entry for the metric, and `contribution()` then
+    reads back `None` and writes a zero contribution instead of the real
+    percentage.
+    """
+    if series.dtype.kind in "biufc":
+        return True
+    return infer_dtype(series, skipna=True) == "decimal"
 
 
 class QueryContextProcessor:
@@ -439,7 +461,10 @@ class QueryContextProcessor:
         """
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
-            if layer.get("sourceType") not in ("line", "table"):
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 continue
             layer_value = layer.get("value")
             chart = (
@@ -568,7 +593,11 @@ class QueryContextProcessor:
                 )
             return result or ""
 
-        return df.to_dict(orient="records")
+        # QueryObject post-processing has completed before this materialization
+        # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
+        # while downstream envelope validation still rejects injected infinity.
+        # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
+        return df_to_records(df)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
@@ -602,9 +631,7 @@ class QueryContextProcessor:
         result = self._query_context.get_query_result(totals_query)
         df = result.df
 
-        totals = {
-            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
-        }
+        totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
 
         for idx in queries_needing_totals:
             query = self._query_context.queries[idx]
@@ -804,7 +831,7 @@ class QueryContextProcessor:
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
-            if layer["sourceType"] in ("line", "table")
+            if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
@@ -869,9 +896,11 @@ class QueryContextProcessor:
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(
                 _(
-                    f"""Chart with ID {annotation_layer["value"]} (referenced by
-                    annotation layer '{annotation_layer["name"]}') was not found.
-                    Please verify that the chart exists and is accessible."""
+                    "Chart with ID %(chart_id)s (referenced by annotation layer "
+                    "'%(layer_name)s') was not found. Please verify that the "
+                    "chart exists and is accessible.",
+                    chart_id=annotation_layer["value"],
+                    layer_name=annotation_layer["name"],
                 )
             )
 
@@ -879,12 +908,20 @@ class QueryContextProcessor:
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
+                        "The query context for chart ID %(chart_id)s (referenced "
+                        "by annotation layer '%(layer_name)s') was not found. "
+                        "Please ensure the chart is properly configured and has a "
+                        "valid query context.",
+                        chart_id=chart.id,
+                        layer_name=annotation_layer["name"],
                     )
                 )
+
+            # Only the source chart's rows are used. Dropping its own annotation
+            # layers also stops charts that annotate each other (A -> B -> A)
+            # from recursing.
+            for query_object in query_context.queries:
+                query_object.annotation_layers = []
 
             if overrides := annotation_layer.get("overrides"):
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
@@ -917,7 +954,10 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            try:
+                security_manager.raise_for_access(query=self._qc_datasource)
+            except TemplateError as ex:
+                raise SupersetTemplateException(str(ex)) from ex
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

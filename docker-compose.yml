@@ -125,8 +125,6 @@ services:
     restart: unless-stopped
     ports:
       - ${SUPERSET_PORT:-8088}:8088
-      # When in cypress-mode ->
-      - ${CYPRESS_PORT:-8081}:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -257,7 +255,7 @@ services:
       - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-    # Bump memory limit if processing selenium / thumbnails on superset-worker
+    # Bump memory limit if processing screenshots / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

@@ -138,9 +138,7 @@ def test_redact_data_model_metadata_removes_dataset_and_database_summary():
         InstanceSummary,
         RecentActivity,
     )
-    from superset.mcp_service.system.tool.get_instance_info import (
-        _redact_data_model_metadata,
-    )
+    from superset.mcp_service.system.system_utils import redact_data_model_metadata
 
     instance_info = _make_instance_info(
         instance_summary=InstanceSummary(
@@ -164,7 +162,7 @@ def test_redact_data_model_metadata_removes_dataset_and_database_summary():
         database_breakdown=DatabaseBreakdown(by_type={"postgresql": 2}),
     )
 
-    redacted = _redact_data_model_metadata(instance_info)
+    redacted = redact_data_model_metadata(instance_info)
 
     assert redacted.instance_summary.total_dashboards == 2
     assert redacted.instance_summary.total_charts == 4

@@ -430,16 +430,16 @@ test('renders tooltips for options with tooltip property', async () => {
   expect(screen.getByText('Option 3')).toBeInTheDocument();
 
   const option1 = screen.getByText('Option 1');
-  userEvent.hover(option1);
+  await userEvent.hover(option1);
 
   await waitFor(() => {
     expect(screen.getByText('Tooltip for option 1')).toBeInTheDocument();
   });
 
-  userEvent.unhover(option1);
+  await userEvent.unhover(option1);
 
   const option3 = screen.getByText('Option 3');
-  userEvent.hover(option3);
+  await userEvent.hover(option3);
 
   await waitFor(() => {
     expect(screen.getByText('Tooltip for option 3')).toBeInTheDocument();

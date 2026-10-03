@@ -2179,6 +2179,62 @@ class TestUpdateChartValidationGate:
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             mock_update_cmd_cls.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_persist_path_status_failure_skips_db_write(self, mcp_server):
+        """A status-only compile failure must block generate_preview=False."""
+        chart = self._mock_chart_with_dataset(chart_id=42)
+        chart.datasource.id = 10
+        access = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+
+        with (
+            patch("superset.db.session"),
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=access,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile.build_dataset_context_from_orm",
+                return_value=None,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile."
+                "DatasetValidator.validate_against_dataset",
+                return_value=(True, None),
+            ),
+            patch(
+                "superset.common.query_context_factory.QueryContextFactory"
+            ) as factory,
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand"
+            ) as chart_data_command,
+            patch("superset.commands.chart.update.UpdateChartCommand") as update,
+        ):
+            factory.return_value.create.return_value = Mock()
+            chart_data_command.return_value.run.return_value = {
+                "queries": [{"status": "failed", "message": "boom", "data": []}]
+            }
+            request = {
+                "identifier": 42,
+                "generate_preview": False,
+                "config": {
+                    "chart_type": "table",
+                    "columns": [{"name": "region"}],
+                },
+            }
+
+            async with Client(mcp) as client:
+                result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is False
+        error = result.structured_content["error"]
+        assert error["error_code"] == "CHART_COMPILE_FAILED"
+        assert error["error_type"] == "compile_error"
+        assert "boom" in error["details"]
+        update.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Column normalization in update_chart
@@ -2658,7 +2714,7 @@ class TestUpdateChartDatasetIdIntegration:
             if viz_type == "gauge_chart" and target_id != 10:
                 assert result.structured_content["success"] is False
                 assert (
-                    "complete Gauge config"
+                    "complete Gauge Chart config"
                     in result.structured_content["error"]["message"]
                 )
                 mock_update_cmd_cls.assert_not_called()
@@ -2835,3 +2891,44 @@ def test_gauge_update_compile_keeps_finite_groups(
         assert result.error.error_type == "NonNumericGaugeMetric"
     assert build.call_args.kwargs["row_limit"] == 10
     command.return_value.validate.assert_called_once()
+
+
+def test_append_metrics_retains_disabled_table_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Appending to a saved aggregate table does not enable chart creation."""
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(registry, "_is_plugin_enabled", lambda chart_type: False)
+    request = UpdateChartRequest(
+        identifier=1, add_columns=[ColumnRef(name="amount", aggregate="SUM")]
+    )
+    chart = Mock(
+        slice_name="Aggregate table",
+        params=json.dumps(
+            {"viz_type": "table", "query_mode": "aggregate", "groupby": ["region"]}
+        ),
+    )
+    result = _build_update_payload(request, chart)
+    assert isinstance(result, dict)
+    form_data = json.loads(result["params"])
+    assert form_data["groupby"] == ["region"]
+    assert form_data["metrics"][0]["column"]["column_name"] == "amount"
+    assert registry.get("table") is None
+
+
+def test_plugin_value_error_returns_validation_response() -> None:
+    """Non-Gantt plugins share the documented ValueError validation contract."""
+    plugin = Mock()
+    plugin.validate_merged_form_data.side_effect = ValueError("Invalid role")
+    chart = Mock(datasource=Mock(id=1))
+    with patch.object(update_chart_module, "plugin_for_viz_type", return_value=plugin):
+        response = update_chart_module._validate_update_against_dataset(
+            TableChartConfig(columns=[ColumnRef(name="region")]),
+            {"viz_type": "table"},
+            chart,
+        )
+    assert response is not None
+    assert response.error is not None
+    assert response.error.error_type == "ValidationError"
+    assert response.error.details == "Invalid role"

@@ -41,7 +41,7 @@ from superset.versioning.activity.windows import (
     intersect_windows,
     merge_entity_windows,
 )
-from superset.versioning.membership import charts_attached_to_dashboard
+from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
 
 def resolve_scope(
@@ -110,7 +110,7 @@ def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:
     attachment, chart-on-dataset)."""
     scope: list[EntityWindows] = []
     chart_windows: dict[int, list[Window]] = {}
-    for slice_id, window in charts_attached_to_dashboard(dashboard_id):
+    for slice_id, window in chart_attachment_windows_for_dashboard(dashboard_id):
         chart_windows.setdefault(slice_id, []).append(window)
 
     # One query for the dataset-history of every chart on the dashboard,
