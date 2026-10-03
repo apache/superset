@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { ComparisonType, QueryFormData } from '@superset-ui/core';
 import buildQuery from '../../src/Rose/buildQuery';
 
 const formData: QueryFormData = {
@@ -76,9 +76,13 @@ test('normalizes the legacy absolute comparison type to difference', () => {
   const compare = (query.post_processing || [])
     .filter(Boolean)
     .find(op => op!.operation === 'compare');
-  expect((compare?.options as { compare_type?: string })?.compare_type).toEqual(
-    'difference',
-  );
+  expect(
+    (
+      compare?.options as {
+        compare_type?: Omit<ComparisonType, ComparisonType.Values>;
+      }
+    )?.compare_type,
+  ).toEqual('difference');
 });
 
 test('requests time offsets and compares when time_compare is set', () => {
