@@ -175,6 +175,46 @@ function checkNoFaIcons(ast, filepath) {
 }
 
 /**
+ * App code (and plugins) must go through the @superset-ui/core/components
+ * wrappers rather than importing from antd directly, so theming and behavior
+ * stay centralized in one place. The wrapper packages themselves
+ * (superset-ui-core, superset-core) are the legitimate exception -- they're
+ * what the wrappers are built from -- and `theme/utils` files that introspect
+ * antd's own design tokens are exempted the same way checkNoLiteralColors
+ * already exempts that directory (there is no wrapper for "list antd's own
+ * token names").
+ */
+const ANTD_DIRECT_IMPORT_EXEMPT = [
+  /\/theme\/utils\//,
+  /packages\/superset-ui-core\//,
+  /packages\/superset-core\//,
+];
+
+function checkNoDirectAntdImports(ast, filepath) {
+  if (ANTD_DIRECT_IMPORT_EXEMPT.some(pattern => pattern.test(filepath))) {
+    return;
+  }
+
+  traverse(ast, {
+    'ImportDeclaration|ExportNamedDeclaration|ExportAllDeclaration': function (
+      path,
+    ) {
+      const source = path.node.source?.value ?? '';
+      if (source === 'antd' || source.startsWith('antd/')) {
+        if (hasEslintDisable(path, 'no-restricted-imports')) return;
+
+        // eslint-disable-next-line no-console
+        console.error(
+          `${RED}✖${RESET} ${filepath}: Direct import from "${source}". ` +
+            `Use the @superset-ui/core/components wrapper instead.`,
+        );
+        errorCount += 1;
+      }
+    },
+  });
+}
+
+/**
  * Check for improper i18n template usage
  */
 function checkI18nTemplates(ast, filepath) {
@@ -625,6 +665,7 @@ function processFile(filepath) {
     // Run all checks
     checkNoLiteralColors(ast, filepath);
     checkNoFaIcons(ast, filepath);
+    checkNoDirectAntdImports(ast, filepath);
     checkI18nTemplates(ast, filepath);
     checkEagerTranslationsInConfig(ast, filepath);
     checkUntranslatedStrings(ast, filepath);
@@ -787,6 +828,7 @@ if (__filename === process.argv[1]) {
 export default {
   checkNoLiteralColors,
   checkNoFaIcons,
+  checkNoDirectAntdImports,
   checkI18nTemplates,
   checkUntranslatedStrings,
   checkTypeScriptOnlySource,
