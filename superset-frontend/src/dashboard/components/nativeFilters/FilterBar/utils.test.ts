@@ -29,6 +29,7 @@ import {
   checkIsValidateError,
   checkIsMissingRequiredValue,
   clearedCustomizationTarget,
+  getAppliedFilterLogPayload,
   getOnlyExtraFormData,
   getFiltersToApply,
 } from './utils';
@@ -841,6 +842,32 @@ test('getFiltersToApply handles null dataMask entries', () => {
 
   expect(result).not.toContain('filter-1');
   expect(result).toContain('filter-2');
+});
+
+test('getAppliedFilterLogPayload records id, name, and whether a value is set', () => {
+  const dataMaskSelected = {
+    'filter-1': createDataMaskEntry('filter-1', { value: 'name@example.com' }),
+    'filter-2': createDataMaskEntry('filter-2', { value: null }),
+    'customization-1': createDataMaskEntry('customization-1', {
+      value: 'hidden',
+    }),
+  } as DataMaskStateWithId;
+
+  const result = getAppliedFilterLogPayload(
+    ['filter-1', 'filter-2', 'customization-1'],
+    {
+      'filter-1': { name: 'Customer' },
+      'filter-2': { name: 'Status' },
+    },
+    dataMaskSelected,
+  );
+
+  expect(result).toEqual([
+    { id: 'filter-1', name: 'Customer', hasValue: true },
+    { id: 'filter-2', name: 'Status', hasValue: false },
+  ]);
+  expect(JSON.stringify(result)).not.toContain('name@example.com');
+  expect(JSON.stringify(result)).not.toContain('hidden');
 });
 
 test('clearedCustomizationTarget preserves the datasourceType of a semantic view through a clear', () => {
