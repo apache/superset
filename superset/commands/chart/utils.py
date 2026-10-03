@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from contextlib import suppress
+from datetime import datetime
 from typing import Any
 
+from flask import g
 from marshmallow import ValidationError
 
 from superset.commands.chart.exceptions import (
@@ -81,3 +84,39 @@ def validate_query_context_datasource(
 
     if not ids_match or not types_match:
         exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
+
+
+def touch_dashboards(dashboards: list[Any] | None) -> None:
+    """
+    Touch the audit metadata (changed_on and changed_by) for the given dashboards.
+
+    When a chart's links to dashboards change during chart creation or update
+    (dashboards added to or removed from the chart), this ensures the dashboards'
+    last modified timestamps reflect the change (issue #44305).
+
+    In no-user contexts (such as Celery tasks, CLI commands, or programmatic
+    updates), the pre-existing changed_by / changed_by_fk attribution is explicitly
+    preserved so that SQLAlchemy's column onupdate generator (onupdate=get_user_id)
+    does not overwrite it with None.
+
+    :param dashboards: list of Dashboard models to touch.
+    """
+    if not dashboards:
+        return
+    now = datetime.now()
+    user = getattr(g, "user", None)
+    for dashboard in dashboards:
+        prior_changed_by_fk = getattr(dashboard, "changed_by_fk", None)
+        prior_changed_by = getattr(dashboard, "changed_by", None)
+        dashboard.changed_on = now
+        if user is not None:
+            dashboard.changed_by = user
+        else:
+            if prior_changed_by_fk is not None:
+                dashboard.changed_by_fk = prior_changed_by_fk
+                with suppress(Exception):
+                    from sqlalchemy.orm.attributes import flag_modified
+
+                    flag_modified(dashboard, "changed_by_fk")
+            elif prior_changed_by is not None:
+                dashboard.changed_by = prior_changed_by
