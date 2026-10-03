@@ -121,3 +121,56 @@ test('shows editors and viewers helper text when EnableViewers is on', () => {
   expect(screen.getByText(/Editors is a list of subjects/)).toBeInTheDocument();
   expect(screen.getByText(/Viewers is a list of subjects/)).toBeInTheDocument();
 });
+
+test('allows selecting multiple tags', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  const newTags = [
+    { id: 1, name: 'Important' },
+    { id: 2, name: 'Urgent' },
+    { id: 3, name: 'Review' },
+  ];
+
+  render(<AccessSection {...defaultProps} tags={newTags} />);
+
+  expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
+});
+
+test('shows selected tags in the tag selector', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  const tags = [
+    { id: 1, name: 'Important' },
+    { id: 2, name: 'Urgent' },
+  ];
+
+  render(<AccessSection {...defaultProps} tags={tags} />);
+
+  expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
+});
+
+test('tags field is rendered when loading and TaggingSystem is enabled', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  render(<AccessSection {...defaultProps} isLoading />);
+
+  expect(screen.getByTestId('dashboard-tags-field')).toBeInTheDocument();
+});
+
+test('shows tags helper text when TaggingSystem is enabled', () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (flag: any) => flag === FeatureFlag.TaggingSystem,
+  );
+
+  render(<AccessSection {...defaultProps} />);
+
+  expect(
+    screen.getByText(/A list of tags that have been applied to this dashboard/),
+  ).toBeInTheDocument();
+});
