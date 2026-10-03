@@ -92,6 +92,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
       configs[col] = {
+        key: col,
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
         config: normalizedValue[col] || {},
@@ -147,7 +148,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           <ColumnConfigItem
             key={col.name}
             column={col}
-            onChange={config => setColumnConfig(col.name, config as T)}
+            onChange={config => setColumnConfig(col.key, config as T)}
             configFormLayout={
               col.isTimeComparisonColumn
                 ? ({
