@@ -125,6 +125,14 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
     return {k: params[k] for k in extract_keys if k in params}
 
 
+def _parse_page_size(value: Any) -> int | None:
+    """Parse a page-size hint without failing on malformed tool parameters."""
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 def generate_size_reduction_suggestions(
     tool_name: str,
     params: Dict[str, Any] | None,
@@ -149,15 +157,15 @@ def generate_size_reduction_suggestions(
     """
     suggestions = []
     query_params = extract_query_params(params)
+    if tool_name == "get_dashboard_datasets":
+        return _dashboard_datasets_suggestions(query_params)
+
     reduction_needed = actual_bytes - max_bytes
     reduction_pct = int((reduction_needed / actual_bytes) * 100) if actual_bytes else 0
 
     # Suggestion 1: Reduce page_size or limit
     raw_page_size = query_params.get("page_size") or query_params.get("limit")
-    try:
-        current_page_size = int(raw_page_size) if raw_page_size is not None else None
-    except (TypeError, ValueError):
-        current_page_size = None
+    current_page_size = _parse_page_size(raw_page_size)
     if current_page_size and current_page_size > 0:
         # Calculate suggested new limit based on reduction needed
         suggested_limit = max(
@@ -508,9 +516,6 @@ def _get_tool_specific_suggestions(
             "the chart's configuration (fewer columns, metrics, or filters) "
             "to shorten the generated query."
         )
-
-    elif tool_name == "get_dashboard_datasets":
-        suggestions.extend(_dashboard_datasets_suggestions(query_params))
 
     elif tool_name == "get_dashboard_layout":
         suggestions.extend(_dashboard_layout_suggestions(query_params, response))
