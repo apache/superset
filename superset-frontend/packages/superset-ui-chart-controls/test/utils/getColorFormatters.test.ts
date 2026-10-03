@@ -25,9 +25,8 @@ import {
   getDivergingColor,
   BoundUnit,
   PercentDenominator,
+  ObjectFormattingEnum,
 } from '../../src';
-
-import { ObjectFormattingEnum } from '../../src';
 import {
   getColorFormatters,
   getReadableTextColor,
