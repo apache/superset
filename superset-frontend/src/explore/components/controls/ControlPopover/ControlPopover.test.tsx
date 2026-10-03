@@ -209,6 +209,42 @@ test('Controlled mode', async () => {
   });
 });
 
+test('stays closed when a parent keeps open={false}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: false,
+    onOpenChange,
+  });
+
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('control-popover'));
+  expect(onOpenChange).toHaveBeenCalledWith(true);
+  expect(screen.queryByText('Control Popover Test')).not.toBeInTheDocument();
+});
+
+test('does not close on Escape when a parent keeps open={true}', async () => {
+  const onOpenChange = jest.fn();
+  setupTest({
+    ...createProps(),
+    destroyOnHidden: true,
+    open: true,
+    onOpenChange,
+  });
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+
+  fireEvent.keyDown(screen.getByTestId('control-popover'), {
+    key: 'Escape',
+    code: 27,
+    charCode: 0,
+  });
+
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(screen.getByText('Control Popover Test')).toBeInTheDocument();
+});
+
 test('Keeps an oversized popover reachable inside the viewport', () => {
   const arrowOffset = { arrowOffsetHorizontal: 12, arrowOffsetVertical: 12 };
   const overflowFor = (placement: TooltipPlacement) =>
