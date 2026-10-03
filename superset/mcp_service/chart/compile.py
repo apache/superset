@@ -39,6 +39,7 @@ from typing import Any, Dict, List, Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
@@ -94,7 +95,6 @@ def _compile_chart(
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
-    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
