@@ -91,8 +91,7 @@ def histogram(
 
     def hist_values(series: Series) -> np.ndarray:
         # we might have NaN values as the result of grouping so we need to drop them
-        result = np.histogram(series.dropna(), bins=bin_edges)[0]
-        return result if not cumulative else np.cumsum(result)
+        return np.histogram(series.dropna(), bins=bin_edges)[0]
 
     if len(groupby) == 0:
         # without grouping
@@ -107,8 +106,13 @@ def histogram(
         )
         histogram_df.columns = bin_edges_str
 
+    # normalize by the total count of data points before accumulating, so that a
+    # cumulative histogram shows the share of data points up to each bin
     if normalize:
         histogram_df = histogram_df / histogram_df.values.sum()
+
+    if cumulative:
+        histogram_df = histogram_df.cumsum(axis=1)
 
     # reorder the columns to have the groupby columns first
     histogram_df = histogram_df.reset_index().loc[:, groupby + bin_edges_str]
