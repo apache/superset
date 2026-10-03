@@ -164,8 +164,14 @@ def _build_new_filter_config(
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
     """Build a full native filter config dict for a new filter."""
-    scope = _build_scope(spec.scope_chart_ids, dashboard_chart_ids)
-    filter_id = generate_id("NATIVE_FILTER")
+    base: dict[str, Any] = {
+        "id": generate_id("NATIVE_FILTER"),
+        "type": "NATIVE_FILTER",
+        "name": spec.name,
+        "description": spec.description,
+        "scope": _build_scope(spec.scope_chart_ids, dashboard_chart_ids),
+        "cascadeParentIds": [],
+    }
 
     if isinstance(spec, FilterSelectSpec):
         _validate_dataset_column(spec.dataset_id, spec.column)
@@ -178,64 +184,44 @@ def _build_new_filter_config(
         if spec.sort_ascending is not None:
             control_values["sortAscending"] = spec.sort_ascending
         return {
-            "id": filter_id,
-            "type": "NATIVE_FILTER",
+            **base,
             "filterType": "filter_select",
-            "name": spec.name,
-            "description": spec.description,
-            "scope": scope,
             "targets": [
                 {"datasetId": spec.dataset_id, "column": {"name": spec.column}}
             ],
             "controlValues": control_values,
             "defaultDataMask": _empty_data_mask(),
-            "cascadeParentIds": [],
         }
 
     if isinstance(spec, FilterRangeSpec):
         _validate_dataset_column(spec.dataset_id, spec.column, require_numeric=True)
         return {
-            "id": filter_id,
-            "type": "NATIVE_FILTER",
+            **base,
             "filterType": "filter_range",
-            "name": spec.name,
-            "description": spec.description,
-            "scope": scope,
             "targets": [
                 {"datasetId": spec.dataset_id, "column": {"name": spec.column}}
             ],
             "controlValues": {"enableEmptyFilter": spec.enable_empty_filter},
             "defaultDataMask": _empty_data_mask(),
-            "cascadeParentIds": [],
         }
 
     if isinstance(spec, FilterTimeGrainSpec):
         _find_dataset_or_raise(spec.dataset_id)
         return {
-            "id": filter_id,
-            "type": "NATIVE_FILTER",
+            **base,
             "filterType": "filter_timegrain",
-            "name": spec.name,
-            "description": spec.description,
-            "scope": scope,
             "targets": [{"datasetId": spec.dataset_id}],
             "controlValues": {"enableEmptyFilter": spec.enable_empty_filter},
             "defaultDataMask": _empty_data_mask(),
-            "cascadeParentIds": [],
         }
 
     # filter_time: no dataset target, empty controlValues
     return {
-        "id": filter_id,
-        "type": "NATIVE_FILTER",
+        **base,
         "filterType": "filter_time",
-        "name": spec.name,
-        "description": spec.description,
-        "scope": scope,
         "targets": [{}],
         "controlValues": {},
         "defaultDataMask": _time_data_mask(spec.default_time_range),
-        "cascadeParentIds": [],
     }
 
 

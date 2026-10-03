@@ -163,6 +163,18 @@ def _value_label(value: FilterSelectValue) -> str:
     return str(value)
 
 
+def _filter_target_column(conf: dict[str, Any]) -> str:
+    """Return the first target's column name, or raise when there is none."""
+    targets = [target for target in (conf.get("targets") or []) if target]
+    column = (targets[0].get("column") or {}).get("name") if targets else None
+    if not column:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
+            "column, so a value cannot be applied to it."
+        )
+    return column
+
+
 def _select_data_mask(
     conf: dict[str, Any], values: list[FilterSelectValue]
 ) -> dict[str, Any]:
@@ -174,13 +186,7 @@ def _select_data_mask(
     predicate (the "required filter, nothing chosen" state) rather than no
     filtering at all.
     """
-    targets = [target for target in (conf.get("targets") or []) if target]
-    column = (targets[0].get("column") or {}).get("name") if targets else None
-    if not column:
-        raise _FilterApplyError(
-            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
-            "column, so a value cannot be applied to it."
-        )
+    column = _filter_target_column(conf)
 
     control_values = conf.get("controlValues") or {}
     if control_values.get("inverseSelection"):
@@ -288,13 +294,7 @@ def _range_data_mask(
     predicate at all (the "required filter, nothing chosen" state when the
     filter is marked ``enableEmptyFilter``, raised rather than guessed).
     """
-    targets = [target for target in (conf.get("targets") or []) if target]
-    column = (targets[0].get("column") or {}).get("name") if targets else None
-    if not column:
-        raise _FilterApplyError(
-            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
-            "column, so a value cannot be applied to it."
-        )
+    column = _filter_target_column(conf)
 
     lower, upper = bounds
     if lower is None and upper is None:
@@ -448,6 +448,8 @@ def _apply_one(
             range=list(spec.range),
         )
     else:
+        # Every other member of SUPPORTED_FILTER_TYPES needs its own branch.
+        assert filter_type == "filter_timegrain", filter_type
         if spec.time_grain is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_timegrain "

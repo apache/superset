@@ -394,7 +394,7 @@ async def test_add_filter_range_with_invalid_column(mcp_server):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("column", ["region", "ds", "active", "unknown_type"])
-async def test_add_range_filter_rejects_nonnumeric_column(
+async def test_add_filter_range_rejects_nonnumeric_column(
     mcp_server: object, column: str
 ) -> None:
     """Existing string, temporal, boolean, and unknown columns are not numeric."""

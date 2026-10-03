@@ -39,6 +39,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from flask import current_app
 
 from superset.commands.dashboard.exceptions import (
@@ -463,8 +464,6 @@ async def test_required_range_cannot_be_cleared(mcp_server: object) -> None:
 @pytest.mark.asyncio
 async def test_range_lower_greater_than_upper_is_rejected(mcp_server: object) -> None:
     """A lower bound greater than the upper bound fails schema validation."""
-    from fastmcp.exceptions import ToolError
-
     with patch(DAO_GET, return_value=_mock_dashboard([RANGE_FILTER])):
         with pytest.raises(ToolError, match="cannot be greater than"):
             await _call(
@@ -796,10 +795,8 @@ async def test_required_timegrain_cannot_be_cleared(mcp_server: object) -> None:
 @pytest.mark.asyncio
 async def test_invalid_timegrain_value_is_rejected(mcp_server: object) -> None:
     """An empty duration string is not a filter clear and fails validation."""
-    from fastmcp.exceptions import ToolError
-
     with patch(DAO_GET, return_value=_mock_dashboard([TIMEGRAIN_FILTER])):
-        with pytest.raises(ToolError):
+        with pytest.raises(ToolError, match="time_grain"):
             await _call(
                 mcp_server,
                 {
@@ -1392,9 +1389,7 @@ async def test_unsupported_filter_type_is_rejected(mcp_server: object) -> None:
         )
 
     assert "has type 'filter_timecolumn'" in data["error"]
-    assert (
-        "filter_range, filter_select, filter_time, filter_timegrain" in (data["error"])
-    )
+    assert "filter_range, filter_select, filter_time, filter_timegrain" in data["error"]
 
 
 @pytest.mark.asyncio
