@@ -38,8 +38,22 @@ import { useResolveView } from 'src/core/views';
  * -- a non-reactive resolve would permanently commit to the "could not be
  * loaded" placeholder from before that load finishes.
  */
+const decodeViewId = (viewId: string | undefined): string => {
+  if (!viewId) {
+    return '';
+  }
+  try {
+    return decodeURIComponent(viewId);
+  } catch {
+    return viewId;
+  }
+};
+
 const ExtensionView = () => {
-  const { viewId } = useParams<{ viewId: string }>();
+  const { viewId: rawViewId } = useParams<{ viewId: string }>();
+  // The router leaves percent-encoded separators (`%2F`) intact, so decode
+  // to match the registry key whether a command used a literal or encoded `/`.
+  const viewId = decodeViewId(rawViewId);
 
   const menuData: SubMenuProps = {
     name: t('Extension'),

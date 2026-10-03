@@ -40,3 +40,22 @@ test('resolves a view id that spans multiple path segments', () => {
 
   disposable.dispose();
 });
+
+test('resolves a view id whose slash is percent-encoded in the URL', () => {
+  const disposable = views.registerView(
+    { id: 'my-ext/encoded', name: 'My Settings' },
+    'global.settingsPanel',
+    () => <div>Encoded Content</div>,
+  );
+
+  render(
+    <MemoryRouter initialEntries={['/extensions/view/my-ext%2Fencoded']}>
+      <Route path={RoutePaths.EXTENSION_VIEW} component={ExtensionView} />
+    </MemoryRouter>,
+    { useTheme: true },
+  );
+
+  expect(screen.getByText('Encoded Content')).toBeInTheDocument();
+
+  disposable.dispose();
+});
