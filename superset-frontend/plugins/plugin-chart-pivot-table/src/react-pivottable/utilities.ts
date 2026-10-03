@@ -390,8 +390,13 @@ const usFmtPct = numberFormat({
 
 const fmtNonString =
   (formatter: Formatter) =>
-  (x: string | number | null): string =>
-    typeof x === 'string' ? x : formatter(x as number);
+  (x: string | number | null): string => {
+    if (typeof x === 'string') return x;
+    // A null total (mixed-metric Min/Max, empty DB rollup) renders blank
+    // rather than whatever a custom formatter makes of null.
+    if (x === null || x === undefined) return '';
+    return formatter(x as number);
+  };
 
 /*
  * Tracks which metric (via the `__metricKey`/`__rows`/`__columns` tagging
@@ -636,6 +641,9 @@ const baseAggregatorTemplates = {
             return Array.from(this.currencySet);
           },
           format(x: any) {
+            if (x === null || x === undefined) {
+              return '';
+            }
             if (typeof x === 'number') {
               return formatter(x);
             }

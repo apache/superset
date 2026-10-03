@@ -1627,9 +1627,12 @@ again automatically, with no action required and no value to reconfigure. A
 one-time migration tags every such chart with a `legacy-pivot-aggregation-restored`
 custom tag; opening a tagged chart in Explore shows a notice that its totals
 may now look different, which clears once you review and accept it (or save
-the chart). If you have alerts/reports built on one of these charts, validate
-its cached results after upgrading, since a scheduled report render does not
-pass through that notice.
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place.
 
 ### `thumbnail_url` removed from dashboard list API response
 

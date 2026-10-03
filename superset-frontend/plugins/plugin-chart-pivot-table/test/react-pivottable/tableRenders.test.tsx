@@ -1058,6 +1058,27 @@ test('TableRenderer blanks a row total cell that combines two different metrics'
   expect(rowTotalCell).toHaveTextContent('');
 });
 
+test('TableRenderer renders a mixed-metric Minimum total as blank, not "null"', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Minimum',
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0].textContent).toBe('');
+  expect(
+    screen.getAllByRole('gridcell').some(c => c.textContent === 'null'),
+  ).toBe(false);
+});
+
 /**
  * Regression guard: a DB-computed value can be a genuine SQL NULL (e.g. AVG
  * over an empty group). `null / acc` coerces to `0` in JS, which would
