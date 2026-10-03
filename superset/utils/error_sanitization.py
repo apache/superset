@@ -32,7 +32,6 @@ from typing import Any
 
 from flask import current_app, has_request_context, request
 from flask_babel import lazy_gettext as _
-from werkzeug.exceptions import HTTPException
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -99,13 +98,14 @@ def is_sanitization_required() -> bool:
     When it does raise the principal is unknown, so this makes a deliberate
     availability-over-confidentiality trade-off rather than guessing "not a
     guest". Inside a request context it falls back to whether the request even
-    carries a guest token: anyone presenting a token, or whose body can't be read
-    to check for one, is redacted (failing closed for the only principal whose
-    errors are redacted), and a genuinely anonymous request keeps its error so
-    ordinary failures are not over-sanitized. Outside a request context (e.g. a
-    Celery worker, where a guest principal may be active via ``override_user`` and
-    the error is delivered to the embedded viewer) there is no token to read and
-    no handler-of-a-handler concern, so it fails closed and redacts.
+    carries a guest token: anyone presenting a token, or whose body raises while
+    being read to check for one, is redacted (failing closed for the only
+    principal whose errors are redacted), and a genuinely anonymous request keeps
+    its error so ordinary failures are not over-sanitized. Outside a request
+    context (e.g. a Celery worker, where a guest principal may be active via
+    ``override_user`` and the error is delivered to the embedded viewer) there is
+    no token to read and no handler-of-a-handler concern, so it fails closed and
+    redacts.
     """
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
@@ -131,12 +131,16 @@ def is_sanitization_required() -> bool:
         if header_name and request.headers.get(header_name):
             return True
         try:
-            # ``request.form`` parses the body lazily on first access, which
-            # raises ``RequestEntityTooLarge``/``ClientDisconnected`` for an
-            # oversized or truncated body, or an ``OSError`` from the WSGI
-            # server's input stream or the multipart temp-file spool.
+            # ``request.form`` parses the body lazily on first access. A body
+            # whose first parse (in the request loader) already failed part-way
+            # is left partially consumed and re-parses as an empty form; no guest
+            # was authenticated on such a request, so it is treated as token-free.
             return bool(request.form.get("guest_token"))
-        except (HTTPException, OSError):
+        except Exception:  # pylint: disable=broad-except
+            # Reading the body can raise more than werkzeug's ``HTTPException``s
+            # and ``OSError``: the WSGI server's input stream may raise its own
+            # parse errors (e.g. gunicorn's ``ParseException`` subclasses for a
+            # malformed chunked trailer, which subclass ``Exception`` directly).
             # The body can't be inspected, so fail closed.
             return True
 

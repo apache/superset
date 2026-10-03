@@ -16,7 +16,8 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Iterator, TYPE_CHECKING
+import io
+from typing import Any, Iterator, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -244,25 +245,52 @@ def test_unresolvable_principal_with_form_guest_token_is_redacted(
         assert mock_is_guest_user.called
 
 
+class _ServerParseError(Exception):
+    """Mirrors gunicorn's ``ParseException``, which subclasses ``Exception``."""
+
+
+class _MalformedTrailerStream(io.BytesIO):
+    """A WSGI input stream that fails mid-read, as gunicorn's does on a bad trailer."""
+
+    def read(self, size: int | None = -1) -> bytes:
+        raise _ServerParseError("invalid chunked trailer")
+
+
+@pytest.mark.parametrize(
+    ("body", "max_content_length"),
+    [
+        pytest.param({"data": {"other_field": "x"}}, 1, id="request-entity-too-large"),
+        pytest.param(
+            {
+                # A chunked body: the server terminates the stream, so werkzeug
+                # reads the server's stream directly.
+                "input_stream": _MalformedTrailerStream(),
+                "content_type": "application/x-www-form-urlencoded",
+                "environ_overrides": {"wsgi.input_terminated": True},
+            },
+            None,
+            id="server-stream-parse-error",
+        ),
+    ],
+)
 def test_unresolvable_principal_with_unreadable_body_fails_closed(
-    app: SupersetApp,
+    app: SupersetApp, body: dict[str, Any], max_content_length: int | None
 ) -> None:
     """
-    ``request.form`` parses the body lazily, so the fallback's form read raises
-    ``RequestEntityTooLarge`` for an oversized body. That must not escape the
-    error handler; the token can't be ruled out, so it fails closed.
+    ``request.form`` parses the body lazily, so the fallback's form read can raise
+    -- werkzeug's ``RequestEntityTooLarge`` for an oversized body, or whatever the
+    WSGI server's input stream raises. Neither may escape the error handler. The
+    body carries no token, so only failing closed redacts.
     """
     is_guest_user = patch(
         "superset.security.SupersetSecurityManager.is_guest_user",
         side_effect=RuntimeError("find_role on a broken session"),
     )
     with (
-        app.test_request_context(
-            "/", method="POST", data={"guest_token": "a.guest.token"}
-        ),
+        app.test_request_context("/", method="POST", **body),
         is_guest_user as mock_is_guest_user,
     ):
-        request.max_content_length = 1
+        request.max_content_length = max_content_length
         assert is_sanitization_required() is True
         assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
         assert mock_is_guest_user.called

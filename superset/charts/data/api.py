@@ -548,10 +548,9 @@ class ChartDataRestApi(ChartRestApi):
 
             # Resolve the redaction decision once so the stacktrace pop and the
             # error-message sanitization below stay consistent: the guarded
-            # ``is_sanitization_required`` cannot raise the request into a 500 and
-            # fails closed for a guest whose principal can't be resolved, so the
-            # block never half-redacts (popping ``stacktrace`` while leaking the
-            # raw ``error``).
+            # ``is_sanitization_required`` fails closed for a guest whose
+            # principal can't be resolved, so the block never half-redacts
+            # (popping ``stacktrace`` while leaking the raw ``error``).
             if sanitize_required := is_sanitization_required():
                 # Guests may see the generated SQL only when the role attached to
                 # their guest token has been granted "can view query on Dashboard",
