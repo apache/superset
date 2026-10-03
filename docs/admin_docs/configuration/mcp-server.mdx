@@ -41,6 +41,75 @@ flowchart LR
     C --> D[("Database<br/>(Postgres)")]
 ```
 
+## Tool deadlines and concurrency
+
+Protected synchronous and asynchronous MCP tools run in isolated thread workers,
+each with its own Flask app
+context and metadata database session. Warehouse I/O does not run on the
+transport event loop. This includes SQL execution, chart data and previews,
+chart compilation, dataset queries, and tools that discover warehouse metadata.
+
+`MCP_TOOL_WORKERS` sets the maximum admitted warehouse-capable calls per
+application/process. A full pool immediately returns an **MCP server busy**
+error; it does not queue requests behind slow queries.
+
+Tools that only read Superset's metadata database (the `list_*` and
+`get_*_info` tools, `get_schema`, `get_instance_info`, `health_check`, and
+similar) are admitted under a separate bound, `MCP_METADATA_TOOL_WORKERS`, so
+they keep answering while slow warehouse queries fill `MCP_TOOL_WORKERS`. A
+metadata-only tool that does reach a warehouse must first take a
+`MCP_TOOL_WORKERS` slot, and reports **MCP server busy** if none is free.
+Setting `MCP_METADATA_TOOL_WORKERS = 0` admits every tool under
+`MCP_TOOL_WORKERS`.
+
+Both bounds come out of one budget: the metadata pool's capacity,
+`pool_size + max_overflow`. A warehouse-capable call can hold a metadata
+connection for the whole of its warehouse query and cancelling it needs
+another; a metadata-only call holds at most one; and the server's own
+metadata I/O (tool-list filtering, audit writes, error hooks) runs on one
+bounded thread, and API-key lookups on another of their own, so requests
+with unknown keys cannot delay audit writes or RBAC filtering. Admission keeps
+`2 * MCP_TOOL_WORKERS + MCP_METADATA_TOOL_WORKERS + 2` within the capacity,
+so even with every slot in use no metadata connection checkout waits for
+another holder. By default (`None`) warehouse-capable calls get about a third
+of the connections left after those two threads, and metadata-only calls
+what remains, each up to 16. With SQLAlchemy's default pool (5 + 10
+connections) that is 4 warehouse-capable and 5 metadata-only calls. To admit
+more, raise the pool for the MCP process, for example
+`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}` (12 and
+14). Explicit values above the budget are reduced with a startup warning, and
+a pool with fewer than 4 connections is rejected at startup. The server never
+waits for a metadata connection on its event loop.
+
+Pool logs report initialization and connection-budget clamping without logging
+configuration values or engine-derived counts. Successful transport-layer API-key
+validation logs the user id rather than the username or API key.
+
+Tool-list and search permission checks, success/error audit writes, response-size
+audits, and error hooks run in metadata threads with independent Flask contexts
+and scoped sessions. These sessions are cleaned up when the operation finishes,
+including after failure or client disconnection; inherited request contexts do
+not share their ORM user/session with the thread.
+
+`execute_sql` uses its request's `timeout` (default: 30 seconds). Tools without
+a timeout parameter use `SQLLAB_TIMEOUT`. The deadline covers the complete tool
+call, including composed queries, and returns a clear timeout error with a call
+ID. Superset requests warehouse cancellation using its engine cancellation
+hooks, including for connection prequeries, on a separate bounded pool.
+Cancellation connections run independently of the expired tool deadline, including
+connection prequeries such as PostgreSQL schema selection. Trino's client only
+learns a query's `queryId` once it is running and then blocks until results
+arrive, so the cancellation thread reads that id from the live cursor and kills
+the query with `system.runtime.kill_query`. Engines whose specs expose no
+cancellation handle (for example BigQuery, Databricks native and Athena) are not
+cancelled. Drivers without cancellation support can
+continue running after the caller receives the timeout; the worker retains its
+slot and owns session cleanup until it finishes, while metadata-only tools keep
+their own bound. A stuck cancellation also
+retains its call's slot rather than exhausting cancellation capacity for new
+calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
+rolled back, so do not blindly retry mutating SQL.
+
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
@@ -96,11 +165,13 @@ The MCP process and websocket transport must use the same
 Framework feature flag.
 
 The response's `live_update_pushed` field reports publication success, not
-browser receipt or application. Without a backend, an identifiable principal,
-or a successful publish, it is `false`; the created `dashboard_url` remains
-the fallback. An open dashboard resolves matching notifications through the
-existing dashboard permalink API and applies the returned filters without a
-reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+browser receipt or application. When `WEBSOCKET_ENABLE` is disabled or unset,
+no notification is published and this field is `false`. Without a backend,
+`can_read` on `Realtime` for the calling principal, an identifiable principal,
+or a successful publish, it is also `false`; the created
+`dashboard_url` remains the fallback. An open dashboard resolves matching
+notifications through the existing dashboard permalink API and applies the
+returned filters without a reload. A “Filters applied from chat” toast offers **Undo**, restoring the
 affected filters' previous selections. The toast carries an action, so it has
 no auto-dismiss timer and stays up until Undo or its close button is used,
 which keeps the action reachable for keyboard and assistive-technology users.
@@ -113,6 +184,77 @@ Reconnect deliberately does not fetch or replay filter state: there is no
 latest-per-user permalink lookup, and replaying a previously received permalink
 could overwrite manual changes or undo. If a notification is missed or its
 permalink cannot be resolved, open `dashboard_url` from chat.
+
+## Dashboard filter scope
+
+A client that answers questions about a dashboard the user is viewing (for
+example an assistant embedded next to it) can make every tool call honor that
+dashboard's active filters by sending them in the `X-Superset-Dashboard-Scope`
+request header on each MCP HTTP request of the conversation turn. The model
+issuing tool calls never sees the header, so it cannot drop or loosen the
+filters, and retried calls carry them again.
+
+The header value is `base64url(zlib(JSON))` of:
+
+```json
+{
+  "version": 1,
+  "dashboard_id": 12,
+  "chart_filters": {
+    "101": {"filters": [{"col": "client", "op": "IN", "val": ["A"]}],
+            "time_range": "Last quarter"}
+  }
+}
+```
+
+`chart_filters` maps each chart with active filters to the `extra_form_data`
+the dashboard applies to it. A malformed header refuses every tool call rather
+than being ignored. Without the header, behavior is unchanged.
+
+While a scope with active filters is present:
+
+- Chart data tools (`get_chart_data`, `get_chart_preview`, `get_dashboard_data`)
+  apply each chart's dashboard filters and AND any `extra_form_data` the model
+  supplies with them. Filters can be added but not removed, and time windows,
+  time columns and relative anchors the dashboard sets (including time-series
+  cross-filters) cannot be changed. Charts that are not on the scoped
+  dashboard, and unsaved chart state (`form_data_key`), are refused.
+- `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
+  filters from dashboard charts backed by the queried dataset, respecting
+  native-filter chart scoping. Datasets outside the dashboard use the combined
+  dashboard-wide filters. A model-supplied time range is intersected with the
+  applicable dashboard time range. `execute_sql` replaces each filtered table
+  read with a sub-query, the same way row-level security is applied, and refuses
+  SQL whose tables are not registered datasets that have every filtered column, as well
+  as SQL that could read tables it cannot see: opaque statements, functions
+  the SQL parser does not model, and table functions. For `execute_sql`, template
+  syntax in SQL or dashboard filter values is refused rather than rendered after
+  scoping.
+  For all three tools, the time-filter column is resolved from the affected
+  dashboard charts' temporal filters (or legacy chart time-column settings),
+  after dashboard overrides. The charts must agree on one column. A chart with
+  no temporal target, conflicting targets, or a dataset outside the dashboard
+  with an applicable time window causes a refusal; the dataset's main datetime
+  column and a model-supplied column are never used to guess the dashboard target.
+  Malformed saved chart filter lists also cause an explicit scope refusal before
+  dashboard overrides are merged; no query is run.
+  Without an applicable dashboard time window, no chart temporal target is
+  required, and model-supplied time filtering behaves as before.
+- Writes that change what charts or datasets query (adding a chart to a
+  dashboard, saving a chart, defining a virtual dataset, editing a dataset or
+  metric, restoring a chart or dataset) are refused while the scope is
+  active.
+- Where the filters cannot be applied (for example, a column the dataset lacks,
+  or a column filtered differently by different charts) the call fails with a
+  tool error beginning `Dashboard filter scope refused this call:`. Tools that
+  return no dataset rows are unaffected; any other tool, including extension
+  tools, is refused.
+- MCP response caching is bypassed for scoped calls, and the scope is applied
+  before any query is built, so Superset's query cache never serves an
+  unscoped result.
+
+The scope is a correctness control for answers, not an access control.
+Permissions and row-level security apply exactly as they do without it.
 
 ---
 
@@ -776,11 +918,39 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose and request-wrapper instructions (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+
+The no-query catalog uses the same bounded serializer as targeted search.
+Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
+behavior, required URL display, and workflow guidance in request metadata rather
+than relying on truncated introductory prose. Paragraph truncation never leaves a
+partial IMPORTANT block or numbered workflow in the catalog.
+
+Calling constraints are authored as a `Field(description=...)` on the tool's
+`request` parameter and served as the `request` property's schema description, so
+schema-first clients can identify the wrapper without remembering previous calls.
+Summary mode preserves these instructions in `parameters_hint`. Instructions are
+never truncated: their length is deducted from the prose budget first. A request
+model's own docstring is not a calling instruction and is never deducted. If a
+configured limit is smaller than the instructions, prose is omitted rather than
+cutting the instructions. Built-in calling instructions are capped at 300
+characters by regression tests, and the complete tool entries retain per-tool
+size budgets. Field-level descriptions in the default full input schema also
+preserve tool-specific search semantics, sortable columns, chart pagination, and
+layout guidance. These details are not included in schema-free summary mode.
+This setting does not change result-size limits or schema validation.
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
 :::
+
+With either the `bm25` or `regex` strategy, a query matching a tool name is
+promoted ahead of other matches before the `max_results` limit is applied. Matching
+ignores case and treats underscores and whitespace as equivalent separators
+(including leading, trailing, or repeated whitespace). Only tools visible to
+the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
+rather than search results; non-exact queries retain BM25 ranking or regex
+catalog ordering.
 
 Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
 
@@ -1047,6 +1217,23 @@ while page["next_cursor"]:
     )
 ```
 
+## Chart datasource metadata
+
+For roles allowed to view data-model metadata, `get_chart_info` includes
+`datasource_id` in its default columns. Dashboard chart summaries include
+`datasource_type` alongside `datasource_id`, which is only unique within its type.
+Both fields are redacted for users without data-model metadata access.
+Chart and dashboard chart summaries resolve dataset names from the live table
+or semantic view, so renames are reflected without resaving the chart. Query and
+saved-query charts retain their stored datasource names; missing tables or
+semantic views do not fall back to stale names. Dataset-access validation remains
+unchanged.
+
+`list_charts` filters on `datasource_name` use these same live names before
+pagination and counting. For tables with a schema, filter using
+`schema.table_name`. Data-model metadata permission checks also apply to these
+filters and returned identifiers.
+
 ## Trash Listing (Soft-Deleted Objects)
 
 When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
@@ -1094,6 +1281,9 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews.
+
 Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
 
 Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
@@ -1126,6 +1316,8 @@ def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
 ```
 
 The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
+
+Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
 
 ## Security Best Practices
 
@@ -1186,6 +1378,36 @@ filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
 
+### Exploring large dashboard layouts
+
+`get_dashboard_layout` returns the full parsed layout by default. For large
+dashboards, pass `tabs_only=true` to retrieve just the tab tree in `tab_tree`:
+`id`, `name` (the title), `parent_tab_id`, zero-based `depth`, and
+`chart_count` (distinct charts in the tab and its descendants). In this mode
+`tabs` and `charts` are empty by request, not because the dashboard is empty.
+Then pass `tab="<ID or exact title>"` to retrieve that tab and its descendants
+with chart positions. Matching is case-sensitive; IDs take precedence and
+ambiguous titles require an ID. Both options can be combined to summarize a
+subtree. Parent IDs, depths, and chart paths retain their full-dashboard context.
+
+Charts placed outside every tab are counted in `untabbed_chart_count` in every
+response; pass `untabbed_only=true` (without `tab` or `tabs_only`) to list only
+those charts. The `scope` field echoes the applied `tabs_only`, resolved
+`tab_id`, and `untabbed_only` values, and is `null` for the full layout.
+Scoping only removes tabs and chart placements from the layout the caller can
+already retrieve. Conflicting scope options return an actionable
+`invalid_scope` error naming the options to remove; blank tab selectors return
+`tab_not_found` rather than widening the scope. On dashboards without tabs,
+`tabs_only=true` returns `tab_not_found` with guidance to use
+`untabbed_only=true` or request the full layout instead.
+
+Permalink active-tab and filter state remain unchanged; only an explicit `tab`
+scopes the response. Oversized layout errors suggest the next narrower scope:
+the tab tree and untabbed charts for a full tabbed layout, a top-level tab for
+an oversized tab tree, a nested tab for a tab that has one, and `list_charts`
+paging when a dashboard without tabs or a tab without nested tabs is still too
+large.
+
 ### Reading applied dashboard filters
 
 When answering about a filtered dashboard, call `get_dashboard_info` with the
@@ -1234,6 +1456,57 @@ with status 500 or higher remain `ERROR` and invoke the hook. An explicitly
 sub-500 exception remains a warning even if it carries a connection error reason:
 the generic engine reason can also describe a caller's malformed column, and a
 connection access denial is still a permission failure.
+
+The error hook runs off the transport loop in its own application and metadata
+session scope, without reloading the request user. Reporting an error therefore
+does not require metadata database access unless the hook itself uses it. Use the
+provided hook context for caller identity rather than `g.user`.
+
+## SQL execution row limits
+
+The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
+last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
+request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
+`limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
+If SQL has no outer limit, the explicit request cap is applied. Inner query and
+CTE limits and SQL offsets are preserved. Literal `FETCH FIRST` counts and
+parenthesized literal limits follow the same rule. `PERCENT`, `WITH TIES`, and
+limit expressions that cannot be interpreted as a fixed row count are preserved
+inside a subquery with an outer row cap, rather than replaced. This conservative
+fallback cannot increase the original result's row count. For SQL Server, these
+restrictions are left unchanged instead: a derived table could reject duplicate
+or unnamed output columns. The executor caps the last statement's returned rows
+at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
+percentage, tie, or expression semantics. Cursor reads are bounded by the same
+cap plus one probe row, including across multiple fetch batches, preserving
+engine-specific result processing. Only successfully returned rows count against the cursor
+budget, so a failed fetch leaves that budget available for an engine fallback.
+BigQuery only falls back if its initial fetch fails; errors after a successful
+sample, including during the EOF probe, fail the query rather than silently
+discarding buffered rows.
+This does not bound the work performed by the database.
+Because this cap applies to any row-returning last statement, a non-query
+statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each
+statement reports `truncated: true` when a fetch cap omits rows from the
+executed SQL result, including engine memory caps such as `BQ_FETCH_MAX_MB`.
+Exactly-at-cap and smaller results report `false` when no rows are omitted. This
+flag does not indicate rows excluded by a SQL LIMIT visible in `executed_sql`,
+and does not bound or count affected rows for a write with `RETURNING`. In
+`dry_run`, the SQL Server restriction remains unchanged because no results are
+fetched.
+
+Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
+subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
+to `dry_run`, which returns the transformed SQL without executing it.
+
+The SQL-only `Database.apply_limit_to_sql()` helper used by dataset column
+discovery and alerts does not use the executor's bounded cursor. It retains the
+legacy SQL Server behavior of replacing `PERCENT`, `WITH TIES`, and non-fixed
+limit expressions with a fixed `TOP` cap, without introducing derived tables
+that could reject unnamed or duplicate columns. Smaller fixed limits, including
+zero, are preserved unless the caller explicitly requests `force=True`. This
+legacy helper's replacement semantics are separate from MCP execution's
+preservation of complex SQL restrictions.
 
 ## Result serialization
 

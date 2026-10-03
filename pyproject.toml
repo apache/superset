@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.1.8, <8",
+    "cachetools>=7.2.0, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -71,12 +71,12 @@ dependencies = [
     "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.104, <1",
+    "holidays>=0.105, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.4.1",
-    "markdown>=3.10.3",
+    "markdown>=3.11",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
@@ -116,7 +116,7 @@ dependencies = [
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
     # that can be cleaned up when bumping
-    "sqlglot>=30.18.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
+    "sqlglot>=30.19.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -143,7 +143,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.45.2",
 ]
-clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.9.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -162,7 +162,7 @@ crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 d1 = ["sqlalchemy-d1>=0.2.0, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector>=4.5.0, <4.6.0",
+    "databricks-sql-connector>=4.6.0, <4.7.0",
     "databricks-sqlalchemy>=2.0.1, <3",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
@@ -199,7 +199,7 @@ excel-export = ["boto3"]
 # superset.utils.gcs, so this extra is an alternative to excel-export, not an
 # addition to it -- pick whichever matches your bucket's provider.
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
-excel-export-gcs = ["google-cloud-storage>=1.37"]
+excel-export-gcs = ["google-cloud-storage>=3.15.0"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
@@ -319,7 +319,17 @@ development = [
     "pre-commit",
     "progress>=1.6.1,<2",
     "psutil",
-    "pyfakefs",
+    # 5.3.5 (the previously resolved version) predates pyfakefs's own Python
+    # 3.13 support: under 3.13 it leaves os.chdir patched to the fake
+    # filesystem after the `fs` fixture is undone, so the chdir back to the
+    # rootdir in pytest-cov's own teardown aborts the whole session with an
+    # INTERNALERROR. 5.6.0 added preliminary 3.13 support, which is what stops
+    # that crash, and 5.7.0 made 3.13 support official. 5.7.4 is the floor
+    # rather than 5.7.0 because it also fixes module/session-scoped fixtures
+    # under 3.13 (pyfakefs #1101), and the `fs` tests in
+    # tests/integration_tests/cli_tests.py -- the only consumers of that
+    # fixture -- run alongside session- and module-scoped fixtures.
+    "pyfakefs>=5.7.4",
     "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
