@@ -3365,6 +3365,8 @@ msgid "Back to all"
 msgstr "Назад на све"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Бекенд"
 
@@ -10116,6 +10118,8 @@ msgstr "Хоризонтално (Врх)"
 msgid "Horizontal alignment"
 msgstr "Хоризонтално поравнање"
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Хост"
 
@@ -16656,6 +16660,7 @@ msgid "Select values"
 msgstr "Изаберите вредности"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -17450,6 +17455,7 @@ msgstr "Клизач"
 msgid "Slider and range input"
 msgstr "Клизач и унос опсега"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 

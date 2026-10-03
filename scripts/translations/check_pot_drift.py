@@ -32,6 +32,12 @@ extract`` invocation as ``scripts/translations/babel_update.sh`` and compares
 the resulting msgid set against the committed template. It fails when the
 two sets differ.
 
+It also compares the ``i18n:`` translator comments each string carries (see
+"Adding context for translators" in the contributing docs). Rewording such a
+comment in source without regenerating the template leaves every catalog
+with the old context while the msgid sets still match, so a changed, added
+or removed comment on a string present on both sides is reported too.
+
 This is a different question from ``check_translation_regression.py``, which
 compares *translated/fuzzy counts in the .po catalogs* between a base and a
 PR revision to catch a source reword that stranded an existing translation.
@@ -50,16 +56,19 @@ import sys
 import tarfile
 import tempfile
 from pathlib import Path
+from typing import NamedTuple
 
 from babel.messages.pofile import read_po
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 DEFAULT_POT = ROOT_DIR / "superset" / "translations" / "messages.pot"
 
-# Kept in sync with the `pybabel extract` invocation in babel_update.sh.
+# Kept in sync with the `pybabel extract` invocation in babel_update.sh
+# (enforced by check_pot_drift_test.py).
 EXTRACT_FLAGS = [
     "--no-location",
     "--sort-output",
+    "--add-comments=i18n:",
     "--copyright-holder=Superset",
     "--project=Superset",
     "-k",
@@ -79,6 +88,19 @@ EXTRACT_FLAGS = [
 # hashable so both kinds of msgid can live in one set.
 MsgId = str | tuple[str, ...]
 
+# Extracted comments that babel_update.sh stamps onto the template after
+# extraction (apply_do_not_translate.py's MARKER), so a fresh extraction never
+# carries them. They are not source context and are left out of the comparison.
+STAMPED_COMMENTS = frozenset({"do-not-translate"})
+
+
+class Drift(NamedTuple):
+    """How the committed template differs from a fresh extraction."""
+
+    missing: set[MsgId]
+    stale: set[MsgId]
+    context_changed: set[MsgId]
+
 
 def _msgid_set(pot_path: Path) -> set[MsgId]:
     """Read the msgids out of a ``.pot``.
@@ -97,6 +119,28 @@ def _msgid_set(pot_path: Path) -> set[MsgId]:
         for message in catalog
         if message.id
     }
+
+
+def _msgid(message_id: str | list[str] | tuple[str, ...]) -> MsgId:
+    return tuple(message_id) if isinstance(message_id, (list, tuple)) else message_id
+
+
+def _context_comments(pot_path: Path) -> dict[MsgId, tuple[str, ...]]:
+    """Map each msgid to the words of its source-extracted comments.
+
+    Comments are compared word by word, so re-wrapping a comment across
+    ``#.`` lines is not drift but any change to its wording is.
+    """
+    with open(pot_path, "rb") as f:
+        catalog = read_po(f)
+    comments: dict[MsgId, tuple[str, ...]] = {}
+    for message in catalog:
+        if not message.id:
+            continue
+        lines = [c for c in message.auto_comments if c.strip() not in STAMPED_COMMENTS]
+        if lines:
+            comments[_msgid(message.id)] = tuple(" ".join(lines).split())
+    return comments
 
 
 def _archive_ref() -> str:
@@ -190,32 +234,45 @@ def extract_fresh(output_path: Path) -> None:
         )
 
 
-def diff(committed_pot: Path = DEFAULT_POT) -> tuple[set[MsgId], set[MsgId]]:
-    """Return ``(missing, stale)`` msgid sets between source and the template.
+def diff(committed_pot: Path = DEFAULT_POT) -> Drift:
+    """Compare the committed template with a fresh extraction from source.
 
     ``missing`` is present in a fresh extraction but absent from
     ``committed_pot`` — translatable strings no translator can reach.
     ``stale`` is the reverse — template entries no longer extractable from
-    source.
+    source. ``context_changed`` holds strings present on both sides whose
+    ``i18n:`` comments differ — context that translators would see out of date.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         fresh_path = Path(tmp_dir) / "fresh.pot"
         extract_fresh(fresh_path)
         fresh_ids = _msgid_set(fresh_path)
+        fresh_comments = _context_comments(fresh_path)
     committed_ids = _msgid_set(committed_pot)
-    return fresh_ids - committed_ids, committed_ids - fresh_ids
+    committed_comments = _context_comments(committed_pot)
+    context_changed = {
+        msgid
+        for msgid in fresh_ids & committed_ids
+        if fresh_comments.get(msgid) != committed_comments.get(msgid)
+    }
+    return Drift(
+        missing=fresh_ids - committed_ids,
+        stale=committed_ids - fresh_ids,
+        context_changed=context_changed,
+    )
 
 
 def main() -> int:
-    missing, stale = diff()
-    if not missing and not stale:
+    missing, stale, context_changed = diff()
+    if not missing and not stale and not context_changed:
         print("superset/translations/messages.pot matches a fresh extraction.")
         return 0
 
     print(
         "superset/translations/messages.pot is out of sync with source: "
         f"{len(missing)} string(s) in source are missing from the template, "
-        f"{len(stale)} string(s) in the template no longer exist in source.\n"
+        f"{len(stale)} string(s) in the template no longer exist in source, "
+        f"{len(context_changed)} string(s) have changed i18n: comments.\n"
     )
     if missing:
         print(f"In source, not in the template ({len(missing)}):")
@@ -225,6 +282,14 @@ def main() -> int:
         print(f"\nIn the template, not in source ({len(stale)}):")
         for msgid in sorted(stale, key=str):
             print(f"  - {msgid!r}")
+    if context_changed:
+        gap = "\n" if missing or stale else ""
+        print(
+            f"{gap}With i18n: comments that differ from source "
+            f"({len(context_changed)}):"
+        )
+        for msgid in sorted(context_changed, key=str):
+            print(f"  ~ {msgid!r}")
     print(
         "\nRun ./scripts/translations/babel_update.sh and commit the "
         "regenerated messages.pot (and any changed .po catalogs)."

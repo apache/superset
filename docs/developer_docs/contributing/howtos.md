@@ -301,12 +301,64 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 ### Extracting new strings for translation
 
 ```bash
-# Extract Python strings
-pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
-
-# Extract JavaScript strings
-npm run build-translation
+# Extract backend and frontend strings into messages.pot, then update every
+# language catalog from it
+./scripts/translations/babel_update.sh
 ```
+
+Run the script rather than `pybabel extract` directly. It passes the keywords
+the frontend uses (`t`, `tn`, `tct`), extracts `i18n:` translator comments,
+and stamps do-not-translate markers. A bare
+`pybabel extract` does none of these. CI's template drift check
+(`scripts/translations/check_pot_drift.py`) fails when the template's strings
+differ from what the script's extraction finds.
+
+### Adding context for translators
+
+A translatable string arrives in a catalog with no surrounding code, so a term
+that is unambiguous in context can be guessed wrong in isolation. Shipped
+examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
+as a driver.
+
+To attach context, put a comment tagged `i18n:` immediately above the string:
+
+```python
+# i18n: the short identifier in a dashboard's URL, not the animal
+"slug": _("Slug"),
+```
+
+```tsx
+// i18n: the kind of system behind a connection: a database engine
+// (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
+Header: t('Backend'),
+```
+
+`babel_update.sh` extracts these with `--add-comments=i18n:`, so they land on the
+entry in `messages.pot` as `#. i18n: ...` and `pybabel update` propagates them
+into every language catalog, the same way the do-not-translate marker described
+below does:
+
+```
+#. i18n: the short identifier in a dashboard's URL, not the animal
+msgid "Slug"
+msgstr ""
+```
+
+Only `i18n:`-tagged comments are extracted, so ordinary code comments near a
+string are not published to translators. Write the comment for someone who
+cannot see the code: say what the term refers to, and where a translation would
+plausibly go wrong. A note only guides the translation; to keep a string
+untranslated, add it to the do-not-translate registry described below.
+
+The comment also reaches machine translation: `scripts/translations/backfill_po.py`
+sends it to the model as a developer note that takes precedence over other
+languages' translations. After changing a comment, re-run `babel_update.sh`:
+CI's template drift check fails when a string's `i18n:` comment in source no
+longer matches `messages.pot`.
+
+Per-string context disambiguates one entry. It does not enforce consistency
+across entries — one term used for two concepts across a catalog is a
+catalog-wide problem and needs a per-language terminology decision instead.
 
 ### Updating language files
 
