@@ -492,6 +492,30 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     );
   };
 
+  // Render extended aggregate function support (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+  const renderExtendedAggregations = () => {
+    const aggregations = database.extended_aggregations;
+    if (!aggregations || Object.keys(aggregations).length === 0) return null;
+
+    return (
+      <Card title="Extended Aggregate Functions" style={{ marginBottom: 16 }}>
+        <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+          The base aggregates (SUM, COUNT, AVG, MIN, MAX, COUNT DISTINCT) are
+          supported everywhere; these are opt-in per engine.
+        </Text>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {Object.entries(aggregations).map(([aggregate, supported]) => (
+            <FeatureBadge
+              key={aggregate}
+              supported={supported}
+              label={aggregate}
+            />
+          ))}
+        </div>
+      </Card>
+    );
+  };
+
   // Render troubleshooting / custom errors section
   const renderTroubleshooting = () => {
     if (!docs?.custom_errors?.length) return null;
@@ -774,6 +798,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
 
       {/* Time Grains */}
       {renderTimeGrains()}
+
+      {/* Extended Aggregate Functions */}
+      {renderExtendedAggregations()}
 
       {/* Troubleshooting / Custom Errors */}
       {renderTroubleshooting()}
