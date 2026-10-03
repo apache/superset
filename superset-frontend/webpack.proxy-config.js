@@ -21,23 +21,7 @@ import { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { ZSTDDecompress } from 'simple-zstd';
 
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
-
-const parsedArgs = yargs(hideBin(process.argv)).parse();
-
-const parsedEnvArg = () => {
-  let envArgs = {};
-  if (parsedArgs.env) {
-    envArgs = yargs(parsedArgs.env).argv;
-  }
-  return { ...process.env, ...envArgs };
-};
-const { supersetPort = 8088, superset: supersetUrl = null } = parsedEnvArg();
-const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
-  '//+$/',
-  '',
-); // strip ending backslash
+const importTimeEnvVars = Object.freeze({ ...process.env });
 
 let manifest;
 function isHTML(res) {
@@ -88,7 +72,7 @@ function toDevHTML(originalHtml) {
   return html;
 }
 
-function copyHeaders(originalResponse, response) {
+function copyHeaders(originalResponse, response, backend) {
   response.statusCode = originalResponse.statusCode;
   response.statusMessage = originalResponse.statusMessage;
   if (response.setHeader) {
@@ -185,7 +169,14 @@ async function processHTML(proxyResponse, response) {
   response.end(toDevHTML(Buffer.concat(chunks).toString()));
 }
 
-export default function getProxyConfig(newManifest) {
+export default function getProxyConfig(newManifest, env = {}) {
+  const parsedEnvArgs = { ...importTimeEnvVars, ...env };
+  const { supersetPort = 8088, supersetUrl = null } = parsedEnvArgs;
+  const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
+    '//+$/',
+    '',
+  ); // strip ending backslash
+
   manifest = newManifest;
   return {
     context: path => {
@@ -206,7 +197,7 @@ export default function getProxyConfig(newManifest) {
     selfHandleResponse: true, // so that the onProxyRes takes care of sending the response
     onProxyRes(proxyResponse, request, response) {
       try {
-        copyHeaders(proxyResponse, response);
+        copyHeaders(proxyResponse, response, backend);
         if (isHTML(response)) {
           // For HTML responses, flush headers before processing starts.
           // processHTML awaits pipeline() and calls response.end() once it
