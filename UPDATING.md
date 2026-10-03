@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- With `SEMANTIC_LAYERS` enabled, same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs for the same name and grain must disambiguate their catalog;
+  such catalogs are rejected instead of silently selecting an ID. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal filters are preserved alongside the chart's time bounds,
+  which can narrow results where those filters were previously discarded.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

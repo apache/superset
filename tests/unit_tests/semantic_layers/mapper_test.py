@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable, Iterator
 from datetime import date, datetime, time, timezone
+from itertools import permutations
 from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
@@ -42,6 +44,11 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_object import QueryObject
+from superset.common.query_object_factory import QueryObjectFactory
+from superset.exceptions import QueryObjectValidationError
+from superset.semantic_layers import mapper
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -71,6 +78,142 @@ from superset.utils.core import FilterOperator
 
 # Alias for convenience
 Feature = SemanticViewFeature
+
+
+class OrderedDimensions(set[Dimension]):
+    """Exercise every catalog order without violating the provider's set ABC."""
+
+    def __init__(self, dimensions: tuple[Dimension, ...]) -> None:
+        super().__init__(dimensions)
+        self._ordered: tuple[Dimension, ...] = dimensions
+
+    def __iter__(self) -> Iterator[Dimension]:
+        return iter(self._ordered)
+
+
+@pytest.mark.parametrize("ordering", list(permutations(range(4))))
+@pytest.mark.parametrize("entry", ["validation", "mapping"])
+@pytest.mark.parametrize("selected_grain", [None, "P1M"])
+def test_default_resolution_exhausts_catalog_orders(
+    mocker: MockerFixture,
+    ordering: tuple[int, ...],
+    entry: str,
+    selected_grain: str | None,
+) -> None:
+    """Every seed exercises all 24 orders, including both name-map entry paths."""
+    variants: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate((None, Grains.DAY, Grains.MONTH, Grains.YEAR))
+    )
+    raw: Dimension = variants[0]
+    grouped: Dimension = variants[2] if selected_grain else raw
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering)), set()
+    )
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        extras={"time_grain_sqla": selected_grain},
+        filters=[{"col": "event_time", "op": "==", "val": "2026-01-20"}],
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        orderby=[("event_time", True)],
+        series_columns=["event_time"],
+        series_limit=2,
+        inner_from_dttm=datetime(2025, 12, 15),
+        inner_to_dttm=datetime(2026, 1, 1),
+    )
+    # Inspect the real validation call's input without replacing its behavior.
+    if entry == "validation":
+        axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
+        _validate_granularity(query)
+        if selected_grain:
+            assert axis_spy.call_args.args[1]["event_time"] is raw
+        else:
+            axis_spy.assert_not_called()
+        return
+
+    queries: list[SemanticQuery] = map_query_object(query)
+    assert len(queries) == 2
+    for result, lower, upper in zip(
+        queries,
+        (datetime(2026, 1, 15), datetime(2025, 12, 15)),
+        (datetime(2026, 2, 1), datetime(2026, 1, 1)),
+        strict=True,
+    ):
+        assert result.dimensions == [grouped]
+        assert result.order == [(grouped, OrderDirection.ASC)]
+        assert result.filters == {
+            Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
+            Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, lower),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, upper),
+        }
+        assert result.group_limit is not None
+        assert result.group_limit.dimensions == [grouped]
+        assert result.group_limit.filters == {
+            Filter(PredicateType.WHERE, raw, Operator.EQUALS, datetime(2026, 1, 20)),
+            Filter(
+                PredicateType.WHERE,
+                raw,
+                Operator.GREATER_THAN_OR_EQUAL,
+                datetime(2025, 12, 15),
+            ),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 1, 1)),
+        }
+
+
+@pytest.mark.parametrize("axis", [True, False])
+@pytest.mark.parametrize("ordering", [(0, 1), (1, 0)])
+def test_default_grouping_without_raw_uses_finest_grain(
+    mocker: MockerFixture, axis: bool, ordering: tuple[int, ...]
+) -> None:
+    """Neither default-axis nor non-axis grouping depends on catalog ordering."""
+    variants: tuple[Dimension, ...] = (
+        Dimension("hour", "event_time", pa.timestamp("us"), grain=Grains.HOUR),
+        Dimension("day", "event_time", pa.timestamp("us"), grain=Grains.DAY),
+    )
+    other: Dimension = Dimension("other", "other", pa.timestamp("us"))
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering) + (other,)),
+        set(),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        granularity="event_time" if axis else "other",
+    )
+    assert map_query_object(query)[0].dimensions == [variants[0]]
+
+
+@pytest.mark.parametrize("entry", ["validation", "mapping"])
+@pytest.mark.parametrize("grain", [None, Grains.MONTH])
+def test_ambiguous_grain_ids_are_rejected(
+    mocker: MockerFixture, entry: str, grain: Grain | None
+) -> None:
+    """A preferred raw variant must not hide an ambiguous non-default grain."""
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView(
+        {
+            Dimension("a", "event_time", pa.timestamp("us"), grain=grain),
+            Dimension("b", "event_time", pa.timestamp("us"), grain=grain),
+            Dimension("raw", "event_time", pa.timestamp("us")),
+        },
+        set(),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource, columns=["event_time"], metrics=[]
+    )
+    entry_point: Callable[[ValidatedQueryObject], object] = (
+        validate_query_object if entry == "validation" else map_query_object
+    )
+    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+        entry_point(query)
 
 
 class MockSemanticView:
@@ -713,7 +856,8 @@ def test_get_group_limit_from_query_object_none(mock_datasource: MagicMock) -> N
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result is None
@@ -743,7 +887,8 @@ def test_get_group_limit_from_query_object_basic(mock_datasource: MagicMock) -> 
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result == GroupLimit(
@@ -782,7 +927,8 @@ def test_get_group_limit_from_query_object_with_group_others(
     result = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=all_dimensions,
     )
 
     assert result
@@ -1237,8 +1383,8 @@ def test_map_query_object_falls_back_when_no_grain_variant_matches(
 
     order_date_dims = [d for d in result[0].dimensions if d.name == "order_date"]
     assert len(order_date_dims) == 1
-    # Deterministic fallback: alphabetically first grain name — "Day" < "Hour".
-    assert order_date_dims[0].grain == Grains.DAY
+    # Shared default preference chooses the finest known grain.
+    assert order_date_dims[0].grain == Grains.HOUR
 
 
 def test_map_query_object_falls_back_to_raw_when_no_grain_variant_matches(
@@ -2393,14 +2539,14 @@ def test_get_filters_from_query_object_with_filter_clauses(
     """
     Test filter extraction with filter clauses including TEMPORAL_RANGE skip.
     """
-    query_object = ValidatedQueryObject(
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
         metrics=["total_sales"],
         columns=["category"],
         granularity="order_date",
-        filter=[
+        filters=[
             {
                 "op": FilterOperator.TEMPORAL_RANGE.value,
                 "col": "order_date",
@@ -2414,18 +2560,34 @@ def test_get_filters_from_query_object_with_filter_clauses(
         ],
     )
 
-    all_dimensions = {
+    all_dimensions: dict[str, Dimension] = {
         dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
-    result = _get_filters_from_query_object(query_object, None, all_dimensions)
+    result: set[Filter] = _get_filters_from_query_object(
+        query_object, None, all_dimensions
+    )
 
-    # Should return a set of filters
-    # TEMPORAL_RANGE should be skipped when granularity is set
-    # The category EQUALS filter should be converted
-    assert isinstance(result, set)
-    # Should have at least time filters (from from_dttm/to_dttm)
-    assert len(result) >= 2
+    assert result == {
+        Filter(
+            PredicateType.WHERE,
+            all_dimensions["order_date"],
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2025, 10, 15),
+        ),
+        Filter(
+            PredicateType.WHERE,
+            all_dimensions["order_date"],
+            Operator.LESS_THAN,
+            datetime(2025, 10, 22),
+        ),
+        Filter(
+            PredicateType.WHERE,
+            all_dimensions["category"],
+            Operator.EQUALS,
+            "Electronics",
+        ),
+    }
 
 
 def test_get_time_filter_unknown_granularity(mock_datasource: MagicMock) -> None:
@@ -4145,3 +4307,184 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+def test_ordering_on_ungrouped_dimension_keeps_default(mocker: MockerFixture) -> None:
+    """Ranking non-grouped dimensions retains deterministic default resolution."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    category: Dimension = Dimension("category", "category", pa.string())
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({month, raw, category}, set())
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["category"],
+        metrics=[],
+        orderby=[("event_time", True)],
+    )
+    result: SemanticQuery = map_query_object(query)[0]
+    assert result.dimensions == [category]
+    assert result.order == [(raw, OrderDirection.ASC)]
+
+
+@pytest.mark.parametrize("secondary_column", ["event_time", "shipped_at"])
+@pytest.mark.parametrize("date_only", [False, True])
+def test_resolution_preserves_independent_temporal_predicates(
+    mocker: MockerFixture, secondary_column: str, date_only: bool
+) -> None:
+    """Only the exact axis range is replaced by offset/inner time bounds."""
+    temporal_type: pa.DataType = pa.date32() if date_only else pa.timestamp("us")
+    raw: Dimension = Dimension("raw", "event_time", temporal_type)
+    month: Dimension = Dimension(
+        "month", "event_time", temporal_type, grain=Grains.MONTH
+    )
+    shipped: Dimension = Dimension("shipped", "shipped_at", temporal_type)
+    secondary: Dimension = raw if secondary_column == "event_time" else shipped
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({raw, month, shipped}, set())
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        extras={"time_grain_sqla": "P1M"},
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        series_columns=["event_time"],
+        series_limit=2,
+        inner_from_dttm=datetime(2025, 12, 15),
+        inner_to_dttm=datetime(2026, 1, 1),
+        filters=[
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-15 : 2026-02-01",
+            },
+            {
+                "col": secondary_column,
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-20 : 2026-01-25",
+            },
+        ],
+    )
+    secondary_lower: date | datetime = (
+        date(2026, 1, 20) if date_only else datetime(2026, 1, 20)
+    )
+    secondary_upper: date | datetime = (
+        date(2026, 1, 25) if date_only else datetime(2026, 1, 25)
+    )
+    independent: set[Filter] = {
+        Filter(
+            PredicateType.WHERE,
+            secondary,
+            Operator.GREATER_THAN_OR_EQUAL,
+            secondary_lower,
+        ),
+        Filter(PredicateType.WHERE, secondary, Operator.LESS_THAN, secondary_upper),
+    }
+    results: list[SemanticQuery] = map_query_object(query)
+    for result, lower, upper in zip(
+        results,
+        (datetime(2026, 1, 15), datetime(2025, 12, 15)),
+        (datetime(2026, 2, 1), datetime(2026, 1, 1)),
+        strict=True,
+    ):
+        assert result.dimensions == [month]
+        assert result.filters == independent | {
+            Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, lower),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, upper),
+        }
+        assert result.group_limit is not None
+        assert result.group_limit.filters == independent | {
+            Filter(
+                PredicateType.WHERE,
+                raw,
+                Operator.GREATER_THAN_OR_EQUAL,
+                datetime(2025, 12, 15),
+            ),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 1, 1)),
+        }
+
+
+@pytest.mark.parametrize("explicit_range", [False, True])
+@pytest.mark.parametrize("time_shift", [None, "1 day ago"])
+def test_replaced_relative_range_uses_factory_identity(
+    mocker: MockerFixture, explicit_range: bool, time_shift: str | None
+) -> None:
+    """Clock movement and legacy shifts cannot reintroduce the unshifted range."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({raw}, set())
+    datasource.implementation.features = frozenset({SemanticViewFeature.GROUP_LIMIT})
+    datasource.fetch_values_predicate = None
+    factory: QueryObjectFactory = QueryObjectFactory(
+        {"ROW_LIMIT": 1000}, mocker.MagicMock()
+    )
+    expression: str = 'DATEADD(DATETIME("now"), -7, day) : now'
+    query: QueryObject
+    with freezegun.freeze_time("2026-01-25 12:00:00") as clock:
+        query = factory.create(
+            parent_result_type=ChartDataResultType.FULL,
+            datasource_model_instance=datasource,
+            columns=["event_time"],
+            metrics=[],
+            time_range=expression if explicit_range else None,
+            time_shift=time_shift,
+            time_offsets=["1 month ago"],
+            series_columns=["event_time"],
+            series_limit=2,
+            inner_from_dttm=datetime(2025, 12, 18, 12),
+            inner_to_dttm=datetime(2025, 12, 25, 12),
+            filters=[
+                {"col": "event_time", "op": "TEMPORAL_RANGE", "val": expression},
+                {
+                    "col": "event_time",
+                    "op": "TEMPORAL_RANGE",
+                    "val": "2025-12-01 : 2026-02-01",
+                },
+            ],
+        )
+        assert validate_query_object(query)
+        assert query.from_dttm is not None
+        assert query.to_dttm is not None
+        lower: datetime = query.from_dttm
+        upper: datetime = query.to_dttm
+        clock.tick(2)
+        results: list[SemanticQuery] = map_query_object(query)
+    day_shift: int = 1 if time_shift else 0
+    independent: set[Filter] = {
+        Filter(
+            PredicateType.WHERE,
+            raw,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2025, 12, 1),
+        ),
+        Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 2, 1)),
+    }
+    assert lower.day == 18 - day_shift
+    assert upper.day == 25 - day_shift
+    for result, start, end in zip(
+        results,
+        (lower, lower.replace(year=2025, month=12)),
+        (upper, upper.replace(year=2025, month=12)),
+        strict=True,
+    ):
+        assert result.filters == independent | {
+            Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, start),
+            Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, end),
+        }
+        assert result.group_limit is not None
+        assert result.group_limit.filters == independent | {
+            Filter(
+                PredicateType.WHERE,
+                raw,
+                Operator.GREATER_THAN_OR_EQUAL,
+                datetime(2025, 12, 18, 12),
+            ),
+            Filter(
+                PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2025, 12, 25, 12)
+            ),
+        }
