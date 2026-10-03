@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1599,6 +1599,9 @@ msgstr "新增指標"
 #, fuzzy
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "在「編輯資料來源」對話框中向資料集新增指標"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "增加新的的顏色格式化器"
@@ -4455,6 +4458,10 @@ msgstr "依漲跌著色"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "顏色欄位必須為十六進位色碼（#rrggbb）或 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9576,6 +9583,11 @@ msgstr "錯誤的經緯度配置。"
 msgid "Invalid JSON metadata"
 msgstr "JSON 元數據"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9905,6 +9917,9 @@ msgstr "千米"
 
 msgid "Label"
 msgstr "標籤"
+
+msgid "Label Colors"
+msgstr ""
 
 #, fuzzy
 msgid "Label Contents"
@@ -10623,6 +10638,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11524,6 +11542,9 @@ msgstr "没有有效的過濾器"
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 #, fuzzy
 msgid "No columns found"
 msgstr "找不到列"
@@ -11689,6 +11710,9 @@ msgid "No saved metrics found"
 msgstr "没有已保存的指標"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13532,6 +13556,9 @@ msgstr "移除系統深色主題"
 msgid "Remove System Default Theme"
 msgstr "刷新預設值"
 
+msgid "Remove color mapping"
+msgstr ""
+
 #, fuzzy
 msgid "Remove cross-filter"
 msgstr "删除交叉篩選"
@@ -15049,6 +15076,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "選擇或输入一個值"
+
+msgid "Select or type a label"
+msgstr ""
 
 #, fuzzy
 msgid "Select or type currency symbol"

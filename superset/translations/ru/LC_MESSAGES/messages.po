@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1494,6 +1494,9 @@ msgstr "Добавить меру"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Добавьте меры в датасет в настройках датасета"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Окрашивать по условию"
@@ -4100,6 +4103,10 @@ msgstr "Цвет по направлению"
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Цвет должен быть в формате hex (#rrggbb) или 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8594,6 +8601,11 @@ msgstr "Неверная конфигурация широты и долготы
 msgid "Invalid JSON metadata"
 msgstr "Некорректные JSON-метаданные"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Некорректный SQL: %(error)s"
@@ -8881,6 +8893,9 @@ msgstr "Километры"
 
 msgid "Label"
 msgstr "Метка"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Содержимое метки"
@@ -9513,6 +9528,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 msgid "MapLibre (open-source)"
@@ -10296,6 +10314,9 @@ msgstr "Нет доступных фильтров"
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Столбцы не найдены"
 
@@ -10435,6 +10456,9 @@ msgid "No saved metrics found"
 msgstr "Сохраненные меры не найдены"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12077,6 +12101,9 @@ msgstr "Удалить системную темную тему"
 msgid "Remove System Default Theme"
 msgstr "Удалить системную светлую тему"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Удалить кросс-фильтр"
 
@@ -13431,6 +13458,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Выберите значение"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Выберите или введите символ валюты"

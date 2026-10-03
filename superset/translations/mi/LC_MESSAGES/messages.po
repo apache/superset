@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1544,6 +1544,9 @@ msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Tāpiri ine ki te rārangi raraunga i te paerewa \"Whakatika puna "
 "raraunga\"\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Tāpiri kaihōputu tae hou"
@@ -4319,6 +4322,10 @@ msgstr "Tae mā te ahunga"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Ko te āpure tae me mātua he tae hekitara (#rrggbb) rānei 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9164,6 +9171,11 @@ msgstr "Whirihora lat/long muhu."
 msgid "Invalid JSON metadata"
 msgstr "Metadata json"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9464,6 +9476,9 @@ msgstr "Kiromita"
 
 msgid "Label"
 msgstr "Tapanga"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Ihirangi Tapanga"
@@ -10128,6 +10143,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10958,6 +10976,9 @@ msgstr "Kāore he tātari wātea."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Kāore i kitea he tīwae"
 
@@ -11107,6 +11128,9 @@ msgid "No saved metrics found"
 msgstr "Kāore i kitea he ine kua tiakina"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12840,6 +12864,9 @@ msgstr "Tangohia te Tūāhua Pouri o te Pūnaha"
 msgid "Remove System Default Theme"
 msgstr "Whakahou i ngā uara taunoa"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Tango tātari-whiti"
 
@@ -14284,6 +14311,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Tīpakohia, pato rānei i tētahi uara ritenga..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Tīpakohia, pato rānei i te tohu moni"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1531,6 +1531,9 @@ msgstr "Pridať metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Pridať metriky do sady dat v modálním okne „Upraviť zdroj dat“"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Pridať nový formátovač farieb"
@@ -4208,6 +4211,10 @@ msgstr "Farba podľa smeru"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Pole farby musí byť hexadecimálna farba (#rrggbb) alebo 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8899,6 +8906,11 @@ msgstr "Neplatná konfigurácia zemepisnej šírky/dĺžky."
 msgid "Invalid JSON metadata"
 msgstr "Neplatná JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neplatný SQL: %(error)s"
@@ -9194,6 +9206,9 @@ msgstr "Kilometry"
 
 msgid "Label"
 msgstr "Popisek"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Obsah popisku"
@@ -9847,6 +9862,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10663,6 +10681,9 @@ msgstr "Nesú k dispozici žiadne filtre."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nebyly nalezeny žiadne stĺpce"
 
@@ -10811,6 +10832,9 @@ msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žiadne uložené metriky"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12506,6 +12530,9 @@ msgstr "Odstrániť systémové tmavé téma"
 msgid "Remove System Default Theme"
 msgstr "Odstrániť systémové predvolený téma"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstrániť krížový filter"
 
@@ -13920,6 +13947,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Vyberte alebo zadejte vlastný hodnotu..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Vyberte alebo zadejte symbol meny"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1548,6 +1548,9 @@ msgstr "Додати показник"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Додайте показники через редагування набору даних"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Додати нову кольорову гамму"
@@ -4166,6 +4169,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Поле кольору має бути шістнадцятковим кольором (#rrggbb) або 'rgb(r, g, "
 "b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8732,6 +8739,11 @@ msgstr "Некоректні параметри координат."
 msgid "Invalid JSON metadata"
 msgstr "Неправильні метадані JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Неправильний SQL: %(error)s"
@@ -9021,6 +9033,9 @@ msgstr "Кілометри"
 
 msgid "Label"
 msgstr "Мітка"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Вміст мітки"
@@ -9658,6 +9673,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10456,6 +10474,9 @@ msgstr "Немає доступних фільтрів."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Не знайдено жодного стовпця"
 
@@ -10597,6 +10618,9 @@ msgid "No saved metrics found"
 msgstr "Не знайдено жодного збереженого показника"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12259,6 +12283,9 @@ msgstr "Вилучити системну темну тему"
 msgid "Remove System Default Theme"
 msgstr "Вилучити системну типову тему"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Вилучити перехресний фільтр"
 
@@ -13644,6 +13671,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Виберіть або ведіть власне значення..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Виберіть або ведіть символ валюти"

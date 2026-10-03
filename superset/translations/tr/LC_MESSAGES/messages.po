@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1530,6 +1530,9 @@ msgstr "Metrik ekle"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "\"Edit datasource\" modalde veri kümesine metrikleri ekleyin."
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Yeni renk formatı ekleyin"
@@ -4298,6 +4301,10 @@ msgstr "Yöne göre renk"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Renk alanı onaltılık bir renk (#rrggbb) veya 'rgb(r, g, b)' olmalıdır"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9113,6 +9120,11 @@ msgstr "Geçersiz JSON yapılandırması"
 msgid "Invalid JSON metadata"
 msgstr "Invalid JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Hata: %(error)s"
@@ -9409,6 +9421,9 @@ msgstr "Kilometers"
 
 msgid "Label"
 msgstr "Etiket"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Etiket İçerikleri"
@@ -10094,6 +10109,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10927,6 +10945,9 @@ msgstr "Uygun filtre yok."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Kolonlar bulunamadı"
 
@@ -11084,6 +11105,9 @@ msgid "No saved metrics found"
 msgstr "Bullanmamış ölçümler bulunamadı"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12801,6 +12825,9 @@ msgstr "İndir System Dark Tema"
 msgid "Remove System Default Theme"
 msgstr "Sistem Varsayılan Teması"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Çapraz filtrelemeyi kaldır"
 
@@ -14261,6 +14288,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Değer seçin / girin"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Select veya tip para sembolü"

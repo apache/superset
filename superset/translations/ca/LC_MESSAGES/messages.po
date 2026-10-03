@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1546,6 +1546,9 @@ msgstr "Afegir mètrica"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Afegir mètriques al conjunt de dades al modal \"Editar font de dades\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Afegir nou formatador de color"
@@ -4347,6 +4350,10 @@ msgstr "Color per direcció"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "El camp de color ha de ser un color hexadecimal (#rrggbb) o 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9229,6 +9236,11 @@ msgstr "Configuració lat/long invàlida."
 msgid "Invalid JSON metadata"
 msgstr "Metadades JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9534,6 +9546,9 @@ msgstr "Quilòmetres"
 
 msgid "Label"
 msgstr "Etiqueta"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Contingut d'Etiqueta"
@@ -10198,6 +10213,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11033,6 +11051,9 @@ msgstr "Cap filtre disponible."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Cap columna trobada"
 
@@ -11182,6 +11203,9 @@ msgid "No saved metrics found"
 msgstr "Cap mètrica desada trobada"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12919,6 +12943,9 @@ msgstr "Elimina el tema fosc del sistema"
 msgid "Remove System Default Theme"
 msgstr "Actualitzar els valors per defecte"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Eliminar filtre creuat"
 
@@ -14358,6 +14385,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Seleccionar o escriure un valor personalitzat..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Seleccionar o escriure símbol de moneda"

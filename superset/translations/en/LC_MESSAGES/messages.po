@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1359,6 +1359,9 @@ msgid "Add metric"
 msgstr ""
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
+msgstr ""
+
+msgid "Add more"
 msgstr ""
 
 msgid "Add new color formatter"
@@ -3791,6 +3794,10 @@ msgid "Color by direction"
 msgstr ""
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
+msgstr ""
+
+#, python-format
+msgid "Color for %s"
 msgstr ""
 
 msgid "Color for bars on the left side of the chart"
@@ -8054,6 +8061,11 @@ msgstr ""
 msgid "Invalid JSON metadata"
 msgstr ""
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -8326,6 +8338,9 @@ msgid "Kilometers"
 msgstr ""
 
 msgid "Label"
+msgstr ""
+
+msgid "Label Colors"
 msgstr ""
 
 msgid "Label Contents"
@@ -8936,6 +8951,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 msgid "MapLibre (open-source)"
@@ -9685,6 +9703,9 @@ msgstr ""
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr ""
 
@@ -9818,6 +9839,9 @@ msgid "No saved metrics found"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11378,6 +11402,9 @@ msgstr ""
 msgid "Remove System Default Theme"
 msgstr ""
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr ""
 
@@ -12686,6 +12713,9 @@ msgid "Select or type CC recipients"
 msgstr ""
 
 msgid "Select or type a custom value..."
+msgstr ""
+
+msgid "Select or type a label"
 msgstr ""
 
 msgid "Select or type currency symbol"

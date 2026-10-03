@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1566,6 +1566,9 @@ msgstr "Metriek toevoegen"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Metrieken toevoegen aan dataset in \"Bewerk gegevensbron\" modal"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Voeg nieuwe kleur formatter toe"
@@ -4440,6 +4443,10 @@ msgstr "Kleur op richting"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Het kleurveld moet een hexadecimale kleur (#rrggbb) of 'rgb(r, g, b)' zijn"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9484,6 +9491,11 @@ msgstr "Ongeldige breedtegraad/lengtegraad configuratie."
 msgid "Invalid JSON metadata"
 msgstr "JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9790,6 +9802,9 @@ msgstr "Kilometers"
 
 msgid "Label"
 msgstr "Label"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Label Inhoud"
@@ -10482,6 +10497,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11354,6 +11372,9 @@ msgstr "Geen beschikbare filters."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Geen kolommen gevonden"
 
@@ -11503,6 +11524,9 @@ msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13289,6 +13313,9 @@ msgstr "Systeem donker thema verwijderen"
 msgid "Remove System Default Theme"
 msgstr "Ververs de standaard waarden"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Verwijder cross-filter"
 
@@ -14769,6 +14796,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Selecteer of typ een waarde"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Selecteer of typ valuta symbool"

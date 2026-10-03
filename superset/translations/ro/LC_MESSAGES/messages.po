@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1626,6 +1626,9 @@ msgstr "Adaugă indicator"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Adaugă indicatori la setul de date în fereastra „Editare sursă de date”"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Adaugă nou formatator de culoare"
@@ -4411,6 +4414,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Câmpul de culoare trebuie să fie o culoare hexazecimală (#rrggbb) sau "
 "'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9348,6 +9355,11 @@ msgstr "Configurație JSON nevalidă"
 msgid "Invalid JSON metadata"
 msgstr "Metadate JSON invalide"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "SQL Invalid: %(error)s"
@@ -9650,6 +9662,9 @@ msgstr "Kilometri"
 
 msgid "Label"
 msgstr "Etichetă"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Conținut Etichetă"
@@ -10328,6 +10343,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
@@ -11176,6 +11194,9 @@ msgstr "Fără filtre disponibile."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nicio coloană găsită"
 
@@ -11335,6 +11356,9 @@ msgid "No saved metrics found"
 msgstr "Nu s-au găsit indicatori salvați"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13061,6 +13085,9 @@ msgstr "Elimină tema întunecată de sistem"
 msgid "Remove System Default Theme"
 msgstr "Elimină tema implicită de sistem"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Elimină filtru transversal"
 
@@ -14538,6 +14565,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Selectează sau tastează o valoare personalizată..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Selectează sau tastează simbol monedă"

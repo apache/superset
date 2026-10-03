@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1557,6 +1557,9 @@ msgstr "افزودن معیار"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "متریک‌ها را به مجموعه داده در کادر \"ویرایش منبع داده\" اضافه کنید."
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "فرمت‌کننده رنگ جدیدی اضافه کنید."
@@ -4344,6 +4347,10 @@ msgstr "رنگ بر اساس جهت"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "فیلد رنگ باید یک رنگ هگزادسیمال (#rrggbb) یا 'rgb(r, g, b)' باشد"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9270,6 +9277,11 @@ msgstr "پیکربندی عرض/طول جغرافیایی نامعتبر است.
 msgid "Invalid JSON metadata"
 msgstr "متاداده JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9576,6 +9588,9 @@ msgstr "کیلومترها"
 
 msgid "Label"
 msgstr "برچسب"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "محتویات برچسب"
@@ -10262,6 +10277,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11112,6 +11130,9 @@ msgstr "هیچ فیلتری موجود نیست."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "ستون‌ها یافت نشدند"
 
@@ -11262,6 +11283,9 @@ msgid "No saved metrics found"
 msgstr "هیچ متریک ذخیره‌شده‌ای پیدا نشد"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13011,6 +13035,9 @@ msgstr "حذف پوسته تاریک سیستم"
 msgid "Remove System Default Theme"
 msgstr "مقادیر پیش‌فرض را به‌روز کنيد"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "فیلتر متقابل را حذف کنید"
 
@@ -14451,6 +14478,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "یک مقدار سفارشی را انتخاب کنید یا تایپ کنید..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "نماد ارز را انتخاب کنید یا وارد کنید"

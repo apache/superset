@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1548,6 +1548,9 @@ msgstr "Dodaj mero"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Dodaj mero v podatkovni set v oknu \"Uredi podatkovni vir\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Dodaj novo pravilo za barvo"
@@ -4217,6 +4220,10 @@ msgstr "Barva po smeri"
 # sr_Latn]
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Barvno polje mora biti šestnajstiška barva (#rrggbb) ali 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8864,6 +8871,11 @@ msgstr "Neveljavna konfiguracija JSON"
 msgid "Invalid JSON metadata"
 msgstr "Neveljavni metapodatki JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neveljaven SQL: %(error)s"
@@ -9156,6 +9168,9 @@ msgstr "Kilometri"
 
 msgid "Label"
 msgstr "Naziv"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Označi vsebino"
@@ -9792,6 +9807,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10609,6 +10627,9 @@ msgstr "Ni razpoložljivih filtrov."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Ni najdenih stolpcev"
 
@@ -10749,6 +10770,9 @@ msgid "No saved metrics found"
 msgstr "Shranjene mere niso najdene"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12422,6 +12446,9 @@ msgstr "Odstranite sistemsko temno temo"
 msgid "Remove System Default Theme"
 msgstr "Odstranite sistemsko privzeto temo"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstrani medsebojne filtre"
 
@@ -13809,6 +13836,9 @@ msgstr "Izberite ali vnesite prejemnike Kp"
 
 msgid "Select or type a custom value..."
 msgstr "Izberite ali vnesite poljubno vrednost..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Izberite ali vnesite simbol valute"

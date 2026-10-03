@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1531,6 +1531,9 @@ msgstr "Pievienot metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Pievienot rādītājus datu kopai \"Rediģēt datu avotu\" logā"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Pievienot jaunu krāsu formatētāju"
@@ -4160,6 +4163,10 @@ msgstr "Krāsa pēc virziena"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Krāsas laukam jābūt heksadecimālai krāsai (#rrggbb) vai 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8723,6 +8730,11 @@ msgstr "Nederīga platuma/garuma konfigurācija."
 msgid "Invalid JSON metadata"
 msgstr "Nederīgi JSON metadati"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Nepareizs SQL: %(error)s"
@@ -9014,6 +9026,9 @@ msgstr "Kilometri"
 
 msgid "Label"
 msgstr "Apzīmējums"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Apzīmējuma saturs"
@@ -9653,6 +9668,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10455,6 +10473,9 @@ msgstr "Nav pieejamu filtru."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Kolonnas nav atrastas"
 
@@ -10596,6 +10617,9 @@ msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12263,6 +12287,9 @@ msgstr "Noņemt sistēmas tumšo motīvu"
 msgid "Remove System Default Theme"
 msgstr "Noņemt sistēmas noklusējuma motīvu"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Noņemt krustenisko filtru"
 
@@ -13643,6 +13670,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Atlasīt vai ierakstīt pielāgotu vērtību..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Atlasīt vai ierakstīt valūtas simbolu"

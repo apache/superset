@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1604,6 +1604,9 @@ msgstr "Dodaj metrykę"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Dodaj metryki do zestawu danych w oknie modalnym \"Edytuj źródło danych\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Dodaj nowy formater kolorów"
@@ -4470,6 +4473,10 @@ msgstr "Kolor według kierunku"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Pole koloru musi być kolorem szesnastkowym (#rrggbb) lub 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9644,6 +9651,11 @@ msgstr "Nieprawidłowa konfiguracja szerokości/długości geograficznej."
 msgid "Invalid JSON metadata"
 msgstr "Metadane JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9950,6 +9962,9 @@ msgstr "Kilometry"
 
 msgid "Label"
 msgstr "Etykieta"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Zawartość etykiety"
@@ -10634,6 +10649,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11521,6 +11539,9 @@ msgstr "Brak dostępnych filtrów."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 #, fuzzy
 msgid "No columns found"
 msgstr "Nie znaleziono kolumn"
@@ -11672,6 +11693,9 @@ msgid "No saved metrics found"
 msgstr "Nie znaleziono zapisanych metryk"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13495,6 +13519,9 @@ msgstr "Usuń systemowy ciemny motyw"
 msgid "Remove System Default Theme"
 msgstr "Odśwież domyślne wartości"
 
+msgid "Remove color mapping"
+msgstr ""
+
 #, fuzzy
 msgid "Remove cross-filter"
 msgstr "Usuń filtr krzyżowy"
@@ -15032,6 +15059,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Wybierz lub wprowadź niestandardową wartość..."
+
+msgid "Select or type a label"
+msgstr ""
 
 #, fuzzy
 msgid "Select or type currency symbol"

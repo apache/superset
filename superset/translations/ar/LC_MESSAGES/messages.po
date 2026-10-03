@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1686,6 +1686,9 @@ msgstr "إضافة مقياس"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "إضافة مقاييس إلى مجموعة البيانات في نموذج \"تحرير مصدر البيانات\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "إضافة منسق لون جديد"
@@ -4522,6 +4525,10 @@ msgstr "تلوين حسب الاتجاه"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "يجب أن يكون حقل اللون لوناً سداسياً (#rrggbb) أو 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9590,6 +9597,11 @@ msgstr "تكوين خطوط طويلة/طويلة غير صالح."
 msgid "Invalid JSON metadata"
 msgstr "بيانات JSON الوصفية"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -9892,6 +9904,9 @@ msgstr "الكيلومترات"
 
 msgid "Label"
 msgstr "ملصق "
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "محتويات الملصق"
@@ -10584,6 +10599,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -11455,6 +11473,9 @@ msgstr "لا توجد فلاتر متاحة."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "لم يتم العثور على أي أعمدة"
 
@@ -11604,6 +11625,9 @@ msgid "No saved metrics found"
 msgstr "لم يتم العثور على مقاييس محفوظة"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -13387,6 +13411,9 @@ msgstr "إزالة السمة الداكنة للنظام"
 msgid "Remove System Default Theme"
 msgstr "قم بتحديث القيم الافتراضية"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "قم بإزالة عامل التصفية المتقاطع"
 
@@ -14876,6 +14903,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "حدد قيمة أو اكتبها"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "حدد رمز العملة أو اكتبه"

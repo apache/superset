@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1510,6 +1510,9 @@ msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Ajouter des mesures au jeu de données dans le modal « Modifier la source "
 "de données »"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Ajouter un nouveau formateur de couleur"
@@ -4210,6 +4213,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Le champ couleur doit être une couleur hexadécimale (#rrggbb) ou 'rgb(r, "
 "g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8836,6 +8843,11 @@ msgstr "Configuration JSON non valide"
 msgid "Invalid JSON metadata"
 msgstr "Métadonnées JSON invalides"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Le schéma du jeu de données n'est pas valide : %(error)s"
@@ -9129,6 +9141,9 @@ msgstr "Kilomètres"
 
 msgid "Label"
 msgstr "Étiquette"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Contenu de l'étiquette"
@@ -9766,6 +9781,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -10567,6 +10585,9 @@ msgstr "Aucun filtre disponible."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Aucune colonne trouvée"
 
@@ -10710,6 +10731,9 @@ msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée trouvée"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12400,6 +12424,9 @@ msgstr "Supprimer le thème sombre du système"
 msgid "Remove System Default Theme"
 msgstr "Supprimer le thème par défaut du système"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Supprimer le filtre croisé"
 
@@ -13803,6 +13830,9 @@ msgstr "Sélectionner ou saisir les destinataires en Cc"
 
 msgid "Select or type a custom value..."
 msgstr "Sélectionner ou renseigner une valeur personnalisé..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Sélectionner ou renseigner un symbole de devise"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1483,6 +1483,9 @@ msgstr "அளவீட்டைச் (metric) சேர்"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "\"Edit datasource\" விண்டோவில் தரவுத்தொகுப்பிற்கு அளவீடுகளைச் சேர்க்கவும்"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "புதிய வண்ண வடிவமைப்பாளரை (color formatter) சேர்க்கவும்"
@@ -4116,6 +4119,10 @@ msgid "Color by direction"
 msgstr "திசைப்படி நிறம்"
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
+msgstr ""
+
+#, python-format
+msgid "Color for %s"
 msgstr ""
 
 msgid "Color for bars on the left side of the chart"
@@ -8647,6 +8654,11 @@ msgstr "JSON உள்ளமைவு"
 msgid "Invalid JSON metadata"
 msgstr "தவறான JSON மெட்டாடேட்டா"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "தவறான SQL: %(error)s"
@@ -8923,6 +8935,9 @@ msgstr "கிலோமீட்டர்கள்"
 
 msgid "Label"
 msgstr "லேபிள்"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "லேபிள் உள்ளடக்கங்கள்"
@@ -9548,6 +9563,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 msgid "MapLibre (open-source)"
@@ -10309,6 +10327,9 @@ msgstr "கிடைக்கக்கூடிய வடிகட்டிக�
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "நெடுவரிசைகள் எதுவும் காணப்படவில்லை"
 
@@ -10445,6 +10466,9 @@ msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12049,6 +12073,9 @@ msgstr "கணினி இருண்ட தீமை நீக்கு"
 msgid "Remove System Default Theme"
 msgstr "கணினி இயல்புநிலை தீமை நீக்கு"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "குறுக்கு வடிகட்டியை நீக்கு"
 
@@ -13388,6 +13415,9 @@ msgstr "நாணயக் குறியீட்டைத் தேர்ந�
 
 msgid "Select or type a custom value..."
 msgstr "தனிப்பயன் மதிப்பைத் தேர்ந்தெடு அல்லது தட்டச்சு செய்க..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "நாணயக் குறியீட்டைத் தேர்ந்தெடு அல்லது தட்டச்சு செய்க"

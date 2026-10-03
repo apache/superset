@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-03 17:00+0000\n"
+"POT-Creation-Date: 2026-10-03 18:06+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1809,6 +1809,9 @@ msgstr "Aggiungi metrica"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Aggiungi metriche al dataset nella modale \"Modifica sorgente dati\""
+
+msgid "Add more"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5098,6 +5101,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Il campo colore deve essere un colore esadecimale (#rrggbb) o 'rgb(r, g, "
 "b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -10850,6 +10857,11 @@ msgstr "Configurazione JSON non valida"
 msgid "Invalid JSON metadata"
 msgstr "Metadati JSON non validi"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 #, python-format
@@ -11280,6 +11292,9 @@ msgstr "Chilometri"
 # sr_Latn, tr, uk, zh, zh_TW]
 msgid "Label"
 msgstr "Etichetta"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Contenuto dell'etichetta"
@@ -12087,6 +12102,9 @@ msgid "Map a column →"
 msgstr ""
 
 msgid "Map a different column instead →"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -13102,6 +13120,9 @@ msgstr "Nessun filtro disponibile."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nessuna colonna trovata"
 
@@ -13255,6 +13276,9 @@ msgid "No saved metrics found"
 msgstr "Nessuna metrica salvata trovata"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15424,6 +15448,9 @@ msgstr "Rimuovi tema di sistema scuro"
 msgid "Remove System Default Theme"
 msgstr "Rimuovi tema di sistema predefinito"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Rimuovi filtri cross"
 
@@ -17114,6 +17141,9 @@ msgstr "Seleziona o digita destinatari in CC"
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
 msgid "Select or type a custom value..."
 msgstr "Seleziona o digita un valore personalizzato..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Seleziona o digita il simbolo di valuta"
