@@ -142,7 +142,9 @@ EditableTabs.defaultProps = {
 };
 
 EditableTabs.TabPane.defaultProps = {
-  closeIcon: <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
+  // rc-tabs already wraps closeIcon in its own <button role="tab"
+  // aria-label="remove">; this is just decorative content inside it.
+  closeIcon: <StyledCloseOutlined iconSize="s" />,
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`

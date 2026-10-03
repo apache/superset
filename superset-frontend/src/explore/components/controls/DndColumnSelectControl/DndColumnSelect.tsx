@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { t, tn } from '@apache-superset/core/translation';
 import { AdhocColumn, QueryFormColumn, isAdhocColumn } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
@@ -27,7 +26,6 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import { ExplorePageState } from 'src/explore/types';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
@@ -52,17 +50,9 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     disabledTabs,
   } = props;
 
-  // Semantic views do not support arbitrary SQL expressions as dimensions.
-  const datasourceType = useSelector<ExplorePageState, string | undefined>(
-    state => state.explore.datasource?.type,
-  );
-  const effectiveDisabledTabs = useMemo(
-    () =>
-      datasourceType === 'semantic_view'
-        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
-        : disabledTabs,
-    [datasourceType, disabledTabs],
-  );
+  // Provider-specific mode rules (for example semantic views disabling
+  // Custom SQL) live in the picker-capability adapter consumed by
+  // ColumnSelectPopover; this wrapper only forwards caller-specified tabs.
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -95,6 +85,33 @@ function DndColumnSelect(props: DndColumnSelectProps) {
       );
     },
     [optionSelector],
+  );
+
+  const onDropFolder = useCallback(
+    (items: DatasourcePanelDndItem[]) => {
+      // Items already passed `canDrop` (in options, not already selected).
+      const columnNames = items
+        .filter(item => item.type === DndItemType.Column)
+        .map(item => (item.value as ColumnMeta).column_name);
+      if (columnNames.length === 0) {
+        return;
+      }
+      if (!optionSelector.multi) {
+        if (!isEmpty(optionSelector.values)) {
+          optionSelector.replace(0, columnNames[0]);
+        } else {
+          optionSelector.add(columnNames[0]);
+        }
+      } else {
+        columnNames.forEach(columnName => {
+          if (!optionSelector.has(columnName)) {
+            optionSelector.add(columnName);
+          }
+        });
+      }
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
   );
 
   const onClickClose = useCallback(
@@ -139,7 +156,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             }}
             editedColumn={column}
             isTemporal={isTemporal}
-            disabledTabs={effectiveDisabledTabs}
+            disabledTabs={disabledTabs}
           >
             <OptionWrapper
               key={idx}
@@ -211,8 +228,9 @@ function DndColumnSelect(props: DndColumnSelectProps) {
       <DndSelectLabel
         onDrop={onDrop}
         canDrop={canDrop}
+        onDropFolder={onDropFolder}
         valuesRenderer={valuesRenderer}
-        accept={DndItemType.Column}
+        accept={[DndItemType.Column, DndItemType.Folder]}
         displayGhostButton={multi || optionSelector.values.length === 0}
         ghostButtonText={labelGhostButtonText}
         onClickGhostButton={openPopover}
@@ -228,7 +246,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
         isTemporal={isTemporal}
-        disabledTabs={effectiveDisabledTabs}
+        disabledTabs={disabledTabs}
       >
         <div />
       </ColumnSelectPopoverTrigger>

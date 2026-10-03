@@ -106,7 +106,11 @@ This example adds primary, secondary, and context actions to the editor:
 import { commands, menus, sqlLab } from '@apache-superset/core';
 
 commands.registerCommand(
-  { id: 'my-extension.format', title: 'Format Query', icon: 'FormatPainterOutlined' },
+  {
+    id: 'my-extension.format',
+    title: 'Format Query',
+    icon: 'FormatPainterOutlined',
+  },
   async () => {
     const tab = sqlLab.getCurrentTab();
     if (tab) {

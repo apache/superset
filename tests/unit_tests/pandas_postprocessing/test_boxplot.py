@@ -68,6 +68,28 @@ def test_boxplot_mean_median_no_future_warning():
     assert series_to_list(df["cars__median"]) == series_to_list(expected["median"])
 
 
+def test_boxplot_minmax_no_future_warning():
+    """Under MINMAX, whisker_high/whisker_low are plain np.max/np.min, which
+    must be passed as strings (not the callables) to GroupBy.agg, else pandas
+    raises a FutureWarning. Also verify the values match a plain pandas
+    groupby, since the string and callable forms could silently diverge on a
+    future pandas version."""
+    expected = names_df.groupby("region")["cars"].agg(["max", "min"])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
+            metrics=["cars"],
+        )
+
+    df = df.set_index("region")
+    assert series_to_list(df["cars__max"]) == series_to_list(expected["max"])
+    assert series_to_list(df["cars__min"]) == series_to_list(expected["min"])
+
+
 def test_boxplot_min_max():
     df = boxplot(
         df=names_df,

@@ -97,3 +97,29 @@ test('does not render DeckglLayerVisibilityTooltip for standard filter type', ()
     screen.queryByTestId('deckgl-layer-visibility-tooltip-icon'),
   ).not.toBeInTheDocument();
 });
+
+test('does not mark a defaultToFirstItem-only filter as required', () => {
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        controlValues: { defaultToFirstItem: true },
+      }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+  expect(screen.queryByText('*')).not.toBeInTheDocument();
+});
+
+test('marks an enableEmptyFilter filter as required', () => {
+  render(
+    <FilterControl
+      filter={{
+        ...nativeFilter,
+        controlValues: { enableEmptyFilter: true },
+      }}
+      onFilterSelectionChange={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('*')).toBeInTheDocument();
+});

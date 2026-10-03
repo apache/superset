@@ -24,6 +24,7 @@ import {
   getTimeFormatter,
   isSavedMetric,
   NumberFormats,
+  NumberFormatter,
   QueryFormMetric,
   SMART_DATE_DETAILED_ID,
   SMART_DATE_ID,
@@ -32,6 +33,7 @@ import {
   TimeGranularity,
   ValueFormatter,
 } from '@superset-ui/core';
+import { TIMESERIES_CONSTANTS } from '../constants';
 
 export const getSmartDateDetailedFormatter = () =>
   getTimeFormatter(SMART_DATE_DETAILED_ID);
@@ -212,4 +214,195 @@ export function getXAxisFormatter(
     return getTimeFormatter(format);
   }
   return String;
+}
+
+type XAxisFormatterFn =
+  | TimeFormatter
+  | NumberFormatter
+  | StringConstructor
+  | ((value: number | string) => string);
+
+/**
+ * Wraps an x-axis time formatter so that consecutive ticks that format to
+ * identical text are blanked (e.g. the boundary label forced by
+ * showMaxLabel duplicating the last real tick).
+ *
+ * Use this instead of createSpacedXAxisFormatter when the axis geometry
+ * doesn't match the spacing model's horizontal-plot assumptions, e.g. a
+ * horizontal orientation chart, where the time axis runs vertically along
+ * the side of the chart rather than along the bottom.
+ */
+export function createDedupXAxisFormatter(
+  xAxisFormatter: XAxisFormatterFn | undefined,
+): (value: number | string) => string {
+  let lastLabel: string | undefined;
+  let lastValue: number | undefined;
+  const wrapper = (value: number | string) => {
+    // ECharts formats the labels in repeated ascending passes. Reset the
+    // dedup state when the sequence restarts so a forced boundary label
+    // (e.g. the min date) isn't blanked by the previous pass's last label
+    // when both format identically (e.g. a May-to-May range).
+    if (
+      typeof value === 'number' &&
+      lastValue !== undefined &&
+      value <= lastValue
+    ) {
+      lastLabel = undefined;
+    }
+    if (typeof value === 'number') {
+      lastValue = value;
+    }
+    const label =
+      typeof xAxisFormatter === 'function'
+        ? (xAxisFormatter as Function)(value)
+        : String(value);
+    if (label === lastLabel) {
+      return '';
+    }
+    lastLabel = label;
+    return label;
+  };
+  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
+  }
+  return wrapper;
+}
+
+/**
+ * Wraps an x-axis time formatter so that:
+ * - consecutive ticks that format to identical text are blanked (e.g. the
+ *   boundary label forced by showMaxLabel duplicating the last real tick).
+ * - ticks that would render close enough to visually collide with the
+ *   previously shown label are blanked, since disabling ECharts'
+ *   `hideOverlap` (required to keep the forced boundary label visible, see
+ *   #39899) also disables its native overlap suppression for every other
+ *   label on the axis.
+ *
+ * The forced axis boundary labels (domainMin/domainMax) are never blanked by
+ * the spacing check so they stay visible regardless of density.
+ *
+ * `showAllLabels` (the "All" X Axis Label Interval option) skips the spacing
+ * check so every tick renders, even ones that would visually collide. The
+ * identical-text dedup still applies, since that's not density thinning, it
+ * just avoids literally printing the same label twice in a row.
+ */
+export function createSpacedXAxisFormatter(
+  xAxisFormatter: XAxisFormatterFn | undefined,
+  domainMin: number | undefined,
+  domainMax: number | undefined,
+  plotWidthPx: number,
+  showAllLabels: boolean = false,
+): (value: number | string) => string {
+  const pixelsPerMs =
+    domainMin !== undefined && domainMax !== undefined && domainMax > domainMin
+      ? plotWidthPx / (domainMax - domainMin)
+      : undefined;
+  let lastLabel: string | undefined;
+  let lastValue: number | undefined;
+  let lastShownValue: number | undefined;
+  const wrapper = (value: number | string) => {
+    // ECharts formats the labels in repeated ascending passes. Reset the
+    // dedup/spacing state when the sequence restarts so a forced boundary
+    // label (e.g. the min date) isn't blanked by the previous pass's state
+    // when both format identically (e.g. a May-to-May range).
+    if (
+      typeof value === 'number' &&
+      lastValue !== undefined &&
+      value <= lastValue
+    ) {
+      lastLabel = undefined;
+      lastShownValue = undefined;
+    }
+    if (typeof value === 'number') {
+      lastValue = value;
+    }
+    const label =
+      typeof xAxisFormatter === 'function'
+        ? (xAxisFormatter as Function)(value)
+        : String(value);
+    if (label === lastLabel) {
+      return '';
+    }
+    const isBoundary =
+      typeof value === 'number' && (value === domainMin || value === domainMax);
+    if (
+      !showAllLabels &&
+      !isBoundary &&
+      typeof value === 'number' &&
+      pixelsPerMs !== undefined &&
+      lastShownValue !== undefined &&
+      (value - lastShownValue) * pixelsPerMs <
+        label.length * TIMESERIES_CONSTANTS.xAxisLabelCharWidthPx +
+          TIMESERIES_CONSTANTS.xAxisLabelMinGapPx
+    ) {
+      return '';
+    }
+    lastLabel = label;
+    if (typeof value === 'number') {
+      lastShownValue = value;
+    }
+    return label;
+  };
+  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
+  }
+  return wrapper;
+}
+
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
+/**
+ * Coerces a data record's raw x-axis value to epoch milliseconds. A temporal
+ * column can carry any of the shapes the query/data pipeline produces for it
+ * (a raw epoch number, a `Date` from client-side parsing, or an ISO string
+ * straight off the wire) — every caller comparing or bucketing temporal
+ * values needs to recognize all three the same way, so this is the single
+ * place that does it. Returns `NaN` for a value that isn't temporal at all
+ * (nullish, an unparseable string, ...); callers filter with
+ * `Number.isFinite`.
+ */
+export function coerceTemporalMs(value: unknown): number {
+  // eslint-disable-next-line no-nested-ternary
+  return value instanceof Date
+    ? value.getTime()
+    : typeof value === 'string'
+      ? parseTemporalString(value)
+      : Number(value ?? NaN);
+}
+
+/**
+ * Computes the [min, max] of a temporal x-axis column across one or more
+ * data record arrays, for use with createSpacedXAxisFormatter.
+ */
+export function getXAxisDomain(
+  dataRecordArrays: Record<string, unknown>[][],
+  xAxisCol: string,
+): [number | undefined, number | undefined] {
+  let domainMin: number | undefined;
+  let domainMax: number | undefined;
+  dataRecordArrays.forEach(records => {
+    records.forEach(record => {
+      const value = coerceTemporalMs(record[xAxisCol]);
+      if (Number.isFinite(value)) {
+        if (domainMin === undefined || value < domainMin) domainMin = value;
+        if (domainMax === undefined || value > domainMax) domainMax = value;
+      }
+    });
+  });
+  return [domainMin, domainMax];
 }

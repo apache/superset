@@ -279,12 +279,17 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     mocked_ds.return_value.id = 1
     mocked_ds.return_value.datasource_type = "table"
     mocked_ds.return_value.table_name = "video_game_sales"
-    mocked_chart = mocker.patch.object(assets_module, "import_chart")
+    mocked_chart = mocker.patch(
+        "superset.commands.chart.importers.v1.utils.import_chart"
+    )
     mocked_chart.return_value.viz_type = "table"
     mocked_dash = mocker.patch.object(assets_module, "import_dashboard")
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
+    # tag import isn't under test here; mock it out so this test doesn't
+    # depend on the TAGGING_SYSTEM feature flag default or a real tag table
+    mocker.patch.object(assets_module, "import_tag")
     mocker.patch("superset.db.session.execute")
 
     configs = {
@@ -578,6 +583,11 @@ def test_import_removes_dashboard_charts(
     expected_number_of_charts = len(charts_config_2)
 
     ImportAssetsCommand._import(base_configs)
+    # Commit between imports, as production does: ``run()`` carries
+    # ``@transaction()``, so two imports are two transactions. Without this the
+    # add and the remove of one association share a Continuum transaction and
+    # collide on ``dashboard_slices_version``'s composite key.
+    db.session.commit()
     ImportAssetsCommand._import(new_configs)
     dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()

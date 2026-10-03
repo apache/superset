@@ -101,11 +101,30 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("queries/example/metric.yaml", lambda: "<SAVED QUERY CONTENTS>"),
     ]
 
-    ExportTagsCommand = mocker.patch(  # noqa: N806
-        "superset.commands.export.assets.ExportTagsCommand.export"
+    ExportAnnotationLayersCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportAnnotationLayersCommand"
+    )
+    ExportAnnotationLayersCommand.return_value.run.return_value = [
+        (
+            "metadata.yaml",
+            lambda: (
+                "version: 1.0.0\n"
+                "type: AnnotationLayer\n"
+                "timestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),
+        ),
+        ("annotation_layers/events.yaml", lambda: "<ANNOTATION LAYER CONTENTS>"),
+    ]
+    mocker.patch(
+        "superset.commands.export.assets.security_manager.can_access",
+        return_value=True,
     )
 
-    ExportTagsCommand.return_value = [
+    ExportTagsCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportTagsCommand"
+    )
+
+    ExportTagsCommand.return_value.run.return_value = [
         ("tags.yaml", lambda: "<TAGS CONTENTS>"),
     ]
 
@@ -122,8 +141,40 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("charts/pie.yaml", "<CHART CONTENTS>"),
         ("dashboards/sales.yaml", "<DASHBOARD CONTENTS>"),
         ("queries/example/metric.yaml", "<SAVED QUERY CONTENTS>"),
+        ("annotation_layers/events.yaml", "<ANNOTATION LAYER CONTENTS>"),
         ("tags.yaml", "<TAGS CONTENTS>"),
     ]
+
+
+def test_export_assets_command_skips_unreadable_annotation_layers(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Annotation layers are left out of the assets bundle without can_read on
+    Annotation.
+    """
+    from superset.commands.export.assets import ExportAssetsCommand
+
+    for name in (
+        "ExportDatabasesCommand",
+        "ExportDatasetsCommand",
+        "ExportChartsCommand",
+        "ExportDashboardsCommand",
+        "ExportSavedQueriesCommand",
+        "ExportTagsCommand",
+    ):
+        mocker.patch(f"superset.commands.export.assets.{name}")
+    ExportAnnotationLayersCommand = mocker.patch(  # noqa: N806
+        "superset.commands.export.assets.ExportAnnotationLayersCommand"
+    )
+    mocker.patch(
+        "superset.commands.export.assets.security_manager.can_access",
+        return_value=False,
+    )
+
+    list(ExportAssetsCommand().run())
+
+    ExportAnnotationLayersCommand.assert_not_called()
 
 
 @pytest.fixture

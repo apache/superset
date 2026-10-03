@@ -18,11 +18,7 @@
  */
 import { useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  handleKeyboardActivation,
-} from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -30,8 +26,8 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   ConfirmStatusChange,
-  Tooltip,
   FaveStar,
 } from '@superset-ui/core/components';
 import {
@@ -213,43 +209,31 @@ function TagList(props: TagListProps) {
                   onConfirm={() => handleTagsDelete([original])}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                    onKeyDown={handleKeyboardActivation(handleEdit)}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  onClick={handleEdit}
+                />
               )}
             </Actions>
           );

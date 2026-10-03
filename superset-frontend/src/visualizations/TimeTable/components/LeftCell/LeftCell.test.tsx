@@ -140,4 +140,59 @@ describe('LeftCell', () => {
       'http://example.com/sales?type=numeric&label=Sales Data',
     );
   });
+
+  test('should not render javascript: URLs as links for column rows', () => {
+    const columnRow = {
+      label: 'Test Column',
+      column_name: 'test_column',
+    };
+
+    render(
+      <LeftCell
+        row={columnRow}
+        rowType="column"
+        url="javascript:alert(document.domain)" // eslint-disable-line no-script-url
+      />,
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Column')).toBeInTheDocument();
+  });
+
+  test('should not render script-bearing schemes assembled via templating', () => {
+    const columnRow = {
+      label: 'Test Column',
+      column_name: 'alert(1)',
+    };
+
+    render(
+      <LeftCell
+        row={columnRow}
+        rowType="column"
+        url="javascript:{{metric.column_name}}" // eslint-disable-line no-script-url
+      />,
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  test('should keep relative URLs as links', () => {
+    const columnRow = {
+      label: 'Test Column',
+      column_name: 'test_column',
+    };
+
+    render(
+      <LeftCell
+        row={columnRow}
+        rowType="column"
+        url="/superset/dashboard/{{metric.column_name}}/"
+      />,
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/superset/dashboard/test_column/',
+    );
+  });
 });

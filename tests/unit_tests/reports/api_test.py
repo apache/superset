@@ -19,7 +19,10 @@ from unittest.mock import patch
 
 import rison
 
-from superset.exceptions import SupersetException
+from superset.utils.slack import (
+    SlackChannelListingClientError,
+    SlackChannelListingError,
+)
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -80,14 +83,43 @@ def test_slack_channels_page_without_page_size_returns_all(
 
 
 @with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
 @patch("superset.reports.api.get_channels_with_search")
-def test_slack_channels_handles_superset_exception(
+def test_slack_channels_client_error_logs_warning(
     mock_search: Any,
+    logger_mock: Any,
     client: Any,
     full_api_access: None,
 ) -> None:
-    mock_search.side_effect = SupersetException("Slack API error")
+    # A permanent token/client-setup failure (e.g. a revoked bot token) is
+    # expected, already-handled noise, so it must be logged at WARNING, not
+    # ERROR, to avoid polluting Sentry with an actionable-looking signal.
+    mock_search.side_effect = SlackChannelListingClientError("Slack API error")
     params = rison.dumps({})
     rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
     assert rv.status_code == 422
     assert "Slack API error" in rv.json["message"]
+    logger_mock.error.assert_not_called()
+    logger_mock.warning.assert_called_once()
+    assert "Slack API error" in logger_mock.warning.call_args.args[1]
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
+@patch("superset.reports.api.get_channels_with_search")
+def test_slack_channels_transient_error_logs_error(
+    mock_search: Any,
+    logger_mock: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    # A transient listing failure (rate limits, transport errors) means Slack is
+    # unavailable, so it must stay ERROR to preserve an actionable signal.
+    mock_search.side_effect = SlackChannelListingError("Slack API error")
+    params = rison.dumps({})
+    rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
+    assert rv.status_code == 422
+    assert "Slack API error" in rv.json["message"]
+    logger_mock.warning.assert_not_called()
+    logger_mock.error.assert_called_once()
+    assert "Slack API error" in logger_mock.error.call_args.args[1]

@@ -97,7 +97,7 @@ test('Displays results for 2 queries', async () => {
 
   expect(screen.getByText('Michael')).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Results 2'));
+  await userEvent.click(screen.getByText('Results 2'));
 
   await waitFor(() => {
     expect(screen.getByText('gender')).toBeInTheDocument();

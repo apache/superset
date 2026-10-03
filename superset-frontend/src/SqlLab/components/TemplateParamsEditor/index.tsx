@@ -111,7 +111,9 @@ const TemplateParamsEditor = ({
           title={t('Edit template parameters')}
           trigger={['hover']}
         >
-          <div role="button" css={{ width: 'inherit' }}>
+          {/* ModalTrigger's own wrapper div already provides role="button"
+              and the click handler; this inner div is just layout. */}
+          <div css={{ width: 'inherit' }}>
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (

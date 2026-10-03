@@ -62,20 +62,24 @@ import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, NoReturn, TYPE_CHECKING
 
 from flask import current_app as app, g, has_app_context
+from flask_babel import gettext as __
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    SupersetErrorException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
+from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -87,10 +91,180 @@ if TYPE_CHECKING:
         StatementResult,
     )
 
+    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
     from superset.result_set import SupersetResultSet
 
 logger = logging.getLogger(__name__)
+
+
+def _raise_all_statements_stripped() -> NoReturn:
+    """Raise a clean error for a mutator that stripped a query down to nothing."""
+    raise SupersetErrorException(
+        SupersetError(
+            message=__(
+                "The SQL query mutator removed all executable "
+                "statements from this query."
+            ),
+            error_type=SupersetErrorType.INVALID_SQL_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+def _has_executable_statements(sql: str, engine: str) -> bool:
+    """Best-effort check that mutated SQL still contains executable statements."""
+    try:
+        return bool(SQLScript(sql, engine=engine).statements)
+    except SupersetParseError:
+        # A mutator may emit engine-specific SQL our parser can't handle; the
+        # database itself is the authority on validity in that case.
+        return True
+
+
+def build_statement_blocks(
+    parsed_script: SQLScript,
+    db_engine_spec: type[BaseEngineSpec],
+    database: Database,
+) -> tuple[SQLScript, list[str]]:
+    """
+    Build the SQL blocks to execute from a parsed script, applying
+    ``SQL_QUERY_MUTATOR`` according to ``MUTATE_AFTER_SPLIT``.
+
+    Some databases (like BigQuery and Kusto) do not persist state across multiple
+    statements if they're run separately (especially when using `NullPool`), so the
+    query runs as a single joined block when the engine spec requires it; otherwise
+    each statement becomes its own block. Shared by the sync (``sql_lab``) and
+    async (``celery_task``) SQL Lab paths so the
+    ``run_multiple_statements_as_one`` × ``MUTATE_AFTER_SPLIT`` matrix behaves
+    identically in both.
+
+    Returns the (possibly re-parsed) script and the blocks to execute.
+
+    :raises SupersetErrorException: if the mutator strips the query down to
+        nothing executable (e.g. only comments/whitespace)
+    """
+    blocks: list[str]
+    if db_engine_spec.run_multiple_statements_as_one:
+        if app.config["MUTATE_AFTER_SPLIT"]:
+            # These engines never actually execute statements individually, so
+            # the per-block mutation call at execution time (whose `is_split` is
+            # always `False` here) would never fire. Mutate each statement here,
+            # before joining them into the single block this engine requires, so
+            # `MUTATE_AFTER_SPLIT=True` still applies the mutator per statement.
+            joined_block = ";\n".join(
+                database.mutate_sql_based_on_config(
+                    statement.format(comments=db_engine_spec.allows_sql_comments),
+                    is_split=True,
+                )
+                for statement in parsed_script.statements
+            )
+            if not _has_executable_statements(joined_block, db_engine_spec.engine):
+                _raise_all_statements_stripped()
+            blocks = [joined_block]
+        else:
+            blocks = [parsed_script.format(comments=db_engine_spec.allows_sql_comments)]
+    else:
+        if not app.config["MUTATE_AFTER_SPLIT"]:
+            # `MUTATE_AFTER_SPLIT=False` means the mutator should see the whole,
+            # un-split query, but this engine executes statements individually.
+            # Mutate the whole block up front and re-parse it, so the
+            # per-statement split below (and the per-block mutation call at
+            # execution time, which is a no-op here since its `is_split=True` no
+            # longer matches the config) operate on the already-mutated SQL.
+            mutated_sql: str = database.mutate_sql_based_on_config(
+                parsed_script.format(comments=db_engine_spec.allows_sql_comments),
+                is_split=False,
+            )
+            parsed_script = SQLScript(mutated_sql, engine=db_engine_spec.engine)
+            if not parsed_script.statements:
+                _raise_all_statements_stripped()
+        blocks = [
+            statement.format(comments=db_engine_spec.allows_sql_comments)
+            for statement in parsed_script.statements
+        ]
+
+    return parsed_script, blocks
+
+
+class _LimitedCursor:
+    """Bound cumulative cursor reads without bypassing engine fetch processing."""
+
+    def __init__(self, cursor: Any, limit: int) -> None:
+        """Wrap a cursor with a shared budget for all row-reading methods."""
+        self._cursor = cursor
+        self._remaining = limit
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate metadata and driver-specific methods to the real cursor."""
+        return getattr(self._cursor, name)
+
+    @property
+    def arraysize(self) -> int:
+        """Expose the driver's default fetch batch size."""
+        return self._cursor.arraysize
+
+    @arraysize.setter
+    def arraysize(self, value: int) -> None:
+        """Preserve engine-specific cursor batch-size configuration."""
+        self._cursor.arraysize = value
+
+    def fetchmany(self, size: int | None = None) -> list[Any]:
+        """Read no more than the remaining budget, including across batches."""
+        size = self.arraysize if size is None else size
+        size = max(0, min(size, self._remaining))
+        # Some drivers interpret zero as unbounded, so do not call them at all.
+        if not size:
+            return []
+        rows = self._cursor.fetchmany(size)
+        self._remaining -= len(rows)
+        return rows
+
+    def check_truncated(self, db_engine_spec: type[BaseEngineSpec]) -> bool:
+        """
+        Probe one extra row using the engine's fetch and error handling.
+
+        The rows within the budget are already materialized, so a failed probe
+        reports the result as possibly partial instead of discarding them.
+        """
+        if self._remaining != 0:
+            return False
+        try:
+            return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Truncation probe failed; reporting the result as partial",
+                exc_info=True,
+            )
+            return True
+
+    def fetchall(self) -> list[Any]:
+        """
+        Translate an unbounded read into bounded driver fetches.
+
+        PEP 249 lets `fetchmany` return fewer rows than requested before the
+        result is exhausted, so keep reading until the budget is spent or a
+        batch comes back empty.
+        """
+        rows: list[Any] = []
+        while batch := self.fetchmany(self._remaining):
+            rows.extend(batch)
+        return rows
+
+    def fetchone(self) -> Any:
+        """Read one row only if budget remains."""
+        rows = self.fetchmany(1)
+        return rows[0] if rows else None
+
+    def __iter__(self) -> _LimitedCursor:
+        """Iterate through the same bounded read path."""
+        return self
+
+    def __next__(self) -> Any:
+        """Stop iteration when the result or row budget is exhausted."""
+        if (row := self.fetchone()) is None:
+            raise StopIteration
+        return row
 
 
 def execute_sql_with_cursor(
@@ -101,6 +275,7 @@ def execute_sql_with_cursor(
     log_query_fn: Any | None = None,
     check_stopped_fn: Any | None = None,
     execute_fn: Any | None = None,
+    is_split: bool = True,
 ) -> list[tuple[str, SupersetResultSet | None, float, int]]:
     """
     Execute SQL statements with a cursor and return all result sets.
@@ -119,10 +294,18 @@ def execute_sql_with_cursor(
     :param execute_fn: Optional custom execute function. If not provided, uses
         database.db_engine_spec.execute(cursor, sql, database). Custom function
         should accept (cursor, sql) and handle execution.
+    :param is_split: Whether `statements` are individual split-out statements (True)
+        or a single un-split block (False, e.g. when the engine spec runs multiple
+        statements as one). Passed to the SQL mutator so `MUTATE_AFTER_SPLIT` can
+        decide whether to fire.
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
     from superset.result_set import SupersetResultSet
+    from superset.sql.execution.cancellation import (
+        check_query_deadline,
+        query_executed,
+    )
 
     total = len(statements)
     if total == 0:
@@ -131,6 +314,7 @@ def execute_sql_with_cursor(
     results: list[tuple[str, SupersetResultSet | None, float, int]] = []
 
     for i, statement in enumerate(statements):
+        check_query_deadline()
         # Check if query was stopped (async cancellation)
         if check_stopped_fn and check_stopped_fn():
             return results
@@ -140,8 +324,23 @@ def execute_sql_with_cursor(
         # Apply SQL mutation
         stmt_sql = database.mutate_sql_based_on_config(
             statement,
-            is_split=True,
+            is_split=is_split,
         )
+        if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
+            # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
+            # executable (whitespace or comments only) would otherwise be sent
+            # to the database engine as an empty query, surfacing a confusing
+            # engine-specific error instead of a clean one.
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "The SQL query mutator removed all executable "
+                        "statements from this query."
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         # Log query
         if log_query_fn:
@@ -153,16 +352,36 @@ def execute_sql_with_cursor(
         else:
             database.db_engine_spec.execute(cursor, stmt_sql, database)
 
+        query_executed()
         stmt_execution_time = (time.time() - stmt_start_time) * 1000
 
         # Fetch results from ALL statements
         description = cursor.description
         if description:
-            rows = database.db_engine_spec.fetch_data(cursor)
+            fetch_cursor = cursor
+            limited_cursor = None
+            # SQL restrictions cannot always be safely wrapped or replaced.
+            # Cap returned rows from the last statement, including RETURNING,
+            # not affected rows. Only explicit limits also honor SQL_MAX_ROW.
+            if i == total - 1 and query.limit is not None:
+                row_limit: int = query.limit
+                if sql_max_row := app.config.get("SQL_MAX_ROW"):
+                    row_limit = min(row_limit, sql_max_row)
+                limited_cursor = _LimitedCursor(cursor, row_limit)
+                fetch_cursor = limited_cursor
+            # Keep each spec's conversion/error handling. Even specs that ignore
+            # a fetch_data limit can only consume the bounded cursor's budget.
+            rows = database.db_engine_spec.fetch_data(fetch_cursor)
+            truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
+                limited_cursor is not None
+                and limited_cursor.check_truncated(database.db_engine_spec)
+            )
+            check_query_deadline()
             result_set = SupersetResultSet(
                 rows,
                 description,
                 database.db_engine_spec,
+                truncated=truncated,
             )
         else:
             # DML statement - no result set
@@ -279,7 +498,16 @@ class SQLExecutor:
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
 
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+            from superset.sql.execution.cancellation import cursor_scope
+
+            # MCP's owner enforces a per-call deadline off the transport loop.
+            # A process-wide SIGALRM is neither thread-safe nor cancellable.
+            timeout_context = (
+                contextlib.nullcontext()
+                if cursor_scope.get() is not None
+                else utils.timeout(seconds=timeout, error_message=timeout_msg)
+            )
+            with timeout_context:
                 statement_results = self._execute_statements(
                     original_script,
                     transformed_script,
@@ -491,6 +719,19 @@ class SQLExecutor:
                 )
             )
 
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if file_transfer_commands := script.get_client_file_transfer_commands():
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=(
+                        "Disallowed client-side file-transfer command(s): "
+                        f"{', '.join(file_transfer_commands)}"
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         # Check DML permission
         if script.has_mutation() and not self.database.allow_dml:
             raise SupersetSecurityException(
@@ -534,49 +775,63 @@ class SQLExecutor:
 
         results_list = []
 
-        # Use consistent execution path for all queries
-        with self.database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            with contextlib.closing(conn.cursor()) as cursor:
-                execution_results = execute_sql_with_cursor(
-                    database=self.database,
-                    cursor=cursor,
-                    statements=[
-                        stmt.format() for stmt in transformed_script.statements
-                    ],
-                    query=query,
-                    log_query_fn=self._log_query,
+        def execute() -> list[tuple[str, SupersetResultSet | None, float, int]]:
+            with self.database.get_raw_connection(
+                catalog=catalog, schema=schema
+            ) as conn:
+                from superset.sql.execution.cancellation import cancellable_cursor
+
+                with (
+                    contextlib.closing(conn.cursor()) as cursor,
+                    cancellable_cursor(self.database, cursor, catalog, schema),
+                ):
+                    return execute_sql_with_cursor(
+                        database=self.database,
+                        cursor=cursor,
+                        statements=[
+                            stmt.format() for stmt in transformed_script.statements
+                        ],
+                        query=query,
+                        log_query_fn=self._log_query,
+                    )
+
+        from superset.utils.oauth2 import execute_with_oauth2_retry
+
+        execution_results = execute_with_oauth2_retry(
+            self.database, execute, can_retry=lambda: not query.progress
+        )
+
+        # If execution was stopped or returned no results, return early
+        if not execution_results:
+            return []
+
+        # Build StatementResult for each executed statement
+        # with both original and executed SQL
+        for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
+            original_sqls, execution_results, strict=True
+        ):
+            if result_set is not None:
+                # SELECT statement
+                df = result_set.to_pandas_df()
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=df,
+                    row_count=len(df),
+                    truncated=result_set.truncated,
+                    execution_time_ms=exec_time,
+                )
+            else:
+                # DML statement - no data, just row count
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=None,
+                    row_count=rowcount,
+                    execution_time_ms=exec_time,
                 )
 
-                # If execution was stopped or returned no results, return early
-                if not execution_results:
-                    return []
-
-                # Build StatementResult for each executed statement
-                # with both original and executed SQL
-                for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
-                    original_sqls, execution_results, strict=True
-                ):
-                    if result_set is not None:
-                        # SELECT statement
-                        df = result_set.to_pandas_df()
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=df,
-                            row_count=len(df),
-                            execution_time_ms=exec_time,
-                        )
-                    else:
-                        # DML statement - no data, just row count
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=None,
-                            row_count=rowcount,
-                            execution_time_ms=exec_time,
-                        )
-
-                    results_list.append(stmt_result)
+            results_list.append(stmt_result)
 
         return results_list
 
@@ -649,7 +904,7 @@ class SQLExecutor:
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
-        Apply limit to the last statement in the script in place.
+        Cap the last statement's outer limit in place without increasing it.
 
         :param script: SQLScript object to modify
         :param opts: Query options
@@ -665,7 +920,7 @@ class SQLExecutor:
 
         # Apply limit to last statement only
         if script.statements:
-            script.statements[-1].set_limit_value(
+            script.statements[-1].cap_limit_value(
                 effective_limit,
                 self.database.db_engine_spec.limit_method,
             )
@@ -704,14 +959,10 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        # Check each statement for disallowed functions
-        found = set()
-        for statement in script.statements:
-            # Use the statement's AST to check for function calls
-            statement_str = str(statement).upper()
-            for func in engine_disallowed:
-                if func.upper() in statement_str:
-                    found.add(func)
+        # Check the parsed AST for real function calls only. A substring check
+        # would incorrectly match identifiers such as ``metric_user_count`` or
+        # ``information_schema`` when functions like USER or SCHEMA are denied.
+        found = script.get_disallowed_functions(engine_disallowed)
 
         return found if found else None
 
@@ -830,6 +1081,8 @@ class SQLExecutor:
         )
 
         cache_key = self._generate_cache_key(sql, opts)
+        if cache_key is None:
+            return None
 
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
             # Reconstruct statement results from cached data
@@ -840,6 +1093,7 @@ class SQLExecutor:
                     data=stmt_data["data"],
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
+                    truncated=stmt_data.get("truncated", False),
                 )
                 for stmt_data in cached.get("statements", [])
             ]
@@ -869,6 +1123,9 @@ class SQLExecutor:
             return
 
         cache_key = self._generate_cache_key(sql, opts)
+        if cache_key is None:
+            return
+
         timeout = (
             (opts.cache.timeout if opts.cache else None)
             or self.database.cache_timeout
@@ -892,6 +1149,7 @@ class SQLExecutor:
                         else stmt.data
                     ),
                     "row_count": stmt.row_count,
+                    "truncated": stmt.truncated,
                     "execution_time_ms": stmt.execution_time_ms,
                 }
                 for stmt in result.statements
@@ -905,14 +1163,29 @@ class SQLExecutor:
             timeout=timeout,
         )
 
-    def _generate_cache_key(self, sql: str, opts: QueryOptions) -> str:
+    def _connection_carries_user_identity(self) -> bool:
+        """
+        Whether the raw connection this executor's database hands out is
+        bound to the calling user's identity (user impersonation or
+        per-user OAuth2 tokens), such that two different users running the
+        identical SQL text can see materially different data because the
+        database itself, not just Superset, distinguishes them.
+        """
+        return bool(self.database.impersonate_user) or self.database.is_oauth2_enabled()
+
+    def _generate_cache_key(self, sql: str, opts: QueryOptions) -> str | None:
         """
         Generate cache key for query result.
 
         :param sql: SQL query
         :param opts: Query options
-        :returns: Cache key string
+        :returns: Cache key string, or ``None`` if the query must not be
+            cached because the connection carries per-user identity but
+            the effective user could not be determined -- caching in that
+            case would risk serving one user's results to another.
         """
+        from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
+
         # Include relevant options in the cache key
         key_parts = [
             str(self.database.id),
@@ -921,6 +1194,24 @@ class SQLExecutor:
             opts.schema or "",
             str(opts.limit) if opts.limit is not None else "",
         ]
+
+        if self._connection_carries_user_identity():
+            user_id = utils.get_user_id()
+            if user_id is None:
+                # Effective identity is unknown (e.g. no request context) --
+                # fail safe by refusing to cache rather than risk sharing
+                # results across users.
+                return None
+            key_parts.append(f"user:{user_id}")
+
+        # Mirror the chart-data cache-key path so CACHE_IMPERSONATION /
+        # CACHE_QUERY_BY_USER / per_user_caching semantics also scope the
+        # SQL executor's result cache.
+        impersonation_cache_dict: dict[str, Any] = {}
+        add_impersonation_cache_key_if_needed(self.database, impersonation_cache_dict)
+        if impersonation_key := impersonation_cache_dict.get("impersonation_key"):
+            key_parts.append(f"impersonation:{impersonation_key}")
+
         key_string = "|".join(key_parts)
         return hashlib.sha256(key_string.encode()).hexdigest()
 
@@ -1107,6 +1398,7 @@ class SQLExecutor:
                                     else None
                                 ),
                                 row_count=stmt_data.get("row_count", 0),
+                                truncated=stmt_data.get("truncated", False),
                                 execution_time_ms=stmt_data.get("execution_time_ms"),
                             )
                             for stmt_data in payload.get("statements", [])

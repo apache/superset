@@ -28,21 +28,13 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
 
 logger = __import__("logging").getLogger(__name__)
@@ -119,12 +111,12 @@ class UserInfo(BaseModel):
         result: list[str] = []
         for item in v:
             if isinstance(item, str):
-                result.append(escape_llm_context_delimiters(item))
+                result.append(item)
                 continue
             try:
                 name = item.name
                 if isinstance(name, str):
-                    result.append(escape_llm_context_delimiters(name))
+                    result.append(name)
             except (AttributeError, DetachedInstanceError):
                 logger.debug(
                     "Skipping role with detached instance in UserInfo.roles coercion"
@@ -150,112 +142,19 @@ class UserInfo(BaseModel):
         return data
 
 
-class UserList(BaseModel):
+class UserList(PaginatedResponse[UserFilter]):
     users: List[UserInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each user",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[UserFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListUsersRequest(BaseModel):
+class ListUsersRequest(PaginatedListRequest[UserFilter]):
     """Request schema for list_users."""
 
-    filters: Annotated[
-        List[UserFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' properties. "
-            "Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if "
-            "not specified.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search string to match against user fields. Cannot be "
-            "used together with 'filters'.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
     order_direction: Annotated[
         Literal["asc", "desc"],
         Field(
             default="asc", description="Direction to order results ('asc' or 'desc')"
         ),
     ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[UserFilter]:
-        """Accept both JSON string and list of objects."""
-        return parse_json_or_model_list(v, UserFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
-        """Accept JSON array, list, or comma-separated string."""
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListUsersRequest":
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching or 'filters' for "
-                "precise column-based filtering, but not both."
-            )
-        return self
 
 
 class UserError(BaseModel):
@@ -263,12 +162,6 @@ class UserError(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "UserError":
@@ -308,7 +201,7 @@ def serialize_user_object(
             for r in user_roles:
                 try:
                     if hasattr(r, "name") and isinstance(r.name, str):
-                        roles.append(escape_llm_context_delimiters(r.name))
+                        roles.append(r.name)
                 except (AttributeError, DetachedInstanceError):
                     logger.debug(
                         "Skipping role that raised exception in serialize_user_object"
@@ -317,17 +210,11 @@ def serialize_user_object(
 
     return UserInfo(
         id=getattr(user, "id", None),
-        username=escape_llm_context_delimiters(getattr(user, "username", None)),
-        first_name=sanitize_for_llm_context(
-            getattr(user, "first_name", None), field_path=("first_name",)
-        ),
-        last_name=sanitize_for_llm_context(
-            getattr(user, "last_name", None), field_path=("last_name",)
-        ),
+        username=getattr(user, "username", None),
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
         active=getattr(user, "active", None),
-        email=escape_llm_context_delimiters(getattr(user, "email", None))
-        if include_sensitive
-        else None,
+        email=getattr(user, "email", None) if include_sensitive else None,
         roles=roles,
         changed_on=getattr(user, "changed_on", None),
     )

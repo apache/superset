@@ -38,10 +38,10 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from flask import flash, session
+from flask import flash, has_request_context, request, session
 from flask_babel import gettext as __
 from flask_login import current_user, logout_user
-from sqlalchemy import event, inspect
+from sqlalchemy import event, inspect, or_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.wrappers import Response
 
@@ -49,6 +49,12 @@ logger = logging.getLogger(__name__)
 
 #: Session key holding the epoch-seconds timestamp of when the session logged in.
 SESSION_LOGIN_AT_KEY = "_login_at"
+
+# Health checks are deliberately independent of authentication and the metadata
+# database, so they must not resolve ``current_user`` or perform session checks.
+# Every probe rule registered by ``health()`` in ``superset/views/health.py``
+# resolves to this single endpoint.
+_HEALTH_CHECK_ENDPOINT = "health.health"
 
 
 def _utcnow() -> datetime:
@@ -108,6 +114,14 @@ def enforce_session_validity() -> Optional[Response]:
     Fails open — any error here logs a warning and allows the request rather
     than risk locking everyone out on a bug in the check.
     """
+    # Do this before touching current_user: it is a LocalProxy whose resolution
+    # may query the metadata DB. Probes do not need session invalidation
+    # enforcement. Flask matches the URL in ``RequestContext.push()``, before
+    # ``preprocess_request()`` runs the ``before_request`` funcs, so
+    # ``request.endpoint`` is already resolved here.
+    if has_request_context() and request.endpoint == _HEALTH_CHECK_ENDPOINT:
+        return None
+
     try:
         user = current_user
         if not user or not getattr(user, "is_authenticated", False):
@@ -163,9 +177,20 @@ def invalidate_user_sessions(connection: Any, user_id: int) -> None:
     )
 
     def _stamp_existing() -> int:
+        # Guard against two concurrent writers regressing the epoch: a
+        # transaction that computed an earlier ``now`` can reach this UPDATE
+        # after one with a later ``now`` has already committed. Only apply
+        # the write when it would advance (or initialize) the stored value,
+        # so the epoch is monotonic regardless of commit order.
         return connection.execute(
             table.update()
             .where(table.c.user_id == user_id)
+            .where(
+                or_(
+                    table.c.sessions_invalidated_at.is_(None),
+                    table.c.sessions_invalidated_at < now,
+                )
+            )
             .values(sessions_invalidated_at=now, changed_on=now)
         ).rowcount
 
@@ -185,6 +210,23 @@ def invalidate_user_sessions(connection: Any, user_id: int) -> None:
     except IntegrityError:
         # A concurrent disable inserted the row first; stamp it instead.
         _stamp_existing()
+
+
+def invalidate_sessions_for_user(user_id: int) -> None:
+    """Stamp the invalidation epoch for ``user_id`` from ordinary application code.
+
+    Convenience wrapper around ``invalidate_user_sessions`` for callers that
+    don't have the raw ``Connection`` the ``after_update`` event listener
+    receives -- e.g. a password-change flow. The stamp is written through the
+    current session's own connection, so it participates in whatever
+    transaction the caller's other pending changes belong to; it is not
+    committed here, so the caller's own commit (or the next flush that
+    triggers one) is what makes it durable.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.extensions import db
+
+    invalidate_user_sessions(db.session.connection(), user_id)
 
 
 def _stamp_epoch_on_disable(_mapper: Any, connection: Any, target: Any) -> None:

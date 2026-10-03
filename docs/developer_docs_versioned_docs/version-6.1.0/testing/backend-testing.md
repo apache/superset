@@ -159,13 +159,13 @@ Use `--concurrency=1` to limit resource usage on your dev machine.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Beat shows no output | Ensure `beat_schedule` is defined in your `CeleryConfig` and `--loglevel=info` is set |
+| Problem                                                    | Solution                                                                                                              |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Beat shows no output                                       | Ensure `beat_schedule` is defined in your `CeleryConfig` and `--loglevel=info` is set                                 |
 | "Report Schedule is still working, refusing to re-compute" | Previous executions are stuck. Reset with: `UPDATE report_schedule SET last_state = 'Not triggered' WHERE id = <id>;` |
-| Task backlog overwhelming the worker | Flush Redis: `redis-cli FLUSHDB`, then restart Beat and Worker |
-| Screenshot timeout | Ensure your frontend dev server is running and `WEBDRIVER_BASEURL` matches its URL |
+| Task backlog overwhelming the worker                       | Flush Redis: `redis-cli FLUSHDB`, then restart Beat and Worker                                                        |
+| Screenshot timeout                                         | Ensure your frontend dev server is running and `WEBDRIVER_BASEURL` matches its URL                                    |
 
 ---
 
-*This documentation is under active development. Check back soon for updates!*
+_This documentation is under active development. Check back soon for updates!_

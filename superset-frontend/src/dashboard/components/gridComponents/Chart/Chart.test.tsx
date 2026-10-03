@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { useEffect } from 'react';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
@@ -27,6 +28,10 @@ import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
+import {
+  AutoRefreshProvider,
+  useAutoRefreshContext,
+} from 'src/dashboard/contexts/AutoRefreshContext';
 import Chart from './Chart';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
@@ -109,6 +114,32 @@ function setup(
   });
 }
 
+function StartAutoRefreshFor({ chartIds }: { chartIds: number[] }) {
+  const { startAutoRefresh } = useAutoRefreshContext();
+  useEffect(() => {
+    startAutoRefresh(chartIds);
+  }, [chartIds, startAutoRefresh]);
+  return null;
+}
+
+function setupDuringUnrelatedAutoRefresh(
+  refreshingChartIds: number[],
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+) {
+  return render(
+    <AutoRefreshProvider>
+      <StartAutoRefreshFor chartIds={refreshingChartIds} />
+      <Chart {...props} {...overrideProps} />
+    </AutoRefreshProvider>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
+}
+
 const refreshChart = jest.fn();
 const logEvent = jest.fn();
 const changeFilter = jest.fn();
@@ -134,6 +165,34 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+test('shows the loading spinner for a chart that starts loading outside the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId + 1], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(false);
+});
+
+test('suppresses the loading spinner for a chart included in the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(true);
+});
+
 test('should render a SliceHeader', () => {
   const { getByTestId, container } = setup();
   expect(getByTestId('slice-header')).toBeInTheDocument();
@@ -145,18 +204,79 @@ test('should render a ChartContainer', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
-test('should render a description if it has one and isExpanded=true', () => {
-  const { container } = setup(
-    {},
-    {
-      dashboardState: {
-        ...defaultState.dashboardState,
-        expandedSlices: { [props.id]: true },
+const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
+  sliceExpanded =>
+    ([undefined, false, true] as const).map(allExpanded => ({
+      sliceExpanded,
+      allExpanded,
+    })),
+);
+
+test.each(noDescriptionRenderInputs)(
+  'should not render a description when it has none, expandedSlices=$sliceExpanded and expandAllSlices=$allExpanded',
+  ({ sliceExpanded, allExpanded }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: sliceExpanded },
+          expandAllSlices: allExpanded,
+        },
+        sliceEntities: {
+          ...sliceEntities,
+          slices: {
+            [queryId]: {
+              ...sliceEntities.slices[queryId],
+              description_markdown: undefined,
+              owners: [],
+              viz_type: VizType.Table,
+            },
+          },
+        },
       },
-    },
-  );
-  expect(container.querySelector('.slice_description')).toBeInTheDocument();
-});
+    );
+    expect(
+      container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+const chartDescriptionRenderInputs = [
+  { expandSlice: undefined, expandAllSlices: undefined, result: false },
+  { expandSlice: undefined, expandAllSlices: false, result: false },
+  { expandSlice: undefined, expandAllSlices: true, result: true },
+  { expandSlice: false, expandAllSlices: undefined, result: false },
+  { expandSlice: false, expandAllSlices: false, result: false },
+  { expandSlice: false, expandAllSlices: true, result: false },
+  { expandSlice: true, expandAllSlices: undefined, result: true },
+  { expandSlice: true, expandAllSlices: false, result: true },
+  { expandSlice: true, expandAllSlices: true, result: true },
+];
+
+test.each(chartDescriptionRenderInputs)(
+  'should $result render a description if it has one, expandedSlices=$expandSlice and expandAllSlices=$expandAllSlices',
+  ({ expandSlice, expandAllSlices, result }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: expandSlice },
+          expandAllSlices,
+        },
+      },
+    );
+
+    if (result) {
+      expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    } else {
+      expect(
+        container.querySelector('.slice_description'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
   const { getByText, getByRole } = setup({});
@@ -565,4 +685,226 @@ test('should pass filterState from dataMask to ChartContainer', () => {
     'filterState',
     mockFilterState,
   );
+});
+
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
+});
+
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
+  });
+  global.ResizeObserver = mockResizeObserver as any;
+
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    expect(observeMock).toHaveBeenCalled();
+  } finally {
+    restore();
+  }
+});
+
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 300 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 100,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(300 - 22 - 100);
+  } finally {
+    restore();
+  }
+});
+
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 400 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 200,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(400 - 22 - 200);
+  } finally {
+    restore();
+  }
+});
+
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
+    const collapsedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: false },
+        },
+      },
+    );
+    expect(
+      collapsedSetup.container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+
+    const expandedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(
+      expandedSetup.container.querySelector('.slice_description'),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
+});
+
+test('a hidden chart does not adopt a prop update, and adopts it once revealed', () => {
+  const { rerender } = setup({ isComponentVisible: false, isInView: false });
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // The parent passes an updated prop while the chart is still hidden: the
+  // memoized export bails out, so the prop update never reaches
+  // ChartContainer while the tab is hidden. Store-driven updates (such as a
+  // query trigger read via useSelector) are not gated by this memo.
+  rerender(<Chart {...props} isComponentVisible={false} isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // Revealing the tab lets the chart re-render and adopt the pending update.
+  rerender(<Chart {...props} isComponentVisible isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(true);
 });

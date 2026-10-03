@@ -31,10 +31,6 @@ import {
 import {
   filterNulls,
   autozoom,
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   legendFormat,
   legendPosition,
   viewport,
@@ -164,15 +160,6 @@ const config: ControlPanelConfig = {
         ],
         [legendPosition],
         [legendFormat],
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
       ],
     },
   ],

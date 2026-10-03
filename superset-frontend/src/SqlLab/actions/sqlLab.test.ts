@@ -734,7 +734,7 @@ describe('async actions', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('popSavedQuery', () => {
     const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
-    const store = mockStore({});
+    const store = mockStore(initialState);
 
     const mockSavedQueryApiResponse = {
       catalog: null,
@@ -826,17 +826,61 @@ describe('async actions', () => {
     });
 
     test('should dispatch addDangerToast on API error', async () => {
-      supersetClientGetSpy.mockResolvedValue(new Error() as any);
+      supersetClientGetSpy.mockRejectedValue(new Error('not found'));
 
       await makeRequest(1);
 
-      const addToastAction = store
-        .getActions()
-        .find(action => action.type === ADD_TOAST);
-
-      expect(addToastAction).toBeTruthy();
-      expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
+      const dispatchedActions = store.getActions();
+      expect(dispatchedActions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: ADD_TOAST,
+            payload: expect.objectContaining({
+              toastType: ToastType.Danger,
+            }),
+          }),
+        ]),
+      );
     });
+  });
+
+  test.each([
+    {
+      name: 'popPermalink',
+      action: () => actions.popPermalink('abc123'),
+    },
+    {
+      name: 'popStoredQuery',
+      action: () => actions.popStoredQuery('456'),
+    },
+    {
+      name: 'popQuery',
+      action: () => actions.popQuery('789'),
+    },
+    {
+      name: 'popDatasourceQuery',
+      action: () => actions.popDatasourceQuery('1__table'),
+    },
+  ])('$name dispatches addDangerToast on API error', async ({ action }) => {
+    const store = mockStore(initialState);
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockRejectedValueOnce(new Error('not found'));
+
+    const thunk = action();
+    await thunk(store.dispatch, () => typedInitialState, undefined);
+
+    const dispatchedActions = store.getActions();
+    expect(dispatchedActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      ]),
+    );
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -1046,6 +1090,13 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const getDatabaseEndpoint = /\/api\/v1\/database\/\d+$/;
+    fetchMock.get(
+      getDatabaseEndpoint,
+      { result: { id: queryEditor.dbId } },
+      { name: 'getDatabase' },
+    );
+
     const updateTableSchemaExpandedEndpoint =
       'glob:**/tableschemaview/*/expanded';
     fetchMock.post(updateTableSchemaExpandedEndpoint, {});
@@ -1061,6 +1112,9 @@ describe('async actions', () => {
       isFeatureEnabledMock.mockImplementation(
         (feature: string) => feature === 'SQLLAB_BACKEND_PERSISTENCE',
       );
+      fetchMock.modifyRoute('getDatabase', {
+        response: { result: { id: queryEditor.dbId } },
+      });
     });
 
     afterEach(() => {
@@ -1995,6 +2049,114 @@ describe('async actions', () => {
             ).toHaveLength(2);
           });
       });
+
+      test('clears a deleted database before migrating the tab state', async () => {
+        expect.assertions(7);
+
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          catalog: 'deleted_catalog',
+          schema: 'deleted_schema',
+          inLocalStorage: true,
+        };
+        const staleTable = {
+          id: 'stale-table',
+          dbId: 99,
+          queryEditorId: oldQueryEditor.id,
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [staleTable],
+            databases: { 1: {}, 99: {} },
+          },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { status: 404, body: { message: 'Not found' } },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        const call = fetchMock.callHistory.calls(updateTabStateEndpoint)[0];
+        const formData = call.options.body as FormData;
+        const persistedQueryEditor = JSON.parse(
+          formData.get('queryEditor') as string,
+        );
+        expect(persistedQueryEditor).toMatchObject({
+          dbId: null,
+          sql: oldQueryEditor.sql,
+        });
+        expect(persistedQueryEditor).not.toHaveProperty('catalog');
+        expect(persistedQueryEditor).not.toHaveProperty('schema');
+        expect(fetchMock.callHistory.calls('getDatabase')).toHaveLength(1);
+        expect(fetchMock.callHistory.calls('getDatabase')[0].url).toMatch(
+          /\/api\/v1\/database\/99$/,
+        );
+        expect(
+          fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+        ).toHaveLength(0);
+        expect(store.getActions()).toEqual([
+          {
+            type: actions.MIGRATE_QUERY_EDITOR,
+            oldQueryEditor,
+            newQueryEditor: {
+              ...oldQueryEditor,
+              dbId: undefined,
+              catalog: undefined,
+              schema: undefined,
+              tabViewId: '1',
+              inLocalStorage: false,
+              loaded: true,
+            },
+          },
+          {
+            type: actions.REMOVE_TABLES,
+            tables: [staleTable],
+          },
+        ]);
+      });
+
+      test.each([
+        { status: 400, body: { message: 'Bad request' } },
+        { status: 403, body: { message: 'Forbidden' } },
+        { status: 500, body: { message: 'Server error' } },
+        { throws: new Error('database lookup failed') },
+      ])(
+        'does not migrate when database validation fails: %o',
+        async response => {
+          const oldQueryEditor = {
+            ...queryEditor,
+            dbId: 99,
+            inLocalStorage: true,
+          };
+          const store = mockStore({
+            sqlLab: {
+              queries: [],
+              tables: [],
+              databases: { 99: {} },
+            },
+          });
+          fetchMock.modifyRoute('getDatabase', {
+            response,
+          });
+
+          await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
+          expect(store.getActions()).toEqual([
+            expect.objectContaining({
+              type: ADD_TOAST,
+              payload: expect.objectContaining({
+                toastType: ToastType.Warning,
+              }),
+            }),
+          ]);
+        },
+      );
     });
   });
 

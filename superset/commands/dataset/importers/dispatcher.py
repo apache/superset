@@ -21,17 +21,21 @@ from typing import Any
 from marshmallow.exceptions import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.commands.dataset.importers import v0, v1
+from superset.commands.dataset.importers import v1
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 
 logger = logging.getLogger(__name__)
 
-# list of different import formats supported; v0 should be last because
-# the files are not versioned
+# list of different import formats supported. The legacy v0 importer is
+# deliberately NOT dispatched here: it overrides datasets matched by
+# (table_name, schema, database) without ownership checks, and this
+# dispatcher is reachable from the HTTP import endpoint
+# (POST /api/v1/dataset/import/). Operators can still import legacy v0
+# YAML files with the `legacy_import_datasources` CLI command, which uses
+# the v0 command directly.
 command_versions = [
     v1.ImportDatasetsCommand,
-    v0.ImportDatasetsCommand,
 ]
 
 

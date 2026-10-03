@@ -19,6 +19,19 @@
 
 import { Page, APIResponse } from '@playwright/test';
 import rison from 'rison';
+import getEmptyLayout from '../../../src/dashboard/util/getEmptyLayout';
+import {
+  BACKGROUND_TRANSPARENT,
+  DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
+  GRID_COLUMN_COUNT,
+  GRID_DEFAULT_CHART_WIDTH,
+} from '../../../src/dashboard/util/constants';
+import {
+  CHART_TYPE,
+  ROW_TYPE,
+} from '../../../src/dashboard/util/componentTypes';
+import type { LayoutItem } from '../../../src/dashboard/types';
 import {
   apiGet,
   apiPost,
@@ -47,6 +60,78 @@ export interface DashboardCreatePayload {
   theme_id?: number;
 }
 
+export interface DashboardLayoutChart {
+  id: number;
+  sliceName: string;
+  width?: number;
+  height?: number;
+}
+
+type DashboardPositionItem = Omit<LayoutItem, 'meta'> & {
+  meta?: LayoutItem['meta'];
+};
+
+export type DashboardPositionJson = Record<
+  string,
+  DashboardPositionItem | string
+>;
+
+const DASHBOARD_ROW_ID = 'ROW-1';
+const DEFAULT_CHART_HEIGHT = 50;
+
+/**
+ * Build a v2 dashboard layout with every chart in one row.
+ */
+export function buildSingleRowDashboardLayout(
+  charts: readonly DashboardLayoutChart[],
+): DashboardPositionJson {
+  const totalWidth = charts.reduce(
+    (sum, chart) => sum + (chart.width ?? GRID_DEFAULT_CHART_WIDTH),
+    0,
+  );
+  if (totalWidth > GRID_COLUMN_COUNT) {
+    throw new Error(
+      `Chart widths total ${totalWidth} columns, exceeding the ` +
+        `${GRID_COLUMN_COUNT}-column dashboard grid`,
+    );
+  }
+
+  const emptyLayout = getEmptyLayout();
+  const chartKeys = charts.map(chart => `CHART-${chart.id}`);
+  const positionJson: DashboardPositionJson = {
+    ...emptyLayout,
+    [DASHBOARD_GRID_ID]: {
+      ...emptyLayout[DASHBOARD_GRID_ID],
+      children: [DASHBOARD_ROW_ID],
+    },
+    [DASHBOARD_ROW_ID]: {
+      type: ROW_TYPE,
+      id: DASHBOARD_ROW_ID,
+      children: chartKeys,
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      meta: { background: BACKGROUND_TRANSPARENT },
+    },
+  };
+
+  charts.forEach(chart => {
+    const chartKey = `CHART-${chart.id}`;
+    positionJson[chartKey] = {
+      type: CHART_TYPE,
+      id: chartKey,
+      children: [],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, DASHBOARD_ROW_ID],
+      meta: {
+        chartId: chart.id,
+        width: chart.width ?? GRID_DEFAULT_CHART_WIDTH,
+        height: chart.height ?? DEFAULT_CHART_HEIGHT,
+        sliceName: chart.sliceName,
+      },
+    };
+  });
+
+  return positionJson;
+}
+
 /**
  * POST request to create a dashboard
  * @param page - Playwright page instance (provides authentication context)
@@ -73,6 +158,29 @@ export async function apiGetDashboard(
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
   return apiGet(page, `${ENDPOINTS.DASHBOARD}${dashboardId}`, options);
+}
+
+/**
+ * GET request to resolve a native-filter `filter_state` key for a dashboard.
+ * The key is the `native_filters_key` URL param the filter bar publishes; a
+ * 200 response carries `{ value: string }`, the serialized data mask.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param dashboardId - ID of the dashboard the key belongs to
+ * @param key - filter_state key to resolve
+ * @param options - Optional request options
+ * @returns API response with the stored filter state
+ */
+export async function apiGetDashboardFilterState(
+  page: Page,
+  dashboardId: number,
+  key: string,
+  options?: ApiRequestOptions,
+): Promise<APIResponse> {
+  return apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}${dashboardId}/filter_state/${key}`,
+    options,
+  );
 }
 
 /**
@@ -182,4 +290,41 @@ export async function getDashboardBySlug(
   slug: string,
 ): Promise<DashboardResult | null> {
   return getDashboardByFilter(page, 'slug', slug);
+}
+
+/**
+ * Result of {@link getDashboardsByName}: the total count and matching rows,
+ * mirroring the API's own `{count, result}` envelope for exact-count
+ * assertions (e.g. "exactly one dashboard titled X exists").
+ */
+export interface DashboardsByNameResult {
+  count: number;
+  result: DashboardResult[];
+}
+
+/**
+ * Get every dashboard with an exact `dashboard_title` match.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param title - The dashboard_title to search for
+ * @returns The matching dashboards and their total count
+ */
+export async function getDashboardsByName(
+  page: Page,
+  title: string,
+): Promise<DashboardsByNameResult> {
+  const queryParam = rison.encode({
+    filters: [{ col: 'dashboard_title', opr: 'eq', value: title }],
+  });
+  const response = await apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}?q=${queryParam}`,
+    { failOnStatusCode: false },
+  );
+
+  if (!response.ok()) {
+    return { count: 0, result: [] };
+  }
+
+  const body = await response.json();
+  return { count: body.count ?? 0, result: body.result ?? [] };
 }

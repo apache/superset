@@ -19,12 +19,12 @@
 # Deployed at: superset-storybook.netlify.app
 
 [build]
-  base = "superset-frontend"
-  command = "npm install && npm run build-storybook"
-  publish = "storybook-static"
-  # Skip builds when no relevant frontend changes
-  # Rebuilds on: component files, storybook config, dependencies
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- src/ packages/ plugins/ .storybook/ package.json yarn.lock"
+base = "superset-frontend"
+command = "npm install && npm run build-storybook"
+publish = "storybook-static"
+# Skip builds when no relevant frontend changes
+# Rebuilds on: component files, storybook config, dependencies
+ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- src/ packages/ plugins/ .storybook/ package.json yarn.lock"
 
 [build.environment]
-  NODE_VERSION = "20"
+NODE_VERSION = "24"

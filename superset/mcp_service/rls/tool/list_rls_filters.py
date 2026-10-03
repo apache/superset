@@ -50,6 +50,7 @@ _DEFAULT_LIST_RLS_FILTERS_REQUEST = ListRlsFiltersRequest()
         title="List RLS filters",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_rls_filters(

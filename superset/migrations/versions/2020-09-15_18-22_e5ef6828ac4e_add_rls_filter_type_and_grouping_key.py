@@ -43,7 +43,7 @@ def upgrade():
         )
 
     bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData()
     filters = sa.Table("row_level_security_filters", metadata, autoload_with=bind)
     statement = filters.update().values(
         filter_type=utils.RowLevelSecurityFilterType.REGULAR.value

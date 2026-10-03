@@ -93,7 +93,7 @@ Look through the GitHub issues. Issues tagged with
 
 Superset could always use better documentation,
 whether as part of the official Superset docs,
-in docstrings, `docs/*.rst` or even on the web as blog posts or
+in docstrings, Markdown files in `docs/`, or even on the web as blog posts or
 articles. See [Documentation](./howtos.md#contributing-to-documentation) for more details.
 
 ### Add Translations
@@ -146,7 +146,7 @@ Security team members must:
 - Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
 - Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
 
-A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team.  However, they are not expected to be active in assessing, discussing, and fixing security issues.
+A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team. However, they are not expected to be active in assessing, discussing, and fixing security issues.
 
 Security team members should also follow these general expectations:
 

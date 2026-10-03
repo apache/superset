@@ -17,10 +17,15 @@
 
 """Tests for MCP tool search transform configuration and application."""
 
+import asyncio
+import logging
+from collections.abc import Callable
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
+from fastmcp.tools.tool import Tool
 from flask import Flask, g
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
@@ -28,7 +33,6 @@ from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.privacy import requires_data_model_metadata_access
 from superset.mcp_service.server import (
     _apply_tool_search_transform,
-    _compact_schema,
     _create_search_result_serializer,
     _extract_parameter_names,
     _filter_tools_by_current_user_permission,
@@ -311,317 +315,66 @@ def test_normalize_ignores_keys_not_in_schema():
     assert isinstance(result["unknown_key"], dict)
 
 
-# -- _compact_schema tests --
+# -- search schema fidelity tests --
 
 
-def test_compact_schema_removes_defs():
-    """$defs section is stripped and refs are inlined from definitions."""
+def test_search_schema_preserves_references_and_constraints() -> None:
+    """Shared and recursive definitions remain resolvable without losing constraints."""
     schema = {
         "type": "object",
         "properties": {
-            "filters": {"items": {"$ref": "#/$defs/MyFilter"}, "type": "array"},
+            "first": {"$ref": "#/$defs/Node", "description": "First", "maxItems": 2},
+            "second": {"$ref": "#/$defs/Node"},
         },
+        "required": ["first"],
+        "additionalProperties": False,
         "$defs": {
-            "MyFilter": {
-                "type": "object",
-                "properties": {"col": {"type": "string"}},
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    # $ref is resolved by inlining the definition from $defs
-    assert result["properties"]["filters"]["items"] == {
-        "type": "object",
-        "properties": {"col": {"type": "string"}},
-    }
-
-
-def test_compact_schema_replaces_ref_with_object():
-    """Direct $ref is replaced with {"type": "object"}."""
-    schema = {"$ref": "#/$defs/SomeModel"}
-
-    result = _compact_schema(schema)
-
-    assert result == {"type": "object"}
-
-
-def test_compact_schema_preserves_ref_description():
-    """$ref replacement preserves sibling description if present."""
-    schema = {"$ref": "#/$defs/SomeModel", "description": "A model"}
-
-    result = _compact_schema(schema)
-
-    assert result == {"type": "object", "description": "A model"}
-
-
-def test_compact_schema_simplifies_optional_ref():
-    """anyOf with $ref and null is collapsed to the non-null variant."""
-    schema = {
-        "anyOf": [
-            {"$ref": "#/$defs/SomeModel"},
-            {"type": "null"},
-        ],
-        "description": "Optional model",
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" not in result
-    assert result["type"] == "object"
-    assert result["description"] == "Optional model"
-
-
-def test_compact_schema_simplifies_optional_primitive():
-    """anyOf with primitive type and null is collapsed."""
-    schema = {
-        "anyOf": [
-            {"type": "integer"},
-            {"type": "null"},
-        ],
-        "default": None,
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" not in result
-    assert result["type"] == "integer"
-    assert result["default"] is None
-
-
-def test_compact_schema_preserves_multi_variant_anyof():
-    """anyOf with >2 variants or no null is left unchanged."""
-    schema = {
-        "anyOf": [
-            {"type": "integer"},
-            {"type": "string"},
-        ]
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" in result
-    assert len(result["anyOf"]) == 2
-
-
-def test_compact_schema_nested_in_items():
-    """$ref nested inside items/properties falls back to object when no $defs."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "filters": {
+            "Node": {
                 "type": "array",
-                "items": {"$ref": "#/$defs/Filter"},
-            },
-            "name": {"type": "string"},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    # No $defs in schema → falls back to {"type": "object"}
-    assert result["properties"]["filters"]["items"] == {"type": "object"}
-    assert result["properties"]["name"] == {"type": "string"}
-
-
-def test_compact_schema_passthrough_simple():
-    """Simple schema without $defs/$ref passes through unchanged."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "page": {"type": "integer", "default": 1},
-            "search": {"type": "string"},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert result == schema
-
-
-def test_compact_schema_handles_non_dict():
-    """Non-dict inputs pass through unchanged."""
-    assert _compact_schema("hello") == "hello"
-    assert _compact_schema(42) == 42
-    assert _compact_schema(None) is None
-    assert _compact_schema([1, 2]) == [1, 2]
-
-
-def test_compact_schema_inlines_columnref_like_model() -> None:
-    """$ref to a model with fields is inlined, preserving field structure."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "metrics": {
-                "type": "array",
-                "items": {"$ref": "#/$defs/ColumnRef"},
-            },
-        },
-        "$defs": {
-            "ColumnRef": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Column name"},
-                    "aggregate": {"type": "string", "description": "SQL aggregate"},
-                    "saved_metric": {"type": "boolean", "default": False},
-                },
-                "required": ["name"],
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    inlined = result["properties"]["metrics"]["items"]
-    assert inlined["type"] == "object"
-    assert "name" in inlined["properties"]
-    assert "aggregate" in inlined["properties"]
-    assert "saved_metric" in inlined["properties"]
-    assert inlined["required"] == ["name"]
-
-
-def test_compact_schema_inlines_nested_refs() -> None:
-    """Nested $ref chains are resolved transitively."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "config": {"$ref": "#/$defs/ChartConfig"},
-        },
-        "$defs": {
-            "ChartConfig": {
-                "type": "object",
-                "properties": {
-                    "metrics": {
-                        "type": "array",
-                        "items": {"$ref": "#/$defs/ColumnRef"},
-                    },
+                "minItems": 1,
+                "items": {
+                    "anyOf": [{"$ref": "#/$defs/Node"}, {"type": "integer"}],
                 },
             },
-            "ColumnRef": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
+        },
+    }
+    serializer = _create_search_result_serializer({"include_schemas": True})
+    result = serializer([_make_mock_tool("tree", "A tree.", schema)])
+
+    assert result[0]["inputSchema"] == schema
+
+
+def test_search_schema_preserves_nullable_unions() -> None:
+    """Nullable unions, siblings, defaults, and discriminator mappings are guidance."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "oneOf": [{"$ref": "#/$defs/Config"}, {"type": "null"}],
+                "description": "Optional config",
+                "default": None,
+                "discriminator": {
+                    "propertyName": "kind",
+                    "mapping": {"table": "#/$defs/Config"},
                 },
-                "required": ["name"],
             },
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    config = result["properties"]["config"]
-    assert config["type"] == "object"
-    col_ref = config["properties"]["metrics"]["items"]
-    assert col_ref["type"] == "object"
-    assert "name" in col_ref["properties"]
-
-
-def test_compact_schema_circular_ref_fallback() -> None:
-    """Circular $ref falls back to {"type": "object"} to avoid infinite recursion."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "node": {"$ref": "#/$defs/TreeNode"},
-        },
-        "$defs": {
-            "TreeNode": {
-                "type": "object",
-                "properties": {
-                    "children": {
-                        "type": "array",
-                        "items": {"$ref": "#/$defs/TreeNode"},
-                    },
-                },
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    node = result["properties"]["node"]
-    assert node["type"] == "object"
-    # The self-reference falls back to {"type": "object"}
-    assert node["properties"]["children"]["items"] == {"type": "object"}
-
-
-def test_compact_schema_inline_with_sibling_description() -> None:
-    """Inlined $ref preserves sibling description via setdefault."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "col": {
-                "$ref": "#/$defs/ColumnRef",
-                "description": "The column to use",
+            "count": {
+                "anyOf": [{"type": "integer", "minimum": 1}, {"type": "null"}],
+                "default": None,
             },
         },
         "$defs": {
-            "ColumnRef": {
+            "Config": {
                 "type": "object",
-                "properties": {"name": {"type": "string"}},
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    col = result["properties"]["col"]
-    assert col["type"] == "object"
-    assert "name" in col["properties"]
-    assert col["description"] == "The column to use"
-
-
-def test_compact_schema_inline_optional_ref() -> None:
-    """anyOf with $ref and null inlines the definition, not just {"type": "object"}."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "col": {
-                "anyOf": [
-                    {"$ref": "#/$defs/ColumnRef"},
-                    {"type": "null"},
-                ],
-                "description": "Optional column",
+                "properties": {"kind": {"const": "table"}},
+                "required": ["kind"],
             },
         },
-        "$defs": {
-            "ColumnRef": {
-                "type": "object",
-                "properties": {"name": {"type": "string"}},
-            }
-        },
     }
+    serializer = _create_search_result_serializer({"include_schemas": True})
+    result = serializer([_make_mock_tool("nullable", "Nullable.", schema)])
 
-    result = _compact_schema(schema)
-
-    col = result["properties"]["col"]
-    assert "anyOf" not in col
-    assert col["type"] == "object"
-    assert "name" in col["properties"]
-    assert col["description"] == "Optional column"
-
-
-def test_compact_schema_inlines_empty_def() -> None:
-    """Empty $defs entry ({}) is inlined as-is, not downgraded to {"type": "object"}."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "anything": {"$ref": "#/$defs/Anything"},
-        },
-        "$defs": {
-            "Anything": {},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    # Empty dict is a valid schema — should be inlined as {}, not {"type": "object"}
-    assert result["properties"]["anything"] == {}
+    assert result[0]["inputSchema"] == schema
 
 
 # -- _truncate_description tests --
@@ -679,7 +432,7 @@ def _make_mock_tool(name, description, input_schema):
 
 
 def test_create_serializer_compacts_schemas():
-    """Compact serializer strips $defs and replaces $ref."""
+    """Search serialization keeps shared definitions and their references."""
     tool = _make_mock_tool(
         "list_charts",
         "List charts with filtering.",
@@ -707,12 +460,8 @@ def test_create_serializer_compacts_schemas():
 
     assert len(result) == 1
     schema = result[0]["inputSchema"]
-    assert "$defs" not in schema
-    # $ref is inlined from $defs, preserving field structure
-    assert schema["properties"]["filters"]["items"] == {
-        "type": "object",
-        "properties": {"col": {"type": "string"}},
-    }
+    assert schema["$defs"]["ChartFilter"]["properties"] == {"col": {"type": "string"}}
+    assert schema["properties"]["filters"]["items"] == {"$ref": "#/$defs/ChartFilter"}
 
 
 def test_create_serializer_truncates_descriptions():
@@ -730,8 +479,9 @@ def test_create_serializer_truncates_descriptions():
     assert len(result[0]["description"]) <= 53  # 50 + potential "..."
 
 
-def test_create_serializer_disabled():
-    """When compact_schemas=False and max_description_length=0, no compaction."""
+@pytest.mark.parametrize("compact", [False, True])
+def test_create_serializer_disabled(compact: bool) -> None:
+    """An explicit zero description limit disables truncation in either mode."""
     tool = _make_mock_tool(
         "test_tool",
         "A long description " * 20,
@@ -742,7 +492,11 @@ def test_create_serializer_disabled():
     )
 
     serializer = _create_search_result_serializer(
-        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
+        {
+            "include_schemas": True,
+            "compact_schemas": compact,
+            "max_description_length": 0,
+        }
     )
     result = serializer([tool])
 
@@ -1206,7 +960,7 @@ def test_create_serializer_include_schemas_true_restores_full_schema():
 
 
 def test_create_serializer_include_schemas_true_with_compact():
-    """include_schemas=True + compact_schemas=True still compacts the schema."""
+    """The legacy compact setting must not expand or weaken input schemas."""
     schema = {
         "type": "object",
         "properties": {
@@ -1222,13 +976,49 @@ def test_create_serializer_include_schemas_true_with_compact():
     result = serializer([tool])
 
     assert "inputSchema" in result[0]
-    assert "$defs" not in result[0]["inputSchema"]
-    assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
-        "type": "object"
-    }
+    assert result[0]["inputSchema"] == schema
 
 
 # -- search_tools optional query tests --
+
+
+def test_call_tool_proxy_rejects_synthetic_names_with_warning_log_level() -> None:
+    """call_tool proxy raises ToolError(log_level=WARNING) for synthetic names.
+
+    FastMCP logs ToolError at the exception's log_level before middleware sees
+    it.  Synthetic-name rejections are LLM misuse (a 400-class error), not
+    system failures, so WARNING prevents them from reaching Sentry via the
+    ERROR-level LoggingIntegration.
+    """
+    import asyncio
+
+    from fastmcp.exceptions import ToolError as FastMCPToolError
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+    call_tool_obj = transform._make_call_tool()
+
+    async def _run_and_capture(name: str) -> FastMCPToolError:
+        import pytest
+
+        with pytest.raises(FastMCPToolError) as exc_info:
+            await call_tool_obj.fn(name=name, arguments=None, ctx=None)
+        return exc_info.value
+
+    for synthetic_name in ("search_tools", "call_tool"):
+        exc = asyncio.run(_run_and_capture(synthetic_name))
+        assert exc.log_level == logging.WARNING, (
+            f"Expected WARNING for '{synthetic_name}', got {exc.log_level}"
+        )
+        assert synthetic_name in str(exc)
 
 
 def test_search_tool_query_is_optional_in_schema() -> None:
@@ -1352,3 +1142,410 @@ def test_search_tool_regex_with_no_query_returns_all_visible_tools() -> None:
 
     rendered_with = asyncio.run(run())
     assert rendered_with == all_tools
+
+
+@pytest.fixture
+def bm25_transform() -> BM25SearchTransform:
+    """Build the production transform with the default search result budget."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {
+            "strategy": "bm25",
+            "max_results": 5,
+            "always_visible": ["health_check"],
+        },
+    )
+    return server.add_transform.call_args[0][0]
+
+
+@pytest.fixture
+def crowded_catalog() -> list[Tool]:
+    """Build more competing name mentions than fit in one search response."""
+    return [
+        Tool.from_function(
+            lambda: None,
+            name=f"peer_{index}",
+            description="Use generate_chart to create charts.",
+        )
+        for index in range(8)
+    ] + [
+        Tool.from_function(
+            lambda: None, name="generate_chart", description="Create charts."
+        )
+    ]
+
+
+@pytest.mark.parametrize("description_size", [1, 10000])
+@pytest.mark.parametrize(
+    "query", ["generate_chart", " GENERATE_chart ", "generate  chart"]
+)
+def test_bm25_promotes_exact_name(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    description_size: int,
+    query: str,
+) -> None:
+    """Exact names survive crowded descriptions and document-length penalties."""
+    exact = crowded_catalog[-1]
+    exact.description = "Create charts with configurable visualization options. " * (
+        description_size
+    )
+    baseline = asyncio.run(
+        BM25SearchTransform(max_results=5)._search(crowded_catalog, "generate_chart")
+    )
+    assert exact not in baseline
+
+    results = asyncio.run(bm25_transform._search(crowded_catalog, query))
+
+    assert results[0] is exact
+    assert len(results) == 5
+    assert len({tool.name for tool in results}) == 5
+
+
+@pytest.mark.parametrize("query", ["charts", "create charts", "generate", "no_match"])
+def test_bm25_non_exact_ranking_unchanged(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """Non-exact searches preserve upstream BM25 ranking and result count."""
+    expected = asyncio.run(
+        BM25SearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(bm25_transform._search(crowded_catalog, query)) == expected
+
+
+@pytest.mark.parametrize("exclusion", ["permission", "catalog", "pinned"])
+def test_bm25_exact_name_respects_visibility(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    exclusion: str,
+) -> None:
+    """Promotion cannot recover RBAC-denied, catalog-hidden, or pinned tools."""
+    exact = crowded_catalog[-1]
+    # Warm the same transform for a caller who could previously see this tool.
+    assert asyncio.run(bm25_transform._search(crowded_catalog, exact.name))[0] is exact
+    catalog = crowded_catalog
+    if exclusion == "catalog":
+        catalog = crowded_catalog[:-1]
+    elif exclusion == "pinned":
+        bm25_transform._always_visible.add(exact.name)
+    else:
+        setattr(exact.fn, CLASS_PERMISSION_ATTR, "Chart")
+        setattr(exact.fn, METHOD_PERMISSION_ATTR, "write")
+
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+    with (
+        app.app_context(),
+        patch.object(
+            bm25_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+        ),
+        patch(
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
+        ) as security_manager,
+    ):
+        g.user = SimpleNamespace(username="viewer")
+        security_manager.can_access.return_value = False
+        search_tool = bm25_transform._make_search_tool()
+        results = asyncio.run(search_tool.fn(query=exact.name, ctx=None))
+
+    assert exact.name not in [tool["name"] for tool in results]
+    assert len(results) == 5
+    if exclusion == "permission":
+        security_manager.can_access.assert_called_with("can_write", "Chart")
+
+
+def test_bm25_always_visible_tools_stay_pinned(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+) -> None:
+    """Pinned tools remain listed and do not consume the search result budget."""
+    health = Tool.from_function(lambda: None, name="health_check")
+    catalog = [health, *crowded_catalog]
+    listed = asyncio.run(bm25_transform.transform_tools(catalog))
+    assert {tool.name for tool in listed} == {
+        "health_check",
+        "search_tools",
+        "call_tool",
+    }
+    with patch.object(
+        bm25_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+    ):
+        results = asyncio.run(
+            bm25_transform._make_search_tool().fn(query="generate_chart", ctx=None)
+        )
+    assert results[0]["name"] == "generate_chart"
+    assert len(results) == 5
+    assert "health_check" not in [tool["name"] for tool in results]
+
+
+@pytest.fixture
+def production_bm25_transform() -> BM25SearchTransform:
+    """Build the transform from the shipped search configuration."""
+    server = MagicMock()
+    _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
+    return server.add_transform.call_args[0][0]
+
+
+@pytest.fixture
+def registered_catalog() -> list[Tool]:
+    """Return every registered tool as the search catalog reads it."""
+    from superset.mcp_service.app import mcp
+
+    # search_tools reads the catalog through list_tools middleware.
+    catalog = list(asyncio.run(mcp.list_tools()))
+    assert {"generate_chart", "health_check"} <= {tool.name for tool in catalog}
+    return catalog
+
+
+def _exact_name_search(
+    transform: BM25SearchTransform,
+    catalog: list[Tool],
+    *,
+    can_access: bool | Callable[[str, str], bool],
+    can_view_metadata: bool,
+) -> tuple[dict[str, list[str]], set[str]]:
+    """Search each tool's exact name through search_tools as one caller.
+
+    Returns the ranked names for every query and the caller's visible names.
+    """
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+    with (
+        app.app_context(),
+        patch.object(transform, "get_tool_catalog", AsyncMock(return_value=catalog)),
+        patch(
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
+        ) as security_manager,
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
+    ):
+        g.user = SimpleNamespace(username="viewer")
+        if callable(can_access):
+            security_manager.can_access.side_effect = can_access
+        else:
+            security_manager.can_access.return_value = can_access
+        visible = {
+            tool.name for tool in asyncio.run(transform._get_visible_tools(None))
+        }
+        search = transform._make_search_tool().fn
+        results = {
+            tool.name: [
+                result["name"] for result in asyncio.run(search(query=tool.name))
+            ]
+            for tool in catalog
+        }
+    return results, visible
+
+
+def test_bm25_exact_name_finds_every_registered_tool(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Every searchable registered tool is the first result for its own name.
+
+    Long definitions such as generate_chart previously ranked below the
+    result limit for their own names.
+    """
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        can_access=True,
+        can_view_metadata=True,
+    )
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    assert visible == {tool.name for tool in registered_catalog} - pinned
+
+    not_first: dict[str, list[str]] = {
+        name: ranked[:1]
+        for name, ranked in results.items()
+        if name in visible and ranked[:1] != [name]
+    }
+    assert not_first == {}
+    for name in pinned:
+        assert name not in results[name]
+
+
+def _read_only_can_access(permission: str, _view: str) -> bool:
+    """Allow only read and get permissions for the read-only test caller."""
+    return permission in {"can_read", "can_get"}
+
+
+def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Exact-name searches only return tools the caller is authorized to see."""
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        # A read-only caller without data-model metadata access.
+        can_access=_read_only_can_access,
+        can_view_metadata=False,
+    )
+    denied: set[str] = {tool.name for tool in registered_catalog} - visible
+    assert "generate_chart" in denied
+    assert visible
+
+    leaked: dict[str, list[str]] = {
+        name: sorted(set(ranked) - visible)
+        for name, ranked in results.items()
+        if set(ranked) - visible
+    }
+    assert leaked == {}
+    not_first: dict[str, list[str]] = {
+        name: ranked[:1]
+        for name, ranked in results.items()
+        if name in visible and ranked[:1] != [name]
+    }
+    assert not_first == {}
+
+
+@pytest.fixture
+def regex_transform() -> RegexSearchTransform:
+    """Build the production transform with the default search result budget."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {
+            "strategy": "regex",
+            "max_results": 5,
+            "always_visible": ["health_check"],
+        },
+    )
+    return server.add_transform.call_args[0][0]
+
+
+@pytest.mark.parametrize("description_size", [1, 10000])
+@pytest.mark.parametrize(
+    "query, expected_count",
+    [("generate_chart", 5), (" GENERATE_chart ", 5), ("generate  chart", 1)],
+)
+def test_regex_promotes_exact_name(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    description_size: int,
+    query: str,
+    expected_count: int,
+) -> None:
+    """Exact names survive sibling-description matches beyond the result limit."""
+    exact = crowded_catalog[-1]
+    exact.description = "Create charts with configurable visualization options. " * (
+        description_size
+    )
+    baseline = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, "generate_chart")
+    )
+    assert exact not in baseline
+
+    results = asyncio.run(regex_transform._search(crowded_catalog, query))
+
+    assert results[0] is exact
+    assert len(results) == expected_count
+    assert len({tool.name for tool in results}) == expected_count
+
+
+@pytest.mark.parametrize(
+    "query", ["charts", "create charts", "generate", "no_match", "[", "generate.*chart"]
+)
+def test_regex_non_exact_ordering_unchanged(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """Non-exact searches preserve upstream regex ordering and result count."""
+    expected = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(regex_transform._search(crowded_catalog, query)) == expected
+
+
+@pytest.mark.parametrize("exclusion", ["permission", "catalog", "pinned"])
+def test_regex_exact_name_respects_visibility(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    exclusion: str,
+) -> None:
+    """Promotion cannot recover RBAC-denied, catalog-hidden, or pinned tools."""
+    exact = crowded_catalog[-1]
+    # Warm the same transform for a caller who could previously see this tool.
+    assert asyncio.run(regex_transform._search(crowded_catalog, exact.name))[0] is exact
+    catalog = crowded_catalog
+    if exclusion == "catalog":
+        catalog = crowded_catalog[:-1]
+    elif exclusion == "pinned":
+        regex_transform._always_visible.add(exact.name)
+    else:
+        setattr(exact.fn, CLASS_PERMISSION_ATTR, "Chart")
+        setattr(exact.fn, METHOD_PERMISSION_ATTR, "write")
+
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+    with (
+        app.app_context(),
+        patch.object(
+            regex_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+        ),
+        patch(
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
+        ) as security_manager,
+    ):
+        g.user = SimpleNamespace(username="viewer")
+        security_manager.can_access.return_value = False
+        search_tool = regex_transform._make_search_tool()
+        results = asyncio.run(search_tool.fn(query=exact.name, ctx=None))
+
+    assert exact.name not in [tool["name"] for tool in results]
+    assert len(results) == 5
+    if exclusion == "permission":
+        security_manager.can_access.assert_called_with("can_write", "Chart")
+
+
+def test_regex_always_visible_tools_stay_pinned(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+) -> None:
+    """Pinned tools remain listed and do not consume the search result budget."""
+    health = Tool.from_function(lambda: None, name="health_check")
+    catalog = [health, *crowded_catalog]
+    listed = asyncio.run(regex_transform.transform_tools(catalog))
+    assert {tool.name for tool in listed} == {
+        "health_check",
+        "search_tools",
+        "call_tool",
+    }
+    with patch.object(
+        regex_transform, "get_tool_catalog", AsyncMock(return_value=catalog)
+    ):
+        results = asyncio.run(
+            regex_transform._make_search_tool().fn(query="generate_chart", ctx=None)
+        )
+    assert results[0]["name"] == "generate_chart"
+    assert len(results) == 5
+    assert "health_check" not in [tool["name"] for tool in results]
+
+
+@pytest.mark.parametrize("max_results", [1, 3, 5, 20])
+def test_regex_exact_name_is_not_duplicated(
+    regex_transform: RegexSearchTransform,
+    crowded_catalog: list[Tool],
+    max_results: int,
+) -> None:
+    """Promotion deduplicates an upstream exact match and respects the limit."""
+    exact = crowded_catalog[-1]
+    catalog = [exact, *crowded_catalog[:-1]]
+    regex_transform._max_results = max_results
+    baseline = asyncio.run(
+        RegexSearchTransform(max_results=max_results)._search(catalog, exact.name)
+    )
+    assert baseline[0] is exact
+
+    results = asyncio.run(regex_transform._search(catalog, exact.name))
+
+    assert results == baseline
+    assert len(results) == min(max_results, len(catalog))
+    assert len({tool.name for tool in results}) == len(results)

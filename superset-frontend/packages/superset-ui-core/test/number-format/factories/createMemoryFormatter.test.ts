@@ -60,6 +60,31 @@ test('formats float bytes in human readable format with default options', () => 
   expect(formatter(1200.666)).toBe('1.2kB');
 });
 
+test('formats values below one byte without dropping the unit', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter(0.5)).toBe('0.5B');
+  expect(formatter(0.004)).toBe('0B');
+  expect(formatter(-0.25)).toBe('-0.25B');
+
+  const binaryFormatter = createMemoryFormatter({ binary: true });
+  expect(binaryFormatter(0.5)).toBe('0.5B');
+});
+
+test('rolls over to the next unit when rounding reaches the base', () => {
+  const formatter = createMemoryFormatter();
+  expect(formatter(999999)).toBe('1MB');
+  expect(formatter(999995)).toBe('1MB');
+  expect(formatter(999994)).toBe('999.99kB');
+  expect(formatter(-999999)).toBe('-1MB');
+
+  const binaryFormatter = createMemoryFormatter({ binary: true });
+  expect(binaryFormatter(1024 * 1024 - 1)).toBe('1MiB');
+
+  // the largest unit has nothing to roll over into
+  const largest = createMemoryFormatter();
+  expect(largest(Math.pow(1000, 11))).toBe('1000QB');
+});
+
 test('formats bytes in human readable format with additional binary option', () => {
   const formatter = createMemoryFormatter({ binary: true });
   expect(formatter(0)).toBe('0B');
@@ -139,4 +164,11 @@ test('formats bytes in human readable format with additional decimals option', (
   const formatter3decimals = createMemoryFormatter({ decimals: 3 });
   expect(formatter3decimals(0)).toBe('0B');
   expect(formatter3decimals(1111)).toBe('1.111kB');
+});
+
+test('formats bigint values decoded by json-bigint', () => {
+  const formatter = createMemoryFormatter({ binary: true });
+  // integers beyond Number.MAX_SAFE_INTEGER arrive as native BigInt
+  const big = BigInt('1425300509404304697') as unknown as number;
+  expect(formatter(big)).toBe('1.24EiB');
 });

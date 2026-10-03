@@ -75,6 +75,9 @@ export type DatasetObject = {
   columns: ColumnObject[];
   metrics: MetricObject[];
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   is_managed_externally: boolean;
   normalize_columns: boolean;
   always_filter_main_dttm: boolean;

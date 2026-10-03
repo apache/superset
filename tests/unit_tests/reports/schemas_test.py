@@ -27,6 +27,34 @@ from superset.reports.schemas import (
 )
 
 
+@pytest.mark.parametrize(
+    "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_alert_retry_schema(
+    mocker: MockerFixture, schema_cls: type, enabled: bool
+) -> None:
+    """Both APIs accept alert retry settings only when the feature is enabled."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=enabled)
+    result = schema_cls().load(
+        {
+            "type": "Alert",
+            "name": "Retry alert",
+            "crontab": "* * * * *",
+            "database": 1,
+            "sql": "SELECT 1",
+            "validator_type": "not null",
+            "retry_on_failure": True,
+            "retry_max_attempts": 3,
+        }
+    )
+    if enabled:
+        assert result["retry_on_failure"] is True
+        assert result["retry_max_attempts"] == 3
+    else:
+        assert not result.get("retry_on_failure", False)
+
+
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
     """
     Test the custom width validation.
@@ -412,3 +440,255 @@ def test_put_schema_allows_database_on_report_type(mocker: MockerFixture) -> Non
     with pytest.raises(ValidationError) as exc:
         post_schema.load({**MINIMAL_POST_PAYLOAD, "database": 1})
     assert "database" in exc.value.messages
+
+
+# ---------------------------------------------------------------------------
+# Retry config field tests
+# ---------------------------------------------------------------------------
+
+
+_PATCH_RETRY_FLAG = "superset.reports.schemas.is_feature_enabled"
+
+
+def test_retry_fields_defaults(mocker: MockerFixture) -> None:
+    """POST schema: retry fields have correct defaults when omitted."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(MINIMAL_POST_PAYLOAD)
+    assert result["retry_on_failure"] is False
+    assert result["retry_max_attempts"] == 3
+    assert result["send_failed_reports"] is False
+    assert result["retry_notify_owners"] is True
+    assert result["retry_notify_recipients"] is False
+
+
+def test_retry_fields_accepted(mocker: MockerFixture) -> None:
+    """POST schema: retry fields are accepted with valid values."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(
+        {
+            **MINIMAL_POST_PAYLOAD,
+            "retry_on_failure": True,
+            "retry_max_attempts": 5,
+            "send_failed_reports": True,
+            "retry_notify_owners": False,
+            "retry_notify_recipients": True,
+        }
+    )
+    assert result["retry_on_failure"] is True
+    assert result["retry_max_attempts"] == 5
+    assert result["send_failed_reports"] is True
+    assert result["retry_notify_owners"] is False
+    assert result["retry_notify_recipients"] is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [0, 11, -1],
+    ids=["zero", "eleven", "negative"],
+)
+def test_retry_max_attempts_out_of_range(mocker: MockerFixture, value: int) -> None:
+    """POST schema: retry_max_attempts outside 1–10 is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load(
+            {
+                **MINIMAL_POST_PAYLOAD,
+                "retry_on_failure": True,
+                "retry_max_attempts": value,
+            }
+        )
+    assert "retry_max_attempts" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "value",
+    [1, 10],
+    ids=["min", "max"],
+)
+def test_retry_max_attempts_boundary_values(mocker: MockerFixture, value: int) -> None:
+    """POST schema: retry_max_attempts at boundaries (1 and 10) is accepted."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    result = schema.load(
+        {**MINIMAL_POST_PAYLOAD, "retry_on_failure": True, "retry_max_attempts": value}
+    )
+    assert result["retry_max_attempts"] == value
+
+
+def test_send_failed_reports_requires_retry_on_failure(
+    mocker: MockerFixture,
+) -> None:
+    """POST schema: send_failed_reports=True with retry_on_failure=False is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePostSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load(
+            {
+                **MINIMAL_POST_PAYLOAD,
+                "retry_on_failure": False,
+                "send_failed_reports": True,
+            }
+        )
+    assert "send_failed_reports" in exc.value.messages
+
+
+def test_put_schema_accepts_retry_fields(mocker: MockerFixture) -> None:
+    """PUT schema: retry fields are accepted as optional partial updates."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePutSchema()
+    result = schema.load({"retry_on_failure": True, "retry_max_attempts": 7})
+    assert result["retry_on_failure"] is True
+    assert result["retry_max_attempts"] == 7
+
+
+def test_put_schema_retry_max_attempts_out_of_range(
+    mocker: MockerFixture,
+) -> None:
+    """PUT schema: retry_max_attempts outside 1–10 is rejected."""
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+    schema = ReportSchedulePutSchema()
+    with pytest.raises(ValidationError) as exc:
+        schema.load({"retry_max_attempts": 11})
+    assert "retry_max_attempts" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_round_trips(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    result = schema.load({**payload_base, "include_cta": False})
+    assert result["include_cta"] is False
+
+    result = schema.load({**payload_base, "include_cta": True})
+    assert result["include_cta"] is True
+
+    # explicit null is accepted and round-trips as None (legacy NULL rows are
+    # treated as True at execution time)
+    result = schema.load({**payload_base, "include_cta": None})
+    assert result["include_cta"] is None
+
+    # omitted key is absent from the load result (the model default applies)
+    result = schema.load(payload_base)
+    assert "include_cta" not in result
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_rejects_non_boolean(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**payload_base, "include_cta": "not-a-boolean"})
+    assert "include_cta" in exc.value.messages
+
+
+def test_report_recipient_schema_slack_channel_id_valid() -> None:
+    """A Slack channel id is accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C08CSCSDCSY"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C08CSCSDCSY"
+
+
+def test_report_recipient_schema_slack_multiple_channel_ids_valid() -> None:
+    """Several channel ids in one target are accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C04BY4U57M3,C06GXKAQNMS"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C04BY4U57M3,C06GXKAQNMS"
+
+
+def test_report_recipient_schema_slack_channel_name_invalid() -> None:
+    """A channel name is rejected, since it would save and never deliver."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "data-alerts"},
+            }
+        )
+    assert "target" in excinfo.value.messages
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_mixed_target_invalid() -> None:
+    """A target mixing an id with a name is rejected, and names the bad part."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "C08CSCSDCSY,data-alerts"},
+            }
+        )
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+    assert "C08CSCSDCSY" not in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_empty_target_invalid() -> None:
+    """An empty Slack target is rejected."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "   "},
+            }
+        )
+    assert "target" in excinfo.value.messages
+
+
+def test_report_recipient_schema_legacy_slack_channel_name_allowed() -> None:
+    """The deprecated Slack v1 type still accepts a channel name.
+
+    v1 sends with files_upload/chat_postMessage, both of which resolve a name,
+    and existing v1 recipients are auto-upgraded to SlackV2 on first send by
+    update_report_schedule_slack_v2. Validating names away here would break that
+    upgrade path.
+    """
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "data-alerts"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "data-alerts"

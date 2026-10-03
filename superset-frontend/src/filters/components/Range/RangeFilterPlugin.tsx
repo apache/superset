@@ -363,8 +363,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    // Clear all case
-    if (filterState.value === undefined && !filterState.validateStatus) {
+    // Clear all case. The filter bar stages [null, null] for range filters, so
+    // matching only undefined let a filter still sitting at its default fall
+    // through to the default-restoring branch below.
+    if (
+      (filterState.value === undefined ||
+        isEqualArray(filterState.value, [null, null])) &&
+      !filterState.validateStatus
+    ) {
       setInputValue([null, null]);
       updateDataMaskValue([null, null]);
       return;

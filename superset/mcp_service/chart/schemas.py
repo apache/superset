@@ -23,9 +23,12 @@ from __future__ import annotations
 
 import difflib
 import logging
+import math
 import re
-from datetime import datetime
-from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
+from collections.abc import Mapping
+from copy import deepcopy
+from datetime import datetime, time
+from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
@@ -36,12 +39,14 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
-    PositiveInt,
+    StrictBool,
     ValidationError,
+    WithJsonSchema,
 )
-from typing_extensions import Self
+from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import Self, TypedDict
 
-from superset.constants import TimeGrain
+from superset.constants import NO_TIME_RANGE, TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -52,20 +57,19 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
+)
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
 )
 from superset.mcp_service.system.schemas import (
-    PaginationInfo,
     serialize_subject_object,
     SubjectInfo,
     TagInfo,
-)
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
@@ -73,6 +77,13 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_sql_expression,
     sanitize_user_input,
     sanitize_user_input_with_changes,
+)
+from superset.mcp_service.utils.serialization import (
+    JsonSafeMapping,
+    JsonSafeRows,
+    JsonSafeValues,
+    OptionalRowCount,
+    RowCount,
 )
 
 logger = logging.getLogger(__name__)
@@ -84,6 +95,7 @@ class ChartLike(Protocol):
     id: int
     slice_name: str | None
     viz_type: str | None
+    datasource_id: int | None
     datasource_name: str | None
     datasource_type: str | None
     url: str | None
@@ -120,7 +132,16 @@ class ChartInfo(BaseModel):
             "fall back to viz_type when this field is null."
         ),
     )
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     datasource_type: str | None = Field(None, description="Datasource type")
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
@@ -188,6 +209,21 @@ class ChartInfo(BaseModel):
             "sees in the Explore view, not the saved version."
         ),
     )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Explore permalink key the form_data was read from. When present, the "
+            "form_data is the state captured in that permalink rather than the "
+            "saved chart."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from an Explore permalink (a shared "
+            "/explore/p/<key>/ link) rather than the saved chart configuration."
+        ),
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -216,11 +252,7 @@ class ChartInfo(BaseModel):
 
 
 class ChartError(MCPBaseError):
-    @field_validator("message")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
+    pass
 
 
 class ChartCapabilities(BaseModel):
@@ -282,6 +314,7 @@ class VersionedResponse(BaseModel):
 
 DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "id",
+    "datasource_id",
     "slice_name",
     "viz_type",
     "datasource_name",
@@ -300,6 +333,8 @@ DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "filters",
     "form_data_key",
     "is_unsaved_state",
+    "permalink_key",
+    "is_permalink_state",
 ]
 
 
@@ -312,6 +347,10 @@ class GetChartInfoRequest(BaseModel):
 
     For unsaved charts (no chart ID), provide only form_data_key to retrieve the
     current chart configuration from cache.
+
+    When permalink_key is provided, the tool returns the chart state captured in an
+    Explore permalink (/explore/p/<key>/), such as a link a user shared or one
+    returned by generate_explore_link.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -322,7 +361,7 @@ class GetChartInfoRequest(BaseModel):
             default=None,
             description=(
                 "Chart identifier - can be numeric ID or UUID string. "
-                "Optional when form_data_key is provided (for unsaved charts)."
+                "Optional when form_data_key or permalink_key is provided."
             ),
             validation_alias=AliasChoices("identifier", "id", "chart_id"),
         ),
@@ -337,6 +376,16 @@ class GetChartInfoRequest(BaseModel):
             "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Key of an Explore permalink - the <key> in /explore/p/<key>/ - or the "
+            "full permalink URL. Returns the chart state captured in the "
+            "permalink instead of the saved version. Permalinks do not expire. "
+            "Can be used alone: the chart is resolved from the permalink. Cannot "
+            "be combined with form_data_key."
+        ),
+    )
     dashboard_id: int | None = Field(
         default=None,
         description=(
@@ -344,6 +393,16 @@ class GetChartInfoRequest(BaseModel):
             "scope for this chart on the given dashboard and returns them under "
             "filters.dashboard_filters. Requires the chart to be on the dashboard "
             "and the caller to have dashboard access."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active dashboard filters the user currently has applied to this chart, "
+            "forwarded so the response reports the chart as the user actually views "
+            "it. Surfaced under filters.active_filters; this is not a query "
+            "(get_chart_info returns metadata only). Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
     select_columns: Annotated[
@@ -359,11 +418,33 @@ class GetChartInfoRequest(BaseModel):
         ),
     ]
 
+    @field_validator("permalink_key", mode="before")
+    @classmethod
+    def _extract_permalink_key(cls, value: Any) -> Any:
+        """Accept a full /explore/p/<key>/ URL as well as the bare key."""
+        from superset.mcp_service.utils.url_utils import (
+            extract_permalink_key_from_url,
+        )
+
+        if isinstance(value, str) and "/" in value:
+            if key := extract_permalink_key_from_url(value):
+                return key
+            raise ValueError(
+                "permalink_key must be an Explore permalink key or a "
+                "/explore/p/<key>/ URL"
+            )
+        return value
+
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
-        if not self.identifier and not self.form_data_key:
+        if not self.identifier and not self.form_data_key and not self.permalink_key:
             raise ValueError(
-                "At least one of 'identifier' or 'form_data_key' must be provided."
+                "At least one of 'identifier', 'form_data_key' or 'permalink_key' "
+                "must be provided."
+            )
+        if self.form_data_key and self.permalink_key:
+            raise ValueError(
+                "Provide either 'form_data_key' or 'permalink_key', not both."
             )
         return self
 
@@ -482,95 +563,44 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
-def wrap_sql_adhoc_metrics(form_data: Any) -> None:
-    """Wrap LLM-controlled SQL adhoc metric strings in-place.
+def resolve_chart_datasource_id(chart: Any) -> int | None:
+    """Return the ID of the datasource a chart is joined to."""
+    datasource_id = getattr(chart, "datasource_id", None)
+    if isinstance(datasource_id, int) and not isinstance(datasource_id, bool):
+        return datasource_id
+    return None
 
-    ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
-    SIMPLE-metric content (bounded scalars) doesn't get wrapped. SQL adhoc
-    dicts carry up to 2000 chars of LLM-controlled SQL plus a 500-char label
-    that still need ``<UNTRUSTED-CONTENT>`` delimiters when echoed back.
+
+def resolve_chart_datasource_name(chart: Any) -> str | None:
+    """Return the chart's datasource name, read from the live datasource.
+
+    ``Slice.datasource_name`` is a stored, denormalized column that is not
+    refreshed when a dataset is renamed or a chart is re-pointed, so it can
+    name a table the chart no longer queries. ``Slice.datasource_name_text``
+    resolves the name through the type-guarded ``table`` / ``semantic_view``
+    relationships instead, and yields ``None`` when the datasource no longer
+    exists. Query and saved-query charts, and objects without that resolver
+    (row tuples, lightweight stand-ins), fall back to the stored value.
     """
-    if not isinstance(form_data, dict):
-        return
-    metrics = form_data.get("metrics")
-    if isinstance(metrics, list):
-        for index, metric in enumerate(metrics):
-            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
-                for key in ("sqlExpression", "label"):
-                    if isinstance(metric.get(key), str):
-                        metric[key] = sanitize_for_llm_context(
-                            metric[key],
-                            field_path=("form_data", "metrics", str(index), key),
-                        )
-    metric_singular = form_data.get("metric")
-    if (
-        isinstance(metric_singular, dict)
-        and metric_singular.get("expressionType") == "SQL"
-    ):
-        for key in ("sqlExpression", "label"):
-            if isinstance(metric_singular.get(key), str):
-                metric_singular[key] = sanitize_for_llm_context(
-                    metric_singular[key],
-                    field_path=("form_data", "metric", key),
-                )
+    resolver = getattr(chart, "datasource_name_text", None)
+    if callable(resolver) and getattr(chart, "datasource_type", None) not in {
+        "query",
+        "saved_query",
+    }:
+        live_name = resolver()
+        if live_name is None or isinstance(live_name, str):
+            return live_name
+    stored_name = getattr(chart, "datasource_name", None)
+    return stored_name if isinstance(stored_name, str) else None
 
 
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
-    """Wrap chart read-path descriptive fields before LLM exposure."""
-    payload = chart_info.model_dump(mode="python")
+def serialize_chart_object(
+    chart: ChartLike | None, *, select_columns: list[str] | None = None
+) -> ChartInfo | None:
+    """Serialize a chart, loading collection relationships only when requested.
 
-    for field_name in (
-        "slice_name",
-        "description",
-        "certified_by",
-        "certification_details",
-    ):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["datasource_name"] = escape_llm_context_delimiters(
-        payload.get("datasource_name")
-    )
-
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=(
-                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-                | frozenset({"cache_key", "database", "database_name", "schema"})
-            ),
-        )
-        wrap_sql_adhoc_metrics(payload["form_data"])
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return ChartInfo.model_validate(payload)
-
-
-def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
+    Omitting ``select_columns`` preserves full-object serialization.
+    """
     if not chart:
         return None
 
@@ -611,43 +641,42 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
                     "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
                 )
 
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            id=chart_id,
-            slice_name=getattr(chart, "slice_name", None),
-            viz_type=_viz_type,
-            chart_type_display_name=_display_name,
-            datasource_name=getattr(chart, "datasource_name", None),
-            datasource_type=getattr(chart, "datasource_type", None),
-            url=chart_url,
-            description=getattr(chart, "description", None),
-            certified_by=getattr(chart, "certified_by", None),
-            certification_details=getattr(chart, "certification_details", None),
-            cache_timeout=getattr(chart, "cache_timeout", None),
-            form_data=chart_form_data,
-            filters=filters_info,
-            changed_on=getattr(chart, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
-            created_on=getattr(chart, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
-            uuid=str(getattr(chart, "uuid", ""))
-            if getattr(chart, "uuid", None)
-            else None,
-            deleted_at=getattr(chart, "deleted_at", None),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(chart, "tags", [])
-            ]
-            if getattr(chart, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(chart, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(chart, "editors", None)
-            else [],
-        )
+    return ChartInfo(
+        id=chart_id,
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=_viz_type,
+        chart_type_display_name=_display_name,
+        datasource_id=resolve_chart_datasource_id(chart),
+        datasource_name=resolve_chart_datasource_name(chart),
+        datasource_type=getattr(chart, "datasource_type", None),
+        url=chart_url,
+        description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
+        cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=chart_form_data,
+        filters=filters_info,
+        changed_on=getattr(chart, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
+        created_on=getattr(chart, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
+        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
+        deleted_at=getattr(chart, "deleted_at", None),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(chart, "tags", [])
+        ]
+        if (select_columns is None or "tags" in select_columns)
+        and getattr(chart, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(chart, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if (select_columns is None or "editors" in select_columns)
+        and getattr(chart, "editors", None)
+        else [],
     )
 
 
@@ -688,38 +717,8 @@ class ChartFilter(ColumnOperator):
     )
 
 
-class ChartList(BaseModel):
+class ChartList(PaginatedResponse[ChartFilter]):
     charts: List[ChartInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(
-        default_factory=list,
-        description="Requested columns for the response",
-    )
-    columns_loaded: List[str] = Field(
-        default_factory=list,
-        description="Columns that were actually loaded for each chart",
-    )
-    columns_available: List[str] = Field(
-        default_factory=list,
-        description="All columns available for selection via select_columns parameter",
-    )
-    sortable_columns: List[str] = Field(
-        default_factory=list,
-        description="Columns that can be used with order_column parameter",
-    )
-    filters_applied: List[ChartFilter] = Field(
-        default_factory=list,
-        description="List of advanced filter dicts applied to the query.",
-    )
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
 # --- Simplified schemas for generate_chart tool ---
@@ -800,14 +799,41 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class ColumnRef(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+class BaseChartConfig(UnknownFieldCheckMixin):
+    """Fields shared by every MCP chart configuration."""
+
+    temporal_column: str | None = Field(
+        None,
+        description=(
+            "Temporal column used to bind dashboard time-range filters. "
+            "When omitted, charts without a temporal axis use the dataset's "
+            "main temporal column."
+        ),
+        min_length=1,
+        max_length=255,
+    )
+
+    @field_validator("temporal_column")
+    @classmethod
+    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+        """Sanitize temporal column names to prevent SQL injection."""
+        return sanitize_user_input(
+            v,
+            "Temporal column",
+            max_length=255,
+            check_sql_keywords=True,
+            allow_empty=True,
+        )
+
+
+class ColumnRef(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str | None = Field(
         None,
         min_length=1,
         max_length=255,
-        validation_alias=AliasChoices("name", "column_name"),
+        validation_alias=AliasChoices("name", "column_name", "column"),
     )
     label: str | None = Field(None, max_length=500)
     dtype: str | None = None
@@ -819,10 +845,15 @@ class ColumnRef(BaseModel):
             "MIN",
             "MAX",
             "COUNT_DISTINCT",
-            "STDDEV",
-            "VAR",
+            "STDDEV_SAMP",
+            "VAR_SAMP",
             "MEDIAN",
             "PERCENTILE",
+            # Pre-SIP shorthand, accepted and normalized to the names above by
+            # `chart_utils.create_metric_object`; kept here so schema
+            # validation doesn't reject them before that normalization runs.
+            "STDDEV",
+            "VAR",
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
@@ -921,21 +952,25 @@ class ColumnRef(BaseModel):
         )
 
 
-class AxisConfig(BaseModel):
+class AxisConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
     format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
-class LegendConfig(BaseModel):
+class LegendConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
     show: bool = True
     position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
-class CurrencyFormat(BaseModel):
+class CurrencyFormat(UnknownFieldCheckMixin):
     """Currency symbol and placement applied to numeric values."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     symbol: str = Field(
         ...,
@@ -955,8 +990,8 @@ class CurrencyFormat(BaseModel):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+class FilterConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
         ...,
@@ -976,16 +1011,31 @@ class FilterConfig(BaseModel):
         "NOT LIKE",
         "IN",
         "NOT IN",
+        "IS NULL",
+        "IS NOT NULL",
     ] = Field(
         ...,
-        description="LIKE/ILIKE use % wildcards. IN/NOT IN take a list.",
+        description=(
+            "LIKE/ILIKE use % wildcards. IN/NOT IN take a list. "
+            "IS NULL/IS NOT NULL omit value."
+        ),
         validation_alias=AliasChoices("op", "operator", "opr"),
     )
-    value: str | int | float | bool | list[str | int | float | bool] = Field(
-        ...,
-        description="For IN/NOT IN, provide a list.",
+    value: str | int | float | bool | list[str | int | float | bool] | None = Field(
+        None,
+        description="For IN/NOT IN, provide a list. Omit for null operators.",
         validation_alias=AliasChoices("value", "val"),
     )
+
+    @model_validator(mode="after")
+    def validate_value(self) -> "FilterConfig":
+        """Null checks have no comparator; every other operator requires one."""
+        if self.op in {"IS NULL", "IS NOT NULL"}:
+            if self.value is not None:
+                raise ValueError(f"Filter operator {self.op!r} must not have 'value'.")
+        elif self.value is None:
+            raise ValueError(f"Filter operator {self.op!r} requires 'value'.")
+        return self
 
     @field_validator("column")
     @classmethod
@@ -1023,7 +1073,7 @@ class FilterConfig(BaseModel):
         return self
 
 
-class SortByConfig(BaseModel):
+class SortByConfig(UnknownFieldCheckMixin):
     """Sort specification with explicit direction.
 
     Accepts either this object or a bare column-name string in `sort_by`
@@ -1031,7 +1081,7 @@ class SortByConfig(BaseModel):
     sort-by-metric "top N" pattern most commonly used for tables.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
         ...,
@@ -1047,8 +1097,37 @@ class SortByConfig(BaseModel):
     )
 
 
+class GanttSortByConfig(UnknownFieldCheckMixin):
+    """One physical-column ordering applied before Gantt rendering."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Physical dataset column used to order Gantt tasks",
+    )
+    ascending: bool = Field(
+        True,
+        description="Sort this column ascending when true, descending when false",
+    )
+
+    @field_validator("column")
+    @classmethod
+    def sanitize_column(cls, value: str) -> str:
+        """Sanitize the order column like every other dimension name."""
+        return sanitize_user_input(
+            value,
+            "Gantt order column",
+            max_length=255,
+            check_sql_keywords=True,
+        )  # type: ignore[return-value]
+
+
 # Actual chart types
-class PieChartConfig(UnknownFieldCheckMixin):
+class PieChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pie"] = "pie"
@@ -1122,7 +1201,533 @@ class PieChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class PivotTableChartConfig(UnknownFieldCheckMixin):
+def _adapt_native_single_metric_form_data(data: Any) -> Any:  # noqa: C901
+    """Adapt bounded native single-metric controls before strict validation."""
+    if not isinstance(data, dict):
+        return data
+    data = dict(data)
+
+    # ``gauge`` is the public MCP discriminator; ``gauge_chart`` remains
+    # the native frontend viz_type and is accepted only as an input alias.
+    if data.get("chart_type") == "gauge_chart" or (
+        "chart_type" not in data and data.get("viz_type") == "gauge_chart"
+    ):
+        data["chart_type"] = "gauge"
+    data.pop("viz_type", None)
+
+    # These identify the Explore/chart envelope, not visualization controls.
+    for key in (
+        "datasource",
+        "datasource_id",
+        "datasource_name",
+        "datasource_type",
+        "form_data_key",
+        "slice_id",
+        "slice_name",
+        "url",
+    ):
+        data.pop(key, None)
+    data.pop("_mcp_dashboard_time_filter_subject", None)
+
+    metric = data.get("metric")
+    if isinstance(metric, str):
+        data["metric"] = {"name": metric, "saved_metric": True}
+    elif isinstance(metric, dict) and metric.get("expressionType") in {
+        "SIMPLE",
+        "SQL",
+    }:
+        expression_type = metric.get("expressionType")
+        if expression_type == "SQL":
+            data["metric"] = {
+                "sql_expression": metric.get("sqlExpression"),
+                "label": metric.get("label"),
+            }
+        else:
+            if not isinstance(metric.get("aggregate"), str):
+                raise ValueError("Native SIMPLE metrics require an aggregate")
+            column = metric.get("column")
+            column_name = (
+                column.get("column_name") or column.get("columnName")
+                if isinstance(column, dict)
+                else None
+            )
+            data["metric"] = {
+                "name": column_name,
+                "aggregate": metric.get("aggregate"),
+                "label": metric.get("label"),
+            }
+
+    groupby = data.get("groupby")
+    if isinstance(groupby, str):
+        groupby = [groupby]
+    if isinstance(groupby, list):
+        data["groupby"] = [
+            {"name": value} if isinstance(value, str) else value for value in groupby
+        ]
+
+    if isinstance(data.get("time_range"), str):
+        data["time_range"] = validate_time_range(data["time_range"]) or None
+
+    # Supported native SIMPLE filters are represented by FilterConfig.
+    # SQL adhoc filters remain intentionally unsupported on the typed MCP
+    # surface. TEMPORAL_RANGE is represented by time_range/granularity.
+    if "adhoc_filters" in data:
+        if "filters" in data:
+            raise ValueError("Use either filters or adhoc_filters, not both")
+        native_filters = data.pop("adhoc_filters")
+        if not isinstance(native_filters, list):
+            raise ValueError("adhoc_filters must be a list")
+        filters: list[dict[str, Any]] = []
+        for index, filter_ in enumerate(native_filters):
+            if not isinstance(filter_, dict):
+                raise ValueError(f"adhoc_filters[{index}] must be an object")
+            if filter_.get("expressionType") not in (None, "SIMPLE"):
+                raise ValueError(
+                    f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
+                )
+            if str(filter_.get("clause", "WHERE")).upper() != "WHERE":
+                raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+            operator = filter_.get("operator") or filter_.get("op")
+            subject = filter_.get("subject") or filter_.get("col")
+            comparator = filter_.get("comparator", filter_.get("val"))
+            if operator == "TEMPORAL_RANGE":
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(f"adhoc_filters[{index}] has no temporal subject")
+                if not isinstance(comparator, str):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] requires a temporal comparator"
+                    )
+                comparator = validate_time_range(comparator) or NO_TIME_RANGE
+                if comparator == NO_TIME_RANGE:
+                    if data.get("temporal_column") not in (None, subject):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] conflicts with another "
+                            "dashboard temporal binding"
+                        )
+                    data["temporal_column"] = subject
+                    continue
+                if (
+                    data.get("granularity_sqla") not in (None, subject)
+                    and data.get("time_range") != NO_TIME_RANGE
+                ) or data.get("time_range") not in (
+                    None,
+                    NO_TIME_RANGE,
+                    comparator,
+                ):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] conflicts with another temporal "
+                        "range; multiple distinct temporal ranges are not supported"
+                    )
+                data["granularity_sqla"] = subject
+                data["time_range"] = comparator
+                continue
+            if operator == "==":
+                operator = "="
+            if operator not in get_args(FilterConfig.model_fields["op"].annotation):
+                raise ValueError(
+                    f"adhoc_filters[{index}] uses unsupported operator {operator!r}"
+                )
+            filters.append({"column": subject, "op": operator, "value": comparator})
+        data["filters"] = filters
+    return data
+
+
+class GaugeChartConfig(BaseChartConfig):
+    """Config for gauge charts (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` whose
+    value the dial displays, plus an optional multi ``groupby`` — with no
+    groupby the chart is one dial; with a groupby it renders one dial per row
+    (capped at the frontend's 10). ``min_val``/``max_val`` fix the dial scale
+    (both default to auto).
+    """
+
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, allow_inf_nan=False
+    )
+
+    chart_type: Literal["gauge"] = "gauge"
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric the dial displays (use aggregate e.g. AVG, "
+        "SUM for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one dial. "
+        "Omit for a single-value gauge.",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order the dials by the metric descending, so a row_limit "
+        "keeps the top-N dials deterministically rather than an arbitrary set",
+    )
+    row_limit: int = Field(10, description="Max dials", ge=1, le=10)
+    min_val: float | None = Field(
+        None, description="Minimum value of the dial scale (default: auto)"
+    )
+    max_val: float | None = Field(
+        None, description="Maximum value of the dial scale (default: auto)"
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+    font_size: int = Field(15, description="Gauge text size", ge=10, le=20)
+    number_format: str = Field(
+        "SMART_NUMBER", description="D3 number format", max_length=50
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None, description="Currency symbol applied to the gauge value"
+    )
+    value_formatter: str = Field(
+        "{value}",
+        description="Value template; {value} is replaced with the formatted metric",
+        max_length=200,
+    )
+    start_angle: float = Field(225, description="Gauge start angle in degrees")
+    end_angle: float = Field(-45, description="Gauge end angle in degrees")
+    show_pointer: bool = Field(True, description="Show the gauge pointer")
+    animation: bool = Field(True, description="Animate gauge value changes")
+    show_axis_tick: bool = Field(False, description="Show minor axis ticks")
+    show_split_line: bool = Field(False, description="Show axis split lines")
+    split_number: int = Field(10, description="Number of axis segments", ge=3, le=30)
+    show_progress: bool = Field(True, description="Show the progress arc")
+    overlap: bool = Field(
+        True, description="Overlap progress arcs when multiple groups are present"
+    )
+    round_cap: bool = Field(False, description="Use rounded progress-arc caps")
+    intervals: str = Field(
+        "",
+        description="Comma-separated interval upper bounds",
+        max_length=1000,
+    )
+    interval_color_indices: str = Field(
+        "",
+        description="Comma-separated 1-based color indices for intervals",
+        max_length=1000,
+    )
+    time_range: str | None = Field(
+        None,
+        description="Optional Superset time range applied to the gauge query",
+        max_length=1000,
+    )
+    granularity_sqla: str | None = Field(
+        None,
+        description="Temporal column associated with time_range in native form_data",
+        min_length=1,
+        max_length=255,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, data: Any) -> Any:
+        """Accept bounded native form data without weakening typed validation."""
+        return _adapt_native_single_metric_form_data(data)
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gauge_time_range(cls, value: str | None) -> str | None:
+        """Validate time ranges with the shared MCP parser contract."""
+        return validate_time_range(value)
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "GaugeChartConfig":
+        """Require one numeric metric role and unique dimension roles."""
+        if not self.metric.is_metric:
+            raise ValueError(
+                "metric must define an aggregate, saved_metric=True, or a "
+                "sql_expression"
+            )
+        seen: set[str] = set()
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
+            if col.name is None:
+                raise ValueError(f"groupby[{i}] requires a column name")
+            normalized_name = col.name.casefold()
+            if normalized_name in seen:
+                raise ValueError(
+                    f"groupby[{i}] duplicates the dimension role '{col.name}'"
+                )
+            seen.add(normalized_name)
+        return self
+
+    @model_validator(mode="after")
+    def reject_inverted_bounds(self) -> "GaugeChartConfig":
+        """A min at or above max produces an inverted/degenerate dial scale."""
+        if (
+            self.min_val is not None
+            and self.max_val is not None
+            and self.min_val >= self.max_val
+        ):
+            raise ValueError(
+                f"min_val ({self.min_val}) must be less than max_val ({self.max_val})"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_intervals(self) -> "GaugeChartConfig":
+        """Keep interval bounds finite, ordered, and aligned with color picks."""
+
+        def parse_numbers(value: str, field_name: str) -> list[float]:
+            if not value.strip():
+                return []
+            try:
+                parsed = [float(part.strip()) for part in value.split(",")]
+            except ValueError as ex:
+                raise ValueError(
+                    f"{field_name} must be a comma-separated list of numbers"
+                ) from ex
+            if not all(math.isfinite(number) for number in parsed):
+                raise ValueError(f"{field_name} values must be finite")
+            return parsed
+
+        bounds = parse_numbers(self.intervals, "intervals")
+        color_indices = parse_numbers(
+            self.interval_color_indices, "interval_color_indices"
+        )
+        if any(not number.is_integer() or number < 1 for number in color_indices):
+            raise ValueError("interval_color_indices must contain positive integers")
+        if color_indices and len(color_indices) != len(bounds):
+            raise ValueError(
+                "interval_color_indices must have the same length as intervals"
+            )
+        if any(left >= right for left, right in zip(bounds, bounds[1:], strict=False)):
+            raise ValueError("intervals must be strictly increasing")
+        if self.min_val is not None and any(bound <= self.min_val for bound in bounds):
+            raise ValueError("intervals must be greater than min_val")
+        if self.max_val is not None and any(bound > self.max_val for bound in bounds):
+            raise ValueError("intervals must not exceed max_val")
+        return self
+
+
+class TreemapChartUpdateConfig(BaseChartConfig):
+    """Config for treemap charts (viz_type ``treemap_v2``).
+
+    Matches the frontend Treemap buildQuery contract: one ``metric`` sizing
+    the tiles plus an ordered ``groupby`` hierarchy — the first column is the
+    outermost level and each subsequent column nests inside it. When
+    ``sort_by_metric`` is set, tiles are ordered by the metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    # Required even though every other field is optional: this partial model
+    # sits beside the discriminated ``ChartConfig`` union in the update
+    # requests. With a defaulted discriminator any config that failed the
+    # discriminated branch — including one that simply omitted
+    # ``chart_type`` — would fall through to this model and silently rewrite
+    # an existing chart of another type into a Treemap.
+    chart_type: Literal["treemap_v2"] = Field(
+        ...,
+        description="Chart type discriminator; must be 'treemap_v2'",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        min_length=1,
+        max_length=20,
+        description="Ordered category columns forming the treemap hierarchy "
+        "(first = outermost level; order defines nesting)",
+    )
+    metric: ColumnRef | None = Field(
+        None,
+        description="Value metric sizing the tiles (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order tiles by the metric descending (frontend default)",
+    )
+    row_limit: int = Field(100, description="Max rows queried", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    show_labels: bool = True
+    show_upper_labels: bool = True
+    label_type: Literal["key", "Key", "value", "key_value"] = "key_value"
+    label_position: Literal[
+        "top",
+        "left",
+        "right",
+        "bottom",
+        "inside",
+        "insideLeft",
+        "insideRight",
+        "insideTop",
+        "insideBottom",
+        "insideTopLeft",
+        "insideBottomLeft",
+        "insideTopRight",
+        "insideBottomRight",
+    ] = "insideTopLeft"
+    number_format: str = Field("SMART_NUMBER", max_length=100)
+    date_format: str = Field("smart_date", max_length=100)
+    currency_format: CurrencyFormat | None = None
+    time_range: str | None = Field(None, max_length=1000)
+    granularity_sqla: str | None = Field(None, min_length=1, max_length=255)
+    template_params: str | None = Field(None, max_length=10000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, data: Any) -> Any:
+        """Accept native hierarchy and saved, SIMPLE, and SQL metric inputs."""
+        return _adapt_native_single_metric_form_data(data)
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_treemap_time_range(cls, value: str | None) -> str | None:
+        """Validate time ranges using the shared parser."""
+        return validate_time_range(value)
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "TreemapChartUpdateConfig":
+        """groupby entries are hierarchy dimensions, not metrics."""
+        names = [col.name for col in self.groupby or []]
+        if len(set(names)) != len(names):
+            raise ValueError("groupby must contain unique hierarchy columns")
+        metric_label = (self.metric.label or self.metric.name) if self.metric else None
+        if (
+            self.metric
+            and metric_label in names
+            and (self.metric.label or self.metric.saved_metric)
+        ):
+            raise ValueError(
+                "metric output label must not collide with hierarchy columns"
+            )
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
+        return self
+
+
+class TreemapChartConfig(TreemapChartUpdateConfig):
+    """Complete Treemap configuration required for generation and compilation."""
+
+    # Restored to a default here: this model is only ever reached through the
+    # discriminated union, which already requires the key in client payloads,
+    # and internal call sites construct it directly.
+    chart_type: Literal["treemap_v2"] = "treemap_v2"
+    groupby: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="Ordered hierarchy columns, outermost first",
+    )
+    metric: ColumnRef = Field(..., description="Metric sizing the hierarchy tiles")
+
+
+class BubbleChartConfig(BaseChartConfig):
+    """Config for bubble charts (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    identifies each bubble, three separate metrics position and size it
+    (``x``, ``y``, ``size``), and an optional ``series`` dimension colours the
+    bubbles by group.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["bubble_v2"] = "bubble_v2"
+    entity: ColumnRef = Field(
+        ...,
+        description="Category column identifying each bubble (e.g. country)",
+    )
+    x: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's horizontal position (use "
+        "aggregate e.g. AVG, or saved_metric=True for a saved metric)",
+    )
+    y: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's vertical position",
+    )
+    size: ColumnRef = Field(
+        ...,
+        description="Metric for the bubble's area",
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional category column colouring the bubbles by group",
+    )
+    row_limit: int = Field(10000, description="Max bubbles queried", ge=1, le=100000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "BubbleChartConfig":
+        """entity and series are dimensions, not metrics."""
+        dims = [(self.entity, "entity")]
+        if self.series is not None:
+            dims.append((self.series, "series"))
+        for col, name in dims:
+            _reject_sql_expression_on_dimension(col, name)
+            if col.is_metric:
+                raise ValueError(
+                    f"{name} must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'x', "
+                    "'y', or 'size' fields)"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def record_implicit_metric_aggregate(self) -> "BubbleChartConfig":
+        """x, y and size are metric slots, so a bare column is summed.
+
+        ``create_metric_object`` applies that default when it builds the
+        form_data. Recording it here keeps the aggregate-compatibility check
+        from skipping the ref — SUM of a text column is then rejected with a
+        clear message instead of failing in the database.
+        """
+        for field_name in ("x", "y", "size"):
+            col: ColumnRef = getattr(self, field_name)
+            if not col.is_metric:
+                setattr(self, field_name, col.model_copy(update={"aggregate": "SUM"}))
+        return self
+
+
+class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["pivot_table"] = "pivot_table"
@@ -1186,7 +1791,215 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
+class InteractivePivotChartConfig(BaseChartConfig):
+    """Config for an extension-provided AG Grid interactive pivot visualization.
+
+    This is intentionally separate from :class:`PivotTableChartConfig`, which
+    targets the OSS ``pivot_table_v2`` visualization.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["interactive_pivot"] = "interactive_pivot"
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Dimensions placed in the AG Grid Rows side-panel bucket, in nesting order"
+        ),
+    )
+    columns: List[ColumnRef] = Field(
+        default_factory=list,
+        description=(
+            "Dimensions placed in the AG Grid Column Labels side-panel bucket"
+        ),
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Value columns. Each metric's aggregate controls the SQL aggregation "
+            "and its AG Grid group rollup (AVG/MIN/MAX map to avg/min/max; additive "
+            "aggregates roll up with sum)."
+        ),
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "PT1H, P1D, P1W, P1M, P3M, or P1Y for the grouped dimension named "
+            "by temporal_column"
+        ),
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured filters (column/op/value). Do NOT use adhoc_filters or "
+            "raw SQL expressions."
+        ),
+    )
+    series_limit: int | None = Field(
+        None,
+        description="Maximum number of pivot series",
+        ge=0,
+        le=50000,
+    )
+    series_limit_metric: ColumnRef | None = Field(
+        None,
+        description="Metric used to rank series when a series/cell limit applies",
+    )
+    sort_descending: bool = Field(
+        True,
+        description="Sort the series-limit metric descending",
+        validation_alias=AliasChoices("sort_descending", "order_desc"),
+    )
+    row_limit: int = Field(10000, description="Maximum returned cells", ge=1, le=50000)
+    show_row_group_counts: bool = Field(
+        True,
+        description="Show record counts beside row-group labels",
+        validation_alias=AliasChoices("show_row_group_counts", "rowGroupCounts"),
+    )
+    show_row_totals: bool = Field(
+        False,
+        description="Show grand-total rows",
+        validation_alias=AliasChoices("show_row_totals", "rowTotals"),
+    )
+    show_column_totals: bool = Field(
+        False,
+        description="Show grand-total columns",
+        validation_alias=AliasChoices("show_column_totals", "colTotals"),
+    )
+    show_column_subtotals: bool = Field(
+        False,
+        description="Show subtotal columns for nested pivot groups",
+        validation_alias=AliasChoices("show_column_subtotals", "colSubTotals"),
+    )
+    value_format: str = Field(
+        "SMART_NUMBER",
+        max_length=50,
+        validation_alias=AliasChoices("value_format", "valueFormat"),
+    )
+    date_format: str | None = Field(
+        None,
+        description="D3 format for temporal dimensions (for example, '%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to numeric metric values",
+    )
+    column_sort: Literal["key_a_to_z", "key_z_to_a"] | None = Field(
+        None,
+        description="Alphabetic ordering for generated pivot columns",
+        validation_alias=AliasChoices("column_sort", "colOrder"),
+    )
+    allow_render_html: bool = Field(
+        True,
+        description="Render applicable cell values as HTML",
+    )
+    expand_pivot_groups: bool = Field(
+        False,
+        description="Expand generated pivot column groups initially",
+    )
+    comparison_period: str | None = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description=(
+            "Relative time shift such as '1 year ago'. Must be paired with "
+            "comparison_type."
+        ),
+        validation_alias=AliasChoices("comparison_period", "time_compare"),
+    )
+    comparison_type: Literal["values", "difference", "percentage", "ratio"] | None = (
+        Field(
+            None,
+            description=(
+                "How to present the comparison period: raw values, difference, "
+                "percentage change, or ratio"
+            ),
+        )
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_comparison_period(cls, data: Any) -> Any:
+        """Accept native single-item ``time_compare`` arrays on round trips."""
+        if not isinstance(data, dict):
+            return data
+        if isinstance(data.get("comparison_period"), list):
+            raise ValueError("comparison_period must be a single string")
+        if isinstance(data.get("time_compare"), list):
+            periods = data["time_compare"]
+            if len(periods) > 1:
+                raise ValueError(
+                    "interactive_pivot supports one comparison period; pass a "
+                    "single value"
+                )
+            data["time_compare"] = periods[0] if periods else None
+        return data
+
+    @field_validator("comparison_period")
+    @classmethod
+    def sanitize_comparison_period(cls, value: str | None) -> str | None:
+        """Sanitize the relative time-shift label."""
+        if value is None:
+            return None
+        return sanitize_user_input(
+            value,
+            "Comparison period",
+            max_length=100,
+            allow_empty=False,
+        )
+
+    @model_validator(mode="after")
+    def validate_interactive_pivot(self) -> "InteractivePivotChartConfig":
+        """Validate dimension roles and paired comparison controls."""
+        for field_name, refs in (("rows", self.rows), ("columns", self.columns)):
+            for index, ref in enumerate(refs):
+                _reject_sql_expression_on_dimension(ref, f"{field_name}[{index}]")
+                if ref.saved_metric:
+                    raise ValueError(
+                        f"{field_name}[{index}] cannot use saved_metric=True; "
+                        "saved metrics belong in the 'metrics' field"
+                    )
+
+        dimension_names = [ref.name for ref in [*self.rows, *self.columns]]
+        if len(dimension_names) != len(set(dimension_names)):
+            raise ValueError(
+                "A dimension cannot appear in both rows and columns or more than "
+                "once in either bucket"
+            )
+
+        if self.time_grain:
+            if not self.temporal_column:
+                raise ValueError(
+                    "time_grain requires temporal_column to identify the grouped "
+                    "temporal dimension"
+                )
+            if self.temporal_column.lower() not in {
+                name.lower() for name in dimension_names if name
+            }:
+                raise ValueError(
+                    "temporal_column must appear in rows or columns when time_grain "
+                    "is set"
+                )
+
+        if self.series_limit_metric and not self.series_limit_metric.is_metric:
+            raise ValueError(
+                "series_limit_metric must define an aggregate, saved_metric=True, "
+                "or sql_expression"
+            )
+
+        if bool(self.comparison_period) != bool(self.comparison_type):
+            raise ValueError(
+                "comparison_period and comparison_type must be provided together"
+            )
+
+        return self
+
+
+class MixedTimeseriesChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
@@ -1279,7 +2092,7 @@ class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class HandlebarsChartConfig(UnknownFieldCheckMixin):
+class HandlebarsChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
     chart_type: Literal["handlebars"] = Field(
@@ -1395,7 +2208,7 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class BigNumberChartConfig(UnknownFieldCheckMixin):
+class BigNumberChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
     chart_type: Literal["big_number"] = Field(
@@ -1414,17 +2227,6 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
             "The metric to display as a big number. "
             "Must include an aggregate function (e.g., SUM, COUNT)."
         ),
-    )
-    temporal_column: str | None = Field(
-        None,
-        description=(
-            "Temporal column for the trendline x-axis. Required when "
-            "show_trendline is True. Also used (whether or not a trendline is "
-            "shown) to bind the chart's dashboard time-range filter; when "
-            "omitted, the dataset's main temporal column is used instead."
-        ),
-        min_length=1,
-        max_length=255,
     )
     time_grain: TimeGrain | None = Field(
         None,
@@ -1519,18 +2321,6 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         description="Filters to apply",
     )
 
-    @field_validator("temporal_column")
-    @classmethod
-    def sanitize_temporal_column(cls, v: str | None) -> str | None:
-        """Sanitize temporal column name to prevent SQL injection."""
-        return sanitize_user_input(
-            v,
-            "Temporal column",
-            max_length=255,
-            check_sql_keywords=True,
-            allow_empty=True,
-        )
-
     @model_validator(mode="after")
     def validate_trendline_fields(self) -> Self:
         """Validate trendline requires temporal column."""
@@ -1569,7 +2359,38 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class TableChartConfig(UnknownFieldCheckMixin):
+class TableColumnConfig(UnknownFieldCheckMixin):
+    """Display formatting supported by the MCP table-chart schema."""
+
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        json_schema_extra={"additionalProperties": False},
+    )
+
+    column_width: int | None = Field(
+        None,
+        alias="columnWidth",
+        description="Minimum column width in pixels.",
+        ge=0,
+    )
+    d3_number_format: str | None = Field(
+        None,
+        alias="d3NumberFormat",
+        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        min_length=1,
+        max_length=100,
+    )
+    d3_time_format: str | None = Field(
+        None,
+        alias="d3TimeFormat",
+        description="D3 time format, for example '%Y-%m-%d' or '%b %d, %Y'.",
+        min_length=1,
+        max_length=100,
+    )
+
+
+class TableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["table"] = "table"
@@ -1614,6 +2435,18 @@ class TableChartConfig(UnknownFieldCheckMixin):
             "(e.g. 'supersetColors')."
         ),
         max_length=100,
+    )
+    column_config: dict[str, "TableColumnConfig"] | None = Field(
+        None,
+        description=(
+            "Per-column display settings, keyed by the result column label "
+            "(for a raw column this is usually its column name; for a metric, use "
+            "its label). Use columnWidth for minimum width in pixels, "
+            "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
+            "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
+        ),
     )
 
     @model_validator(mode="after")
@@ -1677,6 +2510,20 @@ def _reject_sql_expression_on_dimension(col: ColumnRef | None, position: str) ->
         )
 
 
+def _validate_distinct_gantt_roles(roles: Mapping[str, str | None]) -> None:
+    """Require Gantt query-result roles to have distinct canonical labels."""
+    seen: dict[str, str] = {}
+    for role, name in roles.items():
+        if name is None:
+            continue
+        canonical_name = name.casefold()
+        if previous_role := seen.get(canonical_name):
+            raise ValueError(
+                f"{previous_role} and {role} must reference different columns"
+            )
+        seen[canonical_name] = role
+
+
 def _metric_display_label(col: ColumnRef) -> str:
     """Return the display label for a metric column reference."""
     if col.sql_expression:
@@ -1688,7 +2535,7 @@ def _metric_display_label(col: ColumnRef) -> str:
     return col.label or col.name or ""
 
 
-class XYChartConfig(UnknownFieldCheckMixin):
+class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
@@ -1733,6 +2580,10 @@ class XYChartConfig(UnknownFieldCheckMixin):
     legend: LegendConfig | None = Field(
         None,
         validation_alias=AliasChoices("legend", "show_legend"),
+    )
+    legend_orientation: LEGEND_POSITION_LITERAL | None = Field(
+        None,
+        description="Legend placement around the chart",
     )
     x_axis_time_format: str | None = Field(
         None,
@@ -1859,7 +2710,10 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class HistogramChartConfig(UnknownFieldCheckMixin):
+DEFAULT_HISTOGRAM_BINS: int = 5
+
+
+class HistogramChartConfig(BaseChartConfig):
     """Config for histogram charts (viz_type ``histogram_v2``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1873,7 +2727,9 @@ class HistogramChartConfig(UnknownFieldCheckMixin):
         None,
         description="Optional dimensions to split the distribution into series",
     )
-    bins: int = Field(5, description="Number of histogram bins", ge=1, le=1000)
+    bins: int = Field(
+        DEFAULT_HISTOGRAM_BINS, description="Number of histogram bins", ge=1, le=1000
+    )
     normalize: bool = Field(False, description="Normalize bin counts to proportions")
     cumulative: bool = Field(False, description="Accumulate bin counts left to right")
     filters: List[FilterConfig] | None = Field(
@@ -1902,7 +2758,7 @@ class HistogramChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class BoxPlotChartConfig(UnknownFieldCheckMixin):
+class BoxPlotChartConfig(BaseChartConfig):
     """Config for box plot charts (viz_type ``box_plot``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -2017,7 +2873,7 @@ class BoxPlotChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-class WaterfallChartConfig(UnknownFieldCheckMixin):
+class WaterfallChartConfig(BaseChartConfig):
     """Config for waterfall charts (viz_type ``waterfall``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -2127,31 +2983,830 @@ class WaterfallChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class GanttChartConfig(BaseChartConfig):
+    """Typed contract for the ECharts Gantt visualization.
+
+    The field names intentionally describe Gantt semantics while validation
+    aliases accept the native keys used by ``Gantt/buildQuery.ts`` and saved
+    Explore ``form_data``.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["gantt"] = "gantt"
+    start_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's start timestamp",
+        validation_alias=AliasChoices("start_time", "startTime", "start"),
+    )
+    end_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's end timestamp",
+        validation_alias=AliasChoices("end_time", "endTime", "end"),
+    )
+    category: ColumnRef = Field(
+        ...,
+        description=(
+            "Task/category dimension shown as the Gantt row label (native y_axis)"
+        ),
+        validation_alias=AliasChoices("category", "task", "y_axis", "yAxis"),
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional dimension used for color series and legend entries",
+    )
+    subcategories: bool = Field(
+        False,
+        description=(
+            "Split each category into separate rows for series values; requires series"
+        ),
+    )
+    tooltip_columns: List[ColumnRef] = Field(
+        default_factory=list,
+        description="Additional physical columns included in task tooltips",
+        max_length=50,
+    )
+    tooltip_metrics: List[ColumnRef] = Field(
+        default_factory=list,
+        description=("Additional aggregate or saved metrics included in task tooltips"),
+        max_length=50,
+    )
+    order_by: List[GanttSortByConfig] = Field(
+        default_factory=list,
+        description=(
+            "Stable task ordering. Native order_by_cols JSON pairs are also "
+            "accepted for saved-form-data round trips."
+        ),
+        validation_alias=AliasChoices("order_by", "order_by_cols"),
+        max_length=100,
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured filters (column/op/value). Native SIMPLE adhoc_filters "
+            "are adapted; free-form SQL filters are rejected."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        max_length=1000,
+        description=(
+            "Optional bounded Superset time range applied to the chart, such as "
+            "'Last 30 days' or '2025-01-01 : 2025-12-31'"
+        ),
+    )
+    row_limit: int = Field(
+        10000,
+        ge=1,
+        le=50000,
+        description="Maximum number of task rows returned",
+    )
+
+    # Presentation controls read by Gantt/transformProps.ts.
+    color_scheme: str | None = Field(None, max_length=100)
+    show_legend: bool = True
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top",
+        validation_alias=AliasChoices("legend_orientation", "legendOrientation"),
+    )
+    legend_type: Literal["plain", "scroll"] = Field(
+        "scroll",
+        validation_alias=AliasChoices("legend_type", "legendType"),
+    )
+    legend_margin: int | None = Field(
+        None,
+        ge=0,
+        le=1000,
+        validation_alias=AliasChoices("legend_margin", "legendMargin"),
+    )
+    legend_sort: Literal["asc", "desc"] | None = Field(
+        None,
+        validation_alias=AliasChoices("legend_sort", "legendSort"),
+    )
+    zoomable: bool = False
+    show_extra_controls: bool = False
+    x_axis_time_bounds: tuple[str | None, str | None] | None = Field(
+        None,
+        description="Optional daily HH:MM:SS lower/upper bounds for the time axis",
+    )
+    x_axis_time_format: str = Field("smart_date", max_length=100)
+    tooltip_time_format: str = Field(
+        "smart_date",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_time_format", "tooltipTimeFormat"),
+    )
+    tooltip_values_format: str = Field(
+        "SMART_NUMBER",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_values_format", "tooltipValuesFormat"),
+    )
+    x_axis_title: str | None = Field(None, max_length=200)
+    x_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+    y_axis_title: str | None = Field(None, max_length=200)
+    y_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, raw: Any) -> Any:  # noqa: C901
+        """Adapt bounded, recognized native Gantt form data without typo drops."""
+        if not isinstance(raw, dict):
+            return raw
+        data = dict(raw)
+
+        if "y_axis_title_position" in data:
+            raise ValueError(
+                "y_axis_title_position is unsupported by Gantt; the frontend "
+                "always centers the Y-axis title"
+            )
+
+        # Request normalization maps viz_type before this validator, while direct
+        # model validation may still carry the native discriminator.
+        if data.get("viz_type") == "gantt_chart":
+            data.setdefault("chart_type", "gantt")
+            data.pop("viz_type", None)
+        if data.get("chart_type") == "gantt_chart":
+            data["chart_type"] = "gantt"
+
+        # Saved chart transport metadata is not visualization configuration.
+        # Keep this allowlist deliberately narrow so misspelled controls still fail.
+        for key in (
+            "annotation_layers",
+            "dashboards",
+            "datasource",
+            "extra_form_data",
+            "slice_id",
+            "slice_name",
+        ):
+            data.pop(key, None)
+
+        marker_key = "_mcp_dashboard_time_filter_subject"
+        marker_present = marker_key in data
+        marker = data.pop(marker_key, None)
+        if marker_present and (not isinstance(marker, str) or not marker):
+            raise ValueError(f"{marker_key} must be a non-empty physical column name")
+
+        for key in (
+            "start_time",
+            "startTime",
+            "start",
+            "end_time",
+            "endTime",
+            "end",
+            "category",
+            "task",
+            "y_axis",
+            "yAxis",
+            "series",
+        ):
+            if isinstance(data.get(key), str):
+                data[key] = {"name": data[key]}
+
+        for key in ("tooltip_columns",):
+            if key in data and isinstance(data[key], list):
+                data[key] = [
+                    {"name": item} if isinstance(item, str) else item
+                    for item in data[key]
+                ]
+        if isinstance(data.get("tooltip_metrics"), list):
+            data["tooltip_metrics"] = [
+                cls._adapt_native_tooltip_metric(item, index)
+                for index, item in enumerate(data["tooltip_metrics"])
+            ]
+
+        if "adhoc_filters" in data:
+            if "filters" in data:
+                raise ValueError(
+                    "Use either filters or native adhoc_filters for Gantt, not both"
+                )
+            native_filters = data.pop("adhoc_filters")
+            if not isinstance(native_filters, list):
+                raise ValueError("adhoc_filters must be an array")
+            if len(native_filters) > 100:
+                raise ValueError("adhoc_filters accepts at most 100 entries")
+            filters: list[dict[str, Any]] = []
+            temporal_filters: list[tuple[int, str, Any]] = []
+            allowed_filter_keys = {
+                "clause",
+                "comparator",
+                "datasourceWarning",
+                "expressionType",
+                "filterOptionName",
+                "isExtra",
+                "isNew",
+                "operator",
+                "operatorId",
+                "sqlExpression",
+                "subject",
+            }
+            for index, native_filter in enumerate(native_filters):
+                if not isinstance(native_filter, dict):
+                    raise ValueError(f"adhoc_filters[{index}] must be an object")
+                if native_filter.get("expressionType") != "SIMPLE":
+                    raise ValueError(
+                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'; "
+                        "free-form SQL filters are not supported by typed Gantt"
+                    )
+                unknown_filter_keys = set(native_filter) - allowed_filter_keys
+                if unknown_filter_keys:
+                    raise ValueError(
+                        f"adhoc_filters[{index}] has unsupported fields: "
+                        f"{', '.join(sorted(unknown_filter_keys))}"
+                    )
+                if native_filter.get("clause") not in (None, "WHERE"):
+                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+                for metadata_key in ("isExtra", "isNew", "datasourceWarning"):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and not isinstance(
+                        metadata_value, bool
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be boolean"
+                        )
+                for metadata_key, max_length in (
+                    ("filterOptionName", 500),
+                    ("operatorId", 100),
+                ):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and (
+                        not isinstance(metadata_value, str)
+                        or not metadata_value
+                        or len(metadata_value) > max_length
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be a "
+                            "non-empty string"
+                        )
+                if native_filter.get("sqlExpression") is not None:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].sqlExpression must be null for "
+                        "expressionType='SIMPLE'"
+                    )
+                subject = native_filter.get("subject")
+                operator = native_filter.get("operator")
+                operator_id = native_filter.get("operatorId")
+                comparator = native_filter.get("comparator")
+                if not isinstance(operator, str) or not operator:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator must be a non-empty string"
+                    )
+                operator_id_map: dict[str, str | None] = {
+                    "EQUALS": "==",
+                    "NOT_EQUALS": "!=",
+                    "LESS_THAN": "<",
+                    "LESS_THAN_OR_EQUAL": "<=",
+                    "GREATER_THAN": ">",
+                    "GREATER_THAN_OR_EQUAL": ">=",
+                    "IN": "IN",
+                    "NOT_IN": "NOT IN",
+                    "LIKE": "LIKE",
+                    "ILIKE": "ILIKE",
+                    "IS_NOT_NULL": "IS NOT NULL",
+                    "IS_NULL": "IS NULL",
+                    "TEMPORAL_RANGE": "TEMPORAL_RANGE",
+                    # These are real Explore operator IDs, but FilterConfig and
+                    # the shared query-filter contract cannot represent them
+                    # without changing their meaning. Reject them explicitly.
+                    "LATEST_PARTITION": None,
+                    "IS_TRUE": None,
+                    "IS_FALSE": None,
+                    "CONTAINS_ANY": None,
+                    "CONTAINS_ALL": None,
+                    "IS_EMPTY": None,
+                    "IS_NOT_EMPTY": None,
+                    "LENGTH_EQUALS": None,
+                    "LENGTH_GREATER_THAN": None,
+                    "LENGTH_LESS_THAN": None,
+                    "LENGTH_GREATER_THAN_OR_EQUALS": None,
+                    "LENGTH_LESS_THAN_OR_EQUALS": None,
+                }
+                if operator_id is not None:
+                    if operator_id not in operator_id_map:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not a recognized Explore operator ID"
+                        )
+                    expected_operator = operator_id_map[operator_id]
+                    if expected_operator is None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not supported by typed Gantt filters"
+                        )
+                    if operator != expected_operator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] has contradictory operator "
+                            f"{operator!r} for operatorId {operator_id!r}; expected "
+                            f"{expected_operator!r}"
+                        )
+
+                supported_operators = {
+                    expected
+                    for expected in operator_id_map.values()
+                    if expected is not None
+                } | {"NOT LIKE"}
+                if operator not in supported_operators:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator {operator!r} is not "
+                        "supported by typed Gantt filters"
+                    )
+                if operator == "TEMPORAL_RANGE":
+                    if not isinstance(subject, str) or not subject:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal filter needs subject"
+                        )
+                    if not isinstance(comparator, str) or not comparator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal comparator must "
+                            "be a non-empty string"
+                        )
+                    temporal_filters.append((index, subject, comparator))
+                    continue
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(f"adhoc_filters[{index}] needs subject")
+                if operator in {"IS NULL", "IS NOT NULL"}:
+                    if comparator is not None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} must not "
+                            "define comparator"
+                        )
+                elif operator in {"IN", "NOT IN"}:
+                    if not isinstance(comparator, list) or not comparator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} requires "
+                            "a non-empty comparator array"
+                        )
+                elif comparator is None or isinstance(comparator, (dict, list)):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] operator {operator!r} requires "
+                        "a scalar comparator"
+                    )
+                filters.append(
+                    {
+                        "column": subject,
+                        "op": "=" if operator == "==" else operator,
+                        "value": comparator,
+                    }
+                )
+            data["filters"] = filters or None
+
+            if len(temporal_filters) > 1:
+                indexes = ", ".join(str(item[0]) for item in temporal_filters)
+                raise ValueError(
+                    "Typed Gantt supports at most one TEMPORAL_RANGE adhoc filter; "
+                    f"found filters at indexes {indexes}"
+                )
+            if temporal_filters:
+                index, subject, comparator = temporal_filters[0]
+                configured_subject = data.get("temporal_column")
+                if configured_subject is not None and configured_subject != subject:
+                    raise ValueError(
+                        f"temporal_column conflicts with adhoc_filters[{index}].subject"
+                    )
+                data["temporal_column"] = subject
+                if marker_present and marker != subject:
+                    raise ValueError(
+                        f"{marker_key} conflicts with adhoc_filters[{index}].subject"
+                    )
+                if comparator not in (None, "", "No filter"):
+                    configured_range = data.get("time_range")
+                    if configured_range is not None and configured_range != comparator:
+                        raise ValueError(
+                            "time_range conflicts with "
+                            f"adhoc_filters[{index}].comparator"
+                        )
+                    data["time_range"] = comparator
+            elif marker_present:
+                raise ValueError(
+                    f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+                )
+        elif marker_present:
+            raise ValueError(
+                f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+            )
+        return data
+
+    @staticmethod
+    def _adapt_native_tooltip_metric(metric: Any, index: int) -> Any:  # noqa: C901
+        """Convert one bounded native QueryFormMetric into a typed metric ref."""
+        if isinstance(metric, str):
+            return {"name": metric, "saved_metric": True}
+        if not isinstance(metric, dict):
+            raise ValueError(
+                f"tooltip_metrics[{index}] must be a saved metric name or object"
+            )
+        # Typed ColumnRef objects do not carry the frontend discriminator and
+        # must continue through normal Pydantic validation unchanged.
+        if "expressionType" not in metric:
+            return metric
+
+        allowed_keys = {
+            "aggregate",
+            "column",
+            "datasourceWarning",
+            "expressionType",
+            "hasCustomLabel",
+            "isNew",
+            "label",
+            "optionName",
+            "sqlExpression",
+        }
+        if unknown := set(metric) - allowed_keys:
+            raise ValueError(
+                f"tooltip_metrics[{index}] has unsupported fields: "
+                f"{', '.join(sorted(unknown))}"
+            )
+        option_name = metric.get("optionName")
+        if option_name is not None and (
+            not isinstance(option_name, str)
+            or not option_name
+            or len(option_name) > 500
+        ):
+            raise ValueError(
+                f"tooltip_metrics[{index}].optionName must be a non-empty string"
+            )
+        datasource_warning = metric.get("datasourceWarning")
+        if datasource_warning is not None and not isinstance(datasource_warning, bool):
+            raise ValueError(
+                f"tooltip_metrics[{index}].datasourceWarning must be boolean"
+            )
+        custom_label = metric.get("hasCustomLabel")
+        if custom_label is not None and not isinstance(custom_label, bool):
+            raise ValueError(f"tooltip_metrics[{index}].hasCustomLabel must be boolean")
+        is_new = metric.get("isNew")
+        if is_new is not None and not isinstance(is_new, bool):
+            raise ValueError(f"tooltip_metrics[{index}].isNew must be boolean")
+
+        expression_type = metric.get("expressionType")
+        label = metric.get("label")
+        if label is not None and (not isinstance(label, str) or not label):
+            raise ValueError(
+                f"tooltip_metrics[{index}].label must be a non-empty string"
+            )
+        if expression_type == "SIMPLE":
+            aggregate = metric.get("aggregate")
+            column = metric.get("column")
+            if not isinstance(aggregate, str) or not aggregate:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric needs aggregate"
+                )
+            if not isinstance(column, dict):
+                raise ValueError(f"tooltip_metrics[{index}] SIMPLE metric needs column")
+            # QueryFormMetric embeds the selected frontend Column metadata.
+            # Keep this allowlist aligned with the frontend Column contract and
+            # the additional fields emitted by TableColumn.data.
+            allowed_column_keys = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "columnName",
+                "column_name",
+                "database_expression",
+                "description",
+                "expression",
+                "filterBy",
+                "filterable",
+                "groupby",
+                "id",
+                "is_certified",
+                "is_dttm",
+                "optionName",
+                "python_date_format",
+                "type",
+                "type_generic",
+                "uuid",
+                "value",
+                "verbose_name",
+                "warning_markdown",
+            }
+            unknown_column_keys = set(column) - allowed_column_keys
+            if unknown_column_keys:
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has unsupported fields: "
+                    f"{', '.join(sorted(unknown_column_keys))}"
+                )
+            boolean_fields = {"filterable", "groupby", "is_certified", "is_dttm"}
+            for metadata_key in boolean_fields & column.keys():
+                if not isinstance(column[metadata_key], bool):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} "
+                        "must be boolean"
+                    )
+            if "id" in column and (
+                isinstance(column["id"], bool)
+                or not isinstance(column["id"], int)
+                or column["id"] < 0
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.id must be a non-negative integer"
+                )
+            if "type_generic" in column:
+                type_generic = column["type_generic"]
+                if type_generic is not None and (
+                    isinstance(type_generic, bool)
+                    or not isinstance(type_generic, int)
+                    or type_generic not in range(5)
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.type_generic must be "
+                        "null or a GenericDataType value from 0 through 4"
+                    )
+
+            nullable_string_fields = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "database_expression",
+                "description",
+                "expression",
+                "python_date_format",
+                "type",
+                "uuid",
+                "verbose_name",
+                "warning_markdown",
+            }
+            for metadata_key in nullable_string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if metadata_value is not None and (
+                    not isinstance(metadata_value, str) or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "null or a string of at most 2000 characters"
+                    )
+
+            string_fields = {
+                "columnName",
+                "column_name",
+                "filterBy",
+                "optionName",
+                "value",
+            }
+            for metadata_key in string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if (
+                    not isinstance(metadata_value, str)
+                    or not metadata_value
+                    or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "a non-empty string of at most 2000 characters"
+                    )
+            column_name = column.get("column_name") or column.get("columnName")
+            if not isinstance(column_name, str) or not column_name:
+                raise ValueError(f"tooltip_metrics[{index}].column needs column_name")
+            if (
+                column.get("column_name") is not None
+                and column.get("columnName") is not None
+                and column["column_name"] != column["columnName"]
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has conflicting column names"
+                )
+            column_type = column.get("type")
+            if isinstance(column_type, str) and len(column_type) > 255:
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.type must be at most 255 "
+                    "characters"
+                )
+            if metric.get("sqlExpression") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric cannot set sqlExpression"
+                )
+            if custom_label is True and label is None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] custom label requires label"
+                )
+            default_label = f"{aggregate.upper()}({column_name})"
+            typed_label = label if custom_label or label != default_label else None
+            return {
+                "name": column_name,
+                "aggregate": aggregate,
+                "label": typed_label,
+            }
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if not isinstance(sql_expression, str) or not sql_expression:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric needs sqlExpression"
+                )
+            if metric.get("aggregate") is not None or metric.get("column") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric cannot set "
+                    "aggregate or column"
+                )
+            if custom_label is True and label is None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] custom label requires label"
+                )
+            # ColumnRef requires an output alias for SQL metrics. The frontend's
+            # getMetricLabel uses sqlExpression when no custom label is present,
+            # so using that exact fallback keeps the query-result key stable.
+            return {"sql_expression": sql_expression, "label": label or sql_expression}
+        raise ValueError(
+            f"tooltip_metrics[{index}].expressionType must be 'SIMPLE' or 'SQL'"
+        )
+
+    @field_validator("start_time", "end_time", "category", "series", mode="before")
+    @classmethod
+    def coerce_single_column(cls, value: Any) -> Any:
+        """Accept native bare physical-column names."""
+        return {"name": value} if isinstance(value, str) else value
+
+    @field_validator("tooltip_columns", mode="before")
+    @classmethod
+    def coerce_tooltip_columns(cls, value: Any) -> Any:
+        if not isinstance(value, list):
+            return value
+        return [{"name": item} if isinstance(item, str) else item for item in value]
+
+    @field_validator("order_by", mode="before")
+    @classmethod
+    def parse_native_order_by(cls, value: Any) -> Any:
+        """Parse the frontend's JSON ``[column, ascending]`` strings safely."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("order_by must be an array")
+        if len(value) > 100:
+            raise ValueError("order_by accepts at most 100 entries")
+
+        from superset.utils import json as utils_json
+
+        parsed: list[Any] = []
+        for index, item in enumerate(value):
+            if isinstance(item, str):
+                if len(item) > 1000:
+                    raise ValueError(f"order_by[{index}] is too long")
+                try:
+                    item = utils_json.loads(item)
+                except (TypeError, ValueError) as ex:
+                    raise ValueError(f"order_by[{index}] is not valid JSON") from ex
+            if isinstance(item, (list, tuple)):
+                if (
+                    len(item) != 2
+                    or not isinstance(item[0], str)
+                    or not item[0]
+                    or not isinstance(item[1], bool)
+                ):
+                    raise ValueError(
+                        f"order_by[{index}] must be [column, ascending_boolean]"
+                    )
+                item = {"column": item[0], "ascending": item[1]}
+            parsed.append(item)
+        return parsed
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gantt_time_range(cls, value: str | None) -> str | None:
+        return validate_time_range(value)
+
+    @field_validator("x_axis_time_bounds")
+    @classmethod
+    def validate_time_bounds(
+        cls, value: tuple[str | None, str | None] | None
+    ) -> tuple[str | None, str | None] | None:
+        if value is None:
+            return None
+        value = (value[0] or None, value[1] or None)
+        for bound in value:
+            if bound is None:
+                continue
+            try:
+                time.fromisoformat(bound)
+            except ValueError as ex:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS") from ex
+            if len(bound) != 8:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS")
+        return value
+
+    @model_validator(mode="after")
+    def validate_gantt_roles(self) -> "GanttChartConfig":
+        """Keep metric and dimension roles aligned with the frontend controls."""
+        dimension_fields: list[tuple[str, ColumnRef | None]] = [
+            ("start_time", self.start_time),
+            ("end_time", self.end_time),
+            ("category", self.category),
+            ("series", self.series),
+        ]
+        dimension_fields.extend(
+            (f"tooltip_columns[{index}]", column)
+            for index, column in enumerate(self.tooltip_columns)
+        )
+        for field_name, column in dimension_fields:
+            _reject_sql_expression_on_dimension(column, field_name)
+            if column is not None and column.saved_metric:
+                raise ValueError(
+                    f"{field_name} cannot use saved_metric=True; it is a dimension"
+                )
+            if column is not None and column.aggregate:
+                raise ValueError(
+                    f"{field_name} cannot define aggregate; it is a dimension"
+                )
+
+        for index, metric in enumerate(self.tooltip_metrics):
+            if not metric.is_metric:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] must define aggregate, "
+                    "saved_metric=True, or sql_expression"
+                )
+
+        _validate_distinct_gantt_roles(
+            {
+                "start_time": self.start_time.name,
+                "end_time": self.end_time.name,
+                "category": self.category.name,
+            }
+        )
+
+        if self.subcategories and self.series is None:
+            raise ValueError("subcategories=True requires series")
+        if (
+            self.series is not None
+            and self.series.name is not None
+            and self.category.name is not None
+            and self.series.name.casefold() == self.category.name.casefold()
+        ):
+            raise ValueError("series and category must reference different columns")
+
+        order_names = [item.column.casefold() for item in self.order_by]
+        if len(order_names) != len(set(order_names)):
+            raise ValueError("order_by cannot contain duplicate columns")
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
+CHART_TYPE_DISCRIMINATOR: str = "chart_type"
+
+
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | GaugeChartConfig
+    | TreemapChartConfig
+    | BubbleChartConfig
     | PivotTableChartConfig
+    | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
     | BigNumberChartConfig
     | HistogramChartConfig
     | BoxPlotChartConfig
-    | WaterfallChartConfig,
+    | WaterfallChartConfig
+    | GanttChartConfig,
     Field(
-        discriminator="chart_type",
+        discriminator=CHART_TYPE_DISCRIMINATOR,
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "'big_number', 'histogram', 'box_plot', or 'waterfall'"
+            "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
+            "'interactive_pivot', 'mixed_timeseries', 'handlebars', "
+            "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
     ),
 ]
 
 
-# Compact description for JSON Schema — keeps tool inputSchema small while
-# giving LLMs enough context to construct valid configs.
+def _chart_type_values(*config_types: Any) -> list[str]:
+    """Return discriminator values from Annotated models or unions, in order."""
+    values: list[str] = []
+    for config_type in config_types:
+        union_type = get_args(config_type)[0]
+        for model in get_args(union_type) or (union_type,):
+            for value in get_args(
+                model.model_fields[CHART_TYPE_DISCRIMINATOR].annotation
+            ):
+                if value not in values:
+                    values.append(value)
+    return values
+
+
+CHART_TYPE_VALUES: list[str] = _chart_type_values(ChartConfig)
+
+# Tool input schemas advertise ``config`` as a compact discriminated reference.
+# Inlining every chart type's schema made each chart tool grow by several kB
+# per registered type; the per-type schemas and examples are served by
+# get_chart_type_schema instead. Server-side validation is unchanged: fields
+# typed with these annotations still validate against the full ChartConfig
+# discriminated union.
+CHART_CONFIG_DESCRIPTION = (
+    "Chart configuration. chart_type selects the chart type; call "
+    "get_chart_type_schema(chart_type) for that type's fields and examples."
+)
+CHART_CONFIG_REFERENCE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"chart_type": {"type": "string", "enum": CHART_TYPE_VALUES}},
+    "required": ["chart_type"],
+    "additionalProperties": True,
+}
+
+
+def chart_config_reference_schema(*, nullable: bool = False) -> WithJsonSchema:
+    """Return the compact ``config`` schema annotation for chart tool inputs."""
+    if not nullable:
+        return WithJsonSchema(deepcopy(CHART_CONFIG_REFERENCE_SCHEMA))
+    return WithJsonSchema(
+        {"anyOf": [deepcopy(CHART_CONFIG_REFERENCE_SCHEMA), {"type": "null"}]}
+    )
 
 
 # Superset viz_type values that LLM clients routinely send where this API
@@ -2172,7 +3827,10 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),
+    "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "gantt_chart": ("gantt", None),
+    "gauge_chart": ("gauge", None),
 }
 
 
@@ -2219,67 +3877,27 @@ class ChartRequestNormalizerMixin(BaseModel):
         return _normalize_chart_request_input(data)
 
 
-class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(
+    EditedByMeMixin,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    PaginatedListRequest[ChartFilter],
+):
     """Request schema for list_charts with clear, unambiguous types."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    filters: Annotated[
-        List[ChartFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' "
-            "properties. Cannot be used together with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="List of columns to select. Defaults to common columns if not "
-            "specified.",
-            validation_alias=AliasChoices("select_columns", "columns"),
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[ChartFilter]:
-        """
-        Parse filters from JSON string or list.
-
-        Handles Claude Code bug where objects are double-serialized as strings.
-        See: https://github.com/anthropics/claude-code/issues/5504
-        """
-        from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
-
-        return cast(
-            List[ChartFilter],
-            parse_json_or_model_list(v, ChartFilter, "filters"),
-        )
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_select_columns(cls, v: Any) -> List[str]:
-        """
-        Parse select_columns from JSON string, list, or CSV string.
-
-        Handles Claude Code bug where arrays are double-serialized as strings.
-        See: https://github.com/anthropics/claude-code/issues/5504
-        """
-        from superset.mcp_service.utils.schema_utils import parse_json_or_list
-
-        return parse_json_or_list(v, "select_columns")
-
-    search: Annotated[
-        str | None,
+    certified: Annotated[
+        StrictBool | None,
         Field(
             default=None,
-            description="Text search string to match against chart fields. Cannot be "
-            "used together with 'filters'.",
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified charts (preferred when selecting governed "
+                "assets), false to return only uncertified charts, or omit to "
+                "return both (default)."
+            ),
         ),
     ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -2289,13 +3907,14 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
                 "trashed charts, 'include' returns live and trashed charts "
                 "together. Omit for live charts only (default). Trashed rows "
                 "carry a non-null deleted_at and are limited to charts the "
-                "caller owns (admins see all); requires the SOFT_DELETE "
-                "feature flag to have produced trashed rows."
+                "caller can edit (the same audience that can restore them, "
+                "not merely the ones they own; admins see all). This omits "
+                "EXTRA_EDITORS_RESOLVER-granted and guest role-derived "
+                "editorship, so some restorable charts may be under-"
+                "enumerated. Requires the SOFT_DELETE feature flag to have "
+                "produced trashed rows."
             ),
         ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
     ]
     order_direction: Annotated[
         Literal["asc", "desc"],
@@ -2303,30 +3922,6 @@ class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl)
             default="asc", description="Direction to order results ('asc' or 'desc')"
         ),
     ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number for pagination (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListChartsRequest":
-        """Prevent using both search and filters simultaneously."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching across multiple fields, "
-                "or 'filters' for precise column-based filtering, but not both."
-            )
-        return self
 
 
 # The tool input models
@@ -2334,7 +3929,9 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
+        ..., description=CHART_CONFIG_DESCRIPTION
+    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
@@ -2346,7 +3943,7 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -2434,10 +4031,12 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig | None = Field(
+    config: Annotated[
+        ChartConfig | None, chart_config_reference_schema(nullable=True)
+    ] = Field(
         None,
         description=(
-            "Chart configuration. Optional; omit to get a default "
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to get a default "
             "explore URL that opens the dataset in Superset without a "
             "preconfigured chart."
         ),
@@ -2452,9 +4051,22 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         description="Chart ID or UUID",
         validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
-    config: ChartConfig | None = Field(
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig | None,
+        chart_config_reference_schema(nullable=True),
+    ] = Field(
         None,
-        description="Chart configuration. Optional; omit to only update chart_name.",
+        description=(
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
+    )
+    add_columns: List[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Table columns or metrics to append while preserving every existing "
+            "column and metric. Use this instead of config.columns when adding "
+            "columns to an existing table chart."
+        ),
     )
     chart_name: str | None = Field(
         None,
@@ -2488,6 +4100,19 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         ),
     )
 
+    @model_validator(mode="after")
+    def validate_column_patch(self) -> "UpdateChartRequest":
+        """Keep full-config replacement and additive table updates unambiguous."""
+        if self.config is not None and self.add_columns is not None:
+            raise ValueError(
+                "Use either 'config' for a full visualization replacement or "
+                "'add_columns' to append table columns while preserving the existing "
+                "configuration, not both."
+            )
+        if self.add_columns == []:
+            raise ValueError("'add_columns' must contain at least one column")
+        return self
+
     @field_validator("chart_name")
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
@@ -2506,11 +4131,34 @@ class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheContro
         ),
     )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig, chart_config_reference_schema()
+    ] = Field(..., description=CHART_CONFIG_DESCRIPTION)
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+
+class UpdateChartPreviewResponse(TypedDict, total=False):
+    """Output fields returned while iterating on a cached chart preview."""
+
+    chart: dict[str, Any] | None
+    previews: dict[str, Any]
+    capabilities: dict[str, Any] | None
+    semantics: dict[str, Any] | None
+    explore_url: str
+    form_data_key: str
+    form_data: dict[str, Any]
+    previous_form_data_key: str | None
+    warnings: list[str]
+    api_endpoints: dict[str, str]
+    performance: dict[str, Any] | None
+    accessibility: dict[str, Any] | None
+    success: bool
+    error: str | dict[str, Any] | None
+    schema_version: str
+    api_version: str
 
 
 class GetChartDataRequest(QueryCacheControl):
@@ -2580,7 +4228,7 @@ class DataColumn(BaseModel):
     name: str = Field(..., description="Column name")
     display_name: str = Field(..., description="Human-readable column name")
     data_type: str = Field(..., description="Inferred data type")
-    sample_values: List[Any] = Field(description="Representative sample values")
+    sample_values: JsonSafeValues = Field(description="Representative sample values")
     null_count: int = Field(
         description="Number of null values. Approximate — see 'statistics.sampled_rows'"
         " if the source result set was larger than the row cap used to compute it."
@@ -2590,7 +4238,7 @@ class DataColumn(BaseModel):
         "'statistics.sampled_rows' if the source result set was larger than the "
         "row cap used to compute it."
     )
-    statistics: Dict[str, Any] | None = Field(
+    statistics: JsonSafeMapping | None = Field(
         None,
         description="Additional column statistics, when available. May include "
         "'sampled_rows' (any column type) when null_count/unique_count were "
@@ -2599,6 +4247,16 @@ class DataColumn(BaseModel):
     semantic_type: str | None = Field(
         None, description="Semantic type (currency, percentage, etc)"
     )
+
+
+class ChartQueryResult(BaseModel):
+    """Data returned by one query in a chart's query context."""
+
+    query_index: int = Field(description="Zero-based query position")
+    columns: list[str] = Field(description="Column names returned by the query")
+    data: JsonSafeRows = Field(description="Actual data rows")
+    row_count: RowCount = Field(description="Rows returned")
+    total_rows: OptionalRowCount = Field(None, description="Total available rows")
 
 
 class ChartData(BaseModel):
@@ -2611,11 +4269,19 @@ class ChartData(BaseModel):
 
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
-    data: List[Dict[str, Any]] = Field(description="Actual data rows")
+    data: JsonSafeRows = Field(description="Actual data rows")
+    query_results: list[ChartQueryResult] | None = Field(
+        None,
+        description=(
+            "All query results for multi-query charts. The top-level columns and data "
+            "fields remain aliases for the first query for backward compatibility."
+        ),
+    )
 
     # Data insights
-    row_count: int = Field(description="Rows returned")
-    total_rows: int | None = Field(description="Total available rows")
+    row_count: RowCount = Field(description="Rows returned")
+    total_rows: OptionalRowCount = Field(description="Total available rows")
+
     data_freshness: datetime | None = Field(description="When data was last updated")
 
     # LLM-friendly summaries
@@ -2709,6 +4375,14 @@ class GetChartPreviewRequest(QueryCacheControl):
     )
     ascii_height: int | None = Field(
         default=20, description="ASCII chart height in lines (for ascii format)"
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the preview query, typically from "
+            "dashboard native filters, so the preview reflects the filtered view. "
+            'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
     )
 
 
@@ -2900,6 +4574,15 @@ class GetChartSqlRequest(BaseModel):
             "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query before rendering SQL, "
+            "typically from dashboard native filters. Same format accepted by "
+            "get_chart_data. Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartSqlRequest":
@@ -3040,6 +4723,28 @@ class ChartFiltersInfo(BaseModel):
             "dashboard passed via get_chart_info's dashboard_id argument. Empty "
             "when no dashboard_id was provided or no native filter targets this "
             "chart."
+        ),
+    )
+    active_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard native filters the user currently has ACTIVE on this chart "
+            "(live selections forwarded from the dashboard via extra_form_data), "
+            "distinct from the chart's own saved filters and from dashboard_filters "
+            "(the dashboard's default/configured state). A non-empty list means the "
+            "chart is being viewed filtered; report these as the active filters. "
+            "Column-based and adhoc filters exactly as forwarded, in their "
+            "original shapes; an active time-range filter is reported "
+            "separately under active_time_range."
+        ),
+    )
+    active_time_range: str | None = Field(
+        None,
+        description=(
+            "Dashboard time-range filter the user currently has ACTIVE on this "
+            "chart (forwarded via extra_form_data.time_range), distinct from the "
+            "chart's own saved time_range. Set when the active view includes a "
+            "time filter."
         ),
     )
 

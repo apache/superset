@@ -18,17 +18,38 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
+// Type-only import: erased at build time, so html2canvas still reaches the core
+// bundle only through the dynamic import inside the Safari branch below.
+import type { Options as Html2CanvasOptions } from 'html2canvas';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { isSafari } from 'src/utils/common';
+import {
+  dispatchWarningToast,
+  forceLoadAllCharts,
+  restoreVirtualization,
+} from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
+// ECharts canvas charts (e.g. sunburst) bake their pixel detail into the on-screen backing
+// store (CSS size × devicePixelRatio). Copying that 1:1 and then letting the PNG path upscale
+// it via transform: scale(PNG_SCALE) only stretches the bitmap, producing a blurry export. To
+// keep the export crisp, these charts are re-rendered at this pixel ratio at capture time; it is
+// tied to PNG_SCALE so the re-render matches the scaled output box.
+const EXPORT_CANVAS_PIXEL_RATIO = PNG_SCALE;
+// The div passed to ECharts `init()` carries this class (source of truth:
+// plugins/plugin-chart-echarts/src/components/Echart.tsx `ECHARTS_HOST_CLASS`). It lets the
+// exporter recover the live ECharts instance for a canvas via `getInstanceByDom`.
+const ECHARTS_HOST_CLASS = 'echarts-host';
 export type BackgroundType = 'transparent' | 'solid';
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
+
+// Resolved lazily via a dynamic import so echarts stays out of the core bundle.
+type EChartsGetInstanceByDom = typeof import('echarts/core').getInstanceByDom;
 
 // Tracks original cell styles to restore after capture
 type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
@@ -41,6 +62,17 @@ type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
  */
 const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
+
+const triggerDownload = (
+  dataUrl: string,
+  description: string,
+  isPng: boolean,
+) => {
+  const link = document.createElement('a');
+  link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
+  link.href = dataUrl;
+  link.click();
+};
 
 const CRITICAL_STYLE_PROPERTIES = new Set([
   'display',
@@ -142,7 +174,23 @@ const copyAllComputedStyles = (
   }
 };
 
-const processCloneForVisibility = (clone: HTMLElement) => {
+// True when the element clips its content on at least one axis. `copyAllComputedStyles`
+// writes the computed `overflow` inline on the whole tree, so `[style*="overflow"]` below
+// matches nearly every node; only the ones that actually clip should have their overflow
+// rewritten. Both the shorthand and the longhands are read because engines disagree on
+// which of them a computed style resolves: browsers resolve the longhands, jsdom only
+// echoes back whichever form was specified.
+const clipsOverflow = (element: HTMLElement) => {
+  const computed = window.getComputedStyle(element);
+  return /auto|scroll|hidden|clip/.test(
+    `${computed.overflow} ${computed.overflowX} ${computed.overflowY}`,
+  );
+};
+
+const processCloneForVisibility = (
+  clone: HTMLElement,
+  clipHorizontalOverflow = false,
+) => {
   const cloneStyle = clone.style;
   cloneStyle.height = 'auto';
   cloneStyle.maxHeight = 'none';
@@ -166,9 +214,25 @@ const processCloneForVisibility = (clone: HTMLElement) => {
   scrollableSelectors.forEach(selector => {
     clone.querySelectorAll(selector).forEach(el => {
       const element = el as HTMLElement;
-      element.style.overflow = 'visible';
       element.style.height = 'auto';
       element.style.maxHeight = 'none';
+      if (!clipsOverflow(element)) return;
+      if (clipHorizontalOverflow) {
+        // The vertical axis stays unclipped so the whole chart paints while the
+        // grid reflows around its now auto-height slot. The horizontal axis keeps
+        // its clip: the clone preserves every element's on-screen pixel width, so
+        // a table that scrolls sideways would otherwise paint its off-slot columns
+        // across the charts sitting next to it in the same dashboard row.
+        // `clip` rather than `hidden`, because `hidden` paired with `visible` is
+        // not a legal computed combination: the engine promotes the `visible` axis
+        // to `auto` and clips that one too. `clip` paired with `visible` clips a
+        // single axis and leaves the element a non-scroll-container, so nothing
+        // but the sideways bleed changes.
+        element.style.overflowX = 'clip';
+        element.style.overflowY = 'visible';
+      } else {
+        element.style.overflow = 'visible';
+      }
     });
   });
 
@@ -222,30 +286,74 @@ const processCloneForVisibility = (clone: HTMLElement) => {
     });
 };
 
-const preserveCanvasContent = (original: Element, clone: Element) => {
+const preserveCanvasContent = (
+  original: Element,
+  clone: Element,
+  getInstanceByDom?: EChartsGetInstanceByDom,
+) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
+  // `renderToCanvas` flattens all of an ECharts instance's zrender layers into a single canvas,
+  // so once a host is re-rendered its other <canvas> layers (e.g. a hover layer) are skipped;
+  // if the re-render throws, the host is marked 'failed' so each layer falls back to a 1:1 copy.
+  const hostRenderState = new Map<Element, 'rendered' | 'failed'>();
 
   originalCanvases.forEach((originalCanvas, i) => {
-    if (originalCanvases[i] && clonedCanvases[i]) {
-      const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
-      const ctx = clonedCanvas.getContext('2d');
-      if (ctx) {
-        clonedCanvas.width = originalCanvas.width;
-        clonedCanvas.height = originalCanvas.height;
-        ctx.drawImage(originalCanvas, 0, 0);
+    const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement | undefined;
+    if (!clonedCanvas) return;
+    const ctx = clonedCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // For ECharts (canvas renderer) charts such as sunburst, re-render the chart at a higher
+    // pixel ratio instead of copying the on-screen bitmap, so the PNG path upscales a matching
+    // high-resolution source rather than stretching a low-resolution one. `getInstanceByDom` is
+    // only supplied on the PNG path, so JPEG (and non-ECharts canvases) keep the 1:1 copy below.
+    const host = originalCanvas.closest(`.${ECHARTS_HOST_CLASS}`);
+    const hostState = host ? hostRenderState.get(host) : undefined;
+    // Sibling layer of a host already re-rendered: the flattened render covers it.
+    if (hostState === 'rendered') return;
+    const instance =
+      host && hostState !== 'failed'
+        ? getInstanceByDom?.(host as HTMLElement)
+        : undefined;
+    if (host && instance) {
+      try {
+        // No `backgroundColor` is passed, so renderToCanvas inherits the chart's own configured
+        // background (transparent when unset) — matching the on-screen canvas. The overall export
+        // background is applied separately via the dom-to-image `bgcolor` option.
+        const hiResCanvas = instance.renderToCanvas({
+          pixelRatio: EXPORT_CANVAS_PIXEL_RATIO,
+        });
+        clonedCanvas.width = hiResCanvas.width;
+        clonedCanvas.height = hiResCanvas.height;
+        ctx.drawImage(hiResCanvas, 0, 0);
+        hostRenderState.set(host, 'rendered');
+        return;
+      } catch {
+        // A valid but unhealthy instance (mid-dispose, errored chart) can throw. Mark the host
+        // 'failed' and fall back to the on-screen 1:1 copy below so a single bad chart can never
+        // abort the whole export (e.g. a 20-chart dashboard capture).
+        hostRenderState.set(host, 'failed');
       }
     }
+
+    // Non-ECharts canvases (deck.gl/WebGL and friends), and the fallback when a re-render is
+    // unavailable or threw: preserve the on-screen bitmap as-is.
+    clonedCanvas.width = originalCanvas.width;
+    clonedCanvas.height = originalCanvas.height;
+    ctx.drawImage(originalCanvas, 0, 0);
   });
 };
 
 const createEnhancedClone = (
   originalElement: Element,
   theme?: SupersetTheme,
+  getInstanceByDom?: EChartsGetInstanceByDom,
+  clipHorizontalOverflow = false,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
   copyAllComputedStyles(originalElement, clone, theme);
-  preserveCanvasContent(originalElement, clone);
+  preserveCanvasContent(originalElement, clone, getInstanceByDom);
 
   const tempContainer = document.createElement('div');
   tempContainer.style.cssText = `
@@ -259,7 +367,7 @@ const createEnhancedClone = (
   tempContainer.appendChild(clone);
   document.body.appendChild(tempContainer);
 
-  processCloneForVisibility(clone);
+  processCloneForVisibility(clone, clipHorizontalOverflow);
 
   const cleanup = () => {
     if (tempContainer.parentElement) {
@@ -331,11 +439,16 @@ export default function downloadAsImageOptimized(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
       return;
     }
+
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners. Must be restored on
+    // every exit path below.
+    const didForceLoad = await forceLoadAllCharts(elementToPrint);
 
     const filter = (node: Element) =>
       typeof node.className === 'string'
@@ -371,9 +484,14 @@ export default function downloadAsImageOptimized(
       const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
-        addWarningToast(
+        await dispatchWarningToast(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
+        // This early return skips the capture, so restore virtualization here;
+        // otherwise it would stay forced-on for the rest of the session.
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
         return;
       }
 
@@ -456,17 +574,39 @@ export default function downloadAsImageOptimized(
           }),
         };
 
-        const dataUrl = isPng
-          ? await domToImage.toPng(agRootWrapper, agImageOptions)
-          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        let dataUrl: string;
+        if (isSafari()) {
+          // `dom-to-image-more` relies on SVG <foreignObject>, which WebKit does
+          // not reliably paint. Keep the ag-grid preparation above, then use a
+          // DOM painter for the actual Safari capture.
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(agRootWrapper, {
+            backgroundColor:
+              bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+            height: imageHeight,
+            width: originalWidth,
+            scale,
+            useCORS: true,
+            logging: false,
+            ignoreElements: element => !filter(element),
+            onclone: (_document, clone) => {
+              preserveCanvasContent(agRootWrapper, clone);
+            },
+          });
+          dataUrl = canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          );
+        } else {
+          dataUrl = isPng
+            ? await domToImage.toPng(agRootWrapper, agImageOptions)
+            : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        }
 
-        const link = document.createElement('a');
-        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
-        link.href = dataUrl;
-        link.click();
+        triggerDownload(dataUrl, description, isPng);
       } catch (error) {
         console.error('Creating image failed', error);
-        addWarningToast(
+        await dispatchWarningToast(
           t('Image download failed, please refresh and try again.'),
         );
       } finally {
@@ -483,17 +623,91 @@ export default function downloadAsImageOptimized(
             });
           }
         }
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
       }
       return;
     }
 
-    // All other chart types: use the clone-based approach
+    // All other chart types: preserve canvas contents and expand clipped content.
     let cleanup: (() => void) | null = null;
 
+    // Only the PNG path upscales the layout (transform: scale(PNG_SCALE)), so only there does a
+    // higher-resolution canvas help; JPEG keeps the throw-free 1:1 copy. Re-render ECharts
+    // (canvas renderer) charts, e.g. sunburst, at a higher pixel ratio so the upscale samples a
+    // matching source instead of stretching the on-screen bitmap. echarts is pulled in lazily —
+    // only when a chart is actually present — so it stays out of the core bundle; if the import
+    // fails the canvases fall back to a 1:1 copy.
+    let getInstanceByDom: EChartsGetInstanceByDom | undefined;
+    if (isPng && elementToPrint.querySelector(`.${ECHARTS_HOST_CLASS}`)) {
+      try {
+        ({ getInstanceByDom } = await import('echarts/core'));
+      } catch {
+        // echarts not available in this context; canvases keep their on-screen resolution.
+      }
+    }
+
     try {
+      if (isSafari()) {
+        // `dom-to-image-more` serializes through SVG <foreignObject>, which
+        // WebKit does not reliably paint. html2canvas clones the document itself;
+        // restore the clone-path canvas and visibility work in its clone callback.
+        const { default: html2canvas } = await import('html2canvas');
+        const captureOptions: Partial<Html2CanvasOptions> = {
+          backgroundColor:
+            bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+          height: (elementToPrint as HTMLElement).scrollHeight,
+          width: (elementToPrint as HTMLElement).scrollWidth,
+          scale,
+          // A cross-origin image on a server that sends no CORS headers cannot be drawn
+          // into an exportable canvas at all: html2canvas skips it when tainting is
+          // disallowed, and `allowTaint: true` would let it through but taint the canvas,
+          // making `toDataURL()` throw so the entire download fails instead of one image
+          // being left out. Keeping tainting off trades a missing image for an otherwise
+          // complete export, which is also what the dom-to-image path did.
+          useCORS: true,
+          logging: false,
+          ignoreElements: element => !filter(element),
+          onclone: (_document, clone) => {
+            processCloneForVisibility(clone, isDashboardCapture);
+            preserveCanvasContent(elementToPrint, clone, getInstanceByDom);
+            // `processCloneForVisibility` sets height/overflow to `auto` on the clone, so
+            // content clipped on screen (long tables, virtualized lists) extends past the
+            // source element's measurements. html2canvas reads width/height only after this
+            // callback returns, so widening them here captures the expanded content instead
+            // of cropping it to what was visible. `Math.max` keeps the on-screen size as a
+            // floor, so a clone that cannot be measured is never captured smaller than before.
+            captureOptions.width = Math.max(
+              captureOptions.width ?? 0,
+              clone.scrollWidth,
+            );
+            captureOptions.height = Math.max(
+              captureOptions.height ?? 0,
+              clone.scrollHeight,
+            );
+          },
+        };
+        const canvas = await html2canvas(
+          elementToPrint as HTMLElement,
+          captureOptions,
+        );
+        triggerDownload(
+          canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          ),
+          description,
+          isPng,
+        );
+        return;
+      }
+
       const { clone, cleanup: cleanupFn } = createEnhancedClone(
         elementToPrint,
         theme,
+        getInstanceByDom,
+        isDashboardCapture,
       );
       cleanup = cleanupFn;
 
@@ -521,18 +735,17 @@ export default function downloadAsImageOptimized(
       cleanup();
       cleanup = null;
 
-      const extension = isPng ? 'png' : 'jpg';
-      const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.${extension}`;
-      link.href = dataUrl;
-      link.click();
+      triggerDownload(dataUrl, description, isPng);
     } catch (error) {
       console.error('Creating image failed', error);
-      addWarningToast(
+      await dispatchWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
     } finally {
       if (cleanup) cleanup();
+      if (didForceLoad) {
+        restoreVirtualization();
+      }
     }
   };
 }

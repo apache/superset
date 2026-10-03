@@ -3,11 +3,7 @@
     "disabled": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
-    "onlyIncludeVersions": [
-      "current",
-      "6.1.0",
-      "6.0.0"
-    ],
+    "onlyIncludeVersions": ["current", "6.1.0", "6.0.0"],
     "versions": {
       "current": {
         "label": "Next",
@@ -30,10 +26,7 @@
     "disabled": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
-    "onlyIncludeVersions": [
-      "current",
-      "6.1.0"
-    ],
+    "onlyIncludeVersions": ["current", "6.1.0"],
     "versions": {
       "current": {
         "label": "Next",
@@ -52,10 +45,7 @@
     "hideFromNav": false,
     "lastVersion": "current",
     "includeCurrentVersion": true,
-    "onlyIncludeVersions": [
-      "current",
-      "6.1.0"
-    ],
+    "onlyIncludeVersions": ["current", "6.1.0"],
     "versions": {
       "current": {
         "label": "Next",
@@ -73,10 +63,7 @@
     "disabled": true,
     "lastVersion": "current",
     "includeCurrentVersion": true,
-    "onlyIncludeVersions": [
-      "current",
-      "6.1.0"
-    ],
+    "onlyIncludeVersions": ["current", "6.1.0"],
     "versions": {
       "current": {
         "label": "Next",

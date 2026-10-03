@@ -46,7 +46,6 @@ import {
 } from '@superset-ui/core/components';
 import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -55,6 +54,9 @@ import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
@@ -65,18 +67,55 @@ import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import {
-  useStreamingExport,
-  StreamingProgress,
-} from 'src/components/StreamingExportModal';
+import { StreamingProgress } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
+
+// Hoisted out of the `return` in escapeCsvValue below rather than inlined:
+// the pybabel JavaScript lexer that builds superset/translations/messages.pot
+// reads a `/` following a `return` as division, so an inline regex literal
+// containing a double quote opens a phantom string that swallows the rest of
+// the file — silently dropping every translatable string in this module from
+// the extraction template. See scripts/translations/check_pot_drift.py.
+const CSV_NEEDS_QUOTING = /[",\r\n]/;
+
+/**
+ * Escape a single CSV cell value.
+ *
+ * Mirrors the server-side chokepoint (superset/utils/csv.py escape_value):
+ * values starting with a spreadsheet formula prefix (=, +, -, @, |, %, or a
+ * leading tab/carriage return, optionally behind leading whitespace) are
+ * neutralized with a leading single quote so exported cells cannot execute
+ * as formulas when opened in Excel/LibreOffice/Google Sheets. Plain negative
+ * numbers are left untouched. RFC-4180 quoting is applied afterwards.
+ */
+export const escapeCsvValue = (v: unknown): string => {
+  if (v === null || v === undefined) return '';
+  let s = String(v);
+  if (s.length > 0) {
+    const stripped = s.replace(/^\s+/, '');
+    const startsLikeFormula =
+      s[0] === '\t' ||
+      s[0] === '\r' ||
+      (stripped.length > 0 && '-@+|=%'.includes(stripped[0]));
+    const isNegativeNumber = s.length > 1 && /^-[0-9.]+$/.test(s);
+    if (startsLikeFormula && !isNegativeNumber) {
+      // Escape pipe to be extra safe (DDE payloads), then prefix with a
+      // single quote to prevent formula evaluation. Existing backslashes
+      // must be escaped first so the resulting `\|`/`\\` sequences are
+      // unambiguous to a downstream unescaper.
+      s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
+    }
+  }
+  return CSV_NEEDS_QUOTING.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -112,6 +151,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  VERSION_HISTORY: 'version_history',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -277,12 +317,15 @@ interface ExploreState {
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
     can_export_image?: boolean;
+    can_overwrite?: boolean;
+    can_add?: boolean;
   };
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
     };
   };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export type UseExploreAdditionalActionsMenuReturn = [
@@ -303,24 +346,20 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal: () => void,
   ownState: OwnStateWithClientView | undefined,
   dashboards:
-    NonNullable<ExplorePageInitialData['metadata']>['dashboards'] | undefined,
+    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
+    | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addWarningToast } = useToasts();
   const dispatch = useDispatch();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
   const deferredDashboardSearchTerm = useDeferredValue(dashboardSearchTerm);
   const chart = useSelector<ExploreState, ChartState | undefined>(state =>
     state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
-  );
-  const streamingThreshold = useSelector<ExploreState, number>(
-    state =>
-      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
-      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
   const exploreChartState = useSelector<ExploreState, JsonObject | undefined>(
     state => {
@@ -333,6 +372,33 @@ export const useExploreAdditionalActionsMenu = (
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? false,
   );
+  const canOverwrite = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
+  // Mirrors the `can_write` permission on the `Chart` view, the same
+  // permission `ChartRestApi.put` (and `restore_version`) require. An editor
+  // who satisfies `canOverwriteSlice` but lacks it would still be turned away
+  // by the API, so the properties editor stays hidden for them too.
+  const canWriteChart = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_add ?? false,
+  );
+  const user = useSelector<
+    ExploreState,
+    UserWithPermissionsAndRoles | undefined
+  >(state => state.user);
+  // `can_overwrite` alone hides version history (and edit-properties) on any
+  // chart without explicit editors — every seeded chart — even from admins.
+  // Same predicate SaveModal uses, so a user who can save a chart can also
+  // see its history and edit its properties.
+  const canModifySlice = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
+  );
+  // `canModifySlice` alone governs version history, whose own read-only
+  // listing needs no write permission (only its restore action does, and
+  // that's gated server-side). Editing properties, however, always PUTs the
+  // chart, so it additionally needs the write permission above.
+  const canEditProperties = canModifySlice && canWriteChart;
 
   const dataExportDisabled = !canDownloadCSV;
   const imageExportDisabled = !canExportImage;
@@ -362,31 +428,19 @@ export const useExploreAdditionalActionsMenu = (
     );
 
   // Streaming export state and handlers
-  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
-    progress,
-    isExporting: _isExporting,
-    startExport,
-    cancelExport: _cancelExport,
-    resetExport,
-    retryExport,
-  } = useStreamingExport({
-    onComplete: () => {
-      // Don't show toast here - wait for user to click Download button
-    },
-    onError: () => {
-      addDangerToast(t('Export failed - please try again'));
-    },
+    exportCSV,
+    exportCSVPivoted,
+    exportJson,
+    exportExcel,
+    handleExportError,
+    streamingExportState,
+  } = useExploreDataExport({
+    latestQueryFormData,
+    canDownloadCSV,
+    slice,
+    ownState,
   });
-
-  const handleCloseStreamingModal = useCallback(() => {
-    setIsStreamingModalVisible(false);
-    resetExport();
-  }, [resetExport]);
-
-  const handleDownloadComplete = useCallback(() => {
-    addSuccessToast(t('CSV file downloaded successfully'));
-  }, [addSuccessToast]);
 
   // Use the updated report menu items hook
   const reportMenuItem = useHeaderReportMenuItems({
@@ -439,159 +493,6 @@ export const useExploreAdditionalActionsMenu = (
     }
   }, [addDangerToast, latestQueryFormData, permalinkChartState]);
 
-  const handleExportError = useCallback(
-    (error: unknown) => {
-      const exportError = error as Error & {
-        status?: number;
-        statusText?: string;
-        response?: { status?: number };
-      };
-      const status = exportError.status || exportError.response?.status;
-      if (status === 413) {
-        addDangerToast(
-          t(
-            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
-          ),
-        );
-      } else {
-        const errorMessage =
-          exportError.message ||
-          exportError.statusText ||
-          t(
-            'Failed to export chart data. Please try again or contact your administrator.',
-          );
-        addDangerToast(errorMessage);
-      }
-    },
-    [addDangerToast],
-  );
-
-  const exportCSV = useCallback(async () => {
-    if (!canDownloadCSV) return null;
-
-    // Determine row count for streaming threshold check
-    let actualRowCount;
-    const isTableViz = latestQueryFormData?.viz_type === 'table';
-    const queriesResponse = chart?.queriesResponse;
-
-    if (
-      isTableViz &&
-      queriesResponse &&
-      queriesResponse.length > 1 &&
-      queriesResponse[1]?.data?.[0]?.rowcount
-    ) {
-      actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
-      actualRowCount = queriesResponse[0].sql_rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.rowcount != null) {
-      actualRowCount = queriesResponse[0].rowcount;
-    } else {
-      actualRowCount = latestQueryFormData?.row_limit;
-    }
-
-    // Check if streaming should be used
-    const shouldUseStreaming =
-      actualRowCount && actualRowCount >= streamingThreshold;
-
-    let filename: string | undefined;
-    if (shouldUseStreaming) {
-      const now = new Date();
-      const date = now.toISOString().slice(0, 10);
-      const time = now.toISOString().slice(11, 19).replace(/:/g, '');
-      const timestamp = `_${date}_${time}`;
-      const chartName =
-        slice?.slice_name || latestQueryFormData.viz_type || 'chart';
-      const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      filename = `${safeChartName}${timestamp}.csv`;
-    }
-
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'full',
-        resultFormat: 'csv',
-        onStartStreamingExport: shouldUseStreaming
-          ? exportParams => {
-              if (exportParams.url) {
-                setIsStreamingModalVisible(true);
-                startExport({
-                  ...exportParams,
-                  url: exportParams.url,
-                  filename,
-                  expectedRows: actualRowCount,
-                  exportType: exportParams.exportType as 'csv' | 'xlsx',
-                });
-              }
-            }
-          : null,
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [
-    canDownloadCSV,
-    latestQueryFormData,
-    ownState,
-    chart,
-    streamingThreshold,
-    slice,
-    startExport,
-    handleExportError,
-  ]);
-
-  const exportCSVPivoted = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'post_processed',
-        resultFormat: 'csv',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportJson = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'json',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportExcel = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
   const copyLink = useCallback(async () => {
     try {
       if (!latestQueryFormData?.datasource) {
@@ -619,22 +520,20 @@ export const useExploreAdditionalActionsMenu = (
     permalinkChartState,
   ]);
 
-  // Minimal client-side CSV builder used for "Current View" when pagination is disabled
+  // Minimal client-side CSV builder used for "Current View" when pagination is disabled.
+  // `rows` may legitimately be empty (a filter that matches nothing) -- only
+  // `columns` is required to produce a valid header-only export.
   const downloadClientCSV = (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
-    const esc = (v: unknown): string => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      return wrapped;
-    };
-    const header = columns.map(c => esc(c.label ?? c.key ?? '')).join(',');
+    if (!columns?.length) return;
+    const header = columns
+      .map(c => escapeCsvValue(c.label ?? c.key ?? ''))
+      .join(',');
     const body = rows
-      .map(r => columns.map(c => esc(r[c.key])).join(','))
+      .map(r => columns.map(c => escapeCsvValue(r[c.key])).join(','))
       .join('\n');
     const csv = `${header}\n${body}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -647,13 +546,15 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // Robust client-side JSON for "Current View"
+  // Robust client-side JSON for "Current View". `rows` may legitimately be
+  // empty (a filter that matches nothing) -- only `columns` is required to
+  // produce a valid header-only export.
   const downloadClientJSON = (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
+    if (!columns?.length) return;
 
     const norm = (v: unknown): unknown => {
       if (v instanceof Date) return v.toISOString();
@@ -698,13 +599,15 @@ export const useExploreAdditionalActionsMenu = (
     URL.revokeObjectURL(link.href);
   };
 
-  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps)
+  // Client-side XLSX for "Current View" (uses 'xlsx' already in deps).
+  // `rows` may legitimately be empty (a filter that matches nothing) -- only
+  // `columns` is required to produce a valid header-only export.
   const downloadClientXLSX = async (
     rows: ClientViewRow[],
     columns: ClientViewColumn[],
     filename: string,
   ) => {
-    if (!rows?.length || !columns?.length) return;
+    if (!columns?.length) return;
     try {
       const XLSX = (await import(/* webpackChunkName: "xlsx" */ 'xlsx'))
         .default;
@@ -729,12 +632,20 @@ export const useExploreAdditionalActionsMenu = (
         return o;
       });
 
-      const ws = XLSX.utils.json_to_sheet(data, { skipHeader: false });
+      // json_to_sheet infers headers from the first data object's keys, so
+      // with zero rows it would emit a completely blank sheet -- pass the
+      // column labels explicitly so an empty filtered view still exports a
+      // header-only sheet instead of nothing.
+      const headers = columns.map(c => c.label ?? c.key);
+      const ws = XLSX.utils.json_to_sheet(data, {
+        header: headers,
+        skipHeader: false,
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Current View');
 
       // Autosize columns (roughly) by header length
-      const colWidths = Object.keys(data[0] || {}).map(h => ({
+      const colWidths = headers.map(h => ({
         wch: Math.max(10, String(h).length + 2),
       }));
       ws['!cols'] = colWidths;
@@ -753,7 +664,7 @@ export const useExploreAdditionalActionsMenu = (
     const menuItems = [];
 
     // Edit chart properties
-    if (slice) {
+    if (slice && canEditProperties) {
       menuItems.push({
         key: MENU_KEYS.EDIT_PROPERTIES,
         label: t('Edit chart properties'),
@@ -858,6 +769,7 @@ export const useExploreAdditionalActionsMenu = (
             exportPivotExcel(
               `${sliceSelector} .pvtTable`,
               slice?.slice_name ?? t('pivoted_xlsx'),
+              addWarningToast,
             );
             setIsDropdownVisible(false);
             dispatch(
@@ -967,10 +879,10 @@ export const useExploreAdditionalActionsMenu = (
           // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             downloadClientCSV(
               rows,
               columns,
@@ -1005,10 +917,10 @@ export const useExploreAdditionalActionsMenu = (
         onClick: () => {
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             downloadClientJSON(
               rows,
               columns,
@@ -1067,11 +979,11 @@ export const useExploreAdditionalActionsMenu = (
         onClick: async () => {
           if (
             !latestQueryFormData?.server_pagination &&
-            ownState?.clientView?.rows?.length &&
-            ownState?.clientView?.columns?.length
+            ownState?.clientView &&
+            ownState.clientView.columns?.length
           ) {
             // Client-side filtered view → XLSX
-            const { rows, columns } = ownState.clientView;
+            const { rows = [], columns = [] } = ownState.clientView;
             await downloadClientXLSX(
               rows,
               columns,
@@ -1179,6 +1091,21 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push(reportMenuItem);
     }
 
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      canModifySlice &&
+      slice?.slice_id
+    ) {
+      menuItems.push({
+        key: MENU_KEYS.VERSION_HISTORY,
+        label: t('View version history'),
+        onClick: () => {
+          dispatch(openVersionHistoryPanel('chart'));
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
     // View query
     menuItems.push({
       key: MENU_KEYS.VIEW_QUERY,
@@ -1221,6 +1148,8 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
+    canEditProperties,
+    canModifySlice,
     copyLink,
     dashboards,
     dashboardMenuItems,
@@ -1245,15 +1174,6 @@ export const useExploreAdditionalActionsMenu = (
     hasExportCurrentView,
     canExportImage,
   ]);
-
-  // Return streaming modal state and handlers for parent to render
-  const streamingExportState = {
-    isVisible: isStreamingModalVisible,
-    progress,
-    onCancel: handleCloseStreamingModal,
-    onRetry: retryExport,
-    onDownload: handleDownloadComplete,
-  };
 
   return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
 };

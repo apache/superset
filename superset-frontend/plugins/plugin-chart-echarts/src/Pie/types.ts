@@ -103,36 +103,3 @@ export interface PieChartDataItem {
   };
   isOther?: boolean;
 }
-
-interface ChartPadding {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-}
-
-export interface TotalValuePaddingProps {
-  chartPadding: ChartPadding;
-  donut: boolean;
-  width: number;
-  height: number;
-  sweptAngle: number;
-  startAngle: number;
-}
-
-export interface PaddingResult {
-  top?: string;
-  left?: string;
-}
-
-/**
- * Semicircular chart layout type.
- *
- * - `'top'`    — arc at the top, center shifted downwards.
- * - `'bottom'` — arc at the bottom, center shifted upwards.
- * - `'left'`   — arc on the left, center shifted to the right.
- * - `'right'`  — arc on the right, center shifted to the left.
- * - `'none'`   — full circle (no recentering).
- * @see getHalfDonut
- */
-export type HalfDonut = 'top' | 'bottom' | 'left' | 'right' | 'none';

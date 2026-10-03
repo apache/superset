@@ -119,6 +119,8 @@ def _build_dataset_properties(
         title="Register physical table as dataset",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def create_dataset(

@@ -357,6 +357,113 @@ def test_previous_calendar_quarter():
         assert result == expected
 
 
+def test_get_since_until_sub_day_shorthand() -> None:
+    """
+    Sub-day "Last <unit>" / "Next <unit>" shorthand must resolve to a bounded
+    range anchored on `now` (not the literal "today"/midnight) at any wall-clock
+    time. Exercises the real, unmocked `get_since_until` (unlike
+    `test_get_since_until`, which mocks `parse_human_datetime`), frozen at a
+    non-midnight instant so both bounds of the range anchor consistently.
+    """
+    with freezegun.freeze_time("2026-09-14 17:16:40"):
+        result = get_since_until("Last hour")
+        expected = (
+            datetime(2026, 9, 14, 16, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last minute")
+        expected = (
+            datetime(2026, 9, 14, 17, 15, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last second")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 39),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last 5 minutes")
+        expected = (
+            datetime(2026, 9, 14, 17, 11, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Last 2 hours")
+        expected = (
+            datetime(2026, 9, 14, 15, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 40),
+        )
+        assert result == expected
+
+        # "Next <unit>" hits the same shorthand rewrite from the other side: the
+        # since bound (not the matched unit) used to default to the literal
+        # "today", which undershot to midnight instead of anchoring on "now".
+        result = get_since_until("Next second")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 17, 16, 41),
+        )
+        assert result == expected
+
+        result = get_since_until("Next minute")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 17, 17, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Next hour")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 18, 16, 40),
+        )
+        assert result == expected
+
+        result = get_since_until("Next 2 hours")
+        expected = (
+            datetime(2026, 9, 14, 17, 16, 40),
+            datetime(2026, 9, 14, 19, 16, 40),
+        )
+        assert result == expected
+
+
+def test_get_since_until_sub_day_next_with_explicit_relative_bounds() -> None:
+    """
+    superset.common.utils.time_range_utils.get_since_until_from_time_range(),
+    the production wrapper around this function, always passes explicit
+    `relative_start`/`relative_end` -- defaulting to `DEFAULT_RELATIVE_START_TIME`
+    / `DEFAULT_RELATIVE_END_TIME`, both "today" out of the box -- rather than
+    relying on `get_since_until()`'s own internal default. An explicit override
+    always wins over `get_default_bound_for_shorthand()`, so a sub-day
+    "Next <unit>" resolves with `since` pinned to literal midnight instead of
+    `now`; pin that this still produces a correctly-ordered range.
+    """
+    with freezegun.freeze_time("2026-09-14 17:16:40"):
+        kwargs = {"relative_start": "today", "relative_end": "today"}
+
+        result = get_since_until("Next second", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 0, 1))
+        assert result == expected
+
+        result = get_since_until("Next minute", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 0, 1))
+        assert result == expected
+
+        result = get_since_until("Next hour", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 1, 0))
+        assert result == expected
+
+        result = get_since_until("Next 2 hours", **kwargs)
+        expected = (datetime(2026, 9, 14, 0, 0), datetime(2026, 9, 14, 2, 0))
+        assert result == expected
+
+
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
 def test_datetime_eval() -> None:
     result = datetime_eval("datetime('now')")
@@ -613,6 +720,9 @@ def test_is_parseable_human_timedelta() -> None:
 def test_is_constant_human_timedelta() -> None:
     # phrases that shift every source time by the same amount
     assert is_constant_human_timedelta("1 week ago")
+    assert is_constant_human_timedelta("1 month ago")
+    assert is_constant_human_timedelta("52 weeks ago")
+    assert is_constant_human_timedelta("1 year ago")
     assert is_constant_human_timedelta("one year ago")
     assert is_constant_human_timedelta("1 quarter ago")
     assert is_constant_human_timedelta("2 days later")
@@ -623,6 +733,8 @@ def test_is_constant_human_timedelta() -> None:
     assert not is_constant_human_timedelta("yesterday")
     assert not is_constant_human_timedelta("last month")
     assert not is_constant_human_timedelta("noon")
+    assert not is_constant_human_timedelta("friday")
+    assert not is_constant_human_timedelta("june")
     # a phrase nothing can parse is not a delta either
     assert not is_constant_human_timedelta("not a real offset")
     assert not is_constant_human_timedelta("")
@@ -867,3 +979,67 @@ def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
         "flood production logs. Records: "
         + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
     )
+
+
+def test_lastday_supports_quarter_and_day() -> None:
+    """`handle_end_of` emits LASTDAY for quarter and day, so the grammar must
+    accept them.
+
+    The `lastday` rule only matched `year | month | week`, so every "end of ...
+    quarter" and "end of ... day" range raised
+    `ValueError: Expected {'year' | 'month' | 'week'}` instead of resolving.
+    """
+    assert datetime_eval(
+        "LASTDAY(datetime('2026-08-12T15:30:45'), quarter)"
+    ) == datetime(2026, 9, 30)
+    assert datetime_eval("LASTDAY(datetime('2026-08-12T15:30:45'), day)") == datetime(
+        2026, 8, 12
+    )
+
+
+def test_lastday_quarter_boundaries() -> None:
+    """Every month resolves to the last day of the quarter containing it."""
+    expected = {
+        1: datetime(2026, 3, 31),
+        2: datetime(2026, 3, 31),
+        3: datetime(2026, 3, 31),
+        4: datetime(2026, 6, 30),
+        5: datetime(2026, 6, 30),
+        6: datetime(2026, 6, 30),
+        7: datetime(2026, 9, 30),
+        8: datetime(2026, 9, 30),
+        9: datetime(2026, 9, 30),
+        10: datetime(2026, 12, 31),
+        11: datetime(2026, 12, 31),
+        12: datetime(2026, 12, 31),
+    }
+    for month, last_day in expected.items():
+        assert (
+            datetime_eval("LASTDAY(datetime('2026-%02d-15'), quarter)" % month)
+            == last_day
+        )
+
+
+def test_lastday_quarter_from_a_longer_month() -> None:
+    """The 31st must survive a move into a 30-day quarter-end month."""
+    assert datetime_eval("LASTDAY(datetime('2026-08-31'), quarter)") == datetime(
+        2026, 9, 30
+    )
+    # Q1 of a leap year, where the source month is shorter than the target.
+    assert datetime_eval("LASTDAY(datetime('2024-02-15'), quarter)") == datetime(
+        2024, 3, 31
+    )
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_end_of_quarter_and_day() -> None:
+    """End-to-end: the "end of ..." time ranges these units feed."""
+    for time_range, expected_until in [
+        ("2020-01-01 : end of this quarter", datetime(2016, 12, 31)),
+        ("2020-01-01 : end of last quarter", datetime(2016, 9, 30)),
+        ("2020-01-01 : end of next quarter", datetime(2017, 3, 31)),
+        ("2020-01-01 : end of this day", datetime(2016, 11, 7)),
+        ("2020-01-01 : end of prior 3 days", datetime(2016, 11, 4)),
+    ]:
+        _, until = get_since_until(time_range)
+        assert until == expected_until, time_range

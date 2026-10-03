@@ -75,9 +75,13 @@ export default function DocVersionBadge() {
         if (afterBase.startsWith('/')) {
           const segments = afterBase.substring(1).split('/');
           // Check if first segment is a version (e.g., "1.1.0", "next")
-          if (segments[0] && (segments[0].match(/^\d+\.\d+\.\d+$/) || segments[0] === 'next')) {
+          if (
+            segments[0] &&
+            (segments[0].match(/^\d+\.\d+\.\d+$/) || segments[0] === 'next')
+          ) {
             // Skip the version segment
-            relativePath = segments.length > 1 ? '/' + segments.slice(1).join('/') : '';
+            relativePath =
+              segments.length > 1 ? '/' + segments.slice(1).join('/') : '';
           } else {
             // No version in path (e.g., /docs/intro for current version with empty path)
             relativePath = afterBase;

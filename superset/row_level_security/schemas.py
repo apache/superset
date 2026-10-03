@@ -58,7 +58,11 @@ group_key_description = "Filters with the same group key will be ORed together w
 # pylint: disable=line-too-long
 clause_description = "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false)."  # noqa: E501
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get an RLS"}},

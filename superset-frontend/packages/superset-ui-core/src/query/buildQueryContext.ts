@@ -63,6 +63,10 @@ export default function buildQueryContext(
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,
+    // Idempotency token for a forced refresh; only present when the caller sets
+    // it (see requestChartDataResolved). Omitted otherwise so the payload is
+    // unchanged for non-forced requests.
+    ...(formData.force_nonce ? { force_nonce: formData.force_nonce } : {}),
     queries,
     form_data: formData,
     result_format: formData.result_format || 'json',

@@ -16,29 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
+import { SyntheticEvent, useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
+  getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
-import { MenuKeys } from 'src/dashboard/types';
+import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import handleResourceExport from 'src/utils/export';
+import handleResourceExport, {
+  downloadBlob,
+  getFilenameFromResponse,
+} from 'src/utils/export';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
+import { removeToast } from 'src/components/MessageToasts/actions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
+
+// Polling always outlives the server's hard task budget (11 minutes): the
+// export email is best-effort, so the client cannot rely on it as a fallback.
+const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
+const EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
+
+interface ExportStatusResponse {
+  status?: 'pending' | 'running' | 'ready' | 'error';
+  download_url?: string;
+  message?: string;
+}
+
+interface ExportPollState {
+  deadline: number;
+  sawRunning: boolean;
+}
 
 export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
@@ -67,8 +89,56 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
+  const { addDangerToast, addInfoToast, addSuccessToast } = useToasts();
+  // Track the in-flight poll timer so navigating away stops the polling
+  // (and the full-page navigation it would eventually trigger).
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const unmountedRef = useRef(false);
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+      }
+    },
+    [],
+  );
+  const dataMask = useSelector((state: RootState) => state.dataMask);
+  const isExcelExportStorageConfigured = useSelector(
+    (state: RootState) =>
+      state.dashboardInfo?.common?.conf?.EXCEL_EXPORT_STORAGE_CONFIGURED !==
+      false,
+  );
+  // Disable both Excel actions while either export is running.
+  const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
+    null,
+  );
+  const user = useSelector((state: RootState) => state.user);
+  // Guests and anonymous sessions have no userId and cannot be emailed.
+  const isGuestSession = !user?.userId;
+  const canReceiveEmail = Boolean(user?.userId && user?.email);
+
+  const addExportPendingToast = () =>
+    addInfoToast(
+      canReceiveEmail
+        ? t(
+            "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
+          )
+        : t('Your export is being generated. Please, do not leave the page.'),
+      { noDuplicate: true },
+    );
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+
+  const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
+    Object.entries(dataMask || {}).reduce<
+      Record<string, { extraFormData: object }>
+    >((acc, [id, mask]) => {
+      if (id.startsWith(NATIVE_FILTER_PREFIX)) {
+        acc[id] = { extraFormData: mask?.extraFormData ?? {} };
+      }
+      return acc;
+    }, {});
 
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
@@ -116,40 +186,207 @@ export const useDownloadMenuItems = (
         parseMethod: 'raw',
       });
 
-      // Parse filename from Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
-      let fileName = `dashboard_${dashboardId}_example.zip`;
-
-      if (disposition) {
-        try {
-          const parsed = parseContentDisposition(disposition);
-          if (parsed?.parameters?.filename) {
-            fileName = parsed.parameters.filename;
-          }
-        } catch (error) {
-          logging.warn('Failed to parse Content-Disposition header:', error);
-        }
-      }
-
-      // Convert response to blob and trigger download
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      try {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } finally {
-        window.URL.revokeObjectURL(url);
-      }
+      downloadBlob(
+        blob,
+        getFilenameFromResponse(
+          response,
+          `dashboard_${dashboardId}_example.zip`,
+        ),
+      );
 
       addSuccessToast(t('Dashboard exported as example successfully'));
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
+    }
+  };
+
+  const triggerExportDownload = async (downloadUrl: string) => {
+    // A plain anchor to the attachment streams it to disk without leaving the
+    // page or needing a frame (so no frame-src CSP exception). No `download`
+    // attribute: by now polling has consumed any user activation, and Chrome
+    // drops such clicks silently. An error response would navigate instead,
+    // so confirm the exact link first and report a failure as a toast.
+    try {
+      const probe = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'same-origin',
+      });
+      if (!probe.ok) {
+        throw new Error(`download link answered ${probe.status}`);
+      }
+    } catch (error) {
+      logging.error(error);
+      if (!unmountedRef.current) {
+        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      }
+      return false;
+    }
+    if (unmountedRef.current) {
+      return false;
+    }
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    return true;
+  };
+
+  const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
+    if (unmountedRef.current) {
+      return;
+    }
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
+    })
+      .then(({ json }) => {
+        // A response in flight when the component unmounts must not navigate
+        // (redirect) or toast on whatever page the user moved to.
+        if (unmountedRef.current) {
+          return;
+        }
+        const {
+          status,
+          download_url: downloadUrl,
+          message,
+        } = json as ExportStatusResponse;
+        if (status === 'ready') {
+          if (downloadUrl) {
+            triggerExportDownload(downloadUrl).then(started => {
+              if (started) {
+                addSuccessToast(t('Your export is ready and downloading.'));
+              }
+            });
+          } else {
+            addDangerToast(t('Sorry, something went wrong. Try again later.'));
+          }
+          return;
+        }
+        if (status === 'error') {
+          addDangerToast(
+            message || t('Sorry, something went wrong. Try again later.'),
+          );
+          return;
+        }
+        if (status === 'running' && !pollState.sawRunning) {
+          // The task's execution budget only starts when a worker picks it
+          // up; restart the wait window then, so queue delay doesn't eat it.
+          pollState.sawRunning = true;
+          pollState.deadline = Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS;
+        }
+        if (Date.now() > pollState.deadline) {
+          addDangerToast(
+            t('Your export is taking longer than expected. Try again later.'),
+          );
+          return;
+        }
+        // The pending toast is announced once at enqueue, not re-emitted on
+        // every poll: an info toast expires after a few seconds and noDuplicate
+        // only dedupes live toasts, so re-emitting would create a fresh
+        // role="alert" every poll for the whole export -- noisy, and hostile to
+        // screen readers.
+        pollTimerRef.current = setTimeout(
+          () => pollExportStatus(jobId, pollState),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      })
+      .catch(error => {
+        if (unmountedRef.current) {
+          return;
+        }
+        // A transient polling failure shouldn't give up the wait -- the export
+        // itself may still succeed -- so keep polling until the timeout.
+        logging.error(error);
+        if (Date.now() > pollState.deadline) {
+          addDangerToast(t('Sorry, something went wrong. Try again later.'));
+          return;
+        }
+        pollTimerRef.current = setTimeout(
+          () => pollExportStatus(jobId, pollState),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      });
+  };
+
+  const onExportXlsx = async (mode: 'data' | 'images') => {
+    setExportingXlsx(mode);
+    const progressToast = addInfoToast(t('Preparing dashboard Excel export…'), {
+      duration: -1,
+    });
+    try {
+      const response = await SupersetClient.post({
+        endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+        jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
+        // Parse the queued response or workbook after checking its status.
+        parseMethod: 'raw',
+        // A retry may hit the first request's lock and lose its file response.
+        fetchRetryOptions: { retries: 0 },
+      });
+      // Settled after unmount: the timer would be untracked, the toast stray.
+      if (unmountedRef.current) {
+        return;
+      }
+
+      // A 202 is queued; any successful non-202 response is the workbook.
+      if (response.status !== 202) {
+        const blob = await response.blob();
+        downloadBlob(
+          blob,
+          getFilenameFromResponse(response, `dashboard_${dashboardId}.xlsx`),
+        );
+        addSuccessToast(t('Dashboard data exported to Excel'));
+        return;
+      }
+
+      // The throttle response (an export is already running) returns 202 with a
+      // message but no job_id; only a freshly enqueued job carries a job_id.
+      const { job_id: jobId } = (await response.json()) as { job_id?: string };
+      if (jobId) {
+        addExportPendingToast();
+        pollTimerRef.current = setTimeout(
+          () =>
+            pollExportStatus(jobId, {
+              deadline: Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS,
+              sawRunning: false,
+            }),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      } else {
+        // The throttle 202 carries no job_id, so there is nothing to poll and
+        // nothing is downloading here: an info toast, not a success one.
+        addInfoToast(t('An export for this dashboard is already in progress.'));
+      }
+    } catch (error) {
+      // The client error union does not expose response fields uniformly.
+      const { status, message } = (await getClientErrorObject(error)) as {
+        status?: number;
+        message?: unknown;
+      };
+      if (unmountedRef.current) {
+        return;
+      }
+      // Show actionable client errors; keep server errors generic. A schema
+      // ValidationError carries a dict of field errors, not a toastable string.
+      if (
+        typeof message === 'string' &&
+        message &&
+        status &&
+        status >= 400 &&
+        status < 500
+      ) {
+        addDangerToast(message);
+      } else {
+        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      }
+    } finally {
+      dispatch(removeToast(progressToast.payload.id));
+      // Re-enable the actions after success or failure.
+      if (!unmountedRef.current) {
+        setExportingXlsx(null);
+      }
     }
   };
 
@@ -197,13 +434,47 @@ export const useDownloadMenuItems = (
         },
       ];
 
+  const xlsxExportLabel = (mode: 'data' | 'images', text: string) =>
+    exportingXlsx === mode ? t('Preparing export…') : text;
+
   const exportMenuItems: MenuItem[] = [
-    {
-      key: 'export-yaml',
-      label: t('Export YAML'),
-      onClick: onExportZip,
-    },
     ...(userCanExport
+      ? [
+          {
+            key: 'export-xlsx',
+            label: xlsxExportLabel('data', t('Export Data to Excel')),
+            disabled: exportingXlsx !== null,
+            onClick: () => onExportXlsx('data'),
+          },
+          // Needs the webdriver infrastructure, export storage (image exports
+          // only run in the background), and a real session: the webdriver
+          // cannot render under a guest identity (the API rejects guest image
+          // exports too).
+          ...(isWebDriverScreenshotEnabled &&
+          isExcelExportStorageConfigured &&
+          !isGuestSession
+            ? [
+                {
+                  key: 'export-xlsx-images',
+                  label: xlsxExportLabel('images', t('Export Images to Excel')),
+                  disabled: exportingXlsx !== null,
+                  onClick: () => onExportXlsx('images'),
+                },
+              ]
+            : []),
+        ]
+      : []),
+    // Bundle exports are refused for sessions without a user id.
+    ...(!isGuestSession
+      ? [
+          {
+            key: 'export-yaml',
+            label: t('Export YAML'),
+            onClick: onExportZip,
+          },
+        ]
+      : []),
+    ...(userCanExport && !isGuestSession
       ? [
           {
             key: 'export-as-example',

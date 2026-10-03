@@ -18,14 +18,44 @@ DECKGL_BASE_MAP = [
     ['tile://https://your_personal_url/{z}/{x}/{y}.png', 'MyTile']
 ]
 ```
+
 Openstreetmap tiles url can be added without prefix.
+
 ```python
 DECKGL_BASE_MAP = [
     ['https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
 ]
 ```
 
+[Yandex Tiles API](https://yandex.ru/maps-api/docs/tiles-api/request.html) can be used as a custom tile provider. The URL must include the `apikey` from the [Yandex Developer Dashboard](https://developer.tech.yandex.ru/services), tile coordinates (`x`, `y`, and `z`), and the required map layer parameters.
+
+```python
+DECKGL_BASE_MAP = [
+    [
+        "tile://https://tiles.api-maps.yandex.ru/v1/tiles/"
+        "?apikey=YOUR_YANDEX_API_KEY"
+        "&lang=ru_RU"
+        "&x={x}&y={y}&z={z}"
+        "&l=map"
+        "&projection=web_mercator"
+        "&maptype=map",
+        "Yandex Maps - Web Mercator",
+    ],
+    [
+        "tile://https://tiles.api-maps.yandex.ru/v1/tiles/"
+        "?apikey=YOUR_YANDEX_API_KEY"
+        "&lang=ru_RU"
+        "&x={x}&y={y}&z={z}"
+        "&l=map"
+        "&projection=wgs84_mercator"
+        "&maptype=map",
+        "Yandex Maps - WGS84 Mercator",
+    ],
+]
+```
+
 Default values are:
+
 ```python
 DECKGL_BASE_MAP = [
     ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
@@ -46,6 +76,7 @@ Setting `DECKGL_BASE_MAP` overwrite default values
 :::
 
 After defining your map tiles, set them in these variables:
+
 - `CORS_OPTIONS`
 - `connect-src` of `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV` variables.
 
@@ -56,6 +87,7 @@ CORS_OPTIONS: dict[Any, Any] = {
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
         "https://your_personal_url/{z}/{x}/{y}.png",
+        "https://tiles.api-maps.yandex.ru",
     ]
 }
 
@@ -72,6 +104,7 @@ TALISMAN_CONFIG = {
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
             "https://your_personal_url/{z}/{x}/{y}.png",
+            "https://tiles.api-maps.yandex.ru",
         ],
         ...
 }

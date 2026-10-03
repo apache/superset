@@ -104,8 +104,6 @@ class TestApplyColumnOperatorsRelationship:
     @pytest.mark.parametrize(
         "operator",
         [
-            ColumnOperatorEnum.eq,
-            ColumnOperatorEnum.ne,
             ColumnOperatorEnum.in_,
             ColumnOperatorEnum.nin,
             ColumnOperatorEnum.is_null,
@@ -113,7 +111,9 @@ class TestApplyColumnOperatorsRelationship:
         ],
     )
     def test_supported_relationship_operators_dispatch(self, operator):
-        """eq/ne/in/nin/is_null/is_not_null all dispatch to .any() variants."""
+        """in/nin/is_null/is_not_null all dispatch to .any() variants and
+        accept a list value. `eq`/`ne` are scalar-only and covered by their
+        own dedicated tests."""
         mock_query = MagicMock()
         mock_query.filter.return_value = mock_query
 
@@ -122,6 +122,49 @@ class TestApplyColumnOperatorsRelationship:
             [ColumnOperator(col="dashboards", opr=operator, value=[1, 2])],
         )
         assert mock_query.filter.call_count == 1
+
+    def test_eq_on_relationship_rejects_list_value(self):
+        """`eq` on a relationship column requires a scalar value, same as
+        `ne`. Passing a list (e.g. value=[1, 2]) would silently compile to
+        `related_pk == [1, 2]`, which behaves unpredictably across
+        backends, so it must raise a clear ValueError instead."""
+        mock_query = MagicMock()
+        with pytest.raises(ValueError, match="requires a scalar value"):
+            _SliceDAO.apply_column_operators(
+                mock_query,
+                [
+                    ColumnOperator(
+                        col="dashboards", opr=ColumnOperatorEnum.eq, value=[1, 2]
+                    )
+                ],
+            )
+
+    def test_ne_on_relationship_dispatches_to_any(self):
+        """`ne` with a scalar value dispatches to the negated .any() variant."""
+        mock_query = MagicMock()
+        mock_query.filter.return_value = mock_query
+
+        _SliceDAO.apply_column_operators(
+            mock_query,
+            [ColumnOperator(col="dashboards", opr=ColumnOperatorEnum.ne, value=42)],
+        )
+        assert mock_query.filter.call_count == 1
+
+    def test_ne_on_relationship_rejects_list_value(self):
+        """`ne` on a relationship column requires a scalar value. Passing a
+        list (e.g. value=[1, 2]) would silently compile to
+        `related_pk == [1, 2]`, which behaves unpredictably across
+        backends, so it must raise a clear ValueError instead."""
+        mock_query = MagicMock()
+        with pytest.raises(ValueError, match="requires a scalar value"):
+            _SliceDAO.apply_column_operators(
+                mock_query,
+                [
+                    ColumnOperator(
+                        col="dashboards", opr=ColumnOperatorEnum.ne, value=[1, 2]
+                    )
+                ],
+            )
 
     @pytest.mark.parametrize(
         "operator",

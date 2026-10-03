@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from 'react';
 import { SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -412,7 +413,17 @@ function AdhocFilterControl({
             ? values.map((val, index) => valueRenderer(val, index))
             : []),
           addNewFilterPopoverTrigger(
-            <AddControlLabel role="button" data-test="add-filter-button">
+            <AddControlLabel
+              as="button"
+              {...{ type: 'button' }}
+              css={css`
+                appearance: none;
+                background: none;
+                font: inherit;
+                text-align: left;
+              `}
+              data-test="add-filter-button"
+            >
               <Icons.PlusOutlined iconSize="m" />
               {t('Add filter')}
             </AddControlLabel>,

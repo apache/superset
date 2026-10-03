@@ -36,8 +36,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql.elements import TextClause
 
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 from superset.sql.parse import RLSMethod, SQLStatement, Table
 
@@ -163,6 +165,64 @@ class TestVirtualDatasetNoRLS:
         inner_sql = _get_subquery_sql(virtual_datasource)
         assert "::varchar(256)" in inner_sql
 
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_unbounded_order_by_removed_when_embedded(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        """MSSQL derived tables omit an unbounded top-level ordering."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(
+            virtual_datasource,
+            "SELECT category, amount FROM sample_events ORDER BY category, amount",
+        )
+
+        assert "ORDER BY" not in _get_subquery_sql(virtual_datasource)
+
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_hint_survives_order_by_rewrite(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        """Required T-SQL syntax survives the unavoidable AST round trip."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(
+            virtual_datasource,
+            "SELECT [category] FROM [dbo].[sample_events] WITH (NOLOCK) "
+            "ORDER BY [category]",
+        )
+
+        inner_sql = _get_subquery_sql(virtual_datasource)
+        assert "ORDER BY" not in inner_sql
+        assert "WITH (NOLOCK)" in inner_sql
+        assert "[category]" in inner_sql
+
+    @pytest.mark.parametrize(
+        "sql",
+        [
+            "SELECT TOP 10 PERCENT category FROM sample_events ORDER BY category",
+            "SELECT TOP 1 WITH TIES category FROM sample_events ORDER BY category",
+            "SELECT category FROM sample_events ORDER BY category FOR XML PATH('')",
+        ],
+    )
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_required_order_by_preserved_when_embedded(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+        sql: str,
+    ) -> None:
+        """TOP and serialization clauses retain their semantic ordering."""
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(virtual_datasource, sql)
+
+        assert "ORDER BY" in _get_subquery_sql(virtual_datasource)
+
 
 class TestVirtualDatasetWithRLS:
     """
@@ -209,11 +269,10 @@ class TestApplyRlsReturnValue:
         from superset.utils.rls import apply_rls
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
         database.get_default_catalog.return_value = None
 
-        statement = MagicMock()
-        statement.tables = []
+        statement = SQLStatement("SELECT 1")
 
         result = apply_rls(
             database=database,
@@ -237,14 +296,10 @@ class TestApplyRlsReturnValue:
         mock_get_predicates.return_value = []
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
         database.get_default_catalog.return_value = None
 
-        mock_table = MagicMock()
-        mock_table.qualify.return_value = Table("pens", "public", None)
-
-        statement = MagicMock()
-        statement.tables = [mock_table]
+        statement = SQLStatement("SELECT * FROM public.pens")
 
         result = apply_rls(
             database=database,
@@ -268,15 +323,10 @@ class TestApplyRlsReturnValue:
         mock_get_predicates.return_value = ["user_id = 42"]
 
         database = MagicMock()
-        database.db_engine_spec.get_rls_method.return_value = MagicMock()
+        database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
         database.get_default_catalog.return_value = None
 
-        mock_table = MagicMock()
-        mock_table.qualify.return_value = Table("pens", "public", None)
-
-        statement = MagicMock()
-        statement.tables = [mock_table]
-        statement.parse_predicate.return_value = MagicMock()
+        statement = SQLStatement("SELECT * FROM public.pens")
 
         result = apply_rls(
             database=database,
@@ -285,7 +335,7 @@ class TestApplyRlsReturnValue:
             parsed_statement=statement,
         )
         assert result is True
-        statement.apply_rls.assert_called_once()
+        assert "user_id = 42" in statement.format()
 
 
 # ---------------------------------------------------------------------------
@@ -380,3 +430,126 @@ class TestRLSSubqueryAlias:
 
         assert "is_green" in result
         assert "WHERE" in result  # RLS predicate applied
+
+
+# ---------------------------------------------------------------------------
+# 4. RLS injection failures must fail closed when predicates apply
+# ---------------------------------------------------------------------------
+
+
+class TestVirtualDatasetRLSFailClosed:
+    """
+    When RLS predicates exist for the underlying tables but cannot be
+    injected into the virtual dataset SQL, the query must be aborted
+    instead of running against the unfiltered inner SQL.
+    """
+
+    @patch(
+        "superset.models.helpers.get_predicates_for_table",
+        return_value=["user_id = 42"],
+    )
+    @patch(
+        "superset.models.helpers.apply_rls",
+        side_effect=NotImplementedError("engine cannot apply RLS"),
+    )
+    def test_raises_when_rls_predicates_cannot_be_applied(
+        self,
+        mock_apply_rls: MagicMock,
+        mock_get_predicates: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
+
+        with pytest.raises(QueryObjectValidationError):
+            virtual_datasource.get_from_clause(template_processor=None)
+
+    @patch("superset.models.helpers.db")
+    @patch(
+        "superset.models.helpers.get_predicates_for_table",
+        return_value=["user_id = 42"],
+    )
+    @patch(
+        "superset.models.helpers.apply_rls",
+        side_effect=OperationalError("SSL connection closed unexpectedly", {}, None),
+    )
+    def test_get_from_clause_rolls_back_session_on_rls_failure(
+        self,
+        mock_apply_rls: MagicMock,
+        mock_get_predicates: MagicMock,
+        mock_db: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
+
+        with pytest.raises(QueryObjectValidationError):
+            virtual_datasource.get_from_clause(template_processor=None)
+
+        mock_db.session.rollback.assert_called_once()
+
+
+@patch(
+    "superset.models.helpers.get_predicates_for_table",
+    return_value=["user_id = 42"],
+)
+@patch(
+    "superset.models.helpers.apply_rls",
+    side_effect=NotImplementedError("engine cannot apply RLS"),
+)
+def test_get_from_clause_excludes_global_guest_rls(
+    mock_apply_rls: MagicMock,
+    mock_get_predicates: MagicMock,
+    virtual_datasource: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The virtual dataset's outer query already applies global guest RLS rules,
+    so the inner SQL must opt out of them to avoid applying them twice, both
+    when injecting RLS and when checking whether a failed injection matters.
+    It applies the dataset's own RLS too, so the check leaves those out as well.
+    """
+    virtual_datasource.id = 99
+    _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
+
+    with pytest.raises(QueryObjectValidationError):
+        virtual_datasource.get_from_clause(template_processor=None)
+
+    assert mock_apply_rls.call_args.kwargs["include_global_guest_rls"] is False
+    assert mock_get_predicates.call_args.kwargs["include_global_guest_rls"] is False
+    assert mock_get_predicates.call_args.kwargs["exclude_dataset_id"] == 99
+
+
+@patch(
+    "superset.models.helpers.get_predicates_for_table",
+    return_value=[],
+)
+@patch(
+    "superset.models.helpers.apply_rls",
+    side_effect=NotImplementedError("engine cannot apply RLS"),
+)
+def test_get_from_clause_fail_closed_counts_global_guest_rls_in_subqueries(
+    mock_apply_rls: MagicMock,
+    mock_get_predicates: MagicMock,
+    virtual_datasource: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    When the inner SQL has a sub-query, ``apply_rls`` would have injected global
+    guest RLS rules and the dataset's own RLS into it, so the fail-closed check
+    must count both.
+    """
+    virtual_datasource.id = 99
+    _set_virtual_sql(
+        virtual_datasource,
+        "SELECT pen_id, (SELECT COUNT(*) FROM public.inks) AS n FROM public.pens",
+    )
+
+    virtual_datasource.get_from_clause(template_processor=None)
+
+    assert mock_get_predicates.call_args_list
+    assert all(
+        call.kwargs["include_global_guest_rls"] is True
+        and call.kwargs["exclude_dataset_id"] is None
+        for call in mock_get_predicates.call_args_list
+    )

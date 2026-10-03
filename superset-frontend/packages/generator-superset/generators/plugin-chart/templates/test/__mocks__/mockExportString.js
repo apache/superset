@@ -16,4 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 module.exports = 'test-file-stub';

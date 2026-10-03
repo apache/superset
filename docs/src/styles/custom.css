@@ -26,16 +26,18 @@
 /* You can override the default Infima variables here. */
 @font-face {
   font-family: 'Roboto';
-  src: url('../fonts/Roboto-Regular.woff2') format('woff2'),
-       url('../fonts/Roboto-Regular.woff') format('woff');
+  src:
+    url('../fonts/Roboto-Regular.woff2') format('woff2'),
+    url('../fonts/Roboto-Regular.woff') format('woff');
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Roboto';
-  src: url('../fonts/Roboto-Bold.woff2') format('woff2'),
-       url('../fonts/Roboto-Bold.woff') format('woff');
+  src:
+    url('../fonts/Roboto-Bold.woff2') format('woff2'),
+    url('../fonts/Roboto-Bold.woff') format('woff');
   font-weight: 700;
   font-style: bold;
 }
@@ -447,9 +449,9 @@ ul.dropdown__menu svg {
 /* Limit the code editor height and make it scrollable */
 /* Target multiple possible class names used by Docusaurus/react-live */
 .playgroundEditor,
-[class*="playgroundEditor"],
+[class*='playgroundEditor'],
 .live-editor,
-[class*="liveEditor"] {
+[class*='liveEditor'] {
   max-height: 350px !important;
   overflow: auto !important;
 }
@@ -457,15 +459,15 @@ ul.dropdown__menu svg {
 /* The actual textarea/code area inside the editor */
 .playgroundEditor textarea,
 .playgroundEditor pre,
-[class*="playgroundEditor"] textarea,
-[class*="playgroundEditor"] pre {
+[class*='playgroundEditor'] textarea,
+[class*='playgroundEditor'] pre {
   max-height: 350px !important;
   overflow: auto !important;
 }
 
 /* Also limit the preview area for consistency */
 .playgroundPreview,
-[class*="playgroundPreview"] {
+[class*='playgroundPreview'] {
   max-height: 400px;
   overflow: auto;
 }

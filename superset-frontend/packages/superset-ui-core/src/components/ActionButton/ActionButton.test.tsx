@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent, fireEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ActionButton } from '.';
 
@@ -40,21 +40,9 @@ test('calls onClick when clicked', async () => {
   render(<ActionButton {...defaultProps} onClick={onClick} />);
 
   const button = screen.getByRole('button');
-  userEvent.click(button);
+  await userEvent.click(button);
 
   expect(onClick).toHaveBeenCalledTimes(1);
-});
-
-test('calls onClick when activated with the keyboard', () => {
-  const onClick = jest.fn();
-  render(<ActionButton {...defaultProps} onClick={onClick} />);
-
-  const button = screen.getByRole('button');
-  fireEvent.keyDown(button, { key: 'Enter' });
-  expect(onClick).toHaveBeenCalledTimes(1);
-
-  fireEvent.keyDown(button, { key: ' ' });
-  expect(onClick).toHaveBeenCalledTimes(2);
 });
 
 test('renders with tooltip when tooltip prop is provided', async () => {
@@ -62,7 +50,7 @@ test('renders with tooltip when tooltip prop is provided', async () => {
   render(<ActionButton {...defaultProps} tooltip={tooltipText} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -73,7 +61,7 @@ test('renders without tooltip when tooltip prop is not provided', async () => {
   render(<ActionButton {...defaultProps} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = screen.queryByRole('tooltip');
   expect(tooltip).not.toBeInTheDocument();
@@ -84,7 +72,7 @@ test('supports ReactElement tooltip', async () => {
   render(<ActionButton {...defaultProps} tooltip={tooltipElement} />);
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -105,7 +93,7 @@ test('renders with custom placement for tooltip', async () => {
   );
 
   const button = screen.getByRole('button');
-  userEvent.hover(button);
+  await userEvent.hover(button);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -115,6 +103,6 @@ test('has proper accessibility attributes', () => {
   render(<ActionButton {...defaultProps} />);
 
   const button = screen.getByRole('button');
-  expect(button).toHaveAttribute('tabIndex', '0');
-  expect(button).toHaveAttribute('role', 'button');
+  expect(button.tagName).toBe('BUTTON');
+  expect(button).toHaveAttribute('type', 'button');
 });

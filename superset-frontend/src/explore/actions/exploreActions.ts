@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import rison from 'rison';
+import { clearDataMask } from 'src/dataMask/actions';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, QueryFormData } from '@superset-ui/core';
@@ -27,7 +28,15 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+
+export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
+export function resetSemanticSelections(sliceId?: number) {
+  return (dispatch: Dispatch) => {
+    if (sliceId !== undefined) dispatch(clearDataMask(sliceId));
+    dispatch({ type: RESET_SEMANTIC_SELECTIONS });
+  };
+}
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -98,8 +107,23 @@ export function setControlValue(
   controlName: string,
   value: any,
   validationErrors?: any[],
+  options?: {
+    /**
+     * Marks a dispatch that no user gesture produced — effects rewriting
+     * transferred controls, derived values set alongside another control,
+     * and similar. The version-history session log skips these so an
+     * untouched chart never reports unsaved changes the user didn't make.
+     */
+    programmatic?: boolean;
+  },
 ) {
-  return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
+  return {
+    type: SET_FIELD_VALUE,
+    controlName,
+    value,
+    validationErrors,
+    programmatic: options?.programmatic ?? false,
+  };
 }
 
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
@@ -167,12 +191,8 @@ export function updateExploreChartState(
 }
 
 export const SET_COMPATIBILITY = 'SET_COMPATIBILITY';
-export function setCompatibility(payload: {
-  compatibleMetrics: string[] | null;
-  compatibleDimensions: string[] | null;
-  compatibilityLoading: boolean;
-}) {
-  return { type: SET_COMPATIBILITY, ...payload };
+export function setCompatibility(compatibility: CompatibilityResult) {
+  return { type: SET_COMPATIBILITY, compatibility };
 }
 
 let compatibilityRequestSeq = 0;
@@ -198,23 +218,11 @@ export function fetchCompatibility(
     const requestSeq = compatibilityRequestSeq;
 
     if (datasourceType !== 'semantic_view') {
-      dispatch(
-        setCompatibility({
-          compatibleMetrics: null,
-          compatibleDimensions: null,
-          compatibilityLoading: false,
-        }),
-      );
+      dispatch(setCompatibility({ status: 'idle' }));
       return;
     }
 
-    dispatch(
-      setCompatibility({
-        compatibleMetrics: null,
-        compatibleDimensions: null,
-        compatibilityLoading: true,
-      }),
-    );
+    dispatch(setCompatibility({ status: 'loading' }));
 
     try {
       const { json } = await SupersetClient.post({
@@ -229,23 +237,19 @@ export function fetchCompatibility(
       }
       dispatch(
         setCompatibility({
-          compatibleMetrics: json.result.compatible_metrics,
-          compatibleDimensions: json.result.compatible_dimensions,
-          compatibilityLoading: false,
+          status: 'verified',
+          metrics: json.result.compatible_metrics ?? [],
+          dimensions: json.result.compatible_dimensions ?? [],
         }),
       );
     } catch {
-      // On error fall back to no filtering so the user is never blocked.
+      // A failed request must stay distinguishable from loading and from a
+      // valid empty result; consumers fall back to no filtering so the user
+      // is never blocked.
       if (requestSeq !== compatibilityRequestSeq) {
         return;
       }
-      dispatch(
-        setCompatibility({
-          compatibleMetrics: null,
-          compatibleDimensions: null,
-          compatibilityLoading: false,
-        }),
-      );
+      dispatch(setCompatibility({ status: 'failed' }));
     }
   };
 }
@@ -278,6 +282,7 @@ export function syncDatasourceMetadata(datasource: Dataset) {
 }
 
 export const exploreActions = {
+  resetSemanticSelections,
   ...toastActions,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,

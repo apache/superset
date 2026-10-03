@@ -24,15 +24,15 @@ on:
 permissions:
   contents: read
 
-# Serialize with the scheduled Docker image refresh — both workflows push
-# to the same Docker Hub tags and must not race on apache/superset:latest.
+# Serialize release image publishes so concurrent manual runs cannot race on
+# apache/superset:latest.
 concurrency:
   group: docker-publish-latest-release
   cancel-in-progress: false
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -50,23 +50,32 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     strategy:
       matrix:
-        build_preset:
-          ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+        build_preset: ["superset", "dev", "lean", "py311", "py312"]
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: master
+
+      # Preserved because the step below checks out the release ref, which
+      # can be an arbitrary historical commit/tag -- these helpers need to
+      # keep running with the version from master regardless.
+      - name: Preserve Docker flags helper
+        shell: bash
+        run: |
+          cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
+          cp scripts/docker_release_target.py "$RUNNER_TEMP/docker_release_target.py"
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -75,19 +84,20 @@ jobs:
 
       - name: Use Node.js 20
         # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
           package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot
 
       - name: Execute custom Node.js script
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
           INPUT_RELEASE: ${{ github.event.inputs.release }}
           INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
           INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
@@ -104,13 +114,42 @@ jobs:
             fi
             git checkout "${INPUT_GIT_REF}"
             EVENT="release"
+          else
+            git checkout "${GITHUB_EVENT_RELEASE_TAG_NAME}"
           fi
+          # Preserve the checked-out release Dockerfile's browser default.
+          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET" "" release)"
 
-          supersetbot docker \
-            --push \
-            --preset ${{ matrix.build_preset }} \
+          # supersetbot's preset -> Dockerfile-target mapping tracks current
+          # master, but RELEASE above can be an arbitrary *historical* ref
+          # (this job just `git checkout`ed it), which can predate a preset's
+          # target stage -- see #44220. Ask supersetbot what it would
+          # actually run (--dry-run) and hand that, plus the Dockerfile this
+          # checkout now has, to docker_release_target.py (preserved from
+          # master above, same reasoning as the flags helper), which knows
+          # the one verified compatibility substitution and refuses to guess
+          # at anything else.
+          DRY_RUN_CMD="$(DOCKERHUB_TOKEN= supersetbot docker \
+            --preset "$BUILD_PRESET" \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
+            --platform linux/amd64 \
+            --dry-run)"
+          TARGET_OVERRIDE="$(
+            printf '%s\n' "$DRY_RUN_CMD" |
+              python3 "$RUNNER_TEMP/docker_release_target.py" "$BUILD_PRESET"
+          )"
+          if [ -n "$TARGET_OVERRIDE" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS $TARGET_OVERRIDE"
+          fi
+
+          DOCKERHUB_TOKEN= supersetbot docker \
+            --push \
+            --preset "$BUILD_PRESET" \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
@@ -120,26 +159,26 @@ jobs:
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Use Node.js 20
         # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
           package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:

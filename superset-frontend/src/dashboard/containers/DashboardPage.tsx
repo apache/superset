@@ -23,6 +23,7 @@ import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import useDashboardFilterSync from 'src/dashboard/useDashboardFilterSync';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import {
@@ -171,6 +172,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const hydratedDashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
+  useDashboardFilterSync(hydratedDashboardId === id ? id : undefined);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -221,7 +223,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         if (permalinkValue?.state) {
           ({ dataMask, activeTabs, anchor } = permalinkValue.state);
           chartStates = permalinkValue.state.chartStates as
-            DashboardChartStates | undefined;
+            | DashboardChartStates
+            | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);

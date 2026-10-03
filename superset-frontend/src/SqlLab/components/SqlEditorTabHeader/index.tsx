@@ -113,7 +113,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const renameInputRef = useRef<InputRef>(null);
-  const tabHeaderRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const trimmedTitle = newTitle.trim();
 
   function openRenameModal() {
@@ -137,8 +137,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     }
     setIsRenameModalOpen(false);
     // Save closes via the show prop rather than the Modal's onHide, so return
-    // focus to the tab header here, matching what openerRef does on dismiss.
-    tabHeaderRef.current?.focus();
+    // focus to the dropdown trigger here, matching what openerRef does on dismiss.
+    dropdownTriggerRef.current?.focus();
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
@@ -156,12 +156,9 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     return statusColors[state] || theme.colorIcon;
   };
   return (
-    <TabTitleWrapper
-      ref={tabHeaderRef}
-      tabIndex={-1}
-      data-test="sql-editor-tab-header"
-    >
+    <TabTitleWrapper data-test="sql-editor-tab-header">
       <MenuDotsDropdown
+        ref={dropdownTriggerRef}
         trigger={['click']}
         overlay={
           <Menu
@@ -256,7 +253,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         onHandledPrimaryAction={handleRenameTab}
         primaryButtonName={t('Save')}
         disablePrimaryButton={!trimmedTitle}
-        openerRef={tabHeaderRef}
+        openerRef={dropdownTriggerRef}
       >
         <Input
           ref={renameInputRef}

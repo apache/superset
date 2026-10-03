@@ -15,6 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Callable
+
+from sqlalchemy.sql.elements import ColumnElement
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
@@ -29,6 +33,12 @@ class GreenplumEngineSpec(PostgresEngineSpec):
     engine = "greenplum"
     engine_name = "Greenplum"
     default_driver = "psycopg2"
+
+    # `PostgresEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP) is
+    # verified against real Postgres behavior, not Greenplum's MPP query engine;
+    # disable it here until someone confirms the same expressions against a live
+    # Greenplum instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (

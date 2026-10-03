@@ -113,3 +113,17 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px;
   margin-top: 0;
 `;
+
+export const StyledErrorHandlingSection = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
+  border-top: 1px solid ${({ theme }) => theme.colorSplit};
+  padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+export const StyledRetryFieldGroup = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 3}px;
+`;

@@ -49,10 +49,13 @@ import {
   hasOption,
   isLabeledValue,
   isObject,
+  makeQuoteAwareTokenizer,
   mapOptions,
   mapValues,
   sortComparatorWithSearchHelper,
   sortSelectedFirstHelper,
+  splitWithQuoteEscaping,
+  stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
@@ -75,6 +78,23 @@ import {
 import { Space } from '../Space';
 import { Button } from '../Button';
 
+// An option is eligible for a bulk "Select all" when it carries a truthy value
+// and is neither disabled nor the transient "create new option" entry. Shared
+// by the count, the visibility gate, and the click handler so they cannot drift.
+const isBulkSelectable = (option: SelectOptionsType[number]): boolean =>
+  Boolean(option.value) && !option.disabled && !option.isNewOption;
+
+// Grouped option lists nest their selectable entries under `.options`; the group
+// headers themselves carry no `value`. Flatten one level so the bulk "Select
+// all" machinery targets the actual leaf options rather than the headers. A flat
+// list passes through unchanged.
+const flattenGroupedOptions = (options: SelectOptionsType): SelectOptionsType =>
+  options.flatMap(option =>
+    'options' in option && Array.isArray(option.options)
+      ? (option.options as SelectOptionsType)
+      : option,
+  );
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -95,6 +115,7 @@ const Select = forwardRef(
       allowNewOptions = false,
       allowNewOptionsOnPaste = false,
       allowSelectAll = true,
+      stableSelectAll = false,
       ariaLabel,
       autoClearSearchValue = true,
       filterOption = true,
@@ -192,6 +213,19 @@ const Select = forwardRef(
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
+
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortSelectedFirstHelper(a, b, selectValue),
@@ -267,9 +301,35 @@ const Select = forwardRef(
       );
     }, [selectOptions, selectValue, sortSelectedFirst]);
 
+    const fullSelectOptionsRef = useRef(fullSelectOptions);
+    fullSelectOptionsRef.current = fullSelectOptions;
+    const selectValueRef = useRef(selectValue);
+    selectValueRef.current = selectValue;
+
     const enabledOptions = useMemo(
       () => visibleOptions.filter(option => !option.disabled),
       [visibleOptions],
+    );
+
+    // The full (search-independent) option set flattened to its leaf options, so
+    // the stableSelectAll bulk machinery treats grouped columns the same as flat
+    // ones. Gated on stableSelectAll so consumers that don't use the feature skip
+    // the work; a flat list is returned unchanged either way.
+    const flatFullSelectOptions = useMemo(
+      () =>
+        stableSelectAll
+          ? flattenGroupedOptions(fullSelectOptions)
+          : EMPTY_OPTIONS,
+      [fullSelectOptions, stableSelectAll],
+    );
+
+    // The stable, full-set counterpart of enabledOptions: every bulk-selectable
+    // option across the entire (search-independent) option set. Used when
+    // stableSelectAll is on so the "Select all" action and visibility stay
+    // pinned to the full column while a search narrows visibleOptions.
+    const fullSelectAllOptions = useMemo(
+      () => flatFullSelectOptions.filter(isBulkSelectable),
+      [flatFullSelectOptions],
     );
 
     const selectAllEligible = useMemo(
@@ -287,44 +347,62 @@ const Select = forwardRef(
         !isSingleMode &&
         allowSelectAll &&
         selectOptions.length > 0 &&
-        enabledOptions.length > 1,
+        // When stableSelectAll is on, gate visibility on the full eligible set
+        // so the bulk control does not hide/flicker while a search narrows
+        // visibleOptions.
+        (stableSelectAll
+          ? fullSelectAllOptions.length
+          : enabledOptions.length) > 1,
       [
         isSingleMode,
         allowSelectAll,
         selectOptions.length,
         enabledOptions.length,
+        stableSelectAll,
+        fullSelectAllOptions.length,
       ],
     );
 
     const selectAllMode = useMemo(
-      () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
-      [selectValue, selectAllEligible],
+      () =>
+        // stableSelectAll adds real values across the full column with no legacy
+        // "Select all" sentinel occupying a slot in selectValue, so the
+        // eligible+1 phantom detection does not apply. Force it off so a search
+        // that narrows selectAllEligible cannot make a normal selection read as
+        // the sentinel (which drives the collapsed-tag off-by-one).
+        !stableSelectAll &&
+        ensureIsArray(selectValue).length === selectAllEligible.length + 1,
+      [selectValue, selectAllEligible, stableSelectAll],
     );
 
     const bulkSelectCounts = useMemo(() => {
       const selectedValuesSet = new Set(
         ensureIsArray(selectValue).map(getValue),
       );
-      return visibleOptions.reduce(
-        (acc, option) => {
-          const isSelected = selectedValuesSet.has(option.value);
-          const isDisabled = option.disabled;
-          const isNew = option.isNewOption;
-
-          if (
-            (!isDisabled || isSelected) &&
-            ((isNew && isSelected) || !isNew)
-          ) {
-            acc.selectable += 1;
-          }
-          if (isSelected && !isDisabled) {
-            acc.deselectable += 1;
-          }
-          return acc;
-        },
-        { selectable: 0, deselectable: 0 },
-      );
-    }, [visibleOptions, selectValue]);
+      // When stableSelectAll is on, both counts reduce over the full
+      // (search-independent) loaded option set — flattened so grouped columns
+      // count their leaf options — so they stay stable and consistent with each
+      // other while searching. When it is off, countSource === visibleOptions,
+      // so the counts are unchanged for generic consumers.
+      const countSource = stableSelectAll
+        ? flatFullSelectOptions
+        : visibleOptions;
+      const selectable = countSource.reduce((acc, option) => {
+        // "Select all" only adds, so the post-click count is every eligible
+        // option plus any already-selected option that will remain selected
+        // (a selected disabled/new option is not toggled off). Falsy-valued
+        // options (e.g. the <NULL> option) are never bulk-selectable.
+        const willBeSelected =
+          isBulkSelectable(option) ||
+          (Boolean(option.value) && selectedValuesSet.has(option.value));
+        return willBeSelected ? acc + 1 : acc;
+      }, 0);
+      const deselectable = countSource.reduce((acc, option) => {
+        const isSelected = selectedValuesSet.has(option.value);
+        return isSelected && !option.disabled ? acc + 1 : acc;
+      }, 0);
+      return { selectable, deselectable };
+    }, [visibleOptions, selectValue, flatFullSelectOptions, stableSelectAll]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -364,6 +442,42 @@ const Select = forwardRef(
         setVisibleOptions(fullSelectOptions);
       }
       onSelect?.(selectedItem, option);
+    };
+
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            const addOption = (previous: SelectOptionsType) =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous];
+            setSelectOptions(addOption);
+            setVisibleOptions(addOption);
+          }
+          handleOnSelect(
+            (labelInValue
+              ? { label: option.label, value: option.value }
+              : option.value) as string | AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
     };
 
     const clear = () => {
@@ -414,61 +528,101 @@ const Select = forwardRef(
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
-    const handleOnSearch = debounce((search: string) => {
-      const searchValue = search.trim();
-      setIsSearching(!!searchValue);
+    const stateRef = useRef({
+      selectOptions,
+      allowNewOptions,
+      fullSelectOptions,
+      selectValue,
+      handleFilterOption,
+      onSearch,
+    });
 
-      let updatedOptions = selectOptions;
+    useEffect(() => {
+      stateRef.current = {
+        selectOptions,
+        allowNewOptions,
+        fullSelectOptions,
+        selectValue,
+        handleFilterOption,
+        onSearch,
+      };
+    });
 
-      if (allowNewOptions) {
-        const optionsWithoutTemporary = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption,
-        );
-        const shouldCreateNewOption =
-          searchValue && !hasOption(searchValue, optionsWithoutTemporary, true);
+    const handleOnSearch = useMemo(
+      () =>
+        debounce((search: string) => {
+          const {
+            selectOptions,
+            allowNewOptions,
+            fullSelectOptions,
+            selectValue,
+            handleFilterOption,
+            onSearch,
+          } = stateRef.current;
 
-        const newOption = shouldCreateNewOption && {
-          label: searchValue,
-          value: searchValue,
-          isNewOption: true,
-        };
-        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        updatedOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(updatedOptions);
-      }
+          const searchValue = search.trim();
+          setIsSearching(!!searchValue);
 
-      const filteredOptions = updatedOptions
-        .map((option: any) => {
-          /*
+          let updatedOptions = selectOptions;
+
+          if (allowNewOptions) {
+            const optionsWithoutTemporary = ensureIsArray(
+              fullSelectOptions,
+            ).filter(opt => !opt.isNewOption);
+            const unquotedSearch = stripSurroundingQuotes(searchValue);
+            const shouldCreateNewOption =
+              unquotedSearch &&
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
+
+            const newOption = shouldCreateNewOption && {
+              label: unquotedSearch,
+              value: unquotedSearch,
+              isNewOption: true,
+            };
+            const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
+              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+            );
+            updatedOptions = newOption
+              ? [newOption, ...cleanSelectOptions]
+              : cleanSelectOptions;
+            setSelectOptions(updatedOptions);
+          }
+
+          const filteredOptions = updatedOptions
+            .map((option: DefaultOptionType) => {
+              /*
           If it's a group, filter its nested options and only return it
           if it has matching options
           */
-          if ('options' in option && Array.isArray(option.options)) {
-            const filteredGroupOptions = option.options.filter(
-              (subOption: AntdLabeledValue) =>
-                handleFilterOption(search, subOption),
-            );
-            return filteredGroupOptions.length > 0
-              ? { ...option, options: filteredGroupOptions }
-              : null;
-          }
+              if ('options' in option && Array.isArray(option.options)) {
+                const filteredGroupOptions = option.options.filter(
+                  (subOption: AntdLabeledValue) =>
+                    handleFilterOption(search, subOption),
+                );
+                return filteredGroupOptions.length > 0
+                  ? { ...option, options: filteredGroupOptions }
+                  : null;
+              }
 
-          return handleFilterOption(search, option as AntdLabeledValue)
-            ? option
-            : null;
-        })
-        .filter((option): option is AntdLabeledValue => option !== null);
+              return handleFilterOption(search, option as AntdLabeledValue)
+                ? option
+                : null;
+            })
+            .filter((option): option is AntdLabeledValue => option !== null);
 
-      setVisibleOptions(filteredOptions);
-      setInputValue(searchValue);
-      onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+          setVisibleOptions(filteredOptions);
+          setInputValue(searchValue);
+          onSearch?.(searchValue);
+        }, Constants.FAST_DEBOUNCE),
+      [],
+    );
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    useEffect(
+      () => () => {
+        handleOnSearch.cancel?.();
+      },
+      [handleOnSearch],
+    );
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -492,9 +646,15 @@ const Select = forwardRef(
     const handleSelectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const optionsToSelect = isSearching
+      const searchScopedOptions = isSearching
         ? visibleOptions.filter(option => !option.isNewOption)
         : enabledOptions;
+      // When stableSelectAll is on, always select the full eligible set
+      // regardless of any active search, so "Select all" targets the whole
+      // column rather than the search-filtered subset.
+      const optionsToSelect = stableSelectAll
+        ? fullSelectAllOptions
+        : searchScopedOptions;
 
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
@@ -517,6 +677,8 @@ const Select = forwardRef(
       isSearching,
       visibleOptions,
       enabledOptions,
+      stableSelectAll,
+      fullSelectAllOptions,
       selectValue,
       fireOnChange,
     ]);
@@ -524,7 +686,18 @@ const Select = forwardRef(
     const handleDeselectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const deselectionValues = new Set(enabledOptions.map(opt => opt.value));
+      // In stableSelectAll mode "Clear" removes the whole non-disabled
+      // selection across the full loaded set — flattened so grouped columns
+      // clear their leaf options, the full-set parallel of enabledOptions — so
+      // it matches the `deselectable` count (which counts every selected
+      // non-disabled option). Otherwise it clears only the search-scoped visible
+      // options.
+      const deselectionSource = stableSelectAll
+        ? flatFullSelectOptions.filter(option => !option.disabled)
+        : enabledOptions;
+      const deselectionValues = new Set(
+        deselectionSource.map(opt => opt.value),
+      );
 
       const newValues = ensureIsArray(selectValue).filter(item => {
         const itemValue = getValue(item);
@@ -533,7 +706,14 @@ const Select = forwardRef(
 
       setSelectValue(newValues);
       fireOnChange();
-    }, [isSingleMode, enabledOptions, selectValue, fireOnChange]);
+    }, [
+      isSingleMode,
+      enabledOptions,
+      stableSelectAll,
+      flatFullSelectOptions,
+      selectValue,
+      fireOnChange,
+    ]);
 
     const bulkSelectComponent = useMemo(
       () => (
@@ -652,8 +832,16 @@ const Select = forwardRef(
       if (onChangeCount !== previousChangeCount) {
         const array = ensureIsArray(selectValue);
         const set = new Set(array.map(getValue));
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
         const options = mapOptions(
-          fullSelectOptions.filter(opt => set.has(opt.value)),
+          flattenGroupedOptions(fullSelectOptions).filter(opt =>
+            set.has(opt.value),
+          ),
         );
         if (isSingleMode) {
           handleOnChange(selectValue, selectValue ? options[0] : undefined);
@@ -721,22 +909,11 @@ const Select = forwardRef(
           setSelectValue(value);
         }
       } else {
-        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
-        // Superset always uses the array form.
+        // Superset's prop is the array form; antd receives the function form
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
-        const token = separators.find((token: string) =>
-          pastedText.includes(token),
-        );
-        const array = token
-          ? uniq(
-              pastedText
-                .split(token)
-                .map(item => item.trim())
-                .filter(Boolean),
-            )
-          : [pastedText.trim()].filter(Boolean);
+        const array = uniq(splitWithQuoteEscaping(pastedText, separators));
 
         const newOptions: SelectOptionsType = [];
         // When `allowNewOptionsOnPaste` is set, accept pasted values that are
@@ -761,6 +938,10 @@ const Select = forwardRef(
             return getPastedTextValue(item);
           })
           .filter(item => item !== undefined);
+
+        if (values.length > 0) {
+          e.preventDefault();
+        }
 
         if (newOptions.length > 0) {
           const updatedOptions = [...fullSelectOptions, ...newOptions];
@@ -822,7 +1003,7 @@ const Select = forwardRef(
           getPopupContainer={
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
-              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
               (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
@@ -854,7 +1035,7 @@ const Select = forwardRef(
           }
           onClear={handleClear}
           placeholder={placeholder}
-          tokenSeparators={tokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           value={selectValue}
           virtual={
             virtual !== undefined

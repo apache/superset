@@ -17,8 +17,11 @@
  * under the License.
  */
 import { NativeFilterScope } from '@superset-ui/core';
-import { LayoutItem } from '../types';
-import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
+import {
+  getChartLayoutItemMap,
+  getChartIdsInFilterScope,
+} from './getChartIdsInFilterScope';
+import type { ChartLayoutItems } from './getChartIdsInFilterScope';
 import { findTabsWithChartsInScope } from '../components/nativeFilters/utils';
 
 export interface ScopeItem {
@@ -35,9 +38,11 @@ export interface CalculatedScope {
 export function calculateScopes<T extends ScopeItem>(
   items: T[],
   chartIds: number[],
-  chartLayoutItems: LayoutItem[],
+  chartLayoutItems: ChartLayoutItems,
   isDivider: (item: T) => boolean = () => false,
 ): CalculatedScope[] {
+  const chartLayoutItemMap = getChartLayoutItemMap(chartLayoutItems);
+
   return items.map(item => {
     if (isDivider(item)) {
       return {
@@ -58,11 +63,11 @@ export function calculateScopes<T extends ScopeItem>(
     const chartsInScope = getChartIdsInFilterScope(
       item.scope,
       chartIds,
-      chartLayoutItems,
+      chartLayoutItemMap,
     );
 
     const tabsInScope = findTabsWithChartsInScope(
-      chartLayoutItems,
+      chartLayoutItemMap,
       chartsInScope,
     );
 

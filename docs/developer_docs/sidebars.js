@@ -63,9 +63,7 @@ module.exports = {
       type: 'category',
       label: 'Testing',
       collapsed: true,
-      items: [
-        'testing/overview',
-      ],
+      items: ['testing/overview'],
     },
     {
       type: 'category',

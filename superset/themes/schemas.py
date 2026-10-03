@@ -92,9 +92,19 @@ class ImportV1ThemeSchema(Schema):
                 sanitized_json_context.set(json.dumps(sanitized_config))
 
 
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that are allowed to "
+    "edit this theme."
+)
+
+
 class ThemePostSchema(Schema):
     theme_name = fields.String(required=True, allow_none=False)
     json_data = fields.String(required=True, allow_none=False)
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}),
+        required=False,
+    )
 
     @validates("theme_name")
     def validate_theme_name(self, value: str, **kwargs: Any) -> None:
@@ -134,6 +144,10 @@ class ThemePostSchema(Schema):
 class ThemePutSchema(Schema):
     theme_name = fields.String(required=True, allow_none=False)
     json_data = fields.String(required=True, allow_none=False)
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}),
+        required=False,
+    )
 
     @validates("theme_name")
     def validate_theme_name(self, value: str, **kwargs: Any) -> None:
@@ -184,5 +198,13 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}

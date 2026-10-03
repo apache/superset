@@ -25,10 +25,6 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
-    externalsType: "window",
-    externals: {
-      "@apache-superset/core": "superset",
-    },
     module: {
       rules: [
         {
@@ -59,6 +55,10 @@ module.exports = (env, argv) => {
           antd: {
             singleton: true,
             requiredVersion: packageConfig.peerDependencies["antd"],
+            import: false,
+          },
+          "@apache-superset/core": {
+            singleton: true,
             import: false,
           },
         },

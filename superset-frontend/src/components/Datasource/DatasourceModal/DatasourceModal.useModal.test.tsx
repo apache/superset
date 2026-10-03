@@ -21,6 +21,7 @@ import {
   screen,
   fireEvent,
   act,
+  waitFor,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
@@ -72,6 +73,9 @@ test('DatasourceModal - should handle sync columns state without imperative moda
   render(<DatasourceModal {...mockedProps} />, { store });
 
   const saveButton = screen.getByTestId('datasource-modal-save');
+  // The modal fetches the current dataset version on open; save stays disabled
+  // until that settles
+  await waitFor(() => expect(saveButton).toBeEnabled());
 
   // This should not throw any DOM errors
   await act(async () => {

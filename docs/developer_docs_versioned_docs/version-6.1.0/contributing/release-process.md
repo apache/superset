@@ -29,6 +29,7 @@ Understand Apache Superset's release process, versioning strategy, and how to pa
 ## Release Cadence
 
 ### Schedule
+
 - **Major releases (X.0.0)**: Annually (approximately)
 - **Minor releases (X.Y.0)**: Quarterly
 - **Patch releases (X.Y.Z)**: As needed for critical fixes
@@ -46,6 +47,7 @@ MAJOR.MINOR.PATCH
 ```
 
 ### Examples
+
 - `3.0.0`: Major release with breaking changes
 - `3.1.0`: Minor release with new features
 - `3.1.1`: Patch release with bug fixes
@@ -55,12 +57,14 @@ MAJOR.MINOR.PATCH
 ### Major Releases (X.0.0)
 
 #### Includes
+
 - Breaking API changes
 - Deprecated feature removals
 - Major architectural changes
 - Database migration requirements
 
 #### Process
+
 - 2-3 month preparation period
 - Multiple release candidates (RC)
 - Extensive testing period
@@ -69,12 +73,14 @@ MAJOR.MINOR.PATCH
 ### Minor Releases (X.Y.0)
 
 #### Includes
+
 - New features
 - Performance improvements
 - Non-breaking API additions
 - Minor UI/UX updates
 
 #### Process
+
 - 1 month preparation
 - 1-2 release candidates
 - Standard testing period
@@ -82,12 +88,14 @@ MAJOR.MINOR.PATCH
 ### Patch Releases (X.Y.Z)
 
 #### Includes
+
 - Bug fixes
 - Security patches
 - Documentation fixes
 - Dependency updates (security)
 
 #### Process
+
 - Fast track for critical issues
 - May skip RC for urgent security fixes
 - Minimal testing requirements
@@ -97,6 +105,7 @@ MAJOR.MINOR.PATCH
 ### 1. Pre-Release Preparation
 
 #### Feature Freeze
+
 ```bash
 # Create release branch
 git checkout -b release-X.Y
@@ -108,40 +117,49 @@ VERSION = "X.Y.0rc1"
 ```
 
 #### Update Documentation
+
 - CHANGELOG.md
 - UPDATING.md (for breaking changes)
 - Documentation version
 
 #### Release Notes Template
+
 ```markdown
 # Apache Superset X.Y.0
 
 ## 🎉 Highlights
+
 - Major feature 1
 - Major feature 2
 
 ## 🚀 New Features
+
 - Feature 1 (#PR)
 - Feature 2 (#PR)
 
 ## 🐛 Bug Fixes
+
 - Fix 1 (#PR)
 - Fix 2 (#PR)
 
 ## ⚠️ Breaking Changes
+
 - Breaking change 1
 - Migration required for X
 
 ## 📝 Documentation
+
 - Doc update 1 (#PR)
 
 ## 🙏 Thank You
+
 Thanks to all contributors!
 ```
 
 ### 2. Create Release Candidate
 
 #### Build RC
+
 ```bash
 # Tag release candidate
 git tag -a vX.Y.Zrc1 -m "Apache Superset X.Y.Z RC1"
@@ -158,6 +176,7 @@ gpg --armor --detach-sig dist/apache-superset-X.Y.Zrc1.tar.gz
 ```
 
 #### Upload to staging
+
 ```bash
 # Upload to Apache staging
 svn co https://dist.apache.org/repos/dist/dev/superset
@@ -202,11 +221,13 @@ Thanks,
 ```
 
 #### Voting Rules
+
 - **Duration**: Minimum 72 hours
 - **Required**: 3 +1 votes from PMC members
 - **Veto**: Any -1 vote must be addressed
 
 #### Testing Checklist
+
 ```markdown
 - [ ] Source builds successfully
 - [ ] Docker image builds
@@ -219,6 +240,7 @@ Thanks,
 ### 4. Release Approval
 
 #### Tally Votes
+
 ```
 Subject: [RESULT][VOTE] Release Apache Superset X.Y.Z RC1
 
@@ -245,6 +267,7 @@ Thank you to everyone who tested and voted!
 ### 5. Perform Release
 
 #### Promote RC to Release
+
 ```bash
 # Tag final release
 git tag -a vX.Y.Z -m "Apache Superset X.Y.Z"
@@ -256,12 +279,14 @@ svn mv https://dist.apache.org/repos/dist/dev/superset/X.Y.Zrc1 \
 ```
 
 #### Publish to PyPI
+
 ```bash
 # Upload to PyPI
 python -m twine upload dist/*X.Y.Z*
 ```
 
 #### Build Docker Images
+
 ```bash
 # Build and push Docker images
 docker build -t apache/superset:X.Y.Z .
@@ -273,6 +298,7 @@ docker push apache/superset:latest
 ### 6. Post-Release Tasks
 
 #### Update Documentation
+
 ```bash
 # Update docs version
 cd docs
@@ -310,6 +336,7 @@ The Apache Superset Team
 ```
 
 #### Update GitHub Release
+
 ```bash
 # Create GitHub release
 gh release create vX.Y.Z \
@@ -322,12 +349,14 @@ gh release create vX.Y.Z \
 ### During Feature Freeze
 
 #### What's Allowed
+
 - ✅ Bug fixes
 - ✅ Documentation updates
 - ✅ Test improvements
 - ✅ Security fixes
 
 #### What's Not Allowed
+
 - ❌ New features
 - ❌ Major refactoring
 - ❌ Breaking changes
@@ -336,6 +365,7 @@ gh release create vX.Y.Z \
 ### Testing RCs
 
 #### How to Test
+
 ```bash
 # Install RC from staging
 pip install https://dist.apache.org/repos/dist/dev/superset/X.Y.Zrc1/apache-superset-X.Y.Zrc1.tar.gz
@@ -345,6 +375,7 @@ docker pull apache/superset:X.Y.Zrc1
 ```
 
 #### What to Test
+
 - Your use cases
 - New features mentioned in release notes
 - Upgrade from previous version
@@ -352,8 +383,10 @@ docker pull apache/superset:X.Y.Zrc1
 - Critical workflows
 
 #### Reporting Issues
+
 ```markdown
 Found issue in RC1:
+
 - Description: [what's wrong]
 - Steps to reproduce: [how to trigger]
 - Impact: [blocker/major/minor]
@@ -363,21 +396,26 @@ Found issue in RC1:
 ### CHANGELOG Maintenance
 
 #### Format
+
 ```markdown
 ## X.Y.Z (YYYY-MM-DD)
 
 ### Features
+
 - feat: Description (#PR_NUMBER)
 
 ### Fixes
+
 - fix: Description (#PR_NUMBER)
 
 ### Breaking Changes
+
 - BREAKING: Description (#PR_NUMBER)
   Migration: Steps to migrate
 ```
 
 #### Generating CHANGELOG
+
 ```bash
 # Use git log to generate initial list
 git log --oneline vX.Y-1.Z..vX.Y.Z | grep -E "^[a-f0-9]+ (feat|fix|perf|refactor|docs)"
@@ -390,31 +428,38 @@ git log --oneline vX.Y-1.Z..vX.Y.Z | grep -E "^[a-f0-9]+ (feat|fix|perf|refactor
 ### Documentation Required
 
 #### UPDATING.md Entry
-```markdown
+
+````markdown
 # X.Y.Z
 
 ## Breaking Change: [Title]
 
 ### Description
+
 What changed and why.
 
 ### Before
+
 ```python
 # Old way
 old_function(param1, param2)
 ```
+````
 
 ### After
+
 ```python
 # New way
 new_function(param1, param2, param3)
 ```
 
 ### Migration Steps
+
 1. Update your code to...
 2. Run migration script...
 3. Test that...
-```
+
+````
 
 ### Deprecation Process
 
@@ -423,7 +468,7 @@ new_function(param1, param2, param3)
    @deprecated(version="3.0.0", remove_in="4.0.0")
    def old_function():
        warnings.warn("Use new_function instead", DeprecationWarning)
-   ```
+````
 
 2. **Version N+1**: Keep deprecated with warnings
 
@@ -432,12 +477,14 @@ new_function(param1, param2, param3)
 ## Security Releases
 
 ### Expedited Process
+
 - No RC required for critical security fixes
 - Coordinate with security@apache.org
 - Embargo period may apply
 - CVE assignment through ASF security team
 
 ### Security Advisory Template
+
 ```markdown
 CVE-YYYY-XXXXX: [Title]
 
@@ -458,11 +505,13 @@ Credit:
 ## Resources
 
 ### Internal
+
 - [Apache Release Policy](https://www.apache.org/legal/release-policy.html)
 - [Superset Release History](https://github.com/apache/superset/releases)
 - [Version Strategy Discussion](https://github.com/apache/superset/discussions)
 
 ### Tools
+
 - [Release Scripts](https://github.com/apache/superset/tree/master/scripts/release)
 - [Superset Repository Scripts](https://github.com/apache/superset/tree/master/scripts)
 

@@ -33,22 +33,22 @@ The SafeMarkdown component from Superset's UI library.
 <StoryWithControls
   component="SafeMarkdown"
   props={{
-  htmlSanitization: true
-}}
+    htmlSanitization: true,
+  }}
   controls={[
-  {
-    name: "htmlSanitization",
-    label: "Html Sanitization",
-    type: "boolean",
-    description: "Enable HTML sanitization (recommended for user input)"
-  },
-  {
-    name: "source",
-    label: "Source",
-    type: "text",
-    description: "Markdown source string to render"
-  }
-]}
+    {
+      name: 'htmlSanitization',
+      label: 'Html Sanitization',
+      type: 'boolean',
+      description: 'Enable HTML sanitization (recommended for user input)',
+    },
+    {
+      name: 'source',
+      label: 'Source',
+      type: 'text',
+      description: 'Markdown source string to render',
+    },
+  ]}
 />
 
 ## Try It
@@ -57,19 +57,15 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <SafeMarkdown
-      htmlSanitization
-    />
-  );
+  return <SafeMarkdown htmlSanitization />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `htmlSanitization` | `boolean` | `true` | Enable HTML sanitization (recommended for user input) |
+| Prop               | Type      | Default | Description                                           |
+| ------------------ | --------- | ------- | ----------------------------------------------------- |
+| `htmlSanitization` | `boolean` | `true`  | Enable HTML sanitization (recommended for user input) |
 
 ## Import
 

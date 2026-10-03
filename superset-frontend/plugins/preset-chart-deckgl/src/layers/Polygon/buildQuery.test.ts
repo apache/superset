@@ -318,22 +318,6 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('Integration with other form data fields', () => {
-    test('should include js_columns in query columns', () => {
-      const formDataWithJsColumns = {
-        ...baseFormData,
-        js_columns: ['custom_col1', 'custom_col2'],
-      };
-
-      const queryContext = buildQuery(formDataWithJsColumns);
-      const [query] = queryContext.queries;
-
-      expect(query.columns).toEqual([
-        'polygon_geom',
-        'custom_col1',
-        'custom_col2',
-      ]);
-    });
-
     test('should include tooltip_contents columns in query', () => {
       const formDataWithTooltips = {
         ...baseFormData,
@@ -375,20 +359,19 @@ describe('Polygon buildQuery', () => {
       expect(query.columns).toContain('sa3_name');
     });
 
-    test('should not duplicate cross_filter_column when it overlaps with another column', () => {
+    test('should not duplicate cross_filter_column when it overlaps with line_column', () => {
       const formDataWithOverlap = {
         ...baseFormData,
-        js_columns: ['sa3_name', 'extra_col'],
-        cross_filter_column: 'sa3_name',
+        cross_filter_column: 'polygon_geom',
       };
 
       const queryContext = buildQuery(formDataWithOverlap);
       const [query] = queryContext.queries;
 
-      const sa3Count = query.columns?.filter(
-        (col: unknown) => col === 'sa3_name',
+      const geomCount = query.columns?.filter(
+        (col: unknown) => col === 'polygon_geom',
       ).length;
-      expect(sa3Count).toBe(1);
+      expect(geomCount).toBe(1);
     });
 
     test('should not add cross_filter_column to query columns when unset', () => {
@@ -412,7 +395,6 @@ describe('Polygon buildQuery', () => {
             label: 'AVG(elevation)',
           },
         },
-        js_columns: ['custom_prop'],
         tooltip_contents: [
           { item_type: 'column', column_name: 'tooltip_info' },
         ],
@@ -423,7 +405,6 @@ describe('Polygon buildQuery', () => {
       const [query] = queryContext.queries;
 
       expect(query.columns).toContain('polygon_geom');
-      expect(query.columns).toContain('custom_prop');
       expect(query.columns).toContain('tooltip_info');
       expect(query.metrics).toContain('population');
       expect(query.metrics).toContain(complexFormData.point_radius_fixed.value);

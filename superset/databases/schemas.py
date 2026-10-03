@@ -159,14 +159,24 @@ extra_description = markdown(
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
     "whether or not the Explore button in SQL Lab results is shown.<br/>"
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
-    "preview queries will be run when fetching table metadata in SQL Lab."
-    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
-    "drill to detail is disabled for the database."
+    "preview queries will be run when fetching table metadata in SQL Lab.<br/>"
+    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not "
+    "drill to detail is disabled for the database.<br/>"
     "8. The ``allow_multi_catalog`` indicates if the database allows changing "
-    "the default catalog when running queries and creating datasets.",
+    "the default catalog when running queries and creating datasets.<br/>"
+    "9. The ``disable_sampling_read_limit_override`` field is a boolean "
+    "specifying whether system-generated sampling queries (filter values, "
+    "samples/preview, datetime format detection) that an engine rejects with "
+    "a read-limit error should fail outright instead of being retried once "
+    "with the engine's bounded-read override. Only affects engines that "
+    "implement such an override.",
     True,
 )
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 sqlalchemy_uri_description = markdown(
     "Refer to the "
     "[SqlAlchemy docs]"
@@ -235,11 +245,21 @@ def encrypted_extra_validator(value: str | None) -> None:
     """
     if value:
         try:
-            json.loads(value)
+            encrypted_extra = json.loads(value)
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(encrypted_extra, dict):
+            raise ValidationError(
+                [
+                    _(
+                        "Encrypted extra field must be a mapping"
+                        " from string keys to values."
+                    )
+                ]
+            )
 
 
 def masked_encrypted_extra_validator(value: str) -> None:
@@ -251,7 +271,7 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
-def extra_validator(value: str) -> str:
+def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
     keys are on the call signature for SQLAlchemy Metadata
@@ -263,6 +283,11 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(extra_, dict):
+            raise ValidationError(
+                [_("Extra field must be a mapping from string keys to values.")]
+            )
 
         metadata_signature = inspect.signature(MetaData)
         for key in extra_.get("metadata_params", {}):
@@ -919,9 +944,24 @@ class DatabaseRelatedDashboards(Schema):
     )
 
 
+class DatabaseRelatedDataset(Schema):
+    id = fields.Integer()
+    table_name = fields.String()
+    schema = fields.String()
+
+
+class DatabaseRelatedDatasets(Schema):
+    count = fields.Integer(metadata={"description": "Dataset count"})
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDataset),
+        metadata={"description": "A list of datasets"},
+    )
+
+
 class DatabaseRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatabaseRelatedCharts)
     dashboards = fields.Nested(DatabaseRelatedDashboards)
+    datasets = fields.Nested(DatabaseRelatedDatasets)
 
 
 class DatabaseFunctionNamesResponse(Schema):
@@ -967,6 +1007,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
     disable_drill_to_detail = fields.Boolean(required=False)
+    disable_sampling_read_limit_override = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
     per_user_caching = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
@@ -1161,6 +1202,24 @@ class DatabaseSchemaAccessForFileUploadResponse(Schema):
     )
 
 
+class IdentifierQuoteSchema(Schema):
+    start = fields.String(
+        metadata={"description": "Character that opens a quoted identifier"}
+    )
+    end = fields.String(
+        metadata={"description": "Character that closes a quoted identifier"}
+    )
+    escape_by_doubling = fields.Boolean(
+        metadata={
+            "description": (
+                "Whether an embedded closing-quote character is escaped by "
+                "doubling it (True) or with a backslash escape (False, e.g. "
+                "BigQuery's GoogleSQL backtick identifiers)"
+            )
+        }
+    )
+
+
 class EngineInformationSchema(Schema):
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
@@ -1178,6 +1237,20 @@ class EngineInformationSchema(Schema):
     )
     supports_schemas = fields.Boolean(
         metadata={"description": "The database uses schemas to organize tables"}
+    )
+    supports_offset = fields.Boolean(
+        metadata={
+            "description": (
+                "The database supports OFFSET in SQL queries. "
+                "Engines like Elasticsearch SQL return False."
+            )
+        }
+    )
+    identifier_quote = fields.Nested(
+        IdentifierQuoteSchema,
+        metadata={
+            "description": "Characters used to quote identifiers for this dialect"
+        },
     )
 
 
@@ -1436,6 +1509,24 @@ class UploadPostSchema(BaseUploadFilePostSchemaMixin):
                 ) from ex
         return data
 
+    @post_load
+    def normalize_schema(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """
+        Treat empty and stringified-unset schema values as no schema.
+
+        Broken clients stringify an unset schema into the multipart body as
+        the exact strings ``undefined``/``null`` (JS ``String()`` semantics),
+        so only those artifacts and empty/whitespace-only values are dropped,
+        letting the upload command resolve the database's default schema
+        instead (see #36305). Any other value — including a quoted schema
+        actually named ``NULL``/``Undefined`` or an identifier with
+        surrounding whitespace — reaches the upload command verbatim.
+        """
+        if (schema := data.get("schema")) is not None:
+            if not schema.strip() or schema in ("undefined", "null"):
+                data.pop("schema", None)
+        return data
+
 
 class UploadFileMetadataPostSchema(BaseUploadFilePostSchemaMixin):
     """
@@ -1525,7 +1616,7 @@ class QualifiedTableSchema(Schema):
     """
     Schema for a qualified table reference.
 
-    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    Catalog and schema can be omitted, to fallback to default values. Table name must be
     present.
     """
 

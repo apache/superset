@@ -19,6 +19,7 @@
 import { ArcLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { PRIMARY_COLOR } from '../../utilities/controls';
 import { commonLayerProps } from '../common';
 import { GetLayerType, createCategoricalDeckGLComponent } from '../../factory';
 import { Point } from '../../types';
@@ -69,8 +70,13 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
 }) {
   const fd = formData;
   const data = payload.data.features;
-  const sc = fd.color_picker;
-  const tc = fd.target_color_picker;
+  // Fall back to the control-panel defaults when the color pickers are absent.
+  // Sub-slices rendered inside deck.gl Multiple Layers arrive as raw saved form
+  // data without control-default hydration, and some saved charts (e.g. the Arc
+  // example) never persisted target_color_picker, which would otherwise crash
+  // the color accessors on `undefined`.
+  const sc = fd.color_picker ?? PRIMARY_COLOR;
+  const tc = fd.target_color_picker ?? PRIMARY_COLOR;
 
   const colorSchemeType = fd.color_scheme_type;
 

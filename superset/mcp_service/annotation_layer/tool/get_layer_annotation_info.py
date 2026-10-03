@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
         title="Get annotation info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_layer_annotation_info(

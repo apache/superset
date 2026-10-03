@@ -159,6 +159,13 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        """
+        Searches extra_json for a substring.
+
+        Matching is a plain substring scan that ignores which dashboard a
+        report belongs to, so callers acting on a single dashboard have to
+        narrow the results on ``dashboard_id`` themselves.
+        """
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
@@ -168,7 +175,10 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
         """
-        searches extra_json for a filter ID string
+        Searches extra_json for a filter ID string.
+
+        Carries the same caveat as :meth:`find_by_extra_metadata`: results span
+        every dashboard, not just the one owning the filter.
         """
         return (
             db.session.query(ReportSchedule)
@@ -180,16 +190,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def validate_unique_creation_method(
-        dashboard_id: int | None = None, chart_id: int | None = None
+        dashboard_id: int | None = None,
+        chart_id: int | None = None,
+        creation_method: str | None = None,
     ) -> bool:
         """
-        Validate if the user already has a chart or dashboard
-        with a report attached form the self subscribe reports
+        Validate if the user already has a chart or dashboard with a report
+        attached that was created via the same creation method as the one
+        being validated. Only reports created through the same method (e.g.
+        two "charts"-sourced reports) compete for the one-per-object slot --
+        an unrelated self-subscribed alert/report (creation method
+        "alerts_reports") on the same chart or dashboard doesn't count
+        against it.
         """
 
         query = db.session.query(ReportSchedule).filter_by(created_by_fk=get_user_id())
         if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
+
+        if creation_method is not None:
+            query = query.filter(ReportSchedule.creation_method == creation_method)
 
         if chart_id is not None:
             query = query.filter(ReportSchedule.chart_id == chart_id)

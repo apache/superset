@@ -186,7 +186,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
 
     // Verify admin controls are visible
     expect(
-      screen.getByRole('button', { name: /dashboard/i }),
+      screen.getByRole('button', { name: /dashboard$/i }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
 
     // Verify permission-gated elements are hidden
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -303,7 +303,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.getByRole('button', { name: /dashboard/i }),
+      screen.getByRole('button', { name: /dashboard$/i }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
@@ -313,7 +313,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -323,7 +323,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });

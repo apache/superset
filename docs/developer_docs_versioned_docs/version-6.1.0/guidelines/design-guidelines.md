@@ -40,6 +40,7 @@ Sentence case is predominantly lowercase. Capitalize only the initial character 
 - User input that is reflected in the UI. E.g. a user-named a dashboard tab
 
 **Sentence case vs. Title case:**
+
 - Title case: "A Dog Takes a Walk in Paris"
 - Sentence case: "A dog takes a walk in Paris"
 
@@ -110,12 +111,12 @@ Primary buttons have a fourth style: dropdown.
 
 **Purpose:**
 
-| Button Type | Description |
-|------------|-------------|
-| Primary | Main call to action, just 1 per page not including modals or main headers |
-| Secondary | Secondary actions, always in conjunction with a primary |
-| Tertiary | For less prominent actions; can be used in isolation or paired with a primary button |
-| Destructive | For actions that could have destructive effects on the user's data |
+| Button Type | Description                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| Primary     | Main call to action, just 1 per page not including modals or main headers            |
+| Secondary   | Secondary actions, always in conjunction with a primary                              |
+| Tertiary    | For less prominent actions; can be used in isolation or paired with a primary button |
+| Destructive | For actions that could have destructive effects on the user's data                   |
 
 ### Format
 
@@ -173,9 +174,9 @@ In all cases, encountering errors increases user friction and frustration while 
 
 Select one pattern per error (e.g. do not implement an inline and banner pattern for the same error).
 
-| When the error... | Use... |
-|------------------|--------|
-| Is directly related to a UI control | Inline error |
+| When the error...                       | Use...       |
+| --------------------------------------- | ------------ |
+| Is directly related to a UI control     | Inline error |
 | Is not directly related to a UI control | Banner error |
 
 #### Inline

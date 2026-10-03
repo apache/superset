@@ -16,7 +16,9 @@
     specific language governing permissions and limitations
     under the License.
 -->
+
 ---
+
 title: Grid
 sidebar_position: 1
 ---
@@ -27,29 +29,29 @@ The Grid component provides a flexible layout system for arranging content in ro
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `gutter` | `number` or `[number, number]` | `0` | Grid spacing between items, can be a single number or [horizontal, vertical] |
-| `columns` | `number` | `12` | Number of columns in the grid |
-| `justify` | `string` | `'start'` | Horizontal alignment: 'start', 'center', 'end', 'space-between', 'space-around' |
-| `align` | `string` | `'top'` | Vertical alignment: 'top', 'middle', 'bottom' |
-| `wrap` | `boolean` | `true` | Whether to wrap items when they overflow |
+| Prop      | Type                           | Default   | Description                                                                     |
+| --------- | ------------------------------ | --------- | ------------------------------------------------------------------------------- |
+| `gutter`  | `number` or `[number, number]` | `0`       | Grid spacing between items, can be a single number or [horizontal, vertical]    |
+| `columns` | `number`                       | `12`      | Number of columns in the grid                                                   |
+| `justify` | `string`                       | `'start'` | Horizontal alignment: 'start', 'center', 'end', 'space-between', 'space-around' |
+| `align`   | `string`                       | `'top'`   | Vertical alignment: 'top', 'middle', 'bottom'                                   |
+| `wrap`    | `boolean`                      | `true`    | Whether to wrap items when they overflow                                        |
 
 ### Row Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `gutter` | `number` or `[number, number]` | `0` | Spacing between items in the row |
-| `justify` | `string` | `'start'` | Horizontal alignment for this row |
-| `align` | `string` | `'top'` | Vertical alignment for this row |
+| Prop      | Type                           | Default   | Description                       |
+| --------- | ------------------------------ | --------- | --------------------------------- |
+| `gutter`  | `number` or `[number, number]` | `0`       | Spacing between items in the row  |
+| `justify` | `string`                       | `'start'` | Horizontal alignment for this row |
+| `align`   | `string`                       | `'top'`   | Vertical alignment for this row   |
 
 ### Col Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `span` | `number` | - | Number of columns the grid item spans |
-| `offset` | `number` | `0` | Number of columns the grid item is offset |
-| `xs`, `sm`, `md`, `lg`, `xl` | `number` or `object` | - | Responsive props for different screen sizes |
+| Prop                         | Type                 | Default | Description                                 |
+| ---------------------------- | -------------------- | ------- | ------------------------------------------- |
+| `span`                       | `number`             | -       | Number of columns the grid item spans       |
+| `offset`                     | `number`             | `0`     | Number of columns the grid item is offset   |
+| `xs`, `sm`, `md`, `lg`, `xl` | `number` or `object` | -       | Responsive props for different screen sizes |
 
 ## Examples
 

@@ -377,6 +377,12 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_state",
             "name",
             "recipients",
+            "report_format",
+            "retry_max_attempts",
+            "retry_notify_owners",
+            "retry_notify_recipients",
+            "retry_on_failure",
+            "send_failed_reports",
             "timezone",
             "type",
         ]
@@ -614,6 +620,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "working_timeout": 3600,
             "chart": chart.id,
             "database": example_db.id,
+            "include_cta": False,
         }
         uri = "api/v1/report/"
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
@@ -629,6 +636,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert created_model.chart.id == report_schedule_data["chart"]
         assert created_model.database.id == report_schedule_data["database"]
         assert created_model.creation_method == report_schedule_data["creation_method"]
+        assert created_model.include_cta is False
         # Rollback changes
         db.session.delete(created_model)
         db.session.commit()
@@ -914,6 +922,81 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"]["timezone"] == "America/Los_Angeles"
         assert rv.status_code == 201
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
+    def test_create_report_schedule_slack_v2_requires_channel_id(self):
+        """
+        ReportSchedule Api: SlackV2 recipients must carry a channel id
+        """
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+
+        def payload(name: str, target: str) -> dict[str, Any]:
+            return {
+                "type": ReportScheduleType.ALERT,
+                "name": name,
+                "description": "description",
+                "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+                "crontab": "0 9 * * *",
+                "working_timeout": 3600,
+                "chart": chart.id,
+                "database": example_db.id,
+                "recipients": [
+                    {
+                        "type": ReportRecipientType.SLACKV2,
+                        "recipient_config_json": {"target": target},
+                    }
+                ],
+            }
+
+        uri = "api/v1/report/"
+
+        # A channel name is refused: the upload API SlackV2 sends with only
+        # accepts an id, so this would save and then never deliver.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_name", "some-channel-name"), "post"
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "some-channel-name" in str(data["message"])
+
+        # Mixing an id with a name is refused, and only the name is reported.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_mixed", "C08CSCSDCSY,some-channel-name"), "post"
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "some-channel-name" in str(data["message"])
+        assert "C08CSCSDCSY" not in str(data["message"])
+
+        # An empty target is refused.
+        rv = self.post_assert_metric(uri, payload("slack_v2_empty", "   "), "post")
+        assert rv.status_code == 400
+
+        # Channel ids are accepted.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_ids", "C08CSCSDCSY,C04BY4U57M3"), "post"
+        )
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
+
+        # The deprecated Slack v1 type still accepts a channel name: it sends
+        # with files_upload/chat_postMessage, which resolve a name, and existing
+        # v1 recipients are upgraded to SlackV2 on first send.
+        legacy = payload("slack_v1_name", "some-channel-name")
+        legacy["recipients"][0]["type"] = ReportRecipientType.SLACK
+        rv = self.post_assert_metric(uri, legacy, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
 
     @pytest.mark.usefixtures(
         "load_birth_names_dashboard_with_slices", "create_report_schedules"
@@ -1510,6 +1593,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             ],
             "chart": chart.id,
             "database": example_db.id,
+            "include_cta": False,
         }
 
         uri = f"api/v1/report/{report_schedule.id}"
@@ -1524,6 +1608,12 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.crontab == report_schedule_data["crontab"]
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
+        assert updated_model.include_cta is False
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["include_cta"] is False
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_clear_recipients(self):

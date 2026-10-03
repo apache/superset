@@ -17,7 +17,14 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@superset-ui/core/spec';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+  userEvent,
+} from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -82,6 +89,134 @@ test('transformProps handles null/undefined timestamp values correctly', () => {
 
   const transformedProps = transformProps(rawRecordsProps);
   expect(transformedProps.isRawRecords).toBe(true);
+});
+
+test('AgGridTableChart defaults header groups to an empty list', async () => {
+  const props = { ...transformProps(testData.basic) };
+  delete (props as { headerGroups?: unknown }).headerGroups;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+  expect(
+    document.querySelector('.ag-header-group-cell'),
+  ).not.toBeInTheDocument();
+});
+
+test('AgGridTableChart nests columns in header groups', async () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'metrics',
+        label: 'Metrics',
+        columns: ['sum__num'],
+      },
+    ],
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const groupCell = Array.from(
+    document.querySelectorAll('.ag-header-group-cell'),
+  ).find(cell => cell.textContent?.includes('Metrics'));
+  expect(groupCell).toBeDefined();
+
+  const nestedColumnHeader = Array.from(
+    groupCell?.querySelectorAll('.ag-header-cell-text') ?? [],
+  ).find(cell => cell.textContent === 'sum__num');
+  const leafCell = Array.from(
+    document.querySelectorAll('.ag-header-cell'),
+  ).find(
+    cell =>
+      cell.querySelector('.ag-header-cell-text')?.textContent === 'sum__num',
+  );
+  expect(leafCell).toBeDefined();
+
+  if (nestedColumnHeader) {
+    expect(groupCell?.contains(nestedColumnHeader)).toBe(true);
+  } else {
+    const groupColIndex = Number(groupCell?.getAttribute('aria-colindex'));
+    const groupColSpan = Number(groupCell?.getAttribute('aria-colspan') ?? 1);
+    const leafColIndex = Number(leafCell?.getAttribute('aria-colindex'));
+    expect(leafColIndex).toBeGreaterThanOrEqual(groupColIndex);
+    expect(leafColIndex).toBeLessThan(groupColIndex + groupColSpan);
+  }
+});
+
+test('AgGridTableChart reorders header groups without a chart refresh', async () => {
+  const base = transformProps(testData.basic);
+  const namesGroup = { id: 'names', label: 'Names', columns: ['name'] };
+  const metricsGroup = {
+    id: 'metrics',
+    label: 'Metrics',
+    columns: ['sum__num'],
+  };
+
+  const renderChart = (headerGroups: (typeof namesGroup)[]) =>
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...base}
+          headerGroups={headerGroups}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    });
+
+  const groupLabels = (): string[] =>
+    Array.from(document.querySelectorAll('.ag-header-group-cell')).map(
+      cell => cell.textContent ?? '',
+    );
+
+  const { rerender } = render(renderChart([namesGroup, metricsGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.some(label => label.includes('Names'))).toBe(true);
+    expect(labels.some(label => label.includes('Metrics'))).toBe(true);
+  });
+
+  const initialLabels = groupLabels();
+  expect(
+    initialLabels.findIndex(label => label.includes('Names')),
+  ).toBeLessThan(initialLabels.findIndex(label => label.includes('Metrics')));
+
+  rerender(renderChart([metricsGroup, namesGroup]));
+
+  await waitFor(() => {
+    const labels = groupLabels();
+    expect(labels.findIndex(label => label.includes('Metrics'))).toBeLessThan(
+      labels.findIndex(label => label.includes('Names')),
+    );
+  });
 });
 
 test('AgGridTableChart renders basic data', async () => {
@@ -259,6 +394,59 @@ test('AgGridTableChart renders Search by dropdown if includeSearch is true and t
   expect(screen.getByText(/Search by/i)).toBeInTheDocument();
 });
 
+test('AgGridTableChart resets currentPage when the search column changes', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      include_search: true,
+    },
+  });
+  props.serverPagination = true;
+  props.includeSearch = true;
+  props.rowCount = 50;
+  props.serverPaginationData = {
+    currentPage: 1,
+    pageSize: 20,
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  const searchByContainer = await waitFor(() => {
+    const container = document.querySelector('.search-select');
+    expect(container).toBeInTheDocument();
+    return container as HTMLElement;
+  });
+  const searchByDropdown = within(searchByContainer).getByRole('combobox');
+  await userEvent.click(searchByDropdown);
+  const otherOption = await waitFor(() =>
+    within(screen.getByRole('listbox')).getByText('abc.com'),
+  );
+  await userEvent.click(otherOption);
+
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          searchColumn: 'abc.com',
+          currentPage: 0,
+        }),
+      }),
+    );
+  });
+});
+
 test('AgGridTableChart does not render Search by dropdown if includeSearch is true but searchOptions is empty', async () => {
   const noStringColumnsData = {
     ...testData.basic,
@@ -405,6 +593,53 @@ test('AgGridTableChart renders with time comparison', async () => {
   expect(headerTexts).toContain('#');
   expect(headerTexts).toContain('△');
   expect(headerTexts).toContain('%');
+});
+
+test('AgGridTableChart keeps Main columns when a comparison type is selected', async () => {
+  const props = transformProps(testData.comparison);
+  props.isUsingTimeComparison = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelector(
+      '.time-comparison-dropdown .ant-dropdown-trigger',
+    ) as HTMLElement,
+  );
+  const dropdownMenu = await waitFor(() => {
+    const menu = document.querySelector(
+      '.ant-dropdown:not(.ant-dropdown-hidden)',
+    );
+    if (!menu) {
+      throw new Error('expected time comparison dropdown menu');
+    }
+    return menu;
+  });
+  await userEvent.click(within(dropdownMenu as HTMLElement).getByText('#'));
+
+  await waitFor(() => {
+    const headerTexts = Array.from(
+      document.querySelectorAll('.ag-header-cell-text'),
+    ).map(el => el.textContent);
+    expect(headerTexts).toContain('#');
+    expect(headerTexts).toContain('metric_1');
+    expect(headerTexts).not.toContain('△');
+    expect(headerTexts).not.toContain('%');
+  });
 });
 
 test('AgGridTableChart handles raw records mode', async () => {
@@ -873,9 +1108,24 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
 
+  // The very first onStateUpdated after mount just reflects the chartState
+  // the grid was initialized with, so it must not trigger a save on its own
+  // (persisting it unconditionally caused a mount -> save -> remount ->
+  // mount loop). Let that initial debounced capture settle before
+  // simulating a real user action - clicking a sortable header - so it
+  // isn't coalesced into the same debounce window and mistaken for the
+  // initial, ignorable capture.
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  const sortableHeaderLabel = document.querySelector(
+    '.ag-header-cell-sortable .ag-header-cell-label',
+  );
+  expect(sortableHeaderLabel).toBeTruthy();
+  fireEvent.click(sortableHeaderLabel!);
+
   // The save path is debounced (SLOW_DEBOUNCE = 500ms); wait for a capture.
   await waitFor(() => expect(onChartStateChange).toHaveBeenCalled(), {
-    timeout: 3000,
+    timeout: 5000,
   });
 
   const savedState =
@@ -888,4 +1138,67 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
   // itself is not assertable here: aggregation state needs an enterprise
   // (SharedAggregation) module; the community modules always report null.
   expect(savedColumn).toMatchObject({ aggFunc: null });
+});
+
+test('AgGridTableChart renders a temporal column with a blank row without crashing', async () => {
+  // Regression test: a raw-mode temporal column backed by numeric epoch
+  // values, where one row's raw value is '' rather than null/undefined/a
+  // number, used to flip isNumeric() false for the whole column (see
+  // transformProps.ts), degrading its formatter to plain `String`. That made
+  // DateWithFormatter.toString() return String('') for the blank row, which
+  // is falsy - and valueFormatter's old `|| value` fallback then rendered the
+  // raw Date object directly, crashing React with "Objects are not valid as
+  // a React child (found: [object Date])".
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      query_mode: QueryMode.Raw,
+      table_timestamp_format: SMART_DATE_ID,
+      server_pagination: false,
+    },
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        colnames: ['__timestamp', 'name'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.String],
+        data: [
+          { __timestamp: 1069113600000, name: 'foo' },
+          { __timestamp: 1057016400000, name: 'bar' },
+          { __timestamp: '', name: 'baz' },
+        ],
+      },
+    ],
+  });
+
+  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  const reactChildError = errorSpy.mock.calls
+    .map(call => call.join(' '))
+    .find(message =>
+      message.includes('Objects are not valid as a React child'),
+    );
+  errorSpy.mockRestore();
+  expect(reactChildError).toBeUndefined();
+
+  const cells = document.querySelectorAll('[col-id="__timestamp"]');
+  const cellText = Array.from(cells).map(cell => cell.textContent);
+  expect(cellText).toContain('N/A');
+  expect(cellText).not.toContain('');
 });

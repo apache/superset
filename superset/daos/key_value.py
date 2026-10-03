@@ -42,9 +42,16 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
     def get_entry(
         resource: KeyValueResource,
         key: Key,
+        for_update: bool = False,
     ) -> KeyValueEntry | None:
         filter_ = get_filter(resource, key)
-        return db.session.query(KeyValueEntry).filter_by(**filter_).first()
+        query = db.session.query(KeyValueEntry).filter_by(**filter_)
+        if for_update:
+            # Row-lock the entry for the rest of the transaction so an
+            # ownership-checked delete (see the distributed-lock release) can't race
+            # a concurrent expire+re-acquire between the read and the delete.
+            query = query.with_for_update()
+        return query.first()
 
     @classmethod
     def get_value(

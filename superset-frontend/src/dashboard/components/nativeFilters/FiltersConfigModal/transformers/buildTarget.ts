@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, NativeFilterTarget } from '@superset-ui/core';
+import {
+  DataMask,
+  DatasourceType,
+  NativeFilterTarget,
+} from '@superset-ui/core';
 
 /**
  * Minimal shape of the form inputs that drive ``NativeFilterTarget``
@@ -27,15 +31,16 @@ export interface TargetFormInputs {
   dataset?: { value: number } | number;
   datasourceType?: DatasourceType;
   column?: string;
+  semantic_selection_version?: string;
 }
 
 /**
  * Build the ``NativeFilterTarget`` carried by a native filter or chart
  * customization from its form inputs.
  *
- * Consolidates what used to live in three places — ``filterTransformer``,
- * ``customizationTransformer``, and ``createHandleSave`` — so changes to the
- * target shape only need to happen here.
+ * Consolidates what used to live in ``filterTransformer`` and
+ * ``customizationTransformer`` so changes to the target shape only need to
+ * happen here.
  */
 export function buildNativeFilterTarget(
   formInputs: TargetFormInputs,
@@ -49,7 +54,11 @@ export function buildNativeFilterTarget(
         : formInputs.dataset;
   }
 
-  if (formInputs.datasourceType) {
+  // ``datasourceType`` describes the selected dataset, so it only belongs on a
+  // target that has one. Emitting it for a dataset-less filter (e.g.
+  // ``filter_time``) would make a UI save serialize a target the import and
+  // seed paths write as ``{}``.
+  if (formInputs.dataset != null && formInputs.datasourceType) {
     target.datasourceType = formInputs.datasourceType;
   }
 
@@ -57,5 +66,35 @@ export function buildNativeFilterTarget(
     target.column = { name: formInputs.column };
   }
 
+  if (formInputs.dataset != null && formInputs.semantic_selection_version) {
+    target.semantic_selection_version = formInputs.semantic_selection_version;
+  }
   return target;
+}
+
+/** Retain the explicit saved generation on defaults produced by the reset form. */
+export function buildNativeFilterDefaultDataMask(
+  formInputs: TargetFormInputs,
+  mask: DataMask,
+): DataMask {
+  const target = buildNativeFilterTarget(formInputs);
+  if (
+    target.datasourceType !== DatasourceType.SemanticView ||
+    !target.semantic_selection_version ||
+    (mask.filterState?.value === undefined &&
+      !Object.keys(mask.extraFormData ?? {}).length)
+  )
+    return mask;
+  return {
+    ...mask,
+    extraFormData: {
+      ...mask.extraFormData,
+      semantic_selection_sources: [
+        {
+          datasource: `${target.datasetId}__${target.datasourceType}`,
+          version: target.semantic_selection_version,
+        },
+      ],
+    },
+  };
 }

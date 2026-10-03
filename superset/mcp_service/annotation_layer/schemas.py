@@ -26,18 +26,12 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import sanitize_for_llm_context
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
 from superset.utils import json as json_utils
 
@@ -82,85 +76,12 @@ class AnnotationLayerInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 
-class AnnotationLayerList(BaseModel):
+class AnnotationLayerList(PaginatedResponse[AnnotationLayerFilter]):
     annotation_layers: list[AnnotationLayerInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: list[str] = Field(default_factory=list)
-    columns_loaded: list[str] = Field(default_factory=list)
-    columns_available: list[str] = Field(default_factory=list)
-    sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[AnnotationLayerFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListAnnotationLayersRequest(BaseModel):
+class ListAnnotationLayersRequest(PaginatedListRequest[AnnotationLayerFilter]):
     """Request schema for list_annotation_layers."""
-
-    filters: Annotated[
-        list[AnnotationLayerFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects. Cannot be combined with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        list[str],
-        Field(
-            default_factory=list,
-            description="Columns to include in the response.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search across annotation layer name and description.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by.")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction."),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)."),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE}).",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> list[AnnotationLayerFilter]:
-        return parse_json_or_model_list(v, AnnotationLayerFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> list[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListAnnotationLayersRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class GetAnnotationLayerInfoRequest(BaseModel):
@@ -180,88 +101,23 @@ class AnnotationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
 
-class AnnotationList(BaseModel):
+class AnnotationList(PaginatedResponse[ColumnOperator]):
+    # Parametrized by ColumnOperator (not AnnotationFilter) because
+    # list_layer_annotations prepends a "layer_id" scoping filter to
+    # filters_applied, and "layer_id" is outside AnnotationFilter's col
+    # Literal (which only allows "short_descr").
     annotations: list[AnnotationInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
     # layer_id defaults to 0; the tool sets it after ModelListCore constructs this
     # object. ModelListCore does not know about this domain-specific field.
     layer_id: int = 0
-    columns_requested: list[str] = Field(default_factory=list)
-    columns_loaded: list[str] = Field(default_factory=list)
-    columns_available: list[str] = Field(default_factory=list)
-    sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[ColumnOperator] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListLayerAnnotationsRequest(BaseModel):
+class ListLayerAnnotationsRequest(PaginatedListRequest[AnnotationFilter]):
     """Request schema for list_layer_annotations."""
 
     layer_id: Annotated[
         int, Field(description="Annotation layer ID to list annotations for.")
     ]
-    filters: Annotated[
-        list[AnnotationFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects. Cannot be combined with 'search'.",
-        ),
-    ]
-    select_columns: Annotated[
-        list[str],
-        Field(default_factory=list, description="Columns to include in the response."),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search across annotation short and long description.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by.")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction."),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)."),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE}).",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> list[AnnotationFilter]:
-        return parse_json_or_model_list(v, AnnotationFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> list[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListLayerAnnotationsRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class GetLayerAnnotationInfoRequest(BaseModel):
@@ -288,80 +144,43 @@ class AnnotationLayerError(BaseModel):
         )
 
 
-def _sanitize_annotation_layer_for_llm_context(
-    info: AnnotationLayerInfo,
-) -> AnnotationLayerInfo:
-    payload = info.model_dump(mode="python")
-    for field_name in ("name", "descr"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name), field_path=(field_name,)
-        )
-    return AnnotationLayerInfo.model_validate(payload)
-
-
-def _sanitize_annotation_json_metadata(raw: Any) -> str | None:
-    """Canonicalize and sanitize the json_metadata blob before LLM exposure.
-
-    Serializing to a canonical JSON string first prevents dict-key injection:
-    keys are rendered as quoted string literals inside the wrapped value rather
-    than being able to escape the delimiter context.
-    """
+def _serialize_annotation_json_metadata(raw: Any) -> str | None:
+    """Preserve stored JSON text while normalizing non-string model values."""
     if raw is None:
         return None
     if isinstance(raw, str):
-        try:
-            canonical: str = json_utils.dumps(json_utils.loads(raw))
-        except (ValueError, TypeError):
-            canonical = raw
+        canonical = raw
     else:
         try:
             canonical = json_utils.dumps(raw)
         except (ValueError, TypeError):
             canonical = str(raw)
-    return sanitize_for_llm_context(
-        canonical,
-        field_path=("json_metadata",),
-        excluded_field_names=frozenset(),
-    )
-
-
-def _sanitize_annotation_for_llm_context(info: AnnotationInfo) -> AnnotationInfo:
-    payload = info.model_dump(mode="python")
-    for field_name in ("short_descr", "long_descr"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name), field_path=(field_name,)
-        )
-    payload["json_metadata"] = _sanitize_annotation_json_metadata(
-        payload.get("json_metadata")
-    )
-    return AnnotationInfo.model_validate(payload)
+    return canonical
 
 
 def serialize_annotation_layer(obj: Any) -> AnnotationLayerInfo | None:
     if not obj:
         return None
-    return _sanitize_annotation_layer_for_llm_context(
-        AnnotationLayerInfo(
-            id=getattr(obj, "id", None),
-            name=getattr(obj, "name", None),
-            descr=getattr(obj, "descr", None),
-            changed_on=getattr(obj, "changed_on", None),
-            created_on=getattr(obj, "created_on", None),
-        )
+    return AnnotationLayerInfo(
+        id=getattr(obj, "id", None),
+        name=getattr(obj, "name", None),
+        descr=getattr(obj, "descr", None),
+        changed_on=getattr(obj, "changed_on", None),
+        created_on=getattr(obj, "created_on", None),
     )
 
 
 def serialize_annotation(obj: Any) -> AnnotationInfo | None:
     if not obj:
         return None
-    return _sanitize_annotation_for_llm_context(
-        AnnotationInfo(
-            id=getattr(obj, "id", None),
-            short_descr=getattr(obj, "short_descr", None),
-            long_descr=getattr(obj, "long_descr", None),
-            start_dttm=getattr(obj, "start_dttm", None),
-            end_dttm=getattr(obj, "end_dttm", None),
-            json_metadata=getattr(obj, "json_metadata", None),
-            layer_id=getattr(obj, "layer_id", None),
-        )
+    return AnnotationInfo(
+        id=getattr(obj, "id", None),
+        short_descr=getattr(obj, "short_descr", None),
+        long_descr=getattr(obj, "long_descr", None),
+        start_dttm=getattr(obj, "start_dttm", None),
+        end_dttm=getattr(obj, "end_dttm", None),
+        json_metadata=_serialize_annotation_json_metadata(
+            getattr(obj, "json_metadata", None)
+        ),
+        layer_id=getattr(obj, "layer_id", None),
     )

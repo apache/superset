@@ -22,8 +22,11 @@ This module provides the concrete implementation of MCP abstractions
 that replaces the abstract functions in superset-core during initialization.
 """
 
+import inspect
 import logging
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, get_type_hints, Optional, TypeVar
+
+from pydantic import TypeAdapter
 
 try:
     from mcp.types import ToolAnnotations
@@ -38,6 +41,85 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 
+def _strip_schema_titles(value: Any) -> Any:
+    """Remove generated JSON Schema titles while preserving useful metadata."""
+    if isinstance(value, list):
+        return [_strip_schema_titles(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    return {
+        key: _strip_schema_titles(item)
+        for key, item in value.items()
+        if not (key == "title" and isinstance(item, str))
+    }
+
+
+def _is_object_schema(schema: dict[str, Any], root_schema: dict[str, Any]) -> bool:
+    """Return whether a schema, including a local reference, is an object."""
+    if schema.get("type") == "object" or "properties" in schema:
+        return True
+
+    reference = schema.get("$ref")
+    if not isinstance(reference, str) or not reference.startswith("#/$defs/"):
+        return False
+    definition = root_schema.get("$defs", {}).get(reference.removeprefix("#/$defs/"))
+    return isinstance(definition, dict) and (
+        definition.get("type") == "object" or "properties" in definition
+    )
+
+
+def _native_tool_output_schema(func: Callable[..., Any]) -> dict[str, Any] | None:
+    """Build an output schema from the callable's validation shape.
+
+    FastMCP normally derives schemas in Pydantic's serialization mode. A model
+    serializer annotated as returning ``dict[str, Any]`` then collapses an
+    otherwise typed model to an unconstrained object. Superset uses such
+    serializers to omit unrequested columns and normalize aliases, but the
+    model's validation schema remains an accurate superset of every field the
+    serializer can emit.
+
+    MCP requires an object at the output-schema root, so non-object return
+    types are wrapped the same way FastMCP wraps them at execution time.
+    """
+    try:
+        return_type = get_type_hints(func, include_extras=True).get("return")
+        if return_type in (None, Any, inspect.Signature.empty):
+            return None
+
+        schema = TypeAdapter(return_type).json_schema(mode="validation")
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not derive MCP output schema", exc_info=True)
+        return None
+
+    # A union of object response models is still an object on the wire. Marking
+    # that fact at the root satisfies MCP's object-schema requirement without
+    # introducing an artificial {"result": ...} envelope around every
+    # success/error union.
+    alternatives = schema.get("anyOf")
+    if (
+        isinstance(alternatives, list)
+        and alternatives
+        and all(
+            isinstance(alternative, dict) and _is_object_schema(alternative, schema)
+            for alternative in alternatives
+        )
+    ):
+        schema["type"] = "object"
+
+    if not _is_object_schema(schema, schema):
+        definitions = schema.pop("$defs", None)
+        schema = {
+            "properties": {"result": schema},
+            "required": ["result"],
+            "type": "object",
+            "x-fastmcp-wrap-result": True,
+        }
+        if definitions:
+            schema["$defs"] = definitions
+
+    return _strip_schema_titles(schema)
+
+
 def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     Get ID with extension prefixing based on ambient context.
@@ -47,8 +129,10 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     if context := get_current_extension_context():
         # Extension context: prefix ID to prevent collisions
-        manifest = context.manifest
-        prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{base_id}"
+        prefixed_id = (
+            f"extensions.{context.extension.publisher}."
+            f"{context.extension.name}.{base_id}"
+        )
         context_type = "extension"
     else:
         # Host context: use original ID
@@ -68,7 +152,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP tool decorator implementation.
 
@@ -92,10 +176,11 @@ def create_tool_decorator(
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -126,19 +211,30 @@ def create_tool_decorator(
             if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
 
-                wrapped_func = mcp_auth_hook(func)
+                # Pass the registered (extension-prefixed) name so call-time
+                # checks keyed on tool identity cannot be confused by an
+                # extension tool that shares a base name with a host tool.
+                wrapped_func = mcp_auth_hook(func, tool_name=tool_name)
             else:
                 wrapped_func = func
 
             from fastmcp.tools import Tool
 
-            tool = Tool.from_function(
-                wrapped_func,
-                name=tool_name,
-                description=tool_description,
-                tags=tool_tags,
-                annotations=annotations,
-            )
+            tool_options: dict[str, Any] = {
+                "name": tool_name,
+                "description": tool_description,
+                "tags": tool_tags,
+                "annotations": annotations,
+            }
+            # Extension tools keep FastMCP's schema behavior because their
+            # serializers are extension-owned and cannot be assumed to follow
+            # Superset's validation-schema-as-output-superset convention.
+            if context_type == "host" and (
+                output_schema := _native_tool_output_schema(wrapped_func)
+            ):
+                tool_options["output_schema"] = output_schema
+
+            tool = Tool.from_function(wrapped_func, **tool_options)
             mcp.add_tool(tool)
 
             protected_status = "protected" if protect else "public"
@@ -159,14 +255,13 @@ def create_tool_decorator(
 
     # If called as @tool (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @tool() or @tool(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via func_or_name
         nonlocal name
         if actual_name is not None:
@@ -184,7 +279,7 @@ def create_prompt_decorator(
     description: Optional[str] = None,
     tags: Optional[set[str]] = None,
     protect: bool = True,
-) -> Callable[[F], F] | F:
+) -> Callable[..., Any]:
     """
     Create the concrete MCP prompt decorator implementation.
 
@@ -204,10 +299,11 @@ def create_prompt_decorator(
 
     Returns:
         Decorator that registers and wraps the prompt with optional authentication,
-        or the wrapped function when used without parentheses
+        or the wrapped function when used without parentheses. Protected handlers
+        are async even when the original function is synchronous.
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> Callable[..., Any]:
         try:
             # Import here to avoid circular imports
             from superset.mcp_service.app import mcp
@@ -260,14 +356,13 @@ def create_prompt_decorator(
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):
-        # Type cast is safe here since we've confirmed it's callable
-        return decorator(func_or_name)  # type: ignore[arg-type]
+        return decorator(func_or_name)
 
     # If called as @prompt() or @prompt(name="...")
     # func_or_name would be the name parameter or None
     actual_name = func_or_name if isinstance(func_or_name, str) else name
 
-    def parameterized_decorator(func: F) -> F:
+    def parameterized_decorator(func: F) -> Callable[..., Any]:
         # Use the actual_name if provided via name_or_fn
         nonlocal name
         if actual_name is not None:

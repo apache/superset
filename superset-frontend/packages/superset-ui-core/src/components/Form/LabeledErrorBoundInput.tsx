@@ -102,6 +102,10 @@ export const LabeledErrorBoundInput = ({
                 </Tooltip>
               )
             }
+            // input[type=password] doesn't get an implicit "textbox" role
+            // (unlike other text inputs), so this explicit override is
+            // needed for it to be discoverable via role-based queries/AT.
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="textbox"
           />
         ) : renderAsTextArea ? (

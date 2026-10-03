@@ -130,8 +130,8 @@ Triaging goals
 
 First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
 
-| Label           | for Issue                                                                                                               | for PR                                                                                                                                            |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Label           | for Issue                                                                                                               | for PR                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `#bug`          | Bug report                                                                                                              | Bug fix                                                                                                                           |
 | `#code-quality` | Describe problem with code, architecture or productivity                                                                | Refactor, tests, tooling                                                                                                          |
 | `#feature`      | New feature request                                                                                                     | New feature implementation                                                                                                        |
@@ -175,12 +175,14 @@ Should you decide that reverting is desirable, it is the responsibility of the C
 - **Put the revert through code review:** The revert must be approved by another committer.
 
 **Revert liberally to keep `master` stable**:
+
 - Build failures
 - Test failures
 - Critical bugs in production
 - Security vulnerabilities
 
 **How to revert**:
+
 1. Use GitHub's revert button when possible
 2. Create a PR with clear explanation
 3. Tag the original author
@@ -211,11 +213,13 @@ Sentence case: "A dog takes a walk in Paris"
 - It's the easiest form to distinguish between common and proper nouns
 
 **Good examples:**
+
 - "Select a database"
 - "Create new chart"
 - "View all dashboards"
 
 **Bad examples:**
+
 - "Select a Database"
 - "Create New Chart"
 - "View All Dashboards"
@@ -240,6 +244,7 @@ Often a product page will have the same title as the objects it contains. In thi
 - Create custom queries in SQL Lab then create dashboards
 
 When writing about UI elements:
+
 - Use **bold** for clickable elements: "Click **Save**"
 - Use quotes for text fields: 'Enter "My Dashboard" in the name field'
 - Be specific about element types: button, link, dropdown, etc.
@@ -247,6 +252,7 @@ When writing about UI elements:
 #### **Exceptions to sentence case
 
 Only use title case for:
+
 - Product names (Apache Superset)
 - Proper nouns
 - Acronyms (SQL, API, CSV)
@@ -258,10 +264,12 @@ Only use title case for:
 ### Python
 
 We use:
+
 - **[Ruff](https://docs.astral.sh/ruff/)** for linting and formatting
 - **[Mypy](http://mypy-lang.org/)** for type checking
 
 Python code should:
+
 - Follow PEP 8
 - Use type hints for all new code
 - Use descriptive variable names
@@ -336,6 +344,7 @@ def process_data(
 ```
 
 Use `mypy` to check types:
+
 ```bash
 mypy superset
 ```
@@ -343,8 +352,9 @@ mypy superset
 ### TypeScript
 
 We use:
+
 - **ESLint** for linting
-- **Prettier** for formatting  
+- **Oxfmt** for formatting
 - **TypeScript** strict mode
 
 TypeScript is fully supported and is the recommended language for writing all new frontend
@@ -353,6 +363,7 @@ appreciated, but not required. Examples of migrating functions/components to Typ
 found in [#9162](https://github.com/apache/superset/pull/9162) and [#9180](https://github.com/apache/superset/pull/9180).
 
 TypeScript code should:
+
 - Avoid `any` types - use proper TypeScript types
 - Use functional components with hooks for React
 - Include JSDoc comments for complex functions
@@ -360,6 +371,7 @@ TypeScript code should:
 - Handle errors appropriately
 
 Example:
+
 ```typescript
 interface User {
   id: number;
@@ -411,5 +423,6 @@ Bad: "Fixed stuff"
 ## Questions?
 
 If you have questions about these guidelines, ask in:
+
 - [Slack #development](https://apache-superset.slack.com)
 - [GitHub Discussions](https://github.com/apache/superset/discussions)

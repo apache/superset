@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
+import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from packaging.version import Version
 from sqlalchemy import types
@@ -28,8 +31,134 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 logger = logging.getLogger()
+
+# Elasticsearch/OpenSearch field types that the default column type mappings
+# do not recognize. DOUBLE, FLOAT, INTEGER, LONG, BOOLEAN and DATETIME are
+# already covered by the defaults. Like the defaults, the patterns anchor only
+# at the start, so a parameterized name such as SCALED_FLOAT(100) still matches.
+FIELD_TYPE_MAPPINGS = (
+    (
+        re.compile(r"^(byte|short)", re.IGNORECASE),
+        types.SmallInteger(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^(half_float|scaled_float)", re.IGNORECASE),
+        types.Float(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^unsigned_long", re.IGNORECASE),
+        types.BigInteger(),
+        GenericDataType.NUMERIC,
+    ),
+)
+
+
+def _fetch_page_via_cursor(
+    database: Database,
+    sql: str,
+    page_index: int,
+    page_size: int,
+    sql_path: str,
+    close_path: str,
+    *,
+    headers: dict[str, str] | None = None,
+    rows_key: str = "rows",
+    columns_key: str = "columns",
+) -> tuple[list[list[Any]], list[str]]:
+    """
+    Iterate Elasticsearch/OpenSearch SQL cursor pagination to return a single
+    page of results.
+
+    Executes ``sql`` with ``fetch_size = page_size``, then sends cursor
+    follow-up requests ``page_index`` times to skip earlier pages. Closes the
+    cursor when done to release server-side state. Returns
+    ``(rows, columns)``.
+
+    If the dataset is exhausted before reaching ``page_index``, returns an
+    empty rows list with the column names from the initial request.
+
+    Note: the Elasticsearch SQL cursor is forward-only, so cost is linear in
+    ``page_index`` — reaching page N issues N round trips to the cluster.
+    Deep pagination (hundreds of pages) will therefore be noticeably slower
+    than on ``OFFSET``-capable engines. This is a protocol limitation, not
+    an implementation choice.
+
+    ``headers`` are sent with every request when given. ``rows_key`` and
+    ``columns_key`` name the response fields: Elasticsearch answers
+    ``rows``/``columns``, the OpenSearch SQL plugin ``datarows``/``schema``.
+    """
+    # The Elasticsearch SQL API rejects trailing semicolons, and any LIMIT
+    # in the submitted statement caps the result set before the cursor can
+    # page through it. ``fetch_size`` drives pagination instead.
+    # Assumption: Superset only appends a trailing ``LIMIT N`` for engines
+    # with ``supports_offset=False``. If that ever changes (e.g.
+    # ``FETCH FIRST N ROWS`` or ``TOP N``), extend this sanitizer to match.
+    sanitized_sql = sql.strip().rstrip(";").strip()
+    sanitized_sql = re.sub(
+        r"\s+LIMIT\s+\d+\s*$", "", sanitized_sql, flags=re.IGNORECASE
+    )
+
+    request_kwargs: dict[str, Any] = {} if headers is None else {"headers": headers}
+    with database.get_raw_connection() as conn:
+        transport = conn.es.transport
+        response = transport.perform_request(
+            "POST",
+            sql_path,
+            body={"query": sanitized_sql, "fetch_size": page_size},
+            **request_kwargs,
+        )
+        # Column metadata comes from the remote service; fall back to a
+        # positional label rather than failing on an entry without a name.
+        # OpenSearch schema supplies aliases; Elasticsearch supplies names only.
+        columns = [
+            col.get("alias") or col.get("name") or f"column_{idx}"
+            for idx, col in enumerate(response.get(columns_key, []))
+        ]
+        rows = response.get(rows_key, [])
+        cursor = response.get("cursor")
+
+        try:
+            for _ in range(page_index):
+                if not cursor:
+                    # Dataset exhausted before reaching the target page —
+                    # no cursor to close (ES returns no cursor on the final
+                    # page). Return immediately with empty rows.
+                    return [], columns
+                response = transport.perform_request(
+                    "POST",
+                    sql_path,
+                    body={"cursor": cursor},
+                    **request_kwargs,
+                )
+                rows = response.get(rows_key, [])
+                cursor = response.get("cursor")
+
+            return rows, columns
+        finally:
+            if cursor:
+                # Best-effort cleanup. If close itself fails we don't want
+                # to mask the original error (if any) — swallow and log.
+                try:
+                    transport.perform_request(
+                        "POST",
+                        close_path,
+                        body={"cursor": cursor},
+                        **request_kwargs,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Failed to close Elasticsearch SQL cursor at %s",
+                        close_path,
+                        exc_info=True,
+                    )
 
 
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -39,6 +168,8 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+    supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     metadata = {
         "description": (
@@ -136,6 +267,33 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
+    SQL_ENDPOINT = "/_sql"
+    SQL_CLOSE_ENDPOINT = "/_sql/close"
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results using Elasticsearch cursor pagination.
+        See ``_fetch_page_via_cursor`` for the protocol.
+        """
+        return _fetch_page_via_cursor(
+            database=database,
+            sql=sql,
+            page_index=page_index,
+            page_size=page_size,
+            sql_path=cls.SQL_ENDPOINT,
+            close_path=cls.SQL_CLOSE_ENDPOINT,
+            # elasticsearch-py's raw transport does not set Content-Type the
+            # way the DB-API driver does; ES rejects POSTs without it.
+            headers={"Content-Type": "application/json"},
+        )
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-error,import-outside-toplevel
@@ -190,6 +348,8 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+    supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     _time_grain_expressions = {
         None: "{col}",
@@ -203,6 +363,56 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "odelasticsearch"
     engine_name = "OpenSearch (OpenDistro)"
+
+    metadata = {
+        "description": (
+            "OpenSearch (OpenDistro) SQL connector for querying OpenSearch and "
+            "OpenDistro clusters using SQL syntax."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://opensearch.org/",
+        "categories": [
+            DatabaseCategory.SEARCH_NOSQL,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+        "default_port": 9200,
+        "parameters": {
+            "user": "OpenSearch username",
+            "password": "OpenSearch password",
+            "host": "OpenSearch host",
+        },
+    }
+
+    SQL_ENDPOINT = "/_opendistro/_sql"
+    SQL_CLOSE_ENDPOINT = "/_opendistro/_sql/close"
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results using OpenDistro SQL cursor pagination.
+        Same protocol as ElasticSearchEngineSpec, different endpoint paths.
+        """
+        return _fetch_page_via_cursor(
+            database=database,
+            sql=sql,
+            page_index=page_index,
+            page_size=page_size,
+            sql_path=cls.SQL_ENDPOINT,
+            close_path=cls.SQL_CLOSE_ENDPOINT,
+            # opensearch-py already sends Content-Type: adding it again makes
+            # OpenSearch reject the request ("only one Content-Type header
+            # should be provided"). The SQL plugin answers in its JDBC format.
+            rows_key="datarows",
+            columns_key="schema",
+        )
 
     @classmethod
     def convert_dttm(

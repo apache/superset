@@ -90,8 +90,10 @@ def test_wait_for_completion_timeout(app_context, login_as, get_user) -> None:
 
     try:
         # Force polling mode by mocking distributed_coordination as None
-        with patch("superset.tasks.manager.cache_manager") as mock_cache_manager:
-            mock_cache_manager.distributed_coordination = None
+        with patch(
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
+        ):
             with pytest.raises(TimeoutError):
                 TaskManager.wait_for_completion(
                     task.uuid,

@@ -14,28 +14,207 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, Union
+from datetime import datetime, tzinfo
+from typing import Any, Optional, Union
 
 import pandas as pd
 from flask_babel import gettext as _
+from pandas.tseries.frequencies import to_offset
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import RESAMPLE_METHOD
 
+# Upper bound on the number of rows a resample may project. ``rule`` arrives
+# through the post-processing ``options`` dict, which is not schema-validated;
+# without a cap, upsampling a multi-day span to e.g. ``1ns`` projects ~1e14
+# rows from a single request.
+MAX_RESAMPLE_ROWS = 1_000_000
 
-def resample(
+TimeBound = Union[datetime, str]
+
+
+def _coerce_bound(
+    value: Optional[TimeBound], tz: Optional[tzinfo]
+) -> Optional[pd.Timestamp]:
+    """
+    Normalize a time range boundary into a ``Timestamp`` comparable with the index.
+
+    :param value: Boundary as a datetime or a parseable string.
+    :param tz: Timezone of the DataFrame index, if any.
+    :return: Timestamp aligned with the index timezone awareness, or None.
+    :raises InvalidPostProcessingError: If the boundary cannot be parsed.
+    """
+    if value is None:
+        return None
+    try:
+        timestamp = pd.Timestamp(value)
+    except (TypeError, ValueError) as ex:
+        raise InvalidPostProcessingError(
+            _("Invalid time range boundary for resample: %(value)s", value=value)
+        ) from ex
+
+    if timestamp.tzinfo is None:
+        return timestamp if tz is None else timestamp.tz_localize(tz)
+    # an index and a boundary in different timezones would append into an
+    # object-dtype index that ``resample`` cannot bin
+    return timestamp.tz_localize(None) if tz is None else timestamp.tz_convert(tz)
+
+
+def _pad_to_time_range(
+    df: pd.DataFrame,
+    time_range_start: Optional[pd.Timestamp],
+    time_range_end: Optional[pd.Timestamp],
+) -> pd.DataFrame:
+    """
+    Add empty rows at the edges of the target period.
+
+    ``DataFrame.resample`` derives its bins from the first and last index entries,
+    so a series that only covers part of the requested time range is only filled
+    between its own extremes. Anchoring the index to the boundaries of the period
+    makes pandas emit buckets for the whole period instead.
+
+    :param df: DataFrame with a DatetimeIndex.
+    :param time_range_start: Inclusive lower boundary of the period.
+    :param time_range_end: Exclusive upper boundary of the period.
+    :return: DataFrame whose index spans the target period.
+    """
+    index = df.index
+    anchors = []
+
+    if time_range_start is not None and (index.empty or time_range_start < index.min()):
+        anchors.append(time_range_start)
+
+    if time_range_end is not None:
+        # the upper boundary of a Superset time range is exclusive, so anchor on
+        # the last instant that still belongs to the period
+        last_instant = time_range_end - pd.Timedelta(1, unit="ns")
+        if index.empty or last_instant > index.max():
+            anchors.append(last_instant)
+
+    if not anchors:
+        return df
+
+    # `copy` detaches the empty slice from the index engine of `df`, which would
+    # otherwise refuse to reindex whenever `df` holds duplicate timestamps
+    padding = df.iloc[:0].copy().reindex(pd.DatetimeIndex(anchors, name=index.name))
+    return pd.concat([df, padding]).sort_index(kind="stable")
+
+
+def _period_freq_for_offset(offset: Any) -> str:
+    """
+    Map a DatetimeIndex/resample offset to a Period frequency string.
+
+    Resample uses anchors like ``MS`` / ``QE`` / ``YE``, but ``Timestamp.to_period``
+    only accepts the Period forms ``M`` / ``Q`` / ``Y`` (and similarly for week).
+    Leading multipliers (``2MS``, ``3QE``) are stripped here; ``offset.n`` is applied
+    when converting the Period delta into a bin count.
+    """
+    # ``2QE-DEC``, ``2W-SUN``, ``QS-JAN`` → optional digits + unit [+ anchor]
+    head, _, tail = offset.freqstr.partition("-")
+    unit = head.lstrip("0123456789") or head
+    alias = {
+        "MS": "M",
+        "ME": "M",
+        "QS": "Q",
+        "QE": "Q",
+        "YS": "Y",
+        "YE": "Y",
+        "AS": "Y",
+        "A": "Y",
+    }.get(unit)
+    if alias is not None:
+        return alias
+    return f"{unit}-{tail}" if tail else unit
+
+
+def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> int:
+    """
+    Estimate how many bins ``resample(rule)`` would produce between two bounds.
+
+    Fixed-duration rules use Timedelta arithmetic plus a +2 alignment margin
+    (pandas may snap bins outside the observed span). Calendar frequencies
+    (month, quarter, year, …) have no fixed Timedelta; those are estimated via
+    Period arithmetic (or a day-span upper bound) so the DoS cap still applies
+    without materializing a DatetimeIndex.
+    """
+    if end < start:
+        return 0
+    offset = to_offset(rule)
+    try:
+        nanos = offset.nanos
+    except ValueError:
+        # Non-fixed frequencies: never build a ``date_range`` just to count bins.
+        try:
+            period_freq = _period_freq_for_offset(offset)
+            delta = end.to_period(period_freq) - start.to_period(period_freq)
+            # Modern pandas returns an offset (``MonthEnd(n=…)``); older versions
+            # returned a plain int. ``.n`` is the shared bin count either way.
+            count = int(getattr(delta, "n", delta))
+            step = max(int(getattr(offset, "n", 1) or 1), 1)
+            return count // step + 1
+        except (TypeError, ValueError):
+            # Remaining non-fixed freqs (e.g. some business calendars): a day
+            # count is a safe upper bound for day-or-coarser bins and stays O(1).
+            return max((end - start).days, 0) + 1
+    if nanos <= 0:
+        return 0
+    # pandas snaps the first resample bin to the nearest frequency multiple at
+    # or before the observed span (and may extend the last bin similarly), so
+    # the actual bin count can exceed a naive span/step projection by one. Add
+    # a margin so the check cannot under-count due to that alignment.
+    return int((end - start) / pd.Timedelta(nanoseconds=nanos)) + 2
+
+
+def _validate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> None:
+    try:
+        projected_rows = _estimate_projected_rows(start, end, rule)
+    except (TypeError, ValueError) as ex:
+        raise InvalidPostProcessingError(
+            _("Invalid resample rule: %(rule)s", rule=rule)
+        ) from ex
+    if projected_rows > MAX_RESAMPLE_ROWS:
+        raise InvalidPostProcessingError(
+            _(
+                "Resample rule would project %(rows)s rows, "
+                "exceeding the limit of %(max)s rows",
+                rows=projected_rows,
+                max=MAX_RESAMPLE_ROWS,
+            )
+        )
+
+
+def resample(  # pylint: disable=too-many-arguments
     df: pd.DataFrame,
     rule: str,
     method: str,
     fill_value: Optional[Union[float, int]] = None,
+    time_range_start: Optional[TimeBound] = None,
+    time_range_end: Optional[TimeBound] = None,
 ) -> pd.DataFrame:
     """
     support upsampling in resample
+
+    Note: If a query returns 0 rows, Superset's primary execution path in
+    ``helpers.py`` skips ``exec_post_processing`` entirely. While ``resample``
+    is fully equipped to expand empty DataFrames when given explicit bounds,
+    zero-row query results will be returned as empty frames by upstream engine
+    behavior.
+
+    Projected row count is capped by ``MAX_RESAMPLE_ROWS`` (including calendar
+    frequencies such as month/quarter/year).
 
     :param df: DataFrame to resample.
     :param rule: The offset string representing target conversion.
     :param method: How to fill the NaN value after resample.
     :param fill_value: What values do fill missing.
+    :param time_range_start: Inclusive start of the period to cover. When set, the
+                             result is padded so it starts at the beginning of the
+                             period even if the data starts later. An empty
+                             DataFrame with a DatetimeIndex is expanded into
+                             zero-filled buckets across the period.
+    :param time_range_end: Exclusive end of the period to cover. When set, the
+                           result is padded so it ends at the end of the period
+                           even if the data ends earlier.
     :return: DataFrame after resample
     :raises InvalidPostProcessingError: If the request in incorrect
     """
@@ -45,6 +224,20 @@ def resample(
         raise InvalidPostProcessingError(
             _("Resample method should be in ") + ", ".join(RESAMPLE_METHOD) + "."
         )
+
+    tz = df.index.tz
+    df = _pad_to_time_range(
+        df,
+        _coerce_bound(time_range_start, tz),
+        _coerce_bound(time_range_end, tz),
+    )
+    # An empty frame with no time-range anchors has nothing to bin. Returning
+    # early keeps the DatetimeIndex intact; ``resample`` on a zero-length index
+    # would otherwise degrade it to an object Index.
+    if df.empty:
+        return df
+
+    _validate_projected_rows(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
         _df = df.resample(rule).asfreq(fill_value=fill_value)

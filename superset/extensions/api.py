@@ -169,7 +169,7 @@ class ExtensionsRestApi(BaseApi):
 
     @protect()
     @safe
-    @expose("/<publisher>/<name>/<file>", methods=("GET",))
+    @expose("/<publisher>/<name>/<path:file>", methods=("GET",))
     def content(self, publisher: str, name: str, file: str) -> Response:
         """Get a frontend chunk of an extension.
         ---

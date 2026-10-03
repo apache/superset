@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
+  getSemanticSelectionSources,
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
@@ -32,8 +33,9 @@ import {
   ExtraFormDataOverride,
   ExtraFormDataAppend,
 } from '@superset-ui/core';
-import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { getChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
@@ -48,6 +50,7 @@ const getDefaultRowLimit = (): number => {
 export const getFormData = ({
   datasetId,
   datasourceType,
+  semantic_selection_version,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -65,6 +68,7 @@ export const getFormData = ({
   dashboardId: number;
   datasetId?: number;
   datasourceType?: DatasourceType;
+  semantic_selection_version?: string;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -95,6 +99,7 @@ export const getFormData = ({
 
   return {
     ...controlValues,
+    semantic_selection_version,
     ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
@@ -141,6 +146,15 @@ export function mergeExtraFormData(
       mergedExtra[key] = newValue;
     }
   });
+  if (
+    originalExtra.semantic_selection_sources?.length ||
+    newExtra.semantic_selection_sources?.length
+  ) {
+    mergedExtra.semantic_selection_sources = [
+      ...getSemanticSelectionSources(originalExtra),
+      ...getSemanticSelectionSources(newExtra),
+    ];
+  }
   return mergedExtra as ExtraFormData;
 }
 
@@ -173,19 +187,24 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 }
 
 export const findTabsWithChartsInScope = (
-  chartLayoutItems: LayoutItem[],
+  chartLayoutItems: ChartLayoutItems,
   chartsInScope: number[],
-) =>
-  new Set<string>(
-    chartsInScope
-      .map(chartId =>
-        chartLayoutItems
-          .find(item => item?.meta?.chartId === chartId)
-          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
-      )
-      .filter(id => id !== undefined)
-      .flat() as string[],
-  );
+) => {
+  const chartLayoutItemMap = getChartLayoutItemMap(chartLayoutItems);
+  const tabsInScope = new Set<string>();
+
+  chartsInScope.forEach(chartId => {
+    chartLayoutItemMap.get(chartId)?.forEach(layoutItem => {
+      layoutItem.parents?.forEach(parent => {
+        if (parent.startsWith(`${TAB_TYPE}-`)) {
+          tabsInScope.add(parent);
+        }
+      });
+    });
+  });
+
+  return tabsInScope;
+};
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,

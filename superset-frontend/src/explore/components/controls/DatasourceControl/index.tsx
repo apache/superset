@@ -29,6 +29,8 @@ import {
   Tooltip,
   Button,
   ModalTrigger,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
@@ -67,6 +69,7 @@ interface ExtendedDatasource extends Datasource {
   extra?: string;
   health_check_message?: string;
   cache_timeout?: number | null;
+  rls_filters?: RlsFilterSummary[];
   database?: {
     id: number;
     database_name: string;
@@ -82,7 +85,12 @@ interface User {
 
 interface DatasourceControlActions {
   changeDatasource: (datasource: ExtendedDatasource) => void;
-  setControlValue: (name: string, value: unknown) => void;
+  setControlValue: (
+    name: string,
+    value: unknown,
+    validationErrors?: unknown[],
+    options?: { programmatic?: boolean },
+  ) => void;
 }
 
 interface FormData {
@@ -259,7 +267,15 @@ export default function DatasourceControl({
         const temporalColumn = isDefaultTemporal
           ? defaultTemporalColumn
           : temporalColumns?.[0];
-        actions.setControlValue('granularity_sqla', temporalColumn || null);
+        actions.setControlValue(
+          'granularity_sqla',
+          temporalColumn || null,
+          undefined,
+          {
+            // Derived alongside the datasource change, not a gesture of its own.
+            programmatic: true,
+          },
+        );
       }
 
       if (onDatasourceSave) {
@@ -488,6 +504,9 @@ export default function DatasourceControl({
         )}
         {extra?.warning_markdown && (
           <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
+        )}
+        {datasource.rls_filters && datasource.rls_filters.length > 0 && (
+          <RlsBadge rlsFilters={datasource.rls_filters} />
         )}
         <Dropdown
           popupRender={() =>

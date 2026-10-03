@@ -44,23 +44,15 @@ const StyledDiv = styled.div<{
     left: ${left}px;
     z-index: 9;
     pointer-events: none;
-    ${
-      variant === 'default'
-        ? `
-      padding: ${theme.sizeUnit * 2}px;
-      margin: ${theme.sizeUnit * 2}px;
-      background: ${theme.colorBgElevated};
-      color: ${theme.colorText};
-      max-width: 300px;
-      font-size: ${theme.fontSizeSM}px;
-      border: 1px solid ${theme.colorBorder};
-      border-radius: ${theme.borderRadius}px;
-      box-shadow: ${theme.boxShadowSecondary};
-    `
-        : `
-      margin: ${theme.sizeUnit * 3}px;
-    `
-    }
+    padding: ${theme.sizeUnit * 2}px;
+    margin: ${variant === 'default' ? theme.sizeUnit * 2 : theme.sizeUnit * 3}px;
+    background: ${theme.colorBgElevated};
+    color: ${theme.colorText};
+    max-width: 300px;
+    font-size: ${theme.fontSizeSM}px;
+    border: 1px solid ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: ${theme.boxShadowSecondary};
   `}
 `;
 

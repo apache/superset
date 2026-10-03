@@ -94,8 +94,19 @@ class HiveEngineSpec(PrestoEngineSpec):
     allows_alias_to_source_column = True
     allows_hidden_orderby_agg = False
 
+    # Unlike the ANSI-compliant Presto/Trino this spec is otherwise based on,
+    # HiveQL and Spark SQL quote identifiers with backticks; double quotes are
+    # treated as string literals by default.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
+    # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
+    # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
+    # verified against this query pattern, so fall back to one query per
+    # rollup level instead of assuming native support.
+    supports_grouping_sets: bool = False
 
     metadata = {
         "description": (
@@ -303,10 +314,37 @@ class HiveEngineSpec(PrestoEngineSpec):
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
-        if schema:
-            uri = uri.set(database=parse.quote(schema, safe=""))
+        """
+        Return the URI and connection arguments unchanged.
 
+        This overrides the Presto implementation, whose ``catalog/schema`` URI
+        convention doesn't apply to PyHive URLs. The URI must also not be
+        rewritten to point at the selected schema: PyHive issues ``USE`` on the
+        URI database at connect time, so on backends where the URI database
+        selects a catalog (e.g. Spark Thrift Server) rewriting it would be seen
+        as a catalog change and break table resolution. Schema selection is
+        handled by :meth:`get_prequeries` instead.
+        """
         return uri, connect_args
+
+    @classmethod
+    def get_prequeries(
+        cls,
+        database: Database,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[str]:
+        """
+        Return a ``USE`` statement to select the schema for new connections.
+
+        A plain single-identifier ``USE`` is valid on both HiveServer2 and
+        Spark Thrift Server, and on the latter it resolves within the current
+        catalog rather than replacing it.
+        """
+        if schema:
+            escaped_schema = schema.replace("`", "``")
+            return [f"USE `{escaped_schema}`"]
+        return []
 
     @classmethod
     def get_schema_from_engine_params(

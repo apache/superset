@@ -44,16 +44,18 @@ const setup = ({
   displayedItems = ContextMenuItem.All,
   additionalConfig = {},
   roles = undefined,
+  formData = { datasource: '1__table', viz_type: VizType.Pie },
 }: {
   onSelection?: () => void;
   displayedItems?: ContextMenuItem | ContextMenuItem[];
   additionalConfig?: Record<string, any>;
   roles?: Record<string, string[][]>;
+  formData?: Record<string, any>;
 } = {}) => {
   const { result } = renderHook(() =>
     useContextMenu(
       sliceId,
-      { datasource: '1__table', viz_type: VizType.Pie },
+      formData as { datasource: string; viz_type: string },
       onSelection,
       displayedItems,
       additionalConfig,
@@ -364,4 +366,25 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
   expect(mockCachedSupersetGet).not.toHaveBeenCalled();
   expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Dataset drill info API call is not made when formData.datasource is not yet hydrated', async () => {
+  // Regression test: right after a client-side navigation back to a
+  // dashboard from Explore, the chart's formData can transiently be missing
+  // `datasource` before the dashboard rehydrates. Firing a request for
+  // dataset "NaN" (Number(undefined)) must not happen - see
+  // useDatasetDrillInfo's Number.isNaN guard.
+  const result = setup({ formData: { viz_type: VizType.Pie } });
+
+  act(() => {
+    result.current.onContextMenu(0, 0, {});
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: expect.stringContaining('/api/v1/dataset/NaN/drill_info/'),
+    }),
+  );
 });

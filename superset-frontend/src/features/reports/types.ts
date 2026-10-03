@@ -42,6 +42,8 @@ export interface ReportObject {
   crontab: string;
   dashboard?: number;
   chart?: number;
+  dashboard_id?: number | null;
+  chart_id?: number | null;
   description?: string;
   log_retention: number;
   name: string;
@@ -66,4 +68,9 @@ export interface ReportObject {
   editors?: number[];
   custom_width?: number | null;
   error?: string;
+  retry_on_failure?: boolean;
+  retry_max_attempts?: number;
+  send_failed_reports?: boolean;
+  retry_notify_owners?: boolean;
+  retry_notify_recipients?: boolean;
 }

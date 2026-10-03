@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import {
   DASHBOARD_INFO_UPDATED,
+  DASHBOARD_SAVE_SUCCEEDED,
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
@@ -66,10 +67,12 @@ export interface HydrateDashboardInfoAction {
 }
 
 type DashboardInfoReducerAction =
-  DashboardInfoAction | HydrateDashboardInfoAction;
+  | DashboardInfoAction
+  | HydrateDashboardInfoAction;
 
 type DashboardInfoState = Partial<DashboardInfo> & {
   last_modified_time?: number;
+  versionHistoryRevision?: number;
   [key: string]: unknown;
 };
 
@@ -123,6 +126,13 @@ export default function dashboardInfoReducer(
   action: DashboardInfoReducerAction,
 ): DashboardInfoState {
   switch (action.type) {
+    case DASHBOARD_SAVE_SUCCEEDED:
+      return (action as DashboardInfoAction).dashboardId === state.id
+        ? {
+            ...state,
+            versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
+          }
+        : state;
     case DASHBOARD_INFO_UPDATED: {
       const dashAction = action as DashboardInfoAction;
       const newInfo = dashAction.newInfo || {};
@@ -188,6 +198,7 @@ export default function dashboardInfoReducer(
           native_filter_configuration: newConfigWithScopes,
         } as DashboardInfo['metadata'],
         last_modified_time: Math.round(new Date().getTime() / 1000),
+        versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
       };
     }
     case HYDRATE_DASHBOARD: {

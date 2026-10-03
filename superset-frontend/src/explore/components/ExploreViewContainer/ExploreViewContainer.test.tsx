@@ -27,9 +27,13 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
-import { Router, Route } from 'react-router-dom';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { MemoryRouter, Route, Router } from 'react-router-dom';
+import type { RouteComponentProps } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -115,10 +119,13 @@ jest.mock('../ExploreChartPanel', () => ({
     standalone,
     onQuery,
   }: {
-    standalone?: boolean;
+    standalone?: number;
     onQuery?: () => void;
   }) => {
     const { useEffect, useRef } = jest.requireActual('react');
+    const { ExploreStandaloneMode } = jest.requireActual(
+      'src/explore/constants',
+    );
     const hasQueried = useRef(false);
 
     useEffect(() => {
@@ -128,9 +135,17 @@ jest.mock('../ExploreChartPanel', () => ({
       }
     }, [onQuery]);
 
-    return (
-      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
-    );
+    // Distinct markers per mode so a test can tell mode 2 from mode 0: both
+    // render the editor, and asserting only the absence of `standalone-app`
+    // would pass for either.
+    const marker =
+      standalone === ExploreStandaloneMode.HideNav
+        ? 'standalone-app'
+        : standalone === ExploreStandaloneMode.HideNavShowControls
+          ? 'explore-chart-panel-hide-nav'
+          : 'explore-chart-panel';
+
+    return <div data-test={marker} />;
   },
 }));
 
@@ -140,15 +155,20 @@ jest.mock('../ControlPanelsContainer', () => ({
     onQuery,
     buttonErrorMessage,
     errorMessage,
+    chartIsStale,
   }: {
     onQuery: () => void;
     buttonErrorMessage?: ReactNode;
     errorMessage?: ReactNode;
+    chartIsStale?: boolean;
   }) => {
     const message = buttonErrorMessage ?? errorMessage;
 
     return (
-      <div data-test="control-panels-container">
+      <div
+        data-test="control-panels-container"
+        data-stale={String(!!chartIsStale)}
+      >
         <button type="button" onClick={onQuery}>
           Update chart
         </button>
@@ -260,7 +280,6 @@ test('generates a new form_data param when none is available', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: [defaultPath] });
@@ -279,14 +298,58 @@ test('generates a new form_data param when none is available', async () => {
   replaceSpy.mockRestore();
 });
 
-test('renders chart in standalone mode', () => {
-  const { queryByTestId } = renderWithRouter({
-    initialState: {
-      ...reduxState,
-      explore: { ...reduxState.explore, standalone: true },
+// Mirrors production: hydrateExplore seeds `explore.standalone` from
+// getUrlParam(URL_PARAMS.standalone), so it holds the coerced numeric mode ('true'
+// arrives as 1) or null. Deriving it from the same search string here keeps the
+// fixture honest instead of hardcoding a boolean the app never stores.
+const standaloneState = (search: string) => ({
+  search,
+  initialState: {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      standalone: getUrlParam(URL_PARAMS.standalone, search),
     },
-  });
+  },
+});
+
+test('renders chart in standalone mode', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=1'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('preserves legacy standalone=true as chart-only mode', () => {
+  // Backwards compatibility for links created before numeric modes existed.
+  // `standalone` is declared a number param, so getUrlParam maps 'true' to 1;
+  // the backend also still treats 'true' as standalone. Old bookmarks, embeds
+  // and report URLs must keep rendering chart-only rather than the full editor.
+  const { queryByTestId } = renderWithRouter(
+    standaloneState('?standalone=true'),
+  );
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders chart-only for report captures (standalone=3)', () => {
+  // ChartStandaloneMode.REPORT. Report and thumbnail captures must stay
+  // chart-only; 3 is also what the backend's truthiness check accepts, so this
+  // doubles as coverage for any value it allows that is not the mode 2 opt-in.
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=3'));
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=2'));
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  // Positive assertion on the mode-2 marker: without it this test would also
+  // pass for mode 0, since both render the editor.
+  expect(queryByTestId('explore-chart-panel-hide-nav')).toBeInTheDocument();
+});
+
+test('renders the normal editor when standalone is absent', () => {
+  const { queryByTestId } = renderWithRouter({ search: '' });
+  expect(queryByTestId('explore-chart-panel')).toBeInTheDocument();
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  expect(queryByTestId('explore-chart-panel-hide-nav')).not.toBeInTheDocument();
 });
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {
@@ -327,13 +390,192 @@ test('reuses the same form_data param when updating', async () => {
   getChartControlPanelRegistry().remove('table');
 });
 
+test('pushes a history entry when the chart changed, so Back undoes it', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const history = createMemoryHistory({
+    initialEntries: [`${defaultPath}${SEARCH}`],
+  });
+  const pushSpy = jest.spyOn(history, 'push');
+  renderWithRouter({
+    search: SEARCH,
+    history,
+    initialState,
+    store: store as Store,
+  });
+  // the entry Back should return to
+  await waitFor(() =>
+    expect(history.location.state).toEqual(
+      expect.objectContaining({ row_limit: 100 }),
+    ),
+  );
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('row_limit', 200));
+  });
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.stringMatching('form_data_key'),
+      // the chart id is stamped on, the controls don't produce one
+      expect.objectContaining({ row_limit: 200, slice_id: 1 }),
+    ),
+  );
+  pushSpy.mockRestore();
+  getChartControlPanelRegistry().remove('table');
+});
+
+const renderWithMemoryRouter = ({
+  initialState,
+  store,
+}: {
+  initialState: object;
+  store: Store;
+}) => {
+  // MemoryRouter builds the history react-router itself ships, the one Explore
+  // sees at runtime - the top-level `history` package is a different major
+  let routerHistory: RouteComponentProps['history'] | undefined;
+  const result = render(
+    <MemoryRouter initialEntries={[`${defaultPath}${SEARCH}`]}>
+      <Route
+        render={({ history }) => {
+          routerHistory ??= history;
+          return <ExploreViewContainer />;
+        }}
+      />
+    </MemoryRouter>,
+    { useRedux: true, useDnd: true, initialState, store },
+  );
+  return {
+    ...result,
+    routerHistory: routerHistory as RouteComponentProps['history'],
+  };
+};
+
+test('restores the state of a popped entry without leaving the chart stale', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [
+      { label: 'Options', expanded: true, controlSetRows: [['row_limit']] },
+    ],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: { ...reduxState.explore.controls, row_limit: { value: 100 } },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const { routerHistory } = renderWithMemoryRouter({
+    initialState,
+    store: store as Store,
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ row_limit: 100 }),
+    ),
+  );
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('row_limit', 200));
+  });
+  expect(screen.getByTestId('control-panels-container')).toHaveAttribute(
+    'data-stale',
+    'true',
+  );
+  await userEvent.click(screen.getByText('Update chart'));
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ row_limit: 200 }),
+    ),
+  );
+
+  act(() => {
+    routerHistory.goBack();
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('control-panels-container')).toHaveAttribute(
+      'data-stale',
+      'false',
+    ),
+  );
+  getChartControlPanelRegistry().remove('table');
+});
+
+test('doesnt push an entry for the state a popped entry restored', async () => {
+  getChartControlPanelRegistry().registerValue('table', {
+    controlPanelSections: [
+      { label: 'Options', expanded: true, controlSetRows: [['y_axis_format']] },
+    ],
+  });
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+      controls: {
+        ...reduxState.explore.controls,
+        y_axis_format: { value: ',d', renderTrigger: true },
+      },
+    },
+  };
+  const store = createStore(initialState, reducerIndex);
+  const { routerHistory } = renderWithMemoryRouter({
+    initialState,
+    store: store as Store,
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ y_axis_format: ',d' }),
+    ),
+  );
+  const pushSpy = jest.spyOn(routerHistory, 'push');
+  // a render-trigger change gets its own entry
+  act(() => {
+    store.dispatch(exploreActions.setControlValue('y_axis_format', '.2f'));
+  });
+  await waitFor(() => expect(pushSpy).toHaveBeenCalledTimes(1));
+
+  act(() => {
+    routerHistory.goBack();
+  });
+  await waitFor(() =>
+    expect(routerHistory.location.state).toEqual(
+      expect.objectContaining({ y_axis_format: ',d' }),
+    ),
+  );
+  expect(pushSpy).toHaveBeenCalledTimes(1);
+  pushSpy.mockRestore();
+  getChartControlPanelRegistry().remove('table');
+});
+
 test('doesnt call replace when pathname is not /explore', async () => {
   getChartMetadataRegistry().registerValue(
     'table',
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
@@ -495,7 +737,7 @@ test('shows error indicator when controls have validation errors', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -534,7 +776,7 @@ test('shows error indicator for multiple controls with validation errors', async
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -567,7 +809,7 @@ test('shows error indicator for control with multiple validation errors', async 
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -604,7 +846,7 @@ test('shows error indicator with function labels', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -655,6 +897,8 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -700,6 +944,8 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {
@@ -740,7 +986,12 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'x_axis_title_margin',
+        0,
+        undefined,
+        { programmatic: true },
+      );
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -780,7 +1031,12 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
     store.dispatch(exploreActions.setControlValue('y_axis_title', ''));
 
     await waitFor(() => {
-      expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 0);
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'y_axis_title_margin',
+        0,
+        undefined,
+        { programmatic: true },
+      );
     });
   } finally {
     getChartControlPanelRegistry().remove('table');
@@ -880,7 +1136,12 @@ test('automatic axis title margin adjustment changes X axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith(
+      'x_axis_title_margin',
+      30,
+      undefined,
+      { programmatic: true },
+    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -979,7 +1240,12 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
     });
 
     // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30);
+    expect(setControlValueSpy).toHaveBeenCalledWith(
+      'y_axis_title_margin',
+      30,
+      undefined,
+      { programmatic: true },
+    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1028,10 +1294,14 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'x_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
       expect(setControlValueSpy).toHaveBeenCalledWith(
         'y_axis_title_margin',
         30,
+        undefined,
+        { programmatic: true },
       );
     });
   } finally {

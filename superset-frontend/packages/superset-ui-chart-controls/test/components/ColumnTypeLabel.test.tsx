@@ -64,4 +64,21 @@ describe('ColumnOption', () => {
     renderColumnTypeLabel({ type: GenericDataType.Temporal });
     expect(screen.getByLabelText('temporal type icon')).toBeVisible();
   });
+  test('multi-value (array) type shows list icon', () => {
+    renderColumnTypeLabel({ type: GenericDataType.MultiValue });
+    expect(screen.getByLabelText('multi-value type icon')).toBeVisible();
+  });
+});
+
+describe('GenericDataType enum parity', () => {
+  // These numeric values are shared with the backend enum in
+  // superset/utils/core.py (GenericDataType). They must stay in sync because
+  // the backend serializes columns using these integers.
+  test('values match the backend contract', () => {
+    expect(GenericDataType.Numeric).toBe(0);
+    expect(GenericDataType.String).toBe(1);
+    expect(GenericDataType.Temporal).toBe(2);
+    expect(GenericDataType.Boolean).toBe(3);
+    expect(GenericDataType.MultiValue).toBe(4);
+  });
 });

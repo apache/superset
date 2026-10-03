@@ -19,7 +19,6 @@
 import { useMemo, useCallback, useRef, useState } from 'react';
 import {
   getTimeFormatter,
-  safeHtmlSpan,
   TimeFormats,
   getMetricLabel,
   QueryFormMetric,
@@ -92,8 +91,11 @@ export function useGridColumns(
                   ) {
                     return timeFormatter(value);
                   }
+                  // Render string cells as plain text: this grid shows raw
+                  // query results (untrusted warehouse data) to any viewer,
+                  // so HTML must stay inert here even after sanitization.
                   if (typeof value === 'string') {
-                    return safeHtmlSpan(value);
+                    return value;
                   }
                   return String(value);
                 },

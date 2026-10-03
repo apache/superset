@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import { forwardRef, useState } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDndMonitor } from '@dnd-kit/core';
 import {
@@ -159,19 +158,25 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
               <StyledWarning className="warning" iconSize="s" />
             )}
             {isRemoved && (
-              <span
-                css={{ alignSelf: 'flex-end', marginLeft: 'auto' }}
-                role="button"
+              <button
+                type="button"
+                css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
+                  align-self: flex-end;
+                  margin-left: auto;
+                `}
                 data-test="undo-button"
-                tabIndex={0}
                 onClick={e => {
                   e.preventDefault();
                   restoreItem(id);
                 }}
-                onKeyDown={handleKeyboardActivation(() => restoreItem(id))}
               >
                 {t('Undo?')}
-              </span>
+              </button>
             )}
           </div>
           <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>

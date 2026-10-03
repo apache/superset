@@ -34,7 +34,11 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 annotation_layer_name = "The annotation layer name"
 annotation_layer_descr = "Give a description for this annotation layer"
@@ -60,3 +64,24 @@ class AnnotationLayerPutSchema(Schema):
     descr = fields.String(
         metadata={"description": annotation_layer_descr}, required=False
     )
+
+
+class ImportV1AnnotationSchema(Schema):
+    """Schema for validating individual annotations within an exported layer."""
+
+    start_dttm = fields.DateTime(allow_none=True)
+    end_dttm = fields.DateTime(allow_none=True)
+    short_descr = fields.String(allow_none=True, validate=Length(0, 500))
+    long_descr = fields.String(allow_none=True)
+    json_metadata = fields.Dict(allow_none=True)
+    uuid = fields.UUID(required=True)
+
+
+class ImportV1AnnotationLayerSchema(Schema):
+    """Schema for importing V1 annotation layers from YAML export files."""
+
+    name = fields.String(required=True, validate=Length(1, 250))
+    descr = fields.String(allow_none=True)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)
+    annotation = fields.List(fields.Nested(ImportV1AnnotationSchema), load_default=list)

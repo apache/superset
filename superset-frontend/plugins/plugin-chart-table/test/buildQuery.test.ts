@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
-import buildQuery, {
+import {
+  AdhocColumn,
+  QueryMode,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
+import buildQueryCached, {
   buildQuery as buildQueryUncached,
 } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
@@ -49,10 +54,112 @@ const extraQueryFormData: TableChartFormData = {
     } as any,
   ],
 };
+test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
+  'preserves semantic temporal references with grain %s',
+  grain => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      metrics: ['average_order_value'],
+      groupby: ['metric_time'],
+      time_grain_sqla: grain,
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual([
+      {
+        timeGrain: grain,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'metric_time',
+        label: 'metric_time',
+        expressionType: 'SQL',
+        isColumnReference: true,
+      },
+    ]);
+    expect(query.metrics).toEqual(['average_order_value']);
+  },
+);
+
+test('preserves semantic reference when a filter overrides the chart grain', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    groupby: ['metric_time'],
+    time_grain_sqla: TimeGranularity.DAY,
+    extra_form_data: { time_grain_sqla: TimeGranularity.MONTH },
+    temporal_columns_lookup: { metric_time: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([
+    {
+      timeGrain: TimeGranularity.MONTH,
+      columnType: 'BASE_AXIS',
+      sqlExpression: 'metric_time',
+      label: 'metric_time',
+      expressionType: 'SQL',
+      isColumnReference: true,
+    },
+  ]);
+});
+
+test.each(['2__semantic_view', '11__table'])(
+  'retains raw temporal columns without a grain for %s',
+  datasource => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource,
+      groupby: ['metric_time'],
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual(['metric_time']);
+  },
+);
+
+test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
+  'preserves ordinary dataset temporal SQL with grain %s',
+  grain => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      groupby: ['metric_time'],
+      time_grain_sqla: grain,
+      temporal_columns_lookup: { metric_time: true },
+    }).queries[0];
+
+    expect(query.columns).toEqual([
+      {
+        timeGrain: grain,
+        columnType: 'BASE_AXIS',
+        sqlExpression: 'metric_time',
+        label: 'metric_time',
+        expressionType: 'SQL',
+      },
+    ]);
+  },
+);
+
+test('does not mark a semantic SQL expression as a declared column reference', () => {
+  const expression: AdhocColumn = {
+    expressionType: 'SQL',
+    sqlExpression: 'metric_time + 1',
+    label: 'shifted_time',
+  };
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    groupby: [expression],
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { shifted_time: true, metric_time: true },
+  }).queries[0];
+
+  expect(query.columns).toEqual([expression]);
+  expect(query.columns?.[0]).not.toHaveProperty('isColumnReference');
+});
+
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     test('should add post-processing and ignore duplicate metrics', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa', 'aaa'],
@@ -71,7 +178,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add metrics in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         columns: ['a'],
@@ -83,7 +190,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing when there is no percent metric', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa'],
@@ -94,7 +201,7 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add post-processing in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         metrics: ['aaa'],
@@ -105,8 +212,50 @@ describe('plugin-chart-table', () => {
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
     });
+
+    test.each([
+      { orderDesc: true, expectedAscending: false },
+      { orderDesc: false, expectedAscending: true },
+    ])(
+      'orders by the sort-by metric in aggregate mode when order_desc is $orderDesc',
+      ({ orderDesc, expectedAscending }) => {
+        const query = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['col1'],
+          metrics: ['first_metric', 'sort_metric'],
+          timeseries_limit_metric: 'sort_metric',
+          order_desc: orderDesc,
+        }).queries[0];
+        expect(query.orderby).toEqual([['sort_metric', expectedAscending]]);
+      },
+    );
+
+    test('orders by the first metric descending in aggregate mode without a sort-by metric', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        groupby: ['col1'],
+        metrics: ['first_metric', 'second_metric'],
+        order_desc: false,
+      }).queries[0];
+      expect(query.orderby).toEqual([['first_metric', false]]);
+    });
+
+    test('maps order_by_cols to orderby in raw records mode', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Raw,
+        columns: ['col1', 'col2'],
+        order_by_cols: ['["col1", true]', '["col2", false]'],
+      }).queries[0];
+      expect(query.orderby).toEqual([
+        ['col1', true],
+        ['col2', false],
+      ]);
+    });
     test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         groupby: ['col1'],
         query_mode: QueryMode.Aggregate,
@@ -123,7 +272,7 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      const query = buildQuery({
+      const query = buildQueryCached({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
         groupby: ['col1'],
@@ -138,8 +287,25 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
+    test('should retain percent-metric post-processing on the summary (show_totals) query', () => {
+      // #37627: the summary row dropped post_processing, so percent-metric
+      // columns came back empty. The totals query must recompute them.
+      const { queries } = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        metrics: ['count'],
+        percent_metrics: ['sum_sales'],
+        show_totals: true,
+      });
+      // Main query carries the contribution op for the percent metric ...
+      expect(queries[0].post_processing).toEqual([
+        expect.objectContaining({ operation: 'contribution' }),
+      ]);
+      // ... and so must the summary query (queries[1]).
+      expect(queries[1].post_processing).toEqual(queries[0].post_processing);
+    });
     test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
-      const { queries } = buildQuery({
+      const { queries } = buildQueryCached({
         ...extraQueryFormData,
         temporal_columns_lookup: { col1: true },
       });
@@ -161,7 +327,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('should default to row_limit mode with single query', () => {
-        const { queries } = buildQuery(baseFormDataWithPercents);
+        const { queries } = buildQueryCached(baseFormDataWithPercents);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].metrics).toEqual(['count', 'sum_sales']);
@@ -182,7 +348,7 @@ describe('plugin-chart-table', () => {
           percent_metric_calculation: 'all_records',
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(2);
 
@@ -214,7 +380,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(3);
         expect(queries[1].metrics).toEqual(['sum_sales']);
@@ -231,7 +397,7 @@ describe('plugin-chart-table', () => {
           groupby: ['category'],
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(1);
         expect(queries[0].post_processing).toEqual([]);
@@ -247,7 +413,7 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         // row_limit mode + show_totals -> [main, totals].
         expect(queries).toHaveLength(2);
@@ -277,7 +443,7 @@ describe('plugin-chart-table', () => {
           comparison_type: 'values',
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         // row_limit mode + show_totals -> [main, totals].
         expect(queries).toHaveLength(2);
@@ -308,10 +474,94 @@ describe('plugin-chart-table', () => {
           show_totals: true,
         };
 
-        const { queries } = buildQuery(formData);
+        const { queries } = buildQueryCached(formData);
 
         expect(queries).toHaveLength(2);
         expect(queries[1].post_processing).toEqual([]);
+      });
+    });
+
+    describe('Totals Aggregation', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+
+      test("defaults to each metric's own aggregate", () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries).toHaveLength(2);
+        expect(queries[1].metrics).toEqual([simpleMetric]);
+      });
+
+      test('keeps COUNT_DISTINCT in the summary row by default', () => {
+        // Overriding this to SUM sums the counted column instead of counting
+        // it, which is meaningless on a numeric id and is rejected outright by
+        // the database on a non-numeric one (e.g. a uuid).
+        const countDistinctMetric = {
+          expressionType: 'SIMPLE' as const,
+          column: { column_name: 'contract_id' },
+          aggregate: 'COUNT_DISTINCT' as const,
+          label: 'contracts',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [countDistinctMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries[1].metrics).toEqual([countDistinctMetric]);
+      });
+
+      test('overrides simple metric aggregate with totals_aggregate for the summary query only', () => {
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries).toHaveLength(2);
+        // Main query keeps the metric's own aggregation.
+        expect(queries[0].metrics).toEqual([simpleMetric]);
+        // Summary query uses the chosen totals aggregate instead.
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+        ]);
+      });
+
+      test('leaves custom SQL and saved metrics untouched in the summary query', () => {
+        const sqlMetric = {
+          expressionType: 'SQL' as const,
+          sqlExpression: 'COUNT(DISTINCT user_id)',
+          label: 'unique_users',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [simpleMetric, sqlMetric, 'saved_metric'],
+          groupby: ['category'],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        });
+
+        expect(queries[1].metrics).toEqual([
+          { ...simpleMetric, aggregate: 'AVG' },
+          sqlMetric,
+          'saved_metric',
+        ]);
       });
     });
 
@@ -331,7 +581,7 @@ describe('plugin-chart-table', () => {
       };
 
       test('includes search filter in query payload when server pagination is enabled', () => {
-        const { queries } = buildQuery(baseFormDataWithServerPagination, {
+        const { queries } = buildQueryCached(baseFormDataWithServerPagination, {
           ownState,
         });
 
@@ -347,7 +597,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('does not include search filter when not provided', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             server_pagination: false,
@@ -359,7 +609,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('uses user row limit when it is lower than server page size', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 10,
@@ -381,7 +631,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('limits server page size by remaining rows inside user row limit', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 120,
@@ -410,7 +660,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('clamps pages beyond the row limit instead of emitting row_limit: 0', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: 120,
@@ -503,7 +753,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('falls back to the page size when no row limit is configured', () => {
-        const { queries } = buildQuery(
+        const { queries } = buildQueryCached(
           {
             ...baseFormDataWithServerPagination,
             row_limit: undefined,

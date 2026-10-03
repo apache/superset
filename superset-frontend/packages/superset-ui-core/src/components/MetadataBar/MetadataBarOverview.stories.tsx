@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 
 export default {
   title: 'Design System/Components/MetadataBar/Overview',
@@ -25,7 +25,7 @@ export default {
 
 export const MetadataBarOverview = () => (
   <>
-    <Markdown>
+    <MarkdownToJsx>
       {`
 # Metadata bar
 
@@ -42,8 +42,8 @@ Some of the common applications in Superset are:
 
 ## [Basic example]((./?path=/docs/design-system-components-metadatabar-examples--basic)
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 ## Variations
 
@@ -62,9 +62,9 @@ This process is important to make sure the new type is reviewed by the design te
 To check each content type in detail and its interactions, check the [MetadataBar](/story/design-system-components-metadatabar-examples--basic) page.
 Below you can find the configurations for each content type:
     `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export enum MetadataType {
@@ -79,9 +79,9 @@ export enum MetadataType {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Dashboards = {
@@ -92,9 +92,9 @@ export type Dashboards = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Description = {
@@ -104,9 +104,9 @@ export type Description = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type LastModified = {
@@ -117,9 +117,9 @@ export type LastModified = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Owner = {
@@ -131,9 +131,9 @@ export type Owner = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Rows = {
@@ -143,9 +143,9 @@ export type Rows = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Sql = {
@@ -155,9 +155,9 @@ export type Sql = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Table = {
@@ -167,9 +167,9 @@ export type Table = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Tags = {
@@ -179,6 +179,6 @@ export type Tags = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
   </>
 );

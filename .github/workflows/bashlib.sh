@@ -79,8 +79,6 @@ build-instrumented-assets() {
 }
 
 setup-postgres() {
-  say "::group::Install dependency for unit tests"
-  sudo apt-get update && sudo apt-get install --yes libecpg-dev
   say "::group::Initialize database"
   psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
     DROP SCHEMA IF EXISTS sqllab_test_db CASCADE;
@@ -163,103 +161,6 @@ celery-worker() {
   say "::endgroup::"
 }
 
-cypress-install() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  cache-restore cypress
-
-  say "::group::Install Cypress"
-  npm ci
-  say "::endgroup::"
-
-  cache-save cypress
-}
-
-cypress-run-all() {
-  local USE_DASHBOARD=$1
-  local APP_ROOT=$2
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  # Start the Superset backend via gunicorn (not `flask run`). The Flask
-  # development server is single-threaded and has no crash-recovery, so
-  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
-  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
-  # / `Missing CSRF token` cascades. Gunicorn gives us multiple workers,
-  # a request timeout, and worker-recycling under load.
-  local serverlog="${HOME}/superset-cypress.log"
-  local port=8081
-  CYPRESS_BASE_URL="http://localhost:${port}"
-  if [ -n "$APP_ROOT" ]; then
-    export SUPERSET_APP_ROOT=$APP_ROOT
-    CYPRESS_BASE_URL=${CYPRESS_BASE_URL}${APP_ROOT}
-  fi
-  export CYPRESS_BASE_URL
-
-  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
-  # gthread threads) to keep parity with production. Multi-worker
-  # configurations expose timing-sensitive races in the SQL Lab → Explore
-  # navigation flow under E2E. We diverge from the entrypoint on:
-  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
-  #     default
-  #   --max-requests / --max-requests-jitter: recycle the worker under
-  #     test load to avoid leaks accumulating across the run
-  #   superset.app:create_app(): explicit factory so we don't depend on
-  #     FLASK_APP being exported
-  nohup gunicorn \
-    --bind "127.0.0.1:$port" \
-    --workers 1 \
-    --worker-class gthread \
-    --threads 20 \
-    --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
-    --access-logfile - \
-    --error-logfile - \
-    "superset.app:create_app()" \
-    >"$serverlog" 2>&1 </dev/null &
-  local serverPid=$!
-
-  # Ensure the backend is cleaned up and its log is emitted even when the
-  # test runner fails under `set -e`.
-  trap '
-    echo "::group::gunicorn log for Cypress run"
-    cat "'"$serverlog"'" || true
-    echo "::endgroup::"
-    kill '"$serverPid"' 2>/dev/null || true
-  ' EXIT
-
-  # Wait for the backend to be ready before launching Cypress; otherwise
-  # the first spec can race the server bind and see connection errors.
-  local timeout=60
-  say "Waiting for gunicorn server to start on port $port..."
-  while [ $timeout -gt 0 ]; do
-    if curl -f "http://localhost:${port}${APP_ROOT}/health" >/dev/null 2>&1; then
-      say "gunicorn server is ready"
-      break
-    fi
-    sleep 1
-    timeout=$((timeout - 1))
-  done
-  if [ $timeout -eq 0 ]; then
-    echo "::error::gunicorn server failed to start within 60 seconds"
-    echo "::group::Server startup log"
-    cat "$serverlog"
-    echo "::endgroup::"
-    return 1
-  fi
-
-  USE_DASHBOARD_FLAG=''
-  if [ "$USE_DASHBOARD" = "true" ]; then
-    USE_DASHBOARD_FLAG='--use-dashboard'
-  fi
-
-  # UNCOMMENT the next few commands to monitor memory usage
-  # monitor_memory &  # Start memory monitoring in the background
-  # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
-  # kill $memoryMonitorPid
-}
-
 playwright-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
@@ -275,9 +176,12 @@ playwright-run() {
   local APP_ROOT=$1
   local TEST_PATH=$2
 
-  # Start the Superset backend via gunicorn from the project root.
-  # See cypress-run-all() above for the rationale — the Flask dev server
-  # cannot survive the dashboard import/export tests under load.
+  # Start the Superset backend via gunicorn (not `flask run`). The Flask
+  # development server is single-threaded and has no crash-recovery, so
+  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
+  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
+  # / `Missing CSRF token` cascades. Gunicorn gives us a request timeout
+  # and a multi-threaded worker.
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
@@ -293,17 +197,28 @@ playwright-run() {
   fi
   export PLAYWRIGHT_BASE_URL
 
-  # See cypress-run-all() above for the args rationale (1 worker × 20
-  # gthread threads matching docker/entrypoints/run-server.sh, plus a
-  # 120s timeout and request-recycling for heavy E2E load).
+  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
+  # gthread threads) to keep parity with production. Multi-worker
+  # configurations expose timing-sensitive races in the SQL Lab → Explore
+  # navigation flow under E2E. We diverge from the entrypoint on:
+  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
+  #     default
+  #   superset.app:create_app(): explicit factory so we don't depend on
+  #     FLASK_APP being exported
+  #
+  # No --max-requests, matching the entrypoint's default of 0 (recycling
+  # off). With a single worker a recycle takes the whole backend offline for
+  # the graceful-timeout drain — browser keep-alive connections hold it open
+  # for the full 30s — plus ~5s of app boot, which flakes whichever specs
+  # happen to navigate into the outage. Lowering --graceful-timeout is not
+  # enough: a dashboard load plus chart render needs 6-10s, which still
+  # lands inside the window.
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
@@ -351,14 +266,10 @@ playwright-run() {
       return 0
     fi
     echo "Running tests: ${TEST_PATH}"
-    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
-    export INCLUDE_EXPERIMENTAL=true
     npx playwright test "${TEST_PATH}" --output=playwright-results
     local status=$?
-    # Unset to prevent leaking into subsequent commands
-    unset INCLUDE_EXPERIMENTAL
   else
-    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    echo "Running all default-project tests"
     npx playwright test --output=playwright-results
     local status=$?
   fi

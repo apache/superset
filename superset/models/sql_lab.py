@@ -65,6 +65,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    SqlExpressionContext,
 )
 from superset.sql.parse import (
     CTASMethod,
@@ -126,6 +127,12 @@ class Query(
 
     __tablename__ = "query"
     type = "query"
+
+    # Query results are raw rows, so samples are meaningful. Declared
+    # explicitly (rather than relying on a fail-open ``getattr`` default)
+    # so every member of ``DatasourceDAO.sources`` carries the capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
     query_language = "sql"
@@ -190,7 +197,14 @@ class Query(
     database = relationship(
         "Database",
         foreign_keys=[database_id],
-        backref=backref("queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `query.database` no longer
+            # cascades the Query into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
@@ -357,7 +371,16 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        if not self.database:
+            return ""
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                self.catalog or self.database.get_default_catalog(),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
@@ -368,7 +391,34 @@ class Query(
         return ""
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        """
+        Include the RLS predicates that apply to this ad-hoc query's
+        underlying tables in the cache key, mirroring what
+        ``SqlaTable.get_extra_cache_keys`` already does for virtual datasets.
+
+        ``is_rls_supported`` is ``False`` for a SQL Lab query (it has no RLS
+        rules of its own to look up via ``get_rls_cache_key``), which left
+        ``security_manager.get_rls_cache_key()`` contributing nothing here.
+        Without this, two viewers of the same not-yet-saved query-backed
+        chart (e.g. via a shared Explore permalink) with different RLS on
+        the tables the query references would collide on the same cache
+        entry, regardless of their own access.
+        """
+        if not self.sql:
+            return []
+        from superset.utils.rls import (  # pylint: disable=import-outside-toplevel
+            collect_rls_predicates_for_sql,
+        )
+
+        default_schema = self.database.get_default_schema(self.catalog)
+        return list(
+            collect_rls_predicates_for_sql(
+                self.sql,
+                self.database,
+                self.catalog,
+                self.schema or default_schema or "",
+            )
+        )
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
@@ -430,6 +480,8 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -452,11 +504,12 @@ class Query(
             pdf = col_in_metadata.python_date_format
 
         expression = self._process_sql_expression(
-            expression=sql_expression,
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
-            template_processor=template_processor,
+            sql_expression,
+            SqlExpressionContext(
+                self.database.backend,
+                self.schema,
+                template_processor,
+            ),
         )
         sqla_column = literal_column(expression)
 
@@ -482,6 +535,13 @@ class SavedQuery(
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
+
+    # Saved queries are backed by raw rows, so samples are meaningful.
+    # Declared explicitly (rather than relying on a fail-open ``getattr``
+    # default) so every member of ``DatasourceDAO.sources`` carries the
+    # capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
@@ -493,13 +553,25 @@ class SavedQuery(
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `saved_query.user` no longer
+            # cascades the SavedQuery into the User's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[user_id],
     )
     database = relationship(
         "Database",
         foreign_keys=[db_id],
-        backref=backref("saved_queries", cascade="all, delete-orphan"),
+        backref=backref(
+            "saved_queries",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: see `user` above.
+            cascade_backrefs=False,
+        ),
     )
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)

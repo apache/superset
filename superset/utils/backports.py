@@ -14,13 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import sys
-from enum import Enum
-
-if sys.version_info >= (3, 11):
-    # pylint: disable=unused-import
-    from enum import StrEnum  # nopycln: import
-else:
-
-    class StrEnum(str, Enum):
-        pass
+from enum import StrEnum  # noqa: F401

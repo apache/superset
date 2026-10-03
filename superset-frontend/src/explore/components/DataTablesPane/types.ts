@@ -76,6 +76,7 @@ export interface TableControlsProps extends DrillControlsProps {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
   onInputChange: (input: string) => void;
+  filterText?: string;
   columnNames: string[];
   columnTypes: GenericDataType[];
   isLoading: boolean;
@@ -83,6 +84,12 @@ export interface TableControlsProps extends DrillControlsProps {
   canDownload: boolean;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
+  // Effective result limit, capped by the chart's row limit.
+  // Defaults to `rowLimit` and controls the "row limit reached" warning.
+  effectiveRowLimit?: number;
+  // Overrides RowCountLabel's default "chart" wording for panes (e.g.
+  // samples) where the limit reached isn't the chart's own row_limit.
+  limitReachedMessage?: React.ReactNode;
   onRowLimitChange?: (limit: number) => void;
 }
 
@@ -103,5 +110,9 @@ export interface SingleQueryResultPaneProp
   columnDisplayNames?: Record<string, string>;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
+  effectiveRowLimit?: number;
+  // Overrides RowCountLabel's default "chart" wording when the pane's own
+  // row-limit selector, not the chart's row_limit, is what capped the result.
+  limitReachedMessage?: React.ReactNode;
   onRowLimitChange?: (limit: number) => void;
 }

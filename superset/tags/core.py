@@ -16,6 +16,42 @@
 # under the License.
 # pylint: disable=import-outside-toplevel
 
+from superset.utils.sqlalchemy_events import (
+    DeleteListenerDeclaration,
+    DeleteListenerEffect,
+    register_delete_listener,
+    remove_delete_listener,
+)
+
+
+def _tag_delete_listener_declarations() -> tuple[DeleteListenerDeclaration, ...]:
+    """Build tag cleanup declarations without introducing model import cycles."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import ChartUpdater, DashboardUpdater, DatasetUpdater
+
+    return (
+        DeleteListenerDeclaration(
+            SqlaTable,
+            "tagged_object_cleanup",
+            DeleteListenerEffect.PERSISTENT_RECORD,
+            DatasetUpdater.after_delete,
+        ),
+        DeleteListenerDeclaration(
+            Slice,
+            "tagged_object_cleanup",
+            DeleteListenerEffect.PERSISTENT_RECORD,
+            ChartUpdater.after_delete,
+        ),
+        DeleteListenerDeclaration(
+            Dashboard,
+            "tagged_object_cleanup",
+            DeleteListenerEffect.PERSISTENT_RECORD,
+            DashboardUpdater.after_delete,
+        ),
+    )
+
 
 def register_sqla_event_listeners() -> None:
     import sqlalchemy as sqla
@@ -33,17 +69,21 @@ def register_sqla_event_listeners() -> None:
         QueryUpdater,
     )
 
+    declarations: tuple[DeleteListenerDeclaration, ...] = (
+        _tag_delete_listener_declarations()
+    )
+
     sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
     sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.listen(SqlaTable, "after_delete", DatasetUpdater.after_delete)
+    register_delete_listener(declarations[0])
 
     sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
+    register_delete_listener(declarations[1])
 
     sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
     sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
+    register_delete_listener(declarations[2])
 
     sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
@@ -69,17 +109,21 @@ def clear_sqla_event_listeners() -> None:
         QueryUpdater,
     )
 
+    declarations: tuple[DeleteListenerDeclaration, ...] = (
+        _tag_delete_listener_declarations()
+    )
+
     sqla.event.remove(SqlaTable, "after_insert", DatasetUpdater.after_insert)
     sqla.event.remove(SqlaTable, "after_update", DatasetUpdater.after_update)
-    sqla.event.remove(SqlaTable, "after_delete", DatasetUpdater.after_delete)
+    remove_delete_listener(declarations[0])
 
     sqla.event.remove(Slice, "after_insert", ChartUpdater.after_insert)
     sqla.event.remove(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.remove(Slice, "after_delete", ChartUpdater.after_delete)
+    remove_delete_listener(declarations[1])
 
     sqla.event.remove(Dashboard, "after_insert", DashboardUpdater.after_insert)
     sqla.event.remove(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.remove(Dashboard, "after_delete", DashboardUpdater.after_delete)
+    remove_delete_listener(declarations[2])
 
     sqla.event.remove(FavStar, "after_insert", FavStarUpdater.after_insert)
     sqla.event.remove(FavStar, "after_delete", FavStarUpdater.after_delete)

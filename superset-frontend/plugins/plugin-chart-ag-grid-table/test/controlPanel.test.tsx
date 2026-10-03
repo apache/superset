@@ -29,15 +29,12 @@ import {
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
-const findConditionalFormattingControl = (): ControlConfig | null => {
+const findNamedControl = (name: string): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {
       for (const control of row) {
-        if (
-          isCustomControlItem(control) &&
-          control.name === 'conditional_formatting'
-        ) {
+        if (isCustomControlItem(control) && control.name === name) {
           return control.config;
         }
       }
@@ -46,8 +43,12 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
   return null;
 };
 
+const findConditionalFormattingControl = (): ControlConfig | null =>
+  findNamedControl('conditional_formatting');
+
 const findMetricsMapStateToProps = ():
-  ControlConfig['mapStateToProps'] | null => {
+  | ControlConfig['mapStateToProps']
+  | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {
@@ -153,12 +154,8 @@ test('extraColorChoices included when time comparison is enabled', () => {
 
   expect(result.extraColorChoices).toEqual([
     {
-      value: ColorSchemeEnum.Green,
-      label: expect.stringContaining('Green for increase'),
-    },
-    {
-      value: ColorSchemeEnum.Red,
-      label: expect.stringContaining('Red for increase'),
+      label: expect.stringContaining('Trend colors'),
+      colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
     },
   ]);
   expect(result.columnOptions).not.toEqual(
@@ -179,6 +176,38 @@ test('extraColorChoices not included when time_compare is empty array', () => {
   );
 
   expect(result.extraColorChoices).toEqual([]);
+});
+
+test('numericColumns resolves dataType by position, not a stale name lookup', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const explore = createMockExplore(undefined);
+  // Two columns share the name "metric" (e.g. a dimension and a metric
+  // both aliased the same way); only the second occurrence is Numeric.
+  const chart = {
+    chartStatus: 'success' as const,
+    queriesResponse: [
+      {
+        colnames: ['metric', 'metric'],
+        coltypes: [GenericDataType.String, GenericDataType.Numeric],
+      },
+    ],
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  // Resolving dataType via `colnames.indexOf(colname)` would always find
+  // the first "metric" (String) and misclassify this numeric column.
+  expect(result.columnOptions).toEqual([
+    expect.objectContaining({
+      value: 'metric',
+      dataType: GenericDataType.Numeric,
+    }),
+  ]);
 });
 
 test('consistency between extraColorChoices and columnOptions', () => {
@@ -257,6 +286,28 @@ const createMockMetricsControlState = (): ControlState => ({
   label: '',
   default: undefined,
   renderTrigger: false,
+});
+
+test('column_config mapStateToProps expands comparison columns for metrics', () => {
+  const controlConfig = findNamedControl('column_config');
+  const explore = {
+    ...createMockExplore(['1 year ago']),
+    form_data: {
+      ...createMockExplore(['1 year ago']).form_data,
+      metrics: ['col1'],
+    },
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    createMockChart(),
+  );
+
+  expect(result.columnsPropsObject.colnames).toEqual(
+    expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
+  );
+  expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
+  expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
 });
 
 test('metrics control includes non-filterable columns', () => {

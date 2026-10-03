@@ -21,6 +21,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
+
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)

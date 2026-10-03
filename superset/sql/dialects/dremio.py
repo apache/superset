@@ -15,13 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from sqlglot import exp, generator, parser
-from sqlglot.dialects.dialect import Dialect, rename_func
+from sqlglot import exp
+from sqlglot.dialects.dialect import rename_func
+from sqlglot.dialects.dremio import Dremio as SqlglotDremio
+from sqlglot.generators.dremio import DremioGenerator
+from sqlglot.parsers.dremio import DremioParser
 
 
 class DremioRegexpSplit(exp.Expression, exp.Func):
     """
     Custom REGEXP_SPLIT function for Dremio that supports 4 arguments.
+
+    sqlglot's native Dremio dialect does not parse this form; Superset adds
+    it on top until it lands upstream.
 
     In sqlglot 30 the Expression class was split from the Func base class; custom
     Func subclasses must now explicitly inherit from both exp.Expression and exp.Func
@@ -36,15 +42,23 @@ class DremioRegexpSplit(exp.Expression, exp.Func):
     }
 
 
-class Dremio(Dialect):
-    class Parser(parser.Parser):
+class Dremio(SqlglotDremio):
+    """
+    Superset's Dremio dialect, built on sqlglot's native Dremio dialect.
+
+    Adds the 4-argument REGEXP_SPLIT form on top of everything sqlglot
+    already gets right for Dremio (type mapping, DATE_ADD/DATE_SUB
+    semantics, TO_CHAR, CURRENT_DATE_UTC, timestamp-timezone rejection).
+    """
+
+    class Parser(DremioParser):
         FUNCTIONS = {
-            **parser.Parser.FUNCTIONS,
+            **DremioParser.FUNCTIONS,
             "REGEXP_SPLIT": DremioRegexpSplit.from_arg_list,
         }
 
-    class Generator(generator.Generator):
+    class Generator(DremioGenerator):
         TRANSFORMS = {
-            **generator.Generator.TRANSFORMS,
+            **DremioGenerator.TRANSFORMS,
             DremioRegexpSplit: rename_func("REGEXP_SPLIT"),
         }
