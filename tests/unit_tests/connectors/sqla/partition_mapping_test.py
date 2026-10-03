@@ -683,6 +683,36 @@ def test_evaluate_transform_returns_none_for_no_values(app: Flask) -> None:
     _probe(database).assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "lower(:value) UNION ALL SELECT password FROM ab_user",
+        "lower(:value); DROP TABLE ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement"],
+)
+def test_a_transform_that_is_not_a_storable_expression_never_runs(
+    app: Flask, transform: str
+) -> None:
+    """
+    The probe is where a transform stops being text and becomes SQL.
+
+    `build_probe_sql` binds `:value` and splices the rest in verbatim, so a
+    transform that was never a single harmless expression is arbitrary SQL
+    against the dataset's database -- read back out of the emitted predicate
+    by anyone who can open "View query". The write-side gates refuse these,
+    but they can only speak for rows written after they existed, so the last
+    word belongs here.
+    """
+    database = _database_returning(["irrelevant"])
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["us"]) is None
+
+    _probe(database).assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # §5 — save-time validation, in two tiers
 # ---------------------------------------------------------------------------

@@ -2876,14 +2876,80 @@ def test_import_keeps_a_usable_transform(session: Session) -> None:
 def test_import_leaves_transforms_alone_while_the_feature_is_off(
     session: Session,
 ) -> None:
-    """Nothing reads a mapping with the flag off, so nothing is rewritten either."""
-    config = _partition_mapping_config(1, "unix_timestamp({{ current_username() }})")
+    """
+    No *usability* check runs with the flag off: nothing mirrors, so there is
+    only stored configuration to lose. The structural check still runs, and
+    Jinja passes it -- balanced blocks are substituted out before parsing.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(
+        database.id, "unix_timestamp({{ current_username() }})"
+    )
     drop_unusable_partition_transforms(config)
 
     assert (
         config["columns"][0]["partition_value_transform"]
         == "unix_timestamp({{ current_username() }})"
     )
+
+
+#: Expressions the save path refuses outright, rather than ones that merely
+#: never mirror. The probe splices a transform into SQL and runs it, so a
+#: bundle carrying one of these is a way to execute arbitrary SQL without the
+#: `sql_lab` role.
+UNSTORABLE_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement"],
+)
+
+
+def _assert_import_drops(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_a_transform_that_is_not_a_storable_expression(
+    session: Session, transform: str
+) -> None:
+    _assert_import_drops(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_an_unstorable_transform_even_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """
+    The one check the flag does not switch off.
+
+    Everything else here asks whether a transform will mirror, which is a
+    question about a live feature. This asks whether the expression is one the
+    product stores at all, and a bundle imported with the flag off would
+    otherwise sit in the metadata DB fully armed, waiting for an operator to
+    turn the flag on.
+    """
+    _assert_import_drops(transform)
     assert mock_read_bounded.call_args_list[1].args[0] is decompressed
 
 
