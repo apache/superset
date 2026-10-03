@@ -40,6 +40,10 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.mcp_service import guest_scope
+from superset.mcp_service.chart.big_number_headline import (
+    compute_big_number_headline,
+    executed_query_facts,
+)
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     build_query_dicts_from_form_data,
@@ -54,6 +58,7 @@ from superset.mcp_service.chart.query_result import (
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
+    BigNumberHeadline,
     ChartData,
     ChartError,
     ChartQueryResult,
@@ -291,6 +296,23 @@ def _filter_candidates(
     return result
 
 
+def _big_number_headline(
+    viz_type: str | None,
+    form_data: dict[str, Any],
+    queries: list[dict[str, Any]],
+    query_context: Any,
+) -> BigNumberHeadline | None:
+    """Headline for Big Number charts, from the full executed result set."""
+    row_limit, operations = executed_query_facts(query_context)
+    return compute_big_number_headline(
+        viz_type,
+        form_data,
+        queries,
+        row_limit=row_limit,
+        post_processing_operations=operations,
+    )
+
+
 def _build_query_results(
     query_results: list[dict[str, Any]], limit: int | None
 ) -> list[ChartQueryResult] | None:
@@ -343,6 +365,12 @@ async def get_chart_data(
     actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
+
+    For Big Number charts (big_number, big_number_total) the result also carries
+    `headline`: the number the chart displays, computed from the full result
+    (for big_number, by the chart's aggregation over the whole trend series).
+    The data rows alone are not that number, so report `headline.value`; when it
+    is null, `headline.reason` says why and the chart's value is unknown.
     """
     return await execute_chart_data(request, ctx)
 
@@ -1049,6 +1077,12 @@ async def execute_chart_data(  # noqa: C901
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
                 query_results=_build_query_results(result["queries"], request.limit),
+                headline=_big_number_headline(
+                    form_data.get("viz_type") or chart_viz_type,
+                    form_data,
+                    result["queries"],
+                    query_context,
+                ),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
@@ -1300,6 +1334,9 @@ async def _query_from_form_data(  # noqa: C901
             columns=columns,
             data=data[: request.limit] if request.limit else data,
             query_results=_build_query_results(result["queries"], request.limit),
+            headline=_big_number_headline(
+                viz_type, form_data, result["queries"], query_context
+            ),
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,

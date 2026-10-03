@@ -1519,6 +1519,16 @@ rather than being interpreted as one or zero rows.
 
 ## Chart data column counts
 
+Big Number headlines in `get_chart_data` use the unsaved visualization type when
+`form_data_key` is supplied, including when switching to or from a Big Number
+chart. They accept both `columnName` and
+`column_name` for simple adhoc metrics. Latest-value computation uses the
+newest usable timestamp, preserving input order for equal timestamps. Rows with
+missing or unusable timestamps cannot supply a latest value; if no dated non-null
+metric remains, the headline is unavailable. Order-independent aggregations still
+include undated values. Metric integers beyond floating-point range are treated as
+null rather than failing data retrieval.
+
 For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
