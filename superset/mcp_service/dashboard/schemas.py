@@ -122,6 +122,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -826,11 +827,13 @@ class GenerateDashboardRequest(BaseModel):
         )
 
 
-class UpdateDashboardRequest(BaseModel):
-    """Patch a dashboard's layout/theme/style without re-creating it.
+class UpdateDashboardRequest(OmittedMeansUnchanged):
+    """Request schema for updating an existing dashboard's layout/theme/style.
 
-    Only explicitly supplied fields change; identifier is required.
-    Supports dashboards created via ``generate_dashboard`` or the REST API.
+    All fields are optional; only the fields explicitly passed are applied.
+    Use to retroactively set a custom layout, brand palette, or CSS on a
+    dashboard that was created via ``generate_dashboard`` (or earlier via
+    the REST API) without a full re-create.
     """
 
     model_config = ConfigDict(populate_by_name=True)

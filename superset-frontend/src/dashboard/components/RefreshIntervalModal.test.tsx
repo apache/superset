@@ -86,6 +86,43 @@ test('an interval below the configured limit blocks save with an error', async (
   expect(defaultProps.onChange).not.toHaveBeenCalled();
 });
 
+test('an interval below the limit shows the configured warning alongside the error', async () => {
+  setup(
+    {},
+    {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
+        'Frequent refreshes put load on the database',
+    },
+  );
+
+  await userEvent.click(screen.getByRole('radio', { name: '10 seconds' }));
+
+  expect(
+    screen.getByText('Refresh frequency must be at least 60 seconds'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Frequent refreshes put load on the database'),
+  ).toBeInTheDocument();
+});
+
+test('the configured warning is hidden when the interval meets the limit', async () => {
+  setup(
+    {},
+    {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
+        'Frequent refreshes put load on the database',
+    },
+  );
+
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
+
+  expect(
+    screen.queryByText('Frequent refreshes put load on the database'),
+  ).not.toBeInTheDocument();
+});
+
 test('an interval at or above the configured limit does not block save', async () => {
   setup({}, { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60 });
 
