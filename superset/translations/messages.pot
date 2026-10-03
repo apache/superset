@@ -10202,6 +10202,10 @@ msgstr ""
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+#, python-format
+msgid "Post-processing references a column or level that is not in the query result: %(name)s"
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr ""
 

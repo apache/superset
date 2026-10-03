@@ -1004,6 +1004,69 @@ def test_semantic_view_get_query_result_wraps_post_processing_errors(
         view.get_query_result(mock_query_object)
 
 
+@pytest.mark.parametrize(
+    "raised,expected_message",
+    [
+        pytest.param(
+            ValueError("periods must be an integer"),
+            "periods must be an integer",
+            id="ValueError",
+        ),
+        pytest.param(
+            KeyError("does_not_exist"),
+            "references a column or level that is not in the query result: "
+            "does_not_exist",
+            id="KeyError",
+        ),
+        pytest.param(
+            AttributeError("'str' object has no attribute 'items'"),
+            "has no attribute 'items'",
+            id="AttributeError",
+        ),
+    ],
+)
+def test_semantic_view_get_query_result_wraps_post_processing_request_errors(
+    mock_implementation: MagicMock,
+    raised: Exception,
+    expected_message: str,
+) -> None:
+    """
+    A post-processing option comes straight from the request, so a malformed one
+    is a bad request whatever pandas raises for it.
+
+    ``ChartDataPostProcessingOperationSchema.options`` is an untyped
+    ``fields.Dict``, so no option is validated before it reaches pandas.
+    #44502 wrapped ``TypeError`` and ``pandas.errors.DataError`` here;
+    ``ValueError``, ``KeyError`` and ``AttributeError`` escaped the same way and
+    reached ``app.errorhandler(Exception)``, which answers 500.
+    """
+    import pandas as pd
+
+    from superset.exceptions import QueryObjectValidationError
+
+    view = SemanticView()
+
+    mock_query_object = MagicMock()
+    mock_query_object.post_processing = [
+        {"operation": "rank", "options": {"metric": "does_not_exist"}}
+    ]
+    mock_query_object.exec_post_processing.side_effect = raised
+
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"count": [1]})
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        pytest.raises(QueryObjectValidationError) as excinfo,
+    ):
+        view.get_query_result(mock_query_object)
+
+    assert expected_message in str(excinfo.value)
+
+
 def test_semantic_view_get_query_result_wraps_post_processing_type_error(
     mock_implementation: MagicMock,
 ) -> None:
