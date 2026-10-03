@@ -32,6 +32,25 @@ from superset.mcp_service.common.error_schemas import (
 
 logger = logging.getLogger(__name__)
 
+# Maximum "Did you mean" candidates echoed back. The cap is shared across every
+# missing column in one error, so candidates must already be ordered by
+# relevance.
+MAX_DID_YOU_MEAN_CANDIDATES = 3
+
+# Maximum entries per error-response list (suggestions, context, or template
+# variables), to bound response size.
+MAX_ERROR_SUGGESTIONS = 10
+
+# Leading guidance shared by every column-not-found variant.
+_COLUMN_GUIDANCE = [
+    "Check column name spelling and case sensitivity",
+    "Use get_dataset_info to see available columns",
+]
+# ``candidates`` is a list template var so each name is sanitized and
+# length-limited on its own instead of sharing one budget with the prose.
+_DID_YOU_MEAN = "Did you mean: {candidates}?"
+_NO_CANDIDATES = "No matching columns found."
+
 
 def _sanitize_user_input(value: Any) -> str:
     """Sanitize user input to prevent XSS and injection attacks in error messages."""
@@ -78,7 +97,7 @@ def _sanitize_template_vars(vars_dict: Dict[str, Any]) -> Dict[str, Any]:
         elif isinstance(value, (list, tuple)):
             # Sanitize lists of strings
             sanitized[key] = ", ".join(
-                [_sanitize_user_input(item) for item in value[:10]]
+                [_sanitize_user_input(item) for item in value[:MAX_ERROR_SUGGESTIONS]]
             )  # Limit list size and convert to string
         else:
             # For other types, convert to string and sanitize
@@ -128,14 +147,36 @@ class ChartErrorBuilder:
                 "Use the list_datasets tool to find available datasets",
             ],
         },
-        "column_not_found": {
+        # Free-form ``{suggestions}`` text: the saved-metric validator composes
+        # its own closing line.
+        "saved_metric_not_found": {
+            "message": "Saved metric '{column}' not found in dataset",
+            "details": "The saved metric '{column}' does not exist in the dataset",
+            "suggestions": [
+                "Check saved metric name spelling and case sensitivity",
+                "Use get_dataset_info to see available saved metrics",
+                "{suggestions}",
+            ],
+        },
+        "column_not_found_candidates": {
             "message": "Column '{column}' not found in dataset",
             "details": "The column '{column}' does not exist in the dataset schema",
-            "suggestions": [
-                "Check column name spelling and case sensitivity",
-                "Use get_dataset_info to see available columns",
-                "Did you mean: {suggestions}?",
-            ],
+            "suggestions": [*_COLUMN_GUIDANCE, _DID_YOU_MEAN],
+        },
+        "column_not_found_no_candidates": {
+            "message": "Column '{column}' not found in dataset",
+            "details": "The column '{column}' does not exist in the dataset schema",
+            "suggestions": [*_COLUMN_GUIDANCE, _NO_CANDIDATES],
+        },
+        "multiple_columns_not_found_candidates": {
+            "message": "Multiple columns not found in dataset",
+            "details": "Invalid columns: {columns}",
+            "suggestions": [*_COLUMN_GUIDANCE, _DID_YOU_MEAN],
+        },
+        "multiple_columns_not_found_no_candidates": {
+            "message": "Multiple columns not found in dataset",
+            "details": "Invalid columns: {columns}",
+            "suggestions": [*_COLUMN_GUIDANCE, _NO_CANDIDATES],
         },
         # Runtime errors
         "empty_result": {
@@ -309,7 +350,8 @@ class ChartErrorBuilder:
             ]  # Limit count
             suggestions.extend(sanitized_custom)
 
-        return suggestions[:10]  # Limit total suggestions to prevent response bloat
+        # Limit total suggestions to prevent response bloat
+        return suggestions[:MAX_ERROR_SUGGESTIONS]
 
     @classmethod
     def _generate_error_code(cls, error_code: str | None, template_key: str) -> str:
@@ -362,13 +404,39 @@ class ChartErrorBuilder:
         cls, column: str, suggestions: List[str] | None = None
     ) -> ChartGenerationError:
         """Build a column not found error."""
-        suggestion_text = (
-            ", ".join(suggestions[:3]) if suggestions else "Check available columns"
-        )
+        candidates = list(suggestions or [])[:MAX_DID_YOU_MEAN_CANDIDATES]
         return cls.build_error(
             error_type="column_not_found",
-            template_key="column_not_found",
-            template_vars={"column": column, "suggestions": suggestion_text},
+            template_key=(
+                "column_not_found_candidates"
+                if candidates
+                else "column_not_found_no_candidates"
+            ),
+            template_vars={"column": column, "candidates": candidates},
+            error_code="CHART_COLUMN_NOT_FOUND",
+        )
+
+    @classmethod
+    def multiple_columns_not_found_error(
+        cls, columns: List[str], suggestions: List[str] | None = None
+    ) -> ChartGenerationError:
+        """Build an error naming every missing column.
+
+        ``columns`` are caller-supplied names and are echoed back escaped and
+        length-limited in the details. ``suggestions`` are dataset-owned
+        candidate names sharing one ``MAX_DID_YOU_MEAN_CANDIDATES`` cap across
+        all missing columns, so they must already be ordered by relevance.
+        """
+        candidates = list(suggestions or [])[:MAX_DID_YOU_MEAN_CANDIDATES]
+        return cls.build_error(
+            error_type="multiple_invalid_columns",
+            template_key=(
+                "multiple_columns_not_found_candidates"
+                if candidates
+                else "multiple_columns_not_found_no_candidates"
+            ),
+            template_vars={"columns": columns, "candidates": candidates},
+            error_code="MULTIPLE_INVALID_COLUMNS",
         )
 
     @classmethod
