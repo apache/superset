@@ -2683,7 +2683,45 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-            except (TypeError, pd.errors.DataError) as ex:
+            # A post-processing operation is driven entirely by the request's
+            # `options` dict, which `ChartDataPostProcessingOperationSchema`
+            # accepts as an untyped `fields.Dict`. A malformed option therefore
+            # reaches pandas and surfaces as whatever pandas raises, so these
+            # are bad-request failures, not server faults. ImportError is
+            # deliberately excluded: a missing optional dependency (scipy, for
+            # a `rolling` win_type) is a deployment matter, not a bad request.
+            except KeyError as ex:
+                # Every KeyError a built-in operation raises names a column or
+                # MultiIndex level the options asked for and the result does
+                # not have. `str(KeyError)` is only the repr'd key, which alone
+                # reads as a bare quoted string. An operation registered
+                # through EXTRA_PANDAS_POSTPROCESSING_OPS could raise KeyError
+                # from its own internals, where that wording would be a guess,
+                # which is the other reason to keep the traceback.
+                logger.warning(
+                    "Post-processing failed and was reported as a bad request",
+                    exc_info=True,
+                )
+                raise QueryObjectValidationError(
+                    _(
+                        "Post-processing references a column or level that is "
+                        "not in the query result: %(name)s",
+                        name=ex.args[0] if ex.args else ex,
+                    )
+                ) from ex
+            except (
+                TypeError,
+                ValueError,
+                AttributeError,
+                pd.errors.DataError,
+            ) as ex:
+                # These types are broad enough to also cover a genuine fault in
+                # an operation, and the caller turns this into a message on the
+                # response without logging it, so keep the traceback.
+                logger.warning(
+                    "Post-processing failed and was reported as a bad request",
+                    exc_info=True,
+                )
                 raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data

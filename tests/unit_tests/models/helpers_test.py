@@ -5828,3 +5828,95 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+@pytest.mark.parametrize(
+    "post_processing,expected_message",
+    [
+        pytest.param(
+            {
+                "operation": "diff",
+                "options": {"columns": {"metric": "metric"}, "periods": 1.5},
+            },
+            "periods must be an integer",
+            id="ValueError-from-pandas",
+        ),
+        pytest.param(
+            {
+                "operation": "boxplot",
+                "options": {
+                    "groupby": ["category"],
+                    "metrics": ["metric"],
+                    "whisker_type": "percentile",
+                    "percentiles": [10, 200],
+                },
+            },
+            "Percentiles must be in the range [0, 100]",
+            id="ValueError-from-numpy",
+        ),
+        pytest.param(
+            {"operation": "rank", "options": {"metric": "does_not_exist"}},
+            "references a column or level that is not in the query result: "
+            "does_not_exist",
+            id="KeyError-unknown-column",
+        ),
+        pytest.param(
+            {
+                "operation": "aggregate",
+                "options": {"groupby": ["category"], "aggregates": "not-a-dict"},
+            },
+            "has no attribute 'items'",
+            id="AttributeError-wrong-option-type",
+        ),
+    ],
+)
+def test_get_query_result_wraps_post_processing_request_errors(
+    database: "Database",
+    post_processing: dict[str, Any],
+    expected_message: str,
+) -> None:
+    """
+    A post-processing option is driven entirely by the request, so a malformed
+    one is a bad request and must surface as `QueryObjectValidationError` (400).
+
+    `ChartDataPostProcessingOperationSchema.options` is an untyped
+    `fields.Dict`, so nothing validates an option before it reaches pandas.
+    Whatever pandas or numpy then raises escapes to
+    `app.errorhandler(Exception)`, whose `json_error_response` defaults to
+    status 500 -- breaking the contract that
+    `test_chart_data_invalid_post_processing` already pins at 400.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+    query_object = QueryObject(row_limit=10, post_processing=[post_processing])
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError) as excinfo,
+    ):
+        table.get_query_result(query_object)
+
+    assert expected_message in str(excinfo.value)
