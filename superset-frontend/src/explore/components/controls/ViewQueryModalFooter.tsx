@@ -87,7 +87,7 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       </Button>
       <Button
         buttonStyle="secondary"
-        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
+        onClick={({ metaKey, ctrlKey }) => openSQL(Boolean(metaKey || ctrlKey))}
       >
         {OPEN_IN_SQL_LAB}
       </Button>
