@@ -127,6 +127,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -831,7 +832,7 @@ class GenerateDashboardRequest(BaseModel):
         )
 
 
-class UpdateDashboardRequest(BaseModel):
+class UpdateDashboardRequest(OmittedMeansUnchanged):
     """Request schema for updating an existing dashboard's layout/theme/style.
 
     All fields are optional; only the fields explicitly passed are applied.
@@ -2508,6 +2509,16 @@ class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
     )
 
 
+def _sanitize_header_text(value: str) -> str:
+    """Sanitize header text; it renders as plain title text."""
+    sanitized: str | None = sanitize_user_input(
+        value, "text", max_length=500, allow_empty=True
+    )
+    if not sanitized:
+        raise ValueError("text has no content left after sanitization.")
+    return sanitized
+
+
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
     """Spec for a new section header band.
 
@@ -2531,12 +2542,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
     @classmethod
     def sanitize_text(cls, v: str) -> str:
         """Sanitize header text to prevent XSS; it renders as plain title text."""
-        sanitized: str | None = sanitize_user_input(
-            v, "text", max_length=500, allow_empty=True
-        )
-        if not sanitized:
-            raise ValueError("text has no content left after sanitization.")
-        return sanitized
+        return _sanitize_header_text(v)
 
 
 class DividerComponentSpec(BaseNewDashboardComponentSpec):
@@ -2600,14 +2606,7 @@ class DashboardComponentUpdateSpec(BaseModel):
     @classmethod
     def sanitize_text(cls, v: str | None) -> str | None:
         """Sanitize header text to prevent XSS; it renders as plain title text."""
-        if v is None:
-            return v
-        sanitized: str | None = sanitize_user_input(
-            v, "text", max_length=500, allow_empty=True
-        )
-        if not sanitized:
-            raise ValueError("text has no content left after sanitization.")
-        return sanitized
+        return None if v is None else _sanitize_header_text(v)
 
     @model_validator(mode="after")
     def _require_update_field(self) -> "DashboardComponentUpdateSpec":

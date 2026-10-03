@@ -28,14 +28,19 @@ or section header (see ``generate_dashboard``'s ``position_json`` docstring).
 
 import logging
 from collections import Counter
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import db, event_logger
-from superset.mcp_service.dashboard.constants import generate_id, GRID_COLUMN_COUNT
+from superset.mcp_service.dashboard.constants import (
+    generate_id,
+    GRID_COLUMN_COUNT,
+    GRID_ID,
+    HEADER_ID,
+)
 from superset.mcp_service.dashboard.layout_placement import (
     collect_available_tab_names,
     ensure_layout_structure,
@@ -119,7 +124,7 @@ def _resolve_target_container(layout: Dict[str, Any], target_tab: str | None) ->
             "default grid layout."
         )
 
-    return tab_target if tab_target else "GRID_ID"
+    return tab_target if tab_target else GRID_ID
 
 
 def _add_component_to_layout(
@@ -223,16 +228,18 @@ def _validate_markdown_width(
         )
 
 
+def _duplicate_ids(ids: Iterable[str]) -> list[str]:
+    """Return the sorted IDs that appear more than once in ``ids``."""
+    return sorted(cid for cid, count in Counter(ids).items() if count > 1)
+
+
 def _apply_updates(
     layout: Dict[str, Any],
     updates: list[DashboardComponentUpdateSpec],
     existing_components: Dict[str, Dict[str, Any]],
 ) -> list[str]:
     """Apply every update spec in order; returns the updated component IDs."""
-    update_ids = [spec.id for spec in updates]
-    if duplicates := sorted(
-        cid for cid, count in Counter(update_ids).items() if count > 1
-    ):
+    if duplicates := _duplicate_ids(spec.id for spec in updates):
         raise _ComponentOperationError(
             f"update contains duplicate component IDs: {duplicates}."
         )
@@ -249,7 +256,18 @@ def _apply_updates(
             _validate_markdown_width(layout, spec.id, spec.width)
         _apply_component_update(spec, layout[spec.id], component_type)
 
-    return update_ids
+    return [spec.id for spec in updates]
+
+
+def _manageable_components(layout: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Return the markdown/header/divider nodes of *layout* keyed by component ID."""
+    return {
+        key: node
+        for key, node in layout.items()
+        if key != HEADER_ID
+        and isinstance(node, dict)
+        and node.get("type") in _COMPONENT_TYPE_BY_LAYOUT_TYPE
+    }
 
 
 def _component_summaries(layout: Dict[str, Any]) -> list[DashboardComponentSummary]:
@@ -260,10 +278,7 @@ def _component_summaries(layout: Dict[str, Any]) -> list[DashboardComponentSumma
             component_type=_COMPONENT_TYPE_BY_LAYOUT_TYPE[node["type"]],
             meta=node.get("meta") or {},
         )
-        for key, node in layout.items()
-        if key != "HEADER_ID"
-        and isinstance(node, dict)
-        and node.get("type") in _COMPONENT_TYPE_BY_LAYOUT_TYPE
+        for key, node in _manageable_components(layout).items()
     ]
 
 
@@ -347,13 +362,7 @@ def manage_dashboard_markdown(  # noqa: C901
                         error=f"Dashboard has a malformed layout: {error}",
                     )
 
-            existing_components = {
-                key: node
-                for key, node in current_layout.items()
-                if key != "HEADER_ID"
-                and isinstance(node, dict)
-                and node.get("type") in _COMPONENT_TYPE_BY_LAYOUT_TYPE
-            }
+            existing_components = _manageable_components(current_layout)
 
             if unknown_removals := [
                 cid for cid in request.remove if cid not in existing_components
@@ -367,9 +376,7 @@ def manage_dashboard_markdown(  # noqa: C901
                     ),
                 )
 
-            if duplicate_removals := sorted(
-                cid for cid, count in Counter(request.remove).items() if count > 1
-            ):
+            if duplicate_removals := _duplicate_ids(request.remove):
                 return ManageDashboardMarkdownResponse(
                     dashboard_id=request.dashboard_id,
                     error=(

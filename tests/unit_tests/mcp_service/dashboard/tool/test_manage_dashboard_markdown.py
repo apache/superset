@@ -143,13 +143,12 @@ def _mock_dashboard(
     id: int = 1,
     layout: dict[str, Any] | None = None,
     chart_ids: list[int] | None = None,
-    slug: str | None = None,
 ) -> Mock:
     """Build a dashboard without touching the metadata database."""
     dashboard = Mock()
     dashboard.id = id
     dashboard.dashboard_title = "Test Dashboard"
-    dashboard.slug = slug
+    dashboard.slug = None
     dashboard.position_json = json.dumps(
         layout if layout is not None else _empty_grid_layout()
     )
@@ -178,6 +177,7 @@ async def _call(mcp_server: FastMCP, request: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.mark.asyncio
 async def test_add_markdown_creates_new_row(mcp_server: FastMCP) -> None:
+    """Adding a markdown wraps it in a new row appended to the grid."""
     dashboard = _mock_dashboard()
 
     with (
@@ -219,6 +219,7 @@ async def test_add_markdown_creates_new_row(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_add_header_placed_directly_under_grid(mcp_server: FastMCP) -> None:
+    """A new header is attached directly to the grid, not wrapped in a row."""
     dashboard = _mock_dashboard()
 
     with (
@@ -256,6 +257,7 @@ async def test_add_header_placed_directly_under_grid(mcp_server: FastMCP) -> Non
 
 @pytest.mark.asyncio
 async def test_add_divider_placed_directly_under_grid(mcp_server: FastMCP) -> None:
+    """A new divider is attached directly to the grid, not wrapped in a row."""
     dashboard = _mock_dashboard()
 
     with (
@@ -604,6 +606,7 @@ async def test_duplicate_remove_ids_rejected(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_update_and_remove_conflict_rejected(mcp_server: FastMCP) -> None:
+    """Updating and removing the same component in one request is rejected."""
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -630,6 +633,7 @@ async def test_update_and_remove_conflict_rejected(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_malformed_position_json(mcp_server: FastMCP) -> None:
+    """Unparseable position_json is reported as an error without saving."""
     dashboard = _mock_dashboard()
     dashboard.position_json = "not valid json"
 
@@ -647,6 +651,7 @@ async def test_malformed_position_json(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_dashboard_not_found(mcp_server: FastMCP) -> None:
+    """A missing dashboard yields a not-found error response."""
     with patch(DAO_GET, side_effect=DashboardNotFoundError()):
         data = await _call(
             mcp_server,
@@ -659,6 +664,7 @@ async def test_dashboard_not_found(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_permission_denied(mcp_server: FastMCP) -> None:
+    """A caller without access to the dashboard gets an error and no write."""
     dashboard = _mock_dashboard()
 
     with (
@@ -690,6 +696,7 @@ async def test_at_least_one_operation_required(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_header_text_html_is_sanitized(mcp_server: FastMCP) -> None:
+    """HTML in header text is stripped before it is persisted."""
     dashboard = _mock_dashboard()
 
     with (
@@ -718,6 +725,7 @@ async def test_header_text_html_is_sanitized(mcp_server: FastMCP) -> None:
 
 @pytest.mark.asyncio
 async def test_header_text_all_html_rejected(mcp_server: FastMCP) -> None:
+    """Header text that is only HTML is rejected as empty after sanitization."""
     dashboard = _mock_dashboard()
 
     with patch(DAO_GET, return_value=dashboard):
