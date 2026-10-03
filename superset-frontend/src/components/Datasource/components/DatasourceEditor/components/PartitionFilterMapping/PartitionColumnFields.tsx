@@ -104,6 +104,11 @@ export default function PartitionColumnFields({
   // in one click because the picker offers every column -- that row renders no
   // mapping section at all, so the one guided way out of the broken state led
   // nowhere. Offer a column that is not the partition column instead.
+  //
+  // Null only when there is no mapped column at all, which is also when the
+  // block below does not render -- but a dataset whose every column is the
+  // partition column would otherwise be offered a link to nothing, so the link
+  // is guarded rather than the type asserted away.
   const differentColumnTarget =
     mappedColumn && mappedColumn !== partitionColumn
       ? mappedColumn
@@ -186,14 +191,19 @@ export default function PartitionColumnFields({
               <Typography.Text type="secondary">
                 {t(
                   'Filters on this column are mirrored onto the partition column.',
-                )}{' '}
-                <Button
-                  buttonStyle="link"
-                  onClick={() => onNavigateToColumn(differentColumnTarget)}
-                  data-test="map-a-different-column"
-                >
-                  {t('Map a different column instead →')}
-                </Button>
+                )}
+                {differentColumnTarget && (
+                  <>
+                    {' '}
+                    <Button
+                      buttonStyle="link"
+                      onClick={() => onNavigateToColumn(differentColumnTarget)}
+                      data-test="map-a-different-column"
+                    >
+                      {t('Map a different column instead →')}
+                    </Button>
+                  </>
+                )}
               </Typography.Text>
               {isActive ? (
                 <Alert
