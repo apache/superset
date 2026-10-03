@@ -46,6 +46,7 @@ function isFiniteNumber(value: unknown): value is number {
 /**
  * Keep only typed geographic points that can be drawn: numeric, in-range
  * latitude/longitude and, for a metric radius, a finite nonnegative radius.
+ * Other spatial formats use the native decoder after Explore format changes.
  *
  * The MCP data and export contract rejects such rows outright; the render
  * layer skips them so one sparse row does not blank the whole map, and logs
@@ -61,10 +62,12 @@ export function filterDrawableGeographicPoints(
     [spatial?.lonCol, 180],
   ] as const;
   const drawable = records.filter(record => {
-    const validCoordinates = coordinateColumns.every(([column, bound]) => {
-      const value = column ? record[column] : undefined;
-      return isFiniteNumber(value) && Math.abs(value) <= bound;
-    });
+    const validCoordinates =
+      spatial?.type !== 'latlong' ||
+      coordinateColumns.every(([column, bound]) => {
+        const value = column ? record[column] : undefined;
+        return isFiniteNumber(value) && Math.abs(value) <= bound;
+      });
     if (!validCoordinates || !radiusMetricLabel) {
       return validCoordinates;
     }

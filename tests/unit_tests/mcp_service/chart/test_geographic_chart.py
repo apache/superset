@@ -1347,3 +1347,60 @@ def test_geographic_inherited_limit_matches_compilation(
     assert merged["mcp_geographic"] is True
     assert query["row_limit"] == plugin.compile_row_limit(merged)
     assert 1 <= query["row_limit"] <= 10000
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_omitted_temporal_column_preserves_cleared_binding(kind: str) -> None:
+    """Clearing then updating on the same dataset must not restore a default."""
+    dataset = Mock(main_dttm_col="created_at")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        old = map_config_to_form_data(config_for(kind), dataset_id=3)
+        clear = CHART_CONFIG_ADAPTER.validate_python(
+            {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
+        )
+        cleared = merge_chart_form_data(
+            old, map_config_to_form_data(clear, dataset_id=3), clear
+        )
+        config = config_for(kind)
+        merged = merge_chart_form_data(
+            cleared, map_config_to_form_data(config, dataset_id=3), config
+        )
+    assert "_mcp_dashboard_time_filter_subject" not in merged
+    assert merged["adhoc_filters"] == cleared["adhoc_filters"] == []
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_replacement_filters_discard_native_predicates(kind: str) -> None:
+    """Nonempty replacements remove native predicates from the prepared query."""
+    old = form_for(kind)
+    old.update(
+        filters=[{"col": "segment", "op": "IN", "val": ["Retail"]}],
+        where="segment = 'Retail'",
+        having="COUNT(*) > 10",
+    )
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES[kind][0],
+            "filters": [{"column": "segment", "op": "IN", "value": ["Wholesale"]}],
+        }
+    )
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    assert not {"filters", "where", "having"} & merged.keys()
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+    assert {"col": "segment", "op": "IN", "val": ["Wholesale"]} in query["filters"]
+    assert {"col": "segment", "op": "IN", "val": ["Retail"]} not in query["filters"]
+    assert not query.get("where")
+    assert not query.get("having")

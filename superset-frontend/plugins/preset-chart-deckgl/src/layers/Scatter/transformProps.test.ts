@@ -411,3 +411,41 @@ test('filterDrawableGeographicPoints keeps valid points without logging', () => 
     warn.mockRestore();
   }
 });
+
+test.each([
+  { type: 'geohash', geohashCol: 'location' },
+  { type: 'delimited', lonlatCol: 'location' },
+])(
+  'MCP points remain drawable after switching spatial format to $type',
+  spatial => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        spatial,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: 10,
+            },
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: -1,
+            },
+          ],
+        },
+      ],
+    } as ChartProps;
+    const features = transformProps(props).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0].position[0]).toBeCloseTo(-122.4, 1);
+    expect(features[0].position[1]).toBeCloseTo(37.8, 1);
+    expect(features[0].radius).toBe(10);
+  },
+);

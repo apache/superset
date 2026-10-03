@@ -1573,7 +1573,10 @@ regions still cross-filter and drill on their original source value.
 Typed geographic point maps omit rows with invalid coordinates or missing,
 non-numeric, non-finite, or negative radius metrics rather than failing the
 chart, and log a browser-console warning with the number of skipped points.
-This display behavior does not relax MCP generation's result validation.
+After switching a point map to Geohash or delimited coordinates in Explore,
+coordinates use the native spatial decoder rather than the typed latitude/longitude
+guard; radius-metric validation remains active. This display behavior does not
+relax MCP generation's result validation.
 Source values remain intact for data/export and country-map cross-filtering.
 Database `NUMERIC`/Decimal query coordinates and metrics are supported when
 finite and representable as JSON numbers. Coordinate bounds are checked before
@@ -1588,7 +1591,10 @@ requires a complete typed config and discards old dataset roles and filters.
 Geographic updates cap inherited native row limits at 10,000 so compilation
 validates the same rows the native query renders. Explicit
 `temporal_column: null` removes generated dashboard time bindings, including
-dataset defaults, while preserving user-authored predicates. Disabled types
+dataset defaults, while preserving user-authored predicates. Subsequent same-dataset
+updates that omit `temporal_column` preserve that cleared state. Explicit `filters`
+replace inherited predicates, including native `filters`, `where`, and `having`,
+whether the replacement list is empty or nonempty. Disabled types
 cannot be used for fresh previews or type conversions; an existing cached
 preview of the same type can still be updated.
 
