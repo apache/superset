@@ -37,8 +37,13 @@ from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
-from superset.jinja_context import get_template_processor
+from superset.jinja_context import (
+    get_template_processor,
+    PARAMETER_MISSING_ERR,
+    undefined_parameters_message,
+)
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
@@ -169,21 +174,78 @@ class QueryEstimationCommand(BaseCommand):
     ) -> list[dict[str, Any]]:
         self.validate()
 
-        sql = self._sql
-        if self._template_params:
-            # Access is already checked in validate() before any rendering.
-            template_processor = get_template_processor(self._database)
-            try:
-                sql = template_processor.process_template(sql, **self._template_params)
-            except TemplateError as ex:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=str(ex),
-                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                        level=ErrorLevel.ERROR,
+        # Rendered whether or not `template_params` was supplied, the way
+        # `validate()` above already jinja-processes for authorization and the
+        # execution path does in `SqlQueryRenderImpl.render`. A query needs no
+        # declared parameter to need rendering -- `get_time_filter()`,
+        # `current_username()`, `url_param()` take none -- and SQL Lab posts an
+        # empty `template_params` for an estimate, so those never rendered.
+        # The execution path builds its processor from the SQL Lab query, which
+        # is where a macro resolving an unqualified table (`latest_partition`)
+        # reads the schema and catalog from. Nothing is persisted here, so an
+        # unpersisted query carries just those two; the processor reads nothing
+        # else from it, and without a `database` it has no relationship that
+        # could attach it to a session.
+        template_processor = get_template_processor(
+            self._database,
+            query=Query(schema=self._schema or None, catalog=self._catalog),
+        )
+        # Both calls sit inside the `TemplateError` catch, as they do in
+        # `SqlQueryRenderImpl.render`: `get_undefined_parameters` parses the
+        # rendered SQL with Jinja, so a parameter whose *value* carries
+        # malformed Jinja raises from there too, and reads the same to the
+        # caller as one raised while rendering.
+        try:
+            sql = template_processor.process_template(
+                self._sql, **self._template_params
+            )
+            # A parameter left unresolved makes the estimate describe a
+            # different query than the one Run would execute, so it is
+            # reported the way `SqlQueryRenderImpl._validate` reports it.
+            undefined_parameters = sorted(
+                template_processor.get_undefined_parameters(sql)
+            )
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
+            ) from ex
+
+        if undefined_parameters:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=(
+                        f"{undefined_parameters_message(undefined_parameters)} "
+                        f"{str(PARAMETER_MISSING_ERR)}"
                     ),
-                    status=400,
-                ) from ex
+                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={
+                        "undefined_parameters": undefined_parameters,
+                        "template_parameters": self._template_params,
+                    },
+                ),
+                status=400,
+            )
+
+        # Re-authorize the rendered SQL, as the execution path does in
+        # `_validate_rendered_access`: the check in `validate()` authorized a
+        # render of its own, and a template need not render the same way twice
+        # -- `{{ ['a', 'b'] | random }}` resolves independently each time -- so
+        # the first check can clear a table this estimate never touches and
+        # miss the one it does. With no template params, the rendered text is
+        # what `raise_for_access` authorizes.
+        security_manager.raise_for_access(
+            database=self._database,
+            sql=sql,
+            catalog=self._catalog,
+            schema=self._schema or None,
+            force_dataset_match=True,
+        )
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
