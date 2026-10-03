@@ -424,6 +424,10 @@ export function JsonCellRenderer({
     [],
   );
 
+  const openJsonModal = useCallback(() => {
+    setModalOpen(true);
+  }, []);
+
   const onArrowClick = useCallback(() => {
     if (arrowClickTimer.current !== undefined) {
       window.clearTimeout(arrowClickTimer.current);
@@ -517,7 +521,7 @@ export function JsonCellRenderer({
           <JsonActionButton
             label={t('Open JSON')}
             testId="json-cell-open"
-            onActivate={() => setModalOpen(true)}
+            onActivate={openJsonModal}
           >
             <Icons.FullscreenOutlined iconSize="xs" />
           </JsonActionButton>

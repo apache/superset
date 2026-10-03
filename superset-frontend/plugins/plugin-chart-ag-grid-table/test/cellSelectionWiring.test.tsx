@@ -85,6 +85,8 @@ test('a JSON control click and the second click of a double-click skip cross-fil
         children: (
           <AgGridTableChart
             {...transformProps(testData.basic)}
+            emitCrossFilters
+            filters={{ name: ['Ada'] }}
             setDataMask={setDataMask}
             slice_id={1}
           />
@@ -96,20 +98,42 @@ test('a JSON control click and the second click of a double-click skip cross-fil
   await waitFor(() => expect(captured.props?.onCellClicked).toBeDefined());
 
   const onCellClicked = captured.props?.onCellClicked as (event: {
+    column: { getColId: () => string; getColDef: () => { context?: object } };
+    node: { setSelected: (selected: boolean) => void };
+    api: { getSelectedNodes: () => unknown[] };
+    value: string;
     event?: { target?: EventTarget | null; detail?: number } | null;
   }) => void;
 
+  const node = { setSelected: jest.fn() };
+  const untoggleEvent = {
+    column: {
+      getColId: () => 'name',
+      getColDef: () => ({ context: {} }),
+    },
+    node,
+    api: { getSelectedNodes: () => [node] },
+    value: 'Ada',
+  };
+
+  onCellClicked({
+    ...untoggleEvent,
+    event: { target: document.createElement('span'), detail: 1 },
+  });
+  expect(setDataMask).toHaveBeenCalledTimes(1);
+  setDataMask.mockClear();
+
   const action = document.createElement('button');
   action.setAttribute('data-json-cell-action', 'true');
-  onCellClicked({ event: { target: action } });
+  onCellClicked({ ...untoggleEvent, event: { target: action, detail: 1 } });
+  expect(setDataMask).not.toHaveBeenCalled();
 
   const cell = document.createElement('div');
   cell.setAttribute('data-json-cell', 'true');
   const text = document.createElement('span');
   cell.appendChild(text);
   document.body.appendChild(cell);
-  onCellClicked({ event: { target: text, detail: 2 } });
-
+  onCellClicked({ ...untoggleEvent, event: { target: text, detail: 2 } });
   expect(setDataMask).not.toHaveBeenCalled();
   cell.remove();
 });
