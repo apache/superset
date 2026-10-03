@@ -166,8 +166,8 @@ def test_cancel_query_stops_a_running_statement(engine: Engine) -> None:
         deadline = time.monotonic() + 30
         while True:
             cancel_cursor.execute(
-                "SELECT status FROM v$session "
-                f"WHERE sid = {int(sid)} AND serial# = {int(serial)}"  # noqa: S608
+                "SELECT status FROM v$session "  # noqa: S608
+                f"WHERE sid = {int(sid)} AND serial# = {int(serial)}"
             )
             row = cancel_cursor.fetchone()
             if row is not None and row[0] == "ACTIVE":
