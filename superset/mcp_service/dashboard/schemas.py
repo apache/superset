@@ -439,8 +439,8 @@ class GetDashboardDatasetsRequest(BaseModel):
         ge=0,
         le=MAX_DASHBOARD_DATASET_COLUMNS,
         description=(
-            "Maximum columns returned per dataset; 0 omits column details. "
-            "Total column counts are retained. Defaults to 100."
+            "Column limit per dataset; 0 omits column details. "
+            "Total column counts retained. Defaults to 100."
         ),
     )
 
