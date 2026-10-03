@@ -498,6 +498,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return False
 
     def _sanitize_filters(self) -> None:
+        if (
+            self.datasource
+            and self.datasource.type == "semantic_view"
+            and (self.extras.get("where") or self.extras.get("having"))
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "SQL WHERE/HAVING expressions are not supported for semantic "
+                    "views. Remove the SQL clause or use a semantic dimension filter."
+                )
+            )
+
         from superset.jinja_context import get_template_processor
 
         needs_transpilation = self.extras.get("transpile_to_dialect", False)
