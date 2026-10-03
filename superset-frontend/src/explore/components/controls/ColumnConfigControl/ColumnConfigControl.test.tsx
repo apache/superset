@@ -107,3 +107,29 @@ test('stores config for an aliased column under its real column key', async () =
     __timestamp: { customColumnName: 'Date', columnWidth: 50 },
   });
 });
+
+test('migrates legacy Time alias config onto __timestamp when edited', async () => {
+  const onChange = jest.fn();
+  render(
+    <ColumnConfigControl
+      name="column_config"
+      value={{
+        Time: { customColumnName: 'Date' },
+      }}
+      onChange={onChange}
+      columnsPropsObject={{
+        colnames: ['__timestamp', 'region'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.String],
+      }}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Configure region' }),
+  );
+
+  expect(onChange).toHaveBeenCalledWith({
+    __timestamp: { customColumnName: 'Date' },
+    region: { columnWidth: 50 },
+  });
+});

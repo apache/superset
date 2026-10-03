@@ -422,6 +422,35 @@ test('normalizeColumnConfigKeys keeps keys that do not match colnames', () => {
   ).toEqual({ leftover: { columnWidth: 10 } });
 });
 
+test('normalizeColumnConfigKeys remaps display aliases onto real column keys', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        Time: { customColumnName: 'Date' },
+        region: { columnWidth: 50 },
+      },
+      ['__timestamp', 'region'],
+    ),
+  ).toEqual({
+    __timestamp: { customColumnName: 'Date' },
+    region: { columnWidth: 50 },
+  });
+});
+
+test('normalizeColumnConfigKeys prefers an existing stored key over a display alias', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        __timestamp: { customColumnName: 'Stored' },
+        Time: { customColumnName: 'Alias' },
+      },
+      ['__timestamp'],
+    ),
+  ).toEqual({
+    __timestamp: { customColumnName: 'Stored' },
+  });
+});
+
 test('buildHeaderGroupRows fills empty cells for ungrouped columns', () => {
   const rows = buildHeaderGroupRows(chartGroups, ['revenue', 'region']);
 
