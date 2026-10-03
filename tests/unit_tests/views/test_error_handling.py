@@ -489,6 +489,8 @@ class TestShowHttpException:
         assert errors[0]["message"] == str(error)
         assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR.value
         assert errors[0]["level"] == ErrorLevel.ERROR.value
+        # The request path is logged for 404s but must never reach the body.
+        assert path not in response.get_data(as_text=True)
 
 
 class TestGuestErrorSanitization:
