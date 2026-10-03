@@ -1971,6 +1971,15 @@ def _orderby_without_removed_dimensions(
         if isinstance(name, str)
     }
     removed = previous - current
+    metric_labels: set[str] = set()
+    for form_data in (existing_form_data, new_form_data):
+        metrics = form_data.get("metrics") or []
+        if not isinstance(metrics, (list, tuple)):
+            metrics = [metrics]
+        for metric in [form_data.get("metric"), *metrics]:
+            label = metric.get("label") if isinstance(metric, Mapping) else metric
+            if isinstance(label, str):
+                metric_labels.add(label.casefold())
     return [
         entry
         for entry in saved
@@ -1979,6 +1988,7 @@ def _orderby_without_removed_dimensions(
             and entry
             and isinstance(entry[0], str)
             and entry[0].casefold() in removed
+            and entry[0].casefold() not in metric_labels
         )
     ]
 

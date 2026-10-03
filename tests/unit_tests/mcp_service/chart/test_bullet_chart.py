@@ -4181,6 +4181,37 @@ async def test_saved_bullet_clearing_dimensions_drops_their_sorts_only() -> None
     assert persisted["orderby"] == [metric_sort]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("metric_key", ["metric", "metrics"])
+@pytest.mark.parametrize("adhoc", [False, True])
+@pytest.mark.parametrize("metric_source", ["saved", "new"])
+async def test_saved_bullet_removed_dimension_keeps_colliding_metric_sort(
+    metric_key: str, adhoc: bool, metric_source: str
+) -> None:
+    """Keep sorts matching saved or updated metric labels despite removed dimensions."""
+    saved_label = "Revenue" if metric_source == "saved" else "OldRevenue"
+    saved_metric = {"label": saved_label} if adhoc else saved_label
+    metric_sort = ["Revenue", False]
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            metric_key: [saved_metric] if metric_key == "metrics" else saved_metric,
+            "groupby": ["revenue", "Country", "Region"],
+            "orderby": [metric_sort, ["Country", True], ["Region", True]],
+        },
+        {
+            "metric": {
+                **_simple_metric(),
+                "label": "NewRevenue" if metric_source == "saved" else "Revenue",
+            },
+            "dimensions": [{"name": "Country"}],
+        },
+    )
+
+    assert persisted["groupby"] == ["Country"]
+    assert persisted["orderby"] == [metric_sort, ["Country", True]]
+
+
 def test_viz_change_with_omitted_filters_does_not_restore_previous_predicates() -> None:
     from superset.mcp_service.chart.schemas import PieChartConfig
     from superset.mcp_service.chart.tool.update_chart import (
