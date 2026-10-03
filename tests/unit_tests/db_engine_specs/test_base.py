@@ -53,7 +53,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
-from superset.sql.parse import Table
+from superset.sql.parse import RLSMethod, Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
     OAuth2State,
@@ -2045,3 +2045,8 @@ def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
     microsecond function (via their own override).
     """
     assert spec.epoch_us_to_dttm() == expected
+
+
+def test_default_rls_method_is_subquery() -> None:
+    """Base engine spec defaults to subquery-based RLS."""
+    assert BaseEngineSpec.rls_method == RLSMethod.AS_SUBQUERY

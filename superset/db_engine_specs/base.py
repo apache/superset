@@ -701,6 +701,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return cls._extended_aggregations.get(aggregate)
 
+    # RLS strategy for this engine spec. Override in engine-specific classes as
+    # needed (for example ``RLSMethod.AS_PREDICATE`` for engines that don't
+    # support subquery-based RLS, or ``RLSMethod.AS_PREDICATE_SPLICE`` for
+    # engines where sqlglot generation is not faithful).
+    rls_method = RLSMethod.AS_SUBQUERY
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
@@ -815,21 +821,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return set(cls.encrypted_extra_sensitive_fields) | {
             "$.oauth2_client_info.secret"
         }
-
-    @classmethod
-    def get_rls_method(cls) -> RLSMethod:
-        """
-        Returns the RLS method to be used for this engine.
-
-        There are two ways to insert RLS: either replacing the table with a subquery
-        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        safer, but not supported in all databases.
-        """
-        return (
-            RLSMethod.AS_SUBQUERY
-            if cls.allows_subqueries and cls.allows_alias_in_select
-            else RLSMethod.AS_PREDICATE
-        )
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
