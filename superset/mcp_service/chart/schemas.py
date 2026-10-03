@@ -28,7 +28,7 @@ import re
 from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime, time
-from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
+from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol, Tuple
 
 from pydantic import (
     AliasChoices,
@@ -2642,7 +2642,13 @@ class XYChartConfig(BaseChartConfig):
         ge=1,
         le=10000,
     )
-    sort_by: SortByConfig | str | List[SortByConfig | str] | None = Field(
+    sort_by: (
+        SortByConfig
+        | str
+        | Tuple[str, bool]
+        | Annotated[List[SortByConfig | str], Field(max_length=1)]
+        | None
+    ) = Field(
         None,
         description=(
             "Sort by the x column or one y metric; a bare name sorts "

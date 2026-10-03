@@ -1445,3 +1445,21 @@ class TestXYChartConfigSortBy:
                     SortByConfig(column="revenue", ascending=False),
                 ],
             )
+
+    def test_sort_by_pair_format_valid_against_json_schema(self) -> None:
+        """Verify pair format [col, asc] validates cleanly against the JSON schema."""
+        import jsonschema
+
+        schema = XYChartConfig.model_json_schema()
+        validator = jsonschema.Draft202012Validator(schema)
+        instance = {
+            "chart_type": "xy",
+            "x": {"name": "category"},
+            "y": [{"name": "sales"}],
+            "sort_by": ["sales", True],
+        }
+        assert validator.is_valid(instance)
+        config = XYChartConfig(**instance)
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
