@@ -135,8 +135,10 @@ objects (dashboards and slices) associated with the tables you just extended the
 ### Actionable Access-Denied Messages
 
 When a viewer opens a chart or dashboard built on a dataset they don't have access to, Superset
-shows a plain-language error explaining that access is denied (naming the tables for SQL Lab
-errors) and, when known, the dataset owners to contact. You can also point users at your own access-request process by setting
+can show a plain-language error explaining that access is denied (naming the tables for SQL Lab
+errors) and, when known, the dataset owners to contact. This applies only where the structured
+access-denied payload reaches the UI; some paths, such as `/api/v1/chart/data`, return a bare 403
+instead, so neither the owner contacts nor the "Request access" link appear there. You can also point users at your own access-request process by setting
 `PERMISSION_INSTRUCTIONS_LINK` in `superset_config.py`:
 
 ```python
