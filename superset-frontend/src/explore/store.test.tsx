@@ -445,7 +445,9 @@ test('handleDeprecatedControls migrates interval_color_indices into interval_col
   };
   handleDeprecatedControls(formData);
 
-  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#1f77b4']);
+  // The uncovered third bound keeps its positional scheme color, matching
+  // what the Gauge renderer drew before the migration.
+  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);
 });
 
 test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
@@ -461,7 +463,7 @@ test('handleDeprecatedControls does not override an already-populated interval_c
   expect(formData.interval_colors).toEqual(['#000000']);
 });
 
-test('handleDeprecatedControls leaves interval_colors unset when the color scheme is unresolvable', () => {
+test('handleDeprecatedControls falls back to the default scheme when the saved scheme is unregistered', () => {
   const formData: any = {
     viz_type: VizType.Gauge,
     intervals: '20,40,60',
@@ -470,5 +472,6 @@ test('handleDeprecatedControls leaves interval_colors unset when the color schem
   };
   handleDeprecatedControls(formData);
 
-  expect(formData.interval_colors).toBeUndefined();
+  // Mirrors the Gauge renderer, which resolves against the default scheme.
+  expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);
 });
