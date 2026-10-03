@@ -2172,6 +2172,39 @@ def test_pivot_table_v2_actual_values_uses_database_rollups():
     assert pivoted.loc[("US",), ("AVG(num)", "boy")] == 10
 
 
+@pytest.mark.parametrize(
+    "aggregate_function,expected",
+    [
+        ("Sample Variance", 50.0),
+        ("Sample Standard Deviation", 50.0**0.5),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_aggregations(
+    aggregate_function: str, expected: float
+):
+    """Sample variance/standard deviation must compute for two values at one
+    pivot address (10 and 20 give variance 50 and standard deviation ~7.071),
+    not raise on a misspelled ``pd.series`` or a non-callable tuple.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US"],
+            "gender": ["boy", "boy"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(expected)
+
+
 def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
     """A result aggregation hides `showValuesAs` in Explore and always wins
     over it on the chart (`resultFactory ?? fractionType` in utilities.ts);
