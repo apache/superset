@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/common';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import ColumnConfigPopover from 'src/explore/components/controls/ColumnConfigControl/ColumnConfigPopover';
 import ControlForm, {
   ControlFormItem,
   ControlFormRow,
 } from 'src/explore/components/controls/ColumnConfigControl/ControlForm';
+import { ColumnConfigFormLayout } from 'src/explore/components/controls/ColumnConfigControl/types';
 
 const CHECKBOX = (
   <ControlFormItem
@@ -82,6 +85,36 @@ describe('ColumnConfigControl reset to chart-level setting', () => {
     expect(onChange).not.toHaveBeenCalledWith(
       expect.objectContaining({ showCellBars: expect.anything() }),
     );
+  });
+
+  test('reset through the popover removes only the reset override', async () => {
+    // ControlForm alone only proves the callback fires. The deletion happens in the
+    // popover, so exercising ControlForm with a mocked onReset stays green even if that
+    // filter never runs. Render the popover and assert on the value it emits.
+    const onChange = jest.fn();
+    render(
+      <ColumnConfigPopover
+        column={{
+          isChildColumn: false,
+          isTimeComparisonColumn: false,
+          name: 'my_column',
+          type: GenericDataType.String,
+          config: { showCellBars: false, d3NumberFormat: '.2f' },
+        }}
+        configFormLayout={
+          {
+            [GenericDataType.String]: [['showCellBars', 'd3NumberFormat']],
+          } as ColumnConfigFormLayout
+        }
+        onChange={onChange}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /use the chart-level setting/i }),
+    );
+    // the override is gone, the unrelated formatting override survives
+    expect(onChange).toHaveBeenCalledWith({ d3NumberFormat: '.2f' });
   });
 
   test('toggling the checkbox still writes an explicit value', async () => {
