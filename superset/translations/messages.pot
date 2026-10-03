@@ -16486,6 +16486,9 @@ msgstr ""
 msgid "Use the Advanced Analytics options below"
 msgstr ""
 
+msgid "Use the chart-level setting"
+msgstr ""
+
 msgid "Use this section if you want a query that aggregates"
 msgstr ""
 
