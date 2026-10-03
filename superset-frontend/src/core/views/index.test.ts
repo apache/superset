@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { views, resolveView } from './index';
+import { act, render, screen } from 'spec/helpers/testing-library';
+import { views, resolveView, useResolveView } from './index';
+
+const ThrowingView = () => {
+  throw new Error('Boom');
+};
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -109,4 +114,57 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
+});
+
+test('useResolveView re-renders once a view registers after first render', () => {
+  const ResolvedView = () => useResolveView('late.view');
+  render(React.createElement(ResolvedView), { useTheme: true });
+
+  expect(
+    screen.getByText('The extension late.view could not be loaded.'),
+  ).toBeInTheDocument();
+
+  const provider = () => React.createElement('div', null, 'Late Content');
+  act(() => {
+    disposables.push(
+      views.registerView(
+        { id: 'late.view', name: 'Late View' },
+        'sqllab.panels',
+        provider,
+      ),
+    );
+  });
+
+  expect(screen.getByText('Late Content')).toBeInTheDocument();
+  expect(
+    screen.queryByText('The extension late.view could not be loaded.'),
+  ).not.toBeInTheDocument();
+});
+
+test('useResolveView gives a fresh error boundary when the id changes', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'bad.view', name: 'Bad View' },
+      'sqllab.panels',
+      ThrowingView,
+    ),
+    views.registerView(
+      { id: 'good.view', name: 'Good View' },
+      'sqllab.panels',
+      () => React.createElement('div', null, 'Good Content'),
+    ),
+  );
+
+  const ResolvedView = ({ id }: { id: string }) => useResolveView(id);
+  const { rerender } = render(
+    React.createElement(ResolvedView, { id: 'bad.view' }),
+    { useTheme: true },
+  );
+
+  expect(screen.getByText('Unexpected error')).toBeInTheDocument();
+
+  rerender(React.createElement(ResolvedView, { id: 'good.view' }));
+
+  expect(screen.getByText('Good Content')).toBeInTheDocument();
+  expect(screen.queryByText('Unexpected error')).not.toBeInTheDocument();
 });
