@@ -25,9 +25,7 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      python: ${{ steps.check.outputs.python }}
-      frontend: ${{ steps.check.outputs.frontend }}
-      lang_matrix: ${{ steps.set-lang-matrix.outputs.lang_matrix }}
+      languages: ${{ steps.check.outputs.languages }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,21 +36,6 @@ jobs:
         uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Dynamically setup matrix of changed languages
-        id: set-lang-matrix
-        shell: bash
-        run: |
-          lang_matrix_string=''
-          if [[ "${STEPS_CHECK_OUTPUTS_PYTHON}" == "true" ]]; then
-            lang_matrix_string=${lang_matrix_string}'"python"'
-          fi
-          if [[ "${STEPS_CHECK_OUTPUTS_FRONTEND}" == "true" ]]; then
-            lang_matrix_string=${lang_matrix_string}'"javascript"'
-          fi
-          echo "lang_matrix=$(jq --compact-output --null-input '[inputs]' <<< $lang_matrix_string)" >> $GITHUB_OUTPUT
-        env:
-          STEPS_CHECK_OUTPUTS_PYTHON: ${{ steps.check.outputs.python }}
-          STEPS_CHECK_OUTPUTS_FRONTEND: ${{ steps.check.outputs.frontend }}
 
   analyze:
     name: Analyze
@@ -60,7 +43,7 @@ jobs:
     # Skip on PRs that touch neither code group (e.g. docs-only) so the
     # analysis runners don't spin up. push/schedule runs always proceed:
     # the change-detector returns "all changed" for non-PR events.
-    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    if: ${{ contains(fromJSON(needs.changes.outputs.languages), 'python') || contains(fromJSON(needs.changes.outputs.languages), 'javascript') }}
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
@@ -72,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ${{ fromJson(needs.changes.outputs.lang_matrix) }}
+        language: ${{ fromJson(needs.changes.outputs.languages) }}
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
