@@ -468,13 +468,16 @@ const FiltersConfigForm = (
   const hasFilledDataset =
     !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
-  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
-    formFilter?.filterType,
-  );
+  // Use itemTypeField, not formFilter?.filterType directly: the latter can
+  // be undefined on the first render before the antd Form hydrates (see
+  // itemTypeField's own fallback chain above), which would otherwise hide
+  // this section and the cascade-dependency section for a filter type that
+  // does support them.
+  const hasAdditionalFilters =
+    FILTERS_WITH_ADHOC_FILTERS.includes(itemTypeField);
 
-  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
-    formFilter?.filterType,
-  );
+  const canDependOnOtherFilters =
+    TYPES_SUPPORT_DEPENDENCIES.includes(itemTypeField);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
