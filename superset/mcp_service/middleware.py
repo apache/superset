@@ -59,6 +59,7 @@ from superset.mcp_service.auth import (
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
@@ -1488,6 +1489,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
+    - png_max_bytes: Maximum PNG preview response size (default: 1,000,000)
     - excluded_tools: Tools to skip checking
     """
 
@@ -1497,8 +1499,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
         max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+        png_max_bytes: int = DEFAULT_MAX_PNG_RESPONSE_BYTES,
     ) -> None:
         self.max_bytes = max_bytes
+        self.png_max_bytes = max(1, png_max_bytes)
         self.warn_threshold_pct = warn_threshold_pct
         self.warn_threshold = int(max_bytes * warn_threshold_pct / 100)
         if isinstance(excluded_tools, str):
@@ -2151,6 +2155,26 @@ class ResponseSizeGuardMiddleware(Middleware):
         # the oversized path below rather than slipping through unmeasured.
         actual_bytes = get_response_size_bytes(estimation_target)
 
+        # Choose the image budget from the returned payload, never request args.
+        # Other formats of this tool retain the normal text-response budget.
+        content = (
+            estimation_target.get("content")
+            if isinstance(estimation_target, dict)
+            else None
+        )
+        if (
+            tool_name == "get_chart_preview"
+            and isinstance(content, dict)
+            and content.get("type") == "png"
+        ):
+            if actual_bytes > self.png_max_bytes:
+                raise ToolError(
+                    f"PNG preview is {actual_bytes} bytes, exceeding the "
+                    f"{self.png_max_bytes}-byte limit. Request smaller width and "
+                    "height, or use the URL preview format."
+                )
+            return response
+
         # Log warning if approaching limit
         if actual_bytes > self.warn_threshold:
             logger.warning(
@@ -2275,6 +2299,9 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             ),
             excluded_tools=config.get("excluded_tools"),
             max_list_items=max_list_items,
+            png_max_bytes=_safe_int_config(
+                config, "png_max_bytes", DEFAULT_MAX_PNG_RESPONSE_BYTES
+            ),
         )
 
         logger.info(

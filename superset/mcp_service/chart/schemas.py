@@ -4370,22 +4370,24 @@ class GetChartPreviewRequest(QueryCacheControl):
             )
         return self
 
-    format: Literal["url", "ascii", "table", "vega_lite"] = Field(
+    format: Literal["url", "ascii", "table", "vega_lite", "png"] = Field(
         default="ascii",
         description=(
             "Preview format: 'ascii' for text art (default), "
             "'url' for explore link, "
             "'table' for data table, "
-            "'vega_lite' for interactive JSON specification"
+            "'vega_lite' for interactive JSON specification, "
+            "'png' for a rendered saved chart (authenticated users only; "
+            "no unsaved state or extra filters)"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview width in pixels (for url and vega_lite formats)",
+        description="Preview width in pixels (for url, vega_lite, and png formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview height in pixels (for url and vega_lite formats)",
+        description="Preview height in pixels (for url, vega_lite, and png formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -4401,6 +4403,16 @@ class GetChartPreviewRequest(QueryCacheControl):
             'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
         ),
     )
+
+
+class PNGPreview(BaseModel):
+    """Rendered chart image, encoded without a shared thumbnail cache."""
+
+    type: Literal["png"] = "png"
+    mime_type: Literal["image/png"] = "image/png"
+    data: str = Field(..., description="Base64-encoded PNG image")
+    width: int = Field(..., description="Rendered PNG width in pixels")
+    height: int = Field(..., description="Rendered PNG height in pixels")
 
 
 # Discriminated union preview formats for type safety
@@ -4466,7 +4478,12 @@ class TablePreview(BaseModel):
 
 # Modern discriminated union using | syntax
 ChartPreviewContent = Annotated[
-    URLPreview | InteractivePreview | ASCIIPreview | VegaLitePreview | TablePreview,
+    URLPreview
+    | InteractivePreview
+    | ASCIIPreview
+    | VegaLitePreview
+    | TablePreview
+    | PNGPreview,
     Field(discriminator="type"),
 ]
 
