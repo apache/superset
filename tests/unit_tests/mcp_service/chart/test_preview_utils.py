@@ -472,7 +472,6 @@ def test_generate_preview_from_form_data_exposes_jinja_context(
     """Unsaved-chart previews expose the same Jinja inputs as execution."""
     from types import SimpleNamespace
     from typing import Any
-    from unittest.mock import MagicMock
 
     from flask import current_app
 
