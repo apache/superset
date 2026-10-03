@@ -67,6 +67,9 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -197,11 +200,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
-            ...(formData.datasource?.endsWith(
-              `__${DatasourceType.SemanticView}`,
-            )
-              ? { isColumnReference: true }
-              : {}),
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -270,14 +269,24 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    const requestedOrderby =
+      formData.server_pagination && sortByFromOwnState
+        ? sortByFromOwnState
+        : orderby;
+    const selectedColumns = new Set(columns.filter(isPhysicalColumn));
+    const effectiveOrderby =
+      queryMode === QueryMode.Raw && isSemanticView
+        ? requestedOrderby.filter(
+            ([column]) =>
+              isPhysicalColumn(column) && selectedColumns.has(column),
+          )
+        : requestedOrderby;
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby:
-        formData.server_pagination && sortByFromOwnState
-          ? sortByFromOwnState
-          : orderby,
+      orderby: effectiveOrderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,

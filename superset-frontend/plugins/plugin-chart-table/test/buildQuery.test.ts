@@ -116,6 +116,19 @@ test.each(['2__semantic_view', '11__table'])(
   },
 );
 
+test('semantic raw table drops ordering for a column no longer selected', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    query_mode: QueryMode.Raw,
+    all_columns: ['played_at', 'song_name'],
+    order_by_cols: ['["artist_name",false]', '["played_at",false]'],
+  }).queries[0];
+
+  expect(query.columns).toEqual(['played_at', 'song_name']);
+  expect(query.orderby).toEqual([['played_at', false]]);
+});
+
 test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
   'preserves ordinary dataset temporal SQL with grain %s',
   grain => {
