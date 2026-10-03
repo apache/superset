@@ -610,31 +610,100 @@ function checkUntranslatedStrings(ast, filepath) {
 }
 
 /**
- * Process a single file
+ * Check that `userEvent` interactions are awaited.
+ *
+ * Every `@testing-library/user-event` API returns a promise, so a call used as a
+ * bare statement is fire-and-forget: its events are still being dispatched when
+ * the next query or assertion runs. That either charges the dispatch time to a
+ * later `waitFor` budget or lets an assertion observe the state from before the
+ * interaction, and both surface as flaky tests.
+ *
+ * Only bare expression statements are reported. A call whose promise is stored
+ * or returned (`const pending = userEvent.click(el)`) is left alone, because it
+ * may be awaited elsewhere. `userEvent.setup()` is exempt: it is synchronous and
+ * returns a session object rather than a promise.
  */
-function processFile(filepath) {
-  const code = fs.readFileSync(filepath, 'utf8');
+function checkAwaitedUserEvent(ast, filepath) {
+  traverse(ast, {
+    ExpressionStatement(path) {
+      const { expression } = path.node;
+      if (
+        expression.type !== 'CallExpression' ||
+        expression.callee.type !== 'MemberExpression'
+      ) {
+        return;
+      }
+      const { object, property } = expression.callee;
+      if (
+        object.type !== 'Identifier' ||
+        object.name !== 'userEvent' ||
+        property.type !== 'Identifier' ||
+        property.name === 'setup'
+      ) {
+        return;
+      }
+      const line = path.node.loc ? path.node.loc.start.line : 0;
+      // eslint-disable-next-line no-console
+      console.error(
+        `${RED}✖${RESET} ${filepath}:${line}: un-awaited userEvent.${property.name}(). ` +
+          `user-event APIs return promises; await the call so its events are ` +
+          `dispatched before the next query or assertion.`,
+      );
+      errorCount += 1;
+    },
+  });
+}
 
+/**
+ * Parse a file, reporting an unparseable file as a warning.
+ *
+ * @returns the AST, or null when the file could not be parsed
+ */
+function parseFile(filepath) {
   try {
-    const ast = parser.parse(code, {
+    return parser.parse(fs.readFileSync(filepath, 'utf8'), {
       sourceType: 'module',
       plugins: ['jsx', 'typescript', 'decorators-legacy'],
       attachComments: true,
     });
-
-    // Run all checks
-    checkNoLiteralColors(ast, filepath);
-    checkNoFaIcons(ast, filepath);
-    checkI18nTemplates(ast, filepath);
-    checkEagerTranslationsInConfig(ast, filepath);
-    checkUntranslatedStrings(ast, filepath);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn(
       `${YELLOW}⚠${RESET} Could not parse ${filepath}: ${error.message}`,
     );
     warningCount += 1;
+    return null;
   }
+}
+
+/**
+ * Process a single file
+ */
+function processFile(filepath) {
+  const ast = parseFile(filepath);
+  if (!ast) {
+    return;
+  }
+
+  // Run all checks
+  checkNoLiteralColors(ast, filepath);
+  checkNoFaIcons(ast, filepath);
+  checkI18nTemplates(ast, filepath);
+  checkEagerTranslationsInConfig(ast, filepath);
+  checkUntranslatedStrings(ast, filepath);
+}
+
+/**
+ * Process a single test file. The checks in `processFile` deliberately skip
+ * tests, so the test-only rules run from here instead.
+ */
+function processTestFile(filepath) {
+  const ast = parseFile(filepath);
+  if (!ast) {
+    return;
+  }
+
+  checkAwaitedUserEvent(ast, filepath);
 }
 
 /**
@@ -643,6 +712,11 @@ function processFile(filepath) {
  */
 const TS_ONLY_SOURCE_PATTERN =
   /^(src|packages\/[^/]+\/src|plugins\/[^/]+\/src)\//;
+
+/**
+ * Jest test and spec files, which the test-only rules apply to.
+ */
+const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
 
 /**
  * Enforce the TypeScript-only frontend convention: no `.js`/`.jsx` files may be
@@ -715,6 +789,30 @@ function main() {
         })
       : args.map(f => f.replace(/^superset-frontend\//, ''));
   checkTypeScriptOnlySource(tsOnlyCandidates);
+
+  // Run the test-only rules. Like the TypeScript-only check above, this works
+  // from the raw file list, because the ignore patterns below strip out tests.
+  const testCandidates =
+    args.length === 0
+      ? glob.sync('**/*.{test,spec}.{ts,tsx,js,jsx}', {
+          ignore: [
+            '**/node_modules/**',
+            '**/esm/**',
+            '**/lib/**',
+            '**/dist/**',
+          ],
+        })
+      : args
+          .map(f => f.replace(/^superset-frontend\//, ''))
+          .filter(f => TEST_FILE_PATTERN.test(f));
+  testCandidates.forEach(file => {
+    const resolvedPath = path.resolve(file);
+    if (fs.existsSync(resolvedPath)) {
+      processTestFile(resolvedPath);
+    } else if (fs.existsSync(file)) {
+      processTestFile(file);
+    }
+  });
 
   // If no files specified, check all
   if (files.length === 0) {
@@ -790,4 +888,5 @@ export default {
   checkI18nTemplates,
   checkUntranslatedStrings,
   checkTypeScriptOnlySource,
+  checkAwaitedUserEvent,
 };
