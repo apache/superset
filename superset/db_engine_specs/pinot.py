@@ -45,6 +45,10 @@ class PinotEngineSpec(BaseEngineSpec):
             DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["pinotdb"],
+        "version_requirements": (
+            "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0."
+            " Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra."
+        ),
         "connection_string": (
             "pinot+http://{broker_host}:{broker_port}/query"
             "?controller=http://{controller_host}:{controller_port}/"
@@ -105,6 +109,13 @@ class PinotEngineSpec(BaseEngineSpec):
         return (
             "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', "
             + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"
+        )
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return (
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            + "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')"
         )
 
     @classmethod

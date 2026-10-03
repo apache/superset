@@ -19,6 +19,7 @@
 import {
   AdhocColumn,
   BuildQuery,
+  DatasourceType,
   PostProcessingRule,
   QueryFormOrderBy,
   QueryMode,
@@ -196,6 +197,11 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(formData.datasource?.endsWith(
+              `__${DatasourceType.SemanticView}`,
+            )
+              ? { isColumnReference: true }
+              : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately

@@ -21,12 +21,13 @@ import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
-from typing import Any, NamedTuple, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
@@ -53,6 +54,7 @@ from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -342,9 +344,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _rename_deprecated_fields(self, kwargs: dict[str, Any]) -> None:
         # rename deprecated fields
+        # Logged at info: a chart saved before the field was renamed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated, please use `%s` instead.",
                     field.old_name,
                     field.new_name,
@@ -352,7 +357,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated, "
                             "replacing value with contents from `%s`.",
                             field.new_name,
@@ -362,9 +367,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
+        # Logged at info: same rationale as `_rename_deprecated_fields` above.
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated and should "
                     "be passed to `extras` via the `%s` property.",
                     field.old_name,
@@ -373,7 +379,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self.extras, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated in "
                             "`extras`, replacing value with contents "
                             "from `%s`.",
@@ -405,6 +411,39 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            if self.datasource and self.datasource.type == "semantic_view":
+                implementation: SemanticViewABC = cast(
+                    "SemanticView", self.datasource
+                ).implementation
+                try:
+                    implementation.validate_selection_version(
+                        self.extras.get("semantic_selection_version")
+                    )
+                except ValueError as ex:
+                    if self.extras.get("semantic_selection_version") == (
+                        "unverified-external-selections"
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                "A dashboard filter or display control has "
+                                "incompatible semantic selections. Dynamic group-by "
+                                "is unsupported on versioned semantic views; remove "
+                                "this chart from that control's scope. For other "
+                                "filters or controls, reset and reselect fields or "
+                                "saved values. If it targets another semantic view, "
+                                "remove this chart from its scope."
+                            )
+                        ) from ex
+                    raise QueryObjectValidationError(
+                        _(
+                            "Saved semantic selections use an older identity format. "
+                            "Reset and explicitly reselect the metrics and dimensions, "
+                            "then save the chart. Display titles cannot be recovered "
+                            "automatically. For API requests, select current member "
+                            "IDs and supply semantic_selection_version from "
+                            "datasource metadata or MCP list_metrics."
+                        )
+                    ) from ex
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()

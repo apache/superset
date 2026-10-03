@@ -728,6 +728,27 @@ test('TableRenderer passes four-digit year strings through to row header date fo
   expect(screen.queryByText('1970')).not.toBeInTheDocument();
 });
 
+test('TableRenderer passes short date keys through to header date formatters uncoerced', () => {
+  const data = [
+    { shape: '20260903', color: 'blue', value: 1 },
+    { shape: '1700000000000', color: 'blue', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { shape: getTimeFormatter('%Y-%m-%d') } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // "20260903" is a YYYYMMDD date key, not an epoch offset. Coercing it to a
+  // number would render it as 1970-01-01; a real stringified epoch still
+  // coerces.
+  expect(screen.getByText('20260903')).toBeInTheDocument();
+  expect(screen.getByText('2023-11-14')).toBeInTheDocument();
+  expect(screen.queryByText('1970-01-01')).not.toBeInTheDocument();
+});
+
 test('TableRenderer applies cellColorFormatters background and contrast color to column headers', () => {
   const cellColorFormatters = {
     shape: [

@@ -107,7 +107,9 @@ def test_add_default_middlewares_installs_response_caching() -> None:
     caching_middleware = object()
 
     with (
-        patch.object(main_module, "build_middleware_list", return_value=[]),
+        patch.object(
+            main_module, "build_middleware_list", return_value=[]
+        ) as mock_build_middleware_list,
         patch.object(
             main_module, "create_response_size_guard_middleware", return_value=None
         ),
@@ -118,6 +120,7 @@ def test_add_default_middlewares_installs_response_caching() -> None:
         ),
         patch.object(main_module.mcp, "add_middleware") as mock_add_middleware,
     ):
-        main_module._add_default_middlewares()
+        main_module._add_default_middlewares(structured_output_enabled=True)
 
+    mock_build_middleware_list.assert_called_once_with(structured_output_enabled=True)
     mock_add_middleware.assert_called_once_with(caching_middleware)

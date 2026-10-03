@@ -267,6 +267,128 @@ def test_raise_for_access_chart_editor_allows(app_context):
         sm.raise_for_access(chart=chart)
 
 
+def _make_real_slice_chart(*, kind: str):
+    """Build a real Slice whose ``datasource`` resolves through the real
+    ``table`` / ``semantic_view`` relationships (no MagicMock of the property)."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticView
+    from superset.utils.core import DatasourceType
+
+    chart = Slice()
+    chart.datasource_id = 1
+    chart.viewers = []
+    chart.editors = []
+
+    if kind == DatasourceType.SEMANTIC_VIEW:
+        chart.datasource_type = DatasourceType.SEMANTIC_VIEW
+        view = MagicMock(spec=SemanticView)
+        view.id = 1
+        view.perm = "[layer].[view](id:1)"
+        view.schema_perm = None
+        view.catalog_perm = None
+        chart.semantic_view = view
+    else:
+        chart.datasource_type = DatasourceType.TABLE
+        table = MagicMock(spec=SqlaTable)
+        table.id = 1
+        table.perm = "[db].[table](id:1)"
+        table.schema_perm = None
+        table.catalog_perm = None
+        chart.table = table
+
+    return chart
+
+
+def test_raise_for_access_semantic_view_chart_allows_with_datasource_access(
+    app_context,
+):
+    """A semantic-view chart with no viewers resolves its datasource through the
+    ``semantic_view`` relationship and is granted when the user holds the view's
+    ``datasource_access`` perm."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=True),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        assert chart.resolved_datasource is chart.semantic_view
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_denied_without_datasource_access(
+    app_context,
+):
+    """A semantic-view chart with no viewers is denied when the user does not
+    hold the view's ``datasource_access`` perm."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "can_access_schema", return_value=False),
+        patch.object(sm, "get_chart_access_error_object", return_value=MagicMock()),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_editor_allows(app_context):
+    """An editor of the chart is granted regardless of datasource perms."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", side_effect=lambda r: r is chart),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_semantic_view_chart_admin_allows(app_context):
+    """Admin is granted regardless of datasource perms."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="semantic_view")
+
+    with (
+        patch.object(sm, "is_admin", return_value=True),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        sm.raise_for_access(chart=chart)
+
+
+def test_raise_for_access_table_chart_resolution_unchanged(app_context):
+    """A table chart still resolves through the ``table`` relationship and is
+    granted via its table perm; the semantic-view path is not consulted."""
+    sm = _make_sm()
+    chart = _make_real_slice_chart(kind="table")
+
+    with (
+        patch.object(sm, "is_admin", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_guest_user", return_value=False),
+        patch.object(sm, "can_access", return_value=True),
+        patch("superset.is_feature_enabled", return_value=False),
+    ):
+        assert chart.datasource is chart.table
+        sm.raise_for_access(chart=chart)
+
+
 # -- Datasource chart-viewer promiscuous mode tests --
 
 
@@ -367,6 +489,88 @@ def test_raise_for_access_datasource_chart_viewer_no_promiscuous_denies(
 
 
 # -- GetExploreCommand access check tests --
+
+
+# -- Query schema_access path tests --
+
+
+def test_raise_for_access_query_schema_access_non_author(app_context):
+    """A schema_access holder can explore another author's SQL Lab query.
+    Mirrors _authorize_datasource in superset/commands/explore/get.py,
+    which passes the Query under both ``query=`` and ``datasource=``.
+    """
+    from superset.models.sql_lab import Query
+    from superset.sql.parse import Table
+
+    sm = _make_sm()
+    database = MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "main"
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, user_id=2)
+    object.__setattr__(query, "database", database)
+    query.status = "success"
+    query.id = 42
+
+    def schema_access_main_only(permission_name, view_name):
+        return permission_name == "schema_access" and view_name == "[examples].[main]"
+
+    parse_result = MagicMock()
+    parse_result.tables = {Table("t1", "main", None)}
+
+    with (
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access_all_databases", return_value=False),
+        patch.object(sm, "can_access", side_effect=schema_access_main_only),
+        patch.object(sm, "is_editor", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=999),
+        patch("superset.security.manager.process_jinja_sql", return_value=parse_result),
+    ):
+        sm.raise_for_access(
+            query=query,
+            datasource=query,
+            allow_query_authorship_bypass=True,
+        )
+
+
+def test_raise_for_access_query_schema_access_denied_ungranted_schema(app_context):
+    """A schema_access holder is denied when SQL references an ungranted schema."""
+    from superset.models.sql_lab import Query
+    from superset.sql.parse import Table
+
+    sm = _make_sm()
+    database = MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "main"
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, user_id=2)
+    object.__setattr__(query, "database", database)
+    query.status = "success"
+    query.id = 42
+
+    parse_result = MagicMock()
+    # SQL touches a table in "other" schema, not the granted "main" schema.
+    parse_result.tables = {Table("t1", "other", None)}
+
+    with (
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access_all_databases", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "get_table_access_error_object", return_value=MagicMock()),
+        patch(
+            "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name",
+            return_value=[],
+        ),
+        patch("superset.security.manager.get_user_id", return_value=999),
+        patch("superset.security.manager.process_jinja_sql", return_value=parse_result),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(
+                query=query,
+                datasource=query,
+                allow_query_authorship_bypass=True,
+            )
 
 
 def test_explore_command_uses_chart_access_when_slice_exists(app_context):

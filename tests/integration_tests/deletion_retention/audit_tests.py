@@ -19,12 +19,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from threading import Event, Thread
 from typing import Callable
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from superset import db
 from superset.commands.deletion_retention import audit
@@ -81,6 +82,53 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         assert row.confirmed_on is not None
         assert row.reason is None
         assert isinstance(row.id, UUID)
+
+    def _assert_coordination_lock_serializes(
+        self, first_role: str, waiting_role: str
+    ) -> None:
+        """Assert the second role cannot pass before the first commits."""
+        session_factory: sessionmaker[Session] = sessionmaker(bind=db.engine)
+        first_session: Session = session_factory()
+        waiting_started: Event = Event()
+        waiting_acquired: Event = Event()
+        waiting_errors: list[BaseException] = []
+
+        def acquire_as_waiting_role() -> None:
+            waiting_session: Session = session_factory()
+            try:
+                waiting_started.set()
+                audit.acquire_coordination_lock(waiting_session)
+                waiting_acquired.set()
+                waiting_session.commit()
+            except BaseException as ex:  # pylint: disable=broad-except
+                waiting_errors.append(ex)
+            finally:
+                waiting_session.close()
+
+        audit.acquire_coordination_lock(first_session)
+        waiting_thread: Thread = Thread(
+            target=acquire_as_waiting_role,
+            name=f"purge-audit-{waiting_role}-waits-for-{first_role}",
+        )
+        waiting_thread.start()
+        assert waiting_started.wait(timeout=1)
+        assert not waiting_acquired.wait(timeout=0.1)
+
+        first_session.commit()
+        assert waiting_acquired.wait(timeout=2)
+        waiting_thread.join(timeout=2)
+        first_session.close()
+
+        assert not waiting_thread.is_alive()
+        assert waiting_errors == []
+
+    def test_pruner_waits_for_uncommitted_writer(self) -> None:
+        """A writer-first interleaving exposes the row before pruning."""
+        self._assert_coordination_lock_serializes("writer", "pruner")
+
+    def test_writer_waits_for_uncommitted_pruner(self) -> None:
+        """A pruner-first interleaving timestamps the row after pruning."""
+        self._assert_coordination_lock_serializes("pruner", "writer")
 
     def test_known_failure_finalizes_audit_row(self) -> None:
         """A known cascade failure is durable but does not remain pending."""
@@ -583,6 +631,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         first_id: UUID = self._write_retention_record(entity_uuid="absent-current")
         audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         current_id: UUID = self._write_retention_record(entity_uuid="absent-current")
+        original_created_on: datetime = self._get_audit_record(current_id).created_on
         primary_session: Session = audit._dedicated_session()
         recovery_session: Session = audit._dedicated_session()
         primary_commit: Callable[[], None] = primary_session.commit
@@ -609,6 +658,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         # (populated from the call argument, never from the reason-less
         # pending row).
         assert record.reason == REASON_REPORT_SCHEDULE
+        assert record.created_on > original_created_on
 
     def test_failed_fallback_leaves_pending_evidence_for_reconciliation(self) -> None:
         record_id: UUID = self._write_retention_record(entity_uuid="fallback-failure")

@@ -152,6 +152,91 @@ def test_validate_report_extra_anchor_string_invalid() -> None:
     assert exceptions[0].field_name == "extra"
 
 
+def test_validate_report_extra_anchor_non_string_type() -> None:
+    # extra.dashboard.anchor is an untyped user-supplied value, so a non-string
+    # JSON scalar (here an int) reaching json.loads must surface a
+    # ValidationError rather than letting a raw TypeError escape.
+    command = CreateReportScheduleCommand({})
+    command._properties = {
+        "extra": {"dashboard": {"anchor": 42}},
+        "dashboard": _make_dashboard({"TAB-1": {}}),
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
+def test_validate_report_extra_anchor_non_string_unhashable_type() -> None:
+    # extra.dashboard.anchor is an untyped user-supplied value. A non-empty
+    # list (or dict) makes json.loads raise TypeError; the except body must not
+    # then hash the raw value (dict membership / set.add) and leak a fresh,
+    # uncaught TypeError. It must surface a ValidationError like every other
+    # malformed-anchor case.
+    command = CreateReportScheduleCommand({})
+    command._properties = {
+        "extra": {"dashboard": {"anchor": [1, 2]}},
+        "dashboard": _make_dashboard({"TAB-1": {}}),
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
+def test_validate_report_extra_malformed_position_json() -> None:
+    # A dashboard whose position_json is not valid JSON must surface a
+    # ValidationError rather than letting a raw JSONDecodeError escape.
+    command = CreateReportScheduleCommand({})
+    dashboard = MagicMock()
+    dashboard.position_json = "{not valid json"
+    command._properties = {
+        "extra": {"dashboard": {"activeTabs": ["TAB-1"]}},
+        "dashboard": dashboard,
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
+def test_validate_report_extra_malformed_json_metadata() -> None:
+    # A dashboard whose json_metadata is not valid JSON must surface a
+    # ValidationError while validating native filters rather than letting a
+    # raw JSONDecodeError escape.
+    command = CreateReportScheduleCommand({})
+    dashboard = MagicMock()
+    dashboard.position_json = json.dumps({"TAB-1": {}})
+    dashboard.json_metadata = "{not valid json"
+    command._properties = {
+        "extra": {
+            "dashboard": {
+                "nativeFilters": [
+                    {
+                        "nativeFilterId": "NATIVE_FILTER-1",
+                        "filterType": "filter_select",
+                        "columnName": "col",
+                        "filterValues": [],
+                    }
+                ]
+            }
+        },
+        "dashboard": dashboard,
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_report_extra(exceptions)
+
+    assert len(exceptions) == 1
+    assert exceptions[0].field_name == "extra"
+
+
 # ---------------------------------------------------------------------------
 # Phase 1 gap closure: validate() — alert + database combos
 # ---------------------------------------------------------------------------

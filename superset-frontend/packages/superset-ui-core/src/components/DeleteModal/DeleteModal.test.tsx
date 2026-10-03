@@ -19,6 +19,71 @@
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { DeleteModal } from '.';
 
+test.each([
+  [false, 'Delete'],
+  [true, 'Archive'],
+])(
+  'preserves the default label when recoverable is %s',
+  (recoverable, label) => {
+    render(
+      <DeleteModal
+        title="Confirm action"
+        description="Confirm this change."
+        onConfirm={jest.fn()}
+        onHide={jest.fn()}
+        open
+        recoverable={recoverable}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+  },
+);
+
+test('a custom label preserves the typed-confirmation gate', async () => {
+  const onConfirm = jest.fn();
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+      primaryButtonName="Remove"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Remove' });
+  expect(button).toBeDisabled();
+  await userEvent.type(
+    screen.getByLabelText('Type "DELETE" to confirm'),
+    'DELETE',
+  );
+  expect(button).toBeEnabled();
+  await userEvent.click(button);
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+});
+
+test('explicit label and style override recoverable defaults without adding the gate', () => {
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      recoverable
+      primaryButtonName="Retire"
+      primaryButtonStyle="danger"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Retire' });
+  expect(button).toHaveClass('ant-btn-dangerous');
+  expect(button).toBeEnabled();
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+});
+
 test('Must display title and content', () => {
   const props = {
     title: <div data-test="test-title">Title</div>,
@@ -150,9 +215,9 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
 
-test('external disable keeps the destructive action unavailable after confirmation', async () => {
+test('external disable blocks the action while allowing confirmation text', async () => {
   const onConfirm = jest.fn();
-  render(
+  const { rerender } = render(
     <DeleteModal
       title="Delete permanently?"
       description="This cannot be undone."
@@ -163,11 +228,39 @@ test('external disable keeps the destructive action unavailable after confirmati
     />,
   );
 
+  expect(screen.getByTestId('delete-modal-input')).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
-
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(onConfirm).not.toHaveBeenCalled();
+
+  rerender(
+    <DeleteModal
+      title="Delete permanently?"
+      description="This cannot be undone."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+});
+
+test('blocked deletion disables the confirmation input and action', () => {
+  render(
+    <DeleteModal
+      title="Delete permanently?"
+      description="This cannot be undone."
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      disableConfirmationInput
+    />,
+  );
+
+  expect(screen.getByTestId('delete-modal-input')).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 });
 
 test('loading disables the destructive action and exposes busy state', async () => {
@@ -182,8 +275,7 @@ test('loading disables the destructive action and exposes busy state', async () 
     />,
   );
 
-  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
-
+  expect(screen.getByTestId('delete-modal-input')).toBeEnabled();
   expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
   expect(screen.getByTestId('antd-modal')).toHaveAttribute('aria-busy', 'true');
 });

@@ -21,10 +21,14 @@ Tests for preview_utils query context column building.
 
 import ast
 import inspect
+from decimal import Decimal
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.schemas import TablePreview
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -69,7 +73,7 @@ class TestPreviewUtilsColumnBuilding:
     XY charts, and fall back to form_data["columns"] for table charts.
     """
 
-    def test_xy_chart_uses_x_axis_and_groupby(self):
+    def test_xy_chart_uses_x_axis_and_groupby(self) -> None:
         """Test XY chart form_data builds columns from x_axis + groupby."""
         form_data = {
             "x_axis": "territory",
@@ -77,44 +81,22 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(sales)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
-        elif x_axis_config and isinstance(x_axis_config, dict):
-            col_name = x_axis_config.get("column_name")
-            if col_name and col_name not in columns:
-                columns.insert(0, col_name)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["territory", "year"]
 
-    def test_table_chart_uses_columns_field(self):
+    def test_table_chart_uses_columns_field(self) -> None:
         """Test table chart form_data uses 'columns' field directly."""
         form_data = {
             "columns": ["name", "region", "sales"],
             "metrics": [],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["name", "region", "sales"]
 
-    def test_xy_chart_x_axis_dict_format(self):
+    def test_xy_chart_x_axis_dict_format(self) -> None:
         """Test XY chart with x_axis as dict (column_name key)."""
         form_data = {
             "x_axis": {"column_name": "order_date"},
@@ -122,63 +104,32 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(revenue)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
-        elif x_axis_config and isinstance(x_axis_config, dict):
-            col_name = x_axis_config.get("column_name")
-            if col_name and col_name not in columns:
-                columns.insert(0, col_name)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["order_date", "product_type"]
 
-    def test_no_x_axis_no_columns_uses_groupby(self):
+    def test_no_x_axis_no_columns_uses_groupby(self) -> None:
         """Test fallback to groupby when no x_axis and no columns."""
         form_data = {
             "groupby": ["category"],
             "metrics": [{"label": "COUNT(*)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["category"]
 
-    def test_empty_form_data_returns_empty_columns(self):
+    def test_empty_form_data_returns_empty_columns(self) -> None:
         """Test empty form_data returns empty columns list."""
-        form_data: dict = {
+        form_data = {
             "metrics": [{"label": "COUNT(*)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == []
 
-    def test_x_axis_not_duplicated_when_in_groupby(self):
+    def test_x_axis_not_duplicated_when_in_groupby(self) -> None:
         """Test x_axis is not added if already present in groupby."""
         form_data = {
             "x_axis": "territory",
@@ -186,16 +137,7 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(sales)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["territory", "year"]
 
@@ -210,6 +152,58 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1D", "P1M"])
+def test_unsaved_big_number_preview_uses_temporal_query_contract(
+    time_grain: str | None,
+) -> None:
+    """The shared preview keeps raw temporal grouping, not grain bucketing."""
+    form_data = {
+        "viz_type": "big_number",
+        "x_axis": {"column_name": "recorded_at"},
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": time_grain,
+        "metric": "count",
+        "show_trend_line": True,
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch("superset.common.query_context_factory.QueryContextFactory") as factory,
+    ):
+        factory.return_value.create.return_value = MagicMock()
+        command.return_value.run.return_value = {
+            "queries": [{"status": "success", "data": []}]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(form_data, 1, "table")
+
+    assert isinstance(result, TablePreview)
+    query = factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["columns"] == ["recorded_at"]
+    assert "granularity" not in query
+    assert "time_grain_sqla" not in query.get("extras", {})
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 100
 
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
@@ -280,3 +274,193 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     )
     assert result.error_type == "QueryError"
     assert "bad metric" in result.error
+
+
+def test_histogram_preview_uses_postprocessed_bins() -> None:
+    """The histogram preview must not bin or count already aggregated bin counts."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"0 - 10": 4, "10 - 20": 7}], {"viz_type": "histogram_v2"}
+    )
+    assert result.specification["data"]["values"] == [
+        {"bin": "0 - 10", "value": 4, "series": "All"},
+        {"bin": "10 - 20", "value": 7, "series": "All"},
+    ]
+    encoding = result.specification["encoding"]
+    assert encoding["x"]["field"] == "bin"
+    assert "bin" not in encoding["x"]
+    assert encoding["y"]["field"] == "value"
+    assert "aggregate" not in encoding["y"]
+
+
+@pytest.mark.parametrize("viz_type", ["sankey_v2", "radar"])
+def test_vega_preview_rejects_unsupported_native_geometry(viz_type: str) -> None:
+    """Unsupported geometry must not silently become an unrelated scatter plot."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"source": "A", "target": "B", "value": 10}], {"viz_type": viz_type}
+    )
+    assert result.error_type == "UnsupportedFormat"
+    assert "Explore" in result.error
+
+
+def test_funnel_preview_binds_stage_and_metric() -> None:
+    """A funnel preview must encode its stages and values rather than a scatter."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"stage": "Won", "SUM(value)": 10}],
+        {"viz_type": "funnel", "groupby": ["stage"], "metric": "SUM(value)"},
+    )
+    spec = result.specification
+    assert spec["mark"] == "bar"
+    assert spec["encoding"]["y"]["field"] == "stage"
+    assert spec["encoding"]["x"]["field"] == "SUM(value)"
+
+
+@pytest.mark.parametrize("stage", [None, 42, {}, {"expressionType": "SQL"}])
+def test_funnel_preview_rejects_invalid_stage(stage: object) -> None:
+    """Malformed stage references return the invalid-form-data contract."""
+    from superset.mcp_service.chart.schemas import ChartError
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidFormData"
+
+
+@pytest.mark.parametrize(
+    "stage", ["stage", {"label": "stage"}, {"sqlExpression": "stage"}]
+)
+def test_funnel_preview_resolves_stage(stage: object) -> None:
+    """Valid stage references retain their result labels."""
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [{"stage": "visit", "count": 3}], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, VegaLitePreview)
+    assert result.specification["encoding"]["y"]["field"] == "stage"
+
+
+def _vega_encoding(rows, form_data):
+    result = preview_utils._generate_vega_lite_preview_from_data(rows, form_data)
+    return result.specification.get("encoding", {})
+
+
+def test_vega_preview_y_axis_uses_metric_not_boolean_x():
+    rows = [
+        {"is_active": True, "revenue": 10.5},
+        {"is_active": False, "revenue": 3.0},
+    ]
+    encoding = _vega_encoding(
+        rows,
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "is_active",
+            "metrics": [{"label": "revenue", "expressionType": "SQL"}],
+        },
+    )
+
+    assert encoding["x"]["field"] == "is_active"
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_uses_first_matching_metric_of_many():
+    rows = [{"flag": True, "count": 4, "SUM(amount)": 7.0, "AVG(price)": 2.5}]
+    encoding = _vega_encoding(
+        rows,
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "flag",
+            "metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "AVG",
+                    "column": {"column_name": "price"},
+                },
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "SUM",
+                    "column": {"column_name": "amount"},
+                },
+            ],
+        },
+    )
+
+    assert encoding["y"]["field"] == "AVG(price)"
+
+
+def test_vega_preview_y_axis_falls_back_when_no_metric_label_matches():
+    rows = [{"flag": True, "name": "a", "value": 3}]
+    encoding = _vega_encoding(
+        rows,
+        {"viz_type": "bar", "x_axis": "name", "metrics": ["missing_metric"]},
+    )
+
+    # Boolean columns are skipped; the first numeric column is used.
+    assert encoding["y"]["field"] == "value"
+
+
+def test_vega_preview_without_metrics_has_no_y_axis():
+    rows = [{"flag": True, "name": "a", "value": 3}]
+    encoding = _vega_encoding(rows, {"viz_type": "bar", "x_axis": "name"})
+
+    assert encoding["x"]["field"] == "name"
+    assert "y" not in encoding
+
+
+@pytest.mark.parametrize("value", ["ready", True, False])
+def test_vega_preview_y_axis_skips_nonnumeric_metrics(value: str | bool) -> None:
+    """Quantitative y encodings must not use string or boolean metrics."""
+    encoding = _vega_encoding(
+        [{"invalid": value, "revenue": 7}],
+        {"viz_type": "bar", "metrics": ["invalid", "revenue"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+@pytest.mark.parametrize("value", ["ready", True])
+def test_vega_preview_y_axis_omits_invalid_only_metric(value: str | bool) -> None:
+    """A matched invalid metric must not fall back to a numeric dimension."""
+    encoding = _vega_encoding(
+        [{"year": 2026, "total_status": value}],
+        {"viz_type": "bar", "x_axis": "year", "metrics": ["total_status"]},
+    )
+
+    assert "y" not in encoding
+
+
+@pytest.mark.parametrize(
+    "column,value", [("summary", "ready"), ("maximum_status", True)]
+)
+def test_vega_preview_y_axis_fallback_requires_numeric_value(
+    column: str, value: str | bool
+) -> None:
+    """Aggregation substrings do not make dimension values quantitative."""
+    encoding = _vega_encoding(
+        [{column: value, "revenue": 7}],
+        {"viz_type": "bar", "x_axis": column, "metrics": ["missing"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_preserves_null_metric() -> None:
+    """A null first metric value does not change the configured y field."""
+    encoding = _vega_encoding(
+        [{"year": 2026, "revenue": None}, {"year": 2027, "revenue": 7}],
+        {"viz_type": "bar", "x_axis": "year", "metrics": ["revenue"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_fallback_accepts_decimal() -> None:
+    """A Decimal in a non-metric column is a valid fallback y-axis."""
+    encoding = _vega_encoding(
+        [{"flag": True, "name": "a", "revenue": Decimal("7.25")}],
+        {"viz_type": "bar", "x_axis": "name", "metrics": ["missing"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"

@@ -203,8 +203,7 @@ test('dashboard groups head with the save date and expand to descriptive rows', 
 test('a group without a versionUuid offers no kebab at all', async () => {
   // Restore and open-as-new both name a specific version; the container
   // handlers silently no-op on a null versionUuid, so offering the menu
-  // reads as breakage. No kebab beats a dead menu — and the expanded
-  // action rows hide theirs for the same reason.
+  // reads as breakage. No kebab beats a dead menu.
   const versionless = group({ transactionId: 3, versionUuid: null });
   const props = defaultProps([versionless], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
@@ -495,4 +494,33 @@ test('the close button dismisses the panel', async () => {
     screen.getByRole('button', { name: 'Close version history' }),
   );
   expect(props.onClose).toHaveBeenCalled();
+});
+
+test('exactly one group is highlighted: the previewed one while previewing, else the current one', () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const groupBackgrounds = () =>
+    screen
+      .getAllByTestId('version-history-save-group')
+      .map(el => getComputedStyle(el).backgroundColor);
+
+  const { rerender } = render(<VersionHistoryPanel {...props} />);
+
+  // At rest: the current (newest, first) group carries the treatment alone.
+  const [activeBg, restingBg] = groupBackgrounds();
+  expect(activeBg).not.toBe(restingBg);
+
+  // Previewing the older group moves the single highlight there — the
+  // current group must NOT stay lit (the double-highlight regression).
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      previewedTransactionId={older.transactionId}
+    />,
+  );
+  expect(groupBackgrounds()).toEqual([restingBg, activeBg]);
+
+  // Closing the preview returns the single highlight to the current group.
+  rerender(<VersionHistoryPanel {...props} previewedTransactionId={null} />);
+  expect(groupBackgrounds()).toEqual([activeBg, restingBg]);
 });

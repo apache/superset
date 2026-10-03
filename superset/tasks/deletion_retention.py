@@ -19,11 +19,11 @@
 The deletion-domain analog of ``version_history.prune_old_versions``: where
 that ages out version rows while keeping the live entity, this removes
 entities that are already soft-deleted. For each
-``SoftDeleteMixin`` model it selects rows whose ``deleted_at`` is older than
-the per-workspace window and runs the shared cascade per entity, in bounded
-id-ordered batches. Convergent, not strictly idempotent: a re-run with the
-same clock and data removes nothing, but rows that have since crossed the
-cutoff are purged on a later run.
+``SoftDeleteMixin`` model with a purge policy it selects rows whose
+``deleted_at`` is older than the per-workspace window and runs the shared
+cascade per entity, in bounded id-ordered batches. Convergent, not strictly
+idempotent: a re-run with the same clock and data removes nothing, but rows
+that have since crossed the cutoff are purged on a later run.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ import sqlalchemy as sa
 from flask import current_app
 
 from superset import db
-from superset.commands.deletion_retention import audit
+from superset.commands.deletion_retention import audit, prune_audit
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
     CascadeResult,
@@ -46,7 +46,10 @@ from superset.commands.deletion_retention.purge_cascade import (
     entity_uuid,
     suppress_purge_association_versions,
 )
-from superset.commands.deletion_retention.purge_policy import BlockerReason
+from superset.commands.deletion_retention.purge_policy import (
+    BlockerReason,
+    purge_policy_registry,
+)
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.extensions import celery_app, feature_flag_manager, stats_logger_manager
 from superset.models.helpers import (
@@ -63,8 +66,7 @@ _BATCH: int = 500
 
 
 def _soft_delete_models() -> list[type[SoftDeleteMixin]]:
-    """The registered ``SoftDeleteMixin`` subclasses (dashboards, charts,
-    datasets), in a stable order."""
+    """Return all registered soft-delete models in a stable order."""
     return list(SoftDeleteMixin._registered_subclasses)  # noqa: SLF001
 
 
@@ -120,10 +122,20 @@ def _reconcile_unless_dry_run(dry_run: bool) -> None:
         audit.reconcile_pending()
 
 
+def _report_model_counts(outcome: str, counts: dict[str, int]) -> None:
+    """Emit the per-model row counts for a purge outcome."""
+    entity_type: str
+    count: int
+    for entity_type, count in counts.items():
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.{outcome}.{entity_type}", count
+        )
+
+
 def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
-    if window_days <= 0:
-        logger.info("deletion_retention: window is 0 (disabled); skipping")
+    if window_days == 0 or window_days < -1:
+        logger.info("deletion_retention: window is disabled or invalid; skipping")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
@@ -133,15 +145,29 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     # UTC-derived cutoff would shift the retention window by the server's
     # timezone offset, purging early west of UTC. If deleted_at ever moves
     # to UTC-aware, this must move with it.
-    cutoff = datetime.now() - timedelta(days=window_days)
+    cutoff: datetime = (
+        datetime.now()
+        if window_days == -1
+        else datetime.now() - timedelta(days=window_days)
+    )
     _reconcile_unless_dry_run(dry_run)
     purged: dict[str, int] = {}
     would_purge: dict[str, int] = {}
+    unsupported_models: dict[str, int] = {}
     failures = 0
     blocked = 0
 
     for model in _soft_delete_models():
         entity_type = _model_table_name(model)
+        if model not in purge_policy_registry():
+            unsupported_models[entity_type] = 1
+            logger.warning(
+                "deletion_retention: skipping %s: no purge policy", entity_type
+            )
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
+            )
+            continue
         purged_n, would_n, failed_n, blocked_n = _purge_model(model, cutoff, dry_run)
         if would_n:
             would_purge[entity_type] = would_n
@@ -151,17 +177,15 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         blocked += blocked_n
 
     if dry_run:
-        for entity_type, count in would_purge.items():
-            stats_logger_manager.instance.gauge(
-                f"{_METRIC_PREFIX}.would_purge.{entity_type}", count
-            )
+        _report_model_counts("would_purge", would_purge)
         logger.info("deletion_retention: DRY RUN would_purge=%s", would_purge)
-        return {"dry_run": 1, "would_purge": would_purge}
+        return {
+            "dry_run": 1,
+            "would_purge": would_purge,
+            "unsupported_models": unsupported_models,
+        }
 
-    for entity_type, count in purged.items():
-        stats_logger_manager.instance.gauge(
-            f"{_METRIC_PREFIX}.purged.{entity_type}", count
-        )
+    _report_model_counts("purged", purged)
     if failures:
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.cascade_failures")
     if blocked:
@@ -172,6 +196,7 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         "purged": purged,
         "cascade_failures": failures,
         "blocked_by_reference": blocked,
+        "unsupported_models": unsupported_models,
     }
     logger.info("deletion_retention: %s", stats)
     return stats
@@ -299,6 +324,77 @@ def _purge_one(
     else:
         audit.fail(record_id)
     return result
+
+
+#: Metric family for the prune task. The leaf matches the task name so an
+#: operator grepping dashboards for ``prune_purge_audit`` finds its metrics.
+_PRUNE_METRIC_PREFIX: str = "deletion_retention.prune_purge_audit"
+
+
+@celery_app.task(name="deletion_retention.prune_purge_audit")
+def prune_purge_audit() -> dict[str, Any]:
+    """Beat entry point: apply the purge-audit retention policy once.
+
+    Honors the master switch (a disabled run reports itself rather than
+    silently doing nothing), isolates failures so one bad run does not
+    poison the schedule, and mirrors the per-category removal counts into
+    metrics plus one structured completion log line. Deliberately not gated
+    on the SOFT_DELETE flag: audit rows persist even after the flag is
+    turned off, and pruning an empty table is a no-op.
+    """
+    enabled: Any = current_app.config.get("PURGE_AUDIT_PRUNING_ENABLED", False)
+    if enabled is not True:
+        if enabled is not False:
+            logger.warning(
+                "prune_audit: invalid PURGE_AUDIT_PRUNING_ENABLED=%r; removing nothing",
+                enabled,
+            )
+            stats_logger_manager.instance.incr(
+                f"{_PRUNE_METRIC_PREFIX}.skipped_invalid_config"
+            )
+            return {"skipped_invalid_config": 1}
+        logger.info(
+            "prune_audit: disabled by PURGE_AUDIT_PRUNING_ENABLED; removing nothing"
+        )
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.skipped_disabled")
+        return {"skipped_disabled": 1}
+    try:
+        result: prune_audit.PruneRunResult = prune_audit.run_prune()
+    except Exception:  # pylint: disable=broad-except
+        # The session may be mid-transaction after a failed DELETE; leaving it
+        # dirty would fail the next statement on a reused session rather than
+        # here, where the traceback is.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.exception("deletion_retention.prune_purge_audit: task failed")
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.failed")
+        return {"error": 1}
+    if result.invalid_config_keys:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.invalid_config")
+    else:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
+    result_dict: dict[str, Any] = result.as_dict()
+    removed_counts: dict[str, int] = result_dict["removed"]
+    for category, count in removed_counts.items():
+        stats_logger_manager.instance.gauge(
+            f"{_PRUNE_METRIC_PREFIX}.removed.{category}", count
+        )
+    # Backlog convergence (SC-004) is only observable if "the budget ran out
+    # and rows remain" is a metric — a deployment producing prunable rows
+    # faster than one run removes them otherwise shows healthy success
+    # counters forever.
+    stats_logger_manager.instance.gauge(
+        f"{_PRUNE_METRIC_PREFIX}.carried_over", int(result.carried_over)
+    )
+    logger.info(
+        "prune_audit: removed blocked_duplicates=%d operational_expired=%d "
+        "evidence_expired=%d carried_over=%s invalid_config_keys=%s",
+        result.blocked_duplicates,
+        result.operational_expired,
+        result.evidence_expired,
+        result.carried_over,
+        result.invalid_config_keys,
+    )
+    return result_dict
 
 
 @celery_app.task(name="deletion_retention.purge_soft_deleted")

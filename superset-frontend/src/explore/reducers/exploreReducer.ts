@@ -40,7 +40,7 @@ import {
 import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 
 // Type definitions for explore state
 export interface ExploreState {
@@ -60,7 +60,7 @@ export interface ExploreState {
   slice?: Slice | null;
   sliceName?: string;
   controlsTransferred?: string[];
-  standalone?: boolean;
+  standalone?: number | null;
   force?: boolean;
   common?: {
     conf: {
@@ -70,9 +70,7 @@ export interface ExploreState {
   metadata?: {
     editors?: string[] | null;
   };
-  compatibleMetrics?: string[] | null;
-  compatibleDimensions?: string[] | null;
-  compatibilityLoading?: boolean;
+  compatibility?: CompatibilityResult;
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
 }
@@ -183,9 +181,7 @@ interface UpdateExploreChartStateAction {
 
 interface SetCompatibilityAction {
   type: typeof actions.SET_COMPATIBILITY;
-  compatibleMetrics: string[] | null;
-  compatibleDimensions: string[] | null;
-  compatibilityLoading: boolean;
+  compatibility: CompatibilityResult;
 }
 
 type ExploreAction =
@@ -208,7 +204,8 @@ type ExploreAction =
   | SetForceQueryAction
   | UpdateExploreChartStateAction
   | SetCompatibilityAction
-  | HydrateExplore;
+  | HydrateExplore
+  | { type: typeof actions.RESET_SEMANTIC_SELECTIONS };
 
 // Extended control state for dynamic form controls - uses Record for flexibility
 // since control configs vary significantly across different control types
@@ -239,6 +236,31 @@ export default function exploreReducer(
   action: ExploreAction,
 ): ExploreState {
   const actionHandlers: ActionHandlers = {
+    [actions.RESET_SEMANTIC_SELECTIONS]() {
+      const version = state.datasource?.semantic_selection_version;
+      if (!version) return state;
+      // Build from an allowlist: an old title can exactly match a current ID.
+      const formData: QueryFormData = {
+        datasource: state.form_data.datasource,
+        viz_type: state.form_data.viz_type,
+        slice_id: state.form_data.slice_id,
+        semantic_selection_version: version,
+      };
+      const resetState: ExploreState = {
+        ...state,
+        controls: {},
+        form_data: formData,
+        hiddenFormData: {},
+        controlsTransferred: [],
+      };
+      return {
+        ...resetState,
+        controls: getControlsState(
+          resetState as Parameters<typeof getControlsState>[0],
+          formData,
+        ) as ControlStateMapping,
+      };
+    },
     [DYNAMIC_PLUGIN_CONTROLS_READY]() {
       const typedAction = action as DynamicPluginControlsReadyAction;
       return {
@@ -295,6 +317,7 @@ export default function exploreReducer(
         prevDatasource.type !== newDatasource.type
       ) {
         newFormData.datasource = newDatasource.uid;
+        delete newFormData.semantic_selection_version;
       }
       // reset control values for column/metric related controls
       Object.entries(controls).forEach(([controlName, controlState]) => {
@@ -650,9 +673,7 @@ export default function exploreReducer(
       const typedAction = action as SetCompatibilityAction;
       return {
         ...state,
-        compatibleMetrics: typedAction.compatibleMetrics,
-        compatibleDimensions: typedAction.compatibleDimensions,
-        compatibilityLoading: typedAction.compatibilityLoading,
+        compatibility: typedAction.compatibility,
       };
     },
     [actions.UPDATE_EXPLORE_CHART_STATE]() {

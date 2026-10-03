@@ -17,12 +17,15 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
+import pandas as pd
 import pytest
+from flask import g, has_request_context, session
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy import text
@@ -30,21 +33,68 @@ from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
+    _serialize_and_expand_data,
+    _serialize_payload,
     execute_query,
     execute_sql_statements,
     get_query,
     get_sql_results,
     SqlLabException,
 )
+from superset.utils import json as superset_json
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
+
+
+def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
+    """Sync SQL Lab and its view consumer share strict Decimal projection."""
+    from superset.views.utils import _deserialize_results_payload
+
+    finite = Decimal("0.10000000000000000001")
+    result_set = MagicMock()
+    result_set.columns = [{"name": "value"}]
+    result_set.to_pandas_df.return_value = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    Decimal("NaN"),
+                    Decimal("sNaN"),
+                    Decimal("Infinity"),
+                    Decimal("-Infinity"),
+                    finite,
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        result_set, BaseEngineSpec()
+    )
+    assert isinstance(data, list)
+    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+
+    payload = {
+        "data": data,
+        "selected_columns": selected_columns,
+        "columns": all_columns,
+        "expanded_columns": expanded_columns,
+    }
+    serialized = _serialize_payload(payload)
+    assert isinstance(serialized, str)
+    assert "NaN" not in serialized
+    assert "Infinity" not in serialized
+    assert _deserialize_results_payload(serialized, MagicMock()) == (
+        superset_json.loads(serialized)
+    )
 
 
 def test_execute_query(mocker: MockerFixture, app: None) -> None:
@@ -249,6 +299,45 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         pytest.fail(
             "SupersetErrorException should not have been raised for payload within the limit"  # noqa: E501
         )
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+def test_execute_sql_statements_rejects_client_file_transfer(
+    mocker: MockerFixture, app: SupersetApp, allow_dml: bool
+) -> None:
+    """
+    `execute_sql_statements` rejects client-side file-transfer statements
+    regardless of `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetDisallowedClientFileTransferException
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_dml = allow_dml
+    query.database.allow_run_async = False
+    query.database.db_engine_spec.engine = "snowflake"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="REMOVE @my_stage/b; PUT file:///tmp/data.csv @my_stage",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+    # Sorted and comma-separated, not raw set interpolation.
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        "file-transfer command(s): PUT, REMOVE"
+    )
 
 
 def test_execute_sql_statements_mutates_before_split_by_default(
@@ -559,6 +648,77 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         app_context.pop()
 
 
+def _capture_execution_context(mocker: MockerFixture) -> dict[str, Any]:
+    """
+    Stub out ``execute_sql_statements`` and record the context it runs under.
+    """
+    captured: dict[str, Any] = {}
+
+    def execute_sql_statements(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        captured["rls_tenant"] = session.get("rls_tenant")
+        captured["has_request_context"] = has_request_context()
+        captured["user"] = g.user
+        return {"status": QueryStatus.SUCCESS}
+
+    mocker.patch(
+        "superset.sql_lab.execute_sql_statements",
+        side_effect=execute_sql_statements,
+    )
+    mocker.patch(
+        "superset.sql_lab.security_manager.find_user",
+        return_value="the-user",
+    )
+    return captured
+
+
+def test_get_sql_results_reuses_the_active_request(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a synchronous run keeps the real Flask session.
+
+    SQL Lab's synchronous executor invokes this task directly rather than through
+    Celery, so it already runs inside the authenticated request. Fabricating a
+    second request context there would swap the real session for an empty one and
+    break RLS clauses whose Jinja macros read ``flask.session``.
+    """
+    captured = _capture_execution_context(mocker)
+
+    # Pushed/popped manually (rather than via a ``with`` block) so the
+    # ``finally`` below still pops it if an assertion fails, preventing the
+    # request context from leaking into later tests in the same session.
+    app_context = app.test_request_context()
+    app_context.push()
+
+    try:
+        session["rls_tenant"] = "acme"
+        get_sql_results(query_id=1, rendered_query="SELECT 1")
+    finally:
+        app_context.pop()
+
+    assert captured["rls_tenant"] == "acme"
+    assert captured["user"] == "the-user"
+
+
+def test_get_sql_results_builds_a_request_when_there_is_none(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a Celery run still gets a request context of its own.
+
+    A worker has no originating request, and the OAuth2 flow needs a request
+    context to build its redirect URI, so one must still be created there.
+    """
+    captured = _capture_execution_context(mocker)
+
+    with app.app_context():
+        assert not has_request_context()
+        get_sql_results(query_id=1, rendered_query="SELECT 1", username="alice")
+
+    assert captured["has_request_context"] is True
+    assert captured["user"] == "the-user"
+
+
 def test_apply_rls(mocker: MockerFixture) -> None:
     """
     Test the ``apply_rls`` helper function.
@@ -584,12 +744,14 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
         ]
     )
@@ -631,7 +793,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
     dataset.get_sqla_row_level_filters.assert_called_once_with(
-        include_global_guest_rls=False
+        include_global_guest_rls=True
     )
 
 
@@ -708,6 +870,111 @@ def test_get_predicates_for_table_prefers_exact_schema_match(session: Session) -
         assert get_predicates_for_table(
             Table("t1", "public", None), database, None
         ) == ["c1 = 'public'"]
+
+
+def test_get_predicates_for_table_case_mismatched_reference(session: Session) -> None:
+    """
+    On an engine that doesn't treat unquoted identifiers as case-sensitive, a
+    reference whose catalog, schema or table casing differs from the registered
+    dataset still resolves to the same physical table, so the dataset's RLS
+    predicates must be applied. That includes a dataset stored without a schema,
+    which is scoped to the database's default schema, or without a catalog, which
+    is scoped to the default catalog. An engine that does treat them as
+    case-sensitive keeps the exact match. Several datasets can differ only in
+    case, all naming that one physical table: every one's predicates apply, so
+    the exact-case dataset's predicates are never dropped and a dataset
+    registered under a different casing cannot shadow it.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    folding = Database(database_name="rls_db_ci", sqlalchemy_uri="sqlite://")
+    exact = Database(database_name="rls_db_cs", sqlalchemy_uri="mysql://localhost/db")
+    ambiguous = Database(database_name="rls_db_ambiguous", sqlalchemy_uri="sqlite://")
+    null_schema = Database(
+        database_name="rls_db_null_schema", sqlalchemy_uri="sqlite://"
+    )
+    null_catalog = Database(
+        database_name="rls_db_null_catalog", sqlalchemy_uri="sqlite://"
+    )
+    session.add_all(
+        [
+            folding,
+            exact,
+            ambiguous,
+            null_schema,
+            null_catalog,
+            SqlaTable(
+                table_name="t1", schema="public", catalog="cat", database=folding
+            ),
+            SqlaTable(table_name="t1", schema="public", catalog=None, database=exact),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=ambiguous
+            ),
+            SqlaTable(
+                table_name="T1", schema="public", catalog=None, database=ambiguous
+            ),
+            SqlaTable(table_name="t1", schema=None, catalog=None, database=null_schema),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=null_catalog
+            ),
+        ]
+    )
+    session.flush()
+
+    def row_level_filters(
+        self: Any, include_global_guest_rls: bool = True
+    ) -> list[Any]:
+        return [text(f"c1 = '{self.table_name}'")]
+
+    with (
+        patch.object(
+            SqlaTable,
+            "get_sqla_row_level_filters",
+            autospec=True,
+            side_effect=row_level_filters,
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
+    ):
+        for reference in (
+            Table("T1", "public", "cat"),
+            Table("T1", "PUBLIC", "cat"),
+            Table("t1", "public", "CAT"),
+        ):
+            assert get_predicates_for_table(reference, folding, "cat") == [
+                "c1 = 't1'"
+            ], f"no predicates for {reference}"
+
+        # dataset stored without a catalog, referenced via the default catalog
+        assert get_predicates_for_table(
+            Table("T1", "public", "CAT"), null_catalog, "cat"
+        ) == ["c1 = 't1'"]
+
+        # dataset stored without a schema, referenced via the default schema
+        assert get_predicates_for_table(
+            Table("T1", "PUBLIC", None), null_schema, None
+        ) == ["c1 = 't1'"]
+        assert (
+            get_predicates_for_table(Table("T1", "other", None), null_schema, None)
+            == []
+        )
+
+        assert get_predicates_for_table(Table("T1", "public", None), exact, None) == []
+
+        # ``t1`` and ``T1`` name the same physical table here, so both sets of
+        # predicates apply whichever casing is referenced: the exact-case
+        # dataset's predicates are always among them, and neither dataset can
+        # shadow the other by registering a different casing
+        for reference in (
+            Table("t1", "public", None),
+            Table("T1", "public", None),
+            Table("t1", "PUBLIC", None),
+        ):
+            assert sorted(get_predicates_for_table(reference, ambiguous, None)) == [
+                "c1 = 'T1'",
+                "c1 = 't1'",
+            ], f"missing predicates for {reference}"
 
 
 def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:

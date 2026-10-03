@@ -23,7 +23,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client, FastMCP
 from pydantic import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
 from superset.mcp_service.app import mcp
@@ -34,6 +37,16 @@ from superset.utils import json
 
 def _wrapped(value: str) -> str:
     return value
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    # The injected Session is handed from setup to a single tool worker
+    # sequentially; concurrent ownership is covered with scoped sessions.
+    return create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
 
 @pytest.fixture
@@ -642,6 +655,45 @@ async def test_update_dataset_metric_invalid_error(mcp_server: FastMCP) -> None:
 
     assert data["metric"] is None
     assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_update_dataset_metric_soft_deleted_twin(mcp_server: FastMCP) -> None:
+    """A hidden source collision returns structured restore guidance."""
+    from superset.commands.dataset.exceptions import DatasetSoftDeletedTwinExistsError
+
+    dataset: MagicMock = make_dataset()
+    command: MagicMock = MagicMock()
+    twin_uuid: str = "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    command.run.side_effect = DatasetSoftDeletedTwinExistsError(twin_uuid)
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            return_value=command,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "update_dataset_metric",
+                        {
+                            "request": {
+                                "dataset_id": 1,
+                                "metric": "count",
+                                "description": "updated",
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["metric"] is None
+    assert data["error"] is not None
+    assert f"/api/v1/dataset/{twin_uuid}/restore" in data["error"]
+    command.run.assert_called_once()
 
 
 @pytest.mark.asyncio
