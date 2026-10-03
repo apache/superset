@@ -95,8 +95,8 @@ test('calls onChange when radio button is clicked', () => {
   const secondOption = screen.getByText('Option 2');
   fireEvent.click(secondOption);
 
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalled();
 });
 
 test('handles multiple clicks correctly', () => {
