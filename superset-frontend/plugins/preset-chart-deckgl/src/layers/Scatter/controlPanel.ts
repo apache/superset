@@ -59,19 +59,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         [tooltipContents],
         [tooltipTemplate],
-        [
-          {
-            name: 'mcp_geographic',
-            config: {
-              type: 'HiddenControl',
-              hidden: true,
-              renderTrigger: false,
-              description: t(
-                'Marks charts created through the MCP geographic contract so Explore keeps their validation guards.',
-              ),
-            },
-          },
-        ],
+        ['mcp_geographic'],
       ],
     },
     {
