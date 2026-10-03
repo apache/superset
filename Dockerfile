@@ -272,6 +272,12 @@ COPY --from=superset-node /app/superset/static/service-worker.j[s] superset/stat
 
 # TODO, when the next version comes out, use --exclude superset/translations
 COPY superset superset
+# Overlay the backend query_context V8 bundle built in the node stage (#33615).
+# Optional glob (`[s]`): the bundle only exists when the frontend was built
+# (DEV_MODE=false); without it the chart importer falls back to the pure-Python
+# generic derivation. Must come after `COPY superset superset` so it is not
+# clobbered by the source tree (which never contains the generated bundle).
+COPY --from=superset-node /app/superset/commands/chart/_bundles/query_context_bundle.j[s] superset/commands/chart/_bundles/query_context_bundle.js
 # TODO in the meantime, remove the .po files
 RUN rm superset/translations/*/*/*.po
 

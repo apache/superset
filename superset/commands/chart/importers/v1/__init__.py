@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from marshmallow import Schema
@@ -47,6 +48,8 @@ from superset.semantic_layers.import_export import (
     resolve_bundle_references,
 )
 from superset.subjects.utils import get_default_viewers_for_current_user
+
+logger = logging.getLogger(__name__)
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -128,7 +131,17 @@ class ImportChartsCommand(ImportModelsCommand):
         default_viewers = get_default_viewers_for_current_user()
 
         # import charts with the correct parent ref
+        # Per-chart query_context synthesis outcome, for operator visibility of a
+        # bulk import (FR-007): how many charts were made queryable, left as-is,
+        # or classified non-derivable. Logged as a one-line summary below.
+        n_queryable = 0
+        n_preserved = 0
+        n_non_derivable = 0
         chart_configs: list[dict[str, Any]] = []
+        # Pre-import query_context presence per chart UUID, captured before the
+        # import synthesizes one, so the summary counts what THIS import did
+        # rather than a pre-existing context (#33615 review).
+        had_query_context: dict[str, bool] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and (
                 "datasource_ref" in config or config.get("dataset_uuid") in datasets
@@ -148,6 +161,12 @@ class ImportChartsCommand(ImportModelsCommand):
                         "datasource_type": "table",
                         "datasource_name": dataset.table_name,
                     }
+                # Snapshot the pre-import context state before the import
+                # synthesizes into config["query_context"] (import_charts calls
+                # import_chart, which mutates config in place).
+                had_query_context[str(config["uuid"])] = bool(
+                    config.get("query_context")
+                )
                 chart_configs.append(update_chart_config_dataset(config, dataset_dict))
 
         # Charts bundled only as annotation sources are reused when they exist,
@@ -176,7 +195,26 @@ class ImportChartsCommand(ImportModelsCommand):
         ):
             if str(config["uuid"]) in reused_chart_uuids:
                 continue
+            # Count the query_context synthesis outcome from what this import did
+            # to the config. Keyed off the pre-import snapshot so a chart that
+            # already had a context is counted as preserved, not as newly
+            # synthesized (#33615 review).
+            if had_query_context.get(str(config["uuid"])):
+                n_preserved += 1
+            elif config.get("query_context"):
+                n_queryable += 1
+            else:
+                n_non_derivable += 1
             # Handle tags using import_tag function
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 if "tags" in config:
                     import_tag(config["tags"], contents, chart.id, "chart", db.session)
+
+        if n_queryable or n_preserved or n_non_derivable:
+            logger.info(
+                "Chart import query_context synthesis: "
+                "%d queryable, %d preserved, %d non-derivable",
+                n_queryable,
+                n_preserved,
+                n_non_derivable,
+            )

@@ -582,3 +582,88 @@ def test_failing_import_directory(
         )
 
     assert_cli_fails_properly(response, caplog)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_backfill_query_context_fills_only_null_contexts(app_context):
+    """
+    ``backfill-query-context`` synthesizes a context for charts that have none,
+    binds it to the chart's own datasource, and leaves charts that already have
+    a context untouched (#33615). The V8 generator is stubbed to None so the test
+    exercises the deterministic Python fallback regardless of bundle availability.
+    """
+    import superset.cli.charts  # noqa: F811
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+    # Capture the id now: the command commits (expiring instances) and expunges,
+    # so ``table`` is detached by the time the assertions run.
+    table_id = table.id
+
+    null_chart = Slice(
+        slice_name="qc-backfill-null",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=table.id,
+        params=json.dumps(
+            {
+                "viz_type": "table",
+                "metrics": ["count"],
+                "datasource": f"{table.id}__table",
+            }
+        ),
+        query_context=None,
+    )
+    kept_chart = Slice(
+        slice_name="qc-backfill-existing",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=table.id,
+        params=json.dumps({"viz_type": "table", "metrics": ["count"]}),
+        query_context='{"existing": true}',
+    )
+    db.session.add_all([null_chart, kept_chart])
+    db.session.commit()
+
+    try:
+        with mock.patch(
+            "superset.commands.chart.query_context_generator."
+            "get_query_context_generator"
+        ) as get_generator:
+            get_generator.return_value.generate.return_value = None
+            runner = current_app.test_cli_runner()
+            response = runner.invoke(superset.cli.charts.backfill_query_context, ())
+
+        assert response.exit_code == 0, response.output
+
+        # The command commits each batch and detaches the charts it processed to
+        # keep memory bounded, so the instances created above are no longer
+        # attached to this session. Re-load from the committed state rather than
+        # refreshing the expunged instances (which raises "not persistent within
+        # this Session").
+        null_chart = (
+            db.session.query(Slice).filter_by(slice_name="qc-backfill-null").one()
+        )
+        kept_chart = (
+            db.session.query(Slice).filter_by(slice_name="qc-backfill-existing").one()
+        )
+
+        # The empty chart gained a context bound to its own datasource ...
+        assert null_chart.query_context is not None
+        datasource = json.loads(null_chart.query_context)["datasource"]
+        datasource_id = (
+            datasource["id"]
+            if isinstance(datasource, dict)
+            else int(str(datasource).split("__")[0])
+        )
+        assert datasource_id == table_id
+        # ... and the chart that already had a context is left untouched.
+        assert kept_chart.query_context == '{"existing": true}'
+    finally:
+        for name in ("qc-backfill-null", "qc-backfill-existing"):
+            chart = db.session.query(Slice).filter_by(slice_name=name).one_or_none()
+            if chart is not None:
+                db.session.delete(chart)
+        db.session.commit()
