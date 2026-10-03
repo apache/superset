@@ -55,8 +55,10 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
 
     Returns tag details including name, type, and description.
 
-    Tag types: custom (user-created), type (implicit by object type),
-    editor (implicit by editorship), favorited_by (implicit by favorites).
+    Tag types: custom (user-created), plus legacy implicit types no longer
+    generated for new objects -- type (by object type), editor (by
+    editorship), favorited_by (by favorites) -- kept for tags created before
+    Superset stopped auto-generating them.
 
     To find a tag ID, use the list_tags tool first.
 
