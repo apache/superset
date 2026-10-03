@@ -16,31 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CHART_TYPE,
-  EXTENSION_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-} from './componentTypes';
+import { t } from '@apache-superset/core/translation';
+import { dashboardComponents } from 'src/core';
+import IframeContent from './IframeContent';
 
-const USER_CONTENT_COMPONENT_TYPE: string[] = [
-  CHART_TYPE,
-  EXTENSION_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-];
-export default function isDashboardEmpty(layout: any): boolean {
-  // has at least one chart, markdown, or contributed user-content component
-  return !Object.values(layout).some(
-    ({ type, meta }: { type?: string; meta?: { isUserContent?: boolean } }) => {
-      if (!type || !USER_CONTENT_COMPONENT_TYPE.includes(type)) {
-        return false;
-      }
-      // Extension components may opt out of counting as user content.
-      if (type === EXTENSION_TYPE && meta?.isUserContent === false) {
-        return false;
-      }
-      return true;
+export const IFRAME_COMPONENT_ID = 'superset.iframe';
+
+/**
+ * Registers the built-in iframe as a first-class dashboard component through the
+ * Extensions `dashboardComponents` contribution point. Core registers it the
+ * same way a third-party extension would, demonstrating the contract end to end.
+ */
+export default function registerIframeComponent() {
+  dashboardComponents.registerDashboardComponent(
+    {
+      id: IFRAME_COMPONENT_ID,
+      name: t('Embed / Iframe'),
+      description: t('Embed external content via a URL'),
+      icon: 'LinkOutlined',
+      resizable: true,
+      defaultMeta: { width: 4, height: 50, url: '' },
     },
+    IframeContent,
   );
 }
