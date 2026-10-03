@@ -32,7 +32,11 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
-from superset.exceptions import CacheLoadError, QueryObjectValidationError
+from superset.exceptions import (
+    CacheLoadError,
+    QueryObjectValidationError,
+    SupersetSecurityException,
+)
 from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
@@ -206,7 +210,7 @@ def mock_annotation_chart() -> Iterator[MagicMock]:
 
 
 def test_annotation_source_scope_binds_datasource_access(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """A chart-backed annotation layer's scope must differ when the
     requester's access to the referenced datasource differs."""
@@ -225,13 +229,13 @@ def test_annotation_source_scope_binds_datasource_access(
 
 
 def test_annotation_source_scope_reuses_referenced_chart_cache_key(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """When the referenced chart has a saved query context, its own cache
     key(s) -- covering RLS and per-user Jinja/virtual-dataset material -- are
     reused rather than re-derived."""
-    mock_query_object = MagicMock()
-    mock_query_context = MagicMock()
+    mock_query_object: MagicMock = MagicMock()
+    mock_query_context: MagicMock = MagicMock()
     mock_query_context.queries = [mock_query_object]
     mock_query_context.query_cache_key.return_value = "referenced-chart-key"
     mock_annotation_chart.get_query_context.return_value = mock_query_context
@@ -246,7 +250,7 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
 
 
 def test_annotation_source_scope_uses_live_fetch_authorization(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """When the referenced chart has a saved query context, ``access`` must
     come from that context's own ``raise_for_access`` -- the same
@@ -256,10 +260,8 @@ def test_annotation_source_scope_uses_live_fetch_authorization(
     on the chart's own saved form_data (e.g. a dashboard/viewer-promiscuous
     bypass) must get a scope distinct from one truly denied, or the latter
     could read the former's cached payload."""
-    from superset.exceptions import SupersetSecurityException
-
-    mock_query_object = MagicMock()
-    mock_query_context = MagicMock()
+    mock_query_object: MagicMock = MagicMock()
+    mock_query_context: MagicMock = MagicMock()
     mock_query_context.queries = [mock_query_object]
     mock_query_context.query_cache_key.return_value = "referenced-chart-key"
     mock_annotation_chart.get_query_context.return_value = mock_query_context
@@ -283,7 +285,7 @@ def test_annotation_source_scope_uses_live_fetch_authorization(
 
 
 def test_annotation_source_scope_applies_overrides_before_keying(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """A time-grain/time-range override on the annotation layer must be
     applied to the referenced chart's query objects *before* deriving the
@@ -311,7 +313,7 @@ def test_annotation_source_scope_applies_overrides_before_keying(
 
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """A lookup failure must fail closed rather than silently deduping onto a
     successfully-derived scope -- and not just for SupersetException: the RLS
@@ -330,7 +332,7 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
 
 
 def test_annotation_source_scope_fallback_lookup_also_fails_closed(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """If the fallback's own RLS lookup fails too (e.g. the same DB outage
     that failed the primary derivation), that must not escape either."""
@@ -355,7 +357,7 @@ def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
 
 
 def test_annotation_source_scope_uses_resolved_datasource_for_semantic_views(
-    processor, mock_annotation_chart
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
     """``Slice.datasource`` is pinned to table-backed datasources and
     resolves to ``None`` for a semantic-view-backed chart, which would
@@ -3055,7 +3057,9 @@ def test_mark_force_executed_noop_without_nonce(processor, mock_query_context):
 # =============================================================================
 
 
-def test_get_annotation_data_cached_reads_from_cache(processor):
+def test_get_annotation_data_cached_reads_from_cache(
+    processor: QueryContextProcessor,
+) -> None:
     """A hit on the annotation-specific key skips recomputation entirely."""
     with patch(
         "superset.common.query_context_processor.cache_manager"
@@ -3074,7 +3078,10 @@ def test_get_annotation_data_cached_reads_from_cache(processor):
     mock_get.assert_not_called()
 
 
-def test_get_annotation_data_cached_computes_and_caches_on_miss(processor):
+def test_get_annotation_data_cached_computes_and_caches_on_miss(
+    processor: QueryContextProcessor,
+) -> None:
+    """A miss computes the annotation data and stores it under the scoped key."""
     with (
         patch("superset.common.query_context_processor.cache_manager") as cache_manager,
         patch("superset.common.query_context_processor.set_and_log_cache") as mock_set,
@@ -3098,7 +3105,9 @@ def test_get_annotation_data_cached_computes_and_caches_on_miss(processor):
     )
 
 
-def test_get_annotation_data_cached_force_cached_raises_on_miss(processor):
+def test_get_annotation_data_cached_force_cached_raises_on_miss(
+    processor: QueryContextProcessor,
+) -> None:
     """``force_cached`` must never fall through to a live compute -- the same
     contract ``QueryCacheManager.get`` enforces for the dataframe cache."""
     with patch(
