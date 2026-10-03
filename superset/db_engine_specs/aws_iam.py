@@ -30,9 +30,8 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Iterator, MutableMapping
 from typing import Any, TYPE_CHECKING, TypedDict
-
-from cachetools import TTLCache
 
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -51,12 +50,45 @@ DEFAULT_POSTGRES_PORT = 5432
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_REDSHIFT_PORT = 5439
 
+
+class _NoCache(MutableMapping[tuple[str, str, str | None], dict[str, Any]]):
+    """No-op cache used when ``cachetools`` isn't installed.
+
+    A plain ``dict`` would never evict a stored STS credential, so once the
+    real TTL (600s) elapsed, every subsequent call would keep reusing the
+    same expired credentials until the process restarted -- worse than not
+    caching at all. This always misses, so ``get_iam_credentials`` falls
+    through to a fresh ``assume_role`` call every time instead.
+    """
+
+    def __getitem__(self, key: tuple[str, str, str | None]) -> dict[str, Any]:
+        raise KeyError(key)
+
+    def __setitem__(
+        self, key: tuple[str, str, str | None], value: dict[str, Any]
+    ) -> None:
+        pass
+
+    def __delitem__(self, key: tuple[str, str, str | None]) -> None:
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[tuple[str, str, str | None]]:
+        return iter(())
+
+    def __len__(self) -> int:
+        return 0
+
+
 # Cache STS credentials: key = (role_arn, region, external_id), TTL = 10 min
 # Using a TTL shorter than the minimum supported session duration (900s) avoids
 # reusing expired STS credentials when a short session_duration is configured.
-_credentials_cache: TTLCache[tuple[str, str, str | None], dict[str, Any]] = TTLCache(
-    maxsize=100, ttl=600
-)
+_credentials_cache: MutableMapping[tuple[str, str, str | None], dict[str, Any]]
+try:
+    from cachetools import TTLCache
+
+    _credentials_cache = TTLCache(maxsize=100, ttl=600)
+except ImportError:
+    _credentials_cache = _NoCache()
 _credentials_lock = threading.RLock()
 
 
