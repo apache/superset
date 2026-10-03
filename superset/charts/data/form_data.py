@@ -21,9 +21,10 @@ from typing import Any, TYPE_CHECKING
 
 from flask import g
 
+from superset.common.query_object import QueryObject
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
-    from superset.common.query_object import QueryObject
 
 
 def set_form_data(form_data: dict[str, Any]) -> None:
@@ -33,6 +34,12 @@ def set_form_data(form_data: dict[str, Any]) -> None:
 
 def _as_form_data_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _as_query_list(value: Any) -> list[Any]:
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return []
 
 
 def _serialize_query(
@@ -65,12 +72,19 @@ def set_query_context_form_data(
     datasource_type: str,
     time_range: str | None = None,
 ) -> None:
-    """Expose a programmatically-created query like a chart data API request."""
-    # form_data is typed as optional on QueryContext; queries is always a list.
-    form_data = _as_form_data_dict(query_context.form_data)
+    """Expose a programmatically-created query like a chart data API request.
+
+    Production callers pass a real ``QueryContext``. Unit tests sometimes pass
+    incomplete doubles (``object()``, ``SimpleNamespace``, bare ``Mock``); those
+    still publish the datasource for Jinja, and only real ``QueryObject`` entries
+    are serialized — attribute access on ``QueryObject`` stays direct so a
+    rename fails loudly.
+    """
+    form_data = _as_form_data_dict(getattr(query_context, "form_data", None))
     serialized = [
         _serialize_query(query, form_data, time_range)
-        for query in query_context.queries
+        for query in _as_query_list(getattr(query_context, "queries", None))
+        if isinstance(query, QueryObject)
     ]
     set_form_data(
         {
