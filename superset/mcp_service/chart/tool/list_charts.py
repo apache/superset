@@ -215,10 +215,6 @@ async def list_charts(
         ``slice_name``, ``viz_type``, ``datasource_name``, ``datasource_id``, ``editor``,
         ``created_by_fk``, ``changed_by_fk``, ``dashboards``
 
-    To find charts on dataset X, filter by ``datasource_id`` with the integer
-    dataset ID using ``eq`` or ``ne``, or a list of IDs using ``in`` or ``nin``.
-    Other operators are rejected for this column.
-
     Sortable columns for ``order_column``:
         ``id``, ``slice_name``, ``viz_type``, ``description``,
         ``changed_on``, ``changed_on_delta_humanized`` (alias for ``changed_on``),

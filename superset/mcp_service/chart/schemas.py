@@ -702,10 +702,8 @@ class ChartFilter(ColumnOperator):
         "dashboards",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. To find charts on dataset X, filter by "
-        "'datasource_id' with the integer dataset ID using eq or ne, or a "
-        "list of integer IDs using in or nin. Other operators are rejected. "
+        description="Filter column; see get_schema(model_type='chart'). "
+        "For charts on dataset X, use datasource_id (eq/ne/in/nin). "
         "To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
         "changed_by_fk with that integer ID. To find charts attached to a "
