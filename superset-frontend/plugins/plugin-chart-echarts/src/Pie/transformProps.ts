@@ -47,6 +47,7 @@ import {
   getColtypesMapping,
   getLegendProps,
   getLegendScrollDataIndex,
+  measureTextWidth,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -427,6 +428,44 @@ export default function transformProps(
     {},
   );
 
+  const wrapTextByPixels = (text: string, maxWidth: number): string => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      if (measureTextWidth(testLine, theme) <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+        currentLine = word;
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    return lines.join('\n');
+  };
+
+  const truncateTextByPixels = (text: string, maxWidth: number): string => {
+    if (measureTextWidth(text, theme) <= maxWidth) {
+      return text;
+    }
+    let left = 0;
+    let right = text.length;
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (measureTextWidth(`${text.slice(0, mid)}...`, theme) <= maxWidth) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+    return `${text.slice(0, left - 1)}...`;
+  };
+
   const formatTemplate = (
     template: string,
     formattedParams: {
@@ -465,37 +504,59 @@ export default function transformProps(
       numberFormatter,
       percentFormatter,
     });
+
+    let result = name;
     switch (labelType) {
       case EchartsPieLabelType.Key:
-        return name;
+        result = name;
+        break;
       case EchartsPieLabelType.Value:
-        return formattedValue;
+        result = formattedValue;
+        break;
       case EchartsPieLabelType.Percent:
-        return formattedPercent;
+        result = formattedPercent;
+        break;
       case EchartsPieLabelType.KeyValue:
-        return `${name}: ${formattedValue}`;
+        result = `${name}: ${formattedValue}`;
+        break;
       case EchartsPieLabelType.KeyValuePercent:
-        return `${name}: ${formattedValue} (${formattedPercent})`;
+        result = `${name}: ${formattedValue} (${formattedPercent})`;
+        break;
       case EchartsPieLabelType.KeyPercent:
-        return `${name}: ${formattedPercent}`;
+        result = `${name}: ${formattedPercent}`;
+        break;
       case EchartsPieLabelType.ValuePercent:
-        return `${formattedValue} (${formattedPercent})`;
+        result = `${formattedValue} (${formattedPercent})`;
+        break;
       case EchartsPieLabelType.Template:
         if (!labelTemplate) {
-          return '';
+          result = '';
+        } else {
+          result = formatTemplate(
+            labelTemplate,
+            {
+              name,
+              value: formattedValue,
+              percent: formattedPercent,
+            },
+            params,
+          );
         }
-        return formatTemplate(
-          labelTemplate,
-          {
-            name,
-            value: formattedValue,
-            percent: formattedPercent,
-          },
-          params,
-        );
+        break;
       default:
-        return name;
+        result = name;
+        break;
     }
+
+    if (labelMaxWidth > 0) {
+      if (labelOverflow === 'break') {
+        return wrapTextByPixels(result, labelMaxWidth);
+      }
+      if (labelOverflow === 'truncate') {
+        return truncateTextByPixels(result, labelMaxWidth);
+      }
+    }
+    return result;
   };
 
   const defaultLabel = {
@@ -556,18 +617,10 @@ export default function transformProps(
             position: 'outer',
             alignTo: 'none',
             bleedMargin: 5,
-            ...(labelMaxWidth > 0 && {
-              width: labelMaxWidth,
-              overflow: labelOverflow,
-            }),
           }
         : {
             ...defaultLabel,
             position: 'inner',
-            ...(labelMaxWidth > 0 && {
-              width: labelMaxWidth,
-              overflow: labelOverflow,
-            }),
           },
       emphasis: {
         label: {

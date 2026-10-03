@@ -658,19 +658,38 @@ describe('Pie label max width and overflow', () => {
     expect(label).not.toHaveProperty('overflow');
   });
 
-  test('sets width and overflow=truncate when configured for outer labels', () => {
+  test('truncates text in formatter when configured for truncate', () => {
     const label = getLabel(makeChartProps(120, 'truncate', true));
-    expect(label).toMatchObject({ width: 120, overflow: 'truncate' });
+    const formatter = label!.formatter as Function;
+    const formatted = formatter({
+      name: 'A very long category name indeed',
+      value: 10,
+      percent: 1,
+    });
+    expect(formatted).toContain('...');
   });
 
-  test('sets width and overflow=break when configured for inner labels', () => {
+  test('wraps text in formatter when configured for break', () => {
     const label = getLabel(makeChartProps(80, 'break', false));
-    expect(label).toMatchObject({ width: 80, overflow: 'break' });
+    const formatter = label!.formatter as Function;
+    const formatted = formatter({
+      name: 'A very long category name indeed',
+      value: 10,
+      percent: 1,
+    });
+    expect(formatted).toContain('\n');
   });
 
-  test('sets width and overflow=none when labelOverflow is none', () => {
+  test('does not modify text when labelOverflow is none', () => {
     const label = getLabel(makeChartProps(100, 'none'));
-    expect(label).toMatchObject({ width: 100, overflow: 'none' });
+    const formatter = label!.formatter as Function;
+    const formatted = formatter({
+      name: 'A very long category name indeed',
+      value: 10,
+      percent: 1,
+    });
+    expect(formatted).not.toContain('...');
+    expect(formatted).not.toContain('\n');
   });
 
   test('passes horizontalLegendWidth through to legend textStyle and tooltip', () => {

@@ -963,7 +963,6 @@ export function getLegendProps(
     maxTextWidth: number,
   ): NonNullable<LegendComponentOption['tooltip']> => ({
     show: true,
-    appendToBody: true, // Use DOM body to prevent clipping
     confine: false, // allow tooltip to render above the canvas boundary
     position: (
       _pos: [number, number],
