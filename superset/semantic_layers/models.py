@@ -193,9 +193,12 @@ class SemanticLayer(AuditMixinNullable, Model):
     perm = Column(String(1000), nullable=True)
 
     # Semantic views relationship
+    # SQLAlchemy 2 needs an explicit collection class for this forward annotation.
     semantic_views: list[SemanticView] = relationship(
         "SemanticView",
         back_populates="semantic_layer",
+        uselist=True,
+        collection_class=list,
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
