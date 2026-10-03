@@ -163,7 +163,7 @@ class ImportChartsCommand(ImportModelsCommand):
                     # chain, so in a full-repo mypy run mypy resolves it through
                     # CoreChart's plain `uuid: UUID | None` annotation instead of
                     # the Column descriptor; same false positive already ignored
-                    # at superset/mcp_service/dataset_scope.py:131.
+                    # in superset/mcp_service/dataset_scope.py.
                     Slice.uuid.in_(dependency_chart_uuids)  # type: ignore[union-attr]
                 )
             }
