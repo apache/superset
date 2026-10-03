@@ -274,6 +274,46 @@ const renderWithRouter = ({
   return { ...result, history };
 };
 
+test('fetches datasource metadata when the datasource changes', async () => {
+  const datasourceKey = '2__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    {
+      id: 2,
+      type: 'table',
+      columns: [],
+      metrics: [],
+    },
+  );
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.called(
+        `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      ),
+    ).toBe(true),
+  );
+});
+
 test('generates a new form_data param when none is available', async () => {
   getChartMetadataRegistry().registerValue(
     'table',
