@@ -199,7 +199,7 @@ def load_configs(
             # Bind ``config`` up front so the ``except ValidationError``
             # diagnostic below stays valid even when ``load_yaml`` raises
             # before the assignment completes (unparseable YAML).
-            config: Any = None
+            config = None
             try:
                 config = load_yaml(file_name, content)
                 if not isinstance(config, dict):
