@@ -20,8 +20,10 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from typing import Annotated
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -89,9 +91,21 @@ def _finalize_response(payload: object) -> GenerateChartResponse:
     ),
 )
 async def generate_chart(  # noqa: C901
-    request: GenerateChartRequest, ctx: Context
+    request: Annotated[
+        GenerateChartRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "Preview only; save_chart=True saves. MUST display chart URL. "
+                "dataset_id: numeric ID/UUID, NOT schema.table_name. "
+                "config.chart_type required; line/bar/area/scatter are xy kind values. "
+                "Check get_chart_type_schema for host-gated types."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateChartResponse:
-    """Create a chart preview in Superset, optionally saving it permanently.
+    """Preview a chart; optionally save.
 
     IMPORTANT BEHAVIOR:
     - Charts are NOT saved by default (save_chart=False) - preview only
