@@ -111,16 +111,24 @@ test('does not call onChange when clicking the already selected option', () => {
 
 test('handles multiple clicks correctly', () => {
   const onChange = jest.fn();
-  setup({ onChange });
+  const { rerender } = setup({ value: 'option1', onChange });
 
   fireEvent.click(screen.getByText('Option 2'));
-  fireEvent.click(screen.getByText('Option 3'));
-  fireEvent.click(screen.getByText('Option 1'));
+  expect(onChange).toHaveBeenLastCalledWith('option2');
 
-  expect(onChange).toHaveBeenCalledWith('option2');
-  expect(onChange).toHaveBeenCalledWith('option3');
-  expect(onChange).toHaveBeenCalledWith('option1');
-  expect(onChange.mock.calls.length).toBeGreaterThanOrEqual(3);
+  rerender(
+    <RadioButtonControl {...defaultProps} value="option2" onChange={onChange} />,
+  );
+  fireEvent.click(screen.getByText('Option 3'));
+  expect(onChange).toHaveBeenLastCalledWith('option3');
+
+  rerender(
+    <RadioButtonControl {...defaultProps} value="option3" onChange={onChange} />,
+  );
+  fireEvent.click(screen.getByText('Option 1'));
+  expect(onChange).toHaveBeenLastCalledWith('option1');
+
+  expect(onChange).toHaveBeenCalledTimes(3);
 });
 
 test('disables specific options when disabled flag is set', () => {
