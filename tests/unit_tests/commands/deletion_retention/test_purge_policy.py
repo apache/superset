@@ -567,4 +567,8 @@ def test_core_delete_actions_compile_for_supported_dialects(dialect: str) -> Non
     compiled.append(str(claim.compile(dialect=dialects[dialect])))
 
     assert compiled
-    assert all(statement.startswith(("SELECT", "DELETE")) for statement in compiled)
+    # The only UPDATE detaches a purged dataset's preserved charts.
+    assert all(
+        statement.startswith(("SELECT", "DELETE", "UPDATE slices "))
+        for statement in compiled
+    )
