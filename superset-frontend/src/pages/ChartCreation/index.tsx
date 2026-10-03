@@ -141,6 +141,13 @@ const StyledContainer = styled.div`
       display: none;
     }
 
+    /* antd 6 added its own icon->content gap on this flex wrapper
+       (column-gap), on top of the .ant-steps-item-icon margin-right below,
+       doubling the gap. Zero it out so the icon's margin is the only gap. */
+    &&&& .ant-steps-item-wrapper {
+      column-gap: 0;
+    }
+
     &&&& .ant-steps-item-icon {
       margin-right: ${theme.marginXS}px;
       width: ${theme.sizeUnit * 5}px;

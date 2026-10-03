@@ -59,7 +59,6 @@ class EmbeddedView(BaseSupersetView):
             abort(404)
 
         assert embedded is not None
-        dashboard = embedded.dashboard
 
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
@@ -97,7 +96,12 @@ class EmbeddedView(BaseSupersetView):
 
         bootstrap_data = {
             "config": {
-                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+                "GUEST_TOKEN_HEADER_NAME": current_app.config[
+                    "GUEST_TOKEN_HEADER_NAME"
+                ],
+                "GUEST_TOKEN_HEADER_MAX_BYTES": current_app.config[
+                    "GUEST_TOKEN_HEADER_MAX_BYTES"
+                ],
             },
             "common": common_bootstrap_payload(),
             "embedded": {
@@ -109,11 +113,14 @@ class EmbeddedView(BaseSupersetView):
             },
         }
 
+        # This page renders before any guest token has been presented, and the
+        # Referer / Sec-Fetch-Dest checks above are browser cooperation only --
+        # a non-browser client can forge or omit both. Serve a neutral shell:
+        # no dashboard title or description here; the embedded SPA fetches
+        # dashboard metadata through the guest-token-authenticated API.
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
-            title=dashboard.dashboard_title,
-            dashboard_description=dashboard.description,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),

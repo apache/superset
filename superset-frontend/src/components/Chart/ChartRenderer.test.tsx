@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
   VizType,
   JsonObject,
+  FeatureFlag,
   FeatureFlagMap,
+  DataMask,
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -47,7 +49,28 @@ jest.mock('@superset-ui/core', () => ({
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
       data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
+      data-async-mode={String(
+        (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
+          'resolveAsyncMode'
+        ]?.(),
+      )}
     >
+      <button
+        type="button"
+        onClick={() =>
+          (
+            props.hooks as { setDataMask: (mask: DataMask) => void }
+          ).setDataMask({
+            extraFormData: {
+              semantic_selection_sources: [
+                { datasource: 'foreign__semantic_view', version: null },
+              ],
+            },
+          })
+        }
+      >
+        Emit semantic mask
+      </button>
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -437,6 +460,34 @@ test('does not mark chart as refreshing when spinner suppression is disabled', (
   );
 });
 
+test('threads the per-dashboard async_mode override into resolveAsyncMode for self-contained charts', () => {
+  // Self-contained charts (e.g. StatefulChart / the Matrixify path) resolve
+  // async mode through the injected `resolveAsyncMode` hook; it must receive the
+  // dashboard override so `force_on`/`force_off` win over the deployment default,
+  // matching the Redux chart path. GAQ must be on for the override to matter.
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.GlobalAsyncQueries]: true,
+  } as FeatureFlagMap;
+  try {
+    const { getByTestId, rerender } = render(
+      <ChartRenderer {...requiredProps} asyncModeOverride="force_off" />,
+    );
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'false',
+    );
+    rerender(<ChartRenderer {...requiredProps} asyncModeOverride="force_on" />);
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'true',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
 test('does not render chart during loading when last data has errors', () => {
   const props = {
     ...requiredProps,
@@ -448,4 +499,37 @@ test('does not render chart during loading when last data has errors', () => {
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('chart mask updates preserve incoming and query selection provenance', () => {
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={{
+        datasource: '7__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [
+          { datasource: 'query__semantic_view', version: null },
+        ],
+      }}
+      actions={
+        { ...mockActions, updateDataMask } as ChartRendererProps['actions']
+      }
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit semantic mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        semantic_selection_sources: [
+          { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'query__semantic_view', version: null },
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      }),
+    }),
+  );
 });

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import copy
 import functools
 import logging
@@ -57,6 +58,7 @@ from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
+from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -73,6 +75,7 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata, visible_version_metadata
 from superset.views.error_handling import json_error_response
+from superset.websocket.permissions import can_access_realtime_notifications
 
 from .utils import bootstrap_user_data, get_config_value
 
@@ -90,12 +93,16 @@ FRONTEND_CONF_KEYS = (
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
-    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY",
+    "GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT",
+    "GLOBAL_ASYNC_QUERIES_DEFAULT",
+    "WEBSOCKET_ENABLE",
+    "WEBSOCKET_URL",
+    "WEBSOCKET_JWT_EXPIRATION_SECONDS",
     "SQL_VALIDATORS_BY_ENGINE",
     "SQLALCHEMY_DOCS_URL",
     "SQLALCHEMY_DISPLAY_TEXT",
-    "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
@@ -511,7 +518,8 @@ def _soft_delete_conf() -> dict[str, Any]:
 
     Resolved rather than read from config: an operator can change the window at
     runtime with ``superset deletion-retention set_window``, which persists to
-    a shared key taking precedence over the config seed. Passing the config
+    a shared key taking precedence over the config seed unless an authoritative
+    host policy is installed. Passing the config
     value through would tell users they have longer to recover an object than
     the purge task will actually allow.
 
@@ -551,6 +559,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = (
+        is_background_export_available()
+    )
 
     frontend_config.update(_soft_delete_conf())
 
@@ -655,6 +666,12 @@ def common_bootstrap_payload() -> dict[str, Any]:
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
     payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    frontend_config = payload.get("conf")
+    if isinstance(frontend_config, dict) and frontend_config.get("WEBSOCKET_ENABLE"):
+        payload["conf"] = {
+            **frontend_config,
+            "WEBSOCKET_ENABLE": can_access_realtime_notifications(),
+        }
     # The language pack itself is NOT embedded in the payload: spa.html loads
     # it through the content-addressed /language_pack/<lang>/<version>/script.js
     # tag before the entry bundle, keeping HTML small while still configuring
@@ -743,6 +760,20 @@ def _ensure_static_assets_prefix(url_or_path: str) -> str:
     return f"{normalized_prefix}{url_or_path}"
 
 
+def _svg_to_data_uri(svg: str | None) -> str | None:
+    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given.
+
+    A malformed theme (hand-edited config or a stale database row) could
+    supply a truthy non-string value here; treat that as absent rather than
+    raising, since raising would 500 every SPA render.
+    """
+    if not isinstance(svg, str) or not svg:
+        return None
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
+
+
 def get_spa_template_context(
     entry: str | None = "spa",
     extra_bootstrap_data: dict[str, Any] | None = None,
@@ -812,6 +843,10 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Serve the spinner as an <img> data URI (see spa.html). SVG loaded via <img>
+    # can't execute scripts, so rendering doesn't depend on sanitize_svg_content.
+    spinner_svg_data_uri = _svg_to_data_uri(spinner_svg)
+
     # Determine default title using the (potentially updated) brandAppName
     default_title = theme_tokens.get("brandAppName", "Superset")
 
@@ -826,7 +861,7 @@ def get_spa_template_context(
         ),
         "theme_tokens": theme_tokens,
         "dark_theme_bg": dark_theme_bg,
-        "spinner_svg": spinner_svg,
+        "spinner_svg_data_uri": spinner_svg_data_uri,
         "default_title": default_title,
         **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,

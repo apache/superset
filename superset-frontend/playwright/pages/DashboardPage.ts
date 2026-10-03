@@ -25,6 +25,15 @@ import { gotoWithRetry } from '../helpers/navigation';
 import { html5DragAndDrop } from '../helpers/dnd';
 import { TIMEOUT } from '../utils/constants';
 
+/**
+ * URL query param carrying the server-side `filter_state` key the native
+ * filter bar publishes. Mirrors `URL_PARAMS.nativeFiltersKey.name` in
+ * `src/constants.ts`, which cannot be imported here: it pulls in
+ * `@superset-ui/core`, whose source graph is ESM-only under the Playwright
+ * runner.
+ */
+const NATIVE_FILTERS_KEY_PARAM = 'native_filters_key';
+
 /** Tabs of the dashboard builder side pane, by their rendered label. */
 type BuilderTab = 'Charts' | 'Layout elements';
 
@@ -47,6 +56,7 @@ type LayoutElementLabel =
 export class DashboardPage {
   private readonly page: Page;
   private readonly filterBar: DashboardFilterBar;
+  private readonly dashboardTabs: Tabs;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -72,11 +82,19 @@ export class DashboardPage {
     ACE_CONTENT: '.ace_content',
     ACE_TEXT_INPUT: '.ace_text-input',
     RESIZE_HANDLE_BOTTOM: '.resizable-container-handle--bottom',
+    DASHBOARD_TABS: '[data-test="dashboard-component-tabs"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
     this.filterBar = new DashboardFilterBar(page);
+    this.dashboardTabs = new Tabs(
+      page,
+      page
+        .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
+        .first()
+        .locator(':scope > [data-test="nav-list"]'),
+    );
   }
 
   /**
@@ -214,6 +232,46 @@ export class DashboardPage {
   async waitForFilterBar(): Promise<DashboardFilterBar> {
     await this.filterBar.waitForReady();
     return this.filterBar;
+  }
+
+  /**
+   * Switches to a top-level dashboard tab and waits for it to become active.
+   */
+  async switchDashboardTab(tabName: string): Promise<void> {
+    await this.dashboardTabs.clickTab(tabName);
+    await expect
+      .poll(() => this.dashboardTabs.getActiveTabName())
+      .toBe(tabName);
+  }
+
+  /**
+   * Wait for a non-empty `native_filters_key` query param in the URL and return
+   * it. The filter bar stamps the key via `history.replace` once its data mask
+   * has been published to the backend `filter_state` store; Playwright treats
+   * that History API change as a navigation, so `waitForURL` resolves only
+   * after the driver-side frame URL has been updated.
+   *
+   * Only the URL is observed: on a page whose URL already carries the param
+   * (a permalink, or `page.reload()`) this resolves immediately without any
+   * publish having happened.
+   */
+  async waitForNativeFiltersKey(options?: {
+    timeout?: number;
+  }): Promise<string> {
+    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
+    await this.page.waitForURL(
+      url => !!url.searchParams.get(NATIVE_FILTERS_KEY_PARAM),
+      { timeout },
+    );
+    const key = new URL(this.page.url()).searchParams.get(
+      NATIVE_FILTERS_KEY_PARAM,
+    );
+    if (!key) {
+      throw new Error(
+        `${NATIVE_FILTERS_KEY_PARAM} not found in URL after publish`,
+      );
+    }
+    return key;
   }
 
   /**

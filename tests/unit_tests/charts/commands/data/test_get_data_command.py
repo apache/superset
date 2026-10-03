@@ -291,7 +291,10 @@ def test_get_query_catches_parsing_error() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         # GREEN: Exception is caught, values returned (new behavior after fix)
@@ -330,7 +333,10 @@ def test_get_query_handles_parsing_error_with_missing_sql_key() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)
@@ -367,7 +373,10 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)

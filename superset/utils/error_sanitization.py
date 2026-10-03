@@ -64,6 +64,7 @@ SAFE_ERROR_TYPES = frozenset(
         SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
         SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
         SupersetErrorType.MARSHMALLOW_ERROR,
+        SupersetErrorType.CSRF_ERROR,
     }
 )
 

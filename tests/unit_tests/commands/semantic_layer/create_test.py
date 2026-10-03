@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,7 +23,6 @@ from pytest_mock import MockerFixture
 
 from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
 from superset.commands.semantic_layer.exceptions import (
-    SemanticLayerCreateFailedError,
     SemanticLayerInvalidError,
 )
 from superset.exceptions import SupersetSecurityException
@@ -131,26 +131,31 @@ def test_create_semantic_layer_duplicate_name(mocker: MockerFixture) -> None:
 def test_create_semantic_layer_invalid_configuration(
     mocker: MockerFixture,
 ) -> None:
-    """Test that invalid configuration is caught by the @transaction decorator."""
-    dao = mocker.patch(
+    """Provider errors remain generic invalid input without a chained cause."""
+    dao: MagicMock = mocker.patch(
         "superset.commands.semantic_layer.create.SemanticLayerDAO",
     )
     dao.validate_uniqueness.return_value = True
 
-    mock_cls = MagicMock()
+    mock_cls: MagicMock = MagicMock()
     mock_cls.from_configuration.side_effect = ValueError("bad config")
     mocker.patch.dict(
         "superset.commands.semantic_layer.create.registry",
         {"snowflake": mock_cls},
     )
 
-    data = {
+    data: dict[str, Any] = {
         "name": "My Layer",
         "type": "snowflake",
         "configuration": {"bad": "data"},
     }
-    with pytest.raises(SemanticLayerCreateFailedError):
+    with pytest.raises(
+        SemanticLayerInvalidError, match="Provider rejected the configuration"
+    ) as exc_info:
         CreateSemanticLayerCommand(data).run()
+    assert exc_info.value.__cause__ is None
+    assert exc_info.value.__suppress_context__ is True
+    dao.create.assert_not_called()
 
 
 def test_create_semantic_layer_copies_data(mocker: MockerFixture) -> None:
@@ -272,6 +277,30 @@ def test_create_semantic_view_layer_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticLayerNotFoundError):
         CreateSemanticViewCommand({"name": "v", "semantic_layer_uuid": "missing"}).run()
+
+
+def test_create_semantic_view_requires_layer_access(mocker: MockerFixture) -> None:
+    """Creating a view under a layer the user cannot access is blocked."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+    from superset.exceptions import SupersetSecurityException
+
+    mock_layer = MagicMock()
+    mock_layer.raise_for_access.side_effect = SupersetSecurityException(MagicMock())
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {"name": "v", "semantic_layer_uuid": "no-access"}
+        ).run()
+    dao_view.create.assert_not_called()
 
 
 def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:

@@ -181,7 +181,11 @@ export interface CommonBootstrapData {
 export interface BootstrapData {
   user?: BootstrapUser;
   common: CommonBootstrapData;
-  config?: any;
+  auth_messages?: [string, string][];
+  config?: {
+    GUEST_TOKEN_HEADER_NAME?: string;
+    GUEST_TOKEN_HEADER_MAX_BYTES?: number | null;
+  };
   embedded?: {
     dashboard_id: string;
     // Domains allowed to embed this dashboard. An empty/undefined list means

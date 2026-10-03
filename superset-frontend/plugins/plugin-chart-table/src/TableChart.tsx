@@ -47,6 +47,7 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import {
   styled,
@@ -98,9 +99,17 @@ import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import DateWithFormatter from './utils/DateWithFormatter';
+import {
+  buildHeaderGroupRows,
+  hasRenderableHeaderGroups,
+  orderColumnsByHeaderGroups,
+} from './utils/headerGroups';
 
 type ValueRange = [number, number];
+
+function getComparisonKeyPortion(key: string, label: string): string {
+  return key.startsWith(label) ? key.substring(label.length) : key;
+}
 
 interface TableSize {
   width: number;
@@ -264,7 +273,14 @@ const VisuallyHidden = styled.label`
   border: 0;
 `;
 
-function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
+function SearchInput({
+  value,
+  onChange,
+  onBlur,
+  onCompositionStart,
+  onCompositionEnd,
+  inputRef,
+}: SearchInputProps) {
   return (
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
@@ -275,6 +291,8 @@ function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
         size="small"
         onChange={onChange}
         onBlur={onBlur}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         ref={inputRef}
       />
     </Space>
@@ -414,6 +432,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     isUsingTimeComparison,
+    headerGroups = [],
     basicColorFormatters,
     basicColorColumnFormatters,
     hasServerPageLengthChanged,
@@ -462,14 +481,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
-    const getServerPagination = (n: number) =>
-      n <= Math.max(rowCount, serverPageLength);
-    return (
+    const getServerPagination = (n: number) => n <= rowCount;
+    const baseOptions = (
       serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
-    ).filter(([n]) =>
-      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
-  }, [data.length, rowCount, serverPageLength, serverPagination]);
+    const options = baseOptions.filter(([n]) =>
+      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
+    );
+
+    if (serverPagination && serverPageLength) {
+      if (!options.some(([n]) => n === serverPageLength)) {
+        const optionInBase = baseOptions.find(([n]) => n === serverPageLength);
+        options.push(
+          optionInBase || [serverPageLength, String(serverPageLength)],
+        );
+      }
+    }
+
+    // Remove duplicates and sort ascending
+    const uniqueOptions = Array.from(
+      new Map(options.map(opt => [opt[0], opt])).values(),
+    );
+    return uniqueOptions.sort((a, b) => a[0] - b[0]);
+  }, [data.length, rowCount, serverPagination, serverPageLength]);
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
@@ -624,7 +658,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
     return columnsMeta.filter(({ label, key }) => {
       // Extract the key portion after the space, assuming the format is always "label key"
-      const keyPortion = key.substring(label.length);
+      const keyPortion = getComparisonKeyPortion(key, label);
       const isKeyHidded = hideComparisonKeys.includes(keyPortion);
       const isLableMain = label === main;
 
@@ -748,7 +782,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // Check if element's label is one of the comparison labels
         if (comparisonLabels.includes(element.label)) {
           // Extract the key portion after the space, assuming the format is always "label key"
-          const keyPortion = element.key.substring(element.label.length);
+          const keyPortion = getComparisonKeyPortion(
+            element.key,
+            element.label,
+          );
 
           // If the key portion is not in the map, initialize it with the current index
           if (!resultMap[keyPortion]) {
@@ -860,10 +897,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // Compute visible columns before groupHeaderColumns to ensure index consistency.
   // This filters out columns with config.visible === false.
-  const visibleColumnsMeta = useMemo(
-    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
-    [filteredColumnsMeta],
-  );
+  const { visibleColumnsMeta, hasHeaderGroups } = useMemo(() => {
+    const visible = filteredColumnsMeta.filter(
+      col => col.config?.visible !== false,
+    );
+    const hasGroups = hasRenderableHeaderGroups(headerGroups, visible);
+    return {
+      visibleColumnsMeta: hasGroups
+        ? orderColumnsByHeaderGroups(visible, headerGroups)
+        : visible,
+      hasHeaderGroups: hasGroups,
+    };
+  }, [filteredColumnsMeta, headerGroups]);
 
   // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
   // table columns. This fixes header misalignment when columns are filtered.
@@ -872,7 +917,136 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [visibleColumnsMeta, getHeaderColumns, isUsingTimeComparison],
   );
 
+  const groupingHeaderRowStyles = css`
+    th {
+      border-right: 1px solid ${theme.colorSplit};
+      text-align: center;
+    }
+    th:first-of-type {
+      border-left: none;
+    }
+    th:last-child {
+      border-right: none;
+    }
+  `;
+
+  const multiLevelHeaderRowStyles = css`
+    th {
+      border-right: 1px solid ${theme.colorSplit};
+    }
+    th:first-of-type {
+      border-left: none;
+    }
+    th[data-dimension-separator='true'] {
+      border-right: 2px solid ${theme.colorSplit};
+    }
+    th[data-last-column='true'] {
+      border-right: none;
+    }
+  `;
+
+  const getComparisonToggleKey = (
+    spanColumns: DataColumnMeta[],
+  ): string | undefined => {
+    const comparisonCols = spanColumns.filter(col =>
+      comparisonLabels.includes(col.label),
+    );
+    if (comparisonCols.length === 0) {
+      return undefined;
+    }
+    const keyPortion = getComparisonKeyPortion(
+      comparisonCols[0].key,
+      comparisonCols[0].label,
+    );
+    return comparisonCols.every(
+      col => getComparisonKeyPortion(col.key, col.label) === keyPortion,
+    )
+      ? keyPortion
+      : undefined;
+  };
+
+  const renderComparisonToggle = (comparisonKey: string) => (
+    <span
+      css={css`
+        float: right;
+        & svg {
+          color: ${theme.colorIcon} !important;
+        }
+      `}
+    >
+      {hideComparisonKeys.includes(comparisonKey) ? (
+        <PlusCircleOutlined
+          onClick={() =>
+            setHideComparisonKeys(
+              hideComparisonKeys.filter(k => k !== comparisonKey),
+            )
+          }
+        />
+      ) : (
+        <MinusCircleOutlined
+          onClick={() =>
+            setHideComparisonKeys([...hideComparisonKeys, comparisonKey])
+          }
+        />
+      )}
+    </span>
+  );
+
+  const renderMultiLevelHeaders = (): JSX.Element => {
+    const rows = buildHeaderGroupRows(
+      headerGroups,
+      visibleColumnsMeta.map(column => column.key),
+    );
+    return (
+      <>
+        {rows.map((row, rowIndex) => (
+          <tr
+            key={`multi-header-row-${rowIndex}`}
+            css={multiLevelHeaderRowStyles}
+          >
+            {row.map(cell => {
+              const lastColumn =
+                visibleColumnsMeta[cell.columnIndex + cell.colSpan - 1];
+              const hasDimensionSeparator = Boolean(
+                lastColumn &&
+                !lastColumn.isMetric &&
+                !lastColumn.isPercentMetric,
+              );
+              const spanColumns = visibleColumnsMeta.slice(
+                cell.columnIndex,
+                cell.columnIndex + cell.colSpan,
+              );
+              const comparisonKey = cell.label
+                ? getComparisonToggleKey(spanColumns)
+                : undefined;
+              return (
+                <th
+                  key={cell.key}
+                  colSpan={cell.colSpan}
+                  rowSpan={cell.rowSpan}
+                  data-last-column={cell.isLastColumn || undefined}
+                  data-dimension-separator={hasDimensionSeparator || undefined}
+                  style={{
+                    borderBottom: cell.label ? undefined : 0,
+                    textAlign: cell.labelAlign ?? 'center',
+                  }}
+                >
+                  {cell.label}
+                  {comparisonKey ? renderComparisonToggle(comparisonKey) : null}
+                </th>
+              );
+            })}
+          </tr>
+        ))}
+      </>
+    );
+  };
+
   const renderGroupingHeaders = (): JSX.Element => {
+    if (hasHeaderGroups) {
+      return renderMultiLevelHeaders();
+    }
+
     // TODO: Make use of ColumnGroup to render the aditional headers
     const headers: any = [];
     let currentColumnIndex = 0;
@@ -911,30 +1085,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
           {originalLabel}
-          <span
-            css={css`
-              float: right;
-              & svg {
-                color: ${theme.colorIcon} !important;
-              }
-            `}
-          >
-            {hideComparisonKeys.includes(key) ? (
-              <PlusCircleOutlined
-                onClick={() =>
-                  setHideComparisonKeys(
-                    hideComparisonKeys.filter(k => k !== key),
-                  )
-                }
-              />
-            ) : (
-              <MinusCircleOutlined
-                onClick={() =>
-                  setHideComparisonKeys([...hideComparisonKeys, key])
-                }
-              />
-            )}
-          </span>
+          {renderComparisonToggle(key)}
         </th>,
       );
 
@@ -942,23 +1093,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       currentColumnIndex = startPosition + colSpan;
     });
 
-    return (
-      <tr
-        css={css`
-          th {
-            border-right: 1px solid ${theme.colorSplit};
-          }
-          th:first-of-type {
-            border-left: none;
-          }
-          th:last-child {
-            border-right: none;
-          }
-        `}
-      >
-        {headers}
-      </tr>
-    );
+    return <tr css={groupingHeaderRowStyles}>{headers}</tr>;
   };
 
   const getColumnConfigs = useCallback(
@@ -1653,6 +1788,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        resetColumnOrder={hasHeaderGroups}
         initialSearchText={serverPaginationData?.searchText || ''}
         sortByFromParent={serverPaginationData?.sortBy || []}
         searchInputId={`${slice_id}-search`}
@@ -1664,7 +1800,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
         renderGroupingHeaders={
-          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+          !isEmpty(groupHeaderColumns) || hasHeaderGroups
+            ? renderGroupingHeaders
+            : undefined
         }
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined

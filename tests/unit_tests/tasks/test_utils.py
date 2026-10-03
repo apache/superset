@@ -857,16 +857,16 @@ def test_progress_update(progress, expected):
 
 
 def test_error_update():
-    """Test error_update captures exception details."""
+    """Test error_update captures exception details (debug fields under private)."""
     try:
         raise ValueError("Test error message")
     except ValueError as e:
         result = error_update(e)
 
     assert result["error_message"] == "Test error message"
-    assert result["exception_type"] == "ValueError"
-    assert "stack_trace" in result
-    assert "ValueError" in result["stack_trace"]
+    framework = result["private"]["framework"]
+    assert framework["exception_type"] == "ValueError"
+    assert "ValueError" in framework["stack_trace"]
 
 
 def test_error_update_custom_exception():
@@ -881,7 +881,7 @@ def test_error_update_custom_exception():
         result = error_update(e)
 
     assert result["error_message"] == "Custom error"
-    assert result["exception_type"] == "CustomError"
+    assert result["private"]["framework"]["exception_type"] == "CustomError"
 
 
 @pytest.mark.parametrize(
@@ -987,3 +987,12 @@ class TestGetCurrentUser:
         mock_user.username = "admin"
         mock_g.user = mock_user
         assert get_current_user() == "admin"
+
+
+def test_floored_status_cursor_drops_subsecond_precision() -> None:
+    """The status cursor must have no sub-second component, so it can't sit after
+    a same-second changed_on under the metastore's second precision (MySQL)."""
+    from superset.tasks.utils import floored_status_cursor
+
+    cursor = floored_status_cursor()
+    assert cursor.microsecond == 0

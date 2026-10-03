@@ -83,6 +83,9 @@ interface GetExploreUrlParams {
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
+  // Per-query forced-refresh nonces (the async tasks' UUIDs), assigned to each
+  // built query by index for the synchronous read-back of a forced refresh.
+  queryForceNonces?: string[];
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
@@ -175,7 +178,13 @@ export function mountExploreUrl(
     if (force) {
       search.force = '1';
     }
-    search.standalone = DashboardStandaloneMode.HideNav;
+    // Callers pass the active mode through extraSearch (already merged above).
+    // Only default when absent — unconditionally writing HideNav downgrades
+    // mode 2 (hide nav, keep editor controls) to mode 1 (chart only) on every
+    // history.replace an Explore interaction triggers.
+    if (search.standalone === undefined) {
+      search.standalone = DashboardStandaloneMode.HideNav;
+    }
   }
   return uri.directory(directory).search(search).toString();
 }
@@ -281,6 +290,7 @@ export const getQuerySettings = (
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
+  queryForceNonces,
   resultFormat,
   resultType,
   setDataMask,
@@ -299,7 +309,7 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const payload = await buildQuery(
     {
       ...formData,
       force,
@@ -314,6 +324,18 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  // Stamp each query with its forced-refresh nonce (its async task's UUID, from
+  // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
+  if (queryForceNonces?.length && Array.isArray(payload.queries)) {
+    payload.queries.forEach((query, index) => {
+      if (queryForceNonces[index]) {
+        // eslint-disable-next-line no-param-reassign
+        (query as { force_nonce?: string }).force_nonce =
+          queryForceNonces[index];
+      }
+    });
+  }
+  return payload;
 };
 
 export const exportChart = async ({

@@ -50,5 +50,3 @@ export type BuildQueryFunction<T extends QueryFormData> = (
     };
   },
 ) => QueryContext;
-
-export default {};

@@ -27,29 +27,29 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
   SuperChart,
   ClientErrorObject,
   getClientErrorObject,
+  getSemanticSelectionSources,
   isChartCustomization,
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash-es';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { Loading, Constants, Flex, Button } from '@superset-ui/core/components';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -150,6 +150,9 @@ const FilterValue: FC<FilterValueProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  // Per-dashboard async override so filter requests honor the same policy
+  // (force on/off) as the dashboard's charts.
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -162,10 +165,12 @@ const FilterValue: FC<FilterValueProps> = ({
   const {
     datasetId,
     datasourceType,
+    semantic_selection_version,
     column = {},
   }: Partial<{
     datasetId: number;
     datasourceType: DatasourceType;
+    semantic_selection_version?: string;
     column: { name?: string };
   }> = target || {};
   const groupby = column?.name;
@@ -202,6 +207,7 @@ const FilterValue: FC<FilterValueProps> = ({
       ...filter,
       datasetId,
       datasourceType,
+      semantic_selection_version,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
@@ -278,42 +284,16 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      getChartDataRequest({
+      requestChartDataResolved({
         formData: newFormData,
         force: shouldRefresh,
         ownState: filterOwnState,
+        requestParams: { async_mode_override: asyncModeOverride },
       })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-            if (response.status === 200) {
-              setState([result as ChartDataResponseResult]);
-              setError(undefined);
-              handleFilterLoadFinish();
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
-                  setError(undefined);
-                  handleFilterLoadFinish();
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setError(clientErrorObject);
-                    handleFilterLoadFinish();
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(json.result as ChartDataResponseResult[]);
-            setError(undefined);
-            handleFilterLoadFinish();
-          }
+        .then(queriesResponse => {
+          setState(queriesResponse as ChartDataResponseResult[]);
+          setError(undefined);
+          handleFilterLoadFinish();
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
@@ -336,6 +316,7 @@ const FilterValue: FC<FilterValueProps> = ({
     setHasDepsFilterValue,
     transitiveParentIds,
     parentDefaultToFirstItem,
+    asyncModeOverride,
   ]);
 
   useEffect(() => {
@@ -350,8 +331,31 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [inputRef, outlinedFilterId, lastUpdated, filter.id, overflow]);
 
   const setDataMask = useCallback(
-    (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
-    [filter, onFilterSelectionChange],
+    (dataMask: DataMask) =>
+      onFilterSelectionChange(
+        filter,
+        datasourceType === DatasourceType.SemanticView
+          ? {
+              ...dataMask,
+              extraFormData: {
+                ...dataMask.extraFormData,
+                semantic_selection_sources: [
+                  {
+                    datasource: `${datasetId}__${datasourceType || DatasourceType.Table}`,
+                    version: semantic_selection_version ?? null,
+                  },
+                ],
+              },
+            }
+          : dataMask,
+      ),
+    [
+      filter,
+      onFilterSelectionChange,
+      datasetId,
+      datasourceType,
+      semantic_selection_version,
+    ],
   );
 
   const setFocusedFilter = useCallback(() => {
@@ -427,6 +431,42 @@ const FilterValue: FC<FilterValueProps> = ({
     }),
     [orientation, overflow],
   );
+
+  const selectionSources = getSemanticSelectionSources(
+    filter.dataMask?.extraFormData,
+  );
+  const hasSavedSelection =
+    filter.dataMask?.filterState?.value !== undefined ||
+    selectionSources.length > 0;
+  const staleSelection =
+    semantic_selection_version &&
+    hasSavedSelection &&
+    (selectionSources.length === 0 ||
+      selectionSources.some(
+        source =>
+          source.datasource !== `${datasetId}__${datasourceType}` ||
+          source.version !== semantic_selection_version,
+      ));
+  if (staleSelection) {
+    return (
+      <Alert
+        type="warning"
+        message={t('Reselect saved filter values')}
+        description={t(
+          'This saved filter state predates the member-ID format. Reset it and explicitly choose its values again.',
+        )}
+        action={
+          <Button
+            onClick={() =>
+              setDataMask({ filterState: {}, ownState: {}, extraFormData: {} })
+            }
+          >
+            {t('Reset and reselect values')}
+          </Button>
+        }
+      />
+    );
+  }
 
   if (error) {
     return (

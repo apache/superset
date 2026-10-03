@@ -43,6 +43,7 @@ from superset.migrations.shared.migrate_viz.processors import (
     MigratePivotTable,
     MigrateSankey,
     MigrateSunburst,
+    MigrateTableChart,
     MigrateTreeMap,
 )
 from superset.migrations.shared.utils import paginated_update, try_load_json
@@ -61,6 +62,7 @@ class VizType(str, Enum):
     PIVOT_TABLE = "pivot_table"
     SANKEY = "sankey"
     SUNBURST = "sunburst"
+    TABLE = "table"
     TREEMAP = "treemap"
 
 
@@ -77,6 +79,7 @@ MIGRATIONS: dict[VizType, Type[MigrateViz]] = {
     VizType.PIVOT_TABLE: MigratePivotTable,
     VizType.SANKEY: MigrateSankey,
     VizType.SUNBURST: MigrateSunburst,
+    VizType.TABLE: MigrateTableChart,
     VizType.TREEMAP: MigrateTreeMap,
 }
 

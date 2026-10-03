@@ -16,6 +16,8 @@
 # under the License.
 import logging
 import urllib.request
+from contextlib import closing
+from decimal import Decimal
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -84,6 +86,15 @@ def escape_value(value: str) -> str:
     return value
 
 
+def format_decimal(value: Any) -> Any:
+    """Return finite decimals as exact fixed-point text; preserve other values."""
+    return (
+        format(value, "f")
+        if isinstance(value, Decimal) and value.is_finite()
+        else value
+    )
+
+
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     def escape_values(v: Any) -> Union[str, Any]:
         return escape_value(v) if isinstance(v, str) else v
@@ -119,10 +130,10 @@ def get_chart_csv_data(
         opener.addheaders.append(("Cookie", cookie_str))
         # A missing timeout means the socket blocks forever when the Superset
         # webserver is unreachable, wedging the report schedule in WORKING.
-        response = opener.open(chart_url, timeout=timeout)
-        content = response.read()
-        if response.getcode() != 200:
-            raise URLError(response.getcode())
+        with closing(opener.open(chart_url, timeout=timeout)) as response:
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
     if content:
         return content
     return None

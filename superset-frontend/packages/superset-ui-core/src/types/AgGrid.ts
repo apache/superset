@@ -79,4 +79,5 @@ export interface AgGridChartState {
   columnOrder?: string[];
   pageSize?: number;
   currentPage?: number;
+  serverPagination?: boolean;
 }

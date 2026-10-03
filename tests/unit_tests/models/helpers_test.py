@@ -105,36 +105,39 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
-@pytest.mark.parametrize(
-    "raw,expected",
-    [
-        ("plain", "plain"),
-        ("50%", "50!%"),
-        ("a_b", "a!_b"),
-        ("wow!", "wow!!"),
-        ("!%_", "!!!%!_"),
-    ],
-)
-def test_escape_like_pattern(raw: str, expected: str) -> None:
-    """Wildcards typed by a user are data, not pattern syntax."""
-    from superset.models.helpers import escape_like_pattern
-
-    assert escape_like_pattern(raw) == expected
-
-
 def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     import sqlalchemy as sa
 
     from superset.models.helpers import build_like_predicate
 
-    compiled = str(
-        build_like_predicate(sa.column("c"), "50%").compile(
+    predicate = build_like_predicate(sa.column("c"), "50%")
+
+    # The search term is lower-cased for a case-insensitive match, and the
+    # user's ``%`` wildcard is neutralized (autoescape) rather than matching
+    # every row.
+    postgres_sql = str(
+        predicate.compile(
             dialect=sa.dialects.registry.load("postgresql")(),
             compile_kwargs={"literal_binds": True},
         )
-    ).replace("%%", "%")
+    )
+    assert "lower(c)" in postgres_sql
+    assert "50" in postgres_sql
+    # Other engines still get a dialect-native ESCAPE clause, proving they are
+    # unaffected by the BigQuery-specific fix.
+    assert "ESCAPE" in postgres_sql
 
-    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+    # Regression test for SUPERSET-PYTHON-176K: BigQuery's GoogleSQL has no
+    # ESCAPE keyword, so the compiled predicate must not emit one.
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    bigquery_sql = str(
+        predicate.compile(
+            dialect=BigQueryDialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert "ESCAPE" not in bigquery_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -157,8 +160,10 @@ def test_values_for_column_search(database: Database) -> None:
         assert table.values_for_column("a", search="ali") == ["Alice"]
 
     sql = str(read_sql_query.call_args.kwargs["sql"])
+    # ``.contains()`` compiles to a concatenated pattern rather than a single
+    # ``'%ali%'`` literal, e.g. ``... LIKE '%' || 'ali' || '%'`` on sqlite.
     assert "LIKE" in sql
-    assert "'%ali%'" in sql
+    assert "'ali'" in sql
 
 
 def test_values_for_column_without_search_has_no_predicate(
@@ -791,7 +796,6 @@ def test_process_orderby_expression_basic(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -824,7 +828,6 @@ def test_process_orderby_expression_with_case_insensitive_order_by(
 
     result = table._process_orderby_expression(
         expression="column_name ASC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -857,7 +860,6 @@ def test_process_orderby_expression_complex(
 
     result = table._process_orderby_expression(
         expression=complex_orderby,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -890,7 +892,6 @@ def test_process_orderby_expression_none(
 
     result = table._process_orderby_expression(
         expression=None,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -923,7 +924,6 @@ def test_process_orderby_expression_empty_string(
 
     result = table._process_orderby_expression(
         expression="",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -956,7 +956,6 @@ def test_process_orderby_expression_strips_whitespace(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -994,7 +993,6 @@ def test_process_orderby_expression_with_template_processor(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=template_processor,
@@ -1002,9 +1000,9 @@ def test_process_orderby_expression_with_template_processor(
 
     # Verify _process_sql_expression was called with SELECT prefix
     mock_process.assert_called_once()
-    call_args = mock_process.call_args[1]
-    assert call_args["expression"] == "SELECT 1 ORDER BY column_name DESC"
-    assert call_args["template_processor"] is template_processor
+    expression_arg, context_arg = mock_process.call_args.args
+    assert expression_arg == "SELECT 1 ORDER BY column_name DESC"
+    assert context_arg.template_processor is template_processor
 
     assert result == "processed_column DESC"
 
@@ -1145,7 +1143,6 @@ def test_process_select_expression_basic(
 
     result = table._process_select_expression(
         expression="COUNT(*)",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1178,7 +1175,6 @@ def test_process_select_expression_with_case_insensitive_select(
 
     result = table._process_select_expression(
         expression="column_name",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1211,7 +1207,6 @@ def test_process_select_expression_complex(
 
     result = table._process_select_expression(
         expression=complex_select,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1244,7 +1239,6 @@ def test_process_select_expression_none(
 
     result = table._process_select_expression(
         expression=None,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1277,7 +1271,6 @@ def test_process_select_expression_empty_string(
 
     result = table._process_select_expression(
         expression="",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1310,7 +1303,6 @@ def test_process_select_expression_strips_whitespace(
 
     result = table._process_select_expression(
         expression="column_name",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1348,7 +1340,6 @@ def test_process_select_expression_with_template_processor(
 
     result = table._process_select_expression(
         expression="some_expression",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=template_processor,
@@ -1356,9 +1347,9 @@ def test_process_select_expression_with_template_processor(
 
     # Verify _process_sql_expression was called with SELECT prefix
     mock_process.assert_called_once()
-    call_args = mock_process.call_args[1]
-    assert call_args["expression"] == "SELECT some_expression"
-    assert call_args["template_processor"] is template_processor
+    expression_arg, context_arg = mock_process.call_args.args
+    assert expression_arg == "SELECT some_expression"
+    assert context_arg.template_processor is template_processor
 
     assert result == "processed_expression"
 
@@ -1390,7 +1381,6 @@ def test_process_select_expression_distinct_column(
 
     result = table._process_select_expression(
         expression="distinct owners",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1431,7 +1421,6 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
     for expression, expected in test_cases:
         result = table._process_select_expression(
             expression=expression,
-            database_id=database.id,
             engine="sqlite",
             schema="",
             template_processor=None,
@@ -2622,6 +2611,124 @@ def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
     )
 
 
+def test_adhoc_metric_normalizes_rendered_sql_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = mocker.patch.object(
+        table.db_engine_spec,
+        "normalize_custom_sql_metric",
+        return_value="SELECT DATE_TRUNC('quarter', a)",
+    )
+    template_processor: MagicMock = MagicMock()
+
+    def render_unit(expression: str) -> str:
+        return expression.replace("{{ unit }}", "QUARTER")
+
+    template_processor.process_template.side_effect = render_unit
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE_TRUNC('{{ unit }}', a)",
+        "label": "quarter",
+    }
+
+    result: ColumnElement = table.adhoc_metric_to_sqla(
+        metric,
+        {},
+        template_processor=template_processor,
+    )
+
+    assert "DATE_TRUNC('quarter', a)" in str(result)
+    normalizer.assert_called_once_with("SELECT DATE_TRUNC('QUARTER', a)")
+
+
+def test_processed_orderby_uses_metric_normalizer_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = MagicMock(
+        return_value="SELECT 1 ORDER BY DATE_TRUNC('quarter', a)"
+    )
+    mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+        normalizer,
+    )
+
+    expression: str | None = table._process_metric_orderby_expression(
+        expression="DATE_TRUNC('QUARTER', a)",
+        engine=database.backend,
+        schema="",
+        template_processor=None,
+    )
+
+    assert expression == "DATE_TRUNC('quarter', a)"
+    normalizer.assert_called_once_with("SELECT 1 ORDER BY DATE_TRUNC('QUARTER', a)")
+
+
+def test_metric_normalization_preserves_post_validation_rls_expression(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+        PostgresEngineSpec.normalize_custom_sql_metric,
+    )
+    mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        return_value=(
+            "SELECT (SELECT DATE_TRUNC('QUARTER', created_at) FROM orders "
+            "WHERE tenant_id = 7)"
+        ),
+    )
+
+    result = table._process_metric_select_expression(
+        expression="(SELECT DATE_TRUNC('QUARTER', created_at) FROM orders)",
+        engine="postgresql",
+        schema="public",
+        template_processor=None,
+    )
+
+    assert result is not None
+    assert "tenant_id = 7" in result
+    assert "DATE_TRUNC('quarter', created_at)" in result
+
+
+def test_generic_postgresql_expression_does_not_use_metric_normalizer(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+    )
+
+    result: str | None = table._process_select_expression(
+        expression="created_at -- trailing",
+        engine="postgresql",
+        schema="public",
+        template_processor=None,
+    )
+
+    assert result is not None
+    assert "/* trailing */" in result
+    normalizer.assert_not_called()
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -3061,6 +3168,413 @@ def test_multiple_calculated_columns_each_parenthesized(
     )
     assert "(tier = 'gold' OR tier = 'platinum')" in sql, (
         f"Second calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+
+
+CALC_EXPR = "state = 'CA' OR state = 'NY'"
+
+
+def _calc_table(database: Database) -> Any:
+    """A table with a boolean/OR calculated column and a ``count`` metric."""
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    return SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_ca_or_ny",
+                expression=CALC_EXPR,
+                type="BOOLEAN",
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+
+def _compile(database: Database, sqla_query: Any) -> str:
+    with database.get_sqla_engine() as engine:
+        return str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+
+def test_calculated_column_dimension_is_parenthesized_in_select(
+    database: Database,
+) -> None:
+    """
+    A calculated column used as a SELECT dimension is parenthesized, so a bare
+    ``OR`` inside the expression cannot leak into surrounding SQL.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["is_ca_or_ny"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) AS" in sql, (
+        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
+    )
+
+
+def test_physical_column_is_not_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Only expression (calculated) columns are wrapped; a physical column must be
+    emitted unchanged, with no ``(col)``. Guards against a future hoist of the
+    ``Grouping`` wrap outside the ``if expression:`` branch of the converters.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert "a AS a" in sql, f"Physical column should be selected as-is. SQL: {sql}"
+    assert "(a)" not in sql, f"Physical column must not be parenthesized. SQL: {sql}"
+
+
+def test_calculated_column_groupby_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A calculated column used in GROUP BY is parenthesized.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    group_by = sql.split("GROUP BY", 1)[1]
+    assert f"({CALC_EXPR})" in group_by, (
+        f"Calculated column should be parenthesized in GROUP BY. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_parenthesized_with_alias_allowed(
+    database: Database,
+) -> None:
+    """
+    With ``allows_alias_in_orderby`` (default), the calculated column stays a
+    ``Label`` in ORDER BY; both the SELECT projection and the ORDER BY carry the
+    parenthesized expression.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) AS is_ca_or_ny" in sql, (
+        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
+    )
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_is_parenthesized_raw_expression(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the engine does not allow aliases in ORDER BY, the raw calculated
+    expression is emitted there and must be parenthesized.
+    """
+    table = _calc_table(database)
+    mocker.patch.object(table.db_engine_spec, "allows_alias_in_orderby", False)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"Raw calculated expression in ORDER BY should be parenthesized. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_parenthesized_without_alias_in_select(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    On engines where ``get_allows_alias_in_select`` is False, the calculated
+    column is emitted as a bare ``Grouping`` (no ``Label``) and must still be
+    parenthesized in both SELECT and ORDER BY.
+    """
+    table = _calc_table(database)
+    mocker.patch.object(
+        table.db_engine_spec, "get_allows_alias_in_select", return_value=False
+    )
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR})" in sql, (
+        f"Bare-Grouping calculated column should be parenthesized. SQL: {sql}"
+    )
+    assert f"({CALC_EXPR}) AS is_ca_or_ny" not in sql, (
+        f"No SELECT alias expected when aliases are disabled. SQL: {sql}"
+    )
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
+    )
+
+
+def test_calculated_column_series_limit_join_on_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Correctness regression: when a boolean/OR calculated column is a series
+    (top-N) dimension, the series-limit JOIN ON predicate is
+    ``(<expr>) = <inner col>``.  Without the parentheses it mis-parses as
+    ``state = 'CA' OR state = 'NY' = <inner col>`` -> ``state = 'CA' OR
+    (state = 'NY' = <inner col>)``, which changes the join membership.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        series_columns=["is_ca_or_ny"],
+        series_limit=10,
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) = is_ca_or_ny__" in sql, (
+        f"Series-limit JOIN ON should compare the parenthesized expression. SQL: {sql}"
+    )
+    # The bare (mis-parsing) form must be absent.
+    assert "OR state = 'NY' = is_ca_or_ny__" not in sql, (
+        f"Series-limit JOIN ON must not emit the bare, mis-parsing form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_top_groups_predicate_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Correctness regression for the series top-N prequery predicate built by
+    ``_get_top_groups`` (``<groupby expr> == value``).  The calculated column
+    expression must be parenthesized so ``(<expr>) = <value>`` is produced.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _calc_table(database)
+    calc_col = next(c for c in table.columns if c.column_name == "is_ca_or_ny")
+    assert isinstance(calc_col, TableColumn)
+
+    gby_obj = table.convert_tbl_column_to_sqla_col(tbl_column=calc_col)
+    df = pd.DataFrame({"is_ca_or_ny": [1]})
+
+    predicate = table._get_top_groups(
+        df,
+        ["is_ca_or_ny"],
+        {"is_ca_or_ny": gby_obj},
+        {"is_ca_or_ny": calc_col},
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            predicate.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"({CALC_EXPR}) = 1" in sql, (
+        f"Top-N prequery predicate should be parenthesized. SQL: {sql}"
+    )
+    assert "OR state = 'NY' = 1" not in sql, (
+        f"Top-N prequery predicate must not emit the bare form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_reference_adhoc_filter_single_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A WHERE filter whose ``col`` is an adhoc column referencing a saved
+    calculated column (``isColumnReference=True``) is parenthesized exactly
+    once: the converter wraps it and the filter loop's ``_is_parenthesized``
+    guard prevents a redundant second ``Grouping`` (``((...))``).
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": {
+                    "label": "is_ca_or_ny",
+                    "sqlExpression": "is_ca_or_ny",
+                    "isColumnReference": True,
+                },
+                "op": "==",
+                "val": 1,
+            },
+        ],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) = 1" in sql, (
+        f"Adhoc calc-column-reference filter should be parenthesized. SQL: {sql}"
+    )
+    assert f"(({CALC_EXPR}))" not in sql, (
+        f"Adhoc calc-column-reference filter must not be double-wrapped. SQL: {sql}"
+    )
+
+
+def test_calculated_column_adhoc_expression_filter_by_label_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A bare adhoc SQL-expression column (containing ``OR``, not a column
+    reference) that is selected as a dimension and then filtered by its
+    *label* must be parenthesized in the WHERE clause. Here ``flt_col`` is a
+    label string rather than an adhoc dict, so the wrap is gated on whether
+    ``sqla_col`` itself came from an adhoc expression, not on
+    ``is_adhoc_column(flt_col)``.
+    """
+    table = _calc_table(database)
+    adhoc_col: Any = {
+        "label": "or_expr",
+        "sqlExpression": CALC_EXPR,
+    }
+
+    sqla_query = table.get_sqla_query(
+        columns=[adhoc_col],
+        filter=[{"col": "or_expr", "op": "==", "val": 1}],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    where = sql.split("WHERE", 1)[1]
+    assert f"({CALC_EXPR}) = 1" in where, (
+        f"Adhoc expression filtered by label should be parenthesized. SQL: {sql}"
+    )
+    assert "OR state = 'NY' = 1" not in where, (
+        f"Adhoc expression filtered by label must not emit the bare form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_query_dimension_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    SQL Lab virtual datasets (``superset.models.sql_lab.Query``) inherit
+    ``ExploreMixin.convert_tbl_column_to_sqla_col``; a calculated column
+    resolved through that path is parenthesized (edit #1 blast radius).
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.models.sql_lab import Query
+
+    query = Query(database=database, sql="SELECT state FROM t")
+    calc_col = TableColumn(
+        column_name="is_ca_or_ny",
+        expression=CALC_EXPR,
+        type="BOOLEAN",
+    )
+
+    col = query.convert_tbl_column_to_sqla_col(tbl_column=calc_col)
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            col.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"({CALC_EXPR})" in sql, (
+        f"Query (SQL Lab) calculated column should be parenthesized. SQL: {sql}"
+    )
+
+
+def test_calculated_column_with_trailing_comment_closes_paren_on_new_line(
+    database: Database,
+) -> None:
+    """
+    A calculated column whose expression ends in a single-line comment must not
+    have ``Grouping``'s closing paren swallowed by that comment. The paren is
+    emitted on a new line so the SQL stays valid (``(expr -- c\\n)``).
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_ca_or_ny",
+                expression=f"{CALC_EXPR} -- coasts",
+                type="BOOLEAN",
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["is_ca_or_ny"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    # The closing paren (and the AS alias) land on the line after the comment,
+    # not inside it — otherwise the paren would be commented out.
+    assert "-- coasts\n) AS" in sql, (
+        f"Closing paren must not be swallowed by the trailing comment. SQL: {sql}"
     )
 
 
@@ -3570,25 +4084,35 @@ def _raw_query_object() -> MagicMock:
     return query_object
 
 
-def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+@pytest.mark.parametrize(
+    "python_date_format,values",
+    [
+        ("epoch_s", [1577836800, 1609459200, 1640995200]),
+        ("epoch_ms", [1577836800000, 1609459200000, 1640995200000]),
+        ("epoch_us", [1577836800000000, 1609459200000000, 1640995200000000]),
+    ],
+)
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns(
+    python_date_format: str, values: list[int]
+) -> None:
     """A temporal column selected in a raw/unaggregated query is a plain column
     name rather than a base-axis adhoc column, so it is excluded from
     ``get_base_axis_labels``. It must still receive its ``python_date_format``,
-    so an ``epoch_s`` column is converted to datetimes the same way it is for
-    aggregated charts."""
+    so an epoch column (seconds, milliseconds, or microseconds) is converted
+    to datetimes the same way it is for aggregated charts."""
     import pandas as pd
     from pandas.api.types import is_datetime64_any_dtype
 
     ts_col = MagicMock(
         column_name="ts",
         is_dttm=True,
-        python_date_format="epoch_s",
+        python_date_format=python_date_format,
         datetime_format=None,
     )
     datasource = _normalize_df_datasource(ts_col)
 
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
-    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+    # values are 2020-01-01, 2021-01-01, 2022-01-01 in python_date_format's unit
+    df = pd.DataFrame({"ts": values})
 
     result = datasource.normalize_df(df, _raw_query_object())
 
@@ -3597,28 +4121,31 @@ def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> No
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
-def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
-    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
-    unaggregated column declaring it must also be converted to datetimes."""
+@pytest.mark.parametrize(
+    "datetime_format,value",
+    [
+        ("epoch_s", 32503680000),
+        ("epoch_ms", 32503680000000),
+        ("epoch_us", 32503680000000000),
+    ],
+)
+def test_retry_temporal_join_values_at_wider_resolution_epoch(
+    datetime_format: str, value: int
+) -> None:
+    """Epoch values outside pandas' nanosecond range (here 3000-01-01) are
+    retried at the resolution matching the declared epoch format."""
     import pandas as pd
-    from pandas.api.types import is_datetime64_any_dtype
 
-    ts_col = MagicMock(
-        column_name="ts",
-        is_dttm=True,
-        python_date_format="epoch_ms",
-        datetime_format=None,
+    from superset.models.helpers import (
+        _retry_temporal_join_values_at_wider_resolution,
     )
-    datasource = _normalize_df_datasource(ts_col)
 
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
-    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+    converted = _retry_temporal_join_values_at_wider_resolution(
+        pd.Series([value, None], name="ts"), "ts", datetime_format
+    )
 
-    result = datasource.normalize_df(df, _raw_query_object())
-
-    assert is_datetime64_any_dtype(result["ts"])
-    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
-    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+    assert converted[0] == pd.Timestamp("3000-01-01")
+    assert pd.isna(converted[1])
 
 
 def test_normalize_df_handles_dict_shaped_columns() -> None:
@@ -4160,16 +4687,14 @@ def test_process_sql_expression_rejects_disallowed_function(
     before the rendered SQL is handed to the database."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLFunctionException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={"postgresql": {"version"}})
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLFunctionException):
         table._process_sql_expression(
-            expression="version()",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "version()",
+            SqlExpressionContext("postgresql", "", None),
         )
 
 
@@ -4181,16 +4706,14 @@ def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
     bypass attempt."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLFunctionException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={"postgresql": {"version"}})
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLFunctionException):
         table._process_sql_expression(
-            expression="MAX(version())",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "MAX(version())",
+            SqlExpressionContext("postgresql", "", None),
         )
 
 
@@ -4206,6 +4729,7 @@ def test_process_sql_expression_rejects_disallowed_table(
     the subquery first."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLTableException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(
         mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
@@ -4213,11 +4737,8 @@ def test_process_sql_expression_rejects_disallowed_table(
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
         table._process_sql_expression(
-            expression="(SELECT id FROM pg_authid)",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "(SELECT id FROM pg_authid)",
+            SqlExpressionContext("postgresql", "", None),
         )
     # Assert on substring (set repr ordering): only the offending table is
     # echoed back to the user, not the full operator denylist.
@@ -4233,6 +4754,7 @@ def test_process_sql_expression_allows_benign_expression(
     """Negative control: a benign aggregate over a regular column must pass
     even when denylists are configured."""
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(
         mocker,
@@ -4241,11 +4763,8 @@ def test_process_sql_expression_allows_benign_expression(
     )
     table = SqlaTable(database=database, schema=None, table_name="t")
     result = table._process_sql_expression(
-        expression="SUM(amount)",
-        database_id=database.id,
-        engine="postgresql",
-        schema="",
-        template_processor=None,
+        "SUM(amount)",
+        SqlExpressionContext("postgresql", "", None),
     )
     assert result is not None
     assert "SUM" in result.upper()
@@ -4259,15 +4778,13 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
     SQL that passes the pre-existing `sanitize_clause` validation is
     accepted."""
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={}, tables={})
     table = SqlaTable(database=database, schema=None, table_name="t")
     result = table._process_sql_expression(
-        expression="version()",
-        database_id=database.id,
-        engine="postgresql",
-        schema="",
-        template_processor=None,
+        "version()",
+        SqlExpressionContext("postgresql", "", None),
     )
     assert result is not None
 
@@ -4387,6 +4904,80 @@ def test_get_sqla_query_dotted_struct_column_bigquery(
     # ```forecasts.original`.`total_cost``` (the regression), so this negative
     # assertion catches the actual failure mode, not just an exact-string match.
     assert "`forecasts.original`" not in sql
+
+
+def test_get_sqla_query_grouping_sets_preserves_bigquery_mutated_label(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A pivot table with a non-additive metric issues a `grouping_sets` query
+    (see plugin-chart-pivot-table/src/plugin/buildQuery.ts), whose rollup
+    levels are expressed in terms of each column's original, unmutated label
+    (e.g. a Custom SQL row labelled "Test Row"). BigQuery mutates SQL aliases
+    that contain non-word characters, so the same column's `Label.name` ends
+    up as something like "Test_Row_<hash>". Looking up each level's columns by
+    that mutated name instead of the original label silently drops the column
+    from every rollup level, producing a `GROUP BY GROUPING SETS` clause that
+    doesn't cover a selected, non-aggregated column.
+    """
+    bigquery = pytest.importorskip("sqlalchemy_bigquery")
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    dialect = bigquery.BigQueryDialect()
+
+    @contextmanager
+    def fake_engine(*args, **kwargs):
+        engine = MagicMock()
+        engine.dialect = dialect
+        yield engine
+
+    database = Database(database_name="bq", sqlalchemy_uri="bigquery://project")
+    mocker.patch.object(database, "get_sqla_engine", new=fake_engine)
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="orders",
+        columns=[TableColumn(column_name="amount", type="FLOAT")],
+    )
+
+    row_col: AdhocColumn = {
+        "sqlExpression": "some_column",
+        "label": "Test Row",
+    }
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "amount"},
+        "aggregate": "AVG",
+        "label": "avg_amount",
+    }
+
+    sqlaq = table.get_sqla_query(
+        columns=[row_col],
+        metrics=[metric],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+        grouping_sets=[["Test Row"], []],
+    )
+    sql = str(
+        sqlaq.sqla_query.compile(
+            dialect=dialect, compile_kwargs={"literal_binds": True}
+        )
+    )
+
+    # Before the fix, looking up each level's columns by the BigQuery-mutated
+    # alias (e.g. "Test_Row_<hash>") instead of the original "Test Row" label
+    # sent by the frontend silently dropped the column from every level,
+    # producing `GROUPING SETS ((), ())` -- a GROUP BY that doesn't cover the
+    # selected, non-aggregated "some_column" expression.
+    assert "GROUPING SETS((some_column), ())" in sql
 
 
 def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:
@@ -5183,4 +5774,57 @@ def test_filter_adhoc_column(database: Database) -> None:
 
     assert "real_name AS full_name" in sql
     assert "WHERE" in sql
-    assert "lower(real_name) LIKE lower('Zona%')" in sql
+    # The adhoc column resolved by label is parenthesized in the WHERE clause,
+    # consistent with inline adhoc columns, to guard operator precedence.
+    assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)

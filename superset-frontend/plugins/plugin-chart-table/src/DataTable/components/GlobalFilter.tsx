@@ -20,6 +20,10 @@ import {
   memo,
   ComponentType,
   ChangeEventHandler,
+  CompositionEvent,
+  CompositionEventHandler,
+  FocusEvent,
+  FocusEventHandler,
   useRef,
   useEffect,
   Ref,
@@ -33,7 +37,9 @@ export interface SearchInputProps {
   count: number;
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
-  onBlur?: () => void;
+  onBlur?: FocusEventHandler<HTMLInputElement>;
+  onCompositionStart?: CompositionEventHandler<HTMLInputElement>;
+  onCompositionEnd?: CompositionEventHandler<HTMLInputElement>;
   inputRef?: Ref<InputRef>;
 }
 
@@ -56,6 +62,8 @@ function DefaultSearchInput({
   value,
   onChange,
   onBlur,
+  onCompositionStart,
+  onCompositionEnd,
   inputRef,
 }: SearchInputProps) {
   return (
@@ -68,6 +76,8 @@ function DefaultSearchInput({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         className="form-control input-sm"
       />
     </Space>
@@ -87,10 +97,14 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
 }: GlobalFilterProps<D>) {
   const count = serverPagination ? rowCount : preGlobalFilteredRows.length;
   const inputRef = useRef<InputRef>(null);
+  const isComposingRef = useRef(false);
 
   const [value, setValue] = useAsyncState(
     filterValue,
     (newValue: string) => {
+      if (isComposingRef.current) {
+        return;
+      }
       setGlobalFilter(newValue || undefined);
     },
     200,
@@ -114,8 +128,21 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     setValue(target.value);
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
     isSearchFocused.set(id, false);
+    if (isComposingRef.current) {
+      isComposingRef.current = false;
+      setValue(e.currentTarget.value);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = (e: CompositionEvent<HTMLInputElement>) => {
+    isComposingRef.current = false;
+    setValue(e.currentTarget.value);
   };
 
   const SearchInput = searchInput || DefaultSearchInput;
@@ -127,6 +154,8 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
       inputRef={inputRef}
       onChange={handleChange}
       onBlur={handleBlur}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
     />
   );
 });

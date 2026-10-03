@@ -45,6 +45,7 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
+import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -57,6 +58,8 @@ import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -140,10 +143,19 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
+
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -163,14 +175,6 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
-  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
-  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
-  // which cannot import app-level async-event middleware.
-  handleAsyncChartData?: (
-    response: Response,
-    json: JsonObject,
-    signal?: AbortSignal,
-  ) => Promise<QueryData[]> | QueryData[];
 }
 
 const BLANK = {};
@@ -214,6 +218,7 @@ function ChartRendererComponent({
     source,
     emitCrossFilters,
     onChartStateChange,
+    asyncModeOverride,
   } = restProps;
 
   const theme = useTheme();
@@ -376,9 +381,28 @@ function ChartRendererComponent({
 
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
-      actions?.updateDataMask?.(chartId, dataMask);
+      const sourceForm = latestQueryFormData ?? formData;
+      actions?.updateDataMask?.(
+        chartId,
+        sourceForm.datasource?.endsWith('__semantic_view')
+          ? {
+              ...dataMask,
+              extraFormData: {
+                ...dataMask.extraFormData,
+                semantic_selection_sources: [
+                  ...(dataMask.extraFormData?.semantic_selection_sources ?? []),
+                  ...(sourceForm.semantic_selection_sources ?? []),
+                  {
+                    datasource: sourceForm.datasource,
+                    version: sourceForm.semantic_selection_version ?? null,
+                  },
+                ],
+              },
+            }
+          : dataMask,
+      );
     },
-    [actions, chartId],
+    [actions, chartId, latestQueryFormData, formData],
   );
 
   // Hooks object - memoized
@@ -398,6 +422,15 @@ function ChartRendererComponent({
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
       handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
     }),
     [
       handleAddFilter,
@@ -411,6 +444,7 @@ function ChartRendererComponent({
       onFilterMenuOpen,
       setDataMaskCallback,
       showContextMenu,
+      asyncModeOverride,
     ],
   );
 

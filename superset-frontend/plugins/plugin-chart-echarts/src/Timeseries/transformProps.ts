@@ -25,6 +25,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  ComparisonType,
   CurrencyFormatter,
   DataRecordValue,
   DTTM_ALIAS,
@@ -41,6 +42,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  isXAxisSet,
   LegendState,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
@@ -90,8 +92,10 @@ import {
   getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
+  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
   getTemporalAxisTickConfig,
   resolveTemporalTickValues,
@@ -419,6 +423,11 @@ export default function transformProps(
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
+  // Series whose `label_map` entry led with a time offset, recorded before the shift
+  // below drops it. That leading column is the only structural marker distinguishing a
+  // derived comparison row from a base row whose dimension value happens to read like
+  // the offset, and it is gone from `labelMap` by the time the formatters run.
+  const derivedComparisonSeries = new Set<string>();
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -427,6 +436,7 @@ export default function transformProps(
       Array.isArray(timeCompare) &&
       timeCompare.includes(entry[1][0])
     ) {
+      derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
     }
     return { ...acc, [entry[0]]: entry[1] };
@@ -473,7 +483,62 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
+  // `coltypes` on the query response can fail to mark the designated x-axis
+  // column Temporal for reasons unrelated to what the column actually is (a
+  // missing entry, or a raw SQL-type string instead of a GenericDataType
+  // member) — the ticket's actual bug shape is exactly this: the dataset's
+  // own column metadata correctly says the column is temporal, but that
+  // particular query response's `coltypes` is malformed. Cross-reference
+  // the datasource's own column definition for the x-axis column
+  // (`is_dttm`/`type_generic`, set once at the dataset/schema level,
+  // independent of any given query response) instead of a resolved time
+  // grain: a chart's x-axis column identity is fixed regardless of which
+  // filters happen to be active, whereas a resolved `time_grain_sqla` can
+  // come from an unrelated dashboard-level cross-filter that applies to
+  // every chart on a dashboard, including ones whose x-axis has nothing to
+  // do with time — trusting grain-presence alone would wrongly coerce a
+  // genuinely non-temporal x-axis (e.g. `price`) in that case.
+  //
+  // The x-axis column identifier used to look it up mirrors
+  // getXAxisColumn's own precedence exactly (@superset-ui/core's
+  // query/getXAxis.ts): `isXAxisSet` (= isQueryFormColumn(x_axis), true for
+  // EITHER a physical column string OR a valid ad-hoc/computed column) is
+  // what decides whether `x_axis` is "the selected axis" — granularity_sqla
+  // is only the fallback when x_axis isn't set at all, not merely whenever
+  // the selected x_axis happens to be non-physical. An ad-hoc x_axis (e.g.
+  // a computed `double_price` expression) is still "selected" and must not
+  // fall through to an unrelated granularity_sqla column's metadata; it
+  // simply has no datasource.columns entry to look up by name (it isn't a
+  // physical dataset column at all), so the lookup below correctly finds
+  // nothing and leaves it uncoerced. (xAxisLabel/xAxisOrig can't be reused
+  // for this lookup either way — for a legacy, non-Generic-X-Axis chart
+  // they resolve to the DTTM_ALIAS query-response key, not the real
+  // underlying column name that datasource.columns indexes by.)
+  const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
+  const rawXAxisColumnName = isXAxisSet(chartProps.rawFormData)
+    ? isPhysicalColumn(chartProps.rawFormData.x_axis)
+      ? chartProps.rawFormData.x_axis
+      : undefined
+    : ((chartProps.rawFormData as { granularity_sqla?: string })
+        ?.granularity_sqla ?? undefined);
+  const xAxisDatasourceColumn = datasource.columns?.find(
+    column => column.column_name === rawXAxisColumnName,
+  );
+  const isDesignatedTemporalColumn =
+    !!xAxisDatasourceColumn?.is_dttm ||
+    xAxisDatasourceColumn?.type_generic === GenericDataType.Temporal;
+  const xAxisDataType =
+    !rawXAxisDataTypeIsUsable && isDesignatedTemporalColumn
+      ? GenericDataType.Temporal
+      : rawXAxisDataType;
   const xAxisType = getAxisType(
     stack,
     xAxisForceCategorical,
@@ -635,11 +700,66 @@ export default function transformProps(
       ? [minMarkerSize, maxMarkerSize]
       : [maxMarkerSize, minMarkerSize];
 
+  // When stackDimension is configured, each series is assigned to a separate
+  // ECharts stack group keyed by the dimension value. Compute this mapping
+  // before calling extractShowValueIndexes so each group's topmost series is
+  // tracked independently (fixing the bug where only the last series across
+  // all groups was flagged to show the total label).
+  // When metrics.length > 1 the label-map tuple is [metric, dim0, dim1, ...],
+  // so the stackDimension sits at offset 1 + groupby.indexOf(stackDimension).
+  // When there is a single metric the tuple is [dim0, dim1, ...] with no
+  // metric prefix, so the offset is just groupby.indexOf(stackDimension).
+  const idxSelectedDimension =
+    stack === StackControlsValue.Stack &&
+    stackDimension &&
+    chartProps.rawFormData?.groupby &&
+    (chartProps.rawFormData.groupby as string[]).includes(stackDimension)
+      ? ((metrics || []).length > 1 ? 1 : 0) +
+        (chartProps.rawFormData.groupby as string[]).indexOf(stackDimension)
+      : -1;
+
+  const seriesStackIds: string[] = rawSeries.map(entry => {
+    if (idxSelectedDimension >= 0 && entry.id) {
+      const dimensionValue = labelMap[entry.id]?.[idxSelectedDimension];
+      if (dimensionValue !== undefined) {
+        return String(dimensionValue);
+      }
+    }
+    return '__default__';
+  });
+
+  // Compute per-stack-group totalStackedValues so each group's "onlyTotal"
+  // label shows that group's own sum rather than the global sum across all
+  // groups. Group series by their stack group key and sum their data.
+  const perGroupTotalStackedValues: Record<string, number[]> =
+    Object.create(null);
+  if (stack && onlyTotal) {
+    rawSeries.forEach((entry, idx) => {
+      const group = seriesStackIds[idx];
+      if (
+        !Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)
+      ) {
+        perGroupTotalStackedValues[group] = [];
+      }
+      const groupTotals = perGroupTotalStackedValues[group];
+      (entry.data as [any, number][] | undefined)?.forEach(
+        (datum, dataIndex) => {
+          if (entry.id && legendState && !legendState[entry.id]) return;
+          const val = isHorizontal ? datum[0] : datum[1];
+          if (typeof val === 'number') {
+            groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
+          }
+        },
+      );
+    });
+  }
+
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
     isHorizontal,
     legendState,
+    seriesStackIds,
   });
   const seriesContexts = extractForecastSeriesContexts(
     rawSeries.map(series => series.name as string),
@@ -681,6 +801,51 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // A Percentage or Ratio time comparison replaces the derived series' values with a
+  // dimensionless number, so that row is no longer in the source metric's units and
+  // must not inherit its currency/D3 format.
+  //
+  // `label_map` carries the structured identity behind a rendered series name, and
+  // `renameOperator` puts the offset at the front of a derived row's entry:
+  //
+  //   derived  '1 week ago, East'  -> ['1 week ago', 'East']
+  //   derived  'count, 1 year ago' -> ['1 year ago', 'count']
+  //   base     'sum__num, East'    -> ['sum__num', 'East']
+  //
+  // so the leading column says which it is. Matching the rendered name instead would
+  // misread a base series whose dimension value happens to equal the offset — a region
+  // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
+  const isDerivedComparisonSeries = (seriesKey: string) => {
+    // Recorded above, before the offset was shifted off the `label_map` entry.
+    if (derivedComparisonSeries.has(seriesKey)) {
+      return true;
+    }
+    const columns = labelMap?.[seriesKey];
+    // The shift only runs when `timeCompare` is populated; otherwise the entry still
+    // leads with the offset and can be read directly.
+    return columns?.length
+      ? array.includes(columns[0])
+      : array.includes(seriesKey);
+  };
+
+  // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
+  // a plain multiplier, so it takes a unitless number format rather than a percent one.
+  const ratioFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+  const getComparisonFormatter = (seriesKey: string) => {
+    if (!isDerivedComparisonSeries(seriesKey)) {
+      return undefined;
+    }
+    switch (chartProps.rawFormData?.comparison_type) {
+      case ComparisonType.Percentage:
+        return percentFormatter;
+      case ComparisonType.Ratio:
+        return ratioFormatter;
+      default:
+        return undefined;
+    }
+  };
+
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
   // comparison period has data the current period lacks. Connect nulls so the
@@ -700,7 +865,7 @@ export default function transformProps(
   let dataMax: number | undefined;
   let dataMin: number | undefined;
 
-  rawSeries.forEach(entry => {
+  rawSeries.forEach((entry, seriesIdx) => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     // isDerivedSeries checks for time comparison series patterns:
@@ -828,8 +993,12 @@ export default function transformProps(
         showValue,
         valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
-        totalStackedValues: sortedTotalValues,
+        totalStackedValues:
+          onlyTotal && Object.keys(perGroupTotalStackedValues).length > 0
+            ? perGroupTotalStackedValues
+            : sortedTotalValues,
         showValueIndexes,
+        stackGroup: seriesStackIds[seriesIdx],
         thresholdValues,
         richTooltip,
         sliceId,
@@ -998,10 +1167,6 @@ export default function transformProps(
     stackDimension &&
     chartProps.rawFormData.groupby
   ) {
-    const idxSelectedDimension =
-      formData.metrics.length > 1
-        ? 1
-        : 0 + chartProps.rawFormData.groupby.indexOf(stackDimension);
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];
@@ -1140,12 +1305,6 @@ export default function transformProps(
       s.data = clampedData as typeof s.data;
     });
   }
-
-  // A dashboard-level time grain override (e.g. via a filter or the temporal
-  // range control) is delivered in extraFormData and should take precedence
-  // over the chart's own time grain when formatting temporal axes/tooltips.
-  const resolvedTimeGrain =
-    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
@@ -1322,6 +1481,10 @@ export default function transformProps(
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  // "All" (interval === '0') means every label is meant to show, so the
+  // spacing check below (which blanks labels that would otherwise visually
+  // collide) has to be bypassed too, not just ECharts' own hideOverlap.
+  const showAllLabels = xAxisLabelInterval === '0';
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
       ? createDedupXAxisFormatter(xAxisFormatter)
@@ -1332,6 +1495,7 @@ export default function transformProps(
             xAxisLabel,
           ),
           Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+          showAllLabels,
         )
     : xAxisFormatter;
 
@@ -1348,7 +1512,7 @@ export default function transformProps(
     showMaxLabel,
     xAxisType,
     xAxisLabelRotation,
-    xAxisLabelInterval,
+    showAllLabels ? 0 : xAxisLabelInterval,
     deduplicatedFormatter,
     isHorizontal,
     zoomable,
@@ -1359,10 +1523,9 @@ export default function transformProps(
     name: xAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
-    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) &&
-      groupBy.length === 0 && {
-        triggerEvent: true,
-      }),
+    ...((xAxisType === AxisType.Category || xAxisType === AxisType.Time) && {
+      triggerEvent: true,
+    }),
     ...temporalAxisTickConfig,
     minorTick: { show: minorTicks },
     axisTick: {
@@ -1462,6 +1625,38 @@ export default function transformProps(
     }
   }
 
+  // Size a bar series to its own grain-bucket pixel width instead of a flat
+  // constant, so a sparse bucket doesn't visually spill into neighboring,
+  // unpopulated buckets. Computed here — after `padding` is fully finalized
+  // (legend layout, compact-chart clamping, rotated-label extra padding,
+  // and the horizontal-orientation swap above have all already run) and
+  // applied as a post-pass over the already-built `renderedSeries` — so the
+  // plot-length used matches the *actual* grid area ECharts will render
+  // into, not a flat per-side constant: a heavily-padded chart (e.g. a
+  // side legend eating a large share of a narrow chart) genuinely has far
+  // less plot area than `width`/`height` alone would suggest. Only
+  // meaningful when a bar series is actually rendered — skip the domain
+  // scan otherwise. See getGrainBarMaxWidth for the domain/grain part of
+  // the mechanism.
+  if (seriesType === EchartsTimeseriesSeriesType.Bar) {
+    const barMaxWidthPx = getGrainBarMaxWidth(
+      xAxisType,
+      resolvedTimeGrain,
+      [rebasedData as Record<string, unknown>[]],
+      xAxisLabel,
+      isHorizontal
+        ? Math.max(height - padding.top - padding.bottom, 0)
+        : Math.max(width - padding.left - padding.right, 0),
+    );
+    if (barMaxWidthPx !== undefined) {
+      renderedSeries.forEach(s => {
+        if (s.type === 'bar') {
+          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
+        }
+      });
+    }
+  }
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     ...(seriesType === EchartsTimeseriesSeriesType.Bar &&
@@ -1522,6 +1717,31 @@ export default function transformProps(
             value.forecastTrend || value.forecastLower || value.forecastUpper,
         );
 
+        // Resolve the value formatter per series so each metric keeps its own
+        // D3/currency format, matching how the series labels are formatted.
+        // Without the series key, `getCustomFormatter` returns undefined for
+        // multi-metric charts and every row falls back to `defaultFormatter`,
+        // rendering the y-axis/currency format for all metrics.
+        //
+        // The tooltip key is the rendered series name, so resolve it through
+        // `labelMap`, whose values lead with the raw metric label. Series
+        // renamed by a verbose_name are absent from that map, so fall back to
+        // the verbose-name inversion, as MixedTimeseries does. A Percentage or
+        // Ratio comparison row is dimensionless rather than a value in the
+        // metric's units, so it takes its own formatter instead of the metric's.
+        const getSeriesFormatter = (seriesKey: string) =>
+          forcePercentFormatter
+            ? percentFormatter
+            : (getComparisonFormatter(seriesKey) ??
+              getCustomFormatter(
+                customFormatters,
+                metrics,
+                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
+              ) ??
+              defaultFormatter);
+
+        // The total row aggregates every series, so it keeps the chart-level
+        // formatter rather than any single metric's format.
         const formatter = forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
@@ -1552,7 +1772,7 @@ export default function transformProps(
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter,
+              formatter: getSeriesFormatter(key),
               marker,
               truncation: tooltipTruncation,
             });
@@ -1606,7 +1826,10 @@ export default function transformProps(
         legendState,
         padding,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        resolvedLegendData.length,
+      ),
       data: resolvedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(usesPrimaryAxisLegend

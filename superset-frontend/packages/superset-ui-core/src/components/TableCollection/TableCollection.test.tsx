@@ -332,3 +332,29 @@ test('should not apply highlight when records have no id field and highlightRowI
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(0);
 });
+
+test('should highlight every row for which isRowHighlighted returns true', () => {
+  const dataWithIds = [
+    { col1: 'a', col2: 'a2', id: 1, parent: { child: 'n1' } },
+    { col1: 'b', col2: 'b2', id: 2, parent: { child: 'n2' } },
+    { col1: 'c', col2: 'c2', id: 3, parent: { child: 'n3' } },
+  ];
+  const { result } = renderHook(() =>
+    useTable({ columns: tableHook.columns, data: dataWithIds }),
+  );
+  const newTableHook = result.current;
+
+  const { container } = render(
+    <TableCollection
+      {...defaultProps}
+      rows={newTableHook.rows}
+      prepareRow={newTableHook.prepareRow}
+      // Predicate matches on an arbitrary field (here: id in a set), highlighting
+      // multiple rows — this is what the Task List uses to highlight dependencies.
+      isRowHighlighted={record => [1, 3].includes(record.id as number)}
+    />,
+  );
+
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(2);
+});

@@ -27,11 +27,23 @@ type was added.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, ClassVar, Protocol, runtime_checkable
 
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ChartError, ColumnRef, VegaLitePreview
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+
+def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+    """Cap compile samples, falling back to the cap for invalid saved limits."""
+    value = form_data.get("row_limit")
+    if isinstance(value, bool):
+        return cap
+    try:
+        limit = int(value or cap)
+    except (TypeError, ValueError, OverflowError):
+        return cap
+    return min(cap, limit) if limit > 0 else cap
 
 
 @runtime_checkable
@@ -39,7 +51,7 @@ class ChartTypePlugin(Protocol):
     """
     Protocol that every chart-type plugin must satisfy.
 
-    Implementing all nine methods in a single class guarantees that adding a
+    Implementing all of these methods in a single class guarantees that adding a
     new chart type requires only one new file — the plugin — rather than edits
     across multiple separate files.
     """
@@ -182,6 +194,136 @@ class ChartTypePlugin(Protocol):
         """
         ...
 
+    # ------------------------------------------------------------------
+    # Shared lifecycle contract
+    #
+    # Every MCP chart tool (compile, get_chart_data and its exports,
+    # get_chart_preview, generate/update previews, update_chart) resolves
+    # the owning plugin through ``registry.plugin_for_viz_type`` and calls the
+    # hooks below instead of branching on viz_type. ``BaseChartPlugin``
+    # provides defaults that select the shared generic behavior.
+    # ------------------------------------------------------------------
+
+    #: Saved-chart viz types this plugin interprets but never produces
+    #: (legacy or sibling variants). Used only for viz_type ownership lookup.
+    additional_viz_types: ClassVar[frozenset[str]]
+
+    #: Whether update_chart_preview must execute the query before returning.
+    requires_compile_check: ClassVar[bool]
+
+    #: Whether a dataset-only rebind (no new config) must be rejected because
+    #: saved query roles cannot be trusted on another dataset.
+    requires_config_for_dataset_rebind: ClassVar[bool]
+
+    #: Whether a replacement config on another dataset is merged by the
+    #: plugin's own rebind contract (``merge_update_form_data`` with
+    #: ``dataset_rebind=True``) instead of the shared inherited-state pruning.
+    strict_dataset_rebind: ClassVar[bool]
+
+    #: Whether cached form_data that names no datasource must be treated as
+    #: belonging to another dataset, so none of its query roles are inherited.
+    unbound_form_data_is_rebind: ClassVar[bool]
+
+    #: Whether get_chart_data (JSON, CSV and XLSX) applies
+    #: ``normalize_query_result`` before returning rows.
+    normalize_data_results: ClassVar[bool]
+
+    #: Whether an empty result is a valid, renderable preview.
+    allows_empty_result: ClassVar[bool]
+
+    #: Whether saved-chart Vega-Lite previews take the requested width,
+    #: height and chart description instead of the spec's own frame.
+    resizes_saved_preview: ClassVar[bool]
+
+    #: Whether update_chart may append columns to the saved chart
+    #: (``add_columns``) instead of requiring a complete replacement config.
+    supports_column_append: ClassVar[bool]
+
+    #: Caveat appended to saved-chart preview descriptions, if any.
+    preview_note: ClassVar[str | None]
+
+    #: Error code and message reported when compile-time result
+    #: normalization rejects the query output.
+    invalid_result_error_code: ClassVar[str]
+    invalid_result_message: ClassVar[str]
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        """Return (metrics, columns) for form_data, or None for the shared roles."""
+        ...
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Return QueryContext query dicts, or None to use the shared builder."""
+        ...
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        """Validate the chart-data envelope; return it, a copy, or a ChartError."""
+        ...
+
+    def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
+        """Row limit used by the compile check."""
+        ...
+
+    def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
+        """Row limit used by saved-chart previews."""
+        ...
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int
+    ) -> str | ChartError | None:
+        """Return chart-specific ASCII content, or None for the generic preview."""
+        ...
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Return a chart-specific Vega-Lite preview, or None for the generic one."""
+        ...
+
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Complete a partial update config from the saved form_data."""
+        ...
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        """Merge same-viz update form_data, or None for the shared merge."""
+        ...
+
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Callable[[], Any] | None = None,
+    ) -> Any | None:
+        """Validate the final merged update state.
+
+        Return the config the merged state implies (replacing the request
+        config for compile and persistence), or None to keep the request
+        config. Raise ``ValueError`` when the merged state is invalid.
+        """
+        ...
+
 
 class BaseChartPlugin:
     """
@@ -199,6 +341,18 @@ class BaseChartPlugin:
     display_name: str = ""
     # Subclasses must override this with their own class attribute.
     native_viz_types: ClassVar[Mapping[str, str]] = {}
+    additional_viz_types: ClassVar[frozenset[str]] = frozenset()
+    requires_compile_check: ClassVar[bool] = False
+    requires_config_for_dataset_rebind: ClassVar[bool] = False
+    strict_dataset_rebind: ClassVar[bool] = False
+    unbound_form_data_is_rebind: ClassVar[bool] = False
+    normalize_data_results: ClassVar[bool] = False
+    allows_empty_result: ClassVar[bool] = False
+    resizes_saved_preview: ClassVar[bool] = False
+    supports_column_append: ClassVar[bool] = False
+    preview_note: ClassVar[str | None] = None
+    invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
+    invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""
@@ -258,6 +412,68 @@ class BaseChartPlugin:
         return "unknown"
 
     def schema_error_hint(self) -> ChartGenerationError | None:
+        return None
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        return None
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        return None
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        return result
+
+    def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
+        return 2
+
+    def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
+        return fallback
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int
+    ) -> str | ChartError | None:
+        return None
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        return None
+
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        return config
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        return None
+
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Callable[[], Any] | None = None,
+    ) -> Any | None:
         return None
 
     @staticmethod

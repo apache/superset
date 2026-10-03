@@ -18,6 +18,8 @@
 
 
 import logging
+import re
+import sqlite3
 
 import pytest
 import sqlglot
@@ -29,10 +31,13 @@ from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
     _count_weighted_table_references,
+    _find_last_token_node,
+    _get_select_trailing_child,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
+    folds_unquoted_object_names,
     has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
@@ -1358,20 +1363,12 @@ LIMIT 100
     assert "increase timeout for large scans" in formatted[hint_end:]
 
 
-@pytest.mark.xfail(
-    reason=(
-        "#38189 is not fully fixed: a `;`-terminated statement still hits "
-        "the comment-relocation branch and corrupts the hint block. Only "
-        "the no-semicolon form from the original repro was fixed."
-    ),
-    strict=True,
-)
 def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
     """
     Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
-    a terminating `;` on the statement -- this still reproduces #38189: the
-    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
-    hint block, corrupting it for StarRocks/MySQL-style engines.
+    a terminating `;` on the statement -- verifies #38189 fix so that trailing
+    `--` comments land after the statement rather than injected into the
+    `/*+ SET_VAR(...) */` hint block for StarRocks/MySQL-style engines.
     """
     sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
 FROM my_table
@@ -1386,6 +1383,61 @@ LIMIT 100;
     assert "SET_VAR(query_timeout /*" not in formatted
     hint_end = formatted.index(hint) + len(hint)
     assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+def test_sqlscript_format_preserves_optimizer_hint_with_cte_and_semicolon() -> None:
+    """
+    Ensure optimizer hints with CTEs and trailing comments survive formatting intact.
+    """
+    sql = """WITH cte AS (SELECT 1 AS id)
+SELECT /*+ SET_VAR(query_timeout = 3000) */ id
+FROM cte
+WHERE id = 1;
+
+-- trailing explanation comment"""
+    statement = SQLScript(sql, "mysql").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "trailing explanation comment" in formatted[hint_end:]
+
+
+def test_find_last_token_node_branches() -> None:
+    """
+    Directly test all branches of _find_last_token_node and _get_select_trailing_child.
+    """
+    # 1. Empty select returns None from _get_select_trailing_child
+    # and falls back to node
+    empty_select = exp.Select()
+    assert _get_select_trailing_child(empty_select) is None
+    assert _find_last_token_node(empty_select) is empty_select
+
+    # 2. Select with list clause vs single Expression clause
+    select_with_exprs = exp.Select(expressions=[exp.Literal.number(1)])
+    assert _get_select_trailing_child(select_with_exprs) == exp.Literal.number(1)
+
+    select_with_where = exp.Select(where=exp.Where(this=exp.Literal.number(2)))
+    assert _get_select_trailing_child(select_with_where) == exp.Literal.number(2)
+
+    # 3. Node with hint or comments in args is skipped during child traversal
+    col_with_comment = exp.Column(this="foo", comments=["my comment"])
+    assert _find_last_token_node(col_with_comment) is not None
+
+    table_with_hint = exp.Table(
+        this="bar", hint=exp.Hint(expressions=[exp.var("HINT")])
+    )
+    assert _find_last_token_node(table_with_hint) is not None
+
+    # 4. Non-select node with list of expressions
+    tup = exp.Tuple(expressions=[exp.Literal.number(1), exp.Literal.number(2)])
+    assert _find_last_token_node(tup) == exp.Literal.number(2)
+
+    # 5. Leaf node with no children returns itself
+    lit = exp.Literal.number(42)
+    assert _find_last_token_node(lit) is lit
 
 
 @pytest.mark.parametrize(
@@ -1979,6 +2031,16 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
         ("EXPLAIN (ANALYZE)", "postgresql"),
         ("EXPLAIN ANALYZE )))", "postgresql"),
+        # The flag need not be followed by whitespace.
+        ("EXPLAIN ANALYZE(DELETE FROM t)", "postgresql"),
+        # SQLite ATTACH/DETACH and MySQL REPLACE INTO / RENAME TABLE /
+        # SET PASSWORD FOR fall past node-type matching (opaque command or
+        # dialect-specific structured nodes) and must be gated as mutating.
+        ("ATTACH DATABASE 'x.db' AS y", "sqlite"),
+        ("DETACH DATABASE y", "sqlite"),
+        ("REPLACE INTO t VALUES (1)", "mysql"),
+        ("RENAME TABLE a TO b", "mysql"),
+        ("SET PASSWORD FOR 'u'@'h' = 'p'", "mysql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -1988,6 +2050,163 @@ def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> 
     variants, and structured `COMMIT`.
     """
     assert SQLStatement(sql, engine).is_mutating()
+
+
+@pytest.mark.parametrize("engine", ["mysql", "sqlite"])
+def test_is_mutating_replace_function_is_read(engine: str) -> None:
+    """The REPLACE() string function inside a SELECT is a read; only the
+    REPLACE INTO statement form is mutating."""
+    assert not SQLStatement(
+        "SELECT REPLACE(name, 'a', 'b') FROM t", engine
+    ).is_mutating()
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage file:///tmp/", "GET"),
+        # A quoted local path parses to ``exp.Put``/``exp.Get`` rather than
+        # the opaque Command fallback, but is the same documented syntax.
+        ("PUT 'file:///tmp/data.csv' @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("REMOVE @my_stage/path", "REMOVE"),
+        # ``RM`` is a documented alias of ``REMOVE``.
+        ("RM @my_stage/path", "RM"),
+        # The head keyword is matched case-insensitively.
+        ("put file:///tmp/data.csv @my_stage", "PUT"),
+        # Ordinary analytics statements are not file-transfer commands.
+        ("SELECT 1", None),
+        ("INSERT INTO t VALUES (1)", None),
+        # ``LIST``/``LS`` only enumerate staged files (a read), so they are
+        # intentionally not treated as file-transfer commands here.
+        ("LIST @my_stage", None),
+        # A nested body runs for real but is kept as unparsed text, so the
+        # head match cannot see it and the raw body is scanned instead.
+        ("EXECUTE IMMEDIATE $$ REMOVE @my_stage/path $$", "REMOVE"),
+        ("EXECUTE IMMEDIATE 'RM @my_stage/path'", "RM"),
+        ("EXECUTE IMMEDIATE $$ PUT file:///tmp/data.csv @my_stage $$", "PUT"),
+        ("EXECUTE IMMEDIATE $$ GET @my_stage file:///tmp/ $$", "GET"),
+        # The body scan requires a stage/``file://`` reference after the head,
+        # so a body that merely names a column after one is not flagged.
+        ("EXECUTE IMMEDIATE $$ SELECT remove FROM t $$", None),
+        ("EXECUTE IMMEDIATE $$ SELECT put, rm FROM t $$", None),
+        # Commented-out code in a body never runs, so it is not a command.
+        ("EXECUTE IMMEDIATE $$ -- GET @my_stage file:///tmp/\nSELECT 1 $$", None),
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @s */ SELECT 1 $$", None),
+        # A `--` inside a literal opens no comment, so the text after it is
+        # still scanned.
+        ("EXECUTE IMMEDIATE $$ CALL p('a--b'); RM @my_stage/c $$", "RM"),
+        # A body runs dynamic SQL out of a literal, so a head inside one is
+        # matched: the literal is the statement the server executes.
+        ("CALL run('PUT file:///tmp/data.csv @my_stage')", "PUT"),
+        # A nested literal carries its own quotes doubled, so the scan has to
+        # look past a run of them rather than a single one.
+        ("EXECUTE IMMEDIATE 'PUT ''file:///tmp/data.csv'' @my_stage'", "PUT"),
+        ("CALL run('PUT ''file:///tmp/data.csv'' @my_stage')", "PUT"),
+        ("EXECUTE IMMEDIATE 'GET @my_stage ''file:///tmp/'''", "GET"),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so the
+        # command after it is still scanned.
+        ("EXECUTE IMMEDIATE $$ SELECT $q$--$q$; RM @my_stage/c $$", "RM"),
+        # An unterminated block comment runs to the end of the body, so what
+        # follows it never executes.
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @my_stage $$", None),
+        # A dollar-quoted argument that stops short of the end of the body is
+        # an ordinary literal, not the code wrapper, so it stays quoted: the
+        # `--` inside it opens no comment and the argument after it is scanned.
+        ("CALL p($$--$$, 'PUT file:///tmp/a @my_stage')", "PUT"),
+        ("CALL p($q$--$q$, 'GET @my_stage file:///tmp/a')", "GET"),
+        # An opener with no matching closer delimits nothing, so there is no
+        # wrapper to peel: the body is scanned as written and the command
+        # after the stray opener is still caught.
+        ("EXECUTE IMMEDIATE 'SELECT $q$ ; RM @my_stage/c'", "RM"),
+        # The body a literal carries is what the server runs, so a comment
+        # wedged inside it is stripped like any other: it cannot be used to
+        # split a head from its argument and slip the command past the scan.
+        ("EXECUTE IMMEDIATE 'PUT/*x*/file:///tmp/a @my_stage'", "PUT"),
+        ("EXECUTE IMMEDIATE 'PUT -- x\nfile:///tmp/a @my_stage'", "PUT"),
+        ("CALL p('REMOVE/*x*/@my_stage/b')", "REMOVE"),
+        # Stripping inside a literal stops at its closing delimiter, so a `--`
+        # in one still cannot comment out the statements that follow it.
+        ("EXECUTE IMMEDIATE $$ CALL p('--'); RM @my_stage/c $$", "RM"),
+        # A backslash escapes the quote on this dialect, so the literal does
+        # not end at the quote it precedes. Reading that quote as the closing
+        # one would leave the rest of the body looking like code, letting the
+        # `--` blank out the command that follows it.
+        ("CALL p('it\\'s -- x', 'PUT file:///tmp/a @my_stage')", "PUT"),
+        ('CALL p("it\\"s -- x", \'GET @my_stage file:///tmp/a\')', "GET"),
+        # A head that really is commented out inside the body still does not
+        # run, so it is still not reported.
+        ("EXECUTE IMMEDIATE 'SELECT 1 -- PUT file:///tmp/a @my_stage'", None),
+        ("CALL some_procedure()", None),
+    ],
+)
+def test_get_client_file_transfer_command(sql: str, expected: str | None) -> None:
+    """
+    `get_client_file_transfer_command` returns the command head for Snowflake
+    client-side file-transfer statements and ``None`` for anything else.
+    """
+    assert SQLStatement(sql, "snowflake").get_client_file_transfer_command() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", ["PUT"]),
+        ("SELECT 1; GET @my_stage file:///tmp/", ["GET"]),
+        ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", ["PUT"]),
+        # Heads are deduplicated and returned in sorted order, so the error
+        # messages built from them read the same on every run. Written here in
+        # the reverse of the order the statements appear in.
+        ("REMOVE @s/b; PUT file:///a @s", ["PUT", "REMOVE"]),
+        ("PUT file:///a @s; PUT file:///b @s", ["PUT"]),
+        ("SELECT 1; EXECUTE IMMEDIATE $$ REMOVE @s/b $$", ["REMOVE"]),
+        ("SELECT 1", []),
+    ],
+)
+def test_get_client_file_transfer_commands_script(
+    sql: str, expected: list[str]
+) -> None:
+    """
+    `SQLScript.get_client_file_transfer_commands` collects every file-transfer
+    command head across the statements in a multi-statement script, sorted and
+    deduplicated.
+    """
+    assert SQLScript(sql, "snowflake").get_client_file_transfer_commands() == expected
+
+
+def test_strip_comments_bounds_literal_nesting() -> None:
+    """
+    `_strip_comments` stops descending into nested literals past a fixed depth,
+    so a body whose nesting a user controls cannot exhaust the stack. Past the
+    bound the text is left as found rather than dropped, so it stays visible to
+    the gates that scan it.
+    """
+    statement = SQLStatement("SELECT 1", "postgresql")
+    depth = SQLStatement._MAX_LITERAL_NESTING + 1
+    # Each `$t<n>$ ... $t<n>$` region is one level of literal nesting.
+    nested = "/* c */"
+    for level in range(depth):
+        nested = f"$t{level}${nested}$t{level}$"
+
+    stripped = statement._strip_comments(nested)
+
+    # The whole structure survives, and the comment below the bound does not.
+    assert stripped.startswith(f"$t{depth - 1}$")
+    assert "/* c */" in stripped
+    # The same comment one level above the bound is stripped.
+    assert "/* c */" not in statement._strip_comments("$t0$/* c */$t0$")
+
+
+def test_split_literal_reports_unterminated_dollar_quote() -> None:
+    """
+    `_split_literal` reports an empty closing delimiter when a dollar-quoted
+    literal never closes, so a caller can tell an unterminated region apart
+    from one that closes normally rather than treating the two the same.
+    """
+    opening, interior, closing = SQLStatement._split_literal("$t$--")
+
+    assert (opening, interior, closing) == ("$t$", "--", "")
 
 
 @pytest.mark.parametrize(
@@ -2502,10 +2721,84 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        ("SELECT TOP 5 PERCENT * FROM t", "mssql", None),
+        ("SELECT TOP 5 WITH TIES * FROM t ORDER BY n", "mssql", None),
+        ("SELECT * FROM t FETCH FIRST 5 ROWS ONLY", "postgresql", 5),
+        ("SELECT * FROM t FETCH FIRST ROW ONLY", "postgresql", 1),
+        ("SELECT * FROM t FETCH FIRST 0 ROWS ONLY", "postgresql", 0),
+        ("SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES", "postgresql", None),
+        ("SELECT * FROM t LIMIT ((5))", "sqlite", 5),
+        ("SELECT * FROM t LIMIT (0)", "sqlite", 0),
+        ("SELECT * FROM t LIMIT (2 + 3)", "sqlite", None),
+        # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
+        # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
+        # or off the `Offset` node for the `OFFSET` / `m, n` spellings.
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id", "clickhouse", None),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id, val", "clickhouse", None),
+        (
+            "SELECT * FROM t ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            None,
+        ),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 1, 2 BY id", "clickhouse", None),
+        # ... while a plain ClickHouse limit, with or without an offset, is.
+        ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
+        ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
+        ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).get_limit_value() == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("limit", [1, 10])
+def test_cap_limit_hoists_cte_with_expression_limit(
+    method: LimitMethod, limit: int
+) -> None:
+    """Hoist CTEs while preserving expression limits and enforcing the outer cap."""
+    sql = (
+        "WITH numbers AS (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "
+        "SELECT n FROM numbers ORDER BY n LIMIT (1 + 1)"
+    )
+    statement = SQLStatement(sql, "sqlite")
+    assert statement.get_limit_value() is None
+
+    statement.cap_limit_value(limit, method)
+    rendered = statement.format()
+    parsed = parse_one(rendered, dialect="sqlite")
+    subquery = parsed.args["from_"].this
+
+    assert rendered.startswith("WITH numbers AS (")
+    assert parsed.args["with_"].expressions[0].alias == "numbers"
+    assert subquery.alias == "__superset_limit"
+    assert subquery.this.args.get("with_") is None
+    assert statement.get_limit_value() == limit
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        assert original_rows == [(1,), (2,)]
+        assert connection.execute(rendered).fetchall() == original_rows[:limit]
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(@n)"])
+@pytest.mark.parametrize(
+    "projection", ["1 AS n, 2 AS n", "COUNT(*)", "a.id, b.id", "a.*, b.*", "a.id AS n"]
+)
+def test_cap_limit_preserves_tsql_restrictions(
+    method: LimitMethod, top: str, projection: str
+) -> None:
+    """T-SQL restrictions survive caps without imposing derived-table rules."""
+    statement = SQLStatement(
+        f"SELECT TOP {top} {projection} FROM a JOIN b ON a.id = b.id ORDER BY 1",  # noqa: S608
+        "mssql",
+    )
+    original = statement.format()
+
+    statement.cap_limit_value(10, method)
+
+    assert statement.format() == original
+    assert statement.get_limit_value() is None
 
 
 @pytest.mark.parametrize(
@@ -2717,6 +3010,158 @@ LIMIT 1000
             LimitMethod.FETCH_MANY,
             "SELECT\n  *\nFROM birth_names\nLIMIT 555",
         ),
+        # A ClickHouse `LIMIT ... BY` shares the `limit`/`offset` slot with the
+        # row limit, so `FORCE_LIMIT` wraps instead of overwriting it.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id, val
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # For `LIMIT n OFFSET m BY x` sqlglot hangs the `BY` columns off the
+        # `Offset` node instead, so the `limit` arg alone doesn't reveal them.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `WITH TOTALS` rides into the subquery untouched: ClickHouse keeps
+        # emitting the totals block for a wrapped query, so the cap really is
+        # the only thing the rewrite adds.
+        (
+            "SELECT id, count() AS c FROM limit_by "
+            "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    id,
+    count() AS c
+  FROM limit_by
+  GROUP BY
+    id
+  WITH TOTALS
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `SETTINGS` and `FORMAT` do not survive a demotion into the subquery,
+        # so they move up onto the wrapper instead.
+        (
+            "SELECT * FROM limit_by ORDER BY id LIMIT 2 BY id "
+            "SETTINGS extremes = 1 FORMAT JSONCompact",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+SETTINGS extremes = 1
+FORMAT JSONCompact
+            """.strip(),
+        ),
+        # A ClickHouse limit without a `BY` still takes the in-place path.
+        (
+            "SELECT * FROM t ORDER BY c LIMIT 555",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001",
+        ),
+        (
+            "SELECT * FROM t LIMIT 5 OFFSET 3",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 1001\nOFFSET 3",
+        ),
     ],
 )
 def test_set_limit_value(
@@ -2729,6 +3174,88 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+    ],
+)
+def test_set_limit_value_preserves_clickhouse_limit_by(sql: str, engine: str) -> None:
+    """
+    A row limit must not cannibalize a ClickHouse ``LIMIT ... BY``.
+
+    ``LIMIT 2 BY id`` keeps 2 rows *per id*; ``FORCE_LIMIT`` used to build a
+    fresh ``Limit`` node over ``args["limit"]``, dropping the ``BY`` columns and
+    turning the query into a flat ``LIMIT 1001`` -- a different result set, with
+    no error to hint at it. ``get_limit_value()`` reported the per-group 2 as a
+    row cap on top of that, so ``_set_query_limit()`` clamped the query to 2 rows.
+
+    The cap can't simply be appended next to the ``BY`` either: sqlglot cannot
+    parse ClickHouse's own ``LIMIT n BY x LIMIT m`` ("Found multiple 'LIMIT'
+    clauses"), so the result would not survive a reparse. Wrapping the query is
+    what keeps both the grouping and the cap.
+    """
+    statement = SQLStatement(sql, engine)
+    assert statement.get_limit_value() is None
+
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert "BY id" in limited
+    assert limited.endswith("LIMIT 1001")
+    # The rewrite has to be valid ClickHouse, not just valid-looking.
+    assert SQLStatement(limited, engine).format() == limited
+
+
+def test_set_limit_value_keeps_clickhouse_top_level_modifiers() -> None:
+    """
+    The wrap must not demote clauses that only work at the top level.
+
+    ClickHouse rejects `FORMAT` inside a subquery outright, and a `SETTINGS`
+    attached to a subquery binds to that subquery alone -- top-level-only
+    settings such as ``extremes`` would silently stop applying. Both therefore
+    move onto the wrapper, which is where the original query had them.
+
+    The row-producing modifiers are left alone, because ClickHouse honors them
+    inside a `FROM` subquery: a wrapped `WITH TOTALS` query still emits its
+    totals block, and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+    Hoisting those would change the result rather than preserve it.
+    """
+    statement = SQLStatement(
+        "SELECT id, count() AS c FROM limit_by "
+        "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id "
+        "SETTINGS extremes = 1 FORMAT JSONCompact",
+        "clickhouse",
+    )
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert limited.endswith("LIMIT 1001\nSETTINGS extremes = 1\nFORMAT JSONCompact")
+    # `WITH TOTALS` stays with the aggregation it belongs to.
+    assert "WITH TOTALS\n" in limited.split("LIMIT 2 BY id")[0]
+    assert SQLStatement(limited, "clickhouse").format() == limited
+
+
+@pytest.mark.parametrize(
+    "engine", ["clickhouse", "clickhousedb", "postgresql", "mysql"]
+)
+def test_set_limit_value_without_limit_by_stays_in_place(engine: str) -> None:
+    """
+    Queries with no ``LIMIT ... BY`` keep the cheaper in-place rewrite.
+
+    The wrap is reserved for the ``LIMIT ... BY`` case; everything else -- every
+    non-ClickHouse dialect, and ClickHouse's own plain ``LIMIT`` -- must still
+    have its limit replaced without gaining a subquery.
+    """
+    statement = SQLStatement("SELECT * FROM t ORDER BY c LIMIT 555", engine)
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    assert statement.format() == "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001"
 
 
 @pytest.mark.parametrize(
@@ -3057,6 +3584,10 @@ def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
         # with no name or column list is also accepted; see the CONSTRAINT_
         # PARSERS override below).
         "CREATE TABLE t (k1 INT, KEY (k1))",
+        # Named inline KEY index def (an alias for INDEX with no leading
+        # keyword), which routes through the same override's identifier-then-
+        # column-list branch rather than the immediate "(" branch above.
+        "CREATE TABLE t (k1 INT, KEY idx_name (k1))",
         # GIN/NGRAM full-text index with an inline properties list.
         "CREATE TABLE t(k1 INT, INDEX idx (k1) USING GIN ('parser' = 'english')) "
         "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",
@@ -5393,11 +5924,102 @@ def test_get_disallowed_tables_search_path_change(
         ("SET ROLE app_search_path_user", False),
         # `set_config('search_path', ...)` rebinds the path via a function call.
         ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # Postgres evaluates the setting name, so a name built from an
+        # expression rebinds the path just like the literal form. It can't be
+        # resolved statically, so it's treated as a change.
+        ("SELECT set_config('search_' || 'path', 'information_schema', true)", True),
+        (
+            "SELECT set_config(CONCAT('search_', 'path'), 'information_schema', true)",
+            True,
+        ),
+        # A `set_config` with no arguments at all can't be resolved either.
+        ("SELECT set_config()", True),
+        # A rebind inside a statement whose body the parser leaves opaque (here
+        # a PL/pgSQL block) is not reachable on the tree, so it is matched on
+        # the raw text instead of being let through, in either spelling.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_path', 'information_schema', "
+            "false); END $$",
+            True,
+        ),
+        ("DO $$ BEGIN SET search_path TO information_schema; END $$", True),
+        ("DO $$ BEGIN EXECUTE 'SET search_path = information_schema'; END $$", True),
+        ("CALL rebind_the_path()", False),
+        # A computed setting name never spells `search_path` contiguously, so
+        # the raw-text fallback matches on `set_config` as well.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_' || 'path', "
+            "'information_schema', false); END $$",
+            True,
+        ),
+        # An opaque statement body with no rebind in it is not a change.
+        ("DO $$ BEGIN PERFORM pg_sleep(0); END $$", False),
+        # Opaque statements that can't carry a nested statement are not
+        # text-matched, so naming the setting doesn't make them a change.
+        ("SHOW search_path", False),
+        ("EXPLAIN ANALYZE SELECT * FROM some_table", False),
+        # `EXPLAIN ANALYZE` runs its body for real, so a rebind inside it
+        # takes effect. The tail is SQL, so it is classified by re-parsing
+        # rather than text-matched, in every spelling of the flag.
+        (
+            "EXPLAIN ANALYZE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN (ANALYZE, BUFFERS) SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN ANALYSE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        # A plain `EXPLAIN` only plans the body, so nothing is rebound.
+        (
+            "EXPLAIN SELECT set_config('search_path', 'information_schema', false)",
+            False,
+        ),
+        # Re-parsing keeps the `EXPLAIN` tail precise: a table whose name
+        # merely contains the setting is not a change.
+        ("EXPLAIN ANALYZE SELECT * FROM search_path_audit", False),
+        # PostgreSQL does not require whitespace after the flag.
+        (
+            "EXPLAIN ANALYZE(SELECT set_config('search_path', "
+            "'information_schema', false))",
+            True,
+        ),
+        # A body carrying the flag that can't be classified fails closed,
+        # whether it holds nothing but options or doesn't parse at all.
+        ("EXPLAIN (ANALYZE)", True),
+        ("EXPLAIN ANALYZE )))", True),
+        # The raw-text fallback matches whole words, so an unrelated routine
+        # whose name merely embeds one of them is not a change.
+        ("CALL reset_config()", False),
+        ("CALL my_search_path_helper()", False),
+        # `RESET` restores the server default, which need not be the schema
+        # the caller selected, so it rebinds resolution just as `SET` does.
+        ("RESET search_path", True),
+        ("RESET ALL", True),
+        ("RESET statement_timeout", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
         # An unrelated (non-`set_config`) function call is not a change either.
         ("SELECT my_custom_func(1)", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET search_path TO evil\nPERFORM 1; END $$", False),
+        ("DO $$ BEGIN /* SET search_path TO evil */ PERFORM 1; END $$", False),
+        ("EXECUTE IMMEDIATE 'SET search_path TO evil'", True),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so
+        # removing comments must not swallow the rebind that follows it.
+        (
+            "DO $$ BEGIN PERFORM $q$--$q$; EXECUTE 'SET search_path TO evil'; END $$",
+            True,
+        ),
         ("SELECT 1", False),
     ],
 )
@@ -5445,9 +6067,63 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("SET CATALOG tenant_b", "postgresql", True),
         ("SET CURRENT SCHEMA foo", "postgresql", True),
         ("SET ROLE admin", "postgresql", False),
+        # A rebind inside a body the parser leaves opaque (here a PL/pgSQL
+        # block) is matched on the raw text, in either spelling.
+        ("DO $$ BEGIN SET SCHEMA 'tenant_b'; END $$", "postgresql", True),
+        ("DO $$ BEGIN SET CATALOG tenant_b; END $$", "postgresql", True),
+        ("EXECUTE 'SET SCHEMA ''tenant_b'''", "postgresql", True),
+        # A schema is named all over ordinary SQL, so only the `SET` head
+        # counts: a body that merely creates or references one is not a
+        # rebind.
+        ("DO $$ BEGIN CREATE SCHEMA tenant_b; END $$", "postgresql", False),
+        ("CALL populate_schema()", "postgresql", False),
         # A `set_config()` whose setting name is a column reference rather than
         # a literal is treated conservatively as a schema change.
         ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # `EXPLAIN ANALYZE` runs its body, so a `SET SCHEMA` carried inside one
+        # rebinds resolution just as the bare statement does. Without the
+        # flag the body is only planned, and `EXPLAIN` of an ordinary query
+        # rebinds nothing.
+        ("EXPLAIN ANALYZE SET SCHEMA 'tenant_b'", "postgresql", True),
+        # A qualifier between `SET` and the setting name is matched inside a
+        # nested body too, as it is when the statement stands alone.
+        (
+            "DO $$ BEGIN EXECUTE 'SET LOCAL SCHEMA ''tenant_b'''; END $$",
+            "postgresql",
+            True,
+        ),
+        ("SET LOCAL SCHEMA 'tenant_b'", "postgresql", True),
+        ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
+        ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
+        ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET SCHEMA 'evil'\nPERFORM 1; END $$", "postgresql", False),
+        ("EXECUTE IMMEDIATE 'SET SCHEMA ''evil'''", "postgresql", True),
+        # MySQL-family engines only open a comment on `--` when whitespace
+        # follows, so `1--2` is arithmetic there and the rest of the body still
+        # executes; a spaced `-- ` is a comment on every dialect.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "mysql", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "mysql", False),
+        ("CALL p(1--2, 'SET SCHEMA evil')", "postgresql", False),
+        # SingleStore speaks the MySQL wire protocol and takes the same rule,
+        # so it must not lose the rest of the body to an unspaced `--`.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "singlestoredb", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "singlestoredb", False),
+        # Whether a backslash escapes is read off the dialect too. Where it
+        # does, the literal does not end at the quote the backslash precedes,
+        # so the `--` after it is still inside that literal and cannot comment
+        # out the rebind carried in the next argument.
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "snowflake", True),
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "mysql", True),
+        # PostgreSQL has no backslash escape, so the literal really does end
+        # there and the `--` that follows opens a comment.
+        ("CALL p('it\\'s -- x', 'SET SCHEMA evil')", "postgresql", False),
+        # The family is identified by subclassing `MySQL`, so an engine that
+        # joins it without being named anywhere here takes the rule too.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "pinot", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "pinot", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
@@ -5461,6 +6137,66 @@ def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
     the schema the user selected.
     """
     assert SQLScript(sql, engine).changes_default_schema() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # A quoted catalog identifier is case-sensitive and may not match
+        # after the engine's default case folding.
+        ('SELECT * FROM "c1".s.t1', "snowflake", True),
+        # A quoted schema (``db``) identifier is equally unsafe.
+        ('SELECT * FROM c1."s".t1', "snowflake", True),
+        # An unquoted location can be safely folded to the engine's default
+        # case.
+        ("SELECT * FROM c1.s.t1", "snowflake", False),
+        # Quoting the table name itself doesn't affect catalog/schema safety.
+        ('SELECT * FROM "t1"', "snowflake", False),
+    ],
+)
+def test_has_quoted_table_location(sql: str, engine: str, expected: bool) -> None:
+    """
+    `has_quoted_table_location` flags queries whose catalog or schema is
+    quoted, so the SQL Lab dataset-creation flow keeps the dropdown schema
+    instead of deriving a location that may not match after case folding.
+    """
+    assert SQLStatement(sql, engine).has_quoted_table_location() == expected
+    assert SQLScript(sql, engine).has_quoted_table_location() == expected
+
+
+def test_has_quoted_table_location_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST (e.g. Kusto KQL) report no quoted table
+    location instead of raising, matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.has_quoted_table_location() is False
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("show columns from foo from bar", "mysql", True),
+        ("SELECT * FROM t1", "mysql", False),
+    ],
+)
+def test_is_show_statement(sql: str, engine: str, expected: bool) -> None:
+    """
+    `is_show_statement`/`has_show_statement` identify metadata statements so
+    the SQL Lab dataset-creation flow keeps the dropdown schema rather than
+    deriving one from a query with no meaningful result set.
+    """
+    assert SQLStatement(sql, engine).is_show_statement() == expected
+    assert SQLScript(sql, engine).has_show_statement() == expected
+
+
+def test_is_show_statement_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST are never treated as SHOW statements,
+    matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.is_show_statement() is False
 
 
 @pytest.mark.parametrize(
@@ -5949,6 +6685,25 @@ def test_backtick_invalid_sql_still_fails() -> None:
         SQLScript(sql, "base")
 
 
+def test_base_sql_statement_get_client_file_transfer_command_defaults_to_none() -> None:
+    """
+    BaseSQLStatement.get_client_file_transfer_command defaults to None, so a
+    dialect without such commands inherits the safe answer rather than having
+    to override it.
+    """
+    assert BaseSQLStatement.get_client_file_transfer_command(object()) is None  # type: ignore[arg-type]  # noqa: E501
+
+
+def test_kusto_kql_has_no_client_file_transfer_command() -> None:
+    """
+    Kusto KQL has no client-side file-transfer commands.
+    """
+    assert (
+        KustoKQLStatement(".show tables", "kustokql").get_client_file_transfer_command()
+        is None
+    )
+
+
 def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
     """
     BaseSQLStatement.is_destructive is abstract; both concrete subclasses
@@ -6144,3 +6899,384 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
     function sqlglot can't model.
     """
     assert has_aggregate(expression) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,expected",
+    [
+        ("SUM(x)", True),
+        ("a + b", False),
+        (")(", False),
+        ("MY_CUSTOM_AGG(x)", False),
+    ],
+)
+def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
+    """
+    With ``fail_open=False`` an expression that can't be parsed, or that uses a
+    function sqlglot can't model, is not reported as an aggregate -- for callers
+    that grant something to aggregates and must not grant it on a guess.
+    """
+    assert has_aggregate(expression, fail_open=False) is expected
+
+
+@pytest.mark.parametrize(
+    "engine,expected",
+    [
+        ("postgresql", True),
+        ("sqlite", True),
+        ("snowflake", True),
+        ("mysql", False),
+        ("base", False),
+        ("no_such_engine", False),
+        # dialect normalizes identifiers, but object names are case-sensitive
+        ("bigquery", False),
+        ("datastore", False),
+        ("druid", False),
+        ("gsheets", False),
+        ("shillelagh", False),
+        ("superset", False),
+    ],
+)
+def test_folds_unquoted_object_names(engine: str, expected: bool) -> None:
+    """
+    ``folds_unquoted_object_names`` reports whether an engine treats unquoted
+    catalog, schema and table names as case-sensitive. It reports False for an
+    engine with no dialect of its own, and for an engine whose dialect normalizes
+    identifiers but whose object names are case-sensitive anyway (BigQuery table
+    ids, a Google Sheets URL), so callers keep their exact-match behavior.
+    """
+    assert folds_unquoted_object_names(engine) is expected
+
+
+def test_folds_unquoted_object_names_uninstalled_plugin_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A dialect named by string in ``SQLGLOT_DIALECTS`` comes from an optional plugin
+    (see ``yql``/``ydb``). When that plugin isn't installed sqlglot can't resolve
+    it, leaving the engine's identifier semantics unknown, so callers keep their
+    exact-match behavior.
+    """
+    mocker.patch.dict(
+        "superset.sql.parse.SQLGLOT_DIALECTS",
+        {"uninstalled_plugin": "notaninstalleddialect"},
+    )
+    folds_unquoted_object_names.cache_clear()
+    try:
+        assert folds_unquoted_object_names("uninstalled_plugin") is False
+    finally:
+        folds_unquoted_object_names.cache_clear()
+
+
+def _compact_sql(statement: SQLStatement) -> str:
+    """
+    Format a statement on one line, without the padding inside parentheses.
+    """
+    sql = " ".join(statement.format(comments=False).split())
+    return re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", sql))
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        pytest.param(
+            "SELECT * FROM a",
+            "SELECT * FROM a WHERE a.r = 1",
+            id="plain-read",
+        ),
+        pytest.param(
+            "SELECT * FROM a JOIN b ON a.k = b.k",
+            "SELECT * FROM a JOIN b ON b.r = 1 AND (a.k = b.k) WHERE a.r = 1",
+            id="join",
+        ),
+        pytest.param(
+            "SELECT * FROM (SELECT * FROM b) AS d",
+            "SELECT * FROM (SELECT * FROM b WHERE b.r = 1) AS d",
+            id="derived-table",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) SELECT * FROM c",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1) SELECT * FROM c",
+            id="cte-in-from",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1) AS n "
+            "FROM a WHERE a.r = 1",
+            id="scalar-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM a) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM a WHERE a.r = 1 AND a.g = 1) AS n "
+            "FROM a WHERE a.r = 1",
+            id="same-table-in-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE a.k IN (SELECT k FROM b)",
+            "SELECT * FROM a WHERE a.r = 1 AND (a.k IN (SELECT k FROM b "
+            "WHERE b.r = 1 AND b.g = 1))",
+            id="in-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.x = 1)",
+            "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
+            "WHERE b.r = 1 AND b.g = 1 AND (b.x = 1)))",
+            id="exists-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid)) AS n "
+            "FROM a WHERE a.r = 1",
+            id="correlated-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.k = a.k)",
+            "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
+            "WHERE b.r = 1 AND (b.k = a.k)))",
+            id="correlated-exists",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.id = 1) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.r = 1 AND a.g = 1 AND "
+            "(a.id = 1)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE id = bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(id = bid)) AS n FROM a WHERE a.r = 1",
+            id="unqualified-reference",
+        ),
+        pytest.param(
+            "SELECT x, (SELECT COUNT(*) FROM b WHERE v > 0) AS n "
+            "FROM (SELECT * FROM a)",
+            "SELECT x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(v > 0)) AS n FROM (SELECT * FROM a WHERE a.r = 1)",
+            id="unqualified-reference-beside-unaliased-derived-table",
+        ),
+        pytest.param(
+            "SELECT * FROM (SELECT * FROM a) WHERE k IN (SELECT k FROM b)",
+            "SELECT * FROM (SELECT * FROM a WHERE a.r = 1) WHERE k IN "
+            "(SELECT k FROM b WHERE b.r = 1 AND b.g = 1)",
+            id="in-subquery-beside-unaliased-derived-table",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a)) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="uncorrelated-inside-correlated",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM b) AS d) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM b "
+            "WHERE b.r = 1 AND b.g = 1) AS d) AS n FROM a WHERE a.r = 1",
+            id="derived-table-in-subquery",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) "
+            "SELECT a.x, (SELECT COUNT(*) FROM c) AS n FROM a",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1 AND b.g = 1) "
+            "SELECT a.x, (SELECT COUNT(*) FROM c) AS n FROM a WHERE a.r = 1",
+            id="cte-read-from-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a UNION ALL SELECT * FROM b",
+            "SELECT * FROM a WHERE a.r = 1 UNION ALL SELECT * FROM b WHERE b.r = 1",
+            id="union",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.k IN (SELECT k FROM a)) "
+            "AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="nested-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE EXISTS "
+            "(SELECT 1 FROM a AS o WHERE o.k = a.k)) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(EXISTS(SELECT 1 FROM a AS o WHERE o.r = 1 AND o.g = 1 AND "
+            "(o.k = a.k)))) AS n FROM a WHERE a.r = 1",
+            id="uncorrelated-wrapping-correlated",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM a) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.id = c.bid) AS n FROM c",
+            "WITH c AS (SELECT * FROM a WHERE a.r = 1) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = c.bid)) AS n "
+            "FROM c",
+            id="correlated-to-outer-cte",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a JOIN c ON c.k = a.k",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1) AS n "
+            "FROM a JOIN c ON c.k = a.k WHERE a.r = 1",
+            id="cte-joined-beside-unrelated-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE a.v > 0) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE A.r = 1 AND A.g = 1 AND "
+            "(a.v > 0)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table-case-insensitive",
+        ),
+    ],
+)
+def test_rls_subquery_predicates(sql: str, expected: str) -> None:
+    """
+    Reads inside a sub-query get ``subquery_predicates``; reads whose rows reach
+    the statement's output (``FROM``, joins, derived tables, CTEs) get
+    ``predicates``.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        RLSMethod.AS_PREDICATE,
+        subquery_predicates={
+            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+        },
+    )
+    assert _compact_sql(statement) == expected
+
+
+def test_rls_subquery_predicates_as_subquery() -> None:
+    """
+    ``subquery_predicates`` also drive the ``AS_SUBQUERY`` method, per read.
+    """
+    statement = SQLStatement("SELECT a.x, (SELECT COUNT(*) FROM a) AS n FROM a")
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")]},
+        RLSMethod.AS_SUBQUERY,
+        subquery_predicates={Table("a"): [parse_one("r = 1"), parse_one("g = 1")]},
+    )
+    assert _compact_sql(statement) == (
+        "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM a WHERE r = 1 AND g = 1) "
+        'AS "a") AS n FROM (SELECT * FROM a WHERE r = 1) AS "a"'
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        pytest.param(
+            "SELECT * FROM a, LATERAL (SELECT x FROM b WHERE b.k = a.k) AS l",
+            "postgresql",
+            id="lateral",
+        ),
+        pytest.param(
+            "SELECT * FROM a CROSS APPLY (SELECT x FROM b WHERE b.k = a.k) AS l",
+            "mssql",
+            id="cross-apply",
+        ),
+    ],
+)
+def test_rls_subquery_predicates_skip_lateral(sql: str, engine: str) -> None:
+    """
+    The body of a ``LATERAL`` or ``CROSS APPLY`` feeds the statement's output like
+    a join, so its reads get ``predicates``, not ``subquery_predicates``.
+    """
+    statement = SQLStatement(sql, engine)
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        RLSMethod.AS_PREDICATE,
+        subquery_predicates={
+            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+        },
+    )
+    sql = _compact_sql(statement)
+    assert "b.r = 1" in sql
+    assert "g = 1" not in sql
+
+
+@pytest.mark.parametrize(
+    "predicates, subquery_predicates, expected",
+    [
+        pytest.param({Table("a"): []}, None, False, id="no-rules"),
+        pytest.param({Table("a"): [parse_one("r = 1")]}, None, True, id="rule"),
+        pytest.param(
+            {Table("a"): []},
+            {Table("a"): [parse_one("g = 1")]},
+            False,
+            id="subquery-rule-without-subquery",
+        ),
+    ],
+)
+def test_rls_returns_whether_applied(
+    predicates: dict[Table, list[sqlglot.exp.Expression]],
+    subquery_predicates: dict[Table, list[sqlglot.exp.Expression]] | None,
+    expected: bool,
+) -> None:
+    """
+    ``apply_rls`` reports whether it injected a rule, so callers can skip
+    re-rendering an untouched statement.
+    """
+    statement = SQLStatement("SELECT * FROM (SELECT * FROM a) AS d")
+    assert (
+        statement.apply_rls(
+            None,
+            None,
+            predicates,
+            RLSMethod.AS_PREDICATE,
+            subquery_predicates=subquery_predicates,
+        )
+        is expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
+        (
+            "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
+            "postgresql",
+            {"query_to_xml"},
+        ),
+        ("SELECT a FROM t WHERE my_udf(a) > 1", "postgresql", {"my_udf"}),
+        (
+            "SELECT * FROM EXTERNAL_QUERY('c', 'SELECT 1')",
+            "bigquery",
+            {"EXTERNAL_QUERY"},
+        ),
+        # A qualified call keeps its qualifier, so it never reads as a builtin.
+        ("SELECT NOW(), s.now() FROM t", "mysql", {"NOW", "s.now"}),
+    ],
+)
+def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Functions SQLGlot does not model are reported, since they may read tables
+    that table extraction cannot see.
+    """
+    assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM t JOIN s.u ON t.id = u.id", "postgresql", False),
+        ('SELECT * FROM "Quoted Table"', "postgresql", False),
+        ("WITH c AS (SELECT 1 AS a) SELECT * FROM c", "postgresql", False),
+        ("SELECT * FROM generate_series(1, 3)", "postgresql", True),
+        ("SELECT * FROM read_csv('x.csv')", "duckdb", True),
+        ("SELECT * FROM IDENTIFIER('t')", "snowflake", True),
+        ("SELECT * FROM TABLE('t')", "snowflake", True),
+    ],
+)
+def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None:
+    """
+    Table functions and dynamically named tables are sources without a table
+    name, so ``tables`` cannot report them.
+    """
+    assert SQLStatement(sql, engine).has_dynamic_table_source() == expected

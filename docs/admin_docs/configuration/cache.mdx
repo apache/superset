@@ -97,6 +97,37 @@ This setting only applies to requests detected as native filter option queries. 
 over the per-chart/dataset/database timeouts, but not over an explicit per-request
 `custom_cache_timeout` override (e.g. "Force refresh").
 
+## Async Query Result Cache TTL
+
+When [Global Async Queries](/admin-docs/configuration/configuring-superset#feature-flags) is
+enabled, a chart-data request that runs asynchronously does not return the result inline. Instead the
+query executes on a background task that **writes the result to the data cache**, and the browser
+then re-issues the same request to read that result back out of the cache once the task succeeds.
+
+This read-back is what makes the result-cache TTL matter for correctness, not just performance: if
+the effective TTL is shorter than the full async round trip (task execution + the client's poll
+interval + the re-fetch), the entry can be **evicted before the client reads it**, leaving the chart
+stuck re-running instead of loading. To prevent this, async requests floor their result-cache TTL to
+`GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL` (seconds, default `300` — five minutes):
+
+```python
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = 300  # seconds
+```
+
+How the floor interacts with the timeouts above:
+
+- It applies **only to async execution**. Synchronous `/chart/data` requests keep their normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` timeout even when Global Async Queries is enabled.
+- A **longer** effective TTL from that chain is kept as-is — the floor only raises TTLs that are
+  shorter than it.
+- A TTL of `0` ("cache forever") is left untouched.
+
+Tuning guidance: raise this value if your workload's async round trip can exceed five minutes (very
+long-running queries or slow warehouses), otherwise those charts may intermittently fail to load. Be
+aware of the trade-off — because the floor can raise an async result's TTL above a shorter cache
+retention policy, it keeps async results in the cache longer and modestly increases cache
+(Redis/Valkey) usage. Do not lower it below your worst-case async round trip.
+
 ## Limiting Cached Result Size
 
 Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
@@ -210,7 +241,9 @@ FEATURE_FLAGS = {
 }
 ```
 
-By default thumbnails are rendered per user, and will fall back to the Selenium user for anonymous users.
+By default thumbnails are rendered as the user who requests them. Anonymous requests have no user
+to render as, so they get no thumbnail unless you add a fallback executor, for example
+`THUMBNAIL_EXECUTORS = [ExecutorType.CURRENT_USER, FixedExecutor("admin")]`.
 To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
 
 ```python
@@ -255,7 +288,7 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for Selenium using:
+override the base URL that the headless browser uses to reach Superset using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
@@ -280,20 +313,39 @@ CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
 Use a dedicated read-only service account here rather than a personal admin account, so that
 thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
 
-Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate Selenium. The default function uses the `flask-login`
-session cookie. Here's an example of a custom function signature:
+Thumbnails are rendered with Playwright and a headless Chromium browser. Extra Chromium launch
+arguments can be set using `WEBDRIVER_OPTION_ARGS`. You can implement a custom function to
+authenticate the Playwright browser context. The default function uses the `flask-login` session
+cookie. A custom function replaces that default, so it must authenticate as `user` itself.
+Here's an example of a custom function:
 
 ```python
-def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
-    pass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+    from playwright.sync_api import BrowserContext
+
+
+def auth_browser_context(
+    browser_context: "BrowserContext", user: "User"
+) -> "BrowserContext":
+    # This replaces Superset's default session-cookie login, so it must
+    # authenticate as `user` itself. For example, send a bearer token:
+    # `get_token_for_user` is a placeholder for your own token lookup.
+    token = get_token_for_user(user)
+    browser_context.set_extra_http_headers({"Authorization": f"Bearer {token}"})
+    return browser_context
 ```
 
 Then on configuration:
 
 ```
-WEBDRIVER_AUTH_FUNC = auth_driver
+WEBDRIVER_AUTH_FUNC = auth_browser_context
 ```
+
+To replace the authentication logic entirely, subclass `superset.utils.machine_auth.MachineAuthProvider`,
+override `authenticate_browser_context()`, and set `MACHINE_AUTH_PROVIDER_CLASS` to the fully-qualified dotted path of your class (for example, `"myapp.auth.MyMachineAuthProvider"`).
 
 ## ETag Support for Thumbnails
 
@@ -316,13 +368,24 @@ high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
   performance and reducing metastore load
-- **Real-time event notifications**: Enables instant pub/sub messaging for task abort signals and
-  completion notifications instead of polling-based approaches
+- **Event-driven notifications**: Task completion and abort signals are delivered over Redis
+  **Streams**, so waiters (sync join-and-wait, task-dependency DAGs, abort listeners) wake when a
+  signal lands instead of polling the metadata database. Because stream entries are persisted, a
+  waiter that reads slightly late, reconnects, or fails over still receives the signal. Without this
+  backend, these operations poll the metadata database instead.
 
 :::note
-This requires Redis or Valkey specifically—it uses Redis-specific features (pub/sub, `SET NX EX`)
-that are not available in general Flask-Caching backends.
+This requires Redis or Valkey specifically—it uses Redis-specific features (Streams, pub/sub,
+`SET NX EX`) that are not available in general Flask-Caching backends.
 :::
+
+Each signal stream keeps only its latest entry and is given a TTL, so signal streams for tasks that
+are never awaited do not accumulate in Redis/Valkey. Set the retention window with
+`DISTRIBUTED_COORDINATION_SIGNAL_TTL` (seconds, default 24 hours):
+
+```python
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = 24 * 60 * 60
+```
 
 ### Configuration
 
@@ -366,9 +429,8 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
-By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as
-`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same `RedisCache`/`RedisSentinelCache`
-backend) have no socket timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` have no socket
+timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
 
 ```python

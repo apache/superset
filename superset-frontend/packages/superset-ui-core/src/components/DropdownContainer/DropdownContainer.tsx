@@ -330,7 +330,18 @@ export const DropdownContainer = forwardRef(
             min-width: 0px;
           `}
           data-test="container"
-          style={style}
+          style={
+            recalculating
+              ? {
+                  ...style,
+                  /* The flex layout already bounds the row's own box, but its
+                   * children can spill past that box in the frame Edge paints
+                   * before the new overflow index is applied. Clipping keeps
+                   * them inside the filter bar. */
+                  overflow: 'hidden',
+                }
+              : style
+          }
         >
           {notOverflowedItems.map(item => item.element)}
         </div>

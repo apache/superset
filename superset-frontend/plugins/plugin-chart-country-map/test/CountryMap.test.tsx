@@ -20,6 +20,8 @@
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
 import d3 from 'd3';
+import { extent as d3Extent } from 'd3-array';
+import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import ReactCountryMap from '../src/ReactCountryMap';
 
 // d3 v3 APIs have loose types; cast to allow jest mock operations
@@ -73,6 +75,40 @@ const mockMapData = {
 };
 
 type D3JsonCallback = (error: Error | null, data: unknown) => void;
+
+type CountryMapDatum = {
+  country_id: string;
+  metric: number;
+};
+
+function expectedLinearFill(
+  data: CountryMapDatum[],
+  linearColorScheme: string,
+): string {
+  const rawExtents = d3Extent(data, v => v.metric);
+  const extents: [number, number] =
+    rawExtents[0] != null && rawExtents[1] != null
+      ? [rawExtents[0], rawExtents[1]]
+      : [0, 1];
+  const colorSchemeObj = getSequentialSchemeRegistry().get(linearColorScheme);
+  const linearColorScale = colorSchemeObj
+    ? colorSchemeObj.createLinearScale(extents)
+    : () => '#ccc';
+  return linearColorScale(data[0].metric) ?? '#ccc';
+}
+
+function expectFillToMatchLinearScheme(
+  region: Element | null,
+  data: CountryMapDatum[],
+  linearColorScheme: string,
+): void {
+  expect(region).not.toBeNull();
+  const { fill } = (region as HTMLElement).style;
+  expect(fill).toBeTruthy();
+  expect(d3Any.rgb(fill).toString()).toBe(
+    d3Any.rgb(expectedLinearFill(data, linearColorScheme)).toString(),
+  );
+}
 
 describe('CountryMap (legacy d3)', () => {
   beforeEach(() => {
@@ -244,5 +280,137 @@ describe('CountryMap (legacy d3)', () => {
       filters: [{ col: 'country_code', op: '==', val: 'CAN' }],
       groupbyFieldName: 'entity',
     });
+  });
+});
+
+describe('CountryMap conditional formatting', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('applies conditional formatting color when formatter matches metric value', async () => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+
+    const mockFormatters = [
+      {
+        column: 'metric',
+        getColorFromValue: (val: number) =>
+          val >= 100 ? '#FF0000' : undefined,
+      },
+    ];
+
+    render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        formatters={mockFormatters}
+      />,
+    );
+
+    const region = document.querySelector('path.region');
+    expect(region).not.toBeNull();
+    expect(region).toHaveStyle({ fill: '#FF0000' });
+  });
+
+  test('falls back to default color when conditional formatter threshold is not met', async () => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+
+    const mockFormatters = [
+      {
+        column: 'metric',
+        getColorFromValue: (val: number) => (val > 500 ? '#FF0000' : undefined),
+      },
+    ];
+
+    render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        formatters={mockFormatters}
+      />,
+    );
+
+    const region = document.querySelector('path.region');
+    expect(region).not.toHaveStyle({ fill: '#FF0000' });
+    expectFillToMatchLinearScheme(
+      region,
+      [{ country_id: 'CAN', metric: 100 }],
+      'bnbColors',
+    );
+  });
+
+  test('evaluates multiple formatters in order and applies the first match', async () => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+
+    const mockFormatters = [
+      {
+        column: 'metric',
+        getColorFromValue: (val: number) => (val > 200 ? '#FF0000' : undefined),
+      },
+      {
+        column: 'metric',
+        getColorFromValue: (val: number) =>
+          val >= 100 ? '#00FF00' : undefined,
+      },
+    ];
+
+    render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        formatters={mockFormatters}
+      />,
+    );
+
+    const region = document.querySelector('path.region');
+    expect(region).not.toBeNull();
+    expect(region).toHaveStyle({ fill: '#00FF00' });
+  });
+
+  test('handles empty or undefined formatters gracefully without crashing', async () => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+
+    render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        formatters={undefined}
+      />,
+    );
+
+    const region = document.querySelector('path.region');
+    expectFillToMatchLinearScheme(
+      region,
+      [{ country_id: 'CAN', metric: 100 }],
+      'bnbColors',
+    );
   });
 });

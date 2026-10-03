@@ -446,3 +446,83 @@ test('onChange is not called when close is clicked and canDelete is string, warn
   expect(defaultProps.onChange).not.toHaveBeenCalled();
   expect(await screen.findByText('Test warning')).toBeInTheDocument();
 });
+
+test('Filter control commits a compatible Cube dimension as a filter subject', async () => {
+  const onChange = jest.fn();
+  const semanticColumns = [
+    {
+      column_name: 'order_date',
+      verbose_name: 'Order Date',
+      type: 'TIMESTAMP',
+      id: 10,
+    },
+    {
+      column_name: 'category',
+      verbose_name: 'Product Category',
+      type: 'VARCHAR(255)',
+      id: 11,
+    },
+  ] as ColumnMeta[];
+  const semanticDatasource = {
+    ...PLACEHOLDER_DATASOURCE,
+    type: 'semantic_view',
+    semantic_view_features: [],
+    columns: semanticColumns,
+  } as unknown as Datasource;
+
+  const semanticStore = mockStore({
+    explore: {
+      datasource: {
+        type: 'semantic_view',
+        id: 1,
+        semantic_view_features: [],
+      },
+    },
+  });
+
+  render(
+    setup({
+      columns: semanticColumns,
+      datasource: semanticDatasource,
+      additionalProps: { onChange },
+    }),
+    { useDndKit: true, store: semanticStore },
+  );
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+
+  const subjectSelect = await screen.findByRole('combobox', {
+    name: 'Select subject',
+  });
+  fireEvent.mouseDown(subjectSelect);
+
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
+    if (!list) throw new Error('dropdown not open');
+    return list;
+  });
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+  fireEvent.click(within(dropdown).getByText('Product Category'));
+
+  const operatorSelect = await screen.findByRole('combobox', {
+    name: 'Select operator',
+  });
+  fireEvent.mouseDown(operatorSelect);
+  const operatorOption = await screen.findByText('Is not null');
+  fireEvent.click(operatorOption);
+
+  const saveButton = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  fireEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        subject: 'category',
+        operator: 'IS NOT NULL',
+      }),
+    ]);
+  });
+});
