@@ -29,7 +29,7 @@ from superset.daos.query import SavedQueryDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.tags.models import (
-    get_tag,
+    get_or_create_tag,
     ObjectType,
     Tag,
     TaggedObject,
@@ -53,7 +53,7 @@ class TagDAO(BaseDAO[Tag]):
 
         for name in clean_tag_names:
             type_ = TagType.custom
-            tag = TagDAO.get_by_name(name, type_)
+            tag = TagDAO.get_or_create_by_name(name, type_)
 
             # Check if the association already exists
             existing_tagged_object = (
@@ -111,10 +111,9 @@ class TagDAO(BaseDAO[Tag]):
             db.session.delete(tag)
 
     @staticmethod
-    def get_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
+    def get_or_create_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
         """
-        returns a tag if one exists by that name, none otherwise.
-        important!: Creates a tag by that name if the tag is not found.
+        Returns a tag by that name, creating it first if it doesn't exist yet.
         """
         tag = (
             db.session.query(Tag)
@@ -122,7 +121,7 @@ class TagDAO(BaseDAO[Tag]):
             .first()
         )
         if not tag:
-            tag = get_tag(name, db.session, type_)
+            tag = get_or_create_tag(name, db.session, type_)
         return tag
 
     @staticmethod
