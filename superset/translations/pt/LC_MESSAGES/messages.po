@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -3827,6 +3827,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Box Plot"
 
+msgid "Break"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5868,6 +5871,11 @@ msgid "Control labeled "
 msgstr "Controlo com etiqueta "
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -11569,6 +11577,12 @@ msgstr "Conteúdo da Etiqueta"
 msgid "Label Line"
 msgstr "Linha de Etiqueta"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -12581,6 +12595,11 @@ msgstr "Valor máximo"
 # uk, zh, zh_TW]
 msgid "Maximum value on the gauge axis"
 msgstr "Valor máximo no eixo do medidor"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22872,6 +22891,9 @@ msgstr "Acionar agora"
 
 msgid "True"
 msgstr "Verdadeiro"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr ""

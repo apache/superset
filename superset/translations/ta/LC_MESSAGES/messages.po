@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2963,6 +2963,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "பாக்ஸ் பிளாட் (Box Plot)"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "விரிவான பகுப்பாய்வுகள் (Breakdowns)"
 
@@ -4519,6 +4522,11 @@ msgid "Control labeled "
 msgstr "பெயரிடப்பட்ட கட்டுப்பாடு "
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -8834,6 +8842,12 @@ msgstr "லேபிள் உள்ளடக்கங்கள்"
 msgid "Label Line"
 msgstr "லேபிள் கோடு"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -9567,6 +9581,11 @@ msgstr "அதிகபட்ச மதிப்பு"
 
 msgid "Maximum value on the gauge axis"
 msgstr "கேஜ் (gauge) அச்சில் அதிகபட்ச மதிப்பு"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr ""
@@ -17065,6 +17084,9 @@ msgstr ""
 
 msgid "True"
 msgstr "சரி / உண்மை"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr ""

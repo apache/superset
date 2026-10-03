@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -3027,6 +3027,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "箱线图"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "细分"
 
@@ -4631,6 +4634,11 @@ msgid "Control labeled "
 msgstr "标记为“控件”的标签 "
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -9205,6 +9213,12 @@ msgstr "标签内容"
 msgid "Label Line"
 msgstr "标签线"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -10004,6 +10018,11 @@ msgstr "最大值"
 
 msgid "Maximum value on the gauge axis"
 msgstr "量规轴上的最大值"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "路径的最大宽度大小，以像素或米为单位。"
@@ -18029,6 +18048,9 @@ msgstr "立即触发"
 
 msgid "True"
 msgstr "真"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr "截断坐标轴"

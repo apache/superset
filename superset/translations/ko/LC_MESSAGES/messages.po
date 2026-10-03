@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:53+0530\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -4230,6 +4230,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "상자 그림"
 
+msgid "Break"
+msgstr ""
+
 #, fuzzy
 msgid "Breakdowns"
 msgstr "생성자"
@@ -6626,6 +6629,11 @@ msgid "Control labeled "
 msgstr "레이블이 지정된 컨트롤 "
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -13309,6 +13317,12 @@ msgstr "새 차트 생성"
 msgid "Label Line"
 msgstr "레이블 선"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -14511,6 +14525,11 @@ msgstr "테이블 명"
 #, fuzzy
 msgid "Maximum value on the gauge axis"
 msgstr "게이지 축의 최대값"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -26356,6 +26375,9 @@ msgstr ""
 #, fuzzy
 msgid "True"
 msgstr "Query 공유"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr ""
