@@ -95,7 +95,6 @@ export default function RadioButtonControl({
                   }`}
                   onClick={e => {
                     e.currentTarget?.focus();
-                    onChange(val);
                   }}
                 >
                   {label}
