@@ -584,13 +584,16 @@ export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
           // — every value is filtered out as non-numeric, so the rule falls
           // back to automatic bounds and paints a different gradient than the
           // same data delivered as numbers.
-          const columnValues = data.map(row => {
-            const value = row[config.column!];
-            if (!comparesNumerically(config)) {
-              return value as number;
-            }
-            return parseNumericValue(value) ?? (value as number);
-          });
+          // The bounds domain has to hold the same magnitudes the renderer
+          // compares. A cell the rule reads numerically but whose text is not a
+          // number ("N/A") has no magnitude, and leaving its raw text in the
+          // domain turns the automatic min/max into NaN — which drops every
+          // finite row from the range instead of only the unreadable one.
+          const columnValues = comparesNumerically(config)
+            ? data
+                .map(row => parseNumericValue(row[config.column!]))
+                .filter((value): value is number => value !== undefined)
+            : data.map(row => row[config.column!] as number);
           acc.push({
             column: config?.column,
             toAllRow: config?.toAllRow,

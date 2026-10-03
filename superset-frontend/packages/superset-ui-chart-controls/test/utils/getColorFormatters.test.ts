@@ -26,6 +26,8 @@ import {
   BoundUnit,
   PercentDenominator,
 } from '../../src';
+
+import { ObjectFormattingEnum } from '../../src';
 import {
   getColorFormatters,
   getReadableTextColor,
@@ -1569,4 +1571,63 @@ test('getColorFunction GREATER_THAN ignores diverging fields even when fully set
     [25, 100],
   );
   expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('a cell-bar rule keeps its finite rows when an unreadable cell sits in the column', () => {
+  const [formatter] = getColorFormatters(
+    [
+      {
+        column: 'label',
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        useGradient: false,
+        objectFormatting: ObjectFormattingEnum.CELL_BAR,
+      },
+    ],
+    [{ label: '10' }, { label: '20' }, { label: 'N/A' }],
+    undefined,
+    true,
+  );
+
+  // "N/A" carries no magnitude, so it must not widen the bounds domain into
+  // NaN -- that drops the two readable rows from the range and paints them
+  // with no color at all, even though a solid color was asked for.
+  expect(formatter.getColorFromValue(10)).toBe('#FF0000');
+  expect(formatter.getColorFromValue(20)).toBe('#FF0000');
+});
+
+test('a cell-bar rule reads its bounds from the numeric rows only', () => {
+  const [withGap] = getColorFormatters(
+    [
+      {
+        column: 'label',
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        useGradient: true,
+        objectFormatting: ObjectFormattingEnum.CELL_BAR,
+      },
+    ],
+    [{ label: '10' }, { label: '20' }, { label: 'N/A' }],
+    undefined,
+    true,
+  );
+  const [clean] = getColorFormatters(
+    [
+      {
+        column: 'label',
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        useGradient: true,
+        objectFormatting: ObjectFormattingEnum.CELL_BAR,
+      },
+    ],
+    [{ label: '10' }, { label: '20' }],
+    undefined,
+    true,
+  );
+
+  // Same magnitudes, so the same gradient: the unreadable cell is absent from
+  // the domain rather than present in it as a value min/max cannot reduce.
+  expect(withGap.getColorFromValue(10)).toBe(clean.getColorFromValue(10));
+  expect(withGap.getColorFromValue(20)).toBe(clean.getColorFromValue(20));
 });

@@ -4138,3 +4138,58 @@ test('does not push a column sort to the server own state when server pagination
   );
   expect(pushedSort).toBe(false);
 });
+
+test('an explicit cell-bar rule keeps its scale on a time-comparison column', () => {
+  // Time comparison paints these cells from the comparison colors, which is
+  // why the generic bar is held back here. An explicit CELL_BAR rule is a
+  // separate instruction, and withholding the range sends it to the unscaled
+  // band: every matching value then reads as the same full-width magnitude.
+  const props = transformProps({
+    ...testData.comparison,
+    rawFormData: {
+      ...testData.comparison.rawFormData,
+      show_cell_bars: false,
+      conditional_formatting: [
+        {
+          colorScheme: '#ACE1C4',
+          column: 'Main metric_1',
+          operator: Comparator.None,
+          objectFormatting: ObjectFormattingEnum.CELL_BAR,
+        },
+      ],
+    },
+  });
+  const { container } = render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const bars = Array.from(container.querySelectorAll('div.cell-bar'));
+  expect(bars.length).toBeGreaterThan(0);
+  const widths = bars.map(barWidth);
+  // The column holds 100 and 110, and `align_pn` measures each against the
+  // column's positive extent: 100/110 = 91%, 110/110 = 100%. The unscaled
+  // fallback draws both at 100%, so the smaller one is the whole difference.
+  expect(widths).toEqual([91, 100]);
+});
+
+test('the generic bar stays out of a time-comparison column without an explicit rule', () => {
+  const props = transformProps({
+    ...testData.comparison,
+    rawFormData: {
+      ...testData.comparison.rawFormData,
+      show_cell_bars: true,
+      conditional_formatting: [],
+    },
+  });
+  const { container } = render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  // The comparison colors own the cell background on this column, so the
+  // global toggle alone must not paint a bar over it.
+  expect(container.querySelectorAll('div.cell-bar').length).toBe(0);
+});

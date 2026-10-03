@@ -1219,8 +1219,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // overlay suppresses.
       const coerceNumericColumn =
         dataType === GenericDataType.Numeric || hasCellBarFormatter;
+      // A time-comparison column paints its cells from the comparison colors, so
+      // the generic bar must stay out of the way. An explicit CELL_BAR rule is
+      // a separate instruction on the same cell, and it needs the same numbers
+      // the renderer measures: with the range withheld it falls back to the
+      // unscaled band, which draws every matching value as full width.
       const valueRange =
-        !hasBasicColorFormatters &&
+        (!hasBasicColorFormatters || hasCellBarFormatter) &&
         (generalShowCellBars || hasCellBarFormatter) &&
         (isMetric || isRawRecords || isPercentMetric || hasCellBarFormatter) &&
         getValueRange(key, alignPositiveNegative, coerceNumericColumn);
