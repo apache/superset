@@ -18,12 +18,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
+from flask import current_app
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import configure_mappers, registry
 from sqlalchemy.sql import Select
@@ -39,7 +42,9 @@ from superset.commands.deletion_retention.purge_policy import (
     DependencyKey,
     DependencyPolicy,
     discover_dependencies,
+    ExecutionPhase,
     get_purge_policy,
+    HOST_POLICIES_CONFIG_KEY,
     listener_responsibilities,
     PolicyCoverage,
     purge_policy_registry,
@@ -568,3 +573,237 @@ def test_core_delete_actions_compile_for_supported_dialects(dialect: str) -> Non
 
     assert compiled
     assert all(statement.startswith(("SELECT", "DELETE")) for statement in compiled)
+
+
+def _host_root(prefix: str) -> type[Any]:
+    """Map a throwaway root in its own ``MetaData``.
+
+    The hook is indifferent to a host root's shape, so this is the smallest
+    graph with anything to declare: one outbound foreign key, the same edge
+    every built-in policy preserves for its ``ab_user`` columns.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    sa.Table(
+        f"{prefix}_owner",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("owner_id", sa.Integer, sa.ForeignKey(f"{prefix}_owner.id")),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class HostRoot:
+        """Temporary mapped root standing in for an entity core does not own."""
+
+    registry().map_imperatively(HostRoot, root_table)
+    return HostRoot
+
+
+def _host_edge(prefix: str) -> DependencyPolicy:
+    """The one dependency ``discover_dependencies`` finds for that root."""
+    return DependencyPolicy(
+        DependencyKey(
+            "foreign_key",
+            f"{prefix}_entity",
+            f"{prefix}_owner",
+            ("owner_id",),
+            ("id",),
+            "outbound",
+        ),
+        DependencyClassification.PRESERVE,
+    )
+
+
+def _host_policy(
+    model: type[Any], dependencies: tuple[DependencyPolicy, ...]
+) -> PurgeEntityPolicy:
+    """Borrow the chart policy's executable actions for a host root."""
+    return replace(
+        get_purge_policy(Slice),
+        model=model,
+        entity_type="host_root",
+        dependencies=dependencies,
+    )
+
+
+@contextmanager
+def _installed(provider: Callable[[], Any]) -> Iterator[None]:
+    """Install a host policy provider for the duration of one test."""
+    previous: Any = current_app.config.get(HOST_POLICIES_CONFIG_KEY)
+    current_app.config[HOST_POLICIES_CONFIG_KEY] = provider
+    try:
+        yield
+    finally:
+        current_app.config[HOST_POLICIES_CONFIG_KEY] = previous
+
+
+def test_host_policy_extends_the_registry() -> None:
+    """A complete host declaration resolves like a built-in root."""
+    model: type[Any] = _host_root("extend")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("extend"),))
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(model) is policy
+        assert {Slice, Dashboard, SqlaTable} <= set(purge_policy_registry())
+
+
+def test_host_policy_is_held_to_the_discovered_graph() -> None:
+    """An incomplete host declaration is rejected, not silently honored."""
+    model: type[Any] = _host_root("incomplete")
+
+    with _installed(lambda: [_host_policy(model, ())]):
+        with pytest.raises(RuntimeError, match="Incomplete purge policy"):
+            get_purge_policy(model)
+
+
+@pytest.mark.parametrize(
+    "provider",
+    [
+        pytest.param(lambda: 1 // 0, id="raises"),
+        pytest.param(lambda: "not-a-sequence", id="wrong_type"),
+        pytest.param(lambda: [object()], id="wrong_member"),
+    ],
+)
+def test_malformed_host_provider_leaves_builtin_roots_intact(
+    provider: Callable[[], Any],
+) -> None:
+    """A broken host boundary costs the host its roots, not the purge."""
+    with _installed(provider):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+
+def test_host_policies_need_an_app_context() -> None:
+    """Off an app context the host's roots drop out; the built-ins remain.
+
+    The provider lives in config, so there is nothing to read without an
+    application context. Dropping the host's roots leaves them reported as
+    unsupported, where propagating the Flask error would abort the whole
+    scheduled run -- including the roots that do have policies.
+    """
+    model: type[Any] = _host_root("contextless")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("contextless"),))
+
+    with (
+        _installed(lambda: [policy]),
+        patch(
+            "superset.commands.deletion_retention.purge_policy.has_app_context",
+            return_value=False,
+        ),
+    ):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+
+def test_duplicate_host_declarations_do_not_abort_the_registry() -> None:
+    """Two policies for one host root drop that root, not the whole index."""
+    model: type[Any] = _host_root("duplicate")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("duplicate"),))
+
+    with _installed(lambda: [policy, policy]):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+        with pytest.raises(ValueError, match="Unsupported purge model"):
+            get_purge_policy(model)
+
+
+def test_host_policy_cannot_redeclare_a_builtin_root() -> None:
+    """A host cannot redefine how a chart, dashboard or dataset is purged."""
+    builtin: PurgeEntityPolicy = get_purge_policy(Slice)
+
+    with _installed(lambda: [replace(builtin, dependencies=())]):
+        assert purge_policy_registry()[Slice] is builtin
+
+
+def _host_chain(prefix: str) -> type[Any]:
+    """Map a root that reaches a detail table only through a link table."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    sa.Table(
+        f"{prefix}_link",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
+    )
+    sa.Table(
+        f"{prefix}_detail",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("link_id", sa.Integer, sa.ForeignKey(f"{prefix}_link.id")),
+    )
+
+    class HostChainRoot:
+        """Temporary mapped root with a two-hop ownership path."""
+
+    registry().map_imperatively(HostChainRoot, root_table)
+    return HostChainRoot
+
+
+def _host_chain_edges(
+    prefix: str, link: DependencyClassification
+) -> tuple[DependencyPolicy, ...]:
+    """Classify the chain, varying only how the intermediate hop is declared."""
+    entity: str = f"{prefix}_entity"
+    link_table: str = f"{prefix}_link"
+    detail: str = f"{prefix}_detail"
+    link_phase: ExecutionPhase = (
+        ExecutionPhase.ASSOCIATIONS
+        if link is DependencyClassification.ASSOCIATION
+        else ExecutionPhase.OWNED
+    )
+    return (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", entity, link_table, ("id",), ("entity_id",), "inbound"
+            ),
+            link,
+            link_phase,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", link_table, detail, ("id",), ("link_id",), "inbound"
+            ),
+            DependencyClassification.OWNED,
+            ExecutionPhase.OWNED,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", link_table, entity, ("entity_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", detail, link_table, ("link_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+
+
+def test_owned_table_behind_an_association_is_rejected() -> None:
+    """Associations are emptied first, so owning through one cannot execute."""
+    model: type[Any] = _host_chain("behind")
+    policy: PurgeEntityPolicy = _host_policy(
+        model, _host_chain_edges("behind", DependencyClassification.ASSOCIATION)
+    )
+
+    with _installed(lambda: [policy]):
+        with pytest.raises(RuntimeError, match="associations are deleted first"):
+            get_purge_policy(model)
+
+
+def test_owned_table_behind_an_owned_link_is_accepted() -> None:
+    """Declaring the intermediate hop owned puts both in the same phase."""
+    model: type[Any] = _host_chain("owned")
+    policy: PurgeEntityPolicy = _host_policy(
+        model, _host_chain_edges("owned", DependencyClassification.OWNED)
+    )
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(model) is policy

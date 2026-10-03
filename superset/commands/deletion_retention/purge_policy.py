@@ -27,6 +27,7 @@ from types import MappingProxyType
 from typing import Any, cast, NamedTuple
 
 import sqlalchemy as sa
+from flask import current_app, has_app_context
 from sqlalchemy.orm import Mapper, Session
 
 from superset.utils.sqlalchemy_events import (
@@ -53,6 +54,12 @@ ALL_REASON_CODES: frozenset[str] = frozenset(
         REASON_CASCADE_INTEGRITY_FAILURE,
     }
 )
+
+#: Config key holding the host's purge-policy provider: a zero-argument
+#: callable returning ``PurgeEntityPolicy`` objects for soft-delete roots this
+#: package does not own. Downstream startup may require
+#: ``superset.versioning.utils.HOST_POLICY_API_VERSION`` before installing one.
+HOST_POLICIES_CONFIG_KEY: str = "PURGE_POLICIES_FUNC"
 
 
 class BlockerReason(NamedTuple):
@@ -410,8 +417,8 @@ def compare_policy(
 
 
 @lru_cache(maxsize=1)
-def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
-    """Build the supported purge registry after model initialization."""
+def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+    """Declare the purge roots this package owns, after model initialization."""
     # avoid circular import: model listener registration imports neutral event helpers
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
@@ -860,7 +867,96 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
             cleanup_permission=cleanup_dataset_permission,
         ),
     }
-    return validate_unique_root_policies(registry.values())
+    return tuple(registry.values())
+
+
+def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+    """Return the purge policies a host installed for its own roots.
+
+    A host distribution can carry ``SoftDeleteMixin`` entities this package
+    cannot import. The retention task discovers those entities through the
+    mixin registry, so without a policy they reach the cascade as an
+    unsupported model. The host therefore declares their purge behavior and
+    installs it under ``PURGE_POLICIES_FUNC``.
+
+    Host boundary: an unavailable provider, a malformed payload, a policy that
+    collides with a root declared here, and two policies for one host root are
+    each logged and dropped. A broken host declaration must not take the
+    scheduled purge down with it, and must never redefine how a chart,
+    dashboard or dataset is purged.
+    """
+    if not has_app_context():
+        return ()
+    provider: Callable[[], Any] | None = current_app.config.get(
+        HOST_POLICIES_CONFIG_KEY
+    )
+    if provider is None:
+        return ()
+    try:
+        provided: Any = provider()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "purge_policy: %s is unavailable; keeping built-in roots only",
+            HOST_POLICIES_CONFIG_KEY,
+        )
+        return ()
+    if not isinstance(provided, (list, tuple)) or not all(
+        isinstance(policy, PurgeEntityPolicy) for policy in provided
+    ):
+        logger.error(
+            "purge_policy: %s returned %s; expected a sequence of PurgeEntityPolicy",
+            HOST_POLICIES_CONFIG_KEY,
+            type(provided).__name__,
+        )
+        return ()
+    builtin_roots: frozenset[type[Any]] = frozenset(
+        policy.model for policy in _builtin_purge_policies()
+    )
+    declared: dict[type[Any], int] = {}
+    for policy in provided:
+        declared[policy.model] = declared.get(policy.model, 0) + 1
+    # Which of two declarations for one root is authoritative is undecidable,
+    # and the loser would still delete rows. Dropping both leaves the model
+    # reported as unsupported, which is the recoverable outcome. Resolving it
+    # here also keeps the duplicate away from validate_unique_root_policies,
+    # whose ValueError would abort the whole scheduled run.
+    duplicated: list[type[Any]] = [
+        model for model, count in declared.items() if count > 1
+    ]
+    for model in duplicated:
+        logger.error(
+            "purge_policy: %s declares %d policies for %s; ignoring all of them",
+            HOST_POLICIES_CONFIG_KEY,
+            declared[model],
+            model.__name__,
+        )
+    accepted: list[PurgeEntityPolicy] = []
+    for policy in provided:
+        if policy.model in builtin_roots:
+            logger.error(
+                "purge_policy: host policy for built-in root %s ignored",
+                policy.model.__name__,
+            )
+            continue
+        if policy.model in duplicated:
+            continue
+        accepted.append(policy)
+    return tuple(accepted)
+
+
+def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
+    """Index the built-in purge roots plus any the host installed.
+
+    Uncached on purpose, unlike its two inputs: the built-in declarations are
+    built once per process, while a host policy is resolved per call, so a
+    provider installed after the first purge is honored for any root not yet
+    resolved. ``get_purge_policy`` memoizes per model, so replacing the policy
+    of a root it has already resolved needs a restart -- and that memoization
+    is why rebuilding this small index is off the hot path.
+    """
+    return validate_unique_root_policies(
+        (*_builtin_purge_policies(), *_host_purge_policies())
+    )
 
 
 @lru_cache(maxsize=None)
@@ -909,6 +1005,58 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     return policy
 
 
+def _ownership_dependency(
+    policy: PurgeEntityPolicy, related_table: str
+) -> DependencyPolicy | None:
+    """The single owned/association edge attaching *related_table*, if clear."""
+    candidates: tuple[DependencyPolicy, ...] = tuple(
+        dependency
+        for dependency in policy.dependencies
+        if dependency.classification
+        in {DependencyClassification.OWNED, DependencyClassification.ASSOCIATION}
+        and dependency.key.related_table == related_table
+        and dependency.key.direction == "inbound"
+    )
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
+    """Reject an owned table reachable only through an association.
+
+    ``cascade_hard_delete`` empties associations before owned children, while
+    an owned table's predicate selects its rows *through* its ownership path
+    (see ``_owner_value_select``). If a hop on that path is an association,
+    its rows are already gone when the owned delete runs: the statement
+    matches nothing, leaving the descendants orphaned where foreign keys are
+    unenforced and blocking the root's delete where they are not.
+
+    Refused at declaration time rather than executed. The shape has a
+    remedy -- classify the intermediate table as owned, which places it in
+    the same phase as what it leads to.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        table_name: str = dependency.key.owner_table
+        visited: set[str] = set()
+        while table_name != root_table and table_name not in visited:
+            visited.add(table_name)
+            hop: DependencyPolicy | None = _ownership_dependency(policy, table_name)
+            if hop is None:
+                # An absent or ambiguous path is reported by coverage and by
+                # _ownership_edge at execution; not this check's business.
+                break
+            if hop.classification is DependencyClassification.ASSOCIATION:
+                raise RuntimeError(
+                    f"Owned dependency {dependency.key.describe()} is reachable "
+                    f"only through association {hop.key.describe()}; "
+                    "associations are deleted first, so the owned rows would "
+                    "be orphaned"
+                )
+            table_name = hop.key.owner_table
+
+
 def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     """Reject executable classifications missing their required action metadata."""
     for dependency in policy.dependencies:
@@ -926,6 +1074,7 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
             raise RuntimeError(
                 f"Missing version target column for {dependency.key.describe()}"
             )
+    _validate_owned_traversal(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:

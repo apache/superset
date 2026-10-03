@@ -123,7 +123,25 @@ Each skip increments `deletion_retention.unsupported_models.<table>` once per
 run. Unsupported models are excluded from `would_purge` and do not count as
 `cascade_failures`; supported models continue to use their existing policies.
 An empty `unsupported_models` map means no registered models were skipped for
-this reason. This reporting does not add purge support for host-defined models.
+this reason. Reporting a model is not the same as purging it: a host adds
+purge support for its own entities by installing a policy, described next.
+
+A host distribution that carries its own soft-deletable entities can supply
+their purge behavior by installing `PURGE_POLICIES_FUNC`: a callable returning
+one `PurgeEntityPolicy` per root it owns. Installed policies are validated
+against the discovered dependency graph exactly as the built-in ones are, and a
+model that gains an installed policy stops being reported as unsupported. A
+provider that fails, returns something other than a sequence of policies, or
+redeclares a built-in chart, dashboard or dataset root is logged and ignored,
+leaving the built-in roots unchanged. Two declarations for one root are also
+ignored, leaving that root reported as unsupported rather than purged by an
+arbitrary one of them. So is a policy whose owned table is reachable only
+through an association: associations are deleted before owned children, so
+those rows would be orphaned — declare the intermediate table owned instead.
+A host that wants to confirm this hook exists before
+relying on it can check for `HOST_POLICIES_CONFIG_KEY` in
+`superset.commands.deletion_retention.purge_policy`; installing the key on a
+version without the hook is harmless, since nothing reads it.
 
 The window resolves in this order:
 
