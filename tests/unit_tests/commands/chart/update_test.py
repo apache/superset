@@ -407,19 +407,18 @@ def test_update_chart_query_context_without_datasource_is_allowed(
     ).validate()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
+@pytest.mark.parametrize("datasource_type", ["query", "bogus"])
 def test_update_chart_rejects_repointing_to_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
     """Repointing a chart's datasource_id must be rejected the same way
     CreateChartCommand rejects it (apache/superset#29697): Slice.datasource
-    only ever resolves the ``table`` relationship, so repointing at a
-    saved_query or query datasource would "succeed" but leave the chart
-    permanently unable to render -- or, for saved_query specifically, crash
-    on SavedQuery's missing ``.name`` attribute before that point is even
-    reached. This is a regular (non-query-context) update, so it goes
-    through editorship + compute_subjects, unlike the query-context-only
-    tests above."""
+    only ever resolves the ``table`` relationship, so repointing at a query
+    datasource would "succeed" but leave the chart permanently unable to
+    render. (``saved_query`` is a supported chart datasource type -- see
+    ``test_access_checks.py``.) This is a regular (non-query-context)
+    update, so it goes through editorship + compute_subjects, unlike the
+    query-context-only tests above."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
         is_managed_externally=False, id=1, tags=[], dashboards=[]
@@ -515,7 +514,7 @@ def test_update_chart_missing_datasource_type_keeps_required_error(
     get_datasource_by_id.assert_not_called()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
+@pytest.mark.parametrize("datasource_type", ["query", "bogus"])
 def test_update_chart_rejects_type_only_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:

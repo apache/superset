@@ -29,10 +29,17 @@ from superset.utils.core import DatasourceType
 def validate_chart_datasource_type(datasource_type: str) -> None:
     """Accept persistent chart sources with names and type-aware access policies.
 
-    SQL Lab queries are registered datasource types but are not persistent
-    chart sources; accepting all DatasourceDAO registrations would include them.
+    A raw SQL Lab ``query`` is a registered datasource type but not a
+    persistent chart source, so it's excluded here; accepting all
+    DatasourceDAO registrations would include it. A ``saved_query`` is
+    explicitly persisted and named by the user, so it's accepted alongside
+    ``table``/``semantic_view``.
     """
-    if datasource_type not in (DatasourceType.TABLE, DatasourceType.SEMANTIC_VIEW):
+    if datasource_type not in (
+        DatasourceType.TABLE,
+        DatasourceType.SEMANTIC_VIEW,
+        DatasourceType.SAVEDQUERY,
+    ):
         raise DatasourceTypeInvalidError()
 
 

@@ -18,7 +18,8 @@
 
 Regression coverage for apache/superset#29697: unsupported SQL Lab query
 objects must be rejected before datasource lookup, not fail with an opaque
-500. Table and semantic-view datasources are supported chart sources.
+500. Table, semantic-view, and saved-query datasources are supported chart
+sources.
 """
 
 from unittest.mock import Mock
@@ -49,32 +50,30 @@ def _base_mocks(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
+@pytest.mark.parametrize("datasource_type", ["query", "bogus"])
 def test_create_chart_rejects_non_table_datasource_type(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
     """SQL Lab query objects must not become persistent chart datasources.
 
-    The two unsupported types can fail differently without validation, so
-    both are covered here:
-    - "saved_query": SavedQuery has no ``.name`` attribute, so validation
-      crashes with an unhandled AttributeError -- surfaced to API clients as
-      an opaque 500 "Fatal error" (apache/superset#29697).
-    - "query": Query *does* define a synthetic ``.name`` property (used for
-      CTAS table naming, not as a real display name), so this one doesn't
-      crash -- it silently "succeeds" and creates a chart with a nonsense
-      name and a datasource that Slice.datasource can never resolve.
+    "query" is the case worth covering here: Query *does* define a
+    synthetic ``.name`` property (used for CTAS table naming, not as a real
+    display name), so it doesn't crash outright -- it would silently
+    "succeed" and create a chart with a nonsense name and a datasource that
+    Slice.datasource can never resolve. ("saved_query" is a supported chart
+    datasource type -- see ``test_access_checks.py`` -- since it is
+    explicitly persisted and named by the user, unlike a raw SQL Lab query.)
 
-    ``get_datasource_by_id`` is mocked with ``spec=`` the real model classes
+    ``get_datasource_by_id`` is mocked with ``spec=`` the real model class
     so accessing ``.name`` on the mock behaves exactly like the real ORM
-    objects do if the new guard doesn't stop the code from getting there;
+    object does if the new guard doesn't stop the code from getting there;
     ``raise_for_access`` is mocked to a no-op so nothing downstream masks
     that behavior.
     """
-    from superset.models.sql_lab import Query, SavedQuery
+    from superset.models.sql_lab import Query
 
     _base_mocks(mocker)
-    model_cls = SavedQuery if datasource_type == "saved_query" else Query
+    model_cls = Query
     get_datasource_by_id = mocker.patch(
         "superset.commands.chart.create.get_datasource_by_id",
         return_value=mocker.MagicMock(spec=model_cls),

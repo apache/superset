@@ -201,9 +201,14 @@ class TestSemanticChartSave(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
-    @parameterized.expand([("query",), ("saved_query",)])
+    @parameterized.expand([("query",), ("dataset",)])
     def test_unsavable_datasource_stays_422(self, datasource_type: str) -> None:
-        """The unsupported-type crash protection from #43500 remains intact."""
+        """The unsupported-type crash protection from #43500 remains intact.
+
+        ``saved_query`` moved out of this list: apache/superset#29697 made it
+        a supported, persistent chart datasource type alongside ``table`` and
+        ``semantic_view`` (see ``api_tests.py::test_create_chart_from_saved_query``).
+        """
         self.login("admin")
         response: Response = self.client.post(
             "/api/v1/chart/",
