@@ -26,6 +26,9 @@ import uuid
 
 GRID_DEFAULT_CHART_WIDTH = 4
 GRID_COLUMN_COUNT = 12
+GRID_MAX_ROW_UNITS = 100
+GRID_ID = "GRID_ID"
+HEADER_ID = "HEADER_ID"
 
 
 def generate_id(prefix: str) -> str:
