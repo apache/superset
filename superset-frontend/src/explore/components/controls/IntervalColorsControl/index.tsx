@@ -82,9 +82,7 @@ export default function IntervalColorsControl({
         bounds.map((bound, index) => (
           // eslint-disable-next-line react/no-array-index-key
           <IntervalRow key={index}>
-            <BoundLabel>
-              {t('Up to')} {bound}
-            </BoundLabel>
+            <BoundLabel>{t('Up to %s', bound)}</BoundLabel>
             <ColorPickerControl
               ariaLabel={t('Color for interval up to %s', bound)}
               value={colorAt(index)}
