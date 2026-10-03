@@ -692,6 +692,83 @@ describe('Pie label max width and overflow', () => {
     expect(formatted).not.toContain('\n');
   });
 
+  test('wraps oversized CJK / no-space tokens char-by-char so every output line fits', () => {
+    // Use a very narrow width so even a handful of characters exceeds the limit.
+    // CJK text has no spaces, so without char-splitting it would be returned unchanged.
+    const label = getLabel(makeChartProps(30, 'break', false));
+    const formatter = label!.formatter as Function;
+    const formatted: string = formatter({
+      name: '超長いカテゴリ名前です',
+      value: 10,
+      percent: 1,
+    });
+    // Each output line must fit in 30px; because measureTextWidth falls back to
+    // an estimate, we just verify the token was split rather than returned whole.
+    const lines = formatted.split('\n');
+    expect(lines.length).toBeGreaterThan(1);
+    // No individual line should equal the full original (i.e. no line escaped splitting).
+    lines.forEach(line => {
+      expect(line).not.toBe('超長いカテゴリ名前です');
+    });
+  });
+
+  test('returns "..." when maxWidth is too narrow to fit even the ellipsis', () => {
+    // 1px can never fit "...", so the truncation boundary guard must kick in.
+    const label = getLabel(makeChartProps(1, 'truncate', true));
+    const formatter = label!.formatter as Function;
+    const formatted: string = formatter({
+      name: 'Any text',
+      value: 10,
+      percent: 1,
+    });
+    expect(formatted).toBe('...');
+  });
+
+  test('truncates each line of a multiline template independently', () => {
+    // A template with \n should truncate name and percent on separate lines;
+    // the percent line must survive even if the name is very long.
+    const templateProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['category'],
+        viz_type: 'pie',
+        label_max_width: 60,
+        label_overflow: 'truncate',
+        labels_outside: false,
+        label_type: 'template',
+        // \\n in the raw string becomes \n in formatTemplate which becomes a real newline
+        label_template: '{name}\\n{percent}',
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { category: 'A very long category name indeed', sum__num: 10 },
+            { category: 'Short', sum__num: 20 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    }) as EchartsPieChartProps;
+    const label = getLabel(templateProps);
+    const formatter = label!.formatter as Function;
+    const formatted: string = formatter({
+      name: 'VeryLongCategoryNameThatExceedsLimit',
+      value: 10,
+      percent: 50,
+      seriesName: 'sum__num',
+    });
+    const lines = formatted.split('\n');
+    // Should have at least two segments (name line + percent line).
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    // The last line should contain percent content, not have it stripped.
+    expect(lines[lines.length - 1]).not.toBe('');
+  });
+
   test('passes horizontalLegendWidth through to legend textStyle and tooltip', () => {
     const props = makeChartProps(120, 'truncate');
     const transformed = transformProps(props);

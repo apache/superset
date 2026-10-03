@@ -428,43 +428,86 @@ export default function transformProps(
     {},
   );
 
-  const wrapTextByPixels = (text: string, maxWidth: number): string => {
-    const words = text.split(' ');
-    const lines: string[] = [];
+  // Wraps a single line of text by pixel width, breaking at spaces. Oversized
+  // tokens (e.g. long identifiers or CJK strings without spaces) are split
+  // character-by-character so they never overflow the configured limit.
+  const wrapLine = (line: string, maxWidth: number): string => {
+    const words = line.split(' ');
+    const resultLines: string[] = [];
     let currentLine = '';
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
+
+    const pushWord = (token: string) => {
+      // If the token itself is wider than maxWidth, split char by char.
+      if (measureTextWidth(token, theme) > maxWidth) {
+        if (currentLine) {
+          resultLines.push(currentLine);
+          currentLine = '';
+        }
+        let charBuf = '';
+        for (const ch of token) {
+          const testBuf = `${charBuf}${ch}`;
+          if (measureTextWidth(testBuf, theme) <= maxWidth) {
+            charBuf = testBuf;
+          } else {
+            if (charBuf) resultLines.push(charBuf);
+            charBuf = ch;
+          }
+        }
+        if (charBuf) currentLine = charBuf;
+        return;
+      }
+      const testLine = currentLine ? `${currentLine} ${token}` : token;
       if (measureTextWidth(testLine, theme) <= maxWidth) {
         currentLine = testLine;
       } else {
-        if (currentLine) {
-          lines.push(currentLine);
-        }
-        currentLine = word;
+        if (currentLine) resultLines.push(currentLine);
+        currentLine = token;
       }
+    };
+
+    for (const word of words) {
+      pushWord(word);
     }
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    return lines.join('\n');
+    if (currentLine) resultLines.push(currentLine);
+    return resultLines.join('\n');
   };
 
-  const truncateTextByPixels = (text: string, maxWidth: number): string => {
-    if (measureTextWidth(text, theme) <= maxWidth) {
-      return text;
+  // Wraps every newline-delimited segment independently so multiline templates
+  // (e.g. {name}\n{percent}) keep their structural line breaks.
+  const wrapTextByPixels = (text: string, maxWidth: number): string =>
+    text
+      .split('\n')
+      .map(line => wrapLine(line, maxWidth))
+      .join('\n');
+
+  // Truncates a single line to fit inside maxWidth, appending '...'.
+  // When maxWidth is too narrow to fit even '...', returns '...' rather than
+  // producing garbage via a negative slice index.
+  const truncateLine = (line: string, maxWidth: number): string => {
+    if (measureTextWidth(line, theme) <= maxWidth) {
+      return line;
     }
     let left = 0;
-    let right = text.length;
+    let right = line.length;
     while (left < right) {
       const mid = Math.floor((left + right) / 2);
-      if (measureTextWidth(`${text.slice(0, mid)}...`, theme) <= maxWidth) {
+      if (measureTextWidth(`${line.slice(0, mid)}...`, theme) <= maxWidth) {
         left = mid + 1;
       } else {
         right = mid;
       }
     }
-    return `${text.slice(0, left - 1)}...`;
+    // left===0 means even '...' alone exceeds maxWidth; still return '...'.
+    return left === 0 ? '...' : `${line.slice(0, left - 1)}...`;
   };
+
+  // Truncates every newline-delimited segment independently so multiline
+  // templates (e.g. {name}\n{percent}) keep their structural line breaks.
+  const truncateTextByPixels = (text: string, maxWidth: number): string =>
+    text
+      .split('\n')
+      .map(line => truncateLine(line, maxWidth))
+      .join('\n');
 
   const formatTemplate = (
     template: string,
