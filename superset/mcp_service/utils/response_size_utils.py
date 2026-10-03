@@ -112,6 +112,7 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
         # Column selection
         "select_columns",
         "columns",
+        "max_columns",
         # Filters
         "filters",
         # Search
@@ -450,6 +451,22 @@ def _dashboard_layout_suggestions(
     )
 
 
+def _dashboard_datasets_suggestions(query_params: Dict[str, Any]) -> List[str]:
+    """Suggest the column cap, or a fallback when columns are already omitted."""
+    if query_params.get("max_columns") == 0:
+        return [
+            "Column details are already omitted. This tool cannot reduce "
+            "the remaining dataset metadata further; use get_dashboard_info "
+            "with select_columns=['charts'] to identify chart datasources, "
+            "then get_dataset_info for individual datasets."
+        ]
+    return [
+        "Reduce 'max_columns' (0-100) to return fewer columns per dataset, "
+        "or use max_columns=0 to omit column details while retaining counts. "
+        "Use get_dataset_info for individual dataset details."
+    ]
+
+
 def _get_tool_specific_suggestions(
     tool_name: str,
     query_params: Dict[str, Any],
@@ -491,6 +508,9 @@ def _get_tool_specific_suggestions(
             "the chart's configuration (fewer columns, metrics, or filters) "
             "to shorten the generated query."
         )
+
+    elif tool_name == "get_dashboard_datasets":
+        suggestions.extend(_dashboard_datasets_suggestions(query_params))
 
     elif tool_name == "get_dashboard_layout":
         suggestions.extend(_dashboard_layout_suggestions(query_params, response))

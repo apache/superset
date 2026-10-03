@@ -1118,3 +1118,27 @@ class TestTruncateQueryResult:
         response = self._rows_response("rows")
         _, _, notes = truncate_query_result(response, 500, tool_name="execute_sql")
         assert any("LIMIT clause" in n for n in notes)
+
+
+@pytest.mark.parametrize("params", [None, {"request": {"max_columns": 10}}])
+def test_dashboard_datasets_size_error_suggests_column_cap(
+    params: dict[str, Any] | None,
+) -> None:
+    """Oversized dataset responses recommend the tool's real bounding parameter."""
+    error = format_size_limit_error("get_dashboard_datasets", params, 100_000, 20_000)
+    assert "max_columns=0" in error
+    assert "page_size" not in error
+    assert "'limit'" not in error
+    assert "select_columns" not in error
+    assert "filters" not in error
+
+
+def test_dashboard_datasets_zero_cap_has_honest_size_advice() -> None:
+    """Do not recommend reducing columns when no columns are being returned."""
+    error = format_size_limit_error(
+        "get_dashboard_datasets", {"request": {"max_columns": 0}}, 100_000, 20_000
+    )
+    assert "already omitted" in error
+    assert "max_columns=0" not in error
+    assert "page_size" not in error
+    assert "'limit'" not in error
