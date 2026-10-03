@@ -487,6 +487,47 @@ def has_active_advanced_data_type(column: TableColumn) -> bool:
     return advanced_data_type in app.config.get("ADVANCED_DATA_TYPES", {})
 
 
+def stored_expression_error(
+    database: "Database",
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+) -> str | None:
+    """
+    Why this transform may not be stored or run, if there is a reason.
+
+    The same subquery, function-denylist and RLS policy every other stored
+    expression goes through, applied to a value transform. It matters more
+    here than the name suggests: `build_probe_sql` binds only `:value` and
+    splices the rest of the transform in as SQL text, which the engine then
+    executes, so an ungated transform is arbitrary SQL. A dataset editor
+    without SQL Lab could store `(SELECT secret FROM protected_table LIMIT 1)
+    || :value` and read the answer back out of the emitted predicate.
+
+    Returns the engine-agnostic reason as a string rather than raising,
+    because its four callers disagree about what to do with it: the preview
+    reports it at the field, a PUT and the legacy datasource save refuse the
+    write, the importer drops the transform and keeps the dataset, and the
+    probe simply declines to run. Raising would make three of those four
+    write a `try` around a question.
+
+    Imported inside the function rather than at module scope:
+    `connectors.sqla.models` imports this module, so the dependency only runs
+    one way at import time.
+    """
+    from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel,cyclic-import
+        validate_stored_expression,
+    )
+
+    try:
+        validate_stored_expression(database, catalog, schema, parse_skeleton(transform))
+    except SupersetSecurityException as ex:
+        return str(ex.error.message)
+    except QueryClauseValidationException as ex:
+        return str(ex.message)
+    return None
+
+
 def build_probe_sql(
     transform: str,
     values: list[Any],
@@ -586,6 +627,21 @@ def _run_probe(
     *,
     errors: list[str] | None = None,
 ) -> list[Any] | None:
+    # The last gate before the transform becomes SQL the engine runs, and the
+    # only one that covers a transform already in storage. The write-side
+    # checks can only speak for rows written after they existed; this speaks
+    # for every row, including ones a pre-fix release stored and ones a door
+    # that forgets to ask still lets in.
+    #
+    # Declining costs pruning, never correctness -- see `evaluate_transform`.
+    if reason := stored_expression_error(database, catalog, schema, transform):
+        logger.warning(
+            "Refusing to probe a partition transform that is not a storable "
+            "expression; queries will not prune: %s",
+            reason,
+        )
+        return None
+
     try:
         sql = build_probe_sql(
             transform,
@@ -998,37 +1054,18 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": str(issue.message),
         }
 
-    # The same subquery, function-denylist and RLS policy every other stored
-    # expression goes through. The save path applies it in
-    # `UpdateDatasetCommand._validate_partition_mapping`, but preview evaluates
-    # a candidate transform that has not been saved, so without this the gate
-    # had a door around it: `build_probe_sql` binds only `:value` and splices
-    # the rest of the transform in as SQL text, so a dataset editor without SQL
-    # Lab could submit `(SELECT secret FROM protected_table LIMIT 1) || :value`
-    # and read the answer back out of `emitted_predicate`.
-    #
-    # Imported here rather than at module scope: `connectors.sqla.models`
-    # imports this module, so the dependency only runs one way at import time.
-    from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel,cyclic-import
-        validate_stored_expression,
-    )
-
-    try:
-        validate_stored_expression(
-            datasource.database,
-            datasource.catalog,
-            datasource.schema,
-            parse_skeleton(cast(str, value_transform)),
-        )
-    except (SupersetSecurityException, QueryClauseValidationException) as ex:
-        return {
-            "valid": False,
-            "error": (
-                ex.error.message
-                if isinstance(ex, SupersetSecurityException)
-                else ex.message
-            ),
-        }
+    # The policy every other stored expression goes through. The save path
+    # applies it in `UpdateDatasetCommand._validate_partition_mapping`, but
+    # preview evaluates a candidate transform that has not been saved, so
+    # without this the gate had a door around it. See
+    # `stored_expression_error` for what is being kept out and why.
+    if reason := stored_expression_error(
+        datasource.database,
+        datasource.catalog,
+        datasource.schema,
+        cast(str, value_transform),
+    ):
+        return {"valid": False, "reason": "validation", "error": reason}
 
     mapping = PartitionMapping(
         partition_column=str(partition_column),

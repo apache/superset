@@ -732,6 +732,120 @@ def test_save_of_non_dataset_datasource_skips_table_check(
     mock_get_database_by_id.assert_not_called()
 
 
+def _save_with_transform(
+    app: Flask,
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    transform: str,
+    stored_transform: str | None = None,
+) -> MagicMock:
+    """
+    Drive ``save`` with one column carrying ``transform``.
+
+    Takes the configured app rather than a bare ``Flask``, unlike its
+    neighbours: a rejection renders a ``SupersetError``, whose issue codes are
+    lazy translations, so the request context needs babel initialised.
+    """
+    from superset.models.core import Database
+
+    stored_column = MagicMock()
+    stored_column.column_name = "event_time"
+    stored_column.partition_value_transform = stored_transform
+
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.columns = [stored_column]
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    raw_save = _get_view_func("save")
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 1},
+                    "columns": [
+                        {
+                            "column_name": "event_time",
+                            "partition_value_transform": transform,
+                        }
+                    ],
+                }
+            )
+        },
+    ):
+        raw_save(_view_self())
+
+    return mock_orm
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "lower(:value) UNION ALL SELECT password FROM ab_user",
+        "lower(:value); DROP TABLE ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement"],
+)
+def test_save_refuses_a_value_transform_that_is_not_a_storable_expression(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    transform: str,
+    app: Flask,
+) -> None:
+    """
+    ``partition_value_transform`` rides in on ``update_from_object``, which
+    writes it straight onto the column -- around ``UpdateDatasetCommand`` and
+    the gate it applies. The partition probe later splices that value into SQL
+    and runs it, so this deprecated endpoint would otherwise hand arbitrary
+    SQL execution to anyone who can edit a dataset.
+    """
+    mock_orm = _save_with_transform(
+        app, mock_get_datasource, mock_security_manager, transform
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_allows_an_ordinary_value_transform(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    mock_orm = _save_with_transform(
+        app, mock_get_datasource, mock_security_manager, "lower(:value)"
+    )
+
+    mock_json_error_response.assert_not_called()
+    mock_orm.update_from_object.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # Datasource.samples
 # ---------------------------------------------------------------------------

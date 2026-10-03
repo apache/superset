@@ -50,6 +50,7 @@ from superset.commands.importers.v1.utils import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import (
     FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    stored_expression_error,
     validate_transform,
 )
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
@@ -287,9 +288,18 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     trade than importing the dataset without it. This is the same bargain
     `DatasetDAO.clear_dangling_partition_mapping` already strikes for a mapping
     whose column went away.
+
+    Two kinds of check, and only one of them answers to the feature flag. The
+    usability checks ask whether a transform will ever mirror a filter, which
+    is a question about a live feature; with the flag off nothing mirrors, so
+    rewriting the bundle would discard configuration for no gain. The
+    structural check asks whether the expression is one this product stores at
+    all, and that answer does not change with a flag -- an import written while
+    the flag was off would otherwise sit in the metadata DB fully armed,
+    waiting for an operator to turn the flag on.
     """
     columns = config.get("columns")
-    if not columns or not is_feature_enabled(PARTITION_FILTER_MAPPING):
+    if not columns:
         return
     if not any(column.get("partition_value_transform") for column in columns):
         return
@@ -298,20 +308,31 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     if database is None:
         return
 
+    check_usability = is_feature_enabled(PARTITION_FILTER_MAPPING)
+    catalog = config.get("catalog")
+    schema = config.get("schema")
+
     for column in columns:
         transform = column.get("partition_value_transform")
         if not transform:
             continue
-        if blocking := [
-            issue
-            for issue in validate_transform(transform, database.backend)
-            if issue.blocking
-        ]:
+
+        reasons: list[str] = []
+        if reason := stored_expression_error(database, catalog, schema, transform):
+            reasons.append(reason)
+        if check_usability:
+            reasons.extend(
+                str(issue.message)
+                for issue in validate_transform(transform, database.backend)
+                if issue.blocking
+            )
+
+        if reasons:
             logger.warning(
                 "Dropping the partition value transform on %s.%s during import: %s",
                 config.get("table_name"),
                 column.get("column_name"),
-                "; ".join(str(issue.message) for issue in blocking),
+                "; ".join(reasons),
             )
             column["partition_value_transform"] = None
             column["partition_transform_is_monotonic"] = False
