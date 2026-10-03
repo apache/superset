@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 
 from superset.security.password_change import (
     _get_user_attribute,
@@ -406,3 +407,22 @@ def test_enforcement_no_resolvable_target_returns_error_not_loop(
         resp = enforcement_app.test_client().get("/")
     assert resp.status_code == 503
     assert "Location" not in resp.headers
+
+
+def test_enforcement_remote_user_without_profile_access_returns_terminal_403(
+    enforcement_app: Flask,
+) -> None:
+    # Under AUTH_REMOTE_USER a logout redirect cannot help: the unchanged
+    # REMOTE_USER header re-authenticates the user at once and the request
+    # loops. A flagged user without profile access must get a terminal
+    # explanatory response instead of a redirect.
+    enforcement_app.config["AUTH_TYPE"] = AUTH_REMOTE_USER
+    enforcement_app.appbuilder.sm.has_access.return_value = False
+    with patch(
+        "superset.security.password_change.password_change_required",
+        return_value=True,
+    ):
+        resp = enforcement_app.test_client().get("/")
+    assert resp.status_code == 403
+    assert "Location" not in resp.headers
+    assert "does not have access" in resp.get_data(as_text=True)

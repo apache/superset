@@ -34,6 +34,7 @@ import logging
 from typing import Any, Optional
 
 from flask import current_app, flash, g, redirect, request, url_for
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_babel import gettext as __
 from sqlalchemy.exc import IntegrityError
 
@@ -200,6 +201,25 @@ def _logout_fallback_candidates(security_manager: Any) -> list[str]:
     return candidates
 
 
+def _flash_no_profile_access() -> Optional[tuple[str, int]]:
+    """Explain that the user's role cannot reach the profile page.
+
+    Under ``AUTH_REMOTE_USER`` a logout redirect cannot help: the unchanged
+    REMOTE_USER header re-authenticates the user immediately and the request
+    loops. In that case return a terminal ``(body, status)`` response for the
+    caller to return; otherwise flash the message and return ``None``.
+    """
+    message = __(
+        "Your role does not have access to the profile page "
+        "needed to change your password. Contact an "
+        "administrator."
+    )
+    if current_app.config.get("AUTH_TYPE") == AUTH_REMOTE_USER:
+        return message, 403
+    flash(message, "danger")
+    return None
+
+
 def register_password_change_enforcement(app: Any) -> None:
     """Register the before-request hook that enforces pending password changes.
 
@@ -244,18 +264,11 @@ def register_password_change_enforcement(app: Any) -> None:
         # return an error response rather than redirect, so a flagged user can
         # never get stuck looping.
         security_manager = getattr(getattr(current_app, "appbuilder", None), "sm", None)
-        candidates = []
-        if _profile_page_reachable(security_manager):
-            candidates.append(_PROFILE_PAGE_ENDPOINT)
-        else:
-            flash(
-                __(
-                    "Your role does not have access to the profile page "
-                    "needed to change your password. Contact an "
-                    "administrator."
-                ),
-                "danger",
-            )
+        profile_reachable = _profile_page_reachable(security_manager)
+        terminal = None if profile_reachable else _flash_no_profile_access()
+        if terminal is not None:
+            return terminal
+        candidates = [_PROFILE_PAGE_ENDPOINT] if profile_reachable else []
         candidates.extend(_logout_fallback_candidates(security_manager))
         for endpoint in candidates:
             try:

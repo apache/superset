@@ -39,14 +39,14 @@ deletes the stale (view, permission) pairs from every role that holds them
 ``ab_view_menu`` rows once orphaned.
 
 Revision ID: d623a0cb6bb0
-Revises: 95d8a99c822e
+Revises: 884a2115ebd3
 Create Date: 2026-09-30 00:00:00.000000
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "d623a0cb6bb0"
-down_revision = "95d8a99c822e"
+down_revision = "884a2115ebd3"
 
 from alembic import op  # noqa: E402
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
