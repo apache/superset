@@ -78,9 +78,11 @@ import {
 import { isEmpty, debounce, isEqual } from 'lodash-es';
 import {
   ColorFormatters,
+  comparesNumerically,
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  parseNumericValue,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -271,6 +273,33 @@ const VisuallyHidden = styled.label`
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+`;
+
+/**
+ * The bar a cell draws for a CELL_BAR rule, or for the global cell-bar toggle.
+ *
+ * Its geometry arrives as transient props rather than an inline `style` so
+ * that the `cell-bar` classes stay meaningful: an inline style outranks every
+ * stylesheet, which would make saved dashboard CSS such as
+ * `.cell-bar.positive { background-color: red; }` stop working. Interpolating
+ * the values into a rule keeps them overridable and still leaves a test able
+ * to read the width back.
+ */
+const StyledCellBar = styled.div<{
+  $width?: string;
+  $left?: string;
+  $backgroundColor?: string;
+}>`
+  position: absolute;
+  height: 100%;
+  display: block;
+  top: 0;
+  ${p => (p.$width === undefined ? '' : `width: ${p.$width};`)}
+  ${p => (p.$left === undefined ? '' : `left: ${p.$left};`)}
+  ${p =>
+    p.$backgroundColor === undefined
+      ? ''
+      : `background-color: ${p.$backgroundColor};`}
 `;
 
 function SearchInput({
@@ -506,9 +535,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [data.length, rowCount, serverPagination, serverPageLength]);
 
   const getValueRange = useCallback(
-    function getValueRange(key: string, alignPositiveNegative: boolean) {
+    function getValueRange(
+      key: string,
+      alignPositiveNegative: boolean,
+      coerceNumeric = false,
+    ) {
       const nums = data
         ?.map(row => row?.[key])
+        .map(value => (coerceNumeric ? parseNumericValue(value) : value))
         .filter(value => typeof value === 'number') as number[];
       if (nums.length > 0) {
         return (
@@ -1161,11 +1195,40 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         basicColorFormatters.length > 0;
       const generalShowCellBars =
         config.showCellBars === undefined ? showCellBars : config.showCellBars;
+      // A Cell bar conditional-formatting rule must keep working even when the
+      // generic "Show cell bars" toggle is off: the toggle controls the default
+      // gradient, not whether an explicit formatter rule can draw its bar.
+      const hasCellBarFormatter =
+        hasColumnColorFormatters &&
+        columnColorFormatters.some(
+          formatter =>
+            formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR &&
+            (formatter.columnFormatting
+              ? formatter.columnFormatting === key
+              : formatter.column === key),
+        );
+      // Render geometry parses numeric-looking strings, so the range has to be
+      // built from the same values or a string cell gets a width measured
+      // against a range that excluded it. Coercion is for columns the query
+      // declares numeric, and for any column a cell-bar rule was pointed at:
+      // a DECIMAL metric delivered as a string is a magnitude even where the
+      // backend mis-reports its type, and it needs proportionally scaled bars
+      // rather than a full-width band. A plain string column under the generic
+      // toggle keeps its cells as they are — parsing "00123" gave an
+      // identifier a bar, and with it the cross-filter click that the bar
+      // overlay suppresses.
+      const coerceNumericColumn =
+        dataType === GenericDataType.Numeric || hasCellBarFormatter;
+      // A time-comparison column paints its cells from the comparison colors, so
+      // the generic bar must stay out of the way. An explicit CELL_BAR rule is
+      // a separate instruction on the same cell, and it needs the same numbers
+      // the renderer measures: with the range withheld it falls back to the
+      // unscaled band, which draws every matching value as full width.
       const valueRange =
-        !hasBasicColorFormatters &&
-        generalShowCellBars &&
-        (isMetric || isRawRecords || isPercentMetric) &&
-        getValueRange(key, alignPositiveNegative);
+        (!hasBasicColorFormatters || hasCellBarFormatter) &&
+        (generalShowCellBars || hasCellBarFormatter) &&
+        (isMetric || isRawRecords || isPercentMetric || hasCellBarFormatter) &&
+        getValueRange(key, alignPositiveNegative, coerceNumericColumn);
 
       let className = '';
       if (emitCrossFilters && !isMetric) {
@@ -1203,6 +1266,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
+          // Cell bar geometry uses the numeric magnitude; string cells that
+          // read as numbers ("1.00") still draw a bar, matching how the rule
+          // engine treats them.
+          const numericValue = parseNumericValue(value);
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
               basicColorFormatters[row.index]?.[originKey]?.backgroundColor;
@@ -1230,8 +1297,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
-                if (generalShowCellBars)
-                  backgroundColorCellBar = forceHexAlpha(formatterResult);
+                backgroundColorCellBar = forceHexAlpha(formatterResult);
               } else {
                 backgroundColor = formatterResult;
                 valueRangeFlag = false;
@@ -1250,6 +1316,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueToFormat = row.original[formatter.column];
                 } else {
                   valueToFormat = value;
+                }
+                // String cells that read as numbers ("1.00") must compare
+                // numerically, or comparator rules like `= 1` never match. The
+                // rule engine resolves its own bounds from the same decision,
+                // so a text comparator — and any rule whose target the control
+                // stored as text — keeps the string.
+                if (
+                  comparesNumerically(formatter) &&
+                  valueToFormat !== null &&
+                  valueToFormat !== undefined
+                ) {
+                  const coerced = parseNumericValue(valueToFormat);
+                  if (coerced !== undefined) {
+                    valueToFormat = coerced;
+                  }
                 }
                 applyFormatter(formatter, valueToFormat);
               });
@@ -1299,37 +1380,59 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             };
           `;
 
-          const cellBarStyles = css`
-            position: absolute;
-            height: 100%;
-            display: block;
-            top: 0;
-            ${
-              valueRange &&
-              typeof value === 'number' &&
-              valueRangeFlag &&
-              `
-                width: ${`${cellWidth({
-                  value: value as number,
-                  valueRange,
+          // Whether this particular cell draws a bar. A CELL_BAR rule can match
+          // some cells of a column and not others, so the bar — and with it the
+          // click-to-filter suppression, which exists because the bar overlay
+          // would swallow the click — has to be decided per cell rather than
+          // from the column-wide valueRange.
+          const cellDrawsBar =
+            (generalShowCellBars ? !!valueRange : false) ||
+            !!backgroundColorCellBar;
+
+          // A styled component rather than the `css` prop or an inline
+          // `style`: the `css` prop needs the emotion JSX pragma, which this
+          // codebase's own Jest/Babel config does not wire up, and an inline
+          // style would outrank every dashboard stylesheet. Both matter here —
+          // the `cell-bar` classes exist precisely so saved custom CSS can
+          // restyle the bar, and a `styled` div keeps that override working
+          // while still emitting a real rule a test can read back.
+          // A background rule paints the cell itself, so the bar the global
+          // toggle would draw over that background is dropped. A CELL_BAR rule
+          // matching the same cell is a separate instruction and keeps its own
+          // geometry: clearing the flag for the background rule must not flatten
+          // a cell bar into the full-width band, which would make every matching
+          // value read as the same magnitude.
+          const barHasGeometry =
+            !!valueRange &&
+            numericValue !== undefined &&
+            (valueRangeFlag || !!backgroundColorCellBar);
+          const barGeometry = barHasGeometry
+            ? {
+                width: `${cellWidth({
+                  value: numericValue!,
+                  valueRange: valueRange!,
                   alignPositiveNegative,
-                })}%`};
-                left: ${`${cellOffset({
-                  value: value as number,
-                  valueRange,
+                })}%`,
+                left: `${cellOffset({
+                  value: numericValue!,
+                  valueRange: valueRange!,
                   alignPositiveNegative,
-                })}%`};
-                background-color: ${
+                })}%`,
+                backgroundColor:
                   backgroundColorCellBar ||
                   cellBackground({
-                    value: value as number,
+                    value: numericValue!,
                     colorPositiveNegative,
                     theme,
-                  })
-                };
-              `
-            }
-          `;
+                  }),
+              }
+            : backgroundColorCellBar
+              ? {
+                  width: '100%',
+                  left: 0,
+                  backgroundColor: backgroundColorCellBar,
+                }
+              : {};
 
           // Plain inline style (rather than the `css` prop) so the arrow's
           // color is guaranteed to apply regardless of whether the consuming
@@ -1369,7 +1472,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
-              emitCrossFilters && !valueRange && !isMetric
+              emitCrossFilters && !cellDrawsBar && !isMetric
                 ? () => {
                     const isFilterable = columnsMeta.find(
                       (cm: DataColumnMeta) => cm.key === key,
@@ -1427,19 +1530,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
-              {valueRange && (
-                <div
+              {cellDrawsBar ? (
+                <StyledCellBar
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    typeof value === 'number' && value < 0
+                    numericValue !== undefined && numericValue < 0
                       ? 'negative'
                       : 'positive',
                   )}
-                  css={cellBarStyles}
+                  $width={barGeometry.width}
+                  $left={
+                    barGeometry.left === undefined
+                      ? undefined
+                      : String(barGeometry.left)
+                  }
+                  $backgroundColor={barGeometry.backgroundColor}
                   role="presentation"
                 />
-              )}
+              ) : null}
               {truncateLongCells ? (
                 <div
                   className="dt-truncate-cell"
