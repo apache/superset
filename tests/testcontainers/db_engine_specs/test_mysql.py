@@ -29,8 +29,9 @@ Linux, where this does not occur.
 
 Also covers `require_mysql_tls` (apache/superset#44723): mysqlclient maps
 `ssl_mode=REQUIRED` to *opportunistic* TLS when linked against MariaDB
-Connector/C (the library CI's apt-installed mysqlclient actually links
-against), meaning a server that offers no TLS at all is silently accepted
+Connector/C (CI's apt-installed mysqlclient links Oracle libmysqlclient
+instead, so the `VERIFY_CA` branch is only exercised on MariaDB-linked
+builds), meaning a server that offers no TLS at all is silently accepted
 in cleartext rather than rejected -- the exact failure mode the fix exists
 to close by substituting `VERIFY_CA` for that client library. A mocked
 cursor can't observe this: the behavior lives in the C client library's
@@ -192,7 +193,9 @@ def test_require_mysql_tls_fails_closed_without_server_tls(
     uri, connect_args = _require_tls_connect_args()
     uri = uri.set(host=host, port=int(port), database=no_tls_container.dbname)
     engine = create_engine(uri, connect_args=connect_args)
-    with pytest.raises(OperationalError):
+    # Match the TLS refusal itself: an unrelated auth failure (e.g. 1045 or
+    # 2061) also raises OperationalError and would pass with the fix reverted.
+    with pytest.raises(OperationalError, match="SSL is required"):
         with engine.connect():
             pass
 
@@ -211,7 +214,7 @@ def tls_ca_path(mysql_container: MySqlContainer) -> Iterator[str]:
     """
     result = mysql_container.exec(["cat", "/var/lib/mysql/ca.pem"])
     assert result.exit_code == 0, "could not read the auto-generated CA cert"
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=".pem", delete=False) as ca_file:
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".pem") as ca_file:
         ca_file.write(result.output)
         # Flush so the CA is on disk before the client library reads the path;
         # an unflushed (empty) file makes the driver fall back to default
