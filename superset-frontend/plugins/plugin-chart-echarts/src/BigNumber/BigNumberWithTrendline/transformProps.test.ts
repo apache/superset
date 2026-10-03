@@ -305,4 +305,76 @@ describe('BigNumberWithTrendline transformProps', () => {
     );
     expect(result.mainColor).toBeUndefined();
   });
+
+  const twoPointQueriesData = [
+    {
+      data: [
+        { __timestamp: 2, value: 110 },
+        { __timestamp: 1, value: 100 },
+      ] as unknown as BigNumberDatum[],
+      colnames: ['__timestamp', 'value'],
+      coltypes: ['TEMPORAL', 'NUMERIC'],
+    },
+  ];
+
+  const buildChartProps = (formData: Record<string, unknown>) =>
+    ({
+      width: 500,
+      height: 400,
+      queriesData: twoPointQueriesData,
+      formData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+      theme: { colors: { grayscale: { light5: '#eee' } } },
+    }) as unknown as BigNumberWithTrendlineChartProps;
+
+  test('should not produce a percent-change subheader when compareLag is absent', () => {
+    const result = transformProps(
+      buildChartProps({ ...baseFormData, compareLag: undefined }),
+    );
+
+    expect(result.subheader).toBe('');
+  });
+
+  test('should not produce a percent-change subheader when compareLag is null', () => {
+    const result = transformProps(
+      buildChartProps({ ...baseFormData, compareLag: null }),
+    );
+
+    expect(result.subheader).toBe('');
+  });
+
+  test('should keep the configured subheader when compareLag is absent', () => {
+    const result = transformProps(
+      buildChartProps({
+        ...baseFormData,
+        compareLag: undefined,
+        subheader: 'custom subheader',
+      }),
+    );
+
+    expect(result.subheader).toBe('custom subheader');
+  });
+
+  test('should not produce trendline data or echart options when showTrendLine is false', () => {
+    const result = transformProps(
+      buildChartProps({ ...baseFormData, showTrendLine: false }),
+    );
+
+    expect(result.trendLineData).toBeUndefined();
+    expect(result.echartOptions).toEqual({});
+  });
+
+  test('should produce chronologically ordered trendline data and echart options when showTrendLine is true', () => {
+    const result = transformProps(
+      buildChartProps({ ...baseFormData, showTrendLine: true }),
+    );
+
+    expect(result.trendLineData).toEqual([
+      [1, 100],
+      [2, 110],
+    ]);
+    expect(result.echartOptions).toHaveProperty('series');
+  });
 });

@@ -63,6 +63,7 @@ export type QueryObjectFilterClause =
   | UnaryQueryObjectFilterClause;
 
 export type QueryObjectExtras = Partial<{
+  semantic_selection_version?: string;
   /** HAVING condition for SQLAlchemy */
   having?: string;
   relative_start?: string;
