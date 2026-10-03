@@ -1534,6 +1534,9 @@ msgstr ""
 msgid "Alerts & reports"
 msgstr ""
 
+msgid "Alignment"
+msgstr ""
+
 msgid "Align +/-"
 msgstr ""
 
@@ -7209,6 +7212,9 @@ msgid "Horizontal (Top)"
 msgstr ""
 
 msgid "Horizontal alignment"
+msgstr ""
+
+msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
 msgid "Host"
