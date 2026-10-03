@@ -497,14 +497,17 @@ export default function transformProps(
   // The scatter dot-size metric is also queried as an extra metric when it
   // doubles as the sort target; it must stay in the extracted series so the
   // size lookup can read it (it is hidden from rendering separately).
-  const scatterSizeLabel =
+  const sizeMetricLabel =
     seriesType === EchartsTimeseriesSeriesType.Scatter && size
       ? getMetricLabel(size)
       : undefined;
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
     .map(getMetricLabel)
-    .filter(label => label !== scatterSizeLabel)
-    .flatMap(label => [verboseMap[label] ?? label, ...pivotedColumnsOf(label)]);
+    .flatMap(label =>
+      label === sizeMetricLabel
+        ? []
+        : [verboseMap[label] ?? label, ...pivotedColumnsOf(label)],
+    );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -665,10 +668,6 @@ export default function transformProps(
   // Dot size by metric (scatter): the size metric's series are excluded from
   // rendering and instead provide per-point values that scale each marker's
   // area between minMarkerSize and maxMarkerSize.
-  const sizeMetricLabel =
-    seriesType === EchartsTimeseriesSeriesType.Scatter && size
-      ? getMetricLabel(size)
-      : undefined;
   const sizeSeriesLabel = isDefined(sizeMetricLabel)
     ? (verboseMap[sizeMetricLabel!] ?? sizeMetricLabel)
     : undefined;
