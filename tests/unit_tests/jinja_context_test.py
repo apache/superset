@@ -1263,6 +1263,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     ]
 
     dataset = SqlaTable(
+        id=1,
         table_name="old_dataset",
         columns=columns,
         metrics=metrics,
@@ -1292,10 +1293,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     )
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = dataset
-    mocker.patch(
-        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
+    DatasetDAO.get_table_by_catalog_schema_and_name.return_value = dataset
 
     space = " "
 
@@ -1305,6 +1303,22 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
 SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
 FROM my_schema.old_dataset
 ) AS dataset_1"""  # noqa: S608, E501
+    )
+
+    assert (
+        dataset_macro("old_dataset")
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
+FROM my_schema.old_dataset
+) AS dataset_1"""  # noqa: S608, E501
+    )
+
+    assert (
+        dataset_macro("old_dataset", alias="my_alias")
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
+FROM my_schema.old_dataset
+) AS my_alias"""  # noqa: S608, E501
     )
 
     assert (
@@ -1340,8 +1354,15 @@ def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
         """
         return f"-- begin\n{sql}\n-- end"
 
+    dataset: SqlaTable = SqlaTable(id=1)
+    mocker.patch.object(
+        dataset,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=mutator("SELECT 1")),
+    )
+
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
-    DatasetDAO.find_by_id().get_query_str_extended().sql = mutator("SELECT 1")
+    DatasetDAO.find_by_id.return_value = dataset
     assert (
         dataset_macro(1)
         == """(

@@ -36,7 +36,10 @@ from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset import db, security_manager
-from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.dataset.exceptions import (
+    DatasetInvalidError,
+    DatasetNotFoundError,
+)
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -65,6 +68,13 @@ if TYPE_CHECKING:
     from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
+
+
+class _Unset:
+    """Sentinel indicating that no filter should be applied."""
+
+
+_UNSET: _Unset = _Unset()
 
 
 class UndefinedTemplateFunctionException(SupersetTemplateException):
@@ -1281,22 +1291,87 @@ def get_template_processor(
 
 
 def dataset_macro(
-    dataset_id: int,
+    dataset_id: int | str,
     include_metrics: bool = False,
     columns: list[str] | None = None,
+    from_dttm: datetime | None = None,
+    to_dttm: datetime | None = None,
+    schema: str | _Unset | None = _UNSET,
+    catalog: str | _Unset | None = _UNSET,
+    database_id: int | str | _Unset | None = _UNSET,
+    alias: str | None = None,
 ) -> str:
     """
-    Given a dataset ID, return the SQL that represents it.
+    Given a dataset ID or name, return the SQL that represents it.
+
+    If ``dataset_id`` is an integer, it is treated as the unique dataset ID and
+    the optional ``schema``, ``catalog`` and ``database_id`` parameters are
+    ignored.
+
+    If ``dataset_id`` is a string, it is treated as a dataset name. The optional
+    ``schema``, ``catalog`` and ``database_id`` parameters are used to narrow
+    down the search when provided. If multiple datasets match the provided
+    criteria, an error is raised because the dataset name is ambiguous.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
+
+    The ``from_dttm`` and ``to_dttm`` parameters are filled in from filter values in
+    explore views, and we take them to make those properties available to jinja
+    templates in the underlying dataset.
+
+    The ``alias`` parameter allows the user to specify an explicit alias for the
+    returned subquery.
     """
     # pylint: disable=import-outside-toplevel
+    from sqlalchemy.orm.exc import MultipleResultsFound
+
     from superset.daos.dataset import DatasetDAO
 
-    dataset = DatasetDAO.find_by_id(dataset_id)
+    filters: dict[str, Any] = {}
+
+    if database_id not in (_UNSET, None):
+        filters["database_id"] = database_id
+    if catalog is not _UNSET:
+        filters["catalog"] = catalog
+    if schema is not _UNSET:
+        filters["schema"] = schema
+
+    if isinstance(dataset_id, str):
+        try:
+            dataset = DatasetDAO.get_table_by_catalog_schema_and_name(
+                table_name=dataset_id,
+                **filters,
+            )
+        except MultipleResultsFound as ex:
+            raise DatasetInvalidError(
+                f"Multiple datasets named '{dataset_id}' match the provided criteria. "
+                "Please specify additional qualifiers such as schema, catalog, "
+                "or database_id to identify a unique dataset."
+            ) from ex
+    else:
+        if filters:
+            logger.warning(
+                "Ignoring parameters %s when resolving dataset_id=%r by ID.",
+                ", ".join(filters.keys()),
+                dataset_id,
+                extra={
+                    "macro": "dataset",
+                    "dataset_id": dataset_id,
+                    "ignored_parameters": list(filters.keys()),
+                    "warning_type": "JINJA_MACRO_IGNORED_PARAMETERS",
+                },
+            )
+
+        dataset = DatasetDAO.find_by_id(dataset_id)
+
     if not dataset:
-        raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
+        criteria: list[str] = [
+            f"{dataset_id!r}",
+            *[f"{key}={value!r}" for key, value in filters.items()],
+        ]
+
+        raise DatasetNotFoundError(f"Dataset {', '.join(criteria)} not found!")
 
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
@@ -1310,7 +1385,7 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS dataset_{dataset_id}"
+    return f"(\n{sql}\n) AS {alias or f'dataset_{dataset.id}'}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:
