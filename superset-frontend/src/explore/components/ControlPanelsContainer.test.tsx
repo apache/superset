@@ -16,24 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
+import { getStandardizedControls } from '@superset-ui/chart-controls';
 import {
   ComparisonType,
   DatasourceType,
   FeatureFlag,
   getChartControlPanelRegistry,
   isFeatureEnabled,
+  QueryFormData,
   QueryMode,
 } from '@superset-ui/core';
-import { defaultControls, defaultState } from 'src/explore/store';
+import {
+  defaultControls,
+  defaultState,
+  getControlsState,
+} from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
+import { setControlValue } from 'src/explore/actions/exploreActions';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
@@ -53,6 +63,43 @@ const FormDataMock = () => {
   );
 
   return <div data-test="mock-formdata">{Object.keys(formData).join(':')}</div>;
+};
+
+// Mirrors the props ExploreViewContainer derives from the store, so the real
+// reducer and the real container run against each other.
+const StoreBackedControlPanelsContainer = () => {
+  const dispatch = useDispatch();
+  const exploreState = useSelector((state: ExplorePageState) => state.explore);
+  const actions = {
+    setControlValue: (
+      ...args: Parameters<typeof setControlValue>
+    ): ReturnType<typeof setControlValue> =>
+      dispatch(setControlValue(...args)) as unknown as ReturnType<
+        typeof setControlValue
+      >,
+    resetSemanticSelections: jest.fn(),
+  };
+  return (
+    <ControlPanelsContainer
+      exploreState={exploreState}
+      actions={actions}
+      datasource_type={DatasourceType.Table}
+      controls={exploreState.controls}
+      form_data={getFormDataFromControls(exploreState.controls)}
+      isDatasourceMetaLoading={false}
+      chart={
+        {
+          queriesResponse: null,
+          chartStatus: 'success',
+        } as ControlPanelsContainerProps['chart']
+      }
+      onQuery={jest.fn()}
+      onStop={jest.fn()}
+      canStopQuery={false}
+      chartIsStale={false}
+      errorMessage={null}
+    />
+  );
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -99,8 +146,46 @@ describe('ControlPanelsContainer', () => {
     ],
   };
 
+  // Reuses the 'Query' section label of the table config so the section stays
+  // expanded after a switch (the accordion only honors its initial open keys).
+  const switchTargetConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['groupby'], ['metrics'], ['limit']],
+      },
+    ],
+  };
+
+  // Consumes the standardized metrics/columns under field names the source viz
+  // never had, so values can only arrive through the StandardizedFormData
+  // transform and not by copying same-named form_data keys.
+  const switchMappedConfig = {
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [['size'], ['series_columns']],
+      },
+    ],
+    formDataOverrides: (formData: QueryFormData) => ({
+      ...formData,
+      size: getStandardizedControls().shiftMetric(),
+      series_columns: getStandardizedControls().popAllColumns(),
+    }),
+  };
+
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
+    getChartControlPanelRegistry().registerValue(
+      'switch-mapped',
+      switchMappedConfig,
+    );
+    getChartControlPanelRegistry().registerValue(
+      'switch-target',
+      switchTargetConfig,
+    );
     jest.clearAllMocks();
     // Default: feature disabled
     mockIsFeatureEnabled.mockReturnValue(false);
@@ -108,6 +193,8 @@ describe('ControlPanelsContainer', () => {
 
   afterEach(() => {
     getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().remove('switch-target');
+    getChartControlPanelRegistry().remove('switch-mapped');
     jest.clearAllMocks();
   });
 
@@ -130,6 +217,66 @@ describe('ControlPanelsContainer', () => {
       },
     } as ControlPanelsContainerProps;
   }
+
+  test.each([undefined, 21])(
+    'new and saved semantic selections expose explicit field initialization (slice=%s)',
+    async sliceId => {
+      const registry = getChartControlPanelRegistry();
+      const previous = registry.get('line');
+      registry.registerValue('line', defaultTableConfig);
+      try {
+        mockIsFeatureEnabled.mockImplementation(
+          featureFlag => featureFlag === FeatureFlag.Matrixify,
+        );
+        const props = getDefaultProps();
+        const resetSemanticSelections = jest.fn();
+        props.actions = { setControlValue: jest.fn(), resetSemanticSelections };
+        props.exploreState = {
+          ...defaultState,
+          datasource: { semantic_selection_version: 'cube-member-id-v1' },
+        } as ControlPanelsContainerProps['exploreState'];
+        props.form_data = {
+          ...props.form_data,
+          datasource: '7__semantic_view',
+          slice_id: sliceId,
+          viz_type: 'line',
+          matrixify_enable: true,
+          matrixify_mode_rows: 'metrics',
+          semantic_selection_version: undefined,
+        };
+        render(<ControlPanelsContainer {...props} />, { useRedux: true });
+        expect(screen.queryByText('Query')).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('tab', { name: /matrixify/i }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', { name: 'Start field selection' }),
+        );
+        expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
+      } finally {
+        if (previous) registry.registerValue('line', previous);
+        else registry.remove('line');
+      }
+    },
+  );
+
+  test('current semantic selections render query controls', async () => {
+    const props = getDefaultProps();
+    props.exploreState = {
+      ...defaultState,
+      datasource: { semantic_selection_version: 'cube-member-id-v1' },
+    } as ControlPanelsContainerProps['exploreState'];
+    props.form_data = {
+      ...props.form_data,
+      datasource: '7__semantic_view',
+      semantic_selection_version: 'cube-member-id-v1',
+    };
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+    expect(screen.getByText('Query')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start field selection' }),
+    ).not.toBeInTheDocument();
+  });
 
   test('renders ControlPanelSections', async () => {
     render(<ControlPanelsContainer {...getDefaultProps()} />, {
@@ -626,6 +773,118 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('pie');
   });
 
+  function createStoreBackedExplore() {
+    const datasource = {
+      id: 1,
+      type: DatasourceType.Table,
+      columns: [{ column_name: 'name' }, { column_name: 'gender' }],
+      metrics: [{ metric_name: 'count' }],
+      verbose_map: {},
+      column_formats: {},
+    };
+    const baseState = { datasource };
+    const formData = {
+      viz_type: 'table',
+      datasource: '1__table',
+      groupby: ['name', 'gender'],
+      metrics: ['count'],
+      all_columns: ['name'],
+      row_limit: 100,
+    };
+    const controls = getControlsState(
+      baseState,
+      formData as unknown as Parameters<typeof getControlsState>[1],
+    );
+    // Control states carry mapStateToProps functions, so the default
+    // serializability check would only add noise.
+    return configureStore({
+      reducer: reducerIndex,
+      preloadedState: {
+        explore: {
+          ...baseState,
+          controls,
+          form_data: getFormDataFromControls(
+            controls as ControlPanelsContainerProps['controls'],
+          ),
+        },
+      } as never,
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+      devTools: false,
+    });
+  }
+
+  test('switching viz_type re-renders the control sections of the new viz', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+
+    expect(
+      await screen.findByRole('button', { name: /group by/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/series limit/i)).not.toBeInTheDocument();
+    expect(
+      (store.getState() as ExplorePageState).explore.controls.limit,
+    ).toBeUndefined();
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+
+    expect(
+      (await screen.findAllByText(/series limit/i)).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /group by/i }),
+    ).not.toBeInTheDocument();
+    // The label above comes from the registered panel config, so also check the
+    // reducer built control state for `limit`, which only the target viz has.
+    const { controls } = (store.getState() as ExplorePageState).explore;
+    expect(controls.limit).toMatchObject({ label: 'Series limit' });
+  });
+
+  test('switching viz_type carries shared metrics and groupby over and drops controls the new viz lacks', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-target'));
+    });
+    await screen.findAllByText(/series limit/i);
+
+    const { form_data: formData, controls } = (
+      store.getState() as ExplorePageState
+    ).explore;
+    expect(formData.viz_type).toBe('switch-target');
+    expect(formData.groupby).toEqual(['name', 'gender']);
+    expect(formData.metrics).toEqual(['count']);
+    expect(formData.standardizedFormData.controls).toEqual({
+      metrics: ['count'],
+      columns: ['name', 'gender'],
+    });
+    expect(controls.all_columns).toBeUndefined();
+    expect(formData.all_columns).toBeUndefined();
+  });
+
+  test('switching viz_type hands standardized metrics and columns to the target formDataOverrides', async () => {
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    act(() => {
+      store.dispatch(setControlValue('viz_type', 'switch-mapped'));
+    });
+
+    const { form_data: formData } = (store.getState() as ExplorePageState)
+      .explore;
+    expect(formData.viz_type).toBe('switch-mapped');
+    expect(formData.size).toBe('count');
+    expect(formData.series_columns).toEqual(['name', 'gender']);
+  });
+
   function withHeaderGroupsSync(
     overrides: Partial<ControlPanelsContainerProps> = {},
   ) {
@@ -643,7 +902,7 @@ describe('ControlPanelsContainer', () => {
       type: 'SelectControl' as const,
       value: ComparisonType.Values,
     };
-    props.actions = { setControlValue };
+    props.actions = { setControlValue, resetSemanticSelections: jest.fn() };
     props.controls = {
       ...props.controls,
       header_groups: {
