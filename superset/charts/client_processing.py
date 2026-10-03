@@ -810,6 +810,38 @@ PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT = frozenset(
 )
 
 
+def _sample_dispersion(
+    data: Union[pd.DataFrame, pd.Series],
+    method: str,
+    axis: Optional[int] = None,
+) -> Any:
+    """
+    Sample variance/standard deviation that is 0 for a single observation.
+
+    Accepts a Series (cell aggregation) or a DataFrame reduced along ``axis``
+    (row/column summaries), mirroring how the other reducers are invoked.
+    """
+    if isinstance(data, pd.DataFrame):
+        axis = 0 if axis is None else axis
+        result = getattr(data, method)(axis=axis)
+        return result.fillna(0) if data.shape[axis] <= 1 else result
+    return getattr(data, method)() if len(data) > 1 else 0
+
+
+def sample_variance(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample variance (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "var", axis)
+
+
+def sample_standard_deviation(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample standard deviation (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "std", axis)
+
+
 pivot_v2_aggfunc_map = {
     "Count": pd.Series.count,
     "Count Unique Values": pd.Series.nunique,
@@ -817,10 +849,8 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.Series.var(series) if len(series) > 1 else 0,
-    "Sample Standard Deviation": (
-        lambda series: pd.Series.std(series) if len(series) > 1 else 0
-    ),
+    "Sample Variance": sample_variance,
+    "Sample Standard Deviation": sample_standard_deviation,
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
     "First": lambda series: series[:1],

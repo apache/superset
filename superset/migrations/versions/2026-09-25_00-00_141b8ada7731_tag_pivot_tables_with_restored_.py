@@ -65,8 +65,10 @@ Create Date: 2026-09-25 00:00:00.000000
 
 """
 
+from datetime import datetime
+
 from alembic import op
-from sqlalchemy import Column, Enum, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, Integer, String, Text
 from sqlalchemy.orm import declarative_base
 
 from superset import db
@@ -82,6 +84,8 @@ Base = declarative_base()
 
 _VIZ_TYPE = "pivot_table_v2"
 _FIELD = "aggregateFunction"
+# The control's default, meaning "no second aggregation pass".
+_DEFAULT_RESULT_AGGREGATION = "Metric"
 
 # Name of the custom tag applied to an affected chart. Kept in sync with
 # `LEGACY_AGGREGATION_TAG` in
@@ -125,6 +129,7 @@ class Slice(Base):  # type: ignore
     id = Column(Integer, primary_key=True)
     viz_type = Column(String(250))
     params = Column(Text)
+    query_context = Column(Text)
 
 
 class Tag(Base):  # type: ignore
@@ -136,6 +141,13 @@ class Tag(Base):  # type: ignore
     # the existing tag-management UI already read/write/delete, so no new
     # frontend plumbing is needed to show or clear it.
     type = Column(Enum(TagType))
+    # The tag API subtracts these from "now" when serializing, so a NULL here
+    # would break tag listing/detail after upgrade. Populate them on create,
+    # as the application model's audit mixin does.
+    created_on = Column(DateTime, default=datetime.now, nullable=True)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
+    )
 
 
 class TaggedObject(Base):  # type: ignore
@@ -145,6 +157,10 @@ class TaggedObject(Base):  # type: ignore
     tag_id = Column(Integer)
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
+    created_on = Column(DateTime, default=datetime.now, nullable=True)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True
+    )
 
 
 def _has_legacy_aggregate_function(slc: Slice) -> bool:
@@ -196,9 +212,53 @@ def upgrade() -> None:
     session.commit()
 
 
+def _drop_default_metric(obj: object) -> bool:
+    """Remove ``aggregateFunction: "Metric"`` from a dict, recursively."""
+    changed = False
+    if isinstance(obj, dict):
+        if obj.get(_FIELD) == _DEFAULT_RESULT_AGGREGATION:
+            del obj[_FIELD]
+            changed = True
+        for value in obj.values():
+            changed = _drop_default_metric(value) or changed
+    elif isinstance(obj, list):
+        for value in obj:
+            changed = _drop_default_metric(value) or changed
+    return changed
+
+
+def _scrub_column(raw: str | None) -> str | None:
+    """Return re-serialized JSON without the default value, or None if unchanged."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    return json.dumps(data) if _drop_default_metric(data) else None
+
+
 def downgrade() -> None:
-    # Purely additive: an untagged chart behaves identically to one this
-    # migration never touched, and query_context is never modified. There is
-    # no `aggregateFunction` value to restore -- this migration never changed
-    # one -- so there is nothing to reverse.
-    pass
+    # Upgrading never changed an `aggregateFunction` value, and the tag is
+    # harmless on older code. But once the restored control ships, saving an
+    # ordinary pivot persists the default `aggregateFunction: "Metric"`,
+    # which older code looks up in its aggregation map and fails on (KeyError)
+    # when processing CSV/XLSX exports and reports. Strip that default from
+    # both stored representations so a rollback behaves like the field was
+    # never set.
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+
+    query = session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE)
+    for slc in paginated_update(
+        query,
+        lambda current, total: print(f"    {current}/{total}", end="\r"),
+    ):
+        params = _scrub_column(slc.params)
+        if params is not None:
+            slc.params = params
+        query_context = _scrub_column(slc.query_context)
+        if query_context is not None:
+            slc.query_context = query_context
+
+    session.commit()

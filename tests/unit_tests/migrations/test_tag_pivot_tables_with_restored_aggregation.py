@@ -20,7 +20,7 @@
 Covers the helper (_has_legacy_aggregate_function), the full upgrade() path
 across multiple slices (tagging, idempotency, and that unaffected slices are
 left alone -- and that query_context is never touched, see the module
-docstring for why), and that downgrade() is a genuine no-op.
+docstring for why), and that downgrade() strips the default "Metric" value.
 """
 
 from __future__ import annotations
@@ -207,7 +207,70 @@ def test_upgrade_is_idempotent_across_repeated_runs(engine) -> None:
         assert len(tagged) == 1
 
 
-def test_downgrade_is_a_noop() -> None:
-    """downgrade() must not raise and must not be a real reverse migration --
-    see the module docstring for why nothing is restored."""
-    migration.downgrade()
+def test_upgrade_populates_tag_audit_timestamps(engine) -> None:
+    """The tag API subtracts created_on/changed_on from now(); NULLs break it."""
+    with Session(engine) as seed:
+        seed.add(
+            Slice(
+                id=1,
+                viz_type=_VIZ_TYPE,
+                params=json.dumps({"viz_type": _VIZ_TYPE, _FIELD: "Median"}),
+            )
+        )
+        seed.commit()
+
+    _run_upgrade(engine)
+
+    with Session(engine) as verify:
+        tag = verify.query(Tag).filter_by(name=LEGACY_AGGREGATION_TAG).one()
+        assert tag.created_on is not None
+        assert tag.changed_on is not None
+        tagged = verify.query(TaggedObject).one()
+        assert tagged.created_on is not None
+        assert tagged.changed_on is not None
+
+
+def test_downgrade_strips_default_metric_from_params_and_query_context(
+    engine,
+) -> None:
+    """Older code KeyErrors on a persisted ``aggregateFunction: "Metric"``, so
+    downgrade removes it from both stored representations and leaves real
+    aggregations alone."""
+    with Session(engine) as seed:
+        seed.add_all(
+            [
+                Slice(
+                    id=1,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps({_FIELD: "Metric", "colTotals": True}),
+                    query_context=json.dumps(
+                        {"form_data": {_FIELD: "Metric", "colTotals": True}}
+                    ),
+                ),
+                Slice(
+                    id=2,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps({_FIELD: "Median"}),
+                    query_context=json.dumps({"form_data": {_FIELD: "Median"}}),
+                ),
+            ]
+        )
+        seed.commit()
+
+    with engine.begin() as conn:
+        downgrade_session = Session(bind=conn)
+        with (
+            patch.object(migration, "op") as mock_op,
+            patch.object(migration, "db") as mock_db,
+        ):
+            mock_op.get_bind.return_value = conn
+            mock_db.Session.return_value = downgrade_session
+            migration.downgrade()
+
+    with Session(engine) as verify:
+        first = verify.get(Slice, 1)
+        assert json.loads(first.params) == {"colTotals": True}
+        assert json.loads(first.query_context) == {"form_data": {"colTotals": True}}
+        second = verify.get(Slice, 2)
+        assert json.loads(second.params) == {_FIELD: "Median"}
+        assert json.loads(second.query_context) == {"form_data": {_FIELD: "Median"}}

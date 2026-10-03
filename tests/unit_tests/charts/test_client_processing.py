@@ -2205,6 +2205,35 @@ def test_pivot_table_v2_sample_statistics_aggregations(
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(expected)
 
 
+@pytest.mark.parametrize(
+    "aggregate_function",
+    ["Sample Variance", "Sample Standard Deviation"],
+)
+def test_pivot_table_v2_sample_statistics_with_summaries(aggregate_function: str):
+    """Row and column summaries invoke the reducer with ``axis``; the sample
+    statistics must handle the DataFrame/axis form, not just a Series.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "FR", "FR"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 20, 30, 50],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert not pivoted.empty
+
+
 def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
     """A result aggregation hides `showValuesAs` in Explore and always wins
     over it on the chart (`resultFactory ?? fractionType` in utilities.ts);
