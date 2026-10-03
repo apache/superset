@@ -255,7 +255,6 @@ def register_password_change_enforcement(app: Any) -> None:
         if not password_change_required(user):
             return None
 
-        flash(__("You must change your password before continuing."), "warning")
         # Resolve the SPA profile page, if the user can actually reach it, with
         # logout as the fallback -- which is always exempt from this
         # enforcement. We must NOT fall back to "/" or any other non-exempt
@@ -268,6 +267,8 @@ def register_password_change_enforcement(app: Any) -> None:
         terminal = None if profile_reachable else _flash_no_profile_access()
         if terminal is not None:
             return terminal
+        if profile_reachable:
+            flash(__("You must change your password before continuing."), "warning")
         candidates = [_PROFILE_PAGE_ENDPOINT] if profile_reachable else []
         candidates.extend(_logout_fallback_candidates(security_manager))
         for endpoint in candidates:
