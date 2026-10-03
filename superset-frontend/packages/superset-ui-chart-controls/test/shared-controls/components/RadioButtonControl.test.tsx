@@ -291,9 +291,10 @@ test('handles null values in options', () => {
     ['value', 'Value'],
   ];
 
-  setup({ options: nullOptions, onChange });
+  setup({ options: nullOptions, value: 'value', onChange });
 
   fireEvent.click(screen.getByText('None'));
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith(null);
 });
 
@@ -347,11 +348,16 @@ test('normalizeOption handles array format correctly', () => {
   const arrayOption: RadioButtonOption = ['value', 'Label'];
   const onChange = jest.fn();
 
-  setup({ options: [arrayOption], onChange });
+  setup({
+    options: [['initial', 'Initial'], arrayOption],
+    value: 'initial',
+    onChange,
+  });
 
   expect(screen.getByText('Label')).toBeInTheDocument();
 
   fireEvent.click(screen.getByText('Label'));
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('value');
 });
 
@@ -363,11 +369,16 @@ test('normalizeOption handles object format correctly', () => {
   };
   const onChange = jest.fn();
 
-  setup({ options: [objectOption], onChange });
+  setup({
+    options: [{ value: 'initial', label: 'Initial' }, objectOption],
+    value: 'initial',
+    onChange,
+  });
 
   expect(screen.getByText('Label')).toBeInTheDocument();
 
   fireEvent.click(screen.getByText('Label'));
+  expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith('value');
 });
 
