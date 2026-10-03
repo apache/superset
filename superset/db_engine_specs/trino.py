@@ -88,6 +88,9 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
     engine_name = "Trino"
     allows_alias_to_source_column = False
     supports_grouping_sets = True
+    # The client sets queryId after its first request, then blocks in
+    # execute() until rows arrive or the query ends.
+    has_query_id_during_execute = True
 
     # Dynamic connection ("new") form. Trino's SQLAlchemy dialect registers a
     # single ``trino`` dialect whose reported ``driver`` is ``rest``, so
@@ -563,6 +566,21 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
         # throwing the original exception allows mapping database errors as normal
         if err := execute_result.get("error"):
             raise err
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Cursor, query: Query) -> str | None:
+        """
+        Return the Trino queryId of the cursor's running query.
+
+        It is ``None`` until execution has started, so callers that ask before
+        executing (SQL Lab, chart-data tasks) record nothing and keep using
+        ``handle_cursor``. Another thread can read it while ``execute`` blocks.
+
+        :param cursor: Trino DB-API cursor
+        :param query: Query instance (unused)
+        :return: Trino queryId, or None before execution
+        """
+        return cursor.query_id
 
     @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:

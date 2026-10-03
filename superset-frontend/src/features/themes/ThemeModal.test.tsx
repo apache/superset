@@ -23,6 +23,10 @@ import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
 import { ThemeObject } from './types';
 import { validateTheme } from 'src/theme/utils/themeStructureValidation';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
 
 const mockThemeContext = {
   setTemporaryTheme: jest.fn(),
@@ -36,6 +40,24 @@ jest.mock('src/theme/ThemeProvider', () => ({
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   isUserAdmin: jest.fn(() => true),
+  isUserEditorOrAdmin: jest.fn(() => true),
+}));
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: () => ({
+    common: {
+      user_subject_id: 1,
+      user_subjects: [1],
+    },
+    user: {
+      userId: 1,
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@superset.org',
+      roles: { Admin: [] },
+    },
+  }),
 }));
 
 // Mock JsonEditor to avoid direct DOM manipulation in tests
@@ -77,6 +99,7 @@ const mockTheme: ThemeObject = {
     first_name: 'Admin',
     last_name: 'User',
   },
+  editors: [{ id: 1, label: 'Admin User', type: 1 }],
 };
 
 const mockSystemTheme: ThemeObject = {
@@ -91,6 +114,10 @@ const putThemeMockName = 'putTheme';
 
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  fetchMock.get('glob:*/api/v1/theme/related/editors*', {
+    result: [],
+    count: 0,
+  });
   fetchMock.get('glob:*/api/v1/theme/1', { result: mockTheme });
   fetchMock.get('glob:*/api/v1/theme/2', { result: mockSystemTheme });
   fetchMock.get('glob:*/api/v1/theme/*', { result: mockTheme });
@@ -212,6 +239,45 @@ test('renders view mode title for system themes', async () => {
   expect(screen.getByText('View theme properties')).toBeInTheDocument();
 });
 
+test('passes extra_editors from the fetched resource to the editorship check', async () => {
+  // A user may be granted editorship solely through a deployment's
+  // EXTRA_EDITORS_RESOLVER (surfaced by the API as `extra_editors`), not
+  // just the persisted `editors` list. The modal must factor that in the
+  // same way the chart/dashboard read-only checks do, or such a user is
+  // shown a read-only modal despite the API allowing them to save.
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get('glob:*/api/v1/theme/related/editors*', {
+    result: [],
+    count: 0,
+  });
+  fetchMock.get('glob:*/api/v1/theme/*', {
+    result: { ...mockTheme, extra_editors: [42] },
+  });
+
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByDisplayValue('Test Theme');
+
+  await waitFor(() => {
+    expect(isUserEditorOrAdmin).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      [42],
+    );
+  });
+});
+
 test('renders theme name input field', () => {
   render(
     <ThemeModal
@@ -261,6 +327,59 @@ test('disables inputs for read-only system themes', async () => {
   const nameInput = await screen.findByPlaceholderText('Enter theme name');
 
   expect(nameInput).toHaveAttribute('readOnly');
+});
+
+test('disables save for a non-admin editor of an active default/dark theme', async () => {
+  // The backend blocks PUT on the active system-default/dark theme slot
+  // for anyone but an admin (UpdateThemeCommand.validate), even a listed
+  // editor, because that slot is rendered for every user. A read-only
+  // computation that only checks the blanket `is_system` flag misses this:
+  // a non-admin editor of such a theme would see Save enabled and get a
+  // 403 from the server on submit.
+  const activeDefaultTheme: ThemeObject = {
+    ...mockTheme,
+    theme_name: 'Active Default Theme',
+    is_system: false,
+    is_system_default: true,
+  };
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get('glob:*/api/v1/theme/related/editors*', {
+    result: [],
+    count: 0,
+  });
+  fetchMock.get('glob:*/api/v1/theme/*', { result: activeDefaultTheme });
+  (isUserAdmin as jest.Mock).mockReturnValue(false);
+
+  try {
+    render(
+      <ThemeModal
+        addDangerToast={jest.fn()}
+        addSuccessToast={jest.fn()}
+        onThemeAdd={jest.fn()}
+        onHide={jest.fn()}
+        show
+        canDevelop={false}
+        theme={activeDefaultTheme}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+    const nameInput = await screen.findByDisplayValue('Active Default Theme');
+    expect(nameInput).toHaveAttribute('readOnly');
+    // Read-only mode omits the Save button entirely (see the !isReadOnly
+    // guard around the footer's Save button), rather than rendering it
+    // disabled.
+    expect(
+      screen.queryByRole('button', { name: 'Save' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'This theme is the active default/dark theme - only Admins can edit it - Read Only',
+      ),
+    ).toBeInTheDocument();
+  } finally {
+    (isUserAdmin as jest.Mock).mockReturnValue(true);
+  }
 });
 
 test('shows Apply button when canDevelop is true and theme exists', async () => {
@@ -340,6 +459,64 @@ test('enables save button when theme name is entered', async () => {
     () => {
       const saveButton = screen.getByRole('button', { name: 'Add' });
       expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+});
+
+test('renders the Editors field with the current user preselected in add mode', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  // The Editors form field is rendered.
+  expect(screen.getByText('Editors')).toBeInTheDocument();
+  // The creator (from bootstrap data) is preselected so save can be enabled.
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'A Theme');
+  await addValidJsonData();
+
+  await waitFor(
+    () => {
+      expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+});
+
+test('allows save with no editors (editors are optional, like charts)', async () => {
+  // A theme with an empty editors list is valid (admin-only, same as
+  // legacy/system themes). Save must not be blocked by missing editors.
+  const themeWithoutEditors: ThemeObject = {
+    ...mockTheme,
+    editors: [],
+  };
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={themeWithoutEditors}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByDisplayValue('Test Theme');
+
+  await waitFor(
+    () => {
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     },
     { timeout: 10000 },
   );

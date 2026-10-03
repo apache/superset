@@ -1109,7 +1109,11 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -1135,6 +1139,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -2104,3 +2109,20 @@ def test_adjust_engine_params_without_protocol_preserves_other_query() -> None:
 
     assert "http_scheme" not in connect_args
     assert uri.query.get("source") == "custom"
+
+
+def test_get_cancel_query_id_reads_the_running_query() -> None:
+    """The queryId is only known once execution has started."""
+    import trino.dbapi
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    cursor = trino.dbapi.connect(host="localhost", user="superset").cursor()
+    # SQL Lab and chart-data tasks ask before executing: nothing to record.
+    assert TrinoEngineSpec.get_cancel_query_id(cursor, Mock()) is None
+    running = Mock(query_id="20261001_000000_00001_abcde")
+    assert (
+        TrinoEngineSpec.get_cancel_query_id(running, Mock())
+        == "20261001_000000_00001_abcde"
+    )
+    assert TrinoEngineSpec.has_query_id_during_execute is True

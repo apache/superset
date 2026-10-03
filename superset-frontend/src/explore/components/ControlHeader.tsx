@@ -87,13 +87,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
     return (
       <span
-        css={() => css`
-          position: absolute;
-          top: 50%;
-          right: 0;
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
           z-index: 1;
           padding-left: ${theme.sizeUnit}px;
-          transform: translate(100%, -50%);
           white-space: nowrap;
           pointer-events: auto;
         `}
@@ -107,12 +105,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               mouseLeaveDelay={0}
               trigger={['hover', 'focus']}
             >
-              {/* Same role="button" pattern as the label text: a real <button>
-                  is not valid inside FormLabel's <label>. */}
-              <span
-                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-                role="button"
-                tabIndex={0}
+              <button
+                type="button"
                 data-test={`${name}-description-icon`}
                 aria-label={t('Show info tooltip')}
                 onMouseEnter={() => onDescriptionHoverChange?.(true)}
@@ -122,11 +116,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 onClick={tooltipOnClick}
                 onKeyDown={handleKeyboardActivation(tooltipOnClick)}
                 css={css`
+                  background: none;
+                  border: none;
+                  padding: 0;
+                  display: inline-flex;
+                  align-items: center;
                   cursor: pointer;
+                  line-height: 1;
                 `}
               >
                 <Icons.InfoCircleOutlined css={iconStyles} />
-              </span>
+              </button>
             </Tooltip>{' '}
           </>
         )}
@@ -146,10 +146,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
-      <div className="pull-left">
+      <div
+        className="pull-left"
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
+          margin-bottom: ${theme.sizeUnit * 0.5}px;
+        `}
+      >
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.sizeUnit * 0.5}px;
+            margin-bottom: 0;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
             overflow: visible;
@@ -211,8 +218,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               </Tooltip>{' '}
             </span>
           )}
-          {renderOptionalIcons()}
         </FormLabel>
+        {renderOptionalIcons()}
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />

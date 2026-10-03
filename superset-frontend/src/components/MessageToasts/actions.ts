@@ -32,6 +32,7 @@ export function addToast({
   duration = 8000,
   noDuplicate = false,
   allowHtml = false,
+  action,
 }: Omit<ToastMeta, 'id'>) {
   return {
     type: ADD_TOAST,
@@ -46,6 +47,7 @@ export function addToast({
       // tests inject flags downstream of this hop, so they stay green while
       // every HTML toast quietly loses its anchor.
       allowHtml,
+      action,
     },
   };
 }

@@ -36,6 +36,7 @@ export type ClientErrorObject = {
   message?: string;
   severity?: string;
   stacktrace?: string;
+  status?: number;
   statusText?: string;
 } & Partial<SupersetClientResponse>;
 
@@ -88,7 +89,34 @@ const ERROR_CODE_LOOKUP = {
 };
 
 export function checkForHtml(str: string): boolean {
-  return !isJsonString(str) && isProbablyHTML(str);
+  // An HTML error page served by a proxy or gateway begins with markup, and
+  // has no message worth showing. A server-authored error that merely quotes
+  // a tag — a database syntax error echoing back the offending `<a>`, say —
+  // begins with prose, and is the whole point of the response. Only the
+  // former may be collapsed into a generic status message.
+  //
+  // A leading `<` alone isn't enough: a message that opens with a quoted,
+  // unclosed tag (`<a> is not valid syntax`) also starts with `<`, and
+  // isProbablyHTML()'s DOMParser auto-closes stray tags on parse, so it
+  // can't tell that case apart either. Requiring the leading tag to actually
+  // close somewhere in the string does: a real fragment like
+  // `<div>500: Internal Server Error</div>` closes what it opens, a quoted
+  // tag doesn't. A `<!doctype html>` preamble is exempt from this check
+  // since isProbablyHTML() already gates that case on its own.
+  if (isJsonString(str)) {
+    return false;
+  }
+  const trimmed = str.trimStart();
+  if (!trimmed.startsWith('<')) {
+    return false;
+  }
+  if (!/^<!doctype html>/i.test(trimmed)) {
+    const leadingTag = trimmed.match(/^<([a-z][a-z0-9]*)\b/i)?.[1];
+    if (!leadingTag || !new RegExp(`</${leadingTag}\\s*>`, 'i').test(str)) {
+      return false;
+    }
+  }
+  return isProbablyHTML(str);
 }
 
 export function parseStringResponse(str: string): string {
@@ -256,9 +284,14 @@ export function getClientErrorObject(
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
+            const { url, status, statusText, redirected, type } =
+              responseObject;
             resolve({
-              // Destructuring not necessary here
-              ...responseObject,
+              url,
+              status,
+              statusText,
+              redirected,
+              type,
               error: retrieveErrorMessage(errorText, responseObject),
             });
           });
@@ -287,7 +320,7 @@ export async function getErrorText(
   errorObject: ErrorType,
   source: ErrorTextSource,
 ) {
-  const { error, message } = await getClientErrorObject(errorObject);
+  const { error, status } = await getClientErrorObject(errorObject);
   let errorText = t('Sorry, an unknown error occurred.');
 
   if (error) {
@@ -297,10 +330,29 @@ export async function getErrorText(
       error,
     );
   }
-  if (typeof message === 'string' && message === 'Forbidden') {
+  if (status === 403 && error === getErrorFromStatusCode(status)) {
     errorText = t('You do not have permission to edit this %s', source);
   }
   return errorText;
+}
+
+/**
+ * Selects user-facing error text with a consistent precedence:
+ * contextual HTTP status message, normalized server message, then fallback.
+ */
+export function selectClientErrorMessage(
+  { error, message, status }: ClientErrorObject,
+  fallback: string,
+  statusMessages: Partial<Record<number, string>> = {},
+): string {
+  const statusMessage =
+    status === undefined ? undefined : statusMessages[status];
+  if (statusMessage) {
+    return statusMessage;
+  }
+  return (
+    error || (typeof message === 'string' ? message : undefined) || fallback
+  );
 }
 
 export function getClientErrorMessage(

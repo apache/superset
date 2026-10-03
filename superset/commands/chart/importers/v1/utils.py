@@ -16,8 +16,12 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
+from uuid import UUID
+
+import yaml
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
@@ -25,27 +29,47 @@ from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
     find_existing_for_import,
 )
+from superset.extensions import feature_flag_manager
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
+from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.utils import json
-from superset.utils.core import AnnotationType, get_user
+from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
+    AnnotationType,
+    get_annotation_layer_lists,
+    get_user,
+)
+from superset.utils.dict_import_export import (
+    SELECTED_CHARTS_FILE_NAME,
+    SELECTED_CHARTS_KEY,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
+def filter_chart_annotations(
+    chart_config: dict[str, Any],
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
+    pending_chart_uuids: set[str] | None = None,
+) -> None:
     """
-    Mutating the chart's config params to keep only the annotations of
-    type FORMULA.
-    TODO:
-      handle annotation dependencies on either other charts or
-      annotation layers objects.
+    Resolve annotation references in ``params`` from exported UUIDs to local
+    integer IDs. See ``_resolve_annotation_list`` for the rules.
     """
     params = chart_config.get("params", {})
-    als = params.get("annotation_layers", [])
-    params["annotation_layers"] = [
-        al for al in als if al.get("annotationType") == AnnotationType.FORMULA
-    ]
+    annotation_layers = params.get("annotation_layers", [])
+    _resolve_annotation_list(
+        annotation_layers,
+        annotation_layer_ids,
+        chart_ids,
+        pending_chart_uuids,
+        chart_uuid=chart_config.get("uuid"),
+    )
+    params["annotation_layers"] = annotation_layers
 
 
 def _ensure_can_edit_existing_chart(
@@ -142,8 +166,16 @@ def import_chart(
     overwrite: bool = False,
     ignore_permissions: bool = False,
     default_viewers: list[Subject] | None = None,
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
+    pending_chart_uuids: set[str] | None = None,
 ) -> Slice:
     """Import a chart from a config dict, handling existing matches.
+
+    ``pending_chart_uuids`` holds UUIDs of charts later in the same bundle.
+    Annotation references to them are kept as UUIDs so that
+    ``resolve_deferred_chart_annotations`` can resolve them once every chart
+    in the bundle exists.
 
     Permission model for an existing UUID match:
 
@@ -194,7 +226,16 @@ def import_chart(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
 
-    filter_chart_annotations(config)
+    filter_chart_annotations(
+        config,
+        annotation_layer_ids=annotation_layer_ids,
+        chart_ids=chart_ids,
+        pending_chart_uuids=pending_chart_uuids,
+    )
+
+    _resolve_query_context_annotations(
+        config, annotation_layer_ids, chart_ids, pending_chart_uuids
+    )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
@@ -252,7 +293,16 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
     if config["viz_type"] not in migrators:
         return output
 
-    migrator = migrators[config["viz_type"]](output["params"])
+    migrator_class = migrators[config["viz_type"]]
+    required_flag = migrator_class.requires_feature_flag
+    # Importing a chart isn't itself an opt-in to a target viz type that's
+    # still gated off by default (see MigrateViz.requires_feature_flag) --
+    # leave the chart as its original viz_type rather than silently handing
+    # back one the frontend may not have registered.
+    if required_flag and not feature_flag_manager.is_feature_enabled(required_flag):
+        return output
+
+    migrator = migrator_class(output["params"])
     # pylint: disable=protected-access
     migrator._pre_action()
     migrator._migrate()
@@ -277,3 +327,320 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
         output["query_context"] = json.dumps(query_context)
 
     return output
+
+
+def _load_query_context(raw: Any) -> Any:
+    try:
+        return json.loads(raw) if raw else None
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def get_chart_annotation_dependencies(chart_config: dict[str, Any]) -> set[str]:
+    """Return UUIDs of charts referenced as annotation sources by a chart config."""
+    query_context = _load_query_context(chart_config.get("query_context"))
+    return {
+        annotation["value"]
+        for annotation_layers in get_annotation_layer_lists(
+            chart_config.get("params"), query_context
+        )
+        for annotation in annotation_layers
+        if annotation.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+        and isinstance(annotation.get("value"), str)
+    }
+
+
+def get_dependency_chart_uuids(
+    contents: dict[str, Any],
+    chart_configs: list[dict[str, Any]],
+) -> set[str]:
+    """
+    Return UUIDs of bundled charts that weren't picked for the export, i.e. the
+    ones only there as annotation sources.
+
+    The picked charts come from ``SELECTED_CHARTS_FILE_NAME``. A bundle without
+    it (or with an unreadable one) treats every chart as picked.
+    """
+    raw_selection = contents.get(SELECTED_CHARTS_FILE_NAME)
+    if not raw_selection:
+        return set()
+    try:
+        selection = yaml.safe_load(raw_selection)
+    except yaml.YAMLError:
+        logger.warning("Ignoring unreadable %s", SELECTED_CHARTS_FILE_NAME)
+        return set()
+    selected = (
+        selection.get(SELECTED_CHARTS_KEY) if isinstance(selection, dict) else None
+    )
+    if not isinstance(selected, list):
+        logger.warning("Ignoring malformed %s", SELECTED_CHARTS_FILE_NAME)
+        return set()
+    return {str(config["uuid"]) for config in chart_configs} - {
+        str(chart_uuid) for chart_uuid in selected
+    }
+
+
+def topological_sort_charts(
+    chart_configs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Sort charts so that annotation dependencies are imported first.
+
+    Handles multi-level dependencies (A→B→C) by iteratively resolving
+    charts whose in-batch dependencies are already satisfied. Charts in a
+    cycle are appended in their original order; ``import_charts`` resolves
+    their references in a second pass.
+
+    Keeping both edges of a cycle is safe at render time:
+    ``QueryContextProcessor.get_viz_annotation_data`` drops the source chart's
+    own annotation layers, so A -> B -> A doesn't recurse.
+    """
+    if len(chart_configs) <= 1:
+        return chart_configs
+
+    batch_uuids = {str(c["uuid"]) for c in chart_configs}
+    sorted_refs: list[dict[str, Any]] = []
+    remaining = list(chart_configs)
+    resolved: set[str] = set()
+    while remaining:
+        next_remaining = []
+        for c in remaining:
+            unmet = get_chart_annotation_dependencies(c).intersection(
+                batch_uuids - resolved
+            )
+            if not unmet:
+                sorted_refs.append(c)
+                resolved.add(str(c["uuid"]))
+            else:
+                next_remaining.append(c)
+        if len(next_remaining) == len(remaining):
+            logger.info(
+                "Circular annotation dependency detected for charts: %s; "
+                "their references are resolved after all charts are imported.",
+                [c["uuid"] for c in next_remaining],
+            )
+            sorted_refs.extend(next_remaining)
+            break
+        remaining = next_remaining
+    return sorted_refs
+
+
+def import_charts(
+    chart_configs: list[dict[str, Any]],
+    overwrite: bool = False,
+    default_viewers: list[Subject] | None = None,
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
+    dependency_chart_uuids: set[str] | None = None,
+) -> list[tuple[dict[str, Any], Slice]]:
+    """
+    Import chart configs in annotation-dependency order.
+
+    Charts in ``dependency_chart_uuids`` are imported with ``overwrite=False``:
+    an existing one is reused unchanged, like a dataset dependency.
+
+    Charts that reference another chart of the bundle as an annotation source
+    are imported after it. When the references form a cycle, the charts imported
+    first keep the UUIDs of the later ones and get them resolved in a second
+    pass, so both sides of the cycle keep their annotations.
+
+    ``chart_ids`` is updated in place with the UUID-to-ID mapping of every
+    imported chart. Returns ``(config, chart)`` pairs in import order.
+    """
+    chart_ids = {} if chart_ids is None else chart_ids
+    sorted_configs = topological_sort_charts(chart_configs)
+    pending_chart_uuids = {str(config["uuid"]) for config in sorted_configs}
+    imported: list[tuple[dict[str, Any], Slice]] = []
+    deferred: list[Slice] = []
+    for config in sorted_configs:
+        has_pending_refs = bool(
+            get_chart_annotation_dependencies(config) & pending_chart_uuids
+        )
+        is_dependency = str(config["uuid"]) in (dependency_chart_uuids or set())
+        chart = import_chart(
+            config,
+            overwrite=overwrite and not is_dependency,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+            pending_chart_uuids=pending_chart_uuids,
+        )
+        chart_ids[str(chart.uuid)] = chart.id
+        pending_chart_uuids.discard(str(config["uuid"]))
+        imported.append((config, chart))
+        if has_pending_refs:
+            deferred.append(chart)
+
+    for chart in deferred:
+        resolve_deferred_chart_annotations(chart, chart_ids)
+
+    return imported
+
+
+def resolve_deferred_chart_annotations(chart: Slice, chart_ids: dict[str, int]) -> None:
+    """
+    Resolve chart-source annotation references still stored as UUIDs on an
+    imported chart, dropping the ones that are not in ``chart_ids``.
+
+    Charts returned unchanged by ``import_chart`` only hold integer IDs, so
+    this is a no-op for them.
+    """
+    try:
+        params = json.loads(chart.params or "{}")
+    except json.JSONDecodeError:
+        params = None
+    query_context = _load_query_context(chart.query_context)
+
+    if _resolve_deferred_annotation_lists(
+        get_annotation_layer_lists(params, None), chart_ids, chart.uuid
+    ):
+        chart.params = json.dumps(params)
+    if _resolve_deferred_annotation_lists(
+        get_annotation_layer_lists(None, query_context), chart_ids, chart.uuid
+    ):
+        chart.query_context = json.dumps(query_context)
+
+
+def _resolve_deferred_annotation_lists(
+    annotation_lists: list[list[dict[str, Any]]],
+    chart_ids: dict[str, int],
+    chart_uuid: Any = None,
+) -> bool:
+    """Rewrite chart-source UUIDs in place; return whether anything changed."""
+    changed = False
+    for annotation_layers in annotation_lists:
+        resolved: list[dict[str, Any]] = []
+        for annotation in annotation_layers:
+            value = annotation.get("value")
+            if annotation.get(
+                "sourceType"
+            ) in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+                value, str
+            ):
+                changed = True
+                if value not in chart_ids:
+                    _warn_dropped_annotation(
+                        chart_uuid,
+                        annotation,
+                        f"source chart {value} wasn't imported",
+                    )
+                    continue
+                annotation["value"] = chart_ids[value]
+            resolved.append(annotation)
+        annotation_layers[:] = resolved
+    return changed
+
+
+def _resolve_uuid_to_id(
+    uuid_value: str,
+    id_map: dict[str, int] | None,
+    model: type,
+) -> int | None:
+    """Resolve a UUID to a local integer ID using a map or DB fallback."""
+    if id_map and uuid_value in id_map:
+        return id_map[uuid_value]
+    try:
+        parsed_uuid = UUID(uuid_value)
+    except ValueError:
+        return None
+    obj = db.session.query(model).filter_by(uuid=parsed_uuid).first()
+    return obj.id if obj else None
+
+
+def _warn_dropped_annotation(
+    chart_uuid: Any, annotation: dict[str, Any], why: str
+) -> None:
+    logger.warning(
+        "Import of chart %s drops annotation %r: %s",
+        chart_uuid,
+        annotation.get("name"),
+        why,
+    )
+
+
+def _resolve_annotation_list(
+    annotations: list[dict[str, Any]],
+    annotation_layer_ids: dict[str, int] | None,
+    chart_ids: dict[str, int] | None,
+    pending_chart_uuids: set[str] | None = None,
+    chart_uuid: Any = None,
+) -> None:
+    """
+    Resolve UUID values to integer IDs in-place for an annotation list.
+
+    - FORMULA: kept unchanged (no DB reference)
+    - NATIVE: UUID resolved to AnnotationLayer.id
+    - table/line: UUID resolved to the referenced Chart.id; UUIDs of charts
+      still pending in the same bundle are kept for a later pass
+    - anything else is dropped, including integer IDs from bundles exported
+      before UUIDs were written, since those IDs belong to another instance
+
+    Every dropped annotation is logged with a warning.
+    """
+    resolved_annotations: list[dict[str, Any]] = []
+    for annotation in annotations:
+        if annotation.get("annotationType") == AnnotationType.FORMULA:
+            resolved_annotations.append(annotation)
+            continue
+        source_type = annotation.get("sourceType")
+        value = annotation.get("value")
+        if isinstance(value, int):
+            _warn_dropped_annotation(
+                chart_uuid,
+                annotation,
+                f"integer reference {value} from an older export points at the "
+                "source instance",
+            )
+            continue
+        if not isinstance(value, str):
+            _warn_dropped_annotation(chart_uuid, annotation, "it has no reference")
+            continue
+        if source_type == "NATIVE":
+            layer_id = _resolve_uuid_to_id(value, annotation_layer_ids, AnnotationLayer)
+            if layer_id is not None:
+                annotation["value"] = layer_id
+                resolved_annotations.append(annotation)
+            else:
+                _warn_dropped_annotation(
+                    chart_uuid,
+                    annotation,
+                    f"annotation layer {value} is neither in the bundle nor here",
+                )
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
+            ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
+            if ref_chart_id is not None:
+                annotation["value"] = ref_chart_id
+                resolved_annotations.append(annotation)
+            elif pending_chart_uuids and value in pending_chart_uuids:
+                resolved_annotations.append(annotation)
+            else:
+                _warn_dropped_annotation(
+                    chart_uuid,
+                    annotation,
+                    f"source chart {value} is neither in the bundle nor here",
+                )
+        else:
+            _warn_dropped_annotation(
+                chart_uuid, annotation, f"unknown source type {source_type!r}"
+            )
+    annotations[:] = resolved_annotations
+
+
+def _resolve_query_context_annotations(
+    config: dict[str, Any],
+    annotation_layer_ids: dict[str, int] | None,
+    chart_ids: dict[str, int] | None,
+    pending_chart_uuids: set[str] | None = None,
+) -> None:
+    """Resolve annotation UUIDs to IDs in query_context (in-place)."""
+    query_context = _load_query_context(config.get("query_context"))
+    if not isinstance(query_context, dict):
+        return
+    for annotation_layers in get_annotation_layer_lists(None, query_context):
+        _resolve_annotation_list(
+            annotation_layers,
+            annotation_layer_ids,
+            chart_ids,
+            pending_chart_uuids,
+            chart_uuid=config.get("uuid"),
+        )
+    config["query_context"] = json.dumps(query_context)
