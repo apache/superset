@@ -30,6 +30,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.daos.dashboard import _layout_chart_id
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
@@ -54,12 +55,11 @@ def _get_layout_chart_ids(positions: dict[str, Any]) -> frozenset[int]:
     the copy will have no charts regardless of the source's ``slices``
     relationship.
     """
+    chart_id: int | None
     return frozenset(
-        value["meta"]["chartId"]
+        chart_id
         for value in positions.values()
-        if isinstance(value, dict)
-        and value.get("type") == "CHART"
-        and value.get("meta", {}).get("chartId")
+        if (chart_id := _layout_chart_id(value)) is not None
     )
 
 
@@ -310,6 +310,7 @@ async def duplicate_dashboard(
         DashboardCopyError,
         DashboardForbiddenError,
         DashboardInvalidError,
+        DashboardLayoutInvalidError,
     )
 
     try:
@@ -387,6 +388,13 @@ async def duplicate_dashboard(
             error=(
                 f"You don't have permission to duplicate dashboard "
                 f"'{request.dashboard_id}'."
+            ),
+        )
+    except DashboardLayoutInvalidError:
+        return DuplicateDashboardResponse(
+            error=(
+                "The source dashboard layout contains invalid chart references. "
+                "Repair the source layout before duplicating the dashboard."
             ),
         )
     except DashboardInvalidError:
