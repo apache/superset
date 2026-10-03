@@ -835,3 +835,163 @@ test('WS mode: the last-chance catch-up before give-up recovers a missed complet
   expect(refetch).toHaveBeenCalledTimes(1);
   jest.useRealTimers();
 });
+
+const incompleteGuidance =
+  'The semantic layer returned only part of this query result. Narrow the time range or selected dimensions, or request a smaller explicit row limit, then retry. Result pagination is not supported yet.';
+const unverifiedGuidance =
+  'The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection.';
+const taskFailure = (reason: unknown) => ({
+  result: {
+    status: 'failure',
+    task_type: 'superset.query_object_v1',
+    payload: { semantic_result_error: reason },
+    properties: { error_message: 'PRIVATE SQL/token/provider payload' },
+  },
+});
+
+test.each([
+  ['incomplete', incompleteGuidance],
+  ['unverified', unverifiedGuidance],
+])(
+  'shows safe %s guidance from authorized task details',
+  async (reason, message) => {
+    fetchMock.get('glob:*/api/v1/task/task-1', taskFailure(reason));
+    queueStatuses({ 'task-1': { status: 'failure' } });
+    asyncEvent.init(config);
+    const refetch = jest.fn();
+    await expect(
+      asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+    ).rejects.toMatchObject({ message });
+    expect(refetch).not.toHaveBeenCalled();
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/task/task-1'),
+    ).toHaveLength(1);
+  },
+);
+
+test.each([
+  ['unknown', taskFailure('PRIVATE'), taskFailure('incomplete')],
+  ['mixed', taskFailure('incomplete'), taskFailure('unverified')],
+  ['denied', { status: 403 }, taskFailure('incomplete')],
+  ['missing', { status: 404 }, taskFailure('incomplete')],
+  [
+    'wrong task type',
+    { result: { ...taskFailure('incomplete').result, task_type: 'other' } },
+    taskFailure('incomplete'),
+  ],
+  [
+    'wrong status',
+    { result: { ...taskFailure('incomplete').result, status: 'success' } },
+    taskFailure('incomplete'),
+  ],
+  ['malformed', { result: null }, taskFailure('incomplete')],
+])(
+  'keeps generic guidance for %s errors without revealing raw text',
+  async (_name, first, second) => {
+    fetchMock.get('glob:*/api/v1/task/task-1', first);
+    fetchMock.get('glob:*/api/v1/task/task-2', second);
+    queueStatuses({
+      'task-1': { status: 'failure' },
+      'task-2': { status: 'failure' },
+    });
+    asyncEvent.init(config);
+    await expect(
+      asyncEvent.waitForAsyncData(
+        { task_ids: ['task-1', 'task-2'] },
+        jest.fn(),
+      ),
+    ).rejects.toMatchObject({
+      message: 'One or more chart-data queries failed',
+    });
+  },
+);
+
+test.each(['abort', 'init'])(
+  'ignores late error details after %s',
+  async action => {
+    let finishDetail!: (value: ReturnType<typeof taskFailure>) => void;
+    let detailStarted!: () => void;
+    const started = new Promise<void>(resolve => {
+      detailStarted = resolve;
+    });
+    fetchMock.get('glob:*/api/v1/task/task-1', () => {
+      detailStarted();
+      return new Promise<ReturnType<typeof taskFailure>>(resolve => {
+        finishDetail = resolve;
+      });
+    });
+    queueStatuses({ 'task-1': { status: 'failure' } });
+    asyncEvent.init(config);
+    const controller = new AbortController();
+    const refetch = jest.fn();
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+      controller.signal,
+    );
+    const rejection = expect(promise).rejects.toThrow('Aborted');
+    await started;
+    if (action === 'abort') controller.abort();
+    else asyncEvent.init(config);
+    finishDetail(taskFailure('incomplete'));
+    await rejection;
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);
+
+test('bounds an unavailable task detail without displaying provider errors', async () => {
+  jest.useFakeTimers();
+  fetchMock.get('glob:*/api/v1/task/task-1', taskFailure('incomplete'), {
+    delay: 60_000,
+  });
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const rejection = expect(promise).rejects.toThrow(
+    'One or more chart-data queries failed',
+  );
+  await jest.advanceTimersByTimeAsync(5100);
+  await rejection;
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test('realtime failure uses the same protected detail and safe guidance', async () => {
+  fetchMock.get('glob:*/api/v1/task/task-1', taskFailure('incomplete'));
+  queueStatuses();
+  asyncEvent.init(wsConfig);
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+  await expect(promise).rejects.toThrow(incompleteGuidance);
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['success', incompleteGuidance, 1],
+  ['timed_out', 'One or more chart-data queries failed', 0],
+])(
+  'combines completeness failure with %s status safely',
+  async (status, message, detailCalls) => {
+    fetchMock.get('glob:*/api/v1/task/task-1', taskFailure('incomplete'));
+    queueStatuses({
+      'task-1': { status: 'failure' },
+      'task-2': { status },
+    });
+    asyncEvent.init(config);
+    const refetch = jest.fn();
+    await expect(
+      asyncEvent.waitForAsyncData({ task_ids: ['task-1', 'task-2'] }, refetch),
+    ).rejects.toMatchObject({ message });
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/task/task-1'),
+    ).toHaveLength(detailCalls);
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);

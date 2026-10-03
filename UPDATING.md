@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise `SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified; these failures do not publish a
+  successful async result cache key. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
