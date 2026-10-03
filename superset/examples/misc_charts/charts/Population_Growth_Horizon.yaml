@@ -1,0 +1,70 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
+description: Annual population growth rate (%) for the 20 most populous countries, 1960-2014.
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - China
+    - India
+    - United States
+    - Indonesia
+    - Brazil
+    - Pakistan
+    - Nigeria
+    - Bangladesh
+    - Russian Federation
+    - Japan
+    - Mexico
+    - Philippines
+    - Ethiopia
+    - Vietnam
+    - Egypt, Arab Rep.
+    - Germany
+    - Iran, Islamic Rep.
+    - Turkey
+    - Congo, Dem. Rep.
+    - Thailand
+    expressionType: SIMPLE
+    operator: IN
+    subject: country_name
+  contribution: false
+  granularity_sqla: year
+  groupby:
+  - country_name
+  horizon_color_scale: series
+  metrics:
+  - aggregate: AVG
+    column:
+      column_name: SP_POP_GROW
+    expressionType: SIMPLE
+    label: Population growth (%)
+    optionName: metric_pop_growth_horizon
+  order_desc: true
+  row_limit: 5000
+  series_height: '25'
+  time_range: No filter
+  viz_type: horizon
+query_context: null
+slice_name: Population Growth Horizon
+uuid: 11c9b341-7bb0-4340-be49-9d9889a7152a
+version: 1.0.0
+viz_type: horizon

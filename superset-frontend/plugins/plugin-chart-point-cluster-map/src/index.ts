@@ -20,10 +20,10 @@ import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
-import example1 from './images/MapBox.jpg';
-import example1Dark from './images/MapBox-dark.jpg';
-import example2 from './images/MapBox2.jpg';
-import example2Dark from './images/MapBox2-dark.jpg';
+import example1 from './images/custom_thumb_MapBox.jpg';
+import example1Dark from './images/custom_thumb_MapBox-dark.jpg';
+import example2 from './images/custom_thumb_MapBox2.jpg';
+import example2Dark from './images/custom_thumb_MapBox2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
