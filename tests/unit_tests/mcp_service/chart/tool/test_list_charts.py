@@ -21,12 +21,17 @@ Tests for the list_charts request schema
 
 import importlib
 from copy import copy
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
+from superset.daos.base import ColumnOperatorEnum
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
@@ -210,6 +215,7 @@ class TestListChartsRequestSchema:
             ValueError,
             match=(
                 "Input should be 'slice_name', 'viz_type', 'datasource_name', "
+                "'datasource_id', "
                 "'editor', 'created_by_fk', 'changed_by_fk' or 'dashboards'"
             ),
         ):
@@ -459,3 +465,142 @@ async def test_list_charts_invalid_order_column_raises_tool_error(
             )
         assert "Invalid order_column" in str(excinfo.value)
     mock_list.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("opr", "value", "expected_ids"),
+    [
+        ("eq", 10, [1, 2]),
+        ("ne", 10, [3, 4]),
+        ("in", [10, 30], [1, 2, 4]),
+        ("nin", [10, 30], [3]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_list_charts_datasource_id_filter(
+    mcp_server: Any, opr: str, value: int | list[int], expected_ids: list[int]
+) -> None:
+    """Dataset filters reach the DAO and use its SQL column operators."""
+    from superset.daos.chart import ChartDAO
+    from superset.models.slice import Slice
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    Slice.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            Slice.__table__.insert(),
+            [
+                {"id": 1, "datasource_id": 10},
+                {"id": 2, "datasource_id": 10},
+                {"id": 3, "datasource_id": 20},
+                {"id": 4, "datasource_id": 30},
+            ],
+        )
+
+        def list_filtered(**kwargs: Any) -> tuple[list[Slice], int]:
+            filters = kwargs["column_operators"]
+            assert len(filters) == 1
+            assert filters[0].col == "datasource_id"
+            assert filters[0].opr.value == opr
+            assert filters[0].value == value
+            query = ChartDAO.apply_column_operators(
+                session.query(Slice.id, Slice.datasource_id), filters
+            )
+            charts = [
+                Slice(id=row.id, datasource_id=row.datasource_id)
+                for row in query.order_by(Slice.id).all()
+            ]
+            return charts, len(charts)
+
+        with (
+            patch("superset.daos.chart.ChartDAO.list", side_effect=list_filtered),
+            patch.object(
+                list_charts_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "list_charts",
+                    {
+                        "request": {
+                            "filters": [
+                                {"col": "datasource_id", "opr": opr, "value": value}
+                            ],
+                            "select_columns": ["id", "datasource_id"],
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert [chart["id"] for chart in data["charts"]] == expected_ids
+        assert data["total_count"] == len(expected_ids)
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "opr",
+    [
+        operator.value
+        for operator in ColumnOperatorEnum
+        if operator.value not in {"eq", "ne", "in", "nin"}
+    ],
+)
+def test_datasource_id_rejects_unsupported_operators(opr: str) -> None:
+    """An ID supports equality and membership, not text or range operators."""
+    with pytest.raises(ValueError, match="datasource_id.*eq, ne, in, nin"):
+        ChartFilter(col="datasource_id", opr=opr, value=10)
+
+
+@pytest.mark.parametrize(
+    ("opr", "value"),
+    [
+        ("eq", [10]),
+        ("ne", [10]),
+        ("in", 10),
+        ("nin", 10),
+        ("eq", "10"),
+        ("eq", True),
+        ("eq", 10.5),
+        ("in", [10, "20"]),
+    ],
+)
+def test_datasource_id_rejects_invalid_values(opr: str, value: Any) -> None:
+    """Dataset ID filters require an integer or an integer list by operator."""
+    with pytest.raises(ValueError, match="datasource_id.*integer"):
+        ChartFilter(col="datasource_id", opr=opr, value=value)
+
+
+def test_datasource_id_filter_description() -> None:
+    """The filter schema explains how to find charts on dataset X."""
+    col = ChartFilter.model_json_schema()["properties"]["col"]
+    assert "datasource_id" in col["enum"]
+    assert "charts on dataset X" in col["description"]
+
+
+@pytest.mark.asyncio
+async def test_datasource_id_filter_preserves_metadata_privacy(mcp_server: Any) -> None:
+    """Dataset filters cannot bypass the existing data-model metadata gate."""
+    with (
+        patch.object(
+            list_charts_module, "user_can_view_data_model_metadata", return_value=False
+        ),
+        patch("superset.daos.chart.ChartDAO.list") as list_dao,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_charts",
+                {
+                    "request": {
+                        "filters": [{"col": "datasource_id", "opr": "eq", "value": 10}]
+                    }
+                },
+            )
+    assert (
+        json.loads(result.content[0].text)["error_type"]
+        == DATA_MODEL_METADATA_ERROR_TYPE
+    )
+    list_dao.assert_not_called()

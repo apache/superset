@@ -695,6 +695,7 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "datasource_id",
         "editor",
         "created_by_fk",
         "changed_by_fk",
@@ -702,7 +703,10 @@ class ChartFilter(ColumnOperator):
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. To filter by a person, first call find_users "
+        "available filter columns. To find charts on dataset X, filter by "
+        "'datasource_id' with the integer dataset ID using eq or ne, or a "
+        "list of integer IDs using in or nin. Other operators are rejected. "
+        "To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
         "changed_by_fk with that integer ID. To find charts attached to a "
         "specific dashboard, filter by 'dashboards' with an integer "
@@ -718,6 +722,27 @@ class ChartFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def validate_datasource_id_filter(self) -> Self:
+        """Restrict dataset ID filters to integer equality and membership."""
+        if self.col != "datasource_id":
+            return self
+        if self.opr not in (
+            ColumnOperatorEnum.eq,
+            ColumnOperatorEnum.ne,
+            ColumnOperatorEnum.in_,
+            ColumnOperatorEnum.nin,
+        ):
+            raise ValueError("datasource_id supports only eq, ne, in, nin operators")
+        if self.opr in (ColumnOperatorEnum.in_, ColumnOperatorEnum.nin):
+            if not isinstance(self.value, list) or not all(
+                type(value) is int for value in self.value
+            ):
+                raise ValueError("datasource_id in/nin requires a list of integer IDs")
+        elif type(self.value) is not int:
+            raise ValueError("datasource_id eq/ne requires a single integer ID")
+        return self
 
 
 class ChartList(PaginatedResponse[ChartFilter]):
