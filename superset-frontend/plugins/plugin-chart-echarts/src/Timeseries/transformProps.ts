@@ -494,8 +494,16 @@ export default function transformProps(
   // keep their raw names (verbose mapping only applies to an exact metric
   // label), and must be excluded too so a sort-only metric is neither
   // rendered as series nor counted in stacked totals.
+  // The scatter dot-size metric is also queried as an extra metric when it
+  // doubles as the sort target; it must stay in the extracted series so the
+  // size lookup can read it (it is hidden from rendering separately).
+  const scatterSizeLabel =
+    seriesType === EchartsTimeseriesSeriesType.Scatter && size
+      ? getMetricLabel(size)
+      : undefined;
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
     .map(getMetricLabel)
+    .filter(label => label !== scatterSizeLabel)
     .flatMap(label => [verboseMap[label] ?? label, ...pivotedColumnsOf(label)]);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
