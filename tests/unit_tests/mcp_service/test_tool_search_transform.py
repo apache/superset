@@ -392,12 +392,11 @@ def test_truncate_description_cuts_at_sentence():
     assert result == "First sentence. Second sentence."
 
 
-def test_truncate_description_ellipsis_fallback():
-    """When no sentence boundary, truncates with ellipsis."""
+def test_truncate_description_without_sentence_boundary() -> None:
+    """Omit prose rather than advertising a partial instruction."""
     text = "A very long single sentence without periods that goes on and on"
     result = _truncate_description(text, 30)
-    assert result.endswith("...")
-    assert len(result) <= 33  # 30 + "..."
+    assert result == ""
 
 
 def test_truncate_description_empty():
@@ -405,14 +404,77 @@ def test_truncate_description_empty():
     assert _truncate_description("", 300) == ""
 
 
-def test_truncate_description_zero_max():
-    """Zero max_length produces ellipsis; the serializer skips calling this."""
+def test_truncate_description_zero_max() -> None:
+    """No prose remains when schema instructions consume the entire budget."""
     text = "Some text"
-    # _truncate_description(text, 0) truncates to 0 chars and appends "...".
-    # The caller (_create_search_result_serializer) skips calling it when
-    # max_desc=0 so this edge case only matters for direct callers.
     result = _truncate_description(text, 0)
-    assert result == "..."
+    assert result == ""
+
+
+@pytest.mark.parametrize("limit", [1, 2, 20, 300])
+def test_truncate_description_oversized(limit: int) -> None:
+    """Oversized prose never exceeds even a very small configured budget."""
+    assert _truncate_description("x" * 100_000, limit) == ""
+
+
+def test_truncate_description_multiline_sentence() -> None:
+    """A newline after punctuation is a sentence boundary too."""
+    assert _truncate_description(
+        "First sentence.\nA long instruction follows.", 20
+    ) == ("First sentence.")
+
+
+@pytest.mark.parametrize("marker", ["IMPORTANT:", "**IMPORTANT**:"])
+def test_truncate_description_important_block_sentence(marker: str) -> None:
+    """Do not advertise a half instruction when the cut falls in an IMPORTANT block."""
+    prefix = f"Summary.\n\n{marker} First rule."
+    text = prefix + "\n" + "An instruction too long for the remaining budget " * 100
+    assert _truncate_description(text, 100) == "Summary."
+
+
+def test_truncate_description_spends_budget_on_next_paragraph_sentences() -> None:
+    """A following prose paragraph contributes the complete sentences that fit."""
+    text = (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name). "
+        + "A long trailing sentence that cannot fit in the budget. " * 5
+    )
+    assert _truncate_description(text, 70) == (
+        "Delete a saved chart.\n\nIdentify the chart by ID (NOT name)."
+    )
+
+
+@pytest.mark.parametrize(
+    "following",
+    [
+        "Workflow:\n1. First step.\n2. Second step that is far too long " + "x" * 80,
+        "Steps follow.\n- First item.\n- Second item " + "x" * 80,
+        "Parameters:\n    None. Long text " + "x" * 80,
+    ],
+)
+def test_truncate_description_never_starts_structured_paragraph(
+    following: str,
+) -> None:
+    """Lists and headings after the kept paragraphs are never partly advertised."""
+    assert _truncate_description(f"Summary.\n\n{following}", 60) == "Summary."
+
+
+def test_truncate_description_drops_trailing_lead_in_sentence() -> None:
+    """A kept paragraph ending in a colon must not advertise a cut-off list."""
+    text = "Edit things. An LLM can:\n\n- first\n- second\n\n" + "x" * 300
+    assert _truncate_description(text, 30) == "Edit things."
+
+
+def test_truncate_description_keeps_lone_lead_in_sentence() -> None:
+    """With no earlier sentence, the colon-terminated text is left untouched."""
+    assert _truncate_description("An LLM can:\n\n- first\n\n" + "x" * 300, 15) == (
+        "An LLM can:"
+    )
+
+
+def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
+    """An overlong first paragraph still yields its complete leading sentences."""
+    text = "Purpose line. " + "More detail here. " * 20 + "\n\nSecond paragraph."
+    assert _truncate_description(text, 40) == "Purpose line. More detail here."
 
 
 # -- _create_search_result_serializer tests --
