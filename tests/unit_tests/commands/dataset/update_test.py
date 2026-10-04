@@ -1443,6 +1443,37 @@ def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
+    ],
+    ids=["set-operation", "multi-statement", "bare-from"],
+)
+def test_a_transform_that_is_the_wrong_sql_still_reaches_the_gate(
+    mocker: MockerFixture, transform: str
+) -> None:
+    """
+    The companion to the test above, and the reason the skip condition is "not
+    SQL yet" rather than "does not parse". All three of these fail to parse as
+    a single statement, exactly as a half-typed transform does -- so a skip
+    keyed on parseability would have waved them through. None of them is on the
+    way to a valid transform.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, transform)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    # Either the shape issue reports it or the gate does; what matters is that
+    # it is not silently accepted the way an unfinished transform is.
+    assert exceptions or gate.called
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
     """
     Skipping the gate for unparseable transforms is not a hole for templating:

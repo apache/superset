@@ -41,6 +41,7 @@ from superset.connectors.sqla.partition_mapping import (
     GRAIN_BUCKET_WIDTHS,
     is_bare_expression,
     is_parseable,
+    is_unfinished,
     is_transform_active,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
@@ -799,6 +800,30 @@ def test_a_transform_that_is_not_a_storable_expression_never_runs(
         assert evaluate_transform(database, None, None, transform, ["us"]) is None
 
     _probe(database).assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "transform, unfinished",
+    [
+        ("unix_timestamp(:value", True),
+        ("unix_timestamp(:value))", True),
+        ("unix_timestamp(:value) +", True),
+        ("unix_timestamp(:value)", False),
+        ("unix_timestamp(:value); DROP TABLE ab_user", False),
+        ("unix_timestamp(:value) UNION ALL SELECT password FROM ab_user", False),
+        ("password || :value FROM ab_user", False),
+    ],
+)
+def test_is_unfinished_separates_not_sql_yet_from_the_wrong_sql(
+    transform: str, unfinished: bool
+) -> None:
+    """
+    The two deserve opposite treatment -- a half-typed transform is stored and
+    parked inactive, the wrong SQL is refused -- and neither `is_parseable` nor
+    parsing as a single statement tells them apart, because the multi-statement
+    form fails both exactly as unfinished text does. Parsing as a script does.
+    """
+    assert is_unfinished(transform, "hive") is unfinished
 
 
 def test_a_transform_smuggling_its_own_from_clause_is_refused(app: Flask) -> None:
