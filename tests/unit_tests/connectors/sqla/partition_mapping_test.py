@@ -26,10 +26,12 @@ import pandas as pd
 import pytest
 from dateutil.relativedelta import relativedelta
 from flask import Flask
+from sqlalchemy.dialects import mysql, postgresql
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
+    _render_literal,
     build_probe_sql,
     contains_jinja,
     contains_value_placeholder,
@@ -535,6 +537,20 @@ def _database_returning(values: list[Any]) -> Database:
     return database
 
 
+def _database_returning_frame(frame: pd.DataFrame) -> Database:
+    """
+    ``_database_returning`` for a probe result whose column dtypes matter.
+
+    The flat-list sibling builds its frame from one Python list, so pandas
+    infers a single dtype and the row-versus-cell distinction cannot be seen.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        return_value=frame
+    )
+    return database
+
+
 def _probe(database: Database) -> MagicMock:
     """
     The stubbed ``get_df``, typed for call assertions.
@@ -636,6 +652,67 @@ def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
     )
     assert OracleEngineSpec.select_without_from_suffix == " FROM DUAL"
     assert BaseEngineSpec.select_without_from_suffix == ""
+
+
+@pytest.mark.parametrize("dialect", [mysql.dialect(), postgresql.dialect()])
+def test_the_probe_select_does_not_double_percent_signs(dialect: Any) -> None:
+    """
+    `TextClause` compilation runs the dialect's `post_process_text`, which
+    doubles every `%` on any paramstyle whose DBAPI later interpolates
+    parameters -- MySQL and Postgres, and every spec inheriting from them. The
+    probe has no such interpolation pass: it executes with no bound parameters
+    at all. Left doubled, `date_format(:value, '%Y%m%d')` asks the warehouse
+    for the literal string `%%Y%%m%%d`, so the probe returns that instead of a
+    date and the mirrored predicate drops every row the filter keeps.
+    """
+    sql = build_probe_sql("date_format(:value, '%Y%m%d')", ["2026-01-15"], dialect)
+
+    assert "'%Y%m%d'" in sql
+    assert "%%" not in sql
+
+
+def test_the_probe_select_is_unchanged_on_a_dialect_that_does_not_double() -> None:
+    """
+    Pins the no-dialect path, which is also the blind spot: the default dialect
+    does not double percent signs, so no assertion made through it can see the
+    bug the two cases above cover.
+    """
+    assert (
+        build_probe_sql("date_format(:value, '%Y%m%d')", ["2026-01-15"])
+        == "SELECT date_format('2026-01-15', '%Y%m%d') AS v0"
+    )
+
+
+def test_a_probed_literal_keeps_its_percent_sign(app: Flask) -> None:
+    """
+    The preview panel renders probed values through the same dialect, so a
+    value that merely contains a `%` would be shown doubled.
+    """
+    database = Database(database_name="pct_db", sqlalchemy_uri="postgresql://h/d")
+
+    with app.app_context():
+        assert _render_literal(database, "100%") == "'100%'"
+
+
+def test_the_probe_reads_each_cell_without_row_wide_dtype_coercion(
+    app: Flask,
+) -> None:
+    """
+    A row is a Series, so it carries one dtype across every probe column: a row
+    mixing an exact int64 with a float unifies to float64 and an integer
+    partition key above 2^53 comes back rounded. The mirror then asks for a key
+    the warehouse does not hold, and the row the filter matched is dropped.
+    """
+    database = _database_returning_frame(
+        pd.DataFrame({"v0": [9007199254740993], "v1": [1.5]})
+    )
+
+    with app.app_context():
+        probed = evaluate_transform(
+            database, None, None, "CAST(:value AS NUMERIC)", ["9007199254740993", "1.5"]
+        )
+
+    assert probed == [9007199254740993, 1.5]
 
 
 def test_evaluate_transform_pins_catalog_and_schema(app: Flask) -> None:

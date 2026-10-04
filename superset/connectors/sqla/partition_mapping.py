@@ -554,11 +554,7 @@ def build_probe_sql(
     selections = []
     for index, value in enumerate(values):
         clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
-        compiled = clause.compile(
-            dialect=dialect,
-            compile_kwargs={"literal_binds": True},
-        )
-        selections.append(f"{compiled} AS v{index}")
+        selections.append(f"{_compile_literal(clause, dialect)} AS v{index}")
     return "SELECT " + ", ".join(selections) + from_suffix
 
 
@@ -655,8 +651,8 @@ def _run_probe(
                 "Partition transform probe returned no rows; skipping mirroring"
             )
             return None
-        row = frame.iloc[0]
-        if len(row) != len(distinct):
+        column_count = frame.shape[1]
+        if column_count != len(distinct):
             # The results cannot be aligned back to their inputs; skipping
             # beats guessing which value produced which column. Too *many*
             # columns is the dangerous direction and the reason this is `!=`
@@ -669,11 +665,19 @@ def _run_probe(
             # that predates the check.
             logger.warning(
                 "Partition transform probe returned %d values for %d inputs",
-                len(row),
+                column_count,
                 len(distinct),
             )
             return None
-        return [_to_python_scalar(row.iloc[index]) for index in range(len(distinct))]
+        # Cell-wise rather than through `frame.iloc[0]`. A row is a Series, so
+        # it carries one dtype for every probe column: a row mixing an exact
+        # int64 with a float unifies to float64, and an integer partition key
+        # above 2^53 comes back rounded. `_to_python_scalar` converts
+        # faithfully but runs after the loss, so the mirror asks for a key the
+        # warehouse does not hold and drops the row the filter matched.
+        return [
+            _to_python_scalar(frame.iat[0, index]) for index in range(len(distinct))
+        ]
     except Exception as ex:  # pylint: disable=broad-except
         logger.warning(
             "Partition transform probe failed; queries will not prune",
@@ -767,6 +771,34 @@ def _cache_set(key: str, value: list[Any]) -> None:
         cache_manager.cache.set(key, value, timeout=timeout)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not cache partition transform probe", exc_info=True)
+
+
+def _compile_literal(element: Any, dialect: Dialect | None) -> str:
+    """
+    Compile with inline literals, undoing the paramstyle's percent doubling.
+
+    Both ``TextClause`` and literal compilation run the dialect's
+    ``post_process_text``, which doubles every ``%`` whenever the identifier
+    preparer asks it to -- true for MySQL and Postgres and for every spec
+    inheriting their paramstyle. That doubling exists so a later DBAPI
+    parameter-interpolation pass can undo it, and the probe has no such pass:
+    it executes with no bound parameters at all. So a transform of
+    ``date_format(:value, '%Y%m%d')`` reaches the warehouse asking for the
+    literal string ``%%Y%%m%%d``, the probe returns that instead of a date, and
+    the mirrored predicate drops every row the filter keeps.
+
+    The same normalization ``Database.compile_sqla_query`` applies for the same
+    reason. ``_double_percents`` is private and not guaranteed on a third-party
+    dialect, hence the ``getattr`` default.
+    """
+    compiled = str(
+        element.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+    if dialect is not None and getattr(
+        dialect.identifier_preparer, "_double_percents", False
+    ):
+        compiled = compiled.replace("%%", "%")
+    return compiled
 
 
 def _dialect_for(database: Database) -> Dialect | None:
@@ -1166,11 +1198,8 @@ def _render_predicate(datasource: SqlaTable, predicate: ColumnElement[Any]) -> s
     Every value in it is a probed constant by this point, so ``literal_binds``
     renders the same literals the chart query carries.
     """
-    return str(
-        predicate.compile(
-            dialect=_dialect_for(datasource.database),
-            compile_kwargs={"literal_binds": True},
-        )
+    return _compile_literal(
+        predicate, _dialect_for(datasource.database)
     ).replace("\n", " ")
 
 
@@ -1183,12 +1212,7 @@ def _render_literal(database: Database, value: Any) -> str:
     is SQL, and hand-rolled quote-doubling would only ever have been right for
     strings.
     """
-    return str(
-        sa.literal(value).compile(
-            dialect=_dialect_for(database),
-            compile_kwargs={"literal_binds": True},
-        )
-    )
+    return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
 def build_mirrored_predicates(
