@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast, ClassVar
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _big_number_chart_what,
@@ -278,22 +278,17 @@ class BigNumberChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        if viz_type != self.TRENDLINE_VIZ_TYPE:
+        if viz_type not in self.native_viz_types:
+            # Period-over-period KPIs use the shared singular-metric query.
             return None
         from superset.mcp_service.chart.chart_helpers import (
-            build_single_query_dict,
+            build_big_number_query_dicts,
         )
 
-        metrics, columns = cast(
-            tuple[list[Any], list[Any]],
-            self.resolve_query_fields(form_data, viz_type),
+        return build_big_number_query_dicts(
+            form_data,
+            trendline=viz_type == self.TRENDLINE_VIZ_TYPE,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
         )
-        return [
-            build_single_query_dict(
-                form_data,
-                columns,
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        ]

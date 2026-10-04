@@ -50,6 +50,7 @@ class GanttChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gantt_chart": "Gantt Chart",
     }
+    owns_update_merge = True
     allows_empty_result = True
     strict_dataset_rebind = True
     resizes_saved_preview = True
@@ -254,23 +255,17 @@ class GanttChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import (
-            build_single_query_dict,
-            resolve_gantt_query_fields,
-        )
+        from superset.mcp_service.chart.chart_helpers import build_gantt_query_dicts
 
         try:
-            columns, metrics, orderby, series_columns = resolve_gantt_query_fields(
-                form_data
+            return build_gantt_query_dicts(
+                form_data,
+                engine=engine,
+                row_limit=row_limit,
+                order_desc=order_desc,
             )
         except ValueError as ex:
             raise QueryObjectValidationError(str(ex)) from ex
-        query = build_single_query_dict(
-            form_data, columns, metrics, row_limit=row_limit
-        )
-        query["orderby"] = orderby
-        query["series_columns"] = series_columns
-        return [query]
 
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
@@ -302,6 +297,7 @@ class GanttChartPlugin(BaseChartPlugin):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         from superset.mcp_service.chart.chart_utils import validate_gantt_form_data
 

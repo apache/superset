@@ -182,35 +182,12 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
         from superset.mcp_service.chart.chart_helpers import (
-            build_mixed_timeseries_secondary,
-            build_single_query_dict,
-            extract_x_axis_col,
-            resolve_metrics_and_groupby,
-            with_x_axis_column,
+            build_mixed_timeseries_query_dicts,
         )
 
-        metrics, groupby = resolve_metrics_and_groupby(form_data)
-        queries = [
-            build_single_query_dict(
-                form_data,
-                with_x_axis_column(form_data, groupby),
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            ),
-            build_mixed_timeseries_secondary(
-                form_data,
-                extract_x_axis_col(form_data),
-                engine,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            ),
-        ]
-        queries[0]["series_columns"] = groupby
-        raw_secondary_groupby = form_data.get("groupby_b") or []
-        queries[1]["series_columns"] = (
-            [raw_secondary_groupby]
-            if isinstance(raw_secondary_groupby, str)
-            else list(raw_secondary_groupby)
+        return build_mixed_timeseries_query_dicts(
+            form_data,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
         )
-        return queries

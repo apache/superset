@@ -50,9 +50,11 @@ class GaugeChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",
     }
+    owns_update_merge = True
     requires_compile_check = True
     strict_dataset_rebind = True
     requires_config_for_dataset_rebind = True
+    preserve_nonfinite_floats = True
     invalid_result_error_code = "INVALID_GAUGE_RESULT"
     invalid_result_message = "Gauge metric query returned invalid values"
 

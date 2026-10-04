@@ -85,6 +85,7 @@ HOOKS = (
     "resolve_update_config",
     "merge_update_form_data",
     "validate_merged_form_data",
+    "sanitize_data_rows",
 )
 FLAGS = (
     "requires_compile_check",
@@ -93,8 +94,13 @@ FLAGS = (
     "unbound_form_data_is_rebind",
     "normalize_data_results",
     "allows_empty_result",
+    "allows_empty_data_result",
     "resizes_saved_preview",
     "supports_column_append",
+    "temporal_json_numbers",
+    "preserve_nonfinite_floats",
+    "owns_update_merge",
+    "binds_time_range_to_temporal_filter",
 )
 
 MALFORMED_RESULTS: list[Any] = [
@@ -142,6 +148,9 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
         assert isinstance(getattr(plugin, flag), bool), flag
     assert isinstance(plugin.additional_viz_types, frozenset)
     assert plugin.preview_note is None or isinstance(plugin.preview_note, str)
+    assert plugin.table_preview_unsupported_reason is None or isinstance(
+        plugin.table_preview_unsupported_reason, str
+    )
     assert plugin.invalid_result_error_code
     assert plugin.invalid_result_message
     if plugin.normalize_data_results:
@@ -523,111 +532,193 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
 # unlike a function allowlist, this multiset rejects added or duplicated branches.
 _LEGACY_TYPE_BRANCHES = (
     (
-        "superset.mcp_service.chart.query_result: form_data.get('viz_type') != "
-        "'gauge_chart'"
+        "superset.mcp_service.chart.query_result: form_data.get('viz_type'"
+        ") != 'gauge_chart'"
     ),
     (
-        "superset.mcp_service.chart.preview_utils: {'bar': "
-        "_generate_safe_ascii_bar_chart, 'dist_bar': _generate_safe_ascii_bar_chart, "
-        "'column': _generate_safe_ascii_bar_chart, 'line': "
-        "_generate_safe_ascii_line_chart, 'area': _generate_safe_ascii_line_chart, "
-        "'pie': _generate_safe_ascii_pie_chart}"
+        "superset.mcp_service.chart.preview_utils: {'bar': _generate_safe_"
+        "ascii_bar_chart, 'dist_bar': _generate_safe_ascii_bar_chart, 'col"
+        "umn': _generate_safe_ascii_bar_chart, 'line': _generate_safe_asci"
+        "i_line_chart, 'area': _generate_safe_ascii_line_chart, 'pie': _ge"
+        "nerate_safe_ascii_pie_chart}"
     ),
     (
-        "superset.mcp_service.chart.preview_utils: {'echarts_timeseries_line': 'line', "
-        "'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
-        "'echarts_timeseries_scatter': 'point', 'bar': 'bar', 'line': 'line', 'area': "
-        "'area', 'scatter': 'point', 'pie': 'arc', 'table': 'text'}"
+        "superset.mcp_service.chart.preview_utils: {'echarts_timeseries_li"
+        "ne': 'line', 'echarts_timeseries_bar': 'bar', 'echarts_area': 'ar"
+        "ea', 'echarts_timeseries_scatter': 'point', 'bar': 'bar', 'line':"
+        " 'line', 'area': 'area', 'scatter': 'point', 'pie': 'arc', 'bulle"
+        "t': 'bar', 'table': 'text'}"
     ),
-    "superset.mcp_service.chart.preview_utils: preview_format == 'table'",
+    ("superset.mcp_service.chart.preview_utils: preview_format == 'table'"),
+    ("superset.mcp_service.chart.preview_utils: preview_format == 'table'"),
+    (
+        "superset.mcp_service.chart.preview_utils: {'bullet': {'metric': m"
+        "odel.metric_field, 'dimensions': model.dimensions, 'ranges': mode"
+        "l.ranges, 'range_labels': model.range_labels, 'markers': model.ma"
+        "rkers, 'marker_labels': model.marker_labels, 'marker_lines': mode"
+        "l.marker_lines, 'marker_line_labels': model.marker_line_labels, '"
+        "y_axis_format': model.y_axis_format, 'show_labels': model.show_la"
+        "bels, 'show_legend': model.show_legend}}"
+    ),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'"),
+    ("superset.mcp_service.chart.compile: viz_type == 'echarts_area'"),
+    (
+        "superset.mcp_service.chart.chart_utils: {'table': {'sort_by': ('o"
+        "rder_by_cols', _table_sort_value), 'column_config': ('column_conf"
+        "ig', _table_column_config_value)}, 'xy': {'group_by': ('groupby',"
+        " _column_names), 'series_limit': ('series_limit', lambda value: v"
+        "alue), 'stacked': ('stack', lambda value: 'Stack' if value else N"
+        "one), 'orientation': ('orientation', lambda value: value), 'legen"
+        "d_orientation': ('legendOrientation', lambda value: value), 'x_ax"
+        "is_time_format': ('x_axis_time_format', lambda value: value), 'ti"
+        "me_grain': ('time_grain_sqla', lambda value: value)}, 'mixed_time"
+        "series': {'group_by': ('groupby', _column_names), 'group_by_secon"
+        "dary': ('groupby_b', _column_names), 'currency_format_secondary':"
+        " ('currency_format_secondary', _currency_form_value), 'time_grain"
+        "': ('time_grain_sqla', lambda value: value)}, 'waterfall': {'time"
+        "_grain': ('time_grain_sqla', lambda value: value)}, 'big_number':"
+        " {'subheader': ('subheader', lambda value: value), 'y_axis_format"
+        "': ('y_axis_format', lambda value: value), 'time_grain': ('time_g"
+        "rain_sqla', lambda value: value), 'compare_lag': ('compare_lag', "
+        "lambda value: value), 'time_format': ('time_format', lambda value"
+        ": value), 'aggregation': ('aggregation', lambda value: value)}, '"
+        "handlebars': {'style_template': ('styleTemplate', lambda value: v"
+        "alue), 'columns': ('all_columns', _column_names), 'groupby': ('gr"
+        "oupby', _column_names), 'metrics': ('metrics', _column_names)}, '"
+        "pivot_table': {'date_format': ('date_format', lambda value: value"
+        ")}, 'interactive_pivot': {'time_grain': ('time_grain_sqla', lambd"
+        "a value: value), 'series_limit': ('series_limit', lambda value: v"
+        "alue), 'date_format': ('date_format', lambda value: value), 'colu"
+        "mn_sort': ('colOrder', lambda value: value)}}"
+    ),
     (
         "superset.mcp_service.chart.chart_utils: {'table': 'table chart', "
         "'ag-grid-table': 'interactive table chart'}"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != "
-        "'gantt_chart'"
-    ),
-    "superset.mcp_service.chart.chart_utils: viz_type == 'big_number'",
-    (
-        "superset.mcp_service.chart.chart_utils: viz_type in ['table', "
-        "'pivot_table_v2', 'ag-grid-table', 'ag-grid-pivot-table']"
+        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type')"
+        " != 'gantt_chart'"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: viz_type in "
-        "['echarts_timeseries_line', 'echarts_timeseries_bar']"
+        "superset.mcp_service.chart.chart_utils: {'xy': (('x_axis', 'x_axi"
+        "s_title', 'x_axis_format', None), ('y_axis', 'y_axis_title', 'y_a"
+        "xis_format', 'logAxis')), 'mixed_timeseries': (('x_axis', 'xAxisT"
+        "itle', 'x_axis_time_format', None), ('y_axis', 'yAxisTitle', 'y_a"
+        "xis_format', 'logAxis'), ('y_axis_secondary', 'yAxisTitleSecondar"
+        "y', 'y_axis_format_secondary', 'logAxisSecondary'))}"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line': 'Shows "
-        "trends and changes over time', 'echarts_timeseries_bar': 'Compares values "
-        "across categories or time periods', 'table': 'Displays detailed data in "
-        "tabular format', 'ag-grid-table': 'Interactive table with advanced features "
-        "like column resizing, sorting, filtering, and server-side pagination', 'pie': "
-        "'Shows proportional relationships within a dataset', 'echarts_area': "
-        "'Emphasizes cumulative totals and part-to-whole relationships', "
-        "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and aggregated "
-        "metrics for multi-dimensional analysis', 'ag-grid-pivot-table': "
-        "'Interactively cross-tabulates data with AG Grid row groups, pivot columns, "
-        "value aggregation, and side-panel reconfiguration', 'mixed_timeseries': "
-        "'Combines two different chart types on the same time axis for comparing "
-        "related metrics with different scales', 'handlebars': 'Renders data using a "
-        "custom Handlebars HTML template for fully flexible layouts like KPI cards, "
-        "leaderboards, and reports', 'big_number': 'Displays a key metric with a "
-        "trendline showing how the value changes over time', 'big_number_total': "
-        "'Highlights a single key metric value as a prominent number'}"
+        "superset.mcp_service.chart.chart_utils: config.chart_type == 'int"
+        "eractive_pivot'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'big_number'"),
+    (
+        "superset.mcp_service.chart.chart_utils: viz_type in ['table', 'pi"
+        "vot_table_v2', 'ag-grid-table', 'ag-grid-pivot-table']"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: viz_type in "
-        "['echarts_timeseries_line', 'echarts_timeseries_bar']"
+        "superset.mcp_service.chart.chart_utils: viz_type in ['echarts_tim"
+        "eseries_line', 'echarts_timeseries_bar']"
+    ),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    (
+        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line"
+        "': 'Shows trends and changes over time', 'echarts_timeseries_bar'"
+        ": 'Compares values across categories or time periods', 'table': '"
+        "Displays detailed data in tabular format', 'ag-grid-table': 'Inte"
+        "ractive table with advanced features like column resizing, sortin"
+        "g, filtering, and server-side pagination', 'pie': 'Shows proporti"
+        "onal relationships within a dataset', 'echarts_area': 'Emphasizes"
+        " cumulative totals and part-to-whole relationships', 'pivot_table"
+        "_v2': 'Cross-tabulates data with rows, columns, and aggregated me"
+        "trics for multi-dimensional analysis', 'ag-grid-pivot-table': 'In"
+        "teractively cross-tabulates data with AG Grid row groups, pivot c"
+        "olumns, value aggregation, and side-panel reconfiguration', 'mixe"
+        "d_timeseries': 'Combines two different chart types on the same ti"
+        "me axis for comparing related metrics with different scales', 'ha"
+        "ndlebars': 'Renders data using a custom Handlebars HTML template "
+        "for fully flexible layouts like KPI cards, leaderboards, and repo"
+        "rts', 'big_number': 'Displays a key metric with a trendline showi"
+        "ng how the value changes over time', 'big_number_total': 'Highlig"
+        "hts a single key metric value as a prominent number'}"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: previous_form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: viz_type in ['echarts_tim"
+        "eseries_line', 'echarts_timeseries_bar']"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_type') != "
-        "'gantt_chart'"
-    ),
-    "superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)",
-    "superset.mcp_service.chart.chart_utils: existing.get('viz_type') == 'treemap_v2'",
-    (
-        "superset/mcp_service/chart/tool/get_chart_preview.py {'url': "
-        "URLPreviewStrategy, 'ascii': ASCIIPreviewStrategy, 'table': "
-        "TablePreviewStrategy, 'vega_lite': VegaLitePreviewStrategy}"
+        "superset.mcp_service.chart.chart_utils: previous_form_data.get('v"
+        "iz_type') != 'gantt_chart'"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_preview.py {'line': "
-        "['echarts_timeseries_line', 'echarts_timeseries', "
-        "'echarts_timeseries_smooth', 'echarts_timeseries_step', 'line'], 'bar': "
-        "['echarts_timeseries_bar', 'echarts_timeseries_column', 'bar', 'column', "
-        "'waterfall'], 'area': ['echarts_area', 'area'], 'scatter': "
-        "['echarts_timeseries_scatter', 'scatter'], 'pie': ['pie'], 'big_number': "
-        "['big_number', 'big_number_total'], 'histogram': ['histogram', "
-        "'histogram_v2'], 'box_plot': ['box_plot'], 'heatmap': ['heatmap', "
-        "'heatmap_v2', 'cal_heatmap'], 'funnel': ['funnel'], 'mixed': "
-        "['mixed_timeseries'], 'table': ['table']}"
+        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_ty"
+        "pe') != 'gantt_chart'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)"),
+    (
+        "superset.mcp_service.chart.chart_utils: existing.get('viz_type') "
+        "== 'treemap_v2'"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_timeseries_line': "
-        "'line', 'echarts_timeseries_smooth': 'line', 'echarts_timeseries_step': "
-        "'line', 'echarts_timeseries': 'line', 'echarts_timeseries_bar': 'bar', "
-        "'echarts_area': 'area', 'echarts_timeseries_scatter': 'scatter', "
-        "'mixed_timeseries': 'line', 'table': 'table', 'pie': 'pie', 'big_number': "
-        "'kpi', 'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
-        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': 'bubble', "
-        "'bubble_v2': 'bubble', 'treemap_v2': 'treemap', 'sunburst_v2': 'treemap', "
-        "'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'funnel': 'funnel', "
-        "'histogram': 'histogram', 'histogram_v2': 'histogram', 'box_plot': "
-        "'box_plot', 'world_map': 'map', 'pivot_table_v2': 'table', "
-        "'ag-grid-pivot-table': 'table', 'waterfall': 'waterfall', 'gantt_chart': "
-        "'gantt'}"
+        "superset.mcp_service.chart.chart_utils: existing_form_data.get('v"
+        "iz_type') != 'bullet'"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': 'line', "
-        "'multi-line chart': 'line', 'area chart': 'area', 'bar chart': 'bar', "
-        "'scatter plot': 'scatter', 'bubble chart': 'bubble', 'pie chart': 'pie', "
-        "'treemap': 'treemap', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
-        "chart': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
+        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_ty"
+        "pe') != 'bullet'"
+    ),
+    ("superset.mcp_service.chart.chart_utils: config.chart_type == 'waterfall'"),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    ("superset.mcp_service.chart.chart_utils: config.chart_type == 'xy'"),
+    (
+        "superset.mcp_service.chart.chart_utils: isinstance(update_config,"
+        " BulletChartConfig)"
+    ),
+    ("superset.mcp_service.chart.chart_utils: viz_type == 'bullet'"),
+    (
+        "superset/mcp_service/chart/tool/get_chart_preview.py {'url': URLP"
+        "reviewStrategy, 'ascii': ASCIIPreviewStrategy, 'table': TablePrev"
+        "iewStrategy, 'vega_lite': VegaLitePreviewStrategy}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_preview.py {'line': ['e"
+        "charts_timeseries_line', 'echarts_timeseries', 'echarts_timeserie"
+        "s_smooth', 'echarts_timeseries_step', 'line'], 'bar': ['echarts_t"
+        "imeseries_bar', 'echarts_timeseries_column', 'bar', 'column', 'wa"
+        "terfall'], 'area': ['echarts_area', 'area'], 'scatter': ['echarts"
+        "_timeseries_scatter', 'scatter'], 'pie': ['pie'], 'big_number': ["
+        "'big_number', 'big_number_total'], 'histogram': ['histogram', 'hi"
+        "stogram_v2'], 'box_plot': ['box_plot'], 'heatmap': ['heatmap', 'h"
+        "eatmap_v2', 'cal_heatmap'], 'funnel': ['funnel'], 'mixed': ['mixe"
+        "d_timeseries'], 'table': ['table']}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_times"
+        "eries_line': 'line', 'echarts_timeseries_smooth': 'line', 'echart"
+        "s_timeseries_step': 'line', 'echarts_timeseries': 'line', 'echart"
+        "s_timeseries_bar': 'bar', 'echarts_area': 'area', 'echarts_timese"
+        "ries_scatter': 'scatter', 'mixed_timeseries': 'line', 'table': 't"
+        "able', 'pie': 'pie', 'big_number': 'kpi', 'big_number_total': 'kp"
+        "i', 'pop_kpi': 'kpi', 'dist_bar': 'bar', 'line': 'line', 'area': "
+        "'area', 'scatter': 'scatter', 'bubble': 'bubble', 'bubble_v2': 'b"
+        "ubble', 'bullet': 'bullet', 'treemap_v2': 'treemap', 'sunburst_v2"
+        "': 'treemap', 'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'f"
+        "unnel': 'funnel', 'histogram': 'histogram', 'histogram_v2': 'hist"
+        "ogram', 'box_plot': 'box_plot', 'world_map': 'map', 'pivot_table_"
+        "v2': 'table', 'ag-grid-pivot-table': 'table', 'waterfall': 'water"
+        "fall', 'gantt_chart': 'gantt'}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
+        "'line', 'multi-line chart': 'line', 'area chart': 'area', 'bar ch"
+        "art': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble',"
+        " 'bullet chart': 'bullet', 'pie chart': 'pie', 'treemap': 'treema"
+        "p', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge chart"
+        "': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
     ),
 )
 
@@ -681,8 +772,9 @@ def test_saved_scalar_groupby_waterfall_query(groupby: str | list[str]) -> None:
         order_desc=False,
     )
     assert queries is not None
-    assert queries[0]["columns"] == ["month", "stage"]
-    assert queries[0]["orderby"] == [("month", True), ("stage", True)]
+    assert queries[0]["columns"][0]["sqlExpression"] == "month"
+    assert queries[0]["columns"][1:] == ["stage"]
+    assert queries[0]["orderby"] == [["month", True], ["stage", True]]
 
 
 @pytest.mark.parametrize("groupby", ["stage", ["stage"]])

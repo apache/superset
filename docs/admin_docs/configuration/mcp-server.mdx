@@ -830,7 +830,9 @@ than a size-limit error. This confirmation retains identifying fields, error
 details, and short string lists such as `changed_fields` (at most 20 items and
 200 total characters). Larger lists are omitted; use `_response_truncated` and
 `_truncation_notes` to detect a partial response and re-read the object if needed.
-This fallback does not slim `update_chart`'s default payload.
+This fallback does not slim `update_chart`'s default payload. If a saved chart
+update exceeds its chart-response limit, the error retains the chart ID and
+confirms that the update was saved; do not retry the write.
 
 ### Caching
 
@@ -1279,7 +1281,7 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`, `bullet`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
 specification instead of `NoDataError`, matching their unsaved previews.
@@ -1337,6 +1339,75 @@ Disabling a plugin only stops new charts of that type from being created. Existi
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+## Bullet chart compatibility
+
+The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
+`viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
+Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
+breakdown. On updates, omission or `null` preserves the saved hierarchy; use
+`dimensions: []` to clear it explicitly. An `order_by` update can reference the
+saved dimensions without resending them; unknown targets are rejected after
+resolving the saved hierarchy. When replacing the dataset, saved-chart and
+cached-preview updates retain an omitted hierarchy only if its columns resolve
+in the replacement dataset; incompatible inherited roles and temporal-filter
+provenance are discarded.
+
+Dimension and metric output names are case-sensitive: quoted physical columns
+such as `Region` and `region` remain distinct. Reference lookup prefers exact
+names and uses case-insensitive matching only when there is a single candidate;
+ambiguous references require the exact spelling.
+
+Range, marker, and marker-line label lists may be shorter than their value lists.
+As in Explore, missing or empty range labels are not displayed, and missing or
+empty marker labels use the formatted numeric value. Extra labels have no value
+to annotate and are ignored. These rules also apply to saved-chart previews and
+updates; omitted label controls preserve the saved state.
+
+Saved native `ranges`, `markers`, and `marker_lines` controls ignore empty,
+non-numeric, and NaN tokens, matching Explore. If no numeric range remains, the
+preview uses the default band up to 110% of the largest measure. Unrelated
+updates preserve these saved controls. Newly authored typed lists must contain
+finite numbers; infinite native values and oversized controls remain errors.
+
+On same-dataset chart updates, `filters: []` clears both user filters and the
+generated dashboard-time binding. `temporal_column: null` clears only that
+generated binding, preserving user filters. Omitting those controls preserves
+the saved binding. Bullet Vega previews keep separate indexed rows even when
+dimension display labels are identical, and support both `SMART_NUMBER` and
+`SMART_NUMBER_SIGNED` number formats.
+
+### Query result limits
+
+MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`
+array emitted by Chart Data uses the same 50,000-entry limit, rather than the
+4,096-entry limit for other metadata arrays. Index entries count toward the
+shared row-data work budget and retain the 1 MiB aggregate metadata byte limit.
+Nested containers within an index entry retain the standard container limits.
+
+The shared query-result validator also enforces **non-configurable hard limits**:
+
+- **64 KiB (65,536 UTF-8 bytes) per text cell/string value**. A single
+  65,537-byte cell fails even in a one-row result. Binary cells must also fit
+  the cell limit before and after conversion to UTF-8 or a `base64:` string.
+- **16 MiB (16,777,216 bytes) of aggregate JSON-encoded result data and
+  metadata** across all queries, including escaped strings, keys, and container
+  syntax. Metadata additionally has its own 1 MiB allowance.
+
+These limits apply before rendering or exporting in `get_chart_data`,
+`get_chart_preview`, chart generation/update compile checks, `query_dataset`,
+and semantic-layer `get_table`. They include inline/table responses and MCP
+CSV, Excel, and Parquet export paths; exports do not bypass source validation.
+Exceeding either limit returns `MalformedQueryResult` rather than truncating a
+cell or partially exporting a result. Generation/update compile checks surface
+the same malformed-result reason as a chart compile error.
+Increasing the configurable response-size
+guard does not raise these hard caps. Select fewer columns/rows, shorten large
+text values in the query, or use Superset's non-MCP query/export interfaces.
+
+Trusted NumPy extended-precision floating-point values are returned as
+round-trippable decimal strings in these responses and exports, rather than
+silently narrowed to binary64. Rendering may still use binary64 values.
 
 ### Reporting query dates
 
@@ -1516,6 +1587,12 @@ Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
 base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
+
+Finite SQL Decimal values are preserved exactly and returned as JSON strings,
+including values such as `0.5` that can be represented as floats. This uniform
+contract avoids silently rounding `0.10000000000000000001` to `0.1`. Clients
+should parse these strings with a decimal-aware numeric type when needed.
+Decimal NaN, signaling NaN, and infinities remain JSON `null`.
 
 ## Chart data column counts
 

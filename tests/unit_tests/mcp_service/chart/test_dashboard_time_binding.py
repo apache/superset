@@ -29,6 +29,8 @@ from superset.mcp_service.chart.chart_utils import (
     _bind_dashboard_time_range_filter,
     adhoc_filters_to_query_filters,
     map_config_to_form_data,
+    merge_same_viz_form_data,
+    merge_update_form_data,
 )
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
@@ -138,11 +140,14 @@ def test_unbound_charts_get_dashboard_temporal_filter(
     expected_subject: str,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
-    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: column in {
-        "created_at",
-        "event_time",
-        "order_date",
-    }
+    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: (
+        column
+        in {
+            "created_at",
+            "event_time",
+            "order_date",
+        }
+    )
 
     form_data = map_config_to_form_data(config, dataset_id=42)
 
@@ -217,6 +222,185 @@ def test_temporal_xy_binding_records_generated_subject(
 @pytest.mark.parametrize(
     "config",
     [
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="event_time"),
+            y=[METRIC],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="event_time"),
+            metric=METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+    return_value=SimpleNamespace(main_dttm_col="event_time"),
+)
+def test_temporal_native_axes_generate_provenance_binding(
+    mock_find_dataset: MagicMock,
+    mock_is_temporal: MagicMock,
+    config: ChartConfig,
+) -> None:
+    form_data = map_config_to_form_data(config, dataset_id=42)
+
+    assert form_data["_mcp_dashboard_time_filter_subject"] == "event_time"
+    assert form_data["adhoc_filters"] == [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "event_time",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        MixedTimeseriesChartConfig(
+            x=ColumnRef(name="new_time"),
+            y=[METRIC],
+            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="new_time"),
+            metric=METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+    return_value=SimpleNamespace(main_dttm_col="new_time"),
+)
+def test_temporal_native_axis_rebind_preserves_active_range(
+    mock_find_dataset: MagicMock,
+    mock_is_temporal: MagicMock,
+    config: ChartConfig,
+) -> None:
+    existing = {
+        "viz_type": config.chart_type,
+        "x_axis": "old_time",
+        "granularity_sqla": "old_time",
+        "adhoc_filters": [
+            {"subject": "region", "operator": "==", "comparator": "North"},
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "old_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            },
+        ],
+        "_mcp_dashboard_time_filter_subject": "old_time",
+    }
+    mapped = map_config_to_form_data(config, dataset_id=42)
+
+    merge_update_form_data(existing, mapped, config)
+
+    assert mapped["_mcp_dashboard_time_filter_subject"] == "new_time"
+    assert mapped["adhoc_filters"][0]["subject"] == "region"
+    assert mapped["adhoc_filters"][1]["subject"] == "new_time"
+    assert mapped["adhoc_filters"][1]["comparator"] == "Last year"
+
+
+@pytest.mark.parametrize("explicit_null_grain", [False, True])
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+    return_value=SimpleNamespace(main_dttm_col="new_time"),
+)
+def test_waterfall_axis_rebind_never_restores_old_granularity_or_grain(
+    mock_find_dataset: MagicMock,
+    mock_is_temporal: MagicMock,
+    explicit_null_grain: bool,
+) -> None:
+    existing = {
+        "viz_type": "waterfall",
+        "x_axis": "old_time",
+        "granularity_sqla": "old_time",
+        "time_grain_sqla": "P1M",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "old_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last year",
+            }
+        ],
+        "_mcp_dashboard_time_filter_subject": "old_time",
+    }
+    kwargs: dict[str, Any] = {"time_grain": None} if explicit_null_grain else {}
+    config = WaterfallChartConfig(
+        x_axis=ColumnRef(name="new_time"),
+        metric=METRIC,
+        **kwargs,
+    )
+
+    mapped = map_config_to_form_data(config, dataset_id=42)
+    merge_update_form_data(existing, mapped, config)
+    merge_same_viz_form_data(existing, mapped, config)
+
+    assert mapped["granularity_sqla"] == "new_time"
+    assert mapped["time_grain_sqla"] is None
+    assert mapped["_mcp_dashboard_time_filter_subject"] == "new_time"
+    assert mapped["adhoc_filters"] == [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "new_time",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "Last year",
+        }
+    ]
+
+
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+@patch(
+    "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+    return_value=SimpleNamespace(main_dttm_col="event_time"),
+)
+def test_waterfall_stable_axis_and_omitted_grain_preserve_saved_grain(
+    mock_find_dataset: MagicMock,
+    mock_is_temporal: MagicMock,
+) -> None:
+    existing = {
+        "viz_type": "waterfall",
+        "x_axis": "event_time",
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": "P1M",
+    }
+    config = WaterfallChartConfig(x_axis=ColumnRef(name="event_time"), metric=METRIC)
+
+    mapped = map_config_to_form_data(config, dataset_id=42)
+    merge_update_form_data(existing, mapped, config)
+    merge_same_viz_form_data(existing, mapped, config)
+
+    assert mapped["granularity_sqla"] == "event_time"
+    assert mapped["time_grain_sqla"] == "P1M"
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
         XYChartConfig(
             x=ColumnRef(name="event_time"),
             y=[METRIC],
@@ -286,13 +470,13 @@ def test_explicit_temporal_column_overrides_temporal_granularity(
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
 @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
-def test_non_temporal_waterfall_granularity_falls_back_to_dataset_time_column(
+def test_non_temporal_waterfall_clears_granularity_and_binds_dataset_time_column(
     mock_is_temporal: MagicMock,
     mock_find_dataset: MagicMock,
 ) -> None:
     mock_find_dataset.return_value = SimpleNamespace(main_dttm_col="order_date")
-    mock_is_temporal.side_effect = (
-        lambda column, dataset_id, dataset=None: column == "order_date"
+    mock_is_temporal.side_effect = lambda column, dataset_id, dataset=None: (
+        column == "order_date"
     )
     config = WaterfallChartConfig(
         x_axis=CATEGORY,
@@ -302,7 +486,7 @@ def test_non_temporal_waterfall_granularity_falls_back_to_dataset_time_column(
 
     form_data = map_config_to_form_data(config, dataset_id=42)
 
-    assert form_data["granularity_sqla"] == "region"
+    assert form_data["granularity_sqla"] is None
     assert form_data["adhoc_filters"] == [
         {
             "clause": "WHERE",
@@ -565,3 +749,95 @@ def test_temporal_column_is_normalized_to_dataset_casing(
     )
 
     assert normalized.temporal_column == "Created_At"
+
+
+@pytest.mark.parametrize("path", ["immediate", "preview_first", "cached"])
+@pytest.mark.parametrize("control", ["omitted", "filters", "temporal_column"])
+def test_shared_update_clears_temporal_provenance_with_its_control(
+    path: str, control: str
+) -> None:
+    """Save and preview updates distinguish explicit clears from omission."""
+    from superset.mcp_service.chart.chart_utils import merge_chart_form_data
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_preview_form_data,
+        _build_update_payload,
+    )
+    from superset.utils import json
+
+    marker = "_mcp_dashboard_time_filter_subject"
+    user_filter = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "region",
+        "operator": "==",
+        "comparator": "North",
+    }
+    binding = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "created_at",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last year",
+    }
+    existing = {
+        "viz_type": "table",
+        "datasource": "42__table",
+        "all_columns": ["region"],
+        "query_mode": "raw",
+        marker: "created_at",
+        "adhoc_filters": [user_filter, binding],
+    }
+    updates: dict[str, Any] = {}
+    if control == "filters":
+        updates["filters"] = []
+    elif control == "temporal_column":
+        updates["temporal_column"] = None
+    config = TableChartConfig(columns=[CATEGORY], **updates)
+    request = UpdateChartRequest(identifier=1, config=config)
+    chart = SimpleNamespace(
+        id=1, datasource_id=42, slice_name="Table", params=json.dumps(existing)
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=SimpleNamespace(main_dttm_col="created_at"),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if path == "immediate":
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = json.loads(payload["params"])
+        elif path == "preview_first":
+            merged = _build_preview_form_data(request, chart, config)
+            assert isinstance(merged, dict)
+        else:
+            mapped = map_config_to_form_data(config, dataset_id=42)
+            merged = merge_chart_form_data(existing, mapped, config)
+            merge_update_form_data(existing, merged, config)
+            merge_same_viz_form_data(existing, merged, config)
+
+    if control == "omitted":
+        assert merged[marker] == "created_at"
+        assert merged["adhoc_filters"] == [user_filter, binding]
+    else:
+        assert marker not in merged
+        assert merged["adhoc_filters"] == (
+            [] if control == "filters" else [user_filter]
+        )
+
+
+def test_explicit_null_temporal_column_emits_clear_marker() -> None:
+    """The mapper must carry an explicit clear through the overlay merge."""
+    config = TableChartConfig(columns=[CATEGORY], temporal_column=None)
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid"
+    ) as find:
+        mapped = map_config_to_form_data(config, dataset_id=42)
+    assert "_mcp_dashboard_time_filter_subject" in mapped
+    assert mapped["_mcp_dashboard_time_filter_subject"] is None
+    find.assert_not_called()

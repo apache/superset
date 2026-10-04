@@ -21,7 +21,10 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from typing import Annotated, Any, Dict
+from collections.abc import Callable
+from contextlib import ExitStack
+from functools import wraps
+from typing import Annotated, Any, cast, Dict
 
 from fastmcp import Context
 from pydantic import Field
@@ -41,20 +44,33 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
+    merge_update_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
-from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
+from superset.mcp_service.chart.registry import (
+    get_registry,
+    plugin_for_viz_type,
+    saved_chart_contract,
+)
+from superset.mcp_service.chart.response_preflight import (
+    preflight_update_preview_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
+)
+from superset.mcp_service.chart.tool.update_chart import (
+    _canonicalize_form_data_datasource,
+    _prune_inherited_query_state,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
@@ -78,7 +94,6 @@ INVALID_FORM_DATA_KEY_WARNING = (
 def _find_dataset(dataset_id: int | str) -> Any | None:
     """Look up a dataset by numeric ID or UUID and check access."""
     from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
         isinstance(dataset_id, str) and dataset_id.isdecimal()
@@ -111,6 +126,25 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     return None
 
 
+def _preflight_update_preview_result(
+    function: Callable[
+        [UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse
+    ],
+) -> Callable[[UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse]:
+    """Apply the final wire-size gate to every success and error return."""
+
+    @wraps(function)
+    def wrapped(
+        request: UpdateChartPreviewRequest, ctx: Context
+    ) -> UpdateChartPreviewResponse:
+        return cast(
+            UpdateChartPreviewResponse,
+            preflight_update_preview_response(dict(function(request, ctx))),
+        )
+
+    return wrapped
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -123,6 +157,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         openWorldHint=False,
     ),
 )
+@_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: Annotated[
         UpdateChartPreviewRequest,
@@ -157,6 +192,7 @@ def update_chart_preview(  # noqa: C901
     HTTP in local development).
     """
     start_time = time.time()
+    contract_scope = ExitStack()
 
     try:
         # config is already a typed ChartConfig (validated by Pydantic)
@@ -173,7 +209,7 @@ def update_chart_preview(  # noqa: C901
                         "error_type": "dataset_not_found",
                         "message": (f"Dataset not found: {request.dataset_id}"),
                         "details": (
-                            f"No dataset found with identifier "
+                            f"No accessible dataset found with identifier "
                             f"'{request.dataset_id}'. This could "
                             f"be an invalid ID/UUID or a "
                             f"permissions issue."
@@ -193,8 +229,9 @@ def update_chart_preview(  # noqa: C901
             from superset.mcp_service.chart.validation.dataset_validator import (
                 build_dataset_context_from_orm,
                 DatasetValidator,
-                NORMALIZATION_EXCEPTIONS,
             )
+
+            dataset_context = build_dataset_context_from_orm(dataset)
 
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
@@ -208,11 +245,27 @@ def update_chart_preview(  # noqa: C901
                 or (previous_form_data or {}).get("datasource_id")
                 or ""
             ).split("__", 1)[0]
-            plugin = get_registry().get(config.chart_type, include_disabled=True)
+            # The cached chart keeps its plugin's contract for the whole
+            # update, even when its chart type is disabled for new charts.
+            contract_scope.enter_context(
+                saved_chart_contract((previous_form_data or {}).get("viz_type"))
+            )
+            plugin = get_registry().get(config.chart_type)
             dataset_rebind = previous_datasource != str(dataset.id) and (
                 bool(previous_datasource)
                 or bool(plugin and plugin.unbound_form_data_is_rebind)
             )
+            if (
+                dataset_rebind
+                and previous_form_data
+                and not (plugin is not None and plugin.strict_dataset_rebind)
+            ):
+                # Match saved-chart rebinds: retain only references that resolve
+                # against the replacement dataset before resolving omitted roles.
+                previous_form_data = _prune_inherited_query_state(
+                    previous_form_data, {}, config, dataset.id
+                )
+                dataset_rebind = False
             try:
                 if plugin is not None:
                     config = plugin.resolve_update_config(
@@ -239,14 +292,27 @@ def update_chart_preview(  # noqa: C901
                 config = DatasetValidator.normalize_column_names(
                     config,
                     request.dataset_id,
-                    dataset_context=build_dataset_context_from_orm(dataset),
+                    dataset_context=dataset_context,
                 )
-            except NORMALIZATION_EXCEPTIONS as ex:
-                logger.warning(
-                    "Column normalization failed for preview dataset %s: %s",
-                    request.dataset_id,
-                    ex,
-                )
+            except GanttSemanticNormalizationError:
+                # Gantt reports its own role conflict; the generic
+                # canonicalization message would lose that diagnosis.
+                raise
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ambiguous_column_reference",
+                        "message": "Chart references could not be canonicalized",
+                        "details": str(ex),
+                        "suggestions": [
+                            "Use get_dataset_info and copy exact-case field names"
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -257,62 +323,76 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                new_form_data = merge_chart_form_data(
-                    previous_form_data,
-                    new_form_data,
-                    config,
-                    dataset_rebind=dataset_rebind,
-                )
+                merge_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+                if merge_plugin is not None and merge_plugin.owns_update_merge:
+                    # The plugin owns its temporal/rebind merge contract.
+                    # Generic merges would restore deliberately removed state.
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
+                else:
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
+                    merge_update_form_data(previous_form_data, new_form_data, config)
+                    merge_same_viz_form_data(previous_form_data, new_form_data, config)
+                    for config_field, form_data_field in (
+                        ("group_by", "groupby"),
+                        ("group_by_secondary", "groupby_b"),
+                        ("sort_by", "order_by_cols"),
+                    ):
+                        if (
+                            config_field in config.model_fields_set
+                            and getattr(config, config_field, None) == []
+                        ):
+                            new_form_data.pop(form_data_field, None)
 
+            _canonicalize_form_data_datasource(new_form_data, dataset.id)
             merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
-            merged_config = (
-                merged_plugin.validate_merged_form_data(
-                    new_form_data,
-                    request.dataset_id,
-                    dataset_context=lambda: build_dataset_context_from_orm(dataset),
+            try:
+                merged_config = (
+                    merged_plugin.validate_merged_form_data(
+                        new_form_data,
+                        request.dataset_id,
+                        dataset_context=lambda: dataset_context,
+                        update_config=config,
+                    )
+                    if merged_plugin is not None
+                    else None
                 )
-                if merged_plugin is not None
-                else None
-            )
-            if merged_config is not None:
-                # Compile the final cached state rather than the pre-merge
-                # request, so preserved native fields cannot bypass semantics.
-                config = merged_config
-
-            # Tier-1 schema validation against the dataset (no DB roundtrip).
-            # Runs AFTER the filter merge so filter columns are also validated.
-            from superset.daos.dataset import DatasetDAO
-
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
-            ):
-                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
-            else:
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-
-            if dataset is None or not has_dataset_access(dataset):
+            except GanttSemanticNormalizationError:
+                # Gantt reports its own role conflict to the tool handler.
+                raise
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
+                chart_type = merged_plugin.chart_type if merged_plugin else "chart"
+                display_name = merged_plugin.display_name if merged_plugin else "chart"
                 return {
                     "chart": None,
                     "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": (
-                            f"Dataset not found: {request.dataset_id}. "
-                            "Use list_datasets to find valid dataset IDs."
-                        ),
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
+                        "error_type": f"invalid_merged_{chart_type}_state",
+                        "message": f"Merged {display_name} state is invalid",
+                        "details": str(ex),
                     },
                     "success": False,
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
+            if merged_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_config
 
             compile_result = validate_and_compile(
                 config,
                 new_form_data,
                 dataset,
-                run_compile_check=bool(plugin and plugin.requires_compile_check),
+                run_compile_check=True,
             )
             if not compile_result.success:
                 logger.warning(
@@ -512,3 +592,5 @@ def update_chart_preview(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
+    finally:
+        contract_scope.close()

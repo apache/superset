@@ -120,8 +120,8 @@ def treemap_vega_lite(  # noqa: C901
         )
     if (
         len(data) > _MAX_ROWS
-        or any(row[label] < 0 for row in data)
-        or not any(row[label] > 0 for row in data)
+        or any(float(row[label]) < 0 for row in data)
+        or not any(float(row[label]) > 0 for row in data)
     ):
         return ChartError(
             error=(
