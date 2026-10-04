@@ -5296,6 +5296,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # append sites. `None` when the dataset has no usable mapping.
         partition_mapping = resolve_partition_mapping(cast("SqlaTable", self))
         partition_mirror: list[tuple[utils.FilterOperator, Any]] = []
+        # Requests derived from the main time window are collected a second
+        # time against the *inner* window, because the series-limit ranking
+        # subquery filters that window instead. On a time comparison the two
+        # differ: `processing_time_offsets` shifts `from_dttm`/`to_dttm` to the
+        # comparison period and leaves `inner_*` on the original. A mirror from
+        # the outer window then demands partition keys from a period the
+        # subquery's own time filter excludes, the ranking comes back empty, and
+        # the join drops the comparison series entirely.
+        partition_mirror_inner: list[tuple[utils.FilterOperator, Any]] = []
 
         # Process FROM clause early to populate removed_filters from virtual dataset
         # templates before we decide whether to add time filters
@@ -5346,6 +5355,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         from_dttm,
                         to_dttm,
                     )
+                    self._collect_partition_mirror_range(
+                        partition_mapping,
+                        partition_mirror_inner,
+                        self.main_dttm_col,
+                        inner_from_dttm or from_dttm,
+                        inner_to_dttm or to_dttm,
+                    )
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -5369,6 +5385,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         dttm_col.column_name,
                         from_dttm,
                         to_dttm,
+                    )
+                    # The bounds the series-limit subquery's own time filter
+                    # uses, which is the same expression it builds below.
+                    self._collect_partition_mirror_range(
+                        partition_mapping,
+                        partition_mirror_inner,
+                        dttm_col.column_name,
+                        inner_from_dttm or from_dttm,
+                        inner_to_dttm or to_dttm,
                     )
 
         # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
@@ -5654,13 +5679,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and op != utils.FilterOperator.TEMPORAL_RANGE
                     and not filter_grain
                 ):
-                    self._collect_partition_mirror_filter(
-                        partition_mapping,
-                        partition_mirror,
-                        col_obj.column_name,
-                        op,
-                        eq,
-                    )
+                    # Window-independent, so both sinks get it. The subquery
+                    # filters a different time window but the same everything
+                    # else, and this filter is in `where_clause_and` for both.
+                    for sink in (partition_mirror, partition_mirror_inner):
+                        self._collect_partition_mirror_filter(
+                            partition_mapping,
+                            sink,
+                            col_obj.column_name,
+                            op,
+                            eq,
+                        )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5954,14 +5983,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 flt_grain, db_engine_spec.engine
                             )
                             if not flt_grain or widen_by is not None:
-                                self._collect_partition_mirror_range(
-                                    partition_mapping,
+                                # Both sinks, with the *same* bounds. These come
+                                # from the filter's own `_since`/`_until`, and
+                                # `processing_time_offsets` rewrites that
+                                # filter's value to the shifted window -- so the
+                                # shifted filter is itself in `where_clause_and`
+                                # and reaches the subquery unchanged. Mirroring
+                                # it to the inner window instead would make the
+                                # mirror disagree with the predicate it stands
+                                # in for, which is the one thing a mirror may
+                                # never do.
+                                for sink in (
                                     partition_mirror,
-                                    col_obj.column_name,
-                                    _since,
-                                    _until,
-                                    widen_bounds_by=widen_by,
-                                )
+                                    partition_mirror_inner,
+                                ):
+                                    self._collect_partition_mirror_range(
+                                        partition_mapping,
+                                        sink,
+                                        col_obj.column_name,
+                                        _since,
+                                        _until,
+                                        widen_bounds_by=widen_by,
+                                    )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -5970,11 +6013,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # col_obj is None and sqla_col is None - column not found!
                 # Silently skip - this can happen for removed columns or invalid filters
                 pass
-        if partition_mapping is not None:
-            where_clause_and += self._build_partition_mirror_predicates(
-                partition_mapping,
-                partition_mirror,
-            )
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -5995,6 +6033,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor,
                 )
                 having_clause_and += [Grouping(self.text(having))]
+
+        # The mirrors go on last, so the snapshot taken here is everything the
+        # outer query and the series-limit ranking subquery agree about: row
+        # level security, the extras `where`, every filter. The two disagree
+        # about exactly the mirrors, and subtracting them again later is not an
+        # option -- `==` on a SQLAlchemy expression builds a new expression
+        # rather than answering a question, so the list cannot be filtered by
+        # identity.
+        where_clause_and_without_mirrors = list(where_clause_and)
+        inner_partition_mirror_predicates: list[Any] = []
+        if partition_mapping is not None:
+            partition_mirror_predicates = self._build_partition_mirror_predicates(
+                partition_mapping,
+                partition_mirror,
+            )
+            # Reused rather than rebuilt when both windows ask for the same
+            # thing, which is every query that is not a time comparison.
+            # Building twice costs a second probe round trip.
+            inner_partition_mirror_predicates = (
+                partition_mirror_predicates
+                if partition_mirror_inner == partition_mirror
+                else self._build_partition_mirror_predicates(
+                    partition_mapping,
+                    partition_mirror_inner,
+                )
+            )
+            where_clause_and += partition_mirror_predicates
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
@@ -6062,7 +6127,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     if _inner_filter is not None:
                         inner_time_filter = [_inner_filter]
-                subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
+                # The mirrors swapped for the inner window's own, since the
+                # time filter just built describes that window: an outer-window
+                # mirror here would demand partition keys from a period this
+                # subquery excludes, and the empty ranking would drop the
+                # comparison series from the join below.
+                subq = subq.where(
+                    and_(
+                        *(
+                            where_clause_and_without_mirrors
+                            + inner_partition_mirror_predicates
+                            + inner_time_filter
+                        )
+                    )
+                )
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
