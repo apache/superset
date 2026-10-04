@@ -2555,7 +2555,19 @@ class SqlaTable(
             new_column.groupby = True
             new_column.filterable = True
             columns.append(new_column)
-            if not any_date_col and new_column.is_temporal:
+            # Never the partition column. It is a technical column -- an epoch
+            # integer, a lowercased region key -- that no analyst filters on,
+            # which makes it a poor default datetime column on its own merits.
+            # It is also the column a mapping points *at*, so choosing it here
+            # resolves the mapping onto itself (`partition_mapped_column or
+            # main_dttm_col`), a state every later write rejects as a blocking
+            # self-mapping -- including a write that changes nothing but the
+            # description.
+            if (
+                not any_date_col
+                and new_column.is_temporal
+                and col["column_name"] != self.partition_column
+            ):
                 any_date_col = col["column_name"]
 
         # Add back calculated (virtual) columns, i.e. those that weren't matched

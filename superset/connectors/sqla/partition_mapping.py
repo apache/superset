@@ -984,9 +984,11 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     Validate a dataset's partition mapping, in two tiers.
 
     Tier 1 (``blocking=True``) is structural and safety: the columns have to
-    exist, a column cannot be mapped onto itself, and the transform cannot carry
-    Jinja or call a non-deterministic function. Tier 2 (``blocking=False``) is
-    everything that merely leaves the mapping inactive.
+    exist, a column cannot be *asked* to stand in for itself, and the transform
+    cannot carry Jinja or call a non-deterministic function. Tier 2
+    (``blocking=False``) is everything that merely leaves the mapping inactive
+    -- including a self-mapping nobody asked for, where the partition column
+    merely happens to be the default datetime column.
 
     The Tier-1 transform checks need a successful parse to inspect anything, so
     an unparseable transform falls through to Tier 2. That leaves them
@@ -1022,8 +1024,8 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
             )
         )
 
-    effective_mapped_column = partition_mapped_column or main_dttm_col
-    if effective_mapped_column and effective_mapped_column == partition_column:
+    if partition_mapped_column and partition_mapped_column == partition_column:
+        # Asked for explicitly, so report it as the mistake it is.
         issues.append(
             MappingValidationIssue(
                 field="partition_column",
@@ -1034,6 +1036,27 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
                     name=partition_column,
                 ),
                 blocking=True,
+            )
+        )
+    elif not partition_mapped_column and main_dttm_col == partition_column:
+        # Resolved onto itself only because the default datetime column happens
+        # to be the partition column -- a state metadata sync could produce
+        # without anyone asking for it. The mapping is inert either way, since
+        # `resolve_partition_mapping` bails out on it, so this reports and lets
+        # the write through: blocking here means a dataset already in the state
+        # can never be saved again, not even to change its description, and
+        # there is no field whose edit would clear the error first.
+        issues.append(
+            MappingValidationIssue(
+                field="partition_mapped_column",
+                message=_(
+                    "%(name)s is both the partition column and the default "
+                    "datetime column, so the mapping points at itself and "
+                    "stays inactive. Set a mapped column override, or change "
+                    "the default datetime column.",
+                    name=partition_column,
+                ),
+                blocking=False,
             )
         )
 
