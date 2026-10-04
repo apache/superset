@@ -403,6 +403,15 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "columns.type_generic",
         # Engine-supplied pre-fill for the editor's value transform input.
         "partition_value_transform_default",
+        # The resolved mapping summary, which is what Explore's pruning
+        # indicator reads. Saving a dataset from Explore reloads this endpoint
+        # and replaces the chart's datasource with the response wholesale -- it
+        # is a replacement, not a merge -- so anything the summary carries and
+        # this payload does not is lost on an unrelated save and the glyphs
+        # vanish until the page is reloaded. Recomputing it client-side from
+        # `columns` is not an option: `data_for_slices` prunes the partition
+        # column on dashboards, which is why the summary is self-contained.
+        "partition_filter_mapping",
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
