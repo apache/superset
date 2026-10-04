@@ -989,7 +989,10 @@ def merge_chart_form_data(
     preserve because they do not reference the old dataset.
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
-        return dict(new_form_data)
+        converted = dict(new_form_data)
+        if converted.get("mcp_geographic"):
+            _apply_geographic_temporal_update(converted, config)
+        return converted
     # Loading the registry at module scope cycles through plugin imports.
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
@@ -2647,6 +2650,19 @@ def preserve_previous_adhoc_filters(
     new_form_data["adhoc_filters"] = merged_filters
 
 
+def _apply_geographic_temporal_update(
+    form_data: dict[str, Any], config: ChartConfig
+) -> None:
+    """Apply explicit time changes after native controls have been merged."""
+    if "temporal_column" not in config.model_fields_set:
+        return
+    # Native granularity takes precedence over the requested adhoc binding.
+    form_data.pop("granularity_sqla", None)
+    if config.temporal_column is None:
+        form_data["adhoc_filters"] = _without_generated_dashboard_time_filter(form_data)
+        form_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+
 def merge_geographic_update_form_data(  # noqa: C901
     existing: dict[str, Any],
     mapped: dict[str, Any],
@@ -2749,8 +2765,7 @@ def merge_geographic_update_form_data(  # noqa: C901
             )
         preserve_previous_adhoc_filters(patch, source_form)
     merged = {**existing, **patch}
-    if "temporal_column" in fields and config.temporal_column is None:
-        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    _apply_geographic_temporal_update(merged, config)
     if "time_range" in fields and getattr(config, "time_range", None) is None:
         merged.pop("time_range", None)
     if "filters" in fields:

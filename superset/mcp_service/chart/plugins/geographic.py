@@ -79,6 +79,28 @@ def _is_finite_geographic_number(value: object) -> TypeGuard[Real | Decimal]:
         return False
 
 
+def _decode_geographic_coordinates(value: object, spatial_type: str) -> list[float]:
+    """Decode native encoded coordinates for validation, not result replacement."""
+    if not isinstance(value, str) or not value:
+        raise ValueError("Spatial coordinates require a nonempty string")
+    if spatial_type == "geohash":
+        import pygeohash
+
+        try:
+            latitude, longitude = pygeohash.decode(value.lower())
+        except (ValueError, KeyError, TypeError) as ex:
+            raise ValueError("Invalid geographic geohash") from ex
+        return [longitude, latitude]
+    # The native Deck.gl spatial transform reads comma-separated pairs.
+    try:
+        coordinates = [float(part.strip()) for part in value.split(",")]
+    except ValueError as ex:
+        raise ValueError("Invalid delimited geographic coordinates") from ex
+    if len(coordinates) != 2:
+        raise ValueError("Delimited coordinates require two values")
+    return coordinates
+
+
 @lru_cache(maxsize=4)
 def _world_country_entries(field: str) -> tuple[tuple[str, str], ...]:
     """Reuse immutable country aliases for the four supported world formats."""
@@ -576,15 +598,34 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
     def row_identifier(
         self, row: Mapping[str, Any], form_data: Mapping[str, Any]
     ) -> str | None:
-        """Validate numeric, in-range latitude and longitude for each point."""
+        """Validate native spatial formats without changing exported source values."""
         spatial = form_data.get("spatial")
-        if not isinstance(spatial, Mapping) or spatial.get("type") != "latlong":
-            raise ValueError("Geographic points require latlong spatial columns")
-        for role, bound in (("latCol", 90), ("lonCol", 180)):
-            column = spatial.get(role)
+        if not isinstance(spatial, Mapping):
+            raise ValueError("Geographic points require spatial columns")
+        spatial_type = spatial.get("type")
+        coordinates: list[object] = []
+        if spatial_type == "latlong":
+            for role in ("lonCol", "latCol"):
+                column = spatial.get(role)
+                if not isinstance(column, str):
+                    raise ValueError(f"{role} requires a named coordinate column")
+                coordinates.append(row.get(column))
+        elif spatial_type in {"geohash", "delimited"}:
+            column = spatial.get(
+                "geohashCol" if spatial_type == "geohash" else "lonlatCol"
+            )
             if not isinstance(column, str):
-                raise ValueError(f"{role} requires a named coordinate column")
-            value = row.get(column)
+                raise ValueError("Spatial coordinates require a named column")
+            coordinates.extend(
+                _decode_geographic_coordinates(row.get(column), spatial_type)
+            )
+        else:
+            raise ValueError("Unsupported geographic spatial format")
+        if spatial.get("reverseCheckbox"):
+            coordinates.reverse()
+        for value, role, bound in zip(
+            coordinates, ("lonCol", "latCol"), (180, 90), strict=True
+        ):
             if (
                 not _is_finite_geographic_number(value)
                 or value < -bound

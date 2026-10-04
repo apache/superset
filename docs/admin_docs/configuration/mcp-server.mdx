@@ -1596,7 +1596,12 @@ updates that omit `temporal_column` preserve that cleared state. Explicit `filte
 replace inherited predicates, including native `filters`, `where`, and `having`,
 whether the replacement list is empty or nonempty. Disabled types
 cannot be used for fresh previews or type conversions; an existing cached
-preview of the same type can still be updated.
+preview or saved chart of the same type can still be updated, including charts
+whose visualization type is stored only on the saved chart. Explicit temporal
+changes override inherited native time controls on same-type updates and type
+conversions. Saved point charts switched in Explore to Geohash or comma-delimited
+coordinates remain readable through MCP data and JSON/CSV/Excel exports; exports
+retain the original spatial column values.
 
 Country/world map interactions use original source identifiers rather than
 normalized rendering codes or names. With an explicit region format, boundaries

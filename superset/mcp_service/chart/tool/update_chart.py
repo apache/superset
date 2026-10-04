@@ -69,16 +69,23 @@ logger = logging.getLogger(__name__)
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
-    """Return a chart's saved form data, treating malformed params as empty."""
-    if not getattr(chart, "params", None):
-        return {}
-    try:
-        parsed = json.loads(chart.params)
-    except (ValueError, TypeError):
-        parsed = None
-    if not isinstance(parsed, dict):
-        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
-        return {}
+    """Return saved form data with a chart-level visualization fallback."""
+    parsed: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            value = json.loads(chart.params)
+        except (ValueError, TypeError):
+            value = None
+        if isinstance(value, dict):
+            parsed = value
+        else:
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+    if not parsed.get("viz_type") and isinstance(
+        viz_type := getattr(chart, "viz_type", None), str
+    ):
+        parsed["viz_type"] = viz_type
     return parsed
 
 

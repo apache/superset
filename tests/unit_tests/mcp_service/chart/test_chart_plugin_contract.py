@@ -747,17 +747,28 @@ def test_saved_scalar_groupby_histogram_preview(groupby: str | list[str]) -> Non
 
 
 @pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+@pytest.mark.parametrize("params_viz_type", [True, False])
 def test_disabled_chart_update_requires_existing_plugin(
-    plugin: ChartTypePlugin, example: dict[str, Any]
+    plugin: ChartTypePlugin, example: dict[str, Any], params_viz_type: bool
 ) -> None:
     """Disabled types allow same-plugin updates, never type conversions."""
+    from types import SimpleNamespace
+
     from superset.mcp_service.chart import registry
     from superset.mcp_service.chart.tool.update_chart import (
         _build_replacement_form_data,
+        _get_existing_form_data,
     )
 
     config = _config(example)
     existing = _form_data(plugin, example)
+    if not params_viz_type:
+        from superset.utils import json
+
+        saved_viz_type = existing.pop("viz_type")
+        existing = _get_existing_form_data(
+            SimpleNamespace(id=1, viz_type=saved_viz_type, params=json.dumps(existing))
+        )
     with (
         patch.object(
             registry,

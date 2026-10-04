@@ -768,6 +768,8 @@ async def _exercise_geographic_data_export(
     export_format: str,
     *,
     decimal_coordinates: bool = False,
+    spatial: dict[str, Any] | None = None,
+    spatial_value: str | None = None,
 ) -> None:
     """Exercise saved and cached data/export with pre-JSON database scalars."""
     import importlib
@@ -780,6 +782,10 @@ async def _exercise_geographic_data_export(
     rows = source["queries"][0]["data"]
     if decimal_coordinates:
         rows[0] = {"latitude": Decimal("37.5"), "longitude": Decimal("-122.25")}
+    if spatial is not None:
+        form["spatial"] = spatial
+        column = spatial.get("geohashCol") or spatial["lonlatCol"]
+        rows[0] = {column: spatial_value}
     source["queries"][0].update(colnames=list(rows[0]), rowcount=len(rows))
     query = {"columns": list(rows[0]), "metrics": [], "row_limit": 10000}
     context = SimpleNamespace(
@@ -1404,3 +1410,103 @@ def test_replacement_filters_discard_native_predicates(kind: str) -> None:
     assert {"col": "segment", "op": "IN", "val": ["Retail"]} not in query["filters"]
     assert not query.get("where")
     assert not query.get("having")
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("previous_type", ["same", "table"])
+@pytest.mark.parametrize("temporal_column", ["event_time", None])
+def test_explicit_geographic_time_update_overrides_native_granularity(
+    kind: str, previous_type: str, temporal_column: str | None
+) -> None:
+    """Explicit time updates win over native controls, including conversions."""
+    old = {**form_for(kind), "granularity_sqla": "created_at"}
+    if previous_type == "table":
+        old["viz_type"] = "table"
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": temporal_column}
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=Mock(main_dttm_col="created_at"),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    merged = merge_chart_form_data(old, mapped, config)
+    assert "granularity_sqla" not in merged
+    if temporal_column is None:
+        assert "_mcp_dashboard_time_filter_subject" not in merged
+        assert not merged.get("adhoc_filters")
+    else:
+        assert merged["_mcp_dashboard_time_filter_subject"] == temporal_column
+        assert any(
+            f["subject"] == temporal_column and f["operator"] == "TEMPORAL_RANGE"
+            for f in merged["adhoc_filters"]
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+@pytest.mark.parametrize(
+    ("spatial", "value"),
+    [
+        ({"type": "geohash", "geohashCol": "location"}, "9q8yy"),
+        ({"type": "geohash", "geohashCol": "location"}, "9Q8YY"),
+        (
+            {"type": "delimited", "lonlatCol": "location", "delimiter": ","},
+            "-122.4,37.8",
+        ),
+        (
+            {
+                "type": "delimited",
+                "lonlatCol": "location",
+                "reverseCheckbox": True,
+            },
+            "37.8,-122.4",
+        ),
+    ],
+)
+async def test_saved_points_native_spatial_formats_export(
+    export_format: str, spatial: dict[str, Any], value: str
+) -> None:
+    """Explore spatial edits remain readable and preserve raw export columns."""
+    await _exercise_geographic_data_export(
+        "deck_scatter",
+        "saved",
+        True,
+        export_format,
+        spatial=spatial,
+        spatial_value=value,
+    )
+
+
+@pytest.mark.parametrize(
+    ("spatial_type", "value"),
+    [
+        ("geohash", "invalid!"),
+        ("geohash", ""),
+        ("delimited", "181,0"),
+        ("delimited", "0,91"),
+        ("delimited", "nan,0"),
+        ("delimited", "inf,0"),
+        ("delimited", "1"),
+        ("delimited", "1,2,3"),
+        ("delimited", "text,0"),
+    ],
+)
+def test_native_point_spatial_formats_reject_invalid_coordinates(
+    spatial_type: str, value: str
+) -> None:
+    """Alternate encodings still enforce the geographic result contract."""
+    column_key = "geohashCol" if spatial_type == "geohash" else "lonlatCol"
+    with pytest.raises(
+        ValueError, match="geohash|coordinates|finite number|nonempty string"
+    ):
+        DeckScatterChartPlugin().row_identifier(
+            {"location": value},
+            {"spatial": {"type": spatial_type, column_key: "location"}},
+        )
