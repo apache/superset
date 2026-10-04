@@ -325,6 +325,7 @@
     "storybook-static/**",
     ".git/**",
     "**/*.config.js",
-    "**/*.config.ts"
+    "**/*.config.ts",
+    ".storybook/storybook-tests.json"
   ]
 }

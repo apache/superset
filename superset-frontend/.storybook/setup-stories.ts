@@ -18,8 +18,15 @@
  */
 
 // Source: https://gist.github.com/AriPerkkio/99b9eedc7d8f71ff6e6770f9425a4be4
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { EOL } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { type test, type Page } from '@playwright/test';
 
@@ -44,9 +51,7 @@ interface Report {
 const storybookURL = process.env.STORYBOOK_URL ?? 'http://localhost:6006';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const indexFile = resolve(
-  join(__dirname, '../node_modules/.cache/storybook-playwright/index.json'),
-);
+const indexFile = resolve(join(__dirname, './storybook-tests.json'));
 
 export default async function globalSetup() {
   const response = await fetch(`${storybookURL}/index.json`);
@@ -57,8 +62,11 @@ export default async function globalSetup() {
     );
   }
 
+  const formattedData = await response.json();
+
   mkdirSync(dirname(indexFile), { recursive: true });
-  writeFileSync(indexFile, await response.text());
+  writeFileSync(indexFile, JSON.stringify(formattedData, null, 2));
+  appendFileSync(indexFile, EOL);
 }
 
 function captureStoryResult() {

@@ -1,0 +1,3947 @@
+{
+  "v": 5,
+  "entries": {
+    "design-system-introduction--design-system": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-introduction--design-system",
+      "name": "Design System",
+      "title": "Design System/Introduction",
+      "importPath": "./packages/superset-ui-core/src/components/DesignSystem.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "DesignSystem"
+    },
+    "design-system-components-dropdowncontainer--component": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-dropdowncontainer--component",
+      "name": "Component",
+      "title": "Design System/Components/DropdownContainer",
+      "importPath": "./packages/superset-ui-core/src/components/DropdownContainer/DropdownContainer.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/DropdownContainer/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Component"
+    },
+    "design-system-components-dropdowncontainer--interactive-dropdown-container": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-dropdowncontainer--interactive-dropdown-container",
+      "name": "Interactive Dropdown Container",
+      "title": "Design System/Components/DropdownContainer",
+      "importPath": "./packages/superset-ui-core/src/components/DropdownContainer/DropdownContainer.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/DropdownContainer/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveDropdownContainer"
+    },
+    "design-system-components-dropdowncontainer-overview--overview": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-dropdowncontainer-overview--overview",
+      "name": "Overview",
+      "title": "Design System/Components/DropdownContainer/Overview",
+      "importPath": "./packages/superset-ui-core/src/components/DropdownContainer/Overview.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Overview"
+    },
+    "design-system-components-flex--interactive-flex": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-flex--interactive-flex",
+      "name": "Interactive Flex",
+      "title": "Design System/Components/Flex",
+      "importPath": "./packages/superset-ui-core/src/components/Flex/Flex.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Flex/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveFlex"
+    },
+    "design-system-components-grid--interactive-grid": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-grid--interactive-grid",
+      "name": "Interactive Grid",
+      "title": "Design System/Components/Grid",
+      "importPath": "./packages/superset-ui-core/src/components/Grid/Grid.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Grid/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveGrid"
+    },
+    "design-system-components-grid--grid-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-grid--grid-story",
+      "name": "Grid Story",
+      "title": "Design System/Components/Grid",
+      "importPath": "./packages/superset-ui-core/src/components/Grid/Grid.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Grid/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GridStory"
+    },
+    "design-system-components-layout--interactive-layout": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-layout--interactive-layout",
+      "name": "Interactive Layout",
+      "title": "Design System/Components/Layout",
+      "importPath": "./packages/superset-ui-core/src/components/Layout/Layout.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Layout/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveLayout"
+    },
+    "design-system-components-layout--layout-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-layout--layout-story",
+      "name": "Layout Story",
+      "title": "Design System/Components/Layout",
+      "importPath": "./packages/superset-ui-core/src/components/Layout/Layout.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Layout/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LayoutStory"
+    },
+    "design-system-components-metadatabar--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-metadatabar--basic",
+      "name": "Basic",
+      "title": "Design System/Components/MetadataBar",
+      "importPath": "./packages/superset-ui-core/src/components/MetadataBar/MetadataBar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/MetadataBar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-metadatabar--interactive-metadata-bar": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-metadatabar--interactive-metadata-bar",
+      "name": "Interactive Metadata Bar",
+      "title": "Design System/Components/MetadataBar",
+      "importPath": "./packages/superset-ui-core/src/components/MetadataBar/MetadataBar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/MetadataBar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveMetadataBar"
+    },
+    "design-system-components-metadatabar-overview--metadata-bar-overview": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-metadatabar-overview--metadata-bar-overview",
+      "name": "Metadata Bar Overview",
+      "title": "Design System/Components/MetadataBar/Overview",
+      "importPath": "./packages/superset-ui-core/src/components/MetadataBar/MetadataBarOverview.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "MetadataBarOverview"
+    },
+    "design-system-components-pageheaderwithactions--dashboard-header": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-pageheaderwithactions--dashboard-header",
+      "name": "Dashboard Header",
+      "title": "Design System/Components/PageHeaderWithActions",
+      "importPath": "./packages/superset-ui-core/src/components/PageHeaderWithActions/PageHeaderWithActions.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/PageHeaderWithActions/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "DashboardHeader"
+    },
+    "design-system-components-space--interactive-space": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-space--interactive-space",
+      "name": "Interactive Space",
+      "title": "Design System/Components/Space",
+      "importPath": "./packages/superset-ui-core/src/components/Space/Space.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Space/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSpace"
+    },
+    "design-system-components-table--interactive-table": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--interactive-table",
+      "name": "Interactive Table",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTable"
+    },
+    "design-system-components-table--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table--pagination": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--pagination",
+      "name": "Pagination",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Pagination"
+    },
+    "design-system-components-table--server-pagination": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--server-pagination",
+      "name": "Server Pagination",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ServerPagination"
+    },
+    "design-system-components-table--virtualized-performance": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--virtualized-performance",
+      "name": "Virtualized Performance",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "VirtualizedPerformance"
+    },
+    "design-system-components-table--loading": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--loading",
+      "name": "Loading",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Loading"
+    },
+    "design-system-components-table--resizable-columns": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--resizable-columns",
+      "name": "Resizable Columns",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ResizableColumns"
+    },
+    "design-system-components-table--reorderable-columns": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--reorderable-columns",
+      "name": "Reorderable Columns",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ReorderableColumns"
+    },
+    "design-system-components-table--cell-renderers": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--cell-renderers",
+      "name": "Cell Renderers",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "CellRenderers"
+    },
+    "design-system-components-table--header-renderers": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table--header-renderers",
+      "name": "Header Renderers",
+      "title": "Design System/Components/Table",
+      "importPath": "./packages/superset-ui-core/src/components/Table/Table.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "HeaderRenderers"
+    },
+    "design-system-components-table-tableoverview--overview": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-tableoverview--overview",
+      "name": "Overview",
+      "title": "Design System/Components/Table/TableOverview",
+      "importPath": "./packages/superset-ui-core/src/components/Table/TableOverview.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Overview"
+    },
+    "design-system-components-table-cell-renderers-actioncell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-actioncell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/ActionCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ActionCell/ActionCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ActionCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table-cell-renderers-booleancell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-booleancell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/BooleanCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/BooleanCell/BooleanCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/BooleanCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table-cell-renderers-buttoncell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-buttoncell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/ButtonCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ButtonCell/ButtonCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ButtonCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table-cell-renderers-buttoncell--secondary": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-buttoncell--secondary",
+      "name": "Secondary",
+      "title": "Design System/Components/Table/Cell Renderers/ButtonCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ButtonCell/ButtonCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/ButtonCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Secondary"
+    },
+    "design-system-components-table-cell-renderers-nullcell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-nullcell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/NullCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NullCell/NullCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NullCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table-cell-renderers-numericcell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-numericcell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/NumericCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NumericCell/NumericCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NumericCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "design-system-components-table-cell-renderers-numericcell--french-locale": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-numericcell--french-locale",
+      "name": "French Locale",
+      "title": "Design System/Components/Table/Cell Renderers/NumericCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NumericCell/NumericCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/NumericCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "FrenchLocale"
+    },
+    "design-system-components-table-cell-renderers-timecell--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "design-system-components-table-cell-renderers-timecell--basic",
+      "name": "Basic",
+      "title": "Design System/Components/Table/Cell Renderers/TimeCell",
+      "importPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/TimeCell/TimeCell.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Table/cell-renderers/TimeCell/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "components-alteredslicetag--interactive-slice-tag": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-alteredslicetag--interactive-slice-tag",
+      "name": "Interactive Slice Tag",
+      "title": "Components/AlteredSliceTag",
+      "importPath": "./src/components/AlteredSliceTag/AlteredSliceTag.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSliceTag"
+    },
+    "components-chart-drilldetail-drilldetailtablecontrols--interactive-table-controls": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-chart-drilldetail-drilldetailtablecontrols--interactive-table-controls",
+      "name": "Interactive Table Controls",
+      "title": "Components/Chart/DrillDetail/DrillDetailTableControls",
+      "importPath": "./src/components/Chart/DrillDetail/DrillDetailTableControls.stories.tsx",
+      "componentPath": "./src/components/Chart/DrillDetail/DrillDetailTableControls.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTableControls"
+    },
+    "components-copytoclipboard--interactive-copy-to-clipboard": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-copytoclipboard--interactive-copy-to-clipboard",
+      "name": "Interactive Copy To Clipboard",
+      "title": "Components/CopyToClipboard",
+      "importPath": "./src/components/CopyToClipboard/CopyToClipboard.stories.tsx",
+      "componentPath": "./src/components/CopyToClipboard/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCopyToClipboard"
+    },
+    "components-errormessage-erroralert--gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-errormessage-erroralert--gallery",
+      "name": "Gallery",
+      "title": "Components/ErrorMessage/ErrorAlert",
+      "importPath": "./src/components/ErrorMessage/ErrorAlert.stories.tsx",
+      "componentPath": "./src/components/ErrorMessage/ErrorAlert.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Gallery"
+    },
+    "components-filterabletable--interactive-table": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filterabletable--interactive-table",
+      "name": "Interactive Table",
+      "title": "Components/FilterableTable",
+      "importPath": "./src/components/FilterableTable/FilterableTable.stories.tsx",
+      "componentPath": "./src/components/FilterableTable/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTable"
+    },
+    "components-rowcountlabel--row-count-label-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-rowcountlabel--row-count-label-gallery",
+      "name": "Row Count Label Gallery",
+      "title": "Components/RowCountLabel",
+      "importPath": "./src/components/RowCountLabel/RowCountLabel.stories.tsx",
+      "componentPath": "./src/components/RowCountLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "RowCountLabelGallery"
+    },
+    "components-tag--tag-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tag--tag-story",
+      "name": "Tag Story",
+      "title": "Components/Tag",
+      "importPath": "./src/components/Tag/Tag.stories.tsx",
+      "componentPath": "./src/components/Tag/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TagStory"
+    },
+    "components-tag--checkable-tag-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tag--checkable-tag-story",
+      "name": "Checkable Tag Story",
+      "title": "Components/Tag",
+      "importPath": "./src/components/Tag/Tag.stories.tsx",
+      "componentPath": "./src/components/Tag/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "CheckableTagStory"
+    },
+    "components-tagslist--tags-list-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tagslist--tags-list-story",
+      "name": "Tags List Story",
+      "title": "Components/TagsList",
+      "importPath": "./src/components/TagsList/TagsList.stories.tsx",
+      "componentPath": "./src/components/TagsList/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TagsListStory"
+    },
+    "components-anchorlink--interactive-anchor-link": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-anchorlink--interactive-anchor-link",
+      "name": "Interactive Anchor Link",
+      "title": "Components/AnchorLink",
+      "importPath": "./src/dashboard/components/AnchorLink/AnchorLink.stories.tsx",
+      "componentPath": "./src/dashboard/components/AnchorLink/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveAnchorLink"
+    },
+    "features-dashboard-accesssection--editors-only": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-dashboard-accesssection--editors-only",
+      "name": "Editors Only",
+      "title": "Features/Dashboard/AccessSection",
+      "importPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx",
+      "componentPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "EditorsOnly"
+    },
+    "features-dashboard-accesssection--editors-with-tags": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-dashboard-accesssection--editors-with-tags",
+      "name": "Editors With Tags",
+      "title": "Features/Dashboard/AccessSection",
+      "importPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx",
+      "componentPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "EditorsWithTags"
+    },
+    "features-dashboard-accesssection--editors-and-viewers": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-dashboard-accesssection--editors-and-viewers",
+      "name": "Editors And Viewers",
+      "title": "Features/Dashboard/AccessSection",
+      "importPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx",
+      "componentPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "EditorsAndViewers"
+    },
+    "features-dashboard-accesssection--editors-and-viewers-no-tags": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-dashboard-accesssection--editors-and-viewers-no-tags",
+      "name": "Editors And Viewers No Tags",
+      "title": "Features/Dashboard/AccessSection",
+      "importPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx",
+      "componentPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "EditorsAndViewersNoTags"
+    },
+    "features-dashboard-accesssection--loading-state": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-dashboard-accesssection--loading-state",
+      "name": "Loading State",
+      "title": "Features/Dashboard/AccessSection",
+      "importPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.stories.tsx",
+      "componentPath": "./src/dashboard/components/PropertiesModal/sections/AccessSection.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LoadingState"
+    },
+    "components-filterdivider--vertical-filter-divider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filterdivider--vertical-filter-divider",
+      "name": "Vertical Filter Divider",
+      "title": "Components/FilterDivider",
+      "importPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.stories.tsx",
+      "componentPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "VerticalFilterDivider"
+    },
+    "components-filterdivider--horizontal-filter-divider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filterdivider--horizontal-filter-divider",
+      "name": "Horizontal Filter Divider",
+      "title": "Components/FilterDivider",
+      "importPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.stories.tsx",
+      "componentPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "HorizontalFilterDivider"
+    },
+    "components-filterdivider--horizontal-overflow-filter-divider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filterdivider--horizontal-overflow-filter-divider",
+      "name": "Horizontal Overflow Filter Divider",
+      "title": "Components/FilterDivider",
+      "importPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.stories.tsx",
+      "componentPath": "./src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterDivider.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "HorizontalOverflowFilterDivider"
+    },
+    "components-controlheader--control-header-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-controlheader--control-header-gallery",
+      "name": "Control Header Gallery",
+      "title": "Components/ControlHeader",
+      "importPath": "./src/explore/components/ControlHeader.stories.tsx",
+      "componentPath": "./src/explore/components/ControlHeader.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ControlHeaderGallery"
+    },
+    "components-controlheader--interactive-control-header": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-controlheader--interactive-control-header",
+      "name": "Interactive Control Header",
+      "title": "Components/ControlHeader",
+      "importPath": "./src/explore/components/ControlHeader.stories.tsx",
+      "componentPath": "./src/explore/components/ControlHeader.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveControlHeader"
+    },
+    "components-runquerybutton--interactive-run-query-button-props": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-runquerybutton--interactive-run-query-button-props",
+      "name": "Interactive Run Query Button Props",
+      "title": "Components/RunQueryButton",
+      "importPath": "./src/explore/components/RunQueryButton/RunQueryButton.stories.tsx",
+      "componentPath": "./src/explore/components/RunQueryButton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveRunQueryButtonProps"
+    },
+    "components-boundscontrol--interactive-bounds-control": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-boundscontrol--interactive-bounds-control",
+      "name": "Interactive Bounds Control",
+      "title": "Components/BoundsControl",
+      "importPath": "./src/explore/components/controls/BoundsControl.stories.tsx",
+      "componentPath": "./src/explore/components/controls/BoundsControl.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveBoundsControl"
+    },
+    "components-slidercontrol--slider-control-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-slidercontrol--slider-control-gallery",
+      "name": "Slider Control Gallery",
+      "title": "Components/SliderControl",
+      "importPath": "./src/explore/components/controls/SliderControl.stories.tsx",
+      "componentPath": "./src/explore/components/controls/SliderControl.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SliderControlGallery"
+    },
+    "superset-app-views-crud-data-dataset-datasetpanel--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "superset-app-views-crud-data-dataset-datasetpanel--basic",
+      "name": "Basic",
+      "title": "Superset App/views/CRUD/data/dataset/DatasetPanel",
+      "importPath": "./src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.stories.tsx",
+      "componentPath": "./src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "components-languagepicker--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-languagepicker--default",
+      "name": "Default",
+      "title": "Components/LanguagePicker",
+      "importPath": "./src/features/home/LanguagePicker.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "subjectpicker--interactive-subject-picker": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpicker--interactive-subject-picker",
+      "name": "Interactive Subject Picker",
+      "title": "SubjectPicker",
+      "importPath": "./src/features/subjects/SubjectPicker/SubjectPicker.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSubjectPicker"
+    },
+    "subjectpile--interactive-subject-pile": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--interactive-subject-pile",
+      "name": "Interactive Subject Pile",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSubjectPile"
+    },
+    "subjectpile--users-only": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--users-only",
+      "name": "Users Only",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "UsersOnly"
+    },
+    "subjectpile--roles-only": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--roles-only",
+      "name": "Roles Only",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "RolesOnly"
+    },
+    "subjectpile--groups-only": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--groups-only",
+      "name": "Groups Only",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GroupsOnly"
+    },
+    "subjectpile--mixed-subjects": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--mixed-subjects",
+      "name": "Mixed Subjects",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "MixedSubjects"
+    },
+    "subjectpile--empty": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--empty",
+      "name": "Empty",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Empty"
+    },
+    "subjectpile--single-user": {
+      "type": "story",
+      "subtype": "story",
+      "id": "subjectpile--single-user",
+      "name": "Single User",
+      "title": "SubjectPile",
+      "importPath": "./src/features/subjects/SubjectPile/SubjectPile.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectPile/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SingleUser"
+    },
+    "features-subjects-subjectselectlabel--interactive-subject-select-label": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-subjects-subjectselectlabel--interactive-subject-select-label",
+      "name": "Interactive Subject Select Label",
+      "title": "Features/Subjects/SubjectSelectLabel",
+      "importPath": "./src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectSelectLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSubjectSelectLabel"
+    },
+    "features-subjects-subjectselectlabel--user-with-email": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-subjects-subjectselectlabel--user-with-email",
+      "name": "User With Email",
+      "title": "Features/Subjects/SubjectSelectLabel",
+      "importPath": "./src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectSelectLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "UserWithEmail"
+    },
+    "features-subjects-subjectselectlabel--role-subject": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-subjects-subjectselectlabel--role-subject",
+      "name": "Role Subject",
+      "title": "Features/Subjects/SubjectSelectLabel",
+      "importPath": "./src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectSelectLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "RoleSubject"
+    },
+    "features-subjects-subjectselectlabel--group-with-description": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-subjects-subjectselectlabel--group-with-description",
+      "name": "Group With Description",
+      "title": "Features/Subjects/SubjectSelectLabel",
+      "importPath": "./src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectSelectLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GroupWithDescription"
+    },
+    "features-subjects-subjectselectlabel--subject-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "features-subjects-subjectselectlabel--subject-gallery",
+      "name": "Subject Gallery",
+      "title": "Features/Subjects/SubjectSelectLabel",
+      "importPath": "./src/features/subjects/SubjectSelectLabel/SubjectSelectLabel.stories.tsx",
+      "componentPath": "./src/features/subjects/SubjectSelectLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SubjectGallery"
+    },
+    "components-filter-plugins--range": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filter-plugins--range",
+      "name": "Range",
+      "title": "Components/Filter Plugins",
+      "importPath": "./src/filters/components/Range/RangeFilterPlugin.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "range"
+    },
+    "components-filter-plugins--select": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-filter-plugins--select",
+      "name": "Select",
+      "title": "Components/Filter Plugins",
+      "importPath": "./src/filters/components/Select/SelectFilterPlugin.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Select"
+    },
+    "others-dataprovider--data-provider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-dataprovider--data-provider",
+      "name": "ChartDataProvider",
+      "title": "Others/DataProvider",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/ChartDataProvider.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "dataProvider"
+    },
+    "others-superchart--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--basic",
+      "name": "Basic",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "basic"
+    },
+    "others-superchart--container-50-pct": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--container-50-pct",
+      "name": "50% of container",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "container50pct"
+    },
+    "others-superchart--resizable": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--resizable",
+      "name": "Resizable",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Resizable"
+    },
+    "others-superchart--fixed-width-100-height": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--fixed-width-100-height",
+      "name": "fixed width, 100% height",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "fixedWidth100height"
+    },
+    "others-superchart--fixed-height-100-width": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--fixed-height-100-width",
+      "name": "fixed height, 100% width",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "fixedHeight100Width"
+    },
+    "others-superchart--with-error-boundary": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--with-error-boundary",
+      "name": "With Error Boundary",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "withErrorBoundary"
+    },
+    "others-superchart--with-wrapper": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--with-wrapper",
+      "name": "With Wrapper",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "withWrapper"
+    },
+    "others-superchart--with-no-results": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--with-no-results",
+      "name": "With no results",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "withNoResults"
+    },
+    "others-superchart--with-no-results-and-medium": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--with-no-results-and-medium",
+      "name": "With no results and medium",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "withNoResultsAndMedium"
+    },
+    "others-superchart--with-no-results-and-small": {
+      "type": "story",
+      "subtype": "story",
+      "id": "others-superchart--with-no-results-and-small",
+      "name": "With no results and small",
+      "title": "Others/SuperChart",
+      "importPath": "./packages/superset-ui-core/src/chart/stories/SuperChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "withNoResultsAndSmall"
+    },
+    "core-packages-superset-ui-color--categorical-palettes": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-color--categorical-palettes",
+      "name": "Categorical Palettes",
+      "title": "Core Packages/@superset-ui-color",
+      "importPath": "./packages/superset-ui-core/src/color/stories/ColorPalettes.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "categoricalPalettes"
+    },
+    "core-packages-superset-ui-color--sequential-palettes": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-color--sequential-palettes",
+      "name": "Sequential Palettes",
+      "title": "Core Packages/@superset-ui-color",
+      "importPath": "./packages/superset-ui-core/src/color/stories/ColorPalettes.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "sequentialPalettes"
+    },
+    "components-asyncaceeditor--async-ace-editor": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-asyncaceeditor--async-ace-editor",
+      "name": "Async Ace Editor",
+      "title": "Components/AsyncAceEditor",
+      "importPath": "./packages/superset-ui-core/src/components/AsyncAceEditor/AsyncAceEditor.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AsyncAceEditor"
+    },
+    "components-asyncesmcomponent--interactive-esm-component": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-asyncesmcomponent--interactive-esm-component",
+      "name": "Interactive Esm Component",
+      "title": "Components/AsyncEsmComponent",
+      "importPath": "./packages/superset-ui-core/src/components/AsyncEsmComponent/AsyncEsmComponent.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveEsmComponent"
+    },
+    "components-autocomplete--interactive-auto-complete": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-autocomplete--interactive-auto-complete",
+      "name": "Interactive Auto Complete",
+      "title": "Components/AutoComplete",
+      "importPath": "./packages/superset-ui-core/src/components/AutoComplete/AutoComplete.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/AutoComplete/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveAutoComplete"
+    },
+    "components-autocomplete--dynamic-search-demo": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-autocomplete--dynamic-search-demo",
+      "name": "Dynamic Search Demo",
+      "title": "Components/AutoComplete",
+      "importPath": "./packages/superset-ui-core/src/components/AutoComplete/AutoComplete.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/AutoComplete/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "DynamicSearchDemo"
+    },
+    "components-avatar--interactive-avatar": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-avatar--interactive-avatar",
+      "name": "Interactive Avatar",
+      "title": "Components/Avatar",
+      "importPath": "./packages/superset-ui-core/src/components/Avatar/Avatar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Avatar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveAvatar"
+    },
+    "components-badge--interactive-badge": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-badge--interactive-badge",
+      "name": "Interactive Badge",
+      "title": "Components/Badge",
+      "importPath": "./packages/superset-ui-core/src/components/Badge/Badge.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Badge/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveBadge"
+    },
+    "components-badge--status-badge": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-badge--status-badge",
+      "name": "Status Badge",
+      "title": "Components/Badge",
+      "importPath": "./packages/superset-ui-core/src/components/Badge/Badge.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Badge/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "StatusBadge"
+    },
+    "components-badge--badge-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-badge--badge-gallery",
+      "name": "Badge Gallery",
+      "title": "Components/Badge",
+      "importPath": "./packages/superset-ui-core/src/components/Badge/Badge.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Badge/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BadgeGallery"
+    },
+    "components-breadcrumb--interactive-breadcrumb": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-breadcrumb--interactive-breadcrumb",
+      "name": "Interactive Breadcrumb",
+      "title": "Components/Breadcrumb",
+      "importPath": "./packages/superset-ui-core/src/components/Breadcrumb/Breadcrumb.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Breadcrumb/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveBreadcrumb"
+    },
+    "components-breadcrumb--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-breadcrumb--default",
+      "name": "Default",
+      "title": "Components/Breadcrumb",
+      "importPath": "./packages/superset-ui-core/src/components/Breadcrumb/Breadcrumb.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Breadcrumb/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "components-button--button-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-button--button-gallery",
+      "name": "Button Gallery",
+      "title": "Components/Button",
+      "importPath": "./packages/superset-ui-core/src/components/Button/Button.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Button/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ButtonGallery"
+    },
+    "components-button--interactive-button": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-button--interactive-button",
+      "name": "Interactive Button",
+      "title": "Components/Button",
+      "importPath": "./packages/superset-ui-core/src/components/Button/Button.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Button/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveButton"
+    },
+    "components-buttongroup--interactive-button-group": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-buttongroup--interactive-button-group",
+      "name": "Interactive Button Group",
+      "title": "Components/ButtonGroup",
+      "importPath": "./packages/superset-ui-core/src/components/ButtonGroup/ButtonGroup.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ButtonGroup/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveButtonGroup"
+    },
+    "components-buttongroup--button-group-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-buttongroup--button-group-gallery",
+      "name": "Button Group Gallery",
+      "title": "Components/ButtonGroup",
+      "importPath": "./packages/superset-ui-core/src/components/ButtonGroup/ButtonGroup.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ButtonGroup/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ButtonGroupGallery"
+    },
+    "components-cachedlabel--interactive-cached-label": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-cachedlabel--interactive-cached-label",
+      "name": "Interactive Cached Label",
+      "title": "Components/CachedLabel",
+      "importPath": "./packages/superset-ui-core/src/components/CachedLabel/CachedLabel.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CachedLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCachedLabel"
+    },
+    "components-cachedlabel--cache-ages": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-cachedlabel--cache-ages",
+      "name": "Cache Ages",
+      "title": "Components/CachedLabel",
+      "importPath": "./packages/superset-ui-core/src/components/CachedLabel/CachedLabel.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CachedLabel/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "CacheAges"
+    },
+    "components-card--interactive-card": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-card--interactive-card",
+      "name": "Interactive Card",
+      "title": "Components/Card",
+      "importPath": "./packages/superset-ui-core/src/components/Card/Card.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Card/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCard"
+    },
+    "components-certifiedbadgewithtooltip--interactive-icon": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-certifiedbadgewithtooltip--interactive-icon",
+      "name": "Interactive Icon",
+      "title": "Components/CertifiedBadgeWithTooltip",
+      "importPath": "./packages/superset-ui-core/src/components/CertifiedBadge/CertifiedBadge.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveIcon"
+    },
+    "components-checkbox--interactive-checkbox": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-checkbox--interactive-checkbox",
+      "name": "Interactive Checkbox",
+      "title": "Components/Checkbox",
+      "importPath": "./packages/superset-ui-core/src/components/Checkbox/Checkbox.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Checkbox/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCheckbox"
+    },
+    "components-checkbox--all-checkbox-states": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-checkbox--all-checkbox-states",
+      "name": "All Checkbox States",
+      "title": "Components/Checkbox",
+      "importPath": "./packages/superset-ui-core/src/components/Checkbox/Checkbox.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Checkbox/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AllCheckboxStates"
+    },
+    "components-checkbox--interactive-indeterminate": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-checkbox--interactive-indeterminate",
+      "name": "Interactive Indeterminate",
+      "title": "Components/Checkbox",
+      "importPath": "./packages/superset-ui-core/src/components/Checkbox/Checkbox.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Checkbox/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveIndeterminate"
+    },
+    "components-checkbox--disabled-checkboxes": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-checkbox--disabled-checkboxes",
+      "name": "Disabled Checkboxes",
+      "title": "Components/Checkbox",
+      "importPath": "./packages/superset-ui-core/src/components/Checkbox/Checkbox.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Checkbox/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "DisabledCheckboxes"
+    },
+    "components-codesyntaxhighlighter--language-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-codesyntaxhighlighter--language-gallery",
+      "name": "Language Gallery",
+      "title": "Components/CodeSyntaxHighlighter",
+      "importPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/CodeSyntaxHighlighter.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LanguageGallery"
+    },
+    "components-codesyntaxhighlighter--interactive-playground": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-codesyntaxhighlighter--interactive-playground",
+      "name": "Interactive Playground",
+      "title": "Components/CodeSyntaxHighlighter",
+      "importPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/CodeSyntaxHighlighter.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractivePlayground"
+    },
+    "components-codesyntaxhighlighter--styling-examples": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-codesyntaxhighlighter--styling-examples",
+      "name": "Styling Examples",
+      "title": "Components/CodeSyntaxHighlighter",
+      "importPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/CodeSyntaxHighlighter.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "StylingExamples"
+    },
+    "components-codesyntaxhighlighter--edge-cases": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-codesyntaxhighlighter--edge-cases",
+      "name": "Edge Cases",
+      "title": "Components/CodeSyntaxHighlighter",
+      "importPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/CodeSyntaxHighlighter.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "EdgeCases"
+    },
+    "components-codesyntaxhighlighter--theme-showcase": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-codesyntaxhighlighter--theme-showcase",
+      "name": "Theme Showcase",
+      "title": "Components/CodeSyntaxHighlighter",
+      "importPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/CodeSyntaxHighlighter.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CodeSyntaxHighlighter/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ThemeShowcase"
+    },
+    "components-collapse--interactive-collapse": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-collapse--interactive-collapse",
+      "name": "Interactive Collapse",
+      "title": "Components/Collapse",
+      "importPath": "./packages/superset-ui-core/src/components/Collapse/Collapse.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Collapse/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCollapse"
+    },
+    "components-confirmstatuschange--interactive-confirm-status-change": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-confirmstatuschange--interactive-confirm-status-change",
+      "name": "Interactive Confirm Status Change",
+      "title": "Components/ConfirmStatusChange",
+      "importPath": "./packages/superset-ui-core/src/components/ConfirmStatusChange/ConfirmStatusChange.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveConfirmStatusChange"
+    },
+    "components-cronpicker--interactive-cron-picker": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-cronpicker--interactive-cron-picker",
+      "name": "Interactive Cron Picker",
+      "title": "Components/CronPicker",
+      "importPath": "./packages/superset-ui-core/src/components/CronPicker/CronPicker.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/CronPicker/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveCronPicker"
+    },
+    "components-datepicker--interactive-date-picker": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-datepicker--interactive-date-picker",
+      "name": "Interactive Date Picker",
+      "title": "Components/DatePicker",
+      "importPath": "./packages/superset-ui-core/src/components/DatePicker/DatePicker.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/DatePicker/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveDatePicker"
+    },
+    "components-datepicker--interactive-range-picker": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-datepicker--interactive-range-picker",
+      "name": "Interactive Range Picker",
+      "title": "Components/DatePicker",
+      "importPath": "./packages/superset-ui-core/src/components/DatePicker/DatePicker.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/DatePicker/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveRangePicker"
+    },
+    "components-divider--interactive-divider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-divider--interactive-divider",
+      "name": "Interactive Divider",
+      "title": "Components/Divider",
+      "importPath": "./packages/superset-ui-core/src/components/Divider/Divider.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Divider/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveDivider"
+    },
+    "components-dropdown--interactive-dropdown": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-dropdown--interactive-dropdown",
+      "name": "Interactive Dropdown",
+      "title": "Components/Dropdown",
+      "importPath": "./packages/superset-ui-core/src/components/Dropdown/Dropdown.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveDropdown"
+    },
+    "components-dropdownbutton--interactive-dropdown-button": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-dropdownbutton--interactive-dropdown-button",
+      "name": "Interactive Dropdown Button",
+      "title": "Components/DropdownButton",
+      "importPath": "./packages/superset-ui-core/src/components/DropdownButton/DropdownButton.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveDropdownButton"
+    },
+    "components-editabletitle--interactive-editable-title": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-editabletitle--interactive-editable-title",
+      "name": "Interactive Editable Title",
+      "title": "Components/EditableTitle",
+      "importPath": "./packages/superset-ui-core/src/components/EditableTitle/EditableTitle.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/EditableTitle/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveEditableTitle"
+    },
+    "components-emptystate--gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-emptystate--gallery",
+      "name": "Gallery",
+      "title": "Components/EmptyState",
+      "importPath": "./packages/superset-ui-core/src/components/EmptyState/EmptyState.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/EmptyState/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Gallery"
+    },
+    "components-emptystate--interactive-empty-state": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-emptystate--interactive-empty-state",
+      "name": "Interactive Empty State",
+      "title": "Components/EmptyState",
+      "importPath": "./packages/superset-ui-core/src/components/EmptyState/EmptyState.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/EmptyState/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveEmptyState"
+    },
+    "components-favestar--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-favestar--default",
+      "name": "Default",
+      "title": "Components/FaveStar",
+      "importPath": "./packages/superset-ui-core/src/components/FaveStar/FaveStar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/FaveStar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "components-favestar--interactive-fave-star": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-favestar--interactive-fave-star",
+      "name": "Interactive Fave Star",
+      "title": "Components/FaveStar",
+      "importPath": "./packages/superset-ui-core/src/components/FaveStar/FaveStar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/FaveStar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveFaveStar"
+    },
+    "components-form-labelederrorboundinput--interactive-labeled-error-bound-input": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-form-labelederrorboundinput--interactive-labeled-error-bound-input",
+      "name": "Interactive Labeled Error Bound Input",
+      "title": "Components/Form/LabeledErrorBoundInput",
+      "importPath": "./packages/superset-ui-core/src/components/Form/LabeledErrorBoundInput.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Form/LabeledErrorBoundInput.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveLabeledErrorBoundInput"
+    },
+    "components-iconbutton--interactive-icon-button": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-iconbutton--interactive-icon-button",
+      "name": "Interactive Icon Button",
+      "title": "Components/IconButton",
+      "importPath": "./packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/IconButton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveIconButton"
+    },
+    "components-iconbutton--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-iconbutton--default",
+      "name": "Default",
+      "title": "Components/IconButton",
+      "importPath": "./packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/IconButton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "components-iconbutton--custom-icon": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-iconbutton--custom-icon",
+      "name": "Custom Icon",
+      "title": "Components/IconButton",
+      "importPath": "./packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/IconButton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "CustomIcon"
+    },
+    "components-icontooltip--interactive-icon-tooltip": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-icontooltip--interactive-icon-tooltip",
+      "name": "Interactive Icon Tooltip",
+      "title": "Components/IconTooltip",
+      "importPath": "./packages/superset-ui-core/src/components/IconTooltip/IconTooltip.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveIconTooltip"
+    },
+    "components-icons--interactive-icons": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-icons--interactive-icons",
+      "name": "Interactive Icons",
+      "title": "Components/Icons",
+      "importPath": "./packages/superset-ui-core/src/components/Icons/Icons.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Icons/BaseIcon.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveIcons"
+    },
+    "components-infotooltip--interactive-info-tooltip": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-infotooltip--interactive-info-tooltip",
+      "name": "Interactive Info Tooltip",
+      "title": "Components/InfoTooltip",
+      "importPath": "./packages/superset-ui-core/src/components/InfoTooltip/InfoTooltip.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/InfoTooltip/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveInfoTooltip"
+    },
+    "components-input--interactive-input": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-input--interactive-input",
+      "name": "Interactive Input",
+      "title": "Components/Input",
+      "importPath": "./packages/superset-ui-core/src/components/Input/Input.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Input/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveInput"
+    },
+    "components-input--interactive-input-number": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-input--interactive-input-number",
+      "name": "Interactive Input Number",
+      "title": "Components/Input",
+      "importPath": "./packages/superset-ui-core/src/components/Input/Input.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Input/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveInputNumber"
+    },
+    "components-input--interactive-text-area": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-input--interactive-text-area",
+      "name": "Interactive Text Area",
+      "title": "Components/Input",
+      "importPath": "./packages/superset-ui-core/src/components/Input/Input.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Input/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTextArea"
+    },
+    "components-label--label-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-label--label-gallery",
+      "name": "Label Gallery",
+      "title": "Components/Label",
+      "importPath": "./packages/superset-ui-core/src/components/Label/Label.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Label/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LabelGallery"
+    },
+    "components-label--interactive-label": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-label--interactive-label",
+      "name": "Interactive Label",
+      "title": "Components/Label",
+      "importPath": "./packages/superset-ui-core/src/components/Label/Label.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Label/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveLabel"
+    },
+    "components-list--interactive-list": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-list--interactive-list",
+      "name": "Interactive List",
+      "title": "Components/List",
+      "importPath": "./packages/superset-ui-core/src/components/List/List.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/List/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveList"
+    },
+    "components-list--interactive-list-with-pagination": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-list--interactive-list-with-pagination",
+      "name": "Interactive List With Pagination",
+      "title": "Components/List",
+      "importPath": "./packages/superset-ui-core/src/components/List/List.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/List/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveListWithPagination"
+    },
+    "components-listviewcard--interactive-list-view-card": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-listviewcard--interactive-list-view-card",
+      "name": "Interactive List View Card",
+      "title": "Components/ListViewCard",
+      "importPath": "./packages/superset-ui-core/src/components/ListViewCard/ListViewCard.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ListViewCard/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveListViewCard"
+    },
+    "components-listviewcard--superset-list-view-card": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-listviewcard--superset-list-view-card",
+      "name": "Superset List View Card",
+      "title": "Components/ListViewCard",
+      "importPath": "./packages/superset-ui-core/src/components/ListViewCard/ListViewCard.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ListViewCard/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SupersetListViewCard"
+    },
+    "components-loading--loading-gallery": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-loading--loading-gallery",
+      "name": "Loading Gallery",
+      "title": "Components/Loading",
+      "importPath": "./packages/superset-ui-core/src/components/Loading/Loading.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Loading/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LoadingGallery"
+    },
+    "components-loading--size-and-opacity-showcase": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-loading--size-and-opacity-showcase",
+      "name": "Size And Opacity Showcase",
+      "title": "Components/Loading",
+      "importPath": "./packages/superset-ui-core/src/components/Loading/Loading.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Loading/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SizeAndOpacityShowcase"
+    },
+    "components-loading--contextual-examples": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-loading--contextual-examples",
+      "name": "Contextual Examples",
+      "title": "Components/Loading",
+      "importPath": "./packages/superset-ui-core/src/components/Loading/Loading.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Loading/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ContextualExamples"
+    },
+    "components-loading--interactive-loading": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-loading--interactive-loading",
+      "name": "Interactive Loading",
+      "title": "Components/Loading",
+      "importPath": "./packages/superset-ui-core/src/components/Loading/Loading.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Loading/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveLoading"
+    },
+    "components-menu--main-navigation": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-menu--main-navigation",
+      "name": "Main Navigation",
+      "title": "Components/Menu",
+      "importPath": "./packages/superset-ui-core/src/components/Menu/Menu.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "MainNavigation"
+    },
+    "components-menu--interactive-menu": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-menu--interactive-menu",
+      "name": "Interactive Menu",
+      "title": "Components/Menu",
+      "importPath": "./packages/superset-ui-core/src/components/Menu/Menu.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveMenu"
+    },
+    "components-modal--interactive-modal": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-modal--interactive-modal",
+      "name": "Interactive Modal",
+      "title": "Components/Modal",
+      "importPath": "./packages/superset-ui-core/src/components/Modal/Modal.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Modal/Modal.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveModal"
+    },
+    "components-modal--modal-functions": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-modal--modal-functions",
+      "name": "Modal Functions",
+      "title": "Components/Modal",
+      "importPath": "./packages/superset-ui-core/src/components/Modal/Modal.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Modal/Modal.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ModalFunctions"
+    },
+    "components-modal--sibling-modal-stacking": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-modal--sibling-modal-stacking",
+      "name": "Sibling Modal Stacking",
+      "title": "Components/Modal",
+      "importPath": "./packages/superset-ui-core/src/components/Modal/Modal.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Modal/Modal.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SiblingModalStacking"
+    },
+    "components-modaltrigger--interactive-modal-trigger": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-modaltrigger--interactive-modal-trigger",
+      "name": "Interactive Modal Trigger",
+      "title": "Components/ModalTrigger",
+      "importPath": "./packages/superset-ui-core/src/components/ModalTrigger/ModalTrigger.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ModalTrigger/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveModalTrigger"
+    },
+    "components-popover--interactive-popover": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-popover--interactive-popover",
+      "name": "Interactive Popover",
+      "title": "Components/Popover",
+      "importPath": "./packages/superset-ui-core/src/components/Popover/Popover.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Popover/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractivePopover"
+    },
+    "components-popoverdropdown--interactive-popover-dropdown": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-popoverdropdown--interactive-popover-dropdown",
+      "name": "Interactive Popover Dropdown",
+      "title": "Components/PopoverDropdown",
+      "importPath": "./packages/superset-ui-core/src/components/PopoverDropdown/PopoverDropdown.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractivePopoverDropdown"
+    },
+    "components-popoversection--interactive-popover-section": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-popoversection--interactive-popover-section",
+      "name": "Interactive Popover Section",
+      "title": "Components/PopoverSection",
+      "importPath": "./packages/superset-ui-core/src/components/PopoverSection/PopoverSection.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractivePopoverSection"
+    },
+    "components-progressbar--interactive-progress-bar": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-progressbar--interactive-progress-bar",
+      "name": "Interactive Progress Bar",
+      "title": "Components/ProgressBar",
+      "importPath": "./packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ProgressBar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveProgressBar"
+    },
+    "components-progressbar--interactive-progress-circle": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-progressbar--interactive-progress-circle",
+      "name": "Interactive Progress Circle",
+      "title": "Components/ProgressBar",
+      "importPath": "./packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ProgressBar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveProgressCircle"
+    },
+    "components-progressbar--interactive-progress-dashboard": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-progressbar--interactive-progress-dashboard",
+      "name": "Interactive Progress Dashboard",
+      "title": "Components/ProgressBar",
+      "importPath": "./packages/superset-ui-core/src/components/ProgressBar/ProgressBar.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/ProgressBar/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveProgressDashboard"
+    },
+    "components-radio--docs": {
+      "id": "components-radio--docs",
+      "title": "Components/Radio",
+      "name": "Docs",
+      "importPath": "./packages/superset-ui-core/src/components/Radio/Radio.stories.tsx",
+      "type": "docs",
+      "tags": [
+        "dev",
+        "test",
+        "manifest",
+        "autodocs"
+      ],
+      "storiesImports": []
+    },
+    "components-radio--radio-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-radio--radio-story",
+      "name": "Radio Story",
+      "title": "Components/Radio",
+      "importPath": "./packages/superset-ui-core/src/components/Radio/Radio.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Radio/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest",
+        "autodocs"
+      ],
+      "exportName": "RadioStory"
+    },
+    "components-radio--radio-button-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-radio--radio-button-story",
+      "name": "Radio Button Story",
+      "title": "Components/Radio",
+      "importPath": "./packages/superset-ui-core/src/components/Radio/Radio.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Radio/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest",
+        "autodocs"
+      ],
+      "exportName": "RadioButtonStory"
+    },
+    "components-radio--radio-group-with-options-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-radio--radio-group-with-options-story",
+      "name": "Radio Group With Options Story",
+      "title": "Components/Radio",
+      "importPath": "./packages/superset-ui-core/src/components/Radio/Radio.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Radio/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest",
+        "autodocs"
+      ],
+      "exportName": "RadioGroupWithOptionsStory"
+    },
+    "components-refreshlabel--interactive-refresh-label": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-refreshlabel--interactive-refresh-label",
+      "name": "Interactive Refresh Label",
+      "title": "Components/RefreshLabel",
+      "importPath": "./packages/superset-ui-core/src/components/RefreshLabel/RefreshLabel.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveRefreshLabel"
+    },
+    "components-safemarkdown--interactive-safe-markdown": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-safemarkdown--interactive-safe-markdown",
+      "name": "Interactive Safe Markdown",
+      "title": "Components/SafeMarkdown",
+      "importPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSafeMarkdown"
+    },
+    "components-safemarkdown--gfm-features": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-safemarkdown--gfm-features",
+      "name": "GFM Features",
+      "title": "Components/SafeMarkdown",
+      "importPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GFMFeatures"
+    },
+    "components-safemarkdown--html-sanitization": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-safemarkdown--html-sanitization",
+      "name": "HTML Sanitization",
+      "title": "Components/SafeMarkdown",
+      "importPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "HTMLSanitization"
+    },
+    "components-safemarkdown--dashboard-use-cases": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-safemarkdown--dashboard-use-cases",
+      "name": "Dashboard Use Cases",
+      "title": "Components/SafeMarkdown",
+      "importPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/SafeMarkdown/SafeMarkdown.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "DashboardUseCases"
+    },
+    "components-select--interactive-select": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select--interactive-select",
+      "name": "Interactive Select",
+      "title": "Components/Select",
+      "importPath": "./packages/superset-ui-core/src/components/Select/Select.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSelect"
+    },
+    "components-select--at-every-corner": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select--at-every-corner",
+      "name": "At Every Corner",
+      "title": "Components/Select",
+      "importPath": "./packages/superset-ui-core/src/components/Select/Select.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AtEveryCorner"
+    },
+    "components-select--many-selected-values-wrapping": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select--many-selected-values-wrapping",
+      "name": "Many Selected Values Wrapping",
+      "title": "Components/Select",
+      "importPath": "./packages/superset-ui-core/src/components/Select/Select.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ManySelectedValuesWrapping"
+    },
+    "components-select--page-scroll": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select--page-scroll",
+      "name": "Page Scroll",
+      "title": "Components/Select",
+      "importPath": "./packages/superset-ui-core/src/components/Select/Select.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "PageScroll"
+    },
+    "components-select--advanced-playground": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select--advanced-playground",
+      "name": "Advanced Playground",
+      "title": "Components/Select",
+      "importPath": "./packages/superset-ui-core/src/components/Select/Select.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AdvancedPlayground"
+    },
+    "components-select-asyncselect--asynchronous-select": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-select-asyncselect--asynchronous-select",
+      "name": "Asynchronous Select",
+      "title": "Components/Select/AsyncSelect",
+      "importPath": "./packages/superset-ui-core/src/components/Select/AsyncSelect.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Select/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AsynchronousSelect"
+    },
+    "components-skeleton--interactive-skeleton": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-skeleton--interactive-skeleton",
+      "name": "Interactive Skeleton",
+      "title": "Components/Skeleton",
+      "importPath": "./packages/superset-ui-core/src/components/Skeleton/Skeleton.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Skeleton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSkeleton"
+    },
+    "components-skeleton--skeleton-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-skeleton--skeleton-story",
+      "name": "Skeleton Story",
+      "title": "Components/Skeleton",
+      "importPath": "./packages/superset-ui-core/src/components/Skeleton/Skeleton.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Skeleton/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SkeletonStory"
+    },
+    "components-slider--interactive-slider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-slider--interactive-slider",
+      "name": "Interactive Slider",
+      "title": "Components/Slider",
+      "importPath": "./packages/superset-ui-core/src/components/Slider/Slider.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Slider/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSlider"
+    },
+    "components-slider--interactive-range-slider": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-slider--interactive-range-slider",
+      "name": "Interactive Range Slider",
+      "title": "Components/Slider",
+      "importPath": "./packages/superset-ui-core/src/components/Slider/Slider.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Slider/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveRangeSlider"
+    },
+    "components-steps--interactive-steps": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-steps--interactive-steps",
+      "name": "Interactive Steps",
+      "title": "Components/Steps",
+      "importPath": "./packages/superset-ui-core/src/components/Steps/Steps.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSteps"
+    },
+    "components-switch--interactive-switch": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-switch--interactive-switch",
+      "name": "Interactive Switch",
+      "title": "Components/Switch",
+      "importPath": "./packages/superset-ui-core/src/components/Switch/Switch.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSwitch"
+    },
+    "components-tablecollection--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--basic",
+      "name": "Basic",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "components-tablecollection--with-pagination": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--with-pagination",
+      "name": "With Pagination",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithPagination"
+    },
+    "components-tablecollection--with-row-selection": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--with-row-selection",
+      "name": "With Row Selection",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithRowSelection"
+    },
+    "components-tablecollection--loading-state": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--loading-state",
+      "name": "Loading State",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LoadingState"
+    },
+    "components-tablecollection--table-sizes": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--table-sizes",
+      "name": "Table Sizes",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TableSizes"
+    },
+    "components-tablecollection--with-controlled-sorting": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--with-controlled-sorting",
+      "name": "With Controlled Sorting",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithControlledSorting"
+    },
+    "components-tablecollection--with-row-highlighting": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tablecollection--with-row-highlighting",
+      "name": "With Row Highlighting",
+      "title": "Components/TableCollection",
+      "importPath": "./packages/superset-ui-core/src/components/TableCollection/TableCollection.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableCollection/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithRowHighlighting"
+    },
+    "components-tableview--interactive-table-view": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tableview--interactive-table-view",
+      "name": "Interactive Table View",
+      "title": "Components/TableView",
+      "importPath": "./packages/superset-ui-core/src/components/TableView/TableView.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TableView/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTableView"
+    },
+    "components-tabs--interactive-tabs": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tabs--interactive-tabs",
+      "name": "Interactive Tabs",
+      "title": "Components/Tabs",
+      "importPath": "./packages/superset-ui-core/src/components/Tabs/Tabs.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Tabs/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTabs"
+    },
+    "components-timer--interactive-timer": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-timer--interactive-timer",
+      "name": "Interactive Timer",
+      "title": "Components/Timer",
+      "importPath": "./packages/superset-ui-core/src/components/Timer/Timer.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Timer/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTimer"
+    },
+    "components-timezoneselector--interactive-timezone-selector": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-timezoneselector--interactive-timezone-selector",
+      "name": "Interactive Timezone Selector",
+      "title": "Components/TimezoneSelector",
+      "importPath": "./packages/superset-ui-core/src/components/TimezoneSelector/TimezoneSelector.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TimezoneSelector/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTimezoneSelector"
+    },
+    "components-tooltip--interactive-tooltip": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tooltip--interactive-tooltip",
+      "name": "Interactive Tooltip",
+      "title": "Components/Tooltip",
+      "importPath": "./packages/superset-ui-core/src/components/Tooltip/Tooltip.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Tooltip/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTooltip"
+    },
+    "components-dynamictooltip--interactive-tooltip": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-dynamictooltip--interactive-tooltip",
+      "name": "Interactive Tooltip",
+      "title": "Components/DynamicTooltip",
+      "importPath": "./packages/superset-ui-core/src/components/TooltipParagraph/TooltipParagraph.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TooltipParagraph/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTooltip"
+    },
+    "components-tree--tree-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tree--tree-story",
+      "name": "Tree Story",
+      "title": "Components/Tree",
+      "importPath": "./packages/superset-ui-core/src/components/Tree/Tree.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Tree/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TreeStory"
+    },
+    "components-tree--interactive-tree": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-tree--interactive-tree",
+      "name": "Interactive Tree",
+      "title": "Components/Tree",
+      "importPath": "./packages/superset-ui-core/src/components/Tree/Tree.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Tree/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTree"
+    },
+    "components-treeselect--interactive-tree-select": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-treeselect--interactive-tree-select",
+      "name": "Interactive Tree Select",
+      "title": "Components/TreeSelect",
+      "importPath": "./packages/superset-ui-core/src/components/TreeSelect/TreeSelect.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TreeSelect/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTreeSelect"
+    },
+    "components-treeselect--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-treeselect--default",
+      "name": "Default",
+      "title": "Components/TreeSelect",
+      "importPath": "./packages/superset-ui-core/src/components/TreeSelect/TreeSelect.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/TreeSelect/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "components-typography--interactive-typography": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--interactive-typography",
+      "name": "Interactive Typography",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTypography"
+    },
+    "components-typography--text-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--text-story",
+      "name": "Text Story",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TextStory"
+    },
+    "components-typography--interactive-title": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--interactive-title",
+      "name": "Interactive Title",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveTitle"
+    },
+    "components-typography--title-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--title-story",
+      "name": "Title Story",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TitleStory"
+    },
+    "components-typography--interactive-paragraph": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--interactive-paragraph",
+      "name": "Interactive Paragraph",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveParagraph"
+    },
+    "components-typography--paragraph-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--paragraph-story",
+      "name": "Paragraph Story",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ParagraphStory"
+    },
+    "components-typography--interactive-link": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--interactive-link",
+      "name": "Interactive Link",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveLink"
+    },
+    "components-typography--link-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-typography--link-story",
+      "name": "Link Story",
+      "title": "Components/Typography",
+      "importPath": "./packages/superset-ui-core/src/components/Typography/Typography.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Typography/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "LinkStory"
+    },
+    "components-unsavedchangesmodal--interactive-unsaved-changes-modal": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-unsavedchangesmodal--interactive-unsaved-changes-modal",
+      "name": "Interactive Unsaved Changes Modal",
+      "title": "Components/UnsavedChangesModal",
+      "importPath": "./packages/superset-ui-core/src/components/UnsavedChangesModal/UnsavedChangesModal.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/UnsavedChangesModal/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveUnsavedChangesModal"
+    },
+    "components-upload--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-upload--default",
+      "name": "Default",
+      "title": "Components/Upload",
+      "importPath": "./packages/superset-ui-core/src/components/Upload/Upload.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Upload/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "components-upload--interactive-upload": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-upload--interactive-upload",
+      "name": "Interactive Upload",
+      "title": "Components/Upload",
+      "importPath": "./packages/superset-ui-core/src/components/Upload/Upload.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/Upload/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveUpload"
+    },
+    "components-warningiconwithtooltip--interactive-warning-icon": {
+      "type": "story",
+      "subtype": "story",
+      "id": "components-warningiconwithtooltip--interactive-warning-icon",
+      "name": "Interactive Warning Icon",
+      "title": "Components/WarningIconWithTooltip",
+      "importPath": "./packages/superset-ui-core/src/components/WarningIconWithTooltip/WarningIconWithTooltip.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/components/WarningIconWithTooltip/index.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveWarningIcon"
+    },
+    "core-packages-superset-ui-connection--configure-cors": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-connection--configure-cors",
+      "name": "Verify CORS",
+      "title": "Core Packages/@superset-ui-connection",
+      "importPath": "./packages/superset-ui-core/src/connection/stories/Connection.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ConfigureCORS"
+    },
+    "core-packages-superset-ui-number-format--validator": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-number-format--validator",
+      "name": "Validator",
+      "title": "Core Packages/@superset-ui-number-format",
+      "importPath": "./packages/superset-ui-core/src/number-format/stories/NumberFormat.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "validator"
+    },
+    "core-packages-superset-ui-theme--theme-colors": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-theme--theme-colors",
+      "name": "Theme Colors",
+      "title": "Core Packages/@superset-ui-theme",
+      "importPath": "./packages/superset-ui-core/src/style/stories/Theme.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ThemeColors"
+    },
+    "core-packages-superset-ui-theme--default": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-theme--default",
+      "name": "Default",
+      "title": "Core Packages/@superset-ui-theme",
+      "importPath": "./packages/superset-ui-core/src/style/stories/Theme.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Default"
+    },
+    "core-packages-superset-ui-time-format--validator": {
+      "type": "story",
+      "subtype": "story",
+      "id": "core-packages-superset-ui-time-format--validator",
+      "name": "Validator",
+      "title": "Core Packages/@superset-ui-time-format",
+      "importPath": "./packages/superset-ui-core/src/time-format/stories/TimeFormat.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "validator"
+    },
+    "chart-plugins-plugin-chart-ag-grid-table--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-ag-grid-table--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-ag-grid-table",
+      "importPath": "./plugins/plugin-chart-ag-grid-table/src/stories/AgGridTable.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-calendar--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-calendar--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-calendar",
+      "importPath": "./plugins/plugin-chart-calendar/src/stories/LegacyPluginChartCalendar.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-cartodiagram--basic-map": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-cartodiagram--basic-map",
+      "name": "Basic Map",
+      "title": "Chart Plugins/plugin-chart-cartodiagram",
+      "importPath": "./plugins/plugin-chart-cartodiagram/src/stories/Cartodiagram.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BasicMap"
+    },
+    "chart-plugins-plugin-chart-chord--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-chord--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-chord",
+      "importPath": "./plugins/plugin-chart-chord/src/stories/LegacyPluginChartChord.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-country-map--basic-country-map-story": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-country-map--basic-country-map-story",
+      "name": "Basic Country Map Story",
+      "title": "Chart Plugins/plugin-chart-country-map",
+      "importPath": "./plugins/plugin-chart-country-map/src/stories/CountryMap.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BasicCountryMapStory"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumbertotal--total-basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumbertotal--total-basic",
+      "name": "Total Basic",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberTotal",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/stories/BigNumberTotal.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TotalBasic"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumbertotal--total-no-data": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumbertotal--total-no-data",
+      "name": "Total No Data",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberTotal",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/stories/BigNumberTotal.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "TotalNoData"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--basic-with-trendline": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--basic-with-trendline",
+      "name": "Basic With Trendline",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/stories/BigNumber.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BasicWithTrendline"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--weekly-time-granularity": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--weekly-time-granularity",
+      "name": "Weekly Time Granularity",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/stories/BigNumber.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "weeklyTimeGranularity"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--null-in-the-middle": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--null-in-the-middle",
+      "name": "Null In The Middle",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/stories/BigNumber.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "nullInTheMiddle"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--fixed-range": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--fixed-range",
+      "name": "Fixed Range",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/stories/BigNumber.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "fixedRange"
+    },
+    "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--no-fixed-range": {
+      "type": "story",
+      "subtype": "story",
+      "id": "legacy-chart-plugins-legacy-preset-big-number-bignumberwithtrendline--no-fixed-range",
+      "name": "No Fixed Range",
+      "title": "Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline",
+      "importPath": "./plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/stories/BigNumber.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "noFixedRange"
+    },
+    "chart-plugins-plugin-chart-echarts--bubble-chart": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts--bubble-chart",
+      "name": "Bubble Chart",
+      "title": "Chart Plugins/plugin-chart-echarts",
+      "importPath": "./plugins/plugin-chart-echarts/src/Bubble/stories/BubbleChart.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BubbleChart"
+    },
+    "chart-plugins-plugin-chart-echarts--area-series": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts--area-series",
+      "name": "Area Series",
+      "title": "Chart Plugins/plugin-chart-echarts",
+      "importPath": "./plugins/plugin-chart-echarts/src/Timeseries/stories/AreaSeries/AreaSeries.stories.tsx",
+      "componentPath": "./packages/superset-ui-core/src/index.ts",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "AreaSeries"
+    },
+    "chart-plugins-plugin-chart-echarts-boxplot--box-plot": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-boxplot--box-plot",
+      "name": "Box Plot",
+      "title": "Chart Plugins/plugin-chart-echarts/BoxPlot",
+      "importPath": "./plugins/plugin-chart-echarts/src/BoxPlot/stories/BoxPlot.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BoxPlot"
+    },
+    "chart-plugins-plugin-chart-echarts-funnel--funnel": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-funnel--funnel",
+      "name": "Funnel",
+      "title": "Chart Plugins/plugin-chart-echarts/Funnel",
+      "importPath": "./plugins/plugin-chart-echarts/src/Funnel/stories/Funnel.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Funnel"
+    },
+    "chart-plugins-plugin-chart-echarts-gauge--gauge": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-gauge--gauge",
+      "name": "Gauge",
+      "title": "Chart Plugins/plugin-chart-echarts/Gauge",
+      "importPath": "./plugins/plugin-chart-echarts/src/Gauge/stories/Gauge.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Gauge"
+    },
+    "chart-plugins-plugin-chart-echarts-graph--graph": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-graph--graph",
+      "name": "Graph",
+      "title": "Chart Plugins/plugin-chart-echarts/Graph",
+      "importPath": "./plugins/plugin-chart-echarts/src/Graph/stories/Graph.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Graph"
+    },
+    "chart-plugins-plugin-chart-echarts-mixedtimeseries--timeseries": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-mixedtimeseries--timeseries",
+      "name": "Timeseries",
+      "title": "Chart Plugins/plugin-chart-echarts/MixedTimeseries",
+      "importPath": "./plugins/plugin-chart-echarts/src/MixedTimeseries/stories/MixedSeries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Timeseries"
+    },
+    "chart-plugins-plugin-chart-echarts-mixedtimeseries--with-negative-numbers": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-mixedtimeseries--with-negative-numbers",
+      "name": "With Negative Numbers",
+      "title": "Chart Plugins/plugin-chart-echarts/MixedTimeseries",
+      "importPath": "./plugins/plugin-chart-echarts/src/MixedTimeseries/stories/MixedSeries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithNegativeNumbers"
+    },
+    "chart-plugins-plugin-chart-echarts-pie--weekday-pie": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-pie--weekday-pie",
+      "name": "Weekday Pie",
+      "title": "Chart Plugins/plugin-chart-echarts/Pie",
+      "importPath": "./plugins/plugin-chart-echarts/src/Pie/stories/Pie.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WeekdayPie"
+    },
+    "chart-plugins-plugin-chart-echarts-pie--population-pie": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-pie--population-pie",
+      "name": "Population Pie",
+      "title": "Chart Plugins/plugin-chart-echarts/Pie",
+      "importPath": "./plugins/plugin-chart-echarts/src/Pie/stories/Pie.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "PopulationPie"
+    },
+    "chart-plugins-plugin-chart-echarts-pie--sales-pie": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-pie--sales-pie",
+      "name": "Sales Pie",
+      "title": "Chart Plugins/plugin-chart-echarts/Pie",
+      "importPath": "./plugins/plugin-chart-echarts/src/Pie/stories/Pie.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "SalesPie"
+    },
+    "chart-plugins-plugin-chart-echarts-radar--radar": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-radar--radar",
+      "name": "Radar",
+      "title": "Chart Plugins/plugin-chart-echarts/Radar",
+      "importPath": "./plugins/plugin-chart-echarts/src/Radar/stories/Radar.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Radar"
+    },
+    "chart-plugins-plugin-chart-echarts-sunburst--sunburst": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-sunburst--sunburst",
+      "name": "Sunburst",
+      "title": "Chart Plugins/plugin-chart-echarts/Sunburst",
+      "importPath": "./plugins/plugin-chart-echarts/src/Sunburst/stories/Sunburst.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Sunburst"
+    },
+    "chart-plugins-plugin-chart-echarts-serieschart--timeseries": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-serieschart--timeseries",
+      "name": "Timeseries",
+      "title": "Chart Plugins/plugin-chart-echarts/SeriesChart",
+      "importPath": "./plugins/plugin-chart-echarts/src/Timeseries/stories/Timeseries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Timeseries"
+    },
+    "chart-plugins-plugin-chart-echarts-serieschart--with-negative-numbers": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-serieschart--with-negative-numbers",
+      "name": "With Negative Numbers",
+      "title": "Chart Plugins/plugin-chart-echarts/SeriesChart",
+      "importPath": "./plugins/plugin-chart-echarts/src/Timeseries/stories/Timeseries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithNegativeNumbers"
+    },
+    "chart-plugins-plugin-chart-echarts-serieschart--confidence-band": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-serieschart--confidence-band",
+      "name": "Confidence Band",
+      "title": "Chart Plugins/plugin-chart-echarts/SeriesChart",
+      "importPath": "./plugins/plugin-chart-echarts/src/Timeseries/stories/Timeseries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ConfidenceBand"
+    },
+    "chart-plugins-plugin-chart-echarts-serieschart--stack-with-nulls": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-serieschart--stack-with-nulls",
+      "name": "Stack With Nulls",
+      "title": "Chart Plugins/plugin-chart-echarts/SeriesChart",
+      "importPath": "./plugins/plugin-chart-echarts/src/Timeseries/stories/Timeseries.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "StackWithNulls"
+    },
+    "chart-plugins-plugin-chart-echarts-tree--tree": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-tree--tree",
+      "name": "Tree",
+      "title": "Chart Plugins/plugin-chart-echarts/Tree",
+      "importPath": "./plugins/plugin-chart-echarts/src/Tree/stories/Tree.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Tree"
+    },
+    "chart-plugins-plugin-chart-echarts-treemap--treemap": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-treemap--treemap",
+      "name": "Treemap",
+      "title": "Chart Plugins/plugin-chart-echarts/Treemap",
+      "importPath": "./plugins/plugin-chart-echarts/src/Treemap/stories/Treemap.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Treemap"
+    },
+    "chart-plugins-plugin-chart-echarts-waterfall--waterfall": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-echarts-waterfall--waterfall",
+      "name": "Waterfall",
+      "title": "Chart Plugins/plugin-chart-echarts/Waterfall",
+      "importPath": "./plugins/plugin-chart-echarts/src/Waterfall/stories/Waterfall.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Waterfall"
+    },
+    "chart-plugins-plugin-chart-handlebars--interactive-handlebars": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-handlebars--interactive-handlebars",
+      "name": "Interactive Handlebars",
+      "title": "Chart Plugins/plugin-chart-handlebars",
+      "importPath": "./plugins/plugin-chart-handlebars/src/stories/Handlebars.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveHandlebars"
+    },
+    "chart-plugins-plugin-chart-handlebars--kpi-dashboard": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-handlebars--kpi-dashboard",
+      "name": "KPI Dashboard",
+      "title": "Chart Plugins/plugin-chart-handlebars",
+      "importPath": "./plugins/plugin-chart-handlebars/src/stories/Handlebars.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "KPIDashboard"
+    },
+    "chart-plugins-plugin-chart-handlebars--leaderboard": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-handlebars--leaderboard",
+      "name": "Leaderboard",
+      "title": "Chart Plugins/plugin-chart-handlebars",
+      "importPath": "./plugins/plugin-chart-handlebars/src/stories/Handlebars.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Leaderboard"
+    },
+    "chart-plugins-plugin-chart-handlebars--timeline": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-handlebars--timeline",
+      "name": "Timeline",
+      "title": "Chart Plugins/plugin-chart-handlebars",
+      "importPath": "./plugins/plugin-chart-handlebars/src/stories/Handlebars.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Timeline"
+    },
+    "chart-plugins-plugin-chart-horizon--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-horizon--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-horizon",
+      "importPath": "./plugins/plugin-chart-horizon/src/stories/Horizon.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-paired-t-test--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-paired-t-test--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-paired-t-test",
+      "importPath": "./plugins/plugin-chart-paired-t-test/src/stories/TTest.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-parallel-coordinates--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-parallel-coordinates--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-parallel-coordinates",
+      "importPath": "./plugins/plugin-chart-parallel-coordinates/src/stories/ParallelCoordinates.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-partition--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-partition--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-partition",
+      "importPath": "./plugins/plugin-chart-partition/src/stories/Partition.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-pivot-table--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-pivot-table--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-pivot-table",
+      "importPath": "./plugins/plugin-chart-pivot-table/src/stories/PivotTable.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-point-cluster-map--interactive-supercluster-map": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-point-cluster-map--interactive-supercluster-map",
+      "name": "Interactive Supercluster Map",
+      "title": "Chart Plugins/plugin-chart-point-cluster-map",
+      "importPath": "./plugins/plugin-chart-point-cluster-map/src/stories/PointClusterMap.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "InteractiveSuperclusterMap"
+    },
+    "chart-plugins-plugin-chart-point-cluster-map--with-metric-labels": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-point-cluster-map--with-metric-labels",
+      "name": "With Metric Labels",
+      "title": "Chart Plugins/plugin-chart-point-cluster-map",
+      "importPath": "./plugins/plugin-chart-point-cluster-map/src/stories/PointClusterMap.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "WithMetricLabels"
+    },
+    "chart-plugins-plugin-chart-point-cluster-map--no-clustering": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-point-cluster-map--no-clustering",
+      "name": "No Clustering",
+      "title": "Chart Plugins/plugin-chart-point-cluster-map",
+      "importPath": "./plugins/plugin-chart-point-cluster-map/src/stories/PointClusterMap.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "NoClustering"
+    },
+    "chart-plugins-plugin-chart-table--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-table--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-table",
+      "importPath": "./plugins/plugin-chart-table/src/stories/Table.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-table--big-table": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-table--big-table",
+      "name": "Big Table",
+      "title": "Chart Plugins/plugin-chart-table",
+      "importPath": "./plugins/plugin-chart-table/src/stories/Table.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "BigTable"
+    },
+    "chart-plugins-plugin-chart-word-cloud--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-word-cloud--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-word-cloud",
+      "importPath": "./plugins/plugin-chart-word-cloud/src/stories/WordCloud.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-plugin-chart-world-map--basic": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-plugin-chart-world-map--basic",
+      "name": "Basic",
+      "title": "Chart Plugins/plugin-chart-world-map",
+      "importPath": "./plugins/plugin-chart-world-map/src/stories/WorldMap.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "Basic"
+    },
+    "chart-plugins-preset-chart-deckgl-arcchartplugin--arc-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-arcchartplugin--arc-chart-viz",
+      "name": "Arc Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/ArcChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Arc/stories/Arc.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ArcChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-gridchartplugin--grid-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-gridchartplugin--grid-chart-viz",
+      "name": "Grid Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/GridChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Grid/stories/Grid.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GridChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-hexchartplugin--hex-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-hexchartplugin--hex-chart-viz",
+      "name": "Hex Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/HexChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Hex/stories/Hex.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "HexChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-pathchartplugin--path-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-pathchartplugin--path-chart-viz",
+      "name": "Path Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/PathChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Path/stories/Path.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "PathChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-polygonchartplugin--polygon-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-polygonchartplugin--polygon-chart-viz",
+      "name": "Polygon Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/PolygonChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Polygon/stories/Polygon.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "PolygonChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-polygonchartplugin--geojson-polygon-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-polygonchartplugin--geojson-polygon-viz",
+      "name": "Geojson Polygon Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/PolygonChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Polygon/stories/Polygon.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "GeojsonPolygonViz"
+    },
+    "chart-plugins-preset-chart-deckgl-scatterchartplugin--scatter-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-scatterchartplugin--scatter-chart-viz",
+      "name": "Scatter Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/ScatterChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Scatter/stories/Scatter.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ScatterChartViz"
+    },
+    "chart-plugins-preset-chart-deckgl-screengridchartplugin--screengrid-chart-viz": {
+      "type": "story",
+      "subtype": "story",
+      "id": "chart-plugins-preset-chart-deckgl-screengridchartplugin--screengrid-chart-viz",
+      "name": "Screengrid Chart Viz",
+      "title": "Chart Plugins/preset-chart-deckgl/ScreengridChartPlugin",
+      "importPath": "./plugins/preset-chart-deckgl/src/layers/Screengrid/stories/Screengrid.stories.tsx",
+      "tags": [
+        "dev",
+        "test",
+        "manifest"
+      ],
+      "exportName": "ScreengridChartViz"
+    }
+  }
+}
