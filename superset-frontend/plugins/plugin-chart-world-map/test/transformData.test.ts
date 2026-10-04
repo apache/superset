@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import { WORLD_BOUNDARY_IDS } from '../src/worldGeometry';
 import { getCountry } from '../src/countries';
 import transformData from '../src/transformData';
@@ -199,14 +197,6 @@ test('world boundary snapshots match the real imported Datamaps topology', () =>
   expect(geometryIds.has('USA')).toBe(true);
   expect(geometryIds.has('SGP')).toBe(false);
   expect(WORLD_BOUNDARY_IDS).toEqual(geometryIds);
-  const backend = readFileSync(
-    resolve(__dirname, '../../../../superset/utils/geographic_world.py'),
-    'utf8',
-  );
-  const backendIds = new Set(
-    Array.from(backend.matchAll(/"([A-Z]{3}|-99)"/g), match => match[1]),
-  );
-  expect(backendIds).toEqual(geometryIds);
 });
 
 test('strict choropleths reject Singapore while bubbles can draw it', () => {

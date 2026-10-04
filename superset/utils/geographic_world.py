@@ -17,9 +17,10 @@
 
 """Rendered world identifiers from datamaps/dist/datamaps.all.min.
 
-The frontend geometry parity test checks this snapshot against the actual
-Datamaps world topology. The country dictionary also includes countries with
-no polygon, which can only be drawn as bubbles.
+The backend parity test checks this snapshot against the frontend boundary set,
+which Jest verifies against the actual Datamaps world topology. The country
+dictionary also includes countries with no polygon, which can only be drawn
+as bubbles.
 """
 
 WORLD_BOUNDARY_IDS: frozenset[str] = frozenset(
