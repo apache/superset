@@ -460,10 +460,11 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via
+    #   apache-superset
     #   fastmcp-slim
     #   mcp
     #   testcontainers
-httpx-sse==0.4.1
+httpx-sse==0.4.3
     # via mcp
 humanize==4.12.3
     # via
@@ -603,7 +604,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mcp==1.29.1
+mcp==1.30.0
     # via
     #   apache-superset
     #   fastmcp-slim
@@ -964,6 +965,8 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+regex==2026.9.29
+    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -977,6 +980,7 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -1118,6 +1122,8 @@ tabulate==0.10.0
     #   apache-superset
 testcontainers==4.15.0
     # via -r requirements/development.in
+tiktoken==0.14.0
+    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
@@ -1173,7 +1179,7 @@ tzlocal==5.4.4
     #   -c requirements/base-constraint.txt
     #   celery
     #   trino
-uncalled-for==0.2.0
+uncalled-for==0.4.0
     # via fastmcp-slim
 url-normalize==2.2.1
     # via

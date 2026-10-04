@@ -25,7 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from flask import Flask, g
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR

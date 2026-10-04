@@ -405,7 +405,7 @@ def _serialize_tools_without_output_schema(
     results = []
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(
-            mode="json", exclude_none=True, exclude={"outputSchema"}
+            mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
         )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
@@ -428,7 +428,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
         results = []
         for tool in tools:
             data = tool.to_mcp_tool().model_dump(
-                mode="json", exclude_none=True, exclude={"outputSchema"}
+                mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
             instructions = _request_instructions(tool)
@@ -647,7 +647,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     in a future major version, these subclasses will need to be updated.
     """
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool, ToolResult
+    from fastmcp.tools import Tool, ToolResult
 
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
@@ -719,7 +719,7 @@ def _create_search_transform(  # noqa: C901
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool
+    from fastmcp.tools import Tool
 
     def _make_optional_query_search_tool(transform: Any) -> Any:
         """Create search tool with optional query — returns all tools when omitted."""
