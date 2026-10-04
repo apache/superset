@@ -20,7 +20,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from importlib import import_module
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -35,14 +36,15 @@ from superset.connectors.sqla.partition_mapping import (
     build_probe_sql,
     contains_jinja,
     contains_value_placeholder,
+    equality_mirrors_safely,
     evaluate_transform,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
     is_bare_expression,
     is_parseable,
-    is_unfinished,
     is_transform_active,
+    is_unfinished,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
@@ -183,6 +185,116 @@ def test_negations_and_pattern_matches_are_never_mirrorable(
     mirroring it would drop rows the original filter keeps.
     """
     assert operator not in mirrorable_operators(is_monotonic=True)
+
+
+def test_equality_is_dropped_when_the_engine_does_not_compare_byte_exactly() -> None:
+    """
+    "Safe for any function ``T``" reasons about value equality: ``T`` is a
+    function, so ``col = v`` gives ``T(col) = T(v)``. The engine reasons about
+    *SQL* equality, and the two part company under a case-insensitive
+    collation -- a stored ``'us'`` satisfies a filter for ``'US'`` while the
+    mirror ``hex('US')`` excludes the row, and the chart loses it silently.
+    """
+    assert mirrorable_operators(is_monotonic=False, equality_is_safe=False) == set()
+
+
+def test_ranges_survive_an_unsafe_equality() -> None:
+    """
+    Range mirroring already rests on the owner declaring ``T``
+    order-preserving with respect to the column's own order -- an assertion
+    about the very comparison semantics this gate checks for. Equality has no
+    such declaration behind it, which is why only equality is withdrawn.
+    """
+    assert (
+        mirrorable_operators(is_monotonic=True, equality_is_safe=False)
+        == MIRRORABLE_IF_MONOTONIC
+    )
+
+
+def _column(type_: str) -> TableColumn:
+    database = Database(database_name="t", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+    return TableColumn(column_name="c", type=type_, table=table)
+
+
+@pytest.mark.parametrize(
+    "type_, binary, expected",
+    [
+        ("VARCHAR", True, True),
+        ("VARCHAR", False, False),
+        # Numeric and temporal comparison is exact everywhere.
+        ("BIGINT", False, True),
+        ("TIMESTAMP", False, True),
+        ("DOUBLE", False, True),
+    ],
+)
+def test_equality_mirrors_safely_only_guards_string_columns(
+    app: Flask, type_: str, binary: bool, expected: bool
+) -> None:
+    class _Spec(BaseEngineSpec):
+        binary_string_comparison = binary
+
+    with app.app_context():
+        assert equality_mirrors_safely(_column(type_), _Spec) is expected
+
+
+def test_equality_mirrors_safely_fails_closed_on_an_unresolvable_type(
+    app: Flask,
+) -> None:
+    """
+    The gate exists to stop a silent wrong answer, so a column whose type it
+    cannot read is treated as the risky case rather than waved through.
+    """
+    column = MagicMock()
+    type(column).type_generic = PropertyMock(side_effect=ValueError("no type"))
+
+    with app.app_context():
+        assert equality_mirrors_safely(column, BaseEngineSpec) is False
+
+
+def test_no_mapped_column_leaves_the_matrix_alone(app: Flask) -> None:
+    """Nothing to reason about, and the resolver bails out on it anyway."""
+    with app.app_context():
+        assert equality_mirrors_safely(None, BaseEngineSpec) is True
+
+
+@pytest.mark.parametrize(
+    "module, spec_name",
+    [
+        ("presto", "PrestoEngineSpec"),
+        ("hive", "HiveEngineSpec"),
+        ("trino", "TrinoEngineSpec"),
+        ("impala", "ImpalaEngineSpec"),
+        ("postgres", "PostgresEngineSpec"),
+        ("bigquery", "BigQueryEngineSpec"),
+        ("sqlite", "SqliteEngineSpec"),
+    ],
+)
+def test_the_byte_exact_engines_opt_in(module: str, spec_name: str) -> None:
+    """
+    The engines this feature targets compare text byte-exactly, so the gate
+    must not cost them the second canonical mapping (`lower(:value)` onto a
+    lowercased key).
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    assert spec.binary_string_comparison is True
+
+
+@pytest.mark.parametrize("module, spec_name", [("mysql", "MySQLEngineSpec")])
+def test_a_case_insensitive_engine_does_not_opt_in(
+    module: str, spec_name: str
+) -> None:
+    """
+    MySQL's default collation is `utf8mb4_0900_ai_ci`, which is exactly the
+    case the reviewer raised.
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    assert spec.binary_string_comparison is False
+
+
+def test_the_base_spec_does_not_opt_in() -> None:
+    """A spec that has not said so does not mirror string equality."""
+    assert BaseEngineSpec.binary_string_comparison is False
 
 
 # ---------------------------------------------------------------------------

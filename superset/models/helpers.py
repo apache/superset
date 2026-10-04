@@ -4403,6 +4403,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return False
         return rendered is not None and rendered == truncated
 
+    def _round_bounds_to_the_second(
+        self,
+        start_dttm: Optional[datetime],
+        end_dttm: Optional[datetime],
+        col: Optional["TableColumn"],
+    ) -> tuple[Optional[datetime], Optional[datetime], bool]:
+        """
+        The bounds widened to whole seconds, if the engine renders them that way.
+
+        On an engine whose literal drops the sub-second part the real predicate
+        compares a floored bound, so a mirror derived from the full precision
+        describes a *narrower* range than the predicate it stands in for -- and
+        narrower means it drops rows the filter keeps. Rounding outward is never
+        narrower.
+
+        Returns the bounds and whether anything moved, because a ceiled upper
+        bound is only safe inclusive, exactly as a grain-widened one is.
+        """
+        if not any(
+            bound is not None and self._engine_drops_subseconds(bound, col)
+            for bound in (start_dttm, end_dttm)
+        ):
+            return start_dttm, end_dttm, False
+
+        if start_dttm is not None:
+            start_dttm = start_dttm.replace(microsecond=0)
+        if end_dttm is not None and end_dttm.microsecond:
+            end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
+        return start_dttm, end_dttm, True
+
     def _collect_partition_mirror_range(
         self,
         mapping: Optional["PartitionMapping"],
@@ -4463,19 +4493,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 end_dttm += widen_bounds_by
             upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
-        # Then round outward, on an engine whose literal drops the sub-second
-        # part: the real predicate compares a floored bound, so a probe at full
-        # precision mirrors a narrower range and drops rows the filter keeps.
-        # The upper bound becomes `<=` for the same reason the grain widening
-        # makes it `<=` -- a ceiled bound is only safe inclusive.
-        for bound in (start_dttm, end_dttm):
-            if bound is not None and self._engine_drops_subseconds(bound, mapped_col):
-                if start_dttm is not None:
-                    start_dttm = start_dttm.replace(microsecond=0)
-                if end_dttm is not None and end_dttm.microsecond:
-                    end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
-                upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
-                break
+        # Then round outward, if the engine's literal drops the sub-second part.
+        start_dttm, end_dttm, rounded = self._round_bounds_to_the_second(
+            start_dttm, end_dttm, mapped_col
+        )
+        if rounded:
+            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
         # Converted last. The widening and rounding above are `datetime`
         # arithmetic, and the stored representation may be an integer.

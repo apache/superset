@@ -251,6 +251,9 @@ time_grain_expressions: dict[str | None, str] = {
 
 
 class DatabricksBaseEngineSpec(BaseEngineSpec):
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     _time_grain_expressions = time_grain_expressions
 
     # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
