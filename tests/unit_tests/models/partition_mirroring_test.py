@@ -33,6 +33,7 @@ from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.core import FilterOperator
 
 PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
@@ -492,6 +493,10 @@ def test_the_probe_receives_timezone_adjusted_bounds(app: Flask) -> None:
     building the clause. Probing the *raw* bounds would produce epoch bounds
     describing a different instant than the timestamp bounds they mirror --
     wrong by exactly the offset, silently.
+
+    The bounds reach the probe as `datetime` objects here because the mapped
+    column declares no ``python_date_format``, so that *is* its stored
+    representation. See the sibling tests for a column where it is not.
     """
     table = _table()
     table.extra = '{"timezone": "Europe/Berlin"}'
@@ -529,6 +534,126 @@ def test_the_probe_receives_hour_offset_adjusted_bounds(app: Flask) -> None:
     assert probe.call_args.args[-1] == [
         datetime(2026, 1, 9, 7),
         datetime(2026, 1, 10, 7),
+    ]
+
+
+def test_the_probe_receives_an_epoch_column_s_own_representation(
+    app: Flask,
+) -> None:
+    """
+    The real predicate compares the column against `dttm_sql_literal`, which
+    for a column declaring an epoch ``python_date_format`` renders an integer.
+    So on such a column the transform is a function of an integer -- probing it
+    with a `datetime` evaluates something unrelated to the partition keys, or
+    raises, and a raise costs the dataset its pruning silently.
+    """
+    table = _table(mapped_column="event_epoch", main_dttm_col="event_epoch")
+    table.columns.append(
+        TableColumn(
+            column_name="event_epoch",
+            is_dttm=True,
+            type="BIGINT",
+            python_date_format="epoch_s",
+        )
+    )
+    table.columns[-1].partition_value_transform = "to_date(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_epoch",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == [1767225600, 1769904000]
+
+
+def test_the_probe_honours_a_per_column_date_format_from_db_extra(
+    app: Flask,
+) -> None:
+    """
+    `dttm_sql_literal` falls back to ``python_date_format_by_column_name`` in
+    the database's extra, so the probe has to read the same fallback.
+    """
+    table = _table()
+    table.database.extra = json.dumps(
+        {"python_date_format_by_column_name": {"event_time": "%Y%m%d"}}
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+
+
+def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
+    app: Flask,
+) -> None:
+    """
+    SQLite renders a timestamp with ``timespec="seconds"``, so the real lower
+    bound is floored while the probe was handed the full precision. That makes
+    the mirror *narrower* than the predicate it stands in for, and narrower
+    means it drops rows the filter keeps -- a row at ``.250000`` matches
+    ``event_time >= '2026-01-01 00:00:00'`` but not a mirror derived from
+    ``.500000``.
+
+    Rounding outward is never narrower. The upper bound turns inclusive for the
+    same reason the grain widening does: a ceiled bound is only safe inclusive.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1, 0, 0, 0, 500000),
+                to_dttm=datetime(2026, 2, 1, 0, 0, 0, 500000),
+            )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0, 0),
+        datetime(2026, 2, 1, 0, 0, 1),
+    ]
+    assert "dt_epoch <= 2" in sql
+
+
+def test_the_probe_keeps_full_precision_on_an_engine_that_does_not_truncate(
+    app: Flask,
+) -> None:
+    """
+    The widening is detected, not enumerated per engine: an engine whose
+    literal carries the sub-second part needs no rounding, and rounding anyway
+    would scan partitions for no reason.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(lambda cls, target_type, dttm, db_extra=None: repr(dttm)),
+        ):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                _query(
+                    table,
+                    granularity="event_time",
+                    from_dttm=datetime(2026, 1, 1, 0, 0, 0, 500000),
+                    to_dttm=datetime(2026, 2, 1, 0, 0, 0, 500000),
+                )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0, 0, 500000),
+        datetime(2026, 2, 1, 0, 0, 0, 500000),
     ]
 
 
