@@ -47,11 +47,13 @@ class Requirement:
 
     def get_version(self) -> Optional[str]:
         try:
-            version = subprocess.check_output(self.command, shell=True).decode().strip()  # noqa: S602
+            output = subprocess.check_output(self.command, shell=True).decode().strip()  # noqa: S602
             if self.version_post_process:
-                version = self.version_post_process(version)
-            return version.split()[-1]
-        except subprocess.CalledProcessError:
+                output = self.version_post_process(output)
+            # return the last token (the numeric version) if present
+            parts = output.split()
+            return parts[-1] if parts else None
+        except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
     def check_version(self) -> str:
@@ -68,7 +70,7 @@ class Requirement:
 
         if ideal_min <= version_number <= ideal_max:
             return "✅ Ideal"
-        elif supported_min <= version_number:
+        elif supported_min <= version_number <= supported_max:
             return "🟡 Supported"
         else:
             return "❌ Unsupported"
@@ -111,7 +113,7 @@ def get_docker_platform() -> str:
         if "Docker Desktop" in output:
             return f"Docker Platform: {output} ({platform.system()})"
         return f"Docker Platform: {output}"
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return "Docker Platform: ❌ Not Detected"
 
 
@@ -147,10 +149,12 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:  # noqa: C901
         ),
         Requirement(
             "node",
+            # node -v often returns a leading 'v', so strip it in post-processing
             (Version("20.0.0"), Version("20.999.999")),
             (Version("20.0.0"), Version("20.999.999")),
             "frontend",
             "node -v",
+            lambda v: v.lstrip("v"),
         ),
         Requirement(
             "docker",
@@ -162,10 +166,12 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:  # noqa: C901
         ),
         Requirement(
             "docker-compose",
+            # docker-compose output may include 'v' in the version token or have extra text
             (Version("2.28.0"), Version("999.999.999")),
             (Version("1.29.0"), Version("999.999.999")),
             "docker",
             "docker-compose --version",
+            lambda v: v.split()[-1].lstrip("v"),
         ),
         Requirement(
             "git",
