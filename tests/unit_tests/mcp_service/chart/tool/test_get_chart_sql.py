@@ -235,13 +235,13 @@ class TestChartSqlJinjaContext:
     """SQL generation must expose the same Jinja inputs as chart data execution."""
 
     def _command_observing_jinja(self, observed: dict[str, bool]) -> type:
-        """Build a ChartDataCommand double that asserts request-dependent Jinja inputs during run()."""
+        """Build a ChartDataCommand double that asserts Jinja inputs in run()."""
         from tests.unit_tests.charts.data.form_data_test import (
             assert_request_dependent_jinja_macros,
         )
 
         class ChartDataCommand:
-            """ChartDataCommand double that asserts Jinja inputs and records that run() executed."""
+            """ChartDataCommand double that asserts Jinja inputs and records run()."""
 
             def __init__(self, query_context: object) -> None:
                 self.query_context = query_context
