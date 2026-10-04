@@ -18,8 +18,9 @@
  */
 
 // Source: https://gist.github.com/AriPerkkio/99b9eedc7d8f71ff6e6770f9425a4be4
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { type test, type Page } from '@playwright/test';
 
 declare global {
@@ -41,8 +42,10 @@ interface Report {
 }
 
 const storybookURL = process.env.STORYBOOK_URL ?? 'http://localhost:6006';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const indexFile = resolve(
-  '../node_modules/.cache/storybook-playwright/index.json',
+  join(__dirname, '../node_modules/.cache/storybook-playwright/index.json'),
 );
 
 export default async function globalSetup() {
@@ -130,6 +133,14 @@ async function visitStory(page: Page, entry: Entry) {
 }
 
 export function loadStories(): [string, Parameters<typeof test>[2]][] {
+  if (!existsSync(indexFile)) {
+    console.error(`\x1B[41m
+Cannot find index.json containing data about Storybook-generated tests
+Please run \`npm run test-storybook\` to initialize\x1B[0m
+`);
+    process.exit(1);
+  }
+
   const index = JSON.parse(readFileSync(indexFile, 'utf8')) as {
     entries: Record<string, Entry>;
   };
