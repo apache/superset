@@ -44,10 +44,11 @@ test('keeps tie order stable when pagination reapplies a descending sort', () =>
     />,
   );
 
-  const sorters = container.querySelectorAll('.ant-table-column-sorters');
+  // Only verbose_name is sortable, so it is the sole sorter.
+  const sorter = container.querySelector('.ant-table-column-sorters')!;
   // ascend -> descend on the all-blank verbose_name column.
-  fireEvent.click(sorters[1]);
-  fireEvent.click(sorters[1]);
+  fireEvent.click(sorter);
+  fireEvent.click(sorter);
 
   const pageRows = () =>
     Array.from(container.querySelectorAll('.ant-table-tbody tr')).map(
