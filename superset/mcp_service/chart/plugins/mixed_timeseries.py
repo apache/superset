@@ -36,6 +36,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class MixedTimeseriesChartPlugin(BaseChartPlugin):
     """Plugin for mixed_timeseries chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys
     chart_type = "mixed_timeseries"
     display_name = "Mixed Timeseries"
     native_viz_types: ClassVar[Mapping[str, str]] = {
@@ -181,36 +182,35 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import (
-            build_mixed_timeseries_secondary,
-            build_single_query_dict,
-            extract_x_axis_col,
-            resolve_metrics_and_groupby,
-            with_x_axis_column,
+        """Use the shared native builder for temporal and result operators."""
+        return None
+
+    def secondary_query_form_data(
+        self, form_data: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        from superset.common.form_data_query_context import (
+            retain_mixed_timeseries_secondary_form_data,
         )
 
-        metrics, groupby = resolve_metrics_and_groupby(form_data)
-        queries = [
-            build_single_query_dict(
-                form_data,
-                with_x_axis_column(form_data, groupby),
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            ),
-            build_mixed_timeseries_secondary(
-                form_data,
-                extract_x_axis_col(form_data),
-                engine,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            ),
-        ]
-        queries[0]["series_columns"] = groupby
-        raw_secondary_groupby = form_data.get("groupby_b") or []
-        queries[1]["series_columns"] = (
-            [raw_secondary_groupby]
-            if isinstance(raw_secondary_groupby, str)
-            else list(raw_secondary_groupby)
+        # Query B owns its suffixed filters and ordering, so it is retained
+        # before query A's filters are prepared and prepared on its own.
+        return retain_mixed_timeseries_secondary_form_data(form_data)
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            retain_mixed_timeseries_secondary_update_state,
         )
-        return queries
+
+        if existing_form_data.get("viz_type") == new_form_data.get("viz_type"):
+            merged.update(
+                retain_mixed_timeseries_secondary_update_state(
+                    existing_form_data, new_form_data
+                )
+            )
+        return merged

@@ -138,6 +138,21 @@ def test_decimal_becomes_float() -> None:
     assert isinstance(sanitized, float)
 
 
+@pytest.mark.parametrize(
+    "value", [Decimal("0.10000000000000000001"), Decimal("1e4096"), Decimal("1e-4096")]
+)
+def test_chart_decimal_sanitization_preserves_nested_precision(value: Decimal) -> None:
+    """Exact chart numerics survive recursive sanitization without float rounding."""
+    from pydantic import TypeAdapter
+
+    from superset.mcp_service.utils.serialization import ExactJsonSafeRows
+
+    adapter = TypeAdapter(ExactJsonSafeRows)
+    rows = adapter.validate_python([{"nested": [value, b"\xff", pd.NaT]}])
+    assert rows[0]["nested"] == [value, "base64:/w==", None]
+    assert str(value).encode() in adapter.dump_json(rows)
+
+
 def test_unknown_types_are_stringified() -> None:
     """The structured-content path (``to_jsonable_python``) has no
     ``fallback=str``, so unknown values cannot be left as-is."""

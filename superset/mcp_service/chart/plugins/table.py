@@ -36,6 +36,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class TableChartPlugin(BaseChartPlugin):
     """Plugin for table chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
     chart_type = "table"
     display_name = "Table"
     native_viz_types: ClassVar[Mapping[str, str]] = {
@@ -129,6 +130,7 @@ class TableChartPlugin(BaseChartPlugin):
                 raw_column_names.get(label, label): column_config
                 for label, column_config in config.column_config.items()
             }
+            normalized.__pydantic_fields_set__.add("column_config")
         return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:
