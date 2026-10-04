@@ -411,9 +411,15 @@ class ImportV1ColumnSchema(Schema):
     partition_value_transform = fields.String(
         allow_none=True, validate=Length(1, MAX_TRANSFORM_LENGTH)
     )
-    # Bundles predating the field must not claim their transform preserves
-    # ordering, which would silently enable range mirroring on import.
-    partition_transform_is_monotonic = fields.Boolean(load_default=False)
+    # `load_default` so bundles predating the field do not claim their transform
+    # preserves ordering, which would silently enable range mirroring on import.
+    # `allow_none` because the column is nullable on purpose -- the legacy
+    # datasource editor writes NULL for any field its payload omits -- and export
+    # emits every field unconditionally, so an untouched export of such a dataset
+    # carries an explicit null that import would otherwise refuse outright.
+    partition_transform_is_monotonic = fields.Boolean(
+        allow_none=True, load_default=False
+    )
     uuid = fields.UUID(allow_none=True)
 
 
