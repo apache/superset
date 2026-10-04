@@ -23,7 +23,6 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import webpack from 'webpack';
 import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
-import CopyPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MinimizerPlugin from 'minimizer-webpack-plugin';
@@ -107,6 +106,23 @@ const output = {
     pathData.chunk?.name === 'service-worker'
       ? '../service-worker.js'
       : defaultChunkFilename,
+  copy: [
+    'package.json',
+    { from: 'src/assets/images', to: 'images' },
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+      to: 'maplibre-gl-worker.mjs',
+    },
+    {
+      from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+      to: 'maplibre-gl-shared.mjs',
+    },
+  ],
 };
 
 if (!isDevMode) {
@@ -159,26 +175,6 @@ const plugins = [
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,
     'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
-  }),
-
-  new CopyPlugin({
-    patterns: [
-      'package.json',
-      { from: 'src/assets/images', to: 'images' },
-      // maplibre-gl 6's ESM-only build loads its worker from a real URL
-      // instead of an inlined blob (see MapLibre.tsx for the matching
-      // maplibregl.setWorkerUrl() call). The worker's own bundle does a
-      // relative ESM import of its "shared" chunk, so both files must be
-      // copied verbatim, unhashed, into the same output directory.
-      {
-        from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
-        to: 'maplibre-gl-worker.mjs',
-      },
-      {
-        from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
-        to: 'maplibre-gl-shared.mjs',
-      },
-    ],
   }),
 
   // static pages
