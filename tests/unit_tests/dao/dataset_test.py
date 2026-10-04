@@ -449,11 +449,13 @@ def test_upsert_columns_clears_a_dangling_partition_mapping(
     db.session.flush()
     event_time_id = next(c.id for c in table.columns if c.column_name == "event_time")
 
-    # The payload keeps only "event_time", so "dt_epoch" is deleted.
-    DatasetDAO.update_columns(
+    # The payload keeps only "event_time", so "dt_epoch" is deleted. Driven
+    # through `update` rather than `update_columns`, because the repair runs
+    # after the dataset-level attributes land: the names it compares against
+    # the surviving columns can themselves be part of the same request.
+    DatasetDAO.update(
         table,
-        [{"id": event_time_id, "column_name": "event_time"}],
-        override_columns=False,
+        {"columns": [{"id": event_time_id, "column_name": "event_time"}]},
     )
     db.session.flush()
 
@@ -480,18 +482,160 @@ def test_upsert_columns_keeps_a_live_partition_mapping(session: Session) -> None
     db.session.flush()
     ids = {c.column_name: c.id for c in table.columns}
 
-    DatasetDAO.update_columns(
+    DatasetDAO.update(
         table,
-        [
-            {"id": ids["event_time"], "verbose_name": "Event time"},
-            {"id": ids["dt_epoch"]},
-        ],
-        override_columns=False,
+        {
+            "columns": [
+                {"id": ids["event_time"], "verbose_name": "Event time"},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
     )
     db.session.flush()
 
     assert table.partition_column == "dt_epoch"
     assert table.partition_mapped_column == "event_time"
+
+
+def test_a_renamed_partition_column_keeps_the_mapping(session: Session) -> None:
+    """
+    One PUT renames `old_part` to `new_part` and updates `partition_column` to
+    match. The repair used to run before the scalars landed, so it read the
+    *persisted* `old_part`, failed to find it among the surviving columns, and
+    nulled both ends of the mapping. `BaseDAO.update` then restored only the
+    keys the request carried -- `partition_column` -- so the override stayed
+    lost, and the unmapped-transform pass resolved the mapping to the default
+    datetime column and deleted `country`'s transform. A rename silently
+    became a re-point.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_rename_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="pm_rename",
+        schema="main",
+        database=database,
+        main_dttm_col="event_time",
+    )
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="old_part"),
+        TableColumn(column_name="country"),
+    ]
+    table.partition_column = "old_part"
+    table.partition_mapped_column = "country"
+    for column in table.columns:
+        if column.column_name == "country":
+            column.partition_value_transform = "lower(:value)"
+    db.session.add_all([database, table])
+    db.session.flush()
+    ids = {c.column_name: c.id for c in table.columns}
+
+    # Note: no `partition_mapped_column`. That is what makes this reachable --
+    # the editor always sends both scalars, so only an API caller gets here.
+    DatasetDAO.update(
+        table,
+        {
+            "partition_column": "new_part",
+            "columns": [
+                {"id": ids["event_time"], "column_name": "event_time"},
+                {"id": ids["old_part"], "column_name": "new_part"},
+                {
+                    "id": ids["country"],
+                    "column_name": "country",
+                    "partition_value_transform": "lower(:value)",
+                },
+            ],
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_column == "new_part"
+    assert table.partition_mapped_column == "country"
+    transforms = {c.column_name: c.partition_value_transform for c in table.columns}
+    assert transforms["country"] == "lower(:value)"
+
+
+def test_a_removed_partition_column_still_clears_the_mapping(
+    session: Session,
+) -> None:
+    """
+    The counterpart, and the behaviour the repair exists for: a sync that
+    genuinely drops the partition column without naming a replacement still
+    clears both ends.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_drop_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="pm_drop", schema="main", database=database)
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "event_time"
+    db.session.add_all([database, table])
+    db.session.flush()
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {"columns": [{"id": ids["event_time"], "column_name": "event_time"}]},
+    )
+    db.session.flush()
+
+    assert table.partition_column is None
+    assert table.partition_mapped_column is None
+
+
+def test_a_removed_mapped_column_clears_only_the_override(session: Session) -> None:
+    """
+    Losing the mapped column drops the override and keeps the partition
+    column, so the mapping falls back to the default datetime column rather
+    than disappearing.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="pm_drop2_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="pm_drop2",
+        schema="main",
+        database=database,
+        main_dttm_col="event_time",
+    )
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_epoch"),
+        TableColumn(column_name="country"),
+    ]
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = "country"
+    db.session.add_all([database, table])
+    db.session.flush()
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"id": ids["event_time"], "column_name": "event_time"},
+                {"id": ids["dt_epoch"], "column_name": "dt_epoch"},
+            ]
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column is None
 
 
 def _mapped_dataset(session: Session, name: str) -> Any:

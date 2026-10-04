@@ -481,10 +481,26 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     db.session.delete(metric)
             attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
+        surviving_column_names: set[str] | None = None
         if item and attributes:
-            cls._update_children(item, attributes, preserve_existing_metrics)
+            surviving_column_names = cls._update_children(
+                item, attributes, preserve_existing_metrics
+            )
 
         updated = super().update(item, attributes)
+
+        # After the scalars land, not before. This reads `partition_column` and
+        # `partition_mapped_column` off the model, so run from inside
+        # `update_columns` it read the *persisted* names: a request that renamed
+        # the partition column and said so saw the old name, failed to find it
+        # among the surviving columns, and nulled the whole mapping.
+        # `BaseDAO.update` then restored only the keys the request carried, so
+        # `partition_mapped_column` stayed lost unless the payload happened to
+        # mention it -- and the pass below then re-pointed the mapping at the
+        # default datetime column and deleted the real mapped column's
+        # transform.
+        if surviving_column_names is not None:
+            cls.clear_dangling_partition_mapping(updated, surviving_column_names)
         # The second half of the pair above: after the dataset-level attributes
         # land, because the mapped column is `partition_mapped_column or
         # main_dttm_col` and either can be part of this very request.
@@ -505,7 +521,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         item: SqlaTable,
         attributes: dict[str, Any],
         preserve_existing_metrics: bool,
-    ) -> None:
+    ) -> set[str] | None:
         """
         Apply the `columns` and `metrics` members of an update, if present.
 
@@ -513,10 +529,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         knows how to set scalar attributes. Editing either is a change to the
         dataset even when no scalar moved, so `changed_on` is bumped here
         rather than left to the generic path that will not see it.
+
+        Returns the surviving column names when the request carried `columns`,
+        and `None` when it did not -- the two are different answers, and an
+        empty set is a third.
         """
         force_update = False
+        surviving_column_names: set[str] | None = None
         if "columns" in attributes:
-            cls.update_columns(
+            surviving_column_names = cls.update_columns(
                 item,
                 attributes.pop("columns"),
                 override_columns=bool(attributes.get("override_columns")),
@@ -533,6 +554,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         if force_update:
             attributes["changed_on"] = datetime.now()
+
+        return surviving_column_names
 
     @classmethod
     def _validate_column_date_formats(
@@ -614,11 +637,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         about the dataset's stored state being honest rather than about
         correctness of the SQL.
 
-        Called from `update_columns` for both write paths: the editor clears the
-        mapping client-side too, but `override_columns=true` (an API-driven
+        Called from `DatasetDAO.update` for both write paths: the editor clears
+        the mapping client-side too, but `override_columns=true` (an API-driven
         metadata sync) bypasses the editor entirely, and the upsert path drops
         every column the payload omits, so either one can take the mapped
         column out from under the mapping.
+
+        Called *after* the dataset-level attributes land, because the names it
+        reads off the model can be part of the same request. Run before them it
+        compares the surviving columns against the mapping being replaced, so a
+        request that renames the partition column and updates
+        ``partition_column`` to match looks exactly like one that deleted it.
         """
         if (
             model.partition_column
@@ -752,7 +781,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         model: SqlaTable,
         property_columns: list[dict[str, Any]],
         override_columns: bool = False,
-    ) -> None:
+    ) -> set[str]:
         """
         Creates/updates and/or deletes a list of columns, based on a
         list of Dict.
@@ -764,14 +793,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
+
+        Returns the names of the columns that survive the write, so the caller
+        can repair a dangling mapping *after* the dataset-level attributes land.
+        Doing it here would read the persisted `partition_column`, which a
+        request renaming that column has already replaced.
         """
         cls._validate_column_date_formats(property_columns)
         if override_columns:
-            surviving_column_names = cls._override_columns(model, property_columns)
-        else:
-            surviving_column_names = cls._upsert_columns(model, property_columns)
-
-        cls.clear_dangling_partition_mapping(model, surviving_column_names)
+            return cls._override_columns(model, property_columns)
+        return cls._upsert_columns(model, property_columns)
 
     @classmethod
     def update_metrics(
