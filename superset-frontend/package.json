@@ -401,7 +401,7 @@
     "cosmiconfig": {
       "js-yaml": "^4.3.2"
     },
-    "dompurify": "^3.4.13",
+    "dompurify": "^3.4.16",
     "esbuild": "^0.28.1",
     "eslint-plugin-import": {
       "eslint": "$eslint"
