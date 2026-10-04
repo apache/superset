@@ -130,7 +130,8 @@ function processScatterData(
     // Reserved source columns live in extraProps to protect computed geometry.
     const getSourceValue = (column?: string): unknown =>
       column
-        ? feature.extraProps && column in feature.extraProps
+        ? feature.extraProps &&
+          Object.prototype.hasOwnProperty.call(feature.extraProps, column)
           ? feature.extraProps[column]
           : feature[column]
         : undefined;

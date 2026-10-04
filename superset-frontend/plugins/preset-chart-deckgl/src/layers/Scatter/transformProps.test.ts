@@ -510,3 +510,54 @@ test('legacy scatter reads a weight radius from the source without replacing geo
   expect(features[0].position).toEqual([-122.4, 37.8]);
   expect(features[0].radius).toBe(42);
 });
+
+test.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+  'scatter reads prototype-named radius metric %s from the source',
+  label => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: label },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [label]: 42 }] },
+      ],
+    };
+    const features = transformProps(props as ChartProps).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      position: [-122.4, 37.8],
+      radius: 42,
+      metric: 42,
+    });
+  },
+);
+
+test.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+  'scatter reads prototype-named dimension %s from the source',
+  dimension => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        dimension,
+        point_radius_fixed: { type: 'fix', value: 100 },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [dimension]: 'A' }] },
+      ],
+    };
+    const features = transformProps(props as ChartProps).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      position: [-122.4, 37.8],
+      radius: 100,
+      cat_color: 'A',
+    });
+  },
+);
