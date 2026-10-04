@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from flask import current_app
 from pytest_mock import MockerFixture
@@ -46,10 +46,10 @@ def test_requires_dataset_match_reads_config() -> None:
 
 def test_execute_validator_follows_config(mocker: MockerFixture) -> None:
     """SQL Lab execute uses the same flag as result fetch and export."""
-    raise_for_access = mocker.patch(
+    raise_for_access: MagicMock = mocker.patch(
         "superset.sqllab.validators.security_manager.raise_for_access"
     )
-    query = mocker.MagicMock()
+    query: MagicMock = mocker.MagicMock()
 
     with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False}):
         CanAccessQueryValidatorImpl().validate(query, template_params={"a": 1})
@@ -65,7 +65,7 @@ def test_query_raise_for_access_follows_config(mocker: MockerFixture) -> None:
     """Result fetch and export stay aligned with the execute-time check."""
     from superset.models.sql_lab import Query
 
-    raise_for_access = mocker.patch(
+    raise_for_access: MagicMock = mocker.patch(
         "superset.models.sql_lab.security_manager.raise_for_access"
     )
     query = Query(sql="SELECT 1")
