@@ -25,6 +25,51 @@ beforeEach(() => {
   addSuccessToast.mockClear();
 });
 
+test('the merge base decides which version of an edited column survives', () => {
+  // Why `syncMetadata` has to merge against the live column state rather than
+  // `datasource.columns`, which is the mount-time snapshot and never moves.
+  // `updateColumns` passes an unchanged column through verbatim, so whatever
+  // the base holds is what comes out -- these two calls differ only in the
+  // base and disagree about the result.
+  const sourceCols = [
+    { column_name: 'country', type: 'VARCHAR', is_dttm: false },
+  ];
+  const asStored = {
+    column_name: 'country',
+    type: 'VARCHAR',
+    is_dttm: false,
+    description: 'as stored',
+    partition_value_transform: 'lower(:value)',
+    filterable: true,
+    groupby: true,
+  };
+  // The same column after this session's edits: the mapping removed, the
+  // partition-column defaults applied, the description rewritten.
+  const asEdited = {
+    ...asStored,
+    description: 'edited this session',
+    partition_value_transform: null,
+    filterable: false,
+    groupby: false,
+  };
+
+  const fromStale = updateColumns([asStored], sourceCols, addSuccessToast);
+  expect(fromStale.finalColumns[0]).toMatchObject({
+    description: 'as stored',
+    partition_value_transform: 'lower(:value)',
+    filterable: true,
+    groupby: true,
+  });
+
+  const fromLive = updateColumns([asEdited], sourceCols, addSuccessToast);
+  expect(fromLive.finalColumns[0]).toMatchObject({
+    description: 'edited this session',
+    partition_value_transform: null,
+    filterable: false,
+    groupby: false,
+  });
+});
+
 test('a column sync preserves the partition value transform', () => {
   // The transform is set by hand in the row-expand section, so a sync that
   // reports the same column must not quietly discard it.

@@ -112,9 +112,12 @@ export default function CRUDCollection({
   if (!initialKeyed.current) {
     initialKeyed.current = createKeyedCollection(propsCollection);
   }
-  const [collection, setCollection] = useState<
-    Record<PropertyKey, CollectionItem>
-  >(() => initialKeyed.current!.collection);
+  // Only `collectionArray` is kept as state. The keyed index it was mirrored
+  // into had exactly one reader -- the old `onFieldsetChange`, which closed
+  // over it and wrote it back as an absolute value -- and that is the bug
+  // being fixed here, so nothing reads it any more. Every writer updated both
+  // in lockstep, and the array is what the render and `onChange` are built
+  // from, so dropping it changes nothing but the bookkeeping.
   const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
     () => initialKeyed.current!.collectionArray,
   );
@@ -144,9 +147,8 @@ export default function CRUDCollection({
 
   // Sync with props.collection changes
   useEffect(() => {
-    const { collection: newCollection, collectionArray: newCollectionArray } =
+    const { collectionArray: newCollectionArray } =
       createKeyedCollection(propsCollection);
-    setCollection(newCollection);
     setCollectionArray(newCollectionArray);
     // Refresh the restore order too, so that clearing a sort after an
     // external sync (e.g. a source-control-synced column set) reflects the
@@ -174,17 +176,6 @@ export default function CRUDCollection({
 
   const onCellChange = useCallback(
     (id: string | number, col: string, val: unknown) => {
-      setCollection(prevCollection => {
-        const updatedCollection = {
-          ...prevCollection,
-          [id]: {
-            ...prevCollection[id],
-            [col]: val,
-          },
-        };
-        return updatedCollection;
-      });
-
       setCollectionArray(prevCollectionArray => {
         const updatedCollectionArray = prevCollectionArray.map(item => {
           if (item.id === id) {
@@ -206,47 +197,8 @@ export default function CRUDCollection({
     [onChange],
   );
 
-  const changeCollection = useCallback(
-    (
-      newCollection: Record<PropertyKey, CollectionItem>,
-      currentCollectionArray: CollectionItem[],
-    ) => {
-      // Preserve existing order instead of recreating from Object.keys()
-      const existingIds = new Set(currentCollectionArray.map(item => item.id));
-      const newCollectionArray: CollectionItem[] = [];
-
-      // First pass: preserve existing order and update items
-      for (const existingItem of currentCollectionArray) {
-        if (newCollection[existingItem.id]) {
-          newCollectionArray.push(newCollection[existingItem.id]);
-        }
-      }
-
-      // Second pass: add new items
-      for (const item of Object.values(newCollection)) {
-        if (!existingIds.has(item.id)) {
-          newCollectionArray.push(item);
-        }
-      }
-
-      setCollection(newCollection);
-      setCollectionArray(newCollectionArray);
-
-      if (onChange) {
-        onChange(newCollectionArray);
-      }
-    },
-    [onChange],
-  );
-
   const deleteItem = useCallback(
     (id: string | number) => {
-      setCollection(prevCollection => {
-        const newColl = { ...prevCollection };
-        delete newColl[id];
-        return newColl;
-      });
-
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = prevCollectionArray.filter(
           item => item.id !== id,
@@ -271,11 +223,6 @@ export default function CRUDCollection({
       }
       delete newItem.expanded;
 
-      setCollection(prevCollection => ({
-        ...prevCollection,
-        [newItem.id]: newItem,
-      }));
-
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = [newItem, ...prevCollectionArray];
 
@@ -294,15 +241,40 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      changeCollection(
-        {
-          ...collection,
-          [item.id]: item,
-        },
-        collectionArray,
-      );
+      // A functional updater, like every other mutator here -- and for a
+      // sharper reason than consistency. A fieldset's edits are committed on a
+      // debounce, and each expanded row renders its own `Fieldset`, so the
+      // collection a closure captured at the keystroke is older than the real
+      // one by the time the timer fires. Writing that snapshot back as an
+      // absolute value reverted whatever a *different* row had committed in
+      // between: edit row A's value transform and row B's description within a
+      // debounce interval of each other and one of the two was silently lost
+      // on save.
+      //
+      // `onChange` inside an updater is impure and double-fires under
+      // StrictMode in development -- as it already does in `onCellChange`,
+      // `deleteItem` and `onAddItem`, so matching them beats inventing a
+      // fourth shape here.
+      setCollectionArray(prevCollectionArray => {
+        // A fieldset only ever edits a row that already exists; the append is
+        // a safety net, and it is also what preserves order, which the
+        // previous two-pass rebuild was doing by hand.
+        const newCollectionArray = prevCollectionArray.some(
+          existing => existing.id === item.id,
+        )
+          ? prevCollectionArray.map(existing =>
+              existing.id === item.id ? item : existing,
+            )
+          : [...prevCollectionArray, item];
+
+        if (onChange) {
+          onChange(newCollectionArray);
+        }
+
+        return newCollectionArray;
+      });
     },
-    [changeCollection, collection, collectionArray],
+    [onChange],
   );
 
   const getLabel = useCallback(

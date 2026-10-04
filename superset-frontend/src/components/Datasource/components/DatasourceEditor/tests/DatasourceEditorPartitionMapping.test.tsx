@@ -279,3 +279,87 @@ test('a mapping onto the default datetime column does not block the save', async
   });
   expect(lastValidationErrors(props)).toEqual([]);
 });
+
+test('with the feature off, re-pointing the default datetime column keeps the transform', async () => {
+  // The transform controls, the validation and the partition picker are all
+  // flag-gated, but the "Default datetime column" select is not -- it predates
+  // this feature. So with the flag off an owner could re-point it, never see a
+  // mapping control, and silently lose stored configuration on save. The
+  // backend gate does not cover it: the cleared value travels as an explicit
+  // null inside the `columns` payload, which `update_columns` writes whatever
+  // the flag says.
+  jest.mocked(isFeatureEnabled).mockImplementation(() => false);
+
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = null;
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'ds')!.partition_value_transform =
+    'unix_timestamp(:value)';
+  columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
+  seeded.push({
+    id: 99,
+    type: 'DATETIME',
+    filterable: false,
+    is_dttm: true,
+    is_active: true,
+    expression: '',
+    groupby: false,
+    column_name: 'ingest_time',
+  } as EditorColumn);
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('default-datetime-column-select');
+
+  await selectOption('ingest_time', 'Default datetime column');
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalled();
+  });
+  expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+});
+
+test('DatasourceEditor source pins syncMetadata to the live column state', () => {
+  // Source-pin, for the same reason the sibling pin in `DatasourceEditor.test.tsx`
+  // exists: this file's own note records that the sync button cannot be
+  // triggered from jest -- `fetchSyncedColumns` goes through `SupersetClient`,
+  // and the request never settles under the test harness, so neither toast
+  // fires and there is no observable outcome to assert on.
+  //
+  // What the pin locks is the merge base. `datasource.columns` is the
+  // mount-time snapshot and never moves: no `setDatasource` call writes
+  // `columns`, and the props-sync effect only re-seeds the two column states.
+  // `updateColumns` passes an unchanged column through verbatim, so merging a
+  // sync against that snapshot restores whatever the dataset held when the
+  // modal opened -- the transform and monotonicity flag the owner just
+  // cleared, the `filterable`/`groupby` flags `applyPartitionColumnDefaults`
+  // just turned off, any description edited this session. The merge semantics
+  // themselves are covered in `utils/partitionMapping.test.ts`.
+  // eslint-disable-next-line global-require
+  const { readFileSync } = require('fs');
+  // eslint-disable-next-line global-require
+  const { join } = require('path');
+  const src = readFileSync(
+    join(__dirname, '..', 'DatasourceEditor.tsx'),
+    'utf8',
+  );
+
+  // The merge reads the live state, not the mount-time snapshot.
+  expect(src).toMatch(
+    /const columnChanges = updateColumns\(\s*currentColumns,/,
+  );
+  expect(src).not.toMatch(
+    /const columnChanges = updateColumns\(\s*datasource\.columns,/,
+  );
+
+  // And the live state is both column collections, memoized on both.
+  expect(src).toMatch(
+    /const currentColumns = useMemo\(\s*[\s\S]{0,900}?\(\) => \[\.\.\.databaseColumns, \.\.\.calculatedColumns\],\s*\[databaseColumns, calculatedColumns\],/,
+  );
+});
