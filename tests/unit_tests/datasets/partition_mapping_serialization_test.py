@@ -342,6 +342,54 @@ def test_import_column_schema_defaults_the_monotonic_flag_to_false() -> None:
     assert loaded["partition_transform_is_monotonic"] is False
 
 
+def test_import_column_schema_accepts_the_null_the_export_emits() -> None:
+    """
+    The column is nullable on purpose -- the legacy datasource editor writes
+    NULL for every field its payload omits -- and export emits each field
+    unconditionally, so an untouched export of such a dataset carries an
+    explicit null. Refusing it here makes the dataset unimportable, which is to
+    say it makes the export worthless.
+    """
+    loaded = ImportV1ColumnSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": None,
+        }
+    )
+    assert loaded["partition_transform_is_monotonic"] is None
+    # Both readers coerce, so a loaded null is "does not preserve ordering"
+    # rather than a third state the operator matrix would have to reason about.
+    assert bool(loaded["partition_transform_is_monotonic"]) is False
+
+
+def test_a_null_monotonic_flag_survives_the_export_import_round_trip() -> None:
+    """
+    The pairing that shipped broken: the PUT schema accepts a null, the model
+    stores it, export writes it out, and import used to reject the file it had
+    just produced.
+    """
+    put_loaded = DatasetColumnsPutSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": None,
+        }
+    )
+    column = TableColumn(column_name="event_time")
+    for key, value in put_loaded.items():
+        setattr(column, key, value)
+    assert column.partition_transform_is_monotonic is None
+
+    exported = {
+        "column_name": column.column_name,
+        "partition_value_transform": column.partition_value_transform,
+        "partition_transform_is_monotonic": column.partition_transform_is_monotonic,
+    }
+    reloaded = ImportV1ColumnSchema().load(exported)
+    assert reloaded["partition_value_transform"] == "unix_timestamp(:value)"
+
+
 @pytest.mark.parametrize("field", DATASET_FIELDS)
 def test_the_api_exposes_and_accepts_the_dataset_fields(field: str) -> None:
     from superset.datasets.api import DatasetRestApi
