@@ -762,7 +762,7 @@ SQL Lab query execution requires `datasource_access` on a registered dataset for
 SQLLAB_REQUIRE_DATASET_MATCH = True
 ```
 
-Set it to `False` to authorize SQL Lab from `schema_access` or `catalog_access` alone. That grant covers every table in the schema, including tables that are not registered as datasets. Result fetch, export, cost estimates, SQL formatting, and the MCP `execute_sql` tool follow the same flag. Chart and Explore access already honor schema and catalog grants and are unaffected.
+Set it to `False` to authorize SQL Lab from `schema_access` or `catalog_access` alone. `schema_access` covers every table in that schema. `catalog_access` covers every table in the catalog, across schemas. Either grant includes tables that are not registered as datasets. Result fetch, export, cost estimates, SQL formatting, and the MCP `execute_sql` tool follow the same flag. Chart and Explore access already honor schema and catalog grants and are unaffected.
 
 ## SQL Lab Query History Pruning
 

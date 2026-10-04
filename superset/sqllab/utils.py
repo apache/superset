@@ -55,8 +55,8 @@ def requires_dataset_match() -> bool:
     ``datasource_access`` on a registered dataset for every table.
     ``schema_access`` and ``catalog_access`` alone are not enough.
 
-    When False, those catalog and schema grants authorize the query, which
-    covers every table in the granted schema.
+    When False, ``schema_access`` authorizes every table in that schema and
+    ``catalog_access`` authorizes every table in the catalog.
 
     :returns: Whether the dataset-match requirement is enabled
     """

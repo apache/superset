@@ -2159,10 +2159,11 @@ SQLLAB_CTAS_NO_LIMIT = False
 # user has ``datasource_access`` on (or owns). ``catalog_access`` and
 # ``schema_access`` alone do not authorize those paths.
 #
-# Set to False to authorize SQL Lab with ``catalog_access`` or
-# ``schema_access`` on the referenced catalog or schema. That grant then
-# covers every table in the schema, including tables that are not registered
-# as datasets. Chart, Explore, and other non-SQL-Lab callers already honor
+# Set to False to authorize SQL Lab with ``schema_access`` on the referenced
+# schema or ``catalog_access`` on the referenced catalog. ``schema_access``
+# covers every table in that schema. ``catalog_access`` covers every table
+# in the catalog, across schemas. Either grant includes tables that are not
+# registered as datasets. Chart, Explore, and other non-SQL-Lab callers already honor
 # those grants and are unchanged. Reports, alerts, MetaDB, and SQL validation
 # keep the dataset-match requirement regardless of this setting.
 SQLLAB_REQUIRE_DATASET_MATCH = True

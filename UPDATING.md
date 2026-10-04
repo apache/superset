@@ -34,8 +34,10 @@ requirement, so a role that already holds `schema_access` or `catalog_access`
 is not told those grants are missing.
 
 Set `SQLLAB_REQUIRE_DATASET_MATCH = False` to authorize those paths from
-`schema_access` or `catalog_access` alone. The grant then covers every table
-in the schema, including tables that are not registered as datasets. Chart
+`schema_access` or `catalog_access` alone. `schema_access` covers every
+table in that schema. `catalog_access` covers every table in the catalog,
+across schemas. Either grant includes tables that are not registered as
+datasets. Chart
 and Explore checks are unchanged. Reports, alerts, MetaDB, and SQL validation
 keep requiring a dataset match.
 
