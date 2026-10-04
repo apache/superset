@@ -1841,6 +1841,61 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
         assert "Empty" not in result.ascii_content
 
 
+@pytest.mark.parametrize(
+    ("viz_type", "form_data", "expects_empty_preview"),
+    [
+        (
+            "bubble_v2",
+            {"entity": "name", "x": "x_metric", "y": "y_metric", "size": "size"},
+            True,
+        ),
+        ("gauge_chart", {"metric": "count"}, True),
+        ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
+        (
+            "gantt_chart",
+            {"start_time": "start_time", "end_time": "end_time", "y_axis": "task"},
+            True,
+        ),
+    ],
+)
+def test_saved_vega_preview_empty_result_honors_allows_empty_result(
+    viz_type: str, form_data: dict[str, Any], expects_empty_preview: bool
+) -> None:
+    """Only plugins declaring ``allows_empty_result`` render an empty result;
+    every other saved chart keeps the explicit NoDataError response."""
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Empty",
+        viz_type=viz_type,
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps({**form_data, "viz_type": viz_type}),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=1, format="vega_lite")
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=object(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": []}]}
+        preview = strategy.generate()
+
+    if expects_empty_preview:
+        assert isinstance(preview, VegaLitePreview)
+        assert preview.specification["data"]["values"] == []
+    else:
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoDataError"
+
+
 @pytest.mark.parametrize("viz_type", ["funnel", "sankey", "radar", "unknown"])
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch(

@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     query_result_failure,
@@ -146,10 +147,11 @@ def _compile_chart(
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
+                    suggestions=list(
+                        plugin.invalid_result_suggestions
+                        if plugin
+                        else BaseChartPlugin.invalid_result_suggestions
+                    ),
                     error_code=error_code,
                 ),
             )
@@ -178,7 +180,12 @@ def _compile_chart(
             tier="compile",
             error_obj=_build_compile_error(str(exc)),
         )
-    except (CommandException, ValueError, KeyError) as exc:
+    except (
+        CommandException,
+        QueryObjectValidationError,
+        ValueError,
+        KeyError,
+    ) as exc:
         return CompileResult(
             success=False,
             error=str(exc),

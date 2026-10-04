@@ -19,6 +19,7 @@
 
 import d3 from 'd3';
 import { getNumberFormatter, ValueFormatter } from '@superset-ui/core';
+import transformData from '../src/transformData';
 import WorldMap from '../src/WorldMap';
 import { ColorBy } from '../src/utils';
 
@@ -420,6 +421,83 @@ test('popupTemplate handles null/undefined country data gracefully', () => {
 
   expect(tooltipHtml).toBeFalsy();
 });
+
+test.each([
+  ['name', 'Curaçao', 'CUW'],
+  ['name', 'CURAÇAO', 'CUW'],
+  ['cca2', 'fr', 'FRA'],
+])(
+  'cross-filters and drills preserve source %s value %s',
+  (countryFieldtype, sourceValue, country) => {
+    const handlers = new Map<string, (source: { id: string }) => void>();
+    mockSvg.on.mockImplementation(
+      (event: string, handler: (source: { id: string }) => void) => {
+        handlers.set(event, handler);
+        return mockSvg;
+      },
+    );
+    const originalEvent = d3.event;
+    Object.assign(d3, {
+      event: { preventDefault: jest.fn(), clientX: 100, clientY: 200 },
+    });
+    try {
+      const data = transformData([{ country: sourceValue, sales: 10 }], {
+        entity: 'country',
+        metric: 'sales',
+        countryFieldtype,
+        strict: true,
+      }).map(row => ({
+        ...row,
+        code: row.code!,
+        latitude: row.latitude!,
+        longitude: row.longitude!,
+        name: row.name!,
+        m1: row.m1 as number,
+        m2: 0,
+      }));
+      const setDataMask = jest.fn();
+      const onContextMenu = jest.fn();
+      WorldMap(container, {
+        ...baseProps,
+        data,
+        countryFieldtype,
+        setDataMask,
+        onContextMenu,
+        emitCrossFilters: true,
+      });
+      expect(handlers.get('click')).toBeDefined();
+      handlers.get('click')!({ id: country });
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extraFormData: {
+            filters: [{ col: 'country', op: 'IN', val: [sourceValue] }],
+          },
+        }),
+      );
+      handlers.get('contextmenu')!({ id: country });
+      expect(onContextMenu).toHaveBeenCalledWith(
+        100,
+        200,
+        expect.objectContaining({
+          drillToDetail: [
+            {
+              col: 'country',
+              op: '==',
+              val: sourceValue,
+              formattedVal: sourceValue,
+            },
+          ],
+          drillBy: {
+            filters: [{ col: 'country', op: '==', val: sourceValue }],
+            groupbyFieldName: 'entity',
+          },
+        }),
+      );
+    } finally {
+      Object.assign(d3, { event: originalEvent });
+    }
+  },
+);
 
 test('draws bubbles for the processed data when showBubbles is true', () => {
   WorldMap(container, { ...baseProps, showBubbles: true });

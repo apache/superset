@@ -3082,6 +3082,9 @@ msgstr "Velikost bublin"
 msgid "Bubble size number format"
 msgstr "Formát čísla pro velikost bublin"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Body zlomu intervalů"
 
@@ -7332,6 +7335,9 @@ msgstr "Rozbalit řádek"
 msgid "Expand settings"
 msgstr "Rozbalit nastavení"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7349,6 +7355,12 @@ msgstr "Experimentální"
 #, fuzzy
 msgid "Expired"
 msgstr "Prozkoumat"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Prozkoumat"
@@ -8259,6 +8271,10 @@ msgstr "Sloupec GeoJson"
 msgid "GeoJson Settings"
 msgstr "Nastavení GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8508,11 +8524,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Obrovský"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Kódy ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL ikony"
@@ -9358,6 +9380,9 @@ msgstr "Levá hodnota"
 msgid "Legacy"
 msgstr "Starší verze"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Legenda"
 
@@ -9838,6 +9863,11 @@ msgstr "Velikost značky"
 
 msgid "Markers"
 msgstr "Značky"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Typ značkování"
@@ -12320,6 +12350,12 @@ msgstr "Obnovování grafů"
 
 msgid "Refreshing columns"
 msgstr "Obnovování sloupců"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -18396,6 +18432,11 @@ msgstr "Připnout k panelu výsledků"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "Odepnout z horní části"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy

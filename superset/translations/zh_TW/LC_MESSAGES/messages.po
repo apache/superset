@@ -3231,6 +3231,9 @@ msgstr "氣泡尺寸"
 msgid "Bubble size number format"
 msgstr "氣泡尺寸數字格式"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "桶分割點"
 
@@ -7820,6 +7823,9 @@ msgstr "標題行"
 msgid "Expand settings"
 msgstr "展開設定"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -7840,6 +7846,12 @@ msgstr "實驗"
 #, fuzzy
 msgid "Expired"
 msgstr "探索"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "探索"
@@ -8857,6 +8869,10 @@ msgstr "GeoJSON 列"
 msgid "GeoJson Settings"
 msgstr "GeoJSON 設定"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -9152,11 +9168,17 @@ msgstr "如何顯示時間偏移：作為單獨的行顯示；作為主時間序
 msgid "Huge"
 msgstr "巨大"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代碼"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -10100,6 +10122,9 @@ msgstr "左值"
 msgid "Legacy"
 msgstr "傳统"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "圖例"
 
@@ -10621,6 +10646,11 @@ msgstr "標記大小"
 
 msgid "Markers"
 msgstr "標記"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Markup 類型"
@@ -13346,6 +13376,12 @@ msgstr "刷新圖表"
 #, fuzzy
 msgid "Refreshing columns"
 msgstr "刷新列"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -19772,6 +19808,11 @@ msgstr "從結果面板取消固定"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "從頂部取消固定"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy

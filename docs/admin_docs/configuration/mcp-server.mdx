@@ -1123,6 +1123,10 @@ Every tool with a side effect (create/update/delete/execute) is always excluded 
 
 ## Chart previews
 
+Saved and unsaved Vega-Lite previews return `NoDataError` for empty query
+results unless the chart plugin declares `allows_empty_result` (for example,
+Gantt renders an empty task list).
+
 For basic Vega-Lite previews, the y-axis uses the first configured metric whose
 result label is present and whose first value is numeric or null. Boolean and
 string metric values are skipped. If metric labels match but none has a suitable
@@ -1522,6 +1526,115 @@ rather than being interpreted as one or zero rows.
 For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
+
+## Geographic chart generation
+
+`generate_chart`, `update_chart`, and `generate_explore_link` accept the same
+bounded geographic configs. Call `get_chart_type_schema` with `country_map`,
+`world_map`, or `deck_scatter` to discover availability and complete examples.
+The `chart_type` discriminator belongs **inside** `config`. Existing chart
+validation contracts and legacy native map behavior are unchanged, but tool
+**discovery schemas have changed for every chart type**, including existing
+types such as gauge and treemap. The `config` input schema on `generate_chart`,
+`update_chart`, `update_chart_preview`, and `generate_explore_link` advertises
+only the `chart_type` enum and allows additional properties; it does not expose
+each type's required fields or bounds. Schema-driven clients must first call
+`get_chart_type_schema(chart_type)` for the complete per-type schema and
+examples. See the compact chart config schema migration note in `UPDATING.md`.
+
+```json
+{
+  "dataset_id": 3,
+  "config": {
+    "chart_type": "country_map",
+    "country": "usa",
+    "region_format": "abbreviation",
+    "entity": {"name": "state"},
+    "metric": {"name": "sales", "aggregate": "SUM"},
+    "filters": [{"column": "country", "op": "IN", "value": ["USA"]}]
+  }
+}
+```
+
+- **Country map:** supported boundary sets are `usa`, `canada`, `australia`,
+  `japan`, and `uk`. Select the source `region_format`: `name` (e.g.
+  `California`), `abbreviation` (ISO suffix, e.g. `CA`), or `iso_3166_2`
+  (e.g. `US-CA`). Identifiers are limited to Superset's bundled boundaries,
+  not the entire ISO registry. Japanese abbreviation values are numeric
+  **strings**, such as `13`. Names are exact-first, then case/diacritic-insensitive
+  only when the result is unique. No fuzzy matching or geocoding is performed.
+  A name that folds onto more than one boundary is rejected as ambiguous and
+  needs an abbreviation or ISO code instead.
+- **World map:** set `country_format` to `name`, `cca2`, `cca3`, or `cioc`,
+  plus `entity` and `metric`. Choropleth color uses `metric`. For bubbles set
+  `show_bubbles: true` and supply `secondary_metric` for size (it may be the
+  same metric). A `secondary_metric` kept with `show_bubbles: false` is not
+  rendered, so its values are not validated. Superset's bundled
+  world-country dictionary defines coverage.
+- **Geographic points:** set `chart_type: "deck_scatter"`,
+  `latitude: {"name": "latitude"}`, and `longitude: {"name": "longitude"}`.
+  Numeric coordinates must be within ±90 and ±180 respectively. Optional
+  `dimension` groups/colors points; `radius_metric` aggregates a nonnegative
+  size at each location. Otherwise `radius` is fixed in `point_unit`: `radius_m` (default), `radius_km`,
+  `radius_miles`, `square_m`, `square_km`, or `square_miles`. Native minimum
+  and maximum on-screen radii are 2 and 250 pixels. Spatial null filters
+  exclude rows without coordinates.
+
+Region values that cannot resolve for the selected country/format return an
+`InvalidGeographicResult` error (`INVALID_GEOGRAPHIC_RESULT` during compilation).
+For example, `BC` does not resolve for USA; choose Canada or explicitly filter
+the dataset. No unrecognized returned rows are silently discarded. Multiple
+query groups resolving to one boundary also fail: normalize source values
+before aggregation rather than incorrectly adding averages or distinct counts.
+When rendering in Explore, country maps with an explicit region format omit
+rows with missing, NULL, non-numeric, or non-finite metrics, leaving those
+regions blank. Region identifiers are still validated for every row, and blank
+regions still cross-filter and drill on their original source value.
+Typed geographic point maps omit rows with invalid coordinates or missing,
+non-numeric, non-finite, or negative radius metrics rather than failing the
+chart, and log a browser-console warning with the number of skipped points.
+After switching a point map to Geohash or delimited coordinates in Explore,
+coordinates use the native spatial decoder rather than the typed latitude/longitude
+guard; radius-metric validation remains active. This display behavior does not
+relax MCP generation's result validation.
+Source values remain intact for data/export and country-map cross-filtering.
+Database `NUMERIC`/Decimal query coordinates and metrics are supported when
+finite and representable as JSON numbers. Coordinate bounds are checked before
+JSON conversion; numeric strings and booleans are not accepted as coordinates.
+
+Generation validates the configured result (up to `row_limit`, bounded at
+10,000), not just the first two rows. This is not an audit of rows excluded by
+filters or limits. Saved and cached-preview updates preserve omitted controls;
+explicit null optional roles and empty filters clear them. Dataset rebinding
+requires a complete typed config and discards old dataset roles and filters.
+
+Geographic updates cap inherited native row limits at 10,000 so compilation
+validates the same rows the native query renders. Explicit
+`temporal_column: null` removes generated dashboard time bindings, including
+dataset defaults, while preserving user-authored predicates. Subsequent same-dataset
+updates that omit `temporal_column` preserve that cleared state. Explicit `filters`
+replace inherited predicates, including native `filters`, `where`, and `having`,
+whether the replacement list is empty or nonempty. Disabled types
+cannot be used for fresh previews or type conversions; an existing cached
+preview or saved chart of the same type can still be updated, including charts
+whose visualization type is stored only on the saved chart. Explicit temporal
+changes override inherited native time controls on same-type updates and type
+conversions. Saved point charts switched in Explore to Geohash or comma-delimited
+coordinates remain readable through MCP data and JSON/CSV/Excel exports; exports
+retain the original spatial column values. Delimited coordinates accept the
+same leading numeric prefixes as the native decoder (for example,
+`-122.4 W,37.8 N`). Values the native decoder skips still fail MCP result
+validation, consistent with invalid latitude/longitude and geohash values.
+
+Country/world map interactions use original source identifiers rather than
+normalized rendering codes or names. With an explicit region format, boundaries
+absent from the result do not emit cross-filters or drill filters. Empty country
+identifiers are rejected rather than matched to a country with no code.
+
+ASCII/table previews show source data and do not reproduce geography. Vega
+previews return `UnsupportedGeographicPreview` rather than an unrelated chart.
+Use the returned Explore link for the native map. Point maps use a public
+Carto basemap; browser network access and deployment basemap policy still apply.
 
 ## Dataset query dimensions and nested fields
 

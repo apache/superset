@@ -70,16 +70,23 @@ logger = logging.getLogger(__name__)
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
-    """Return a chart's saved form data, treating malformed params as empty."""
-    if not getattr(chart, "params", None):
-        return {}
-    try:
-        parsed = json.loads(chart.params)
-    except (ValueError, TypeError):
-        parsed = None
-    if not isinstance(parsed, dict):
-        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
-        return {}
+    """Return saved form data with a chart-level visualization fallback."""
+    parsed: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            value = json.loads(chart.params)
+        except (ValueError, TypeError):
+            value = None
+        if isinstance(value, dict):
+            parsed = value
+        else:
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+    if not parsed.get("viz_type") and isinstance(
+        viz_type := getattr(chart, "viz_type", None), str
+    ):
+        parsed["viz_type"] = viz_type
     return parsed
 
 
@@ -371,12 +378,21 @@ def _build_replacement_form_data(
     replacement_dataset_id: int | None = None,
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
+    existing_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    include_disabled = (
+        existing_plugin is not None
+        and existing_plugin.chart_type == parsed_config.chart_type
+    )
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=include_disabled,
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
-    config_plugin = get_registry().get(parsed_config.chart_type, include_disabled=True)
+    config_plugin = get_registry().get(
+        parsed_config.chart_type, include_disabled=include_disabled
+    )
     if replacement_dataset_id is not None and not (
         config_plugin is not None and config_plugin.strict_dataset_rebind
     ):
@@ -848,7 +864,8 @@ async def update_chart(  # noqa: C901
                     f"complete {saved_plugin.display_name} config."
                 ),
                 details=(
-                    "Provide the chart type and complete roles valid on the target "
+                    "Provide the chart type and complete "
+                    f"{saved_plugin.dataset_rebind_roles} valid on the target "
                     "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),

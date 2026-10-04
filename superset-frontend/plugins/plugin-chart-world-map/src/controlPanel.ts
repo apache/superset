@@ -55,6 +55,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['row_limit'],
         ['sort_by_metric'],
+        ['mcp_geographic'],
       ],
     },
     {

@@ -858,29 +858,11 @@ def build_query_dicts_from_form_data(
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
-        qd = build_single_query_dict(
-            form_data,
-            deck_columns,
-            deck_metrics,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
-        if deck_metrics:
-            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
-            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
-        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
-            time_grain := form_data.get("time_grain_sqla")
-        ):
-            qd["is_timeseries"] = True
-            qd["granularity"] = form_data.get("granularity_sqla")
-            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
-        if form_data.get("filter_nulls", True):
-            null_filters = _deck_gl_null_filters(form_data)
-            if null_filters:
-                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
-        return [qd]
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
+            )
+        ]
 
     if viz_type.startswith("echarts_timeseries"):
         groupby = with_x_axis_column(form_data, groupby)
@@ -894,6 +876,46 @@ def build_query_dicts_from_form_data(
             order_desc=order_desc,
         )
     ]
+
+
+def build_deck_gl_query_dict(
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+    timeseries: bool = True,
+) -> dict[str, Any]:
+    """Build the single query a Deck.gl layer issues from its spatial controls.
+
+    ``timeseries=False`` skips the time-grain bucketing that
+    ``BaseDeckGLViz.query_obj()`` applies to time-animated layers.
+    """
+    deck_columns = resolve_deck_gl_columns(form_data)
+    deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+    qd = build_single_query_dict(
+        form_data,
+        deck_columns,
+        deck_metrics,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    if deck_metrics:
+        # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+        qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+    if (
+        timeseries
+        and viz_type in _DECK_TIMESERIES_VIZ_TYPES
+        and (time_grain := form_data.get("time_grain_sqla"))
+    ):
+        qd["is_timeseries"] = True
+        qd["granularity"] = form_data.get("granularity_sqla")
+        qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+    if form_data.get("filter_nulls", True):
+        null_filters = _deck_gl_null_filters(form_data)
+        if null_filters:
+            qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+    return qd
 
 
 def with_x_axis_column(form_data: dict[str, Any], groupby: list[Any]) -> list[Any]:

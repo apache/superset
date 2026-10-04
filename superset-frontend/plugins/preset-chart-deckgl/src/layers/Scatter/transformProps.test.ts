@@ -18,7 +18,10 @@
  */
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { logging } from '@apache-superset/core/utils';
+import transformProps, {
+  filterDrawableGeographicPoints,
+} from './transformProps';
 
 interface ScatterFeature {
   position: [number, number];
@@ -301,3 +304,148 @@ test('Scatter transformProps should preserve extra properties from records', () 
     another_field: 123,
   });
 });
+
+test.each([91, -91, Number.NaN, Number.POSITIVE_INFINITY, '37.8', null])(
+  'typed geographic points skip invalid latitude %s',
+  latitude => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'fix', value: 1000 },
+      },
+      queriesData: [{ data: [{ LATITUDE: latitude, LONGITUDE: -122.4 }] }],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toEqual([]);
+  },
+);
+
+test('typed geographic points preserve longitude-latitude ordering and metric radius', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      mcp_geographic: true,
+      point_radius_fixed: { type: 'metric', value: 'population' },
+    },
+  } as ChartProps;
+  expect(transformProps(props).payload.data.features[0]).toMatchObject({
+    position: [-122.4, 37.8],
+    radius: 50000,
+  });
+});
+
+test.each([undefined, null, 'missing', '10', Number.NaN, Infinity, -1])(
+  'typed geographic points skip sparse/non-numeric radius %s',
+  population => {
+    const sparse = { LATITUDE: 37.8, LONGITUDE: -122.4 };
+    const data = [
+      population === undefined ? sparse : { ...sparse, population },
+      { LATITUDE: 37.9, LONGITUDE: -122.3, population: 0 },
+      { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+    ];
+    const original = data.map(row => ({ ...row }));
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [{ data }],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toMatchObject([
+      { position: [-122.3, 37.9], radius: 0 },
+      { position: [-122, 38], radius: 10 },
+    ]);
+    expect(data).toEqual(original);
+  },
+);
+
+test('typed geographic points log how many points were skipped', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            { LATITUDE: 91, LONGITUDE: -122.4, population: 1 },
+            { LATITUDE: 37.8, LONGITUDE: -122.4, population: null },
+            { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+          ],
+        },
+      ],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Skipped 2 of 3 geographic points'),
+    );
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('filterDrawableGeographicPoints keeps valid points without logging', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const records = [
+      { LATITUDE: 90, LONGITUDE: -180 },
+      { LATITUDE: -90, LONGITUDE: 180 },
+    ];
+    expect(
+      filterDrawableGeographicPoints(records, {
+        type: 'latlong',
+        latCol: 'LATITUDE',
+        lonCol: 'LONGITUDE',
+      }),
+    ).toEqual(records);
+    expect(warn).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test.each([
+  { type: 'geohash', geohashCol: 'location' },
+  { type: 'delimited', lonlatCol: 'location' },
+])(
+  'MCP points remain drawable after switching spatial format to $type',
+  spatial => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        spatial,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: 10,
+            },
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: -1,
+            },
+          ],
+        },
+      ],
+    } as ChartProps;
+    const features = transformProps(props).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0].position[0]).toBeCloseTo(-122.4, 1);
+    expect(features[0].position[1]).toBeCloseTo(37.8, 1);
+    expect(features[0].radius).toBe(10);
+  },
+);

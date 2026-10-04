@@ -3242,6 +3242,9 @@ msgstr "Bubbelgrootte"
 msgid "Bubble size number format"
 msgstr "Bubbel grootte nummer opmaak"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Bucket breakpoints"
 
@@ -7779,6 +7782,9 @@ msgstr "Rij uitklappen"
 msgid "Expand settings"
 msgstr "Instellingen uitklappen"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7796,6 +7802,12 @@ msgstr "Experimenteel"
 #, fuzzy
 msgid "Expired"
 msgstr "Verken"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Verken"
@@ -8788,6 +8800,10 @@ msgstr "GeoJson Kolom"
 msgid "GeoJson Settings"
 msgstr "GeoJson Instellingen"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -9062,11 +9078,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Enorm"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 Codes"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9978,6 +10000,9 @@ msgstr "Linker waarde"
 msgid "Legacy"
 msgstr "Verouderd"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Legenda"
 
@@ -10478,6 +10503,11 @@ msgstr "Marker grootte"
 
 msgid "Markers"
 msgstr "Markeringen"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Opmaaktype(Markup type)"
@@ -13105,6 +13135,12 @@ msgstr "Verversen grafieken"
 
 msgid "Refreshing columns"
 msgstr "Verversen kolommen"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -19638,6 +19674,11 @@ msgstr "Losmaken van het resultaatpaneel"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "Losmaken van bovenaan"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy

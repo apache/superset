@@ -2782,6 +2782,9 @@ msgstr "バブルのサイズ"
 msgid "Bubble size number format"
 msgstr "バブルサイズの数値形式"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "バケットの境界点"
 
@@ -6633,6 +6636,9 @@ msgstr "行を展開して編集"
 msgid "Expand settings"
 msgstr "設定を展開"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -6647,6 +6653,12 @@ msgstr "試験的"
 
 msgid "Expired"
 msgstr "期限切れ"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "探索"
@@ -7480,6 +7492,10 @@ msgstr "GeoJSON列"
 msgid "GeoJson Settings"
 msgstr "GeoJSON設定"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "ジオハッシュ (Geohash)"
 
@@ -7715,11 +7731,17 @@ msgstr "タイムシフト(時間差比較)の表示方法: 個別の線とし�
 msgid "Huge"
 msgstr "巨大"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2コード"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "アイコンURL"
@@ -8514,6 +8536,9 @@ msgstr "左の値"
 msgid "Legacy"
 msgstr "レガシー"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "凡例"
 
@@ -8946,6 +8971,11 @@ msgstr "マーカーのサイズ"
 
 msgid "Markers"
 msgstr "マーカー"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "マークアップの種類"
@@ -11230,6 +11260,12 @@ msgstr "チャートを更新中"
 
 msgid "Refreshing columns"
 msgstr "列を更新中"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "登録"
@@ -16610,6 +16646,11 @@ msgstr "結果パネルのピン留めを解除"
 
 msgid "Unpin from top"
 msgstr "上部のピン留めを解除"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 msgid "Unsafe link blocked"
 msgstr "安全でないリンクがブロックされました"

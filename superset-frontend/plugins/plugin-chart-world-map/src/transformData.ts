@@ -17,10 +17,12 @@
  * under the License.
  */
 import { getColumnLabel, getMetricLabel } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { getCountry } from './countries';
 
 export interface WorldMapDataRow {
   country: string;
+  sourceValue?: string;
   m1: unknown;
   m2?: unknown;
   code?: string;
@@ -42,6 +44,8 @@ export default function transformData(
     metric?: unknown;
     secondaryMetric?: unknown;
     countryFieldtype?: string;
+    strict?: boolean;
+    showBubbles?: boolean;
   },
 ): WorldMapDataRow[] {
   const entityLabel = getColumnLabel(options.entity ?? '');
@@ -51,6 +55,11 @@ export default function transformData(
     : undefined;
   const fieldtype = options.countryFieldtype;
 
+  // The secondary metric only sizes bubbles, so an unused secondary metric
+  // kept with bubbles off does not gate the choropleth.
+  const sizeLabel = options.showBubbles ? secondaryLabel : undefined;
+  const metricLabels = [metricLabel, ...(sizeLabel ? [sizeLabel] : [])];
+  const seen = new Set<string>();
   return records.map(record => {
     const row: WorldMapDataRow = {
       country: record[entityLabel] as string,
@@ -66,7 +75,30 @@ export default function transformData(
       typeof row.country === 'string' && fieldtype
         ? getCountry(fieldtype, row.country)
         : undefined;
+    if (options.strict) {
+      if (!countryInfo || seen.has(countryInfo.cca3)) {
+        throw new Error(
+          t(
+            'Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation.',
+          ),
+        );
+      }
+      seen.add(countryInfo.cca3);
+      for (const label of metricLabels) {
+        const value = record[label];
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+          throw new Error(
+            t('Geographic metric %s must be a finite number', label),
+          );
+        }
+      }
+      const size = sizeLabel ? record[sizeLabel] : undefined;
+      if (typeof size === 'number' && size < 0) {
+        throw new Error(t('Bubble-size metric must be nonnegative'));
+      }
+    }
     if (countryInfo) {
+      row.sourceValue = row.country;
       row.code = countryInfo[fieldtype as keyof typeof countryInfo] as string;
       row.country = countryInfo.cca3;
       row.latitude = countryInfo.lat;

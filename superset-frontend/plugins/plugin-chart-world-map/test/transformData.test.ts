@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getCountry } from '../src/countries';
 import transformData from '../src/transformData';
 
 const formData = {
@@ -81,3 +82,100 @@ test('joins by full country name', () => {
   expect(rows[0].country).toEqual('FRA');
   expect(rows[0].code).toEqual('France');
 });
+
+test('typed world maps retain country and bubble metric semantics', () => {
+  expect(
+    transformData([{ country: 'us', sales: 10, population: 20 }], {
+      entity: 'country',
+      metric: 'sales',
+      secondaryMetric: 'population',
+      countryFieldtype: 'cca2',
+      strict: true,
+    })[0],
+  ).toMatchObject({ country: 'USA', m1: 10, m2: 20 });
+});
+
+test.each([
+  { country: 'not-a-country', sales: 10, population: 20 },
+  { country: 'US', sales: null, population: 20 },
+  { country: 'US', sales: 10, population: -1 },
+])(
+  'typed world maps reject invalid values instead of XXX placeholders',
+  row => {
+    expect(() =>
+      transformData([row], {
+        entity: 'country',
+        metric: 'sales',
+        secondaryMetric: 'population',
+        countryFieldtype: 'cca2',
+        strict: true,
+        showBubbles: true,
+      }),
+    ).toThrow();
+  },
+);
+
+test.each([-1, null, Number.NaN, 'n/a'])(
+  'typed world maps without bubbles ignore an unused secondary metric %s',
+  population => {
+    const options = {
+      entity: 'country',
+      metric: 'sales',
+      secondaryMetric: 'population',
+      countryFieldtype: 'cca2',
+      strict: true,
+    };
+    const row = { country: 'US', sales: 10, population };
+    expect(
+      transformData([row], { ...options, showBubbles: false })[0],
+    ).toMatchObject({ country: 'USA', m1: 10 });
+    expect(() =>
+      transformData([row], { ...options, showBubbles: true }),
+    ).toThrow();
+  },
+);
+
+test.each(['Curaçao', 'Curacao', 'CURAÇAO'])(
+  'typed world maps render diacritic-folded country name %s',
+  country => {
+    const data = [{ country_code: country, sum__num: 1 }];
+    expect(
+      transformData(data, {
+        ...formData,
+        countryFieldtype: 'name',
+        strict: true,
+      }),
+    ).toMatchObject([{ country: 'CUW', name: 'Curacao', m1: 1 }]);
+    expect(data[0].country_code).toBe(country);
+  },
+);
+
+test.each([
+  ['cca2', 'Áo'],
+  ['cca3', 'ÁGO'],
+  ['cioc', 'ÁNG'],
+])(
+  'typed world maps do not fold diacritics in %s codes',
+  (countryFieldtype, country) => {
+    expect(() =>
+      transformData([{ country_code: country, sum__num: 1 }], {
+        ...formData,
+        countryFieldtype,
+        strict: true,
+      }),
+    ).toThrow('Unrecognized');
+  },
+);
+
+test.each(['cca2', 'cca3', 'cioc', 'name'])(
+  'empty country values never resolve through %s lookup',
+  countryFieldtype => {
+    expect(getCountry(countryFieldtype, '')).toBeUndefined();
+    const options = { ...formData, countryFieldtype };
+    const records = [{ country_code: '', sum__num: 1 }];
+    expect(() => transformData(records, { ...options, strict: true })).toThrow(
+      'Unrecognized',
+    );
+    expect(transformData(records, options)[0].country).toBe('XXX');
+  },
+);

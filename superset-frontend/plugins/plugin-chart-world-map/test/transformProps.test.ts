@@ -78,3 +78,25 @@ test('passes through pre-shaped legacy payloads', () => {
   };
   expect(data).toEqual([legacyRow]);
 });
+
+test.each([null, undefined, {}, 'invalid'])(
+  'rejects malformed typed query data %p with an actionable error',
+  data => {
+    const props = new ChartProps({
+      width: 800,
+      height: 600,
+      theme: supersetTheme,
+      datasource: { columnFormats: {}, currencyFormats: {}, verboseMap: {} },
+      formData: {
+        mcp_geographic: true,
+        entity: 'country',
+        metric: 'sales',
+        color_picker: { r: 0, g: 0, b: 0, a: 1 },
+      },
+      queriesData: [{ data: data as never }],
+    });
+    expect(() => transformProps(props)).toThrow(
+      'Expected geographic query data to be a list of records',
+    );
+  },
+);

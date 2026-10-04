@@ -3652,6 +3652,9 @@ msgstr "Veličina mehurića"
 msgid "Bubble size number format"
 msgstr "Format broja veličine mehurića"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bucket break points"
 msgstr "Tačke prekida intervala"
@@ -8777,6 +8780,9 @@ msgstr "Proširi red za izmenu"
 msgid "Expand settings"
 msgstr "Proširi podešavanja"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8795,6 +8801,12 @@ msgstr "Eksperimentalno"
 
 msgid "Expired"
 msgstr "Isteklo"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -9868,6 +9880,10 @@ msgstr "GeoJson kolona"
 msgid "GeoJson Settings"
 msgstr "GeoJson podešavanja"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -10174,12 +10190,18 @@ msgstr ""
 msgid "Huge"
 msgstr "Ogroman"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 kodovi"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Icon URL"
@@ -11198,6 +11220,9 @@ msgstr "Leva vrednost"
 msgid "Legacy"
 msgstr "Zastarelo"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Legend"
 msgstr "Legenda"
@@ -11749,6 +11774,11 @@ msgid "Markers"
 msgstr "Markeri"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tip markup-a"
 
@@ -14740,6 +14770,12 @@ msgstr "Osvežavanje grafikona"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Refreshing columns"
 msgstr "Osvežavanje kolona"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 # uk]
 msgid "Register"
@@ -21776,6 +21812,11 @@ msgstr "Otkači sa panela rezultata"
 
 msgid "Unpin from top"
 msgstr "Otkači sa vrha"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

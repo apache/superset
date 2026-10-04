@@ -414,3 +414,112 @@ describe('CountryMap conditional formatting', () => {
     );
   });
 });
+
+test.each([
+  { sourceValues: { CAN: ' Canada ' }, expectedValue: ' Canada ' },
+  { sourceValues: {}, expectedValue: undefined },
+])(
+  'click uses only mapped source values: $sourceValues',
+  ({ sourceValues, expectedValue }) => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+    const setDataMask = jest.fn();
+
+    const { container } = render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        sourceValues={sourceValues}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        entity="country_name"
+        emitCrossFilters
+        setDataMask={setDataMask}
+        filterState={{ selectedValues: [] }}
+      />,
+    );
+    const region = container.querySelector('path.region');
+    expect(region).not.toBeNull();
+    fireEvent.mouseDown(region!);
+    fireEvent.click(region!);
+
+    if (expectedValue === undefined) {
+      expect(setDataMask).not.toHaveBeenCalled();
+    } else {
+      expect(setDataMask).toHaveBeenCalledTimes(1);
+      expect(setDataMask).toHaveBeenCalledWith({
+        extraFormData: {
+          filters: [{ col: 'country_name', op: 'IN', val: [expectedValue] }],
+        },
+        filterState: { value: ['CAN'], selectedValues: ['CAN'] },
+      });
+    }
+  },
+);
+
+test.each([
+  { sourceValues: { CAN: ' Canada ' }, expectedValue: ' Canada ' },
+  { sourceValues: {}, expectedValue: undefined },
+])(
+  'context menu uses only mapped source values: $sourceValues',
+  ({ sourceValues, expectedValue }) => {
+    d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
+      cb(null, mockMapData),
+    );
+    const onContextMenu = jest.fn();
+
+    const { container } = render(
+      <ReactCountryMap
+        width={500}
+        height={300}
+        data={[{ country_id: 'CAN', metric: 100 }]}
+        sourceValues={sourceValues}
+        country="canada"
+        linearColorScheme="bnbColors"
+        colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
+        entity="country_name"
+        onContextMenu={onContextMenu}
+        filterState={{ selectedValues: [] }}
+      />,
+    );
+    const region = container.querySelector('path.region');
+    expect(region).not.toBeNull();
+    fireEvent.contextMenu(region!, { clientX: 123, clientY: 45 });
+
+    if (expectedValue === undefined) {
+      expect(onContextMenu).not.toHaveBeenCalled();
+    } else {
+      expect(onContextMenu).toHaveBeenCalledTimes(1);
+      expect(onContextMenu).toHaveBeenCalledWith(123, 45, {
+        drillToDetail: [
+          {
+            col: 'country_name',
+            op: '==',
+            val: expectedValue,
+            formattedVal: expectedValue,
+          },
+        ],
+        crossFilter: {
+          dataMask: {
+            extraFormData: {
+              filters: [
+                { col: 'country_name', op: 'IN', val: [expectedValue] },
+              ],
+            },
+            filterState: { value: ['CAN'], selectedValues: ['CAN'] },
+          },
+          isCurrentValueSelected: false,
+        },
+        drillBy: {
+          filters: [{ col: 'country_name', op: '==', val: expectedValue }],
+          groupbyFieldName: 'entity',
+        },
+      });
+    }
+  },
+);

@@ -2398,6 +2398,41 @@ def test_recommend_empty_columns_returns_table():
     assert result == ["table"]
 
 
+def test_recommend_time_spatial_keeps_geographic_points():
+    """A timestamp alongside coordinates must not shadow the map suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" in result
+    assert "line chart" in result
+
+
+def test_recommend_time_spatial_spends_the_cap_on_the_map():
+    """The map displaces only the nearest variant of a surviving suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert result == ["geographic points", "line chart", "area chart", "bar chart"]
+
+
+def test_recommend_non_spatial_temporal_omits_geographic_points():
+    """Coordinates are only suggested when both are actually present."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" not in result
+
+
 def test_recommend_pie_only_for_low_cardinality():
     cols = [
         _col("department", "string", unique_count=25),

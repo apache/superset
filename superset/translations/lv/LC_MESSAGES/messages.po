@@ -3050,6 +3050,9 @@ msgstr "Burbuļa izmērs"
 msgid "Bubble size number format"
 msgstr "Burbuļa lieluma skaitļa formāts"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Intervālu pārrāvuma punkti"
 
@@ -7201,6 +7204,9 @@ msgstr "Izvērst rindu"
 msgid "Expand settings"
 msgstr "Izvērst iestatījumus"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7218,6 +7224,12 @@ msgstr "Eksperimentāls"
 #, fuzzy
 msgid "Expired"
 msgstr "Pārlūkot"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Pārlūkot"
@@ -8109,6 +8121,10 @@ msgstr "GeoJson kolonna"
 msgid "GeoJson Settings"
 msgstr "GeoJson iestatījumi"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Ģeoheša"
 
@@ -8354,11 +8370,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Milzīgs"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 kodi"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "Ikonas URL"
@@ -9177,6 +9199,9 @@ msgstr "Kreisā vērtība"
 msgid "Legacy"
 msgstr "Mantojums"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Leģenda"
 
@@ -9649,6 +9674,11 @@ msgstr "Marķiera izmērs"
 
 msgid "Markers"
 msgstr "Marķieri"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Iezīmēšanas tips"
@@ -12087,6 +12117,12 @@ msgstr "Atsvaidzina diagrammas"
 
 msgid "Refreshing columns"
 msgstr "Atsvaidzina kolonnas"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Reģistrēties"
@@ -18050,6 +18086,11 @@ msgstr "Piespraust rezultātu panelī"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "Atspraust no augšas"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
