@@ -116,11 +116,9 @@ const output = {
     // copied verbatim, unhashed, into the same output directory.
     {
       from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
-      to: 'maplibre-gl-worker.mjs',
     },
     {
       from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
-      to: 'maplibre-gl-shared.mjs',
     },
   ],
 };
