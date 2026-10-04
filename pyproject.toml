@@ -110,7 +110,7 @@ dependencies = [
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.2",
     "slack_sdk>=3.44.0, <4",
-    "sqlalchemy>=2.0.52, <2.1",
+    "sqlalchemy>=2.1.1, <2.2",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
