@@ -2817,6 +2817,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "tables": ",".join(quoted_tables),
         }
 
+    def get_dataset_match_access_error_msg(self, tables: set["Table"]) -> str:
+        """
+        Return the error message when a strict dataset match denied the tables.
+
+        ``catalog_access`` and ``schema_access`` were not consulted, so the
+        message must not read as if those grants are missing.
+
+        :param tables: The set of denied SQL tables
+        :returns: The error message
+        """
+
+        quoted_tables = [f'"{table}"' for table in tables]
+        return _(
+            "You need datasource_access on a registered dataset for "
+            "each of the following tables: %(tables)s. schema_access "
+            "and catalog_access do not authorize this query. "
+            "Alternatively, grant 'all_database_access' or "
+            "'all_datasource_access'."
+        ) % {"tables": ",".join(quoted_tables)}
+
     def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
         """
         Return the error object for the denied SQL tables.
@@ -4771,9 +4791,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             table must resolve to a registered Superset dataset the user
             has ``datasource_access`` on (or owns). Call sites that execute
             or return raw row data (SQL Lab, MetaDB) set this to True.
-            The default (False) preserves the historical semantics for
-            chart-data, dataset CRUD, ``/table_metadata/``, and
-            ``/select_star/``.
+            SQL Lab reads ``SQLLAB_REQUIRE_DATASET_MATCH`` (default True)
+            and passes that value, so an operator can restore catalog and
+            schema grants for SQL Lab alone. The default (False) preserves
+            the historical semantics for chart-data, dataset CRUD,
+            ``/table_metadata/``, and ``/select_star/``.
         :param allow_query_authorship_bypass: When True, a SQL Lab query's
             own author is granted access to that exact, already-succeeded
             query without an additional dataset-level ``datasource_access``
@@ -5153,9 +5175,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     denied.add(table_)
 
             if denied:
-                raise SupersetSecurityException(
-                    self.get_table_access_error_object(denied)
-                )
+                # Replace the message on the existing error object so a
+                # custom ``get_table_access_error_object`` (link, extra)
+                # still applies. Schema and catalog grants were not
+                # checked, and the generic message reads as if they were
+                # the missing permission.
+                error = self.get_table_access_error_object(denied)
+                if force_dataset_match:
+                    error.message = self.get_dataset_match_access_error_msg(denied)
+                raise SupersetSecurityException(error)
 
             return
 

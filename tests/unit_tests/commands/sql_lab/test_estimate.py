@@ -155,6 +155,7 @@ def test_raise_for_access_called_with_correct_database(
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
 @patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+@pytest.mark.usefixtures("app_context")
 def test_validate_authorizes_the_sql_to_be_estimated(
     mock_dao: MagicMock,
     mock_security_manager: MagicMock,
@@ -178,6 +179,31 @@ def test_validate_authorizes_the_sql_to_be_estimated(
         schema="main",
         template_params={},
         force_dataset_match=True,
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+@pytest.mark.usefixtures("app_context")
+def test_validate_skips_dataset_match_when_disabled(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+) -> None:
+    """``SQLLAB_REQUIRE_DATASET_MATCH = False`` restores schema-grant checks."""
+    from flask import current_app
+
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT * FROM secret_table", schema="main")
+    )
+    with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False}):
+        command.validate()
+
+    assert (
+        mock_security_manager.raise_for_access.call_args.kwargs["force_dataset_match"]
+        is False
     )
 
 

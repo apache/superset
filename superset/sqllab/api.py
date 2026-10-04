@@ -66,7 +66,7 @@ from superset.sqllab.sql_json_executer import (
     SynchronousSqlJsonExecutor,
 )
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-from superset.sqllab.utils import bootstrap_sqllab_data
+from superset.sqllab.utils import bootstrap_sqllab_data, requires_dataset_match
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
@@ -271,7 +271,7 @@ class SqlLabRestApi(BaseSupersetApi):
                                     database=database,
                                     sql=sql,
                                     template_params=template_params,
-                                    force_dataset_match=True,
+                                    force_dataset_match=requires_dataset_match(),
                                 )
                                 template_processor = get_template_processor(
                                     database=database

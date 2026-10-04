@@ -40,6 +40,7 @@ from superset.exceptions import (
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
+from superset.sqllab.utils import requires_dataset_match
 from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
@@ -91,7 +92,7 @@ class QueryEstimationCommand(BaseCommand):
             catalog=self._catalog,
             schema=self._schema or None,
             template_params=self._template_params,
-            force_dataset_match=True,
+            force_dataset_match=requires_dataset_match(),
         )
 
     def _apply_sql_security(self, sql: str) -> str:

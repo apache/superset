@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 import pyarrow as pa
+from flask import current_app
 
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
@@ -43,6 +44,23 @@ DATABASE_KEYS = [
     "allow_multi_catalog",
     "engine_information",
 ]
+
+
+def requires_dataset_match() -> bool:
+    """
+    Whether SQL Lab must match every referenced table to a dataset.
+
+    Reads ``SQLLAB_REQUIRE_DATASET_MATCH`` (default True). When True, SQL Lab
+    execution and the paths that return its row data require
+    ``datasource_access`` on a registered dataset for every table.
+    ``schema_access`` and ``catalog_access`` alone are not enough.
+
+    When False, those catalog and schema grants authorize the query, which
+    covers every table in the granted schema.
+
+    :returns: Whether the dataset-match requirement is enabled
+    """
+    return bool(current_app.config.get("SQLLAB_REQUIRE_DATASET_MATCH", True))
 
 
 def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name

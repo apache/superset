@@ -4112,8 +4112,12 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query, force_dataset_match=True)
+    message = str(excinfo.value)
+    assert "datasource_access" in message
+    assert "schema_access" in message
+    assert "catalog_access" in message
 
 
 def test_get_datasources_accessible_by_user_schema_access(

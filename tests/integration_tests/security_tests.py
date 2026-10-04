@@ -1925,8 +1925,12 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access.side_effect = lambda perm, _vm: perm == "schema_access"
         mock_is_editor.return_value = False
 
-        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+        with self.assertRaises(SupersetSecurityException) as ctx:  # noqa: PT027
             security_manager.raise_for_access(query=query, force_dataset_match=True)
+        message = str(ctx.exception)
+        assert "datasource_access" in message
+        assert "schema_access" in message
+        assert "catalog_access" in message
 
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_editor")

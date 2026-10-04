@@ -61,6 +61,16 @@ Beyond the base `sql_lab` role, two additional SQL Lab permissions must be expli
 
 Grant these in **Security → List Roles** by adding the permissions to the relevant role.
 
+Running a query also needs a data grant. By default (`SQLLAB_REQUIRE_DATASET_MATCH = True`), every table the SQL references must be a registered dataset the user has `datasource_access` on (or owns). `database_access` still authorizes the whole database. `schema_access` and `catalog_access` let the user browse that schema in SQL Lab and still authorize charts, but they do not authorize query execution.
+
+Set the following in `superset_config.py` when schema- or catalog-wide SQL Lab access is the intended control (for example, access is managed on the warehouse and tables change often):
+
+```python
+SQLLAB_REQUIRE_DATASET_MATCH = False
+```
+
+A `schema_access` or `catalog_access` grant then authorizes SQL Lab queries against every table in that schema, including tables that are not registered as datasets. The same flag covers result fetch, CSV and streaming export, cost estimates, SQL formatting, and the MCP `execute_sql` tool. Chart and Explore access are unchanged. Reports, alerts, MetaDB, and SQL validation still require a dataset match.
+
 ### Public
 
 The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated

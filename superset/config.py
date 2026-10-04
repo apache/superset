@@ -2153,6 +2153,20 @@ QUERY_COST_FORMATTERS_BY_ENGINE: dict[
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
 
+# When True (the default), SQL Lab query execution, result retrieval, CSV and
+# streaming export, cost estimates, SQL formatting, and the MCP execute_sql
+# tool require every referenced table to resolve to a registered dataset the
+# user has ``datasource_access`` on (or owns). ``catalog_access`` and
+# ``schema_access`` alone do not authorize those paths.
+#
+# Set to False to authorize SQL Lab with ``catalog_access`` or
+# ``schema_access`` on the referenced catalog or schema. That grant then
+# covers every table in the schema, including tables that are not registered
+# as datasets. Chart, Explore, and other non-SQL-Lab callers already honor
+# those grants and are unchanged. Reports, alerts, MetaDB, and SQL validation
+# keep the dataset-match requirement regardless of this setting.
+SQLLAB_REQUIRE_DATASET_MATCH = True
+
 # This allows you to define custom logic around the "CREATE TABLE AS" or CTAS feature
 # in SQL Lab that defines where the target schema should be for a given user.
 # Database `CTAS Schema` has a precedence over this setting.

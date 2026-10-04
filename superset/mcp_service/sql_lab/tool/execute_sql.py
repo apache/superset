@@ -152,6 +152,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         # Import inside function to avoid initialization issues
         from superset import db, is_feature_enabled, security_manager
         from superset.models.core import Database
+        from superset.sqllab.utils import requires_dataset_match
 
         # The access check below renders unconditionally
         # (``raise_for_access`` -> ``process_jinja_sql``), so execution has to
@@ -182,9 +183,8 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
             # Authorize through the same entry point as the SQL Lab
             # execution path (``superset/sqllab/validators.py``), so both
-            # surfaces scope a query the same way: it covers database-level
-            # access and, for a user without it, requires every table the
-            # query references to resolve to a dataset they are granted.
+            # surfaces scope a query the same way, including
+            # ``SQLLAB_REQUIRE_DATASET_MATCH``.
             try:
                 security_manager.raise_for_access(
                     database=database,
@@ -192,7 +192,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     catalog=request.catalog,
                     schema=request.schema_name,
                     template_params=template_params,
-                    force_dataset_match=True,
+                    force_dataset_match=requires_dataset_match(),
                 )
             except SupersetSecurityException as ex:
                 await ctx.warning(
