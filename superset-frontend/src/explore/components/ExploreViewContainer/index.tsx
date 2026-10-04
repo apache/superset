@@ -580,14 +580,21 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const isEnter = event.key === 'Enter' || event.keyCode === 13;
-        if (isEnter) {
+        // Match the Run button, which is disabled while any control has
+        // validation errors and swapped for Stop while the chart is loading
+        const hasValidationErrors = Object.values(props.controls).some(
+          control =>
+            control.validationErrors && control.validationErrors.length > 0,
+        );
+        const isLoading = props.chart.chartStatus === 'loading';
+        if (isEnter && !hasValidationErrors && !isLoading) {
           onQuery();
         }
         // Note: Ctrl+S save functionality removed due to type incompatibilities
         // between Slice types. Use the save button instead.
       }
     },
-    [onQuery],
+    [onQuery, props.controls, props.chart.chartStatus],
   );
 
   function onStop() {
