@@ -276,6 +276,72 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     assert "bad metric" in result.error
 
 
+def test_histogram_preview_uses_postprocessed_bins() -> None:
+    """The histogram preview must not bin or count already aggregated bin counts."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"0 - 10": 4, "10 - 20": 7}], {"viz_type": "histogram_v2"}
+    )
+    assert result.specification["data"]["values"] == [
+        {"bin": "0 - 10", "value": 4, "series": "All"},
+        {"bin": "10 - 20", "value": 7, "series": "All"},
+    ]
+    encoding = result.specification["encoding"]
+    assert encoding["x"]["field"] == "bin"
+    assert "bin" not in encoding["x"]
+    assert encoding["y"]["field"] == "value"
+    assert "aggregate" not in encoding["y"]
+
+
+@pytest.mark.parametrize("viz_type", ["sankey_v2", "radar"])
+def test_vega_preview_rejects_unsupported_native_geometry(viz_type: str) -> None:
+    """Unsupported geometry must not silently become an unrelated scatter plot."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"source": "A", "target": "B", "value": 10}], {"viz_type": viz_type}
+    )
+    assert result.error_type == "UnsupportedFormat"
+    assert "Explore" in result.error
+
+
+def test_funnel_preview_binds_stage_and_metric() -> None:
+    """A funnel preview must encode its stages and values rather than a scatter."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"stage": "Won", "SUM(value)": 10}],
+        {"viz_type": "funnel", "groupby": ["stage"], "metric": "SUM(value)"},
+    )
+    spec = result.specification
+    assert spec["mark"] == "bar"
+    assert spec["encoding"]["y"]["field"] == "stage"
+    assert spec["encoding"]["x"]["field"] == "SUM(value)"
+
+
+@pytest.mark.parametrize("stage", [None, 42, {}, {"expressionType": "SQL"}])
+def test_funnel_preview_rejects_invalid_stage(stage: object) -> None:
+    """Malformed stage references return the invalid-form-data contract."""
+    from superset.mcp_service.chart.schemas import ChartError
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidFormData"
+
+
+@pytest.mark.parametrize(
+    "stage", ["stage", {"label": "stage"}, {"sqlExpression": "stage"}]
+)
+def test_funnel_preview_resolves_stage(stage: object) -> None:
+    """Valid stage references retain their result labels."""
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+
+    result = preview_utils.generate_funnel_vega_lite_preview(
+        [{"stage": "visit", "count": 3}], {"groupby": [stage], "metric": "count"}
+    )
+
+    assert isinstance(result, VegaLitePreview)
+    assert result.specification["encoding"]["y"]["field"] == "stage"
+
+
 def _vega_encoding(rows, form_data):
     result = preview_utils._generate_vega_lite_preview_from_data(rows, form_data)
     return result.specification.get("encoding", {})
