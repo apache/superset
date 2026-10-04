@@ -19,19 +19,26 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any
+from uuid import UUID, uuid4
 
-from sqlalchemy import or_, select
+from flask import current_app
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.extensions import db
+from superset.extensions import db, feature_flag_manager
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
+    ReportConfig,
+    ReportConfigKey,
     ReportExecutionLog,
     ReportRecipients,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
 )
+from superset.reports.utils import find_disallowed_addresses
 from superset.utils import json
 from superset.utils.core import get_user_id
 
@@ -391,4 +398,216 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                 ReportExecutionLog.end_dttm < from_date,
             )
             .delete(synchronize_session="fetch")
+        )
+
+    @staticmethod
+    def invalidate_pending_executions(schedule_ids: list[int] | None = None) -> None:
+        """Fence queued retries and running attempts after a configuration save.
+
+        The caller's transaction holds row locks only while saving metadata.
+        Preserve execution windows so old cron messages cannot replay the work.
+        """
+        query = db.session.query(ReportSchedule).filter(
+            ReportSchedule.last_state.in_([ReportState.WORKING, ReportState.RETRYING])
+        )
+        if schedule_ids is not None:
+            query = query.filter(ReportSchedule.id.in_(schedule_ids))
+        for schedule in query.populate_existing().with_for_update().all():
+            if schedule.execution_owner:
+                db.session.query(ReportExecutionLog).filter(
+                    ReportExecutionLog.report_schedule_id == schedule.id,
+                    ReportExecutionLog.uuid == UUID(schedule.execution_owner),
+                    ReportExecutionLog.state.in_(
+                        [ReportState.WORKING, ReportState.RETRYING]
+                    ),
+                ).update(
+                    {
+                        ReportExecutionLog.state: ReportState.ERROR,
+                        ReportExecutionLog.end_dttm: datetime.utcnow(),
+                        ReportExecutionLog.error_message: (
+                            "Execution cancelled: configuration changed"
+                        ),
+                    },
+                    synchronize_session=False,
+                )
+            schedule.execution_owner = str(uuid4())
+            schedule.last_state = ReportState.ERROR
+            schedule.last_eval_dttm = datetime.utcnow()
+            schedule.retry_attempt = 0
+            schedule.retry_scheduled_dttm = None
+
+    @staticmethod
+    def find_with_email_recipients() -> list[ReportSchedule]:
+        """
+        Find every schedule (active or not) with at least one e-mail recipient.
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .join(
+                ReportRecipients,
+                ReportRecipients.report_schedule_id == ReportSchedule.id,
+            )
+            .filter(ReportRecipients.type == ReportRecipientType.EMAIL)
+            .options(selectinload(ReportSchedule.recipients))
+            .distinct()
+            .all()
+        )
+
+    @staticmethod
+    def find_by_type(report_type: ReportScheduleType) -> list[ReportSchedule]:
+        """
+        Find every schedule (active or not) of the given type.
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.type == report_type)
+            .all()
+        )
+
+
+class ReportConfigDAO:
+    """
+    Access to the global Alerts & Reports configuration (``report_config``).
+
+    Values are stored as JSON-encoded key-value rows. A key without a row is
+    "not configured" and resolves to the legacy application config or feature
+    flag through :meth:`get_effective_value`, which keeps deployments that never
+    open the configuration UI behaving exactly as before.
+    """
+
+    @staticmethod
+    def get_stored_values() -> dict[str, Any]:
+        """
+        Return the raw stored configuration, keyed by :class:`ReportConfigKey`.
+
+        Read and decoding failures propagate: unavailable policy is not an
+        unrestricted policy. A stored null remains distinct from a missing row.
+        """
+        rows = db.session.query(ReportConfig).all()
+        return {
+            row.key: json.loads(row.value) if row.value is not None else None
+            for row in rows
+        }
+
+    @staticmethod
+    def get_fallback_value(key: ReportConfigKey) -> Any:
+        """Return the legacy application config / feature flag value for ``key``."""
+        if key == ReportConfigKey.ALERTS_ATTACH_REPORTS:
+            return feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+        if key == ReportConfigKey.DATE_FORMAT_IN_EMAIL_SUBJECT:
+            return feature_flag_manager.is_feature_enabled(
+                "DATE_FORMAT_IN_EMAIL_SUBJECT"
+            )
+        if key in (
+            ReportConfigKey.ALERT_MINIMUM_INTERVAL,
+            ReportConfigKey.REPORT_MINIMUM_INTERVAL,
+        ):
+            value = current_app.config.get(key.upper(), 0)
+            return value() if callable(value) else value
+        if key == ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS:
+            return False
+        if key == ReportConfigKey.ALLOWED_EMAIL_DOMAINS:
+            return []
+        return None
+
+    @staticmethod
+    def get_effective_value(key: ReportConfigKey) -> Any:
+        """
+        Return the value in effect for ``key``: the stored value when present,
+        otherwise the legacy fallback.
+        """
+        if key in (stored := ReportConfigDAO.get_stored_values()):
+            return stored[key]
+        return ReportConfigDAO.get_fallback_value(key)
+
+    @staticmethod
+    def get_effective_config() -> dict[str, Any]:
+        """Return the value in effect for every :class:`ReportConfigKey`."""
+        stored = ReportConfigDAO.get_stored_values()
+        return {
+            key.value: (
+                stored[key]
+                if key in stored
+                else ReportConfigDAO.get_fallback_value(key)
+            )
+            for key in ReportConfigKey
+        }
+
+    @staticmethod
+    def upsert(values: dict[str, Any]) -> None:
+        """
+        Store values, retaining an explicit null as a configured value.
+        Only keys without a row inherit application configuration. Does not commit.
+        """
+        rows = {row.key: row for row in db.session.query(ReportConfig).all()}
+        for key, value in values.items():
+            key = str(ReportConfigKey(key))
+            row = rows.get(key)
+            if row is None:
+                row = ReportConfig(key=key)
+                db.session.add(row)
+            row.value = json.dumps(value)
+
+    @staticmethod
+    def get_known_user_emails(addresses: list[str]) -> set[str]:
+        """
+        Return the lower-cased e-mails, among ``addresses``, that belong to
+        active users.
+        """
+        from superset import security_manager  # noqa: PLC0415
+
+        if not addresses:
+            return set()
+        user_model = security_manager.user_model
+        lowered = sorted({address.lower() for address in addresses})
+        known: set[str] = set()
+        # Bound IN clauses for metadata databases with parameter limits.
+        for offset in range(0, len(lowered), 500):
+            rows = (
+                db.session.query(func.lower(user_model.email))
+                .filter(
+                    func.lower(user_model.email).in_(lowered[offset : offset + 500]),
+                    user_model.active.is_(True),
+                )
+                .all()
+            )
+            known.update(row[0] for row in rows)
+        return known
+
+    @staticmethod
+    def find_disallowed_addresses(
+        addresses: list[str],
+        *,
+        allowed_domains: list[str] | None = None,
+        limit_to_users: bool | None = None,
+        known_emails: set[str] | None = None,
+    ) -> list[str]:
+        """
+        Return the addresses violating the recipient policy.
+
+        ``allowed_domains`` and ``limit_to_users`` override the effective
+        configuration when provided, which lets the configuration command
+        validate a proposed policy before saving it. ``known_emails`` reuses a
+        batch lookup when validating multiple schedules under users-only policy.
+        """
+        if not addresses:
+            return []
+        if allowed_domains is None:
+            allowed_domains = ReportConfigDAO.get_effective_value(
+                ReportConfigKey.ALLOWED_EMAIL_DOMAINS
+            )
+        if limit_to_users is None:
+            limit_to_users = ReportConfigDAO.get_effective_value(
+                ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS
+            )
+        if not allowed_domains and not limit_to_users:
+            return []
+        if limit_to_users and known_emails is None:
+            known_emails = ReportConfigDAO.get_known_user_emails(addresses)
+        if not limit_to_users:
+            known_emails = None
+        return find_disallowed_addresses(
+            addresses,
+            allowed_domains=allowed_domains,
+            known_emails=known_emails,
         )

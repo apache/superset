@@ -28,6 +28,27 @@ from superset.reports.schemas import (
 
 
 @pytest.mark.parametrize(
+    "schema_class", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("field", ["run_as_type", "run_alert_query_as_type"])
+def test_per_schedule_executor_accepts_only_specific_user(
+    schema_class: type, field: str
+) -> None:
+    schema = schema_class()
+    assert schema.fields[field].deserialize("fixed_user") == "fixed_user"
+    assert schema.fields[field].deserialize(None) is None
+    for executor_type in (
+        "creator",
+        "creator_editor",
+        "modifier",
+        "modifier_editor",
+        "editor",
+    ):
+        with pytest.raises(ValidationError):
+            schema.fields[field].deserialize(executor_type)
+
+
+@pytest.mark.parametrize(
     "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
 )
 @pytest.mark.parametrize("enabled", [True, False])

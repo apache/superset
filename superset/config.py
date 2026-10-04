@@ -690,6 +690,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
+    # Enables the per-schedule "Run As" fields in Alerts & Reports (SIP-209).
+    # When enabled, each alert/report records which user's credentials (RBAC,
+    # database OAuth2 tokens) are used at execution time, and alerts can specify
+    # a distinct user for the alert condition query. Admins can pick any user;
+    # non-admins are restricted to their own account. Schedules without a value
+    # keep using the ALERT_REPORTS_EXECUTORS resolution.
+    # @lifecycle: development
+    "ALERT_REPORT_DYNAMIC_EXECUTOR": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -866,6 +874,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # -----------------------------------------------------------------
     # When enabled, alerts send email/slack with screenshot AND link.
     # When disabled, alerts send only link; reports still send screenshot.
+    # Deprecation notice: this flag is superseded by the "Enable attachments for
+    # alerts" setting in the Alerts & Reports configuration UI (SIP-209). The
+    # flag is only used as a fallback while that setting is not saved.
     # @lifecycle: stable
     # @category: runtime_config
     "ALERTS_ATTACH_REPORTS": True,
@@ -2684,6 +2695,11 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
+#
+# Deprecation notice: ALERT_REPORTS_EXECUTORS is superseded by the per-schedule
+# "Run As" fields introduced by SIP-209 (feature flag ALERT_REPORT_DYNAMIC_EXECUTOR).
+# When the flag is enabled, an explicit user or executor type takes precedence.
+# Schedules with neither configured use this resolution.
 ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
@@ -2753,6 +2769,10 @@ ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
+#
+# Deprecation notice: these values are superseded by the "Alert minimum interval"
+# and "Report minimum interval" settings in the Alerts & Reports configuration UI
+# (SIP-209). They are only used as a fallback while those settings are not saved.
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports

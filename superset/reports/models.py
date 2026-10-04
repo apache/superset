@@ -18,6 +18,7 @@
 
 import logging
 from typing import Any, Optional
+from uuid import UUID, uuid4
 
 import rison
 from flask_appbuilder import Model
@@ -86,11 +87,36 @@ class ReportDataFormat(StrEnum):
     CSV = "CSV"
     XLSX = "XLSX"
     TEXT = "TEXT"
+    # (Alerts only) Deliver the notification without any attachment
+    NONE = "NONE"
 
     @classmethod
     def tabular(cls: type["ReportDataFormat"]) -> set["ReportDataFormat"]:
         """Formats produced from tabular chart data via the chart export path."""
         return {cls.CSV, cls.XLSX}
+
+
+class ReportConfigKey(StrEnum):
+    """
+    Keys of the global Alerts & Reports configuration stored in ``report_config``.
+
+    Each key maps to a JSON-encoded value. A missing row means "not configured",
+    in which case the effective value falls back to the corresponding application
+    config or feature flag (see ``ReportConfigDAO.get_effective_config``).
+    """
+
+    # Migrated from the ``ALERTS_ATTACH_REPORTS`` feature flag.
+    ALERTS_ATTACH_REPORTS = "alerts_attach_reports"
+    # Migrated from ``ALERT_MINIMUM_INTERVAL`` (seconds).
+    ALERT_MINIMUM_INTERVAL = "alert_minimum_interval"
+    # Migrated from ``REPORT_MINIMUM_INTERVAL`` (seconds).
+    REPORT_MINIMUM_INTERVAL = "report_minimum_interval"
+    # Only e-mail addresses belonging to existing users are accepted as recipients.
+    LIMIT_RECIPIENTS_TO_USERS = "limit_recipients_to_users"
+    # Allow-list of e-mail domains accepted as recipients (empty = any domain).
+    ALLOWED_EMAIL_DOMAINS = "allowed_email_domains"
+    # Render strftime placeholders in email subjects.
+    DATE_FORMAT_IN_EMAIL_SUBJECT = "date_format_in_email_subject"
 
 
 class ReportCreationMethod(StrEnum):
@@ -141,6 +167,26 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         secondary=report_schedule_editors,
         passive_deletes=True,
     )
+
+    # (Alerts/Reports) User whose credentials (RBAC, database OAuth2 tokens) are
+    # used when rendering the content. When both the type and user are NULL,
+    # the legacy ``ALERT_REPORTS_EXECUTORS`` resolution is used. Only honored when the
+    # ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled.
+    # The type survives user deletion, so a deleted fixed user cannot become
+    # an unset legacy executor. NULL values preserve legacy schedules.
+    run_as_type = Column(String(50), nullable=True)
+    run_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_as = relationship("User", foreign_keys=[run_as_fk])
+
+    # (Alerts) User whose credentials are used when running the alert condition
+    # SQL query. NULL falls back to ``run_as`` and then to the legacy resolution.
+    run_alert_query_as_type = Column(String(50), nullable=True)
+    run_alert_query_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_alert_query_as = relationship("User", foreign_keys=[run_alert_query_as_fk])
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
@@ -454,3 +500,21 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
         Index("ix_report_execution_log_start_dttm", start_dttm),
     )
+
+
+class ReportConfig(AuditMixinNullable, Model):  # pylint: disable=too-few-public-methods
+    """
+    Global Alerts & Reports configuration, stored as key-value rows so admins
+    can manage it at runtime through the UI without redeploying.
+
+    ``key`` is one of :class:`ReportConfigKey`; ``value`` is JSON-encoded.
+    """
+
+    __tablename__ = "report_config"
+
+    id: Column[UUID] = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
+    key = Column(String(255), nullable=False, unique=True)
+    value = Column(Text, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"ReportConfig<{self.key}>"

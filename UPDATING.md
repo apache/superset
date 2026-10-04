@@ -44,6 +44,49 @@ assists people when migrating to a new version.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
+
+- A new `report_config` table with UUID primary keys stores the global Alerts & Reports settings that admins can
+  now manage from the **Configuration** button on the Alerts & Reports list page (or
+  `GET`/`PUT /api/v1/report/configuration/`). `ALERTS_ATTACH_REPORTS`,
+  `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are deprecated: they keep working
+  as fallbacks until the corresponding setting is saved in the UI, at which point the saved
+  value wins. Two new settings, **Limit recipients to users** and **Allowed e-mail
+  domains**, restrict e-mail recipients; they are enforced when saving a schedule and at
+  execution time.
+- Alerts have an **Include attachment** toggle, represented by `report_format: "NONE"`
+  when off. Attachment-free alerts need no chart/dashboard; asset-less notifications omit
+  the asset link. Saved attachment settings are retained. Reports still require content.
+- Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
+  reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
+  alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is
+  deprecated in favor of these fields; schedules without a value keep using it. The
+  migration adds nullable `run_as_fk` / `run_alert_query_as_fk` columns to
+  `report_schedule` and does not change untouched legacy schedules. Executor types are
+  persisted separately: deleting a selected user does not restore legacy execution.
+- Admins can select a specific user or Application default
+  (`ALERT_REPORTS_EXECUTORS`). An unset content executor remains on the application
+  default when edited, and admins can clear an explicit choice back to it. A blank
+  alert-query executor inherits the content executor dynamically.
+- Non-admins must select **Run as me** before changing content or recipients on a
+  schedule using another user, a typed executor, or a legacy content executor. For
+  alerts, this action switches both executors to the current user on Save. Metadata-only
+  edits preserve existing executor settings. Other users are Admin-only.
+- Saved `null` configuration values clear a setting without restoring application-config
+  defaults. Only keys never saved inherit those defaults. Configuration read failures
+  propagate instead of treating delivery as unrestricted. The UI updates only changed keys.
+- Recipient restrictions also cover retry/final-failure notices to configured recipients;
+  operational notices to owners/editors remain exempt.
+- Missing executors and recipient-policy violations terminate an execution without retry.
+  Saving a schedule cancels its queued retries and fences running attempts; changing a
+  global report setting does this for all pending schedules. Already-started sends cannot
+  be recalled. New cron windows use the saved configuration.
+- Domain allow-lists accept wildcards. Matching is case-insensitive.
+- The SIP migration follows the execution-ownership migration. Run `superset db upgrade`
+  before starting this code, with scheduling paused and active work/queued retries drained
+  as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
+  formats with a supported format and account for losing explicit executor/policy settings.
+
 ### SQLite time filters on `DATE` columns
 
 On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`

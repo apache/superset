@@ -51,6 +51,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleExecutorNotFoundError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
+    ReportScheduleRecipientsNotAllowedError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
@@ -72,6 +73,7 @@ from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportConfigDAO,
     ReportScheduleDAO,
 )
 from superset.dashboards.permalink.types import DashboardPermalinkState
@@ -79,6 +81,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.models import (
+    ReportConfigKey,
     ReportDataFormat,
     ReportExecutionLog,
     ReportRecipients,
@@ -98,7 +101,9 @@ from superset.reports.notifications.slack import SlackNotification
 from superset.reports.notifications.slack_transport import (
     get_slack_send_retry_deadline,
 )
+from superset.reports.utils import get_dynamic_executor, get_email_addresses
 from superset.subjects.types import SubjectType
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
@@ -127,28 +132,66 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_executor_user(model: ReportSchedule) -> tuple["User | None", str | None]:
+    """
+    Resolve the executor user for a report schedule, tolerating a missing user.
+
+    The per-schedule "Run As" choice (SIP-209) takes precedence when the
+    ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled and the schedule
+    has one; an unset choice uses ``ALERT_REPORTS_EXECUTORS``. An
+    inactive "Run As" user, or a deleted/disabled legacy executor, yields
+    ``None`` so callers decide how to surface it.
+
+    :returns: the ``(user, username)`` pair.
+    """
+    try:
+        user = get_dynamic_executor(model)
+    except ReportScheduleExecutorNotFoundError:
+        # Keep missing-user failures inside the state machine's error envelope.
+        return None, "configured executor"
+    if user is not None:
+        return (user if user.is_active else None), user.username
+    try:
+        _, username = get_executor(
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
+            model=model,
+        )
+    except ExecutorNotFoundError:
+        return None, "configured executor"
+    user = security_manager.find_user(username)
+    return (user if user is not None and user.is_active else None), username
+
+
 def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     """
     Resolve the executor user for a report schedule.
 
-    Determines the configured executor username via ``get_executor`` and looks up
-    the corresponding user. A deleted/disabled user or a misconfigured
-    ``ALERT_REPORTS_EXECUTORS`` makes ``security_manager.find_user`` return
-    ``None``; rather than passing ``None`` into the webdriver/auth flow (which
-    fails with an opaque NoneType error), raise a dedicated, actionable error.
+    Determines the executor via :func:`get_executor_user`. A deleted/disabled
+    user or a misconfigured ``ALERT_REPORTS_EXECUTORS`` yields ``None``; rather
+    than passing ``None`` into the webdriver/auth flow (which fails with an
+    opaque NoneType error), raise a dedicated, actionable error.
 
     :returns: the ``(user, username)`` pair — the username is returned alongside
         the user because several call sites log it after resolution.
     :raises ReportScheduleExecutorNotFoundError: if the executor user is missing.
     """
-    _, username = get_executor(
-        executors=app.config["ALERT_REPORTS_EXECUTORS"],
-        model=model,
-    )
-    user = security_manager.find_user(username)
+    user, username = get_executor_user(model)
     if user is None:
-        raise ReportScheduleExecutorNotFoundError(username)
-    return user, username
+        raise ReportScheduleExecutorNotFoundError(username or "")
+    return user, username or user.username
+
+
+def alerts_attach_reports_enabled() -> bool:
+    """
+    Whether alerts deliver their attachment (screenshot/PDF/CSV/XLSX).
+
+    Reads the "Enable attachments for alerts" setting from the Alerts & Reports
+    configuration, falling back to the ``ALERTS_ATTACH_REPORTS`` feature flag
+    when it was never saved.
+    """
+    return bool(
+        ReportConfigDAO.get_effective_value(ReportConfigKey.ALERTS_ATTACH_REPORTS)
+    )
 
 
 def _should_build_execution_context(model: ReportSchedule) -> bool:
@@ -156,11 +199,17 @@ def _should_build_execution_context(model: ReportSchedule) -> bool:
     return model.type in (ReportScheduleType.REPORT, ReportScheduleType.ALERT)
 
 
-def _uses_report_capture_contract(model: ReportSchedule) -> bool:
+def _uses_report_capture_contract(
+    model: ReportSchedule, attachments_enabled: bool | None = None
+) -> bool:
     """Keep ownership separate from the existing rendered-alert capture policy."""
     return model.type == ReportScheduleType.REPORT or (
         model.report_format in (ReportDataFormat.PNG, ReportDataFormat.PDF)
-        and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+        and (
+            alerts_attach_reports_enabled()
+            if attachments_enabled is None
+            else attachments_enabled
+        )
     )
 
 
@@ -178,10 +227,12 @@ def _execution_budget_seconds(model: ReportSchedule) -> float:
 
 
 def _capture_execution_context(
-    model: ReportSchedule, context: ReportExecutionContext | None
+    model: ReportSchedule,
+    context: ReportExecutionContext | None,
+    attachments_enabled: bool | None = None,
 ) -> ReportExecutionContext | None:
     """Keep data-only alerts lenient and bound rendered alerts' browser phase."""
-    if not _uses_report_capture_contract(model):
+    if not _uses_report_capture_contract(model, attachments_enabled):
         return None
     if context and model.type == ReportScheduleType.ALERT:
         # An unlimited alert must never pass infinity to Playwright. Browser
@@ -429,6 +480,7 @@ class BaseReportState:
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
+        self._attachments_enabled: bool | None = None
         self._delivery_started = False
         self._execution_warnings: list[str] = []
         self._slack_v1_upgrade = SlackV1UpgradeCoordinator(
@@ -436,6 +488,15 @@ class BaseReportState:
             execution_id,
             self._execution_warnings,
         )
+
+    def _attachments_enabled_for_attempt(self) -> bool:
+        """Use one attachment policy for content generation and capture setup."""
+        if self._attachments_enabled is None:
+            self._attachments_enabled = (
+                self._report_schedule.type == ReportScheduleType.REPORT
+                or alerts_attach_reports_enabled()
+            )
+        return self._attachments_enabled
 
     def _get_slack_retry_deadline(self) -> float:
         """Return the monotonic deadline for Slack delivery in this execution."""
@@ -664,6 +725,15 @@ class BaseReportState:
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
         if chart is None and dashboard is None:
+            if (
+                user_friendly
+                and self._report_schedule.type == ReportScheduleType.ALERT
+                and (
+                    self._report_schedule.report_format == ReportDataFormat.NONE
+                    or not self._attachments_enabled_for_attempt()
+                )
+            ):
+                return ""
             if self._report_schedule.chart_id is not None:
                 raise ReportScheduleTargetChartDeletedError()
             # Symmetric guard for dashboard targets. Dashboard soft delete lands
@@ -938,7 +1008,9 @@ class BaseReportState:
         user, _ = resolve_executor_user(self._report_schedule)
 
         capture_context = _capture_execution_context(
-            self._report_schedule, self._report_execution_context
+            self._report_schedule,
+            self._report_execution_context,
+            self._attachments_enabled_for_attempt(),
         )
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
@@ -1481,12 +1553,9 @@ class BaseReportState:
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         # NULL (rows predating the include_cta column) is treated as True
-        include_cta = self._report_schedule.include_cta is not False
+        include_cta = self._report_schedule.include_cta is not False and bool(url)
 
-        if (
-            feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
-            or self._report_schedule.type == ReportScheduleType.REPORT
-        ):
+        if self._attachments_enabled_for_attempt():
             if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
@@ -1522,7 +1591,8 @@ class BaseReportState:
                 )
 
         if (
-            self._report_schedule.chart
+            self._attachments_enabled_for_attempt()
+            and self._report_schedule.chart
             and self._report_schedule.report_format == ReportDataFormat.TEXT
         ):
             embedded_data = self._get_embedded_data()
@@ -1535,11 +1605,13 @@ class BaseReportState:
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
-            else:
+            elif self._report_schedule.dashboard:
                 name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
+            else:
+                name = sanitize_title(self._report_schedule.name)
 
         return NotificationContent(
             name=name,
@@ -1705,12 +1777,41 @@ class BaseReportState:
             if any(error.level == ErrorLevel.WARNING for error in notification_errors):
                 raise ReportScheduleClientErrorsException(errors=notification_errors)
 
+    def _validate_recipients_policy(
+        self, recipients: list[ReportRecipients] | None = None
+    ) -> None:
+        """
+        Refuse to deliver when the recipients no longer comply with the global
+        recipient policy (allowed domains / existing users only). Checked before
+        any content is generated so no data is rendered for a blocked delivery.
+
+        :raises ReportScheduleRecipientsNotAllowedError: on a policy violation
+        """
+        allowed_domains = ReportConfigDAO.get_effective_value(
+            ReportConfigKey.ALLOWED_EMAIL_DOMAINS
+        )
+        limit_to_users = ReportConfigDAO.get_effective_value(
+            ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS
+        )
+        if not allowed_domains and not limit_to_users:
+            return
+        disallowed = ReportConfigDAO.find_disallowed_addresses(
+            get_email_addresses(
+                self._report_schedule.recipients if recipients is None else recipients
+            ),
+            allowed_domains=allowed_domains,
+            limit_to_users=limit_to_users,
+        )
+        if disallowed:
+            raise ReportScheduleRecipientsNotAllowedError(disallowed)
+
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
         :raises: CommandException
         """
+        self._validate_recipients_policy()
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
 
@@ -1865,7 +1966,18 @@ class BaseReportState:
             )
 
         if self._report_schedule.retry_notify_recipients:
-            recipients.extend(self._report_schedule.recipients)
+            try:
+                self._validate_recipients_policy()
+            except Exception:  # pylint: disable=broad-except
+                # Policy lookup failure must not turn into unrestricted delivery.
+                # Editor operational notifications remain independent of this policy.
+                logger.warning(
+                    "Skipping retry recipients: recipient policy unavailable "
+                    "or violated",
+                    exc_info=True,
+                )
+            else:
+                recipients.extend(self._report_schedule.recipients)
 
         if not recipients:
             return
@@ -1884,9 +1996,10 @@ class BaseReportState:
 
     def send_final_failure_report(self, error_message: str) -> None:
         """
-        Send the failed report notification to all configured recipients after
+        Send the failed report notification to allowed configured recipients after
         all retry attempts have been exhausted and send_failed_reports is enabled.
         """
+        self._validate_recipients_policy()
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         max_attempts: int = self._report_schedule.retry_max_attempts
@@ -1910,6 +2023,16 @@ class BaseReportState:
         (caller should ``return`` without re-raising), or False if the caller
         should fall through to its own error handling path.
         """
+        if isinstance(
+            original_exception,
+            (
+                ReportScheduleExecutorNotFoundError,
+                ReportScheduleRecipientsNotAllowedError,
+            ),
+        ):
+            self._reset_retry_counter()
+            return False
+
         if not feature_flag_manager.is_feature_enabled("ALERT_REPORTS_RETRY"):
             return False
 
@@ -2062,6 +2185,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
 
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
+            self._attachments_enabled_for_attempt()
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
                 triggered, message = AlertCommand(
@@ -2269,6 +2393,7 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
+                self._attachments_enabled_for_attempt()
                 triggered, message = AlertCommand(
                     self._report_schedule, self._execution_id
                 ).run()
@@ -2427,12 +2552,13 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
             if (initial_state is None and state_cls.initial) or (
                 initial_state in state_cls.current_states
             ):
-                state_cls(
+                state = state_cls(
                     self._report_schedule,
                     self._scheduled_dttm,
                     self._execution_id,
                     self._report_execution_context,
-                ).next()
+                )
+                state.next()
                 break
         else:
             raise ReportScheduleStateNotFoundError()
@@ -2551,22 +2677,10 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                     deadline.remaining_seconds,
                 )
 
-            # Resolve the executor at the run() boundary, tolerating a missing
-            # user (find_user -> None) so the state machine still runs and its
-            # error envelope writes the ERROR execution-log row and sends the
-            # editor notification. The dedicated ReportScheduleExecutorNotFoundError
-            # guard lives at the content sites (_get_screenshots / _get_data /
-            # _get_embedded_data), which raise inside that envelope. Guarding here
-            # instead would surface the executor error above the state machine,
-            # suppressing both the log row and the editor notification. The
-            # alert-query path (AlertCommand) is intentionally left unchanged — a
-            # missing executor there surfaces as a query error, not the dedicated
-            # executor error; tightening it is out of scope here.
-            _, username = get_executor(
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
-                model=self._model,
-            )
-            user = security_manager.find_user(username)
+            # Resolve content identity without rejecting an attachment-free alert.
+            # Content fetches and AlertCommand validate their respective identities
+            # inside the state machine, where failures are logged and terminalized.
+            user, username = get_executor_user(self._model)
 
             start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
             with override_user(user):

@@ -2382,7 +2382,7 @@ def test_screenshot_width_calculation(
     # Mock security manager and screenshot
     with (
         patch(
-            "superset.commands.report.execute.security_manager"
+            "superset.commands.report.execute.security_manager", new_callable=MagicMock
         ) as mock_security_manager,
         patch(
             "superset.utils.screenshots.ChartScreenshot.get_screenshot"
@@ -4765,6 +4765,10 @@ def test_get_notification_content_alert_no_flag_skips_attachment(
         has_chart=True,
     )
     mock_screenshots = mocker.patch.object(state, "_get_screenshots")
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
 
     content = state._get_notification_content()
 
