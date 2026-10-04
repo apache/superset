@@ -64,6 +64,12 @@
         "description": "Enable granular export controls (can_export_data, can_export_image, can_copy_clipboard) instead of the single can_csv permission"
       },
       {
+        "name": "LOGIN_TOKEN",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Allow a trusted parent application to exchange a proof of a user's identity for a real Superset session inside an iframe, via one-time login tokens. Does nothing unless LOGIN_TOKEN_IDENTITY_RESOLVER is also configured."
+      },
+      {
         "name": "MATRIXIFY",
         "default": false,
         "lifecycle": "development",
