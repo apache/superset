@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1169,6 +1169,14 @@ msgstr "الأعمدة المراد تحليلها كتواريخ"
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "قائمة مفصولة بفواصل من المخططات التي يسمح للملفات بالتحميل إليها."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -1645,6 +1653,9 @@ msgstr "إضافة مقياس"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "إضافة مقاييس إلى مجموعة البيانات في نموذج \"تحرير مصدر البيانات\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "إضافة منسق لون جديد"
@@ -4100,6 +4111,12 @@ msgstr "الأعمدة المراد تحليلها كتواريخ"
 msgid "Choose columns to read"
 msgstr "عرض إجمالي الأعمدة"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4475,6 +4492,10 @@ msgstr "تلوين حسب الاتجاه"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "يجب أن يكون حقل اللون لوناً سداسياً (#rrggbb) أو 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -7611,6 +7632,9 @@ msgstr "أدخل اسم المستخدم"
 msgid "Enter theme name"
 msgstr "اسم التنبيه"
 
+msgid "Enter values"
+msgstr ""
+
 msgid "Enter your current password"
 msgstr ""
 
@@ -7807,6 +7831,9 @@ msgstr "تطابق دقيق (IN)"
 
 msgid "Example"
 msgstr "مثال"
+
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
 
 msgid "Examples"
 msgstr "أمثلة"
@@ -9275,6 +9302,9 @@ msgstr "الاستيراد %s"
 msgid "Import Error"
 msgstr "خطأ المهلة"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "فشل مخطط الاستيراد لسبب غير معروف"
 
@@ -9521,6 +9551,11 @@ msgstr "تكوين خطوط طويلة/طويلة غير صالح."
 #, fuzzy
 msgid "Invalid JSON metadata"
 msgstr "بيانات JSON الوصفية"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -9818,6 +9853,9 @@ msgstr "الكيلومترات"
 
 msgid "Label"
 msgstr "ملصق "
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "محتويات الملصق"
@@ -10508,6 +10546,9 @@ msgstr "التصيير المباشر"
 
 msgid "Map Style"
 msgstr "نمط الخريطة"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11364,6 +11405,9 @@ msgstr "لا توجد فلاتر متاحة."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -13262,6 +13306,9 @@ msgstr "إزالة السمة الداكنة للنظام"
 msgid "Remove System Default Theme"
 msgstr "قم بتحديث القيم الافتراضية"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "قم بإزالة عامل التصفية المتقاطع"
 
@@ -13554,6 +13601,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "إعادة تعيين"
 
@@ -13566,6 +13616,9 @@ msgstr "حدد العمود"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "إعادة تعيين جميع المجلدات إلى الوضع الافتراضي"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 #, fuzzy
 msgid "Reset columns"
@@ -14161,6 +14214,14 @@ msgstr "لم يتم العثور على الاستعلام المحفوظ."
 msgid "Saved query parameters are invalid."
 msgstr "معاملات الاستعلام المحفوظة غير صالحة."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 #, fuzzy
 msgid "Saving..."
 msgstr "جارٍ التحميل…"
@@ -14725,6 +14786,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "حدد قيمة أو اكتبها"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "حدد رمز العملة أو اكتبه"
@@ -15974,6 +16038,21 @@ msgstr "تاريخ البداية"
 msgid "Start date included in time range"
 msgstr "تاريخ البدء مدرج في النطاق الزمني"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "ابدأ تشغيل المحور y عند 0"
 
@@ -16173,6 +16252,12 @@ msgstr "لاحقة"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "لاحقة يتم تطبيقها بعد عرض النسبة المئوية"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -18619,6 +18704,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "كلمة المرور هذه شائعة جداً؛ يرجى اختيار كلمة مرور يصعب تخمينها."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -20030,6 +20120,11 @@ msgstr "القيمة "
 
 msgid "Values are dependent on other filters"
 msgstr "تعتمد القيم على عوامل تصفية أخرى"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "القيم التي تعتمد على"
