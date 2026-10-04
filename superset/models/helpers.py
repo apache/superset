@@ -4341,6 +4341,68 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
+    def _mirror_probe_value(self, dttm: datetime, col: Optional["TableColumn"]) -> Any:
+        """
+        ``dttm`` in the mapped column's own stored representation.
+
+        The predicate this mirror stands in for compares the column against
+        `dttm_sql_literal(dttm, col)`, so the transform has to be probed with
+        the same value. On a column stored as an epoch integer, ``T`` is a
+        function of an integer: probing it with a `datetime` either returns
+        something unrelated to the partition keys or raises, and a raise costs
+        the dataset its pruning silently.
+
+        Only the ``python_date_format`` branches of `dttm_sql_literal` are
+        reproduced, because only those produce a *value*. `convert_dttm` yields
+        engine-specific SQL text, which cannot be bound as a parameter; its own
+        divergence from the probe is handled by widening the bounds instead.
+        """
+        if col is None:
+            return dttm
+
+        tf = col.python_date_format
+        if not tf and self.db_extra:
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                col.column_name
+            )
+        if not tf:
+            return dttm
+
+        if tf in EPOCH_FORMATS:
+            dttm_tz_aware = dttm
+            if dttm_tz_aware.tzinfo is None:
+                dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
+            return int(dttm_tz_aware.timestamp()) * EPOCH_FORMATS[tf]
+        return dttm.strftime(tf)
+
+    def _engine_drops_subseconds(
+        self, dttm: datetime, col: Optional["TableColumn"]
+    ) -> bool:
+        """
+        Whether this engine's literal for ``dttm`` loses the sub-second part.
+
+        SQLite renders a timestamp with ``timespec="seconds"``, so the real
+        predicate compares a floored bound while the probe is handed the full
+        precision -- which makes the mirror *narrower* than the predicate it
+        stands in for, and narrower means dropped rows.
+
+        Detected rather than enumerated per engine: if the engine renders
+        ``dttm`` and ``dttm`` truncated to the second as the same text, it has
+        thrown the remainder away.
+        """
+        if col is None or not col.type or not dttm.microsecond:
+            return False
+        try:
+            rendered = self.db_engine_spec.convert_dttm(
+                col.type, dttm, db_extra=self.db_extra
+            )
+            truncated = self.db_engine_spec.convert_dttm(
+                col.type, dttm.replace(microsecond=0), db_extra=self.db_extra
+            )
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return False
+        return rendered is not None and rendered == truncated
+
     def _collect_partition_mirror_range(
         self,
         mapping: Optional["PartitionMapping"],
@@ -4401,10 +4463,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 end_dttm += widen_bounds_by
             upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
+        # Then round outward, on an engine whose literal drops the sub-second
+        # part: the real predicate compares a floored bound, so a probe at full
+        # precision mirrors a narrower range and drops rows the filter keeps.
+        # The upper bound becomes `<=` for the same reason the grain widening
+        # makes it `<=` -- a ceiled bound is only safe inclusive.
+        for bound in (start_dttm, end_dttm):
+            if bound is not None and self._engine_drops_subseconds(bound, mapped_col):
+                if start_dttm is not None:
+                    start_dttm = start_dttm.replace(microsecond=0)
+                if end_dttm is not None and end_dttm.microsecond:
+                    end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
+                upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
+                break
+
+        # Converted last. The widening and rounding above are `datetime`
+        # arithmetic, and the stored representation may be an integer.
         if start_dttm is not None:
-            sink.append((utils.FilterOperator.GREATER_THAN_OR_EQUALS, start_dttm))
+            sink.append(
+                (
+                    utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                    self._mirror_probe_value(start_dttm, mapped_col),
+                )
+            )
         if end_dttm is not None:
-            sink.append((upper_operator, end_dttm))
+            sink.append(
+                (upper_operator, self._mirror_probe_value(end_dttm, mapped_col))
+            )
 
     def _collect_partition_mirror_filter(
         self,
@@ -4436,6 +4521,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return
             sink.append((operator, tuple(value)))
         elif value is not None:
+            if isinstance(value, datetime):
+                # Same reason as the range collector: on a column stored as an
+                # epoch integer the transform is a function of an integer, and
+                # a `datetime` is not the value the real predicate compares.
+                # Reached by an ungrained equality, as drill-to-detail builds.
+                mapped_col = next(
+                    (col for col in self.columns if col.column_name == column_name),
+                    None,
+                )
+                value = self._mirror_probe_value(value, mapped_col)
             sink.append((operator, value))
 
     def _build_partition_mirror_predicates(
