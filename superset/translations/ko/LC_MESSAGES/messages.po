@@ -29497,6 +29497,14 @@ msgstr ""
 "다음 테이블에 대한 접근 권한이 필요합니다: %(tables)s, 'all_database_access' 또는 "
 "'all_datasource_access' 권한"
 
+#, python-format
+msgid ""
+"You need datasource_access on a registered dataset for each of the "
+"following tables: %(tables)s. schema_access and catalog_access do not "
+"authorize this query. Alternatively, grant 'all_database_access' or "
+"'all_datasource_access'."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy

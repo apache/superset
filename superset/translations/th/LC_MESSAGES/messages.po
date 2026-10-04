@@ -32008,6 +32008,14 @@ msgstr ""
 "คุณต้องมีสิทธิ์เข้าถึงตารางต่อไปนี้: %(tables)s หรือสิทธิ์ "
 "'all_database_access' หรือ 'all_datasource_access'"
 
+#, python-format
+msgid ""
+"You need datasource_access on a registered dataset for each of the "
+"following tables: %(tables)s. schema_access and catalog_access do not "
+"authorize this query. Alternatively, grant 'all_database_access' or "
+"'all_datasource_access'."
+msgstr ""
+
 msgid "You need to"
 msgstr "คุณต้อง"
 

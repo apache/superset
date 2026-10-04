@@ -21339,6 +21339,14 @@ msgstr ""
 "U hebt toegang nodig tot de volgende tabellen: %(tables)s, de machtiging "
 "'all_database_access' of 'all_datasource_access'"
 
+#, python-format
+msgid ""
+"You need datasource_access on a registered dataset for each of the "
+"following tables: %(tables)s. schema_access and catalog_access do not "
+"authorize this query. Alternatively, grant 'all_database_access' or "
+"'all_datasource_access'."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
