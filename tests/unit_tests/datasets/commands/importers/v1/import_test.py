@@ -48,7 +48,7 @@ from superset.commands.dataset.importers.v1.utils import (
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
-from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.datasets.schemas import ImportV1ColumnSchema, ImportV1DatasetSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
@@ -2908,8 +2908,9 @@ UNSTORABLE_TRANSFORMS = pytest.mark.parametrize(
         "(SELECT password FROM ab_user LIMIT 1) || :value",
         "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
         "unix_timestamp(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
     ],
-    ids=["subquery", "set-operation", "multi-statement"],
+    ids=["subquery", "set-operation", "multi-statement", "bare-from"],
 )
 
 
@@ -2950,6 +2951,87 @@ def test_import_drops_an_unstorable_transform_even_with_the_feature_off(
     turn the flag on.
     """
     _assert_import_drops(transform)
+
+
+#: A transform a PUT accepts and parks inactive, rather than one it refuses.
+#: `validate_transform` classifies an unparseable transform as a Tier-2 issue:
+#: the mapping saves and stays inactive until the owner finishes typing it.
+UNFINISHED_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp(:value", "unix_timestamp(:value))", "unix_timestamp(:value) +"],
+    ids=["unclosed", "extra-paren", "trailing-operator"],
+)
+
+
+def _assert_import_keeps(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_a_put_would_park(
+    session: Session, transform: str
+) -> None:
+    """
+    `stored_expression_error` fails closed on a transform that does not parse,
+    which is right for the probe and wrong here: a PUT saves the same transform
+    and reports it inactive, so nulling it on import means an export cannot
+    round-trip the dataset it was taken from. `UpdateDatasetCommand` puts the
+    same parseability condition in front of the same gate.
+    """
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """With the flag off there is only stored configuration to lose."""
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unfinished_transform_survives_the_export_import_round_trip(
+    session: Session,
+) -> None:
+    """
+    The test that would have caught this. An owner mid-edit saves, exports, and
+    imports the bundle back: the transform has to come out the way it went in,
+    inactive but intact.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    transform = "unix_timestamp(:value"
+    stored = TableColumn(column_name="event_time", is_dttm=True)
+    stored.partition_value_transform = transform
+
+    # What export writes, from a column a PUT accepted and parked inactive.
+    exported = {
+        "column_name": stored.column_name,
+        "partition_value_transform": stored.partition_value_transform,
+        "partition_transform_is_monotonic": None,
+    }
+    loaded = ImportV1ColumnSchema().load(exported)
+
+    config = _partition_mapping_config(database.id, transform)
+    config["columns"][0] = loaded
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform
     assert mock_read_bounded.call_args_list[1].args[0] is decompressed
 
 

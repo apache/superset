@@ -48,7 +48,7 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
-    is_parseable,
+    is_unfinished,
     parse_skeleton,
     validate_partition_mapping,
 )
@@ -514,7 +514,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     ValidationError(str(issue.message), field_name=issue.field)
                 )
 
-        if transform and is_parseable(transform, database.backend):
+        # Everything except a transform that is not SQL yet. A half-typed
+        # transform is a Tier-2 issue above -- the mapping saves and stays
+        # inactive -- and this gate fails closed on anything that does not
+        # parse, so asking it would refuse the save mid-keystroke. Narrower
+        # than "parses as a single expression": a set-operation or a
+        # multi-statement transform fails that too, and has to reach this gate.
+        if transform and not is_unfinished(transform, database.backend):
             try:
                 validate_stored_expression(
                     database, catalog, schema, parse_skeleton(transform)
