@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-03 18:04-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1059,6 +1059,9 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr ""
 
@@ -1448,6 +1451,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid "Aggregation used for the summary row. By default each metric keeps its own aggregation; Sum and Average override it for the summary row only. The override applies to simple metrics (a metric built from custom SQL always keeps its own aggregation). Overriding a count or a distinct count sums the counted column instead, which fails outright on a non-numeric column."
@@ -4067,6 +4073,18 @@ msgid "Could not verify which dimensions are compatible. All dimensions are show
 msgstr ""
 
 msgid "Count"
+msgstr ""
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
 msgstr ""
 
 msgid "Country"
@@ -8156,6 +8174,9 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
@@ -8486,6 +8507,9 @@ msgid "Mean of values over specified period"
 msgstr ""
 
 msgid "Mean values"
+msgstr ""
+
+msgid "Median"
 msgstr ""
 
 msgid "Median edge width, the thickest edge will be 4 times thicker than the thinnest."
@@ -12314,10 +12338,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12392,10 +12416,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -12985,6 +13009,15 @@ msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
 msgid "Sum"
+msgstr ""
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
 msgstr ""
 
 msgid "Sum of values over specified period"
@@ -14413,6 +14446,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -14606,6 +14642,9 @@ msgid "This page is intended to be embedded in an iframe, but it looks like that
 msgstr ""
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid "This pivot table used a legacy per-table aggregation setting that Superset previously ignored. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
@@ -15499,7 +15538,13 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use metric definition"
 msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
@@ -17645,3 +17690,4 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
