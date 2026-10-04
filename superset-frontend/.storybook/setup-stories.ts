@@ -28,7 +28,7 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import { EOL } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { type test, type Page } from '@playwright/test';
+import { type test } from '@playwright/test';
 
 declare global {
   var __storyResult: { status: string; errors: string[] };
@@ -46,6 +46,14 @@ interface Report {
   type: string;
   status: string;
   result?: { violations?: { id: string; help: string }[] };
+}
+
+export interface StoryPage {
+  addInitScript(script: () => void): Promise<unknown>;
+  goto(url: string): Promise<unknown>;
+  waitForFunction<T>(
+    pageFunction: () => T,
+  ): Promise<{ jsonValue(): Promise<T> }>;
 }
 
 const storybookURL = process.env.STORYBOOK_URL ?? 'http://localhost:6006';
@@ -121,7 +129,7 @@ function captureStoryResult() {
   });
 }
 
-async function visitStory(page: Page, entry: Entry) {
+export async function visitStory(page: StoryPage, entry: Entry) {
   await page.addInitScript(captureStoryResult);
   await page.goto(`/iframe.html?id=${entry.id}&viewMode=story`);
 
