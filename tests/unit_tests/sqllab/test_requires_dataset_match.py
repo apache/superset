@@ -37,6 +37,7 @@ def test_requires_dataset_match_defaults_to_true() -> None:
 
 
 def test_requires_dataset_match_reads_config() -> None:
+    """The helper follows SQLLAB_REQUIRE_DATASET_MATCH in either direction."""
     with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False}):
         assert requires_dataset_match() is False
     with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": True}):
