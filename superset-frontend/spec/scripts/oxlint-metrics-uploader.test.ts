@@ -21,6 +21,35 @@ import {
   parseRuleId,
 } from '../../scripts/internal/oxlint-metrics-uploader';
 
+jest.mock('node:child_process', () => ({
+  execSync: jest.fn(),
+}));
+
+jest.mock('@googleapis/sheets', () => ({
+  __esModule: true,
+  default: {
+    sheets: jest.fn(),
+  },
+}));
+
+jest.mock('google-auth-library', () => ({
+  __esModule: true,
+  GoogleAuth: jest.fn(),
+}));
+
+beforeEach(() => {
+  process.env.SERVICE_ACCOUNT_KEY = JSON.stringify({
+    client_email: 'foo@bar.com',
+  });
+  process.env.SPREADSHEET_ID = 'spreadsheet-id';
+});
+
+afterEach(() => {
+  delete process.env.SERVICE_ACCOUNT_KEY;
+  delete process.env.SPREADSHEET_ID;
+  jest.restoreAllMocks();
+});
+
 test('eslint rules keep their bare name', () => {
   expect(parseRuleId('eslint(no-console)')).toMatchObject({
     parsed: 'no-console',
@@ -166,5 +195,137 @@ test('parseOxlintResult filters diagnostics by plugin ID prefixes', () => {
       file: 'src/translation.ts',
       message: 'Avoid template variables',
     },
+  ]);
+});
+
+test('runOxlintAndProcess uploads aggregated and backlog data to Google Sheets when oxc commands exits with nonzero code due to detection of rule violations', async () => {
+  jest.resetModules();
+
+  const appendSheetMock = jest.fn().mockResolvedValue({});
+  const updateSheetMock = jest.fn().mockResolvedValue({});
+  const googleSheetsModule = jest.requireMock('@googleapis/sheets');
+  const googleAuthModule = jest.requireMock('google-auth-library');
+  const mockedExecSync = jest.requireMock('node:child_process')
+    .execSync as jest.Mock;
+
+  googleSheetsModule.default.sheets.mockReturnValue({
+    spreadsheets: {
+      values: {
+        append: appendSheetMock,
+        update: updateSheetMock,
+      },
+    },
+  } as any);
+  googleAuthModule.GoogleAuth.mockImplementation(() => ({}) as any);
+  mockedExecSync.mockImplementation((cmd: string) => {
+    if (cmd.includes('oxlint.json')) {
+      return JSON.stringify({
+        diagnostics: [
+          {
+            message: 'Use Array destructuring.',
+            code: 'eslint(prefer-destructuring)',
+            severity: 'warning',
+            filename:
+              'src/chartCustomizations/components/DeckglLayerVisibility/DeckglLayerVisibilityCustomizationPlugin.test.tsx',
+            labels: [
+              {
+                span: { offset: 4357, length: 38, line: 155, column: 20 },
+              },
+            ],
+          },
+        ],
+        number_of_files: 1,
+      });
+    }
+
+    if (cmd.includes('oxlint.custom-lint-rules.mts')) {
+      return JSON.stringify({
+        diagnostics: [
+          {
+            message:
+              'Eager `label: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `label: () => t(...)`.',
+            code: 'i18n-strings(no-eager-t-in-config)',
+            severity: 'warning',
+            filename: 'src/filters/components/TimeColumn/controlPanel.ts',
+            labels: [
+              {
+                span: {
+                  offset: 1013,
+                  length: 21,
+                  line: 25,
+                  column: 14,
+                },
+              },
+            ],
+          },
+        ],
+        number_of_files: 1,
+      });
+    }
+
+    throw new Error('Unknown oxlint executions');
+  });
+
+  const { runOxlintAndProcess } =
+    await import('../../scripts/internal/oxlint-metrics-uploader');
+  await runOxlintAndProcess();
+
+  expect(appendSheetMock).toHaveBeenCalledTimes(1);
+  expect(updateSheetMock).toHaveBeenCalledTimes(1);
+
+  const appendCall = appendSheetMock.mock.calls[0][0];
+  const backlogCall = updateSheetMock.mock.calls[0][0];
+
+  expect(appendCall).toMatchObject({
+    spreadsheetId: 'spreadsheet-id',
+    range: 'Aggregated History!A:E',
+    valueInputOption: 'USER_ENTERED',
+  });
+  expect(appendCall.resource.values).toEqual(
+    expect.arrayContaining([
+      ['OXC', 'prefer-destructuring', 'N/A', '1', expect.any(String)],
+      [
+        'OXC',
+        'i18n-strings/no-eager-t-in-config',
+        'N/A',
+        '1',
+        expect.any(String),
+      ],
+    ]),
+  );
+
+  expect(backlogCall).toMatchObject({
+    spreadsheetId: 'spreadsheet-id',
+    range: 'ESLint Backlog!A:G',
+    valueInputOption: 'USER_ENTERED',
+  });
+  expect(backlogCall.resource.values).toEqual([
+    [
+      'Rule',
+      'Rule Description',
+      'ESLint Message',
+      'File',
+      'Line',
+      'Column',
+      'Timestamp',
+    ],
+    [
+      'prefer-destructuring',
+      'N/A',
+      'Use Array destructuring.',
+      'src/chartCustomizations/components/DeckglLayerVisibility/DeckglLayerVisibilityCustomizationPlugin.test.tsx',
+      '155',
+      '20',
+      expect.any(String),
+    ],
+    [
+      'i18n-strings/no-eager-t-in-config',
+      'N/A',
+      'Eager `label: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `label: () => t(...)`.',
+      'src/filters/components/TimeColumn/controlPanel.ts',
+      '25',
+      '14',
+      expect.any(String),
+    ],
   ]);
 });
