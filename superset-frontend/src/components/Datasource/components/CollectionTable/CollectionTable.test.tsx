@@ -28,6 +28,77 @@ const props = {
   sortColumns: [],
 };
 
+test('keeps tie order stable when pagination reapplies a descending sort', () => {
+  const collection = Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    column_name: `col_${i + 1}`,
+    verbose_name: '',
+  }));
+
+  const { container } = render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name', 'verbose_name']}
+      sortColumns={['verbose_name']}
+      pagination={{ pageSize: 25 }}
+    />,
+  );
+
+  const sorters = container.querySelectorAll('.ant-table-column-sorters');
+  // ascend -> descend on the all-blank verbose_name column.
+  fireEvent.click(sorters[1]);
+  fireEvent.click(sorters[1]);
+
+  const pageRows = () =>
+    Array.from(container.querySelectorAll('.ant-table-tbody tr')).map(
+      row => row.textContent,
+    );
+  const first = pageRows();
+  expect(first).toHaveLength(25);
+
+  fireEvent.click(container.querySelector('.ant-pagination-item-2')!);
+  const second = pageRows();
+  expect(second).toHaveLength(5);
+
+  expect(new Set([...first, ...second]).size).toBe(30);
+});
+
+test('keeps a row added while sorted after the sort is cleared', () => {
+  const initial = [
+    { id: 1, column_name: 'c_col' },
+    { id: 2, column_name: 'a_col' },
+  ];
+
+  const Parent = () => {
+    const [collection, setCollection] = useState(initial);
+    return (
+      <CollectionTable
+        collection={collection}
+        tableColumns={['column_name']}
+        sortColumns={['column_name']}
+        allowAddItem
+        itemGenerator={() => ({ id: 3, column_name: 'new_col' })}
+        onChange={items => setCollection(items as typeof initial)}
+      />
+    );
+  };
+
+  const { container, getByTestId } = render(<Parent />);
+  const sorter = container.querySelector('.ant-table-column-sorters');
+
+  fireEvent.click(sorter!);
+  fireEvent.click(getByTestId('add-item-button'));
+  // ascend -> descend -> cancel
+  fireEvent.click(sorter!);
+  fireEvent.click(sorter!);
+
+  const rows = container.querySelectorAll('.ant-table-tbody tr');
+  expect(rows).toHaveLength(3);
+  expect(
+    Array.from(rows).some(row => row.textContent?.includes('new_col')),
+  ).toBe(true);
+});
+
 test('renders a table', () => {
   const { container } = render(<CollectionTable {...props} />);
   const tableBody = container.querySelector('.ant-table-tbody');

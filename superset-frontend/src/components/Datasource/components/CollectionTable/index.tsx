@@ -353,6 +353,12 @@ export default function CRUDCollection({
 
       const col = newSortColumn;
 
+      // A pagination or page-size change re-emits the current sorter. The
+      // rows are already ordered, so re-sorting would only churn tie order.
+      if (newSortColumn === sortColumn && newSortOrder === sort) {
+        return;
+      }
+
       if (
         sortColumns?.includes(col) ||
         newSortOrder === SortOrderEnum.Unsorted
@@ -379,12 +385,13 @@ export default function CRUDCollection({
           // an edit that hasn't round-tripped back through onChange yet
           // isn't dropped when a sort is applied.
           sortedArray = [...collectionArray];
-          sortedArray.sort((a: CollectionItem, b: CollectionItem) =>
-            compareSort(a[col] as Sort, b[col] as Sort),
+          // Negate the comparator for descending order (rather than reversing
+          // the array) so equal-key rows keep their relative order.
+          const direction = newSortOrder === SortOrderEnum.Desc ? -1 : 1;
+          sortedArray.sort(
+            (a: CollectionItem, b: CollectionItem) =>
+              direction * compareSort(a[col] as Sort, b[col] as Sort),
           );
-          if (newSortOrder === SortOrderEnum.Desc) {
-            sortedArray.reverse();
-          }
         } else {
           // Restore the pre-sort order, but take each row's current value
           // from the live `collection` map (not propsCollection) so an edit
@@ -406,7 +413,7 @@ export default function CRUDCollection({
         setSort(newSortOrder);
       }
     },
-    [collection, collectionArray, sortColumns],
+    [collection, collectionArray, sortColumns, sortColumn, sort],
   );
 
   const renderExpandableSection = useCallback(
