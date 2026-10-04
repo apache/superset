@@ -2163,9 +2163,11 @@ SQLLAB_CTAS_NO_LIMIT = False
 # schema or ``catalog_access`` on the referenced catalog. ``schema_access``
 # covers every table in that schema. ``catalog_access`` covers every table
 # in the catalog, across schemas. Either grant includes tables that are not
-# registered as datasets. Chart, Explore, and other non-SQL-Lab callers already honor
-# those grants and are unchanged. Reports, alerts, MetaDB, and SQL validation
-# keep the dataset-match requirement regardless of this setting.
+# registered as datasets. Scripts that rebind schema resolution (USE, SET
+# SCHEMA, or a search_path change) stay denied either way. Chart, Explore,
+# and other non-SQL-Lab callers already honor those grants and are unchanged.
+# Reports, alerts, MetaDB, and SQL validation keep the dataset-match
+# requirement regardless of this setting.
 SQLLAB_REQUIRE_DATASET_MATCH = True
 
 # This allows you to define custom logic around the "CREATE TABLE AS" or CTAS feature

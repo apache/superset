@@ -5006,8 +5006,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # Statements that rebind how unqualified table names resolve
                 # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
                 # the qualification below diverge from what the engine uses at
-                # execution time, so reject them regardless of engine.
-                if force_dataset_match and parse_result.script.changes_default_schema():
+                # execution time. This is independent of dataset matching: a
+                # schema or catalog grant must not authorize a script that
+                # then switches the shared cursor to another schema.
+                if parse_result.script.changes_default_schema():
                     raise SupersetSecurityException(
                         SupersetError(
                             error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,

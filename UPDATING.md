@@ -37,9 +37,12 @@ Set `SQLLAB_REQUIRE_DATASET_MATCH = False` to authorize those paths from
 `schema_access` or `catalog_access` alone. `schema_access` covers every
 table in that schema. `catalog_access` covers every table in the catalog,
 across schemas. Either grant includes tables that are not registered as
-datasets. Chart
-and Explore checks are unchanged. Reports, alerts, MetaDB, and SQL validation
-keep requiring a dataset match.
+datasets. Scripts that rebind schema resolution (`USE`, `SET SCHEMA`, or a
+`search_path` change) stay denied either way: the access check would
+otherwise qualify unqualified names against the selected schema while the
+shared cursor reads the schema the script switched to. Chart and Explore
+checks are unchanged. Reports, alerts, MetaDB, and SQL validation keep
+requiring a dataset match.
 
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard

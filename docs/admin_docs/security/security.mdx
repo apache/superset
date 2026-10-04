@@ -69,7 +69,7 @@ Set the following in `superset_config.py` when schema- or catalog-wide SQL Lab a
 SQLLAB_REQUIRE_DATASET_MATCH = False
 ```
 
-A `schema_access` grant then authorizes SQL Lab queries against every table in that schema. A `catalog_access` grant authorizes every table in the catalog, across schemas. Either grant includes tables that are not registered as datasets. The same flag covers result fetch, CSV and streaming export, cost estimates, SQL formatting, and the MCP `execute_sql` tool. Chart and Explore access are unchanged. Reports, alerts, MetaDB, and SQL validation still require a dataset match.
+A `schema_access` grant then authorizes SQL Lab queries against every table in that schema. A `catalog_access` grant authorizes every table in the catalog, across schemas. Either grant includes tables that are not registered as datasets. Scripts that switch schema (`USE`, `SET SCHEMA`, or `search_path`) stay denied, so a grant cannot be redirected onto another schema. The same flag covers result fetch, CSV and streaming export, cost estimates, SQL formatting, and the MCP `execute_sql` tool. Chart and Explore access are unchanged. Reports, alerts, MetaDB, and SQL validation still require a dataset match.
 
 ### Public
 
