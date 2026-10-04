@@ -72,6 +72,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
@@ -2035,7 +2036,16 @@ class SqlaTable(
             "active": active,
             "is_monotonic": is_monotonic,
             "mirrorable_operators": sorted(
-                operator.value for operator in mirrorable_operators(is_monotonic)
+                operator.value
+                for operator in mirrorable_operators(
+                    is_monotonic,
+                    # Through the same helper `resolve_partition_mapping` uses,
+                    # so the glyph cannot advertise an operator the query path
+                    # declines to mirror.
+                    equality_is_safe=equality_mirrors_safely(
+                        mapped_column, self.database.db_engine_spec
+                    ),
+                )
             ),
         }
 

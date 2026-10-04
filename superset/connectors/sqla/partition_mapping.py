@@ -49,10 +49,34 @@ original predicate ``P1`` *implies* it:
 ===========================================  =============================
 Original                                     Safe when
 ===========================================  =============================
-``col = v``, ``col IN (...)``                always -- ``T`` is a function
+``col = v``, ``col IN (...)``                ``T`` is a function *and* the
+                                             engine compares ``col``
+                                             byte-exactly
 ``col >=|>|<|<= v``, ``TEMPORAL_RANGE``      only if ``T`` is monotonic
 ``col != v``, ``NOT IN``, ``LIKE``, ...      never
 ===========================================  =============================
+
+Equality under the engine's own rules
+-------------------------------------
+"``T`` is a function" gives ``col = v`` implies ``T(col) = T(v)`` for *value*
+equality. The engine compares with *SQL* equality, and the two part company
+wherever that comparison is not byte-exact: under a case-insensitive collation
+a stored ``country`` of ``'us'`` satisfies a filter for ``'US'``, while the
+mirror ``region_key = hex('US')`` excludes the row and the chart loses it with
+nothing to indicate why. Trailing-space-insensitive ``CHAR`` comparison says
+the same thing about padding.
+
+So equality and ``IN`` are withdrawn for a *string* mapped column unless the
+engine spec declares ``binary_string_comparison`` -- `equality_mirrors_safely`.
+Numeric and temporal comparison is exact everywhere and is untouched, and range
+mirroring is untouched too: it already rests on the owner declaring ``T``
+order-preserving *with respect to the column's own order*, which is an
+assertion about the very semantics this is checking for.
+
+What the gate cannot see is a column declaring its own collation
+(``country COLLATE NOCASE``) on an otherwise byte-exact engine. Nothing in
+SQLAlchemy's reflection or the engine specs exposes that, so there it remains
+the owner's assumption, like ``p = T(mapped_col)`` itself.
 
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
@@ -112,11 +136,12 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLScript, SQLStatement
-from superset.utils import json
+from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
@@ -189,16 +214,67 @@ MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
 
 
-def mirrorable_operators(is_monotonic: bool) -> set[FilterOperator]:
+def mirrorable_operators(
+    is_monotonic: bool, *, equality_is_safe: bool = True
+) -> set[FilterOperator]:
     """
     The operators whose predicates may be mirrored onto the partition column.
 
     :param is_monotonic: whether the owner declared the transform
         order-preserving
+    :param equality_is_safe: whether the engine's ``=`` on the mapped column
+        compares the way ``T`` was written against -- see
+        `equality_mirrors_safely`
+
+    Both call sites -- the query path through `PartitionMapping.mirrors` and the
+    Explore indicator through `partition_filter_mapping_summary` -- come through
+    here, which is what keeps the glyph from promising pruning the SQL will not
+    do.
     """
+    operators = MIRRORABLE_ALWAYS if equality_is_safe else set()
     if is_monotonic:
-        return MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
-    return set(MIRRORABLE_ALWAYS)
+        operators = operators | MIRRORABLE_IF_MONOTONIC
+    return set(operators)
+
+
+def equality_mirrors_safely(
+    column: TableColumn | None,
+    db_engine_spec: type[BaseEngineSpec],
+) -> bool:
+    """
+    Whether ``col = v`` on this column implies ``T(col) = T(v)`` in the engine.
+
+    The operator matrix calls equality safe "for any function ``T``" because
+    ``T`` is a function, so ``col = v`` gives ``T(col) = T(v)``. That reasons
+    about *value* equality while the engine reasons about *SQL* equality, and
+    the two part company under any comparison that is not byte-exact: with a
+    case-insensitive collation a stored ``country`` of ``'us'`` satisfies a
+    filter for ``'US'``, but the mirror ``region_key = hex('US')`` excludes the
+    row and the chart loses it with no indication why. Trailing-space-insensitive
+    ``CHAR`` comparison says the same thing about padding.
+
+    Only string columns are at risk; numeric and temporal comparison is exact
+    everywhere. And only equality: range mirroring already requires the owner
+    to declare ``T`` order-preserving *with respect to the column's own order*,
+    which is an assertion about the same comparison semantics this is checking
+    for -- so the declaration covers it where equality has nothing to cover it.
+
+    What this cannot see is a column that declares its own collation
+    (``country COLLATE NOCASE``) on an otherwise byte-exact engine. Neither
+    SQLAlchemy's reflection nor the engine specs expose it, so on such a column
+    the assumption stays where ``p = T(mapped_col)`` already is: with the owner.
+    """
+    if column is None:
+        return True
+    try:
+        is_string = column.type_generic == utils.GenericDataType.STRING
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        # An unresolvable type is treated as a string: the gate exists to stop
+        # a silent wrong answer, so it fails closed.
+        return False
+    if not is_string:
+        return True
+    return bool(db_engine_spec.binary_string_comparison)
 
 
 #: How wide one bucket of each built-in time grain is.
@@ -273,9 +349,15 @@ class PartitionMapping:
     mapped_column: str
     value_transform: str
     is_monotonic: bool
+    #: Whether the engine compares the mapped column the way ``T`` was written
+    #: against. Resolved once where the column and the engine are both in hand,
+    #: rather than re-derived at each `mirrors` call.
+    equality_is_safe: bool = True
 
     def mirrors(self, operator: FilterOperator) -> bool:
-        return operator in mirrorable_operators(self.is_monotonic)
+        return operator in mirrorable_operators(
+            self.is_monotonic, equality_is_safe=self.equality_is_safe
+        )
 
 
 def contains_value_placeholder(transform: str | None) -> bool:
@@ -519,6 +601,9 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         value_transform=cast(str, transform),
         is_monotonic=bool(
             getattr(mapped_column, "partition_transform_is_monotonic", False)
+        ),
+        equality_is_safe=equality_mirrors_safely(
+            mapped_column, datasource.database.db_engine_spec
         ),
     )
 
@@ -1227,9 +1312,7 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": _("No partition column is set."),
         }
 
-    columns_by_name = {
-        str(column.column_name): column for column in datasource.columns
-    }
+    columns_by_name = {str(column.column_name): column for column in datasource.columns}
     if mapped_column not in columns_by_name:
         return {
             "valid": False,
@@ -1293,6 +1376,9 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         mapped_column=mapped_column,
         value_transform=cast(str, value_transform),
         is_monotonic=is_monotonic,
+        equality_is_safe=equality_mirrors_safely(
+            columns_by_name[mapped_column], datasource.database.db_engine_spec
+        ),
     )
     sample_input = _render_sample_input(
         datasource, mapped_column, operator, sample_values
@@ -1387,9 +1473,9 @@ def _render_predicate(datasource: SqlaTable, predicate: ColumnElement[Any]) -> s
     Every value in it is a probed constant by this point, so ``literal_binds``
     renders the same literals the chart query carries.
     """
-    return _compile_literal(
-        predicate, _dialect_for(datasource.database)
-    ).replace("\n", " ")
+    return _compile_literal(predicate, _dialect_for(datasource.database)).replace(
+        "\n", " "
+    )
 
 
 def _render_literal(database: Database, value: Any) -> str:

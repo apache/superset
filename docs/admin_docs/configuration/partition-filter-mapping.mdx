@@ -89,13 +89,28 @@ When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
 | Filter | Mirrored |
 |---|---|
-| `=`, `IN` | Always |
+| `=`, `IN` | Always, except on a text column whose engine does not compare text exactly |
 | `>`, `>=`, `<`, `<=`, time ranges | Only when the transform preserves ordering |
 | `!=`, `NOT IN`, `LIKE`, `ILIKE`, `IS NULL`, `IS TRUE` | Never |
 
 Negations are never safe. A transform need not be injective: `lower(:value)` with
 `country != 'US'` would mirror to `region_key != 'us'`, which excludes rows whose `country`
 is already lowercase `'us'` — rows the original filter *keeps*.
+
+**Text comparison.** Mirroring `col = v` onto `partition_col = T(v)` assumes the engine
+compares `col` the way the transform was written against. Under a case-insensitive collation
+it does not: a stored `country` of `'us'` satisfies a filter for `'US'`, while the mirror is
+derived from `'US'` and excludes the row. So `=` and `IN` on a **text** mapped column only
+mirror on engines whose default text comparison is exact — Hive, Impala, Trino, Presto,
+Spark, Databricks, PostgreSQL, Snowflake, BigQuery and SQLite. On MySQL and SQL Server, whose
+default collations are case-insensitive, a text mapping is stored and shown but no `=` or
+`IN` filter mirrors through it; map a numeric or temporal column instead. Numeric and
+temporal comparison is exact everywhere, and ranges are unaffected either way — checking
+**Transform preserves ordering** is already a statement about the column's own ordering.
+
+One case Superset cannot check for you: a column that declares its own collation, such as
+`country COLLATE NOCASE`, on an engine that is otherwise exact. Nothing in the metadata
+exposes that, so it falls under the same pipeline assumption as the partition key itself.
 
 **Time grains.** A filter that carries a time grain — drill-to-detail, mostly — compares the
 *truncated* column, so the raw bounds it carries do not describe the rows it keeps: a row in
