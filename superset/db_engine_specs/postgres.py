@@ -178,6 +178,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_multivalues_insert = True
 
     # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.

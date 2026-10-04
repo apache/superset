@@ -612,9 +612,7 @@ def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
     Preview did not, so it reported a valid emitted predicate for a mapping no
     chart would ever mirror: the one answer a preview panel must not give.
     """
-    column = next(
-        col for col in dataset.columns if col.column_name == "event_time"
-    )
+    column = next(col for col in dataset.columns if col.column_name == "event_time")
     column.advanced_data_type = "port"
     db.session.flush()
 

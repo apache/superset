@@ -248,7 +248,7 @@ export default function PartitionMappingSection({
         </Checkbox>
         <InfoTooltip
           tooltip={t(
-            'Monotonicity is a property of the transform, not of the column type: hour(:value) and dayofweek(:value) are reasonable transforms on a timestamp and neither preserves ordering, so Superset asks rather than guessing. Unchecked, = and IN still mirror.',
+            'Monotonicity is a property of the transform, not of the column type: hour(:value) and dayofweek(:value) are reasonable transforms on a timestamp and neither preserves ordering, so Superset asks rather than guessing. Unchecked, = and IN still mirror — except on a text column whose engine compares text case-insensitively, where they never do.',
           )}
         />
       </Flex>

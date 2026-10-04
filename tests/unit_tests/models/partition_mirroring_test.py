@@ -860,6 +860,127 @@ def test_the_series_limit_subquery_keeps_row_level_security(app: Flask) -> None:
     assert "region_key <> 'x'" in subquery
 
 
+def _mapped_country_table() -> SqlaTable:
+    """A string-column mapping: ``country`` onto ``region_key``."""
+    return _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+
+def test_string_equality_does_not_mirror_on_a_case_insensitive_engine(
+    app: Flask,
+) -> None:
+    """
+    `col = v` mirrors onto `partition_col = T(v)` on the strength of `col = v`
+    implying `T(col) = T(v)` -- true of value equality, false of SQL equality
+    under any comparison that is not byte-exact. With a case-insensitive
+    collation a stored `country` of `'us'` satisfies a filter for `'US'` while
+    the mirror `region_key = 'us'` is derived from `'US'` and excludes the row,
+    so the chart loses it with nothing to indicate why.
+    """
+    table = _mapped_country_table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec, "binary_string_comparison", False
+        ):
+            with patch(PROBE, return_value=["us"]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "country",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "US",
+                        }
+                    ],
+                )
+
+    assert "region_key" not in sql
+    assert "country = 'US'" in sql
+    probe.assert_not_called()
+
+
+def test_string_equality_still_mirrors_on_a_byte_exact_engine(app: Flask) -> None:
+    """
+    The gate must not cost the feature its second canonical mapping on the
+    engines it exists for, all of which compare text byte-exactly.
+    """
+    table = _mapped_country_table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "region_key = 'us'" in sql
+
+
+def test_a_numeric_mapped_column_is_unaffected_by_the_collation_gate(
+    app: Flask,
+) -> None:
+    """Numeric comparison is exact on every engine."""
+    table = _table(
+        transform="CAST(:value AS STRING)",
+        monotonic=False,
+        mapped_column="dt_epoch",
+        partition_mapped_column="dt_epoch",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec, "binary_string_comparison", False
+        ):
+            with patch(PROBE, return_value=["17"]):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "dt_epoch",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": 17,
+                        }
+                    ],
+                )
+
+    assert "region_key = '17'" in sql
+
+
+def test_the_summary_withdraws_the_operators_the_query_path_withdraws(
+    app: Flask,
+) -> None:
+    """
+    The glyph reads `mirrorable_operators` off this summary, so the gate has to
+    reach it or Explore would mark a filter chip as pruned while the generated
+    SQL carries no partition predicate -- which is the whole class of bug the
+    indicator work has been closing.
+    """
+    table = _mapped_country_table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec, "binary_string_comparison", False
+        ):
+            summary = table.partition_filter_mapping_summary
+
+        assert summary is not None
+        assert summary["mirrorable_operators"] == []
+
+        unguarded = table.partition_filter_mapping_summary
+
+    assert unguarded is not None
+    assert unguarded["mirrorable_operators"] == ["==", "IN"]
+
+
 def test_extra_cache_keys_include_the_mapping(app: Flask) -> None:
     """
     The mapping changes the SQL a cached chart result came from, so it has to
