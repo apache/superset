@@ -82,7 +82,7 @@ export const SizeAndOpacityShowcase = () => (
       </div>
 
       {SIZES.map(size => (
-        <>
+        <div key={size}>
           <div key={`${size}-label`} style={{ fontWeight: 'bold' }}>
             {size.toUpperCase()} (
             {size === 's' ? '40px' : size === 'm' ? '70px' : '100px'})
@@ -115,7 +115,7 @@ export const SizeAndOpacityShowcase = () => (
             {size === 'm' && 'Explore pages, medium content'}
             {size === 'l' && 'Main loading, full pages'}
           </div>
-        </>
+        </div>
       ))}
     </div>
   </div>
