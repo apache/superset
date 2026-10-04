@@ -648,9 +648,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   // Any match-type change (including between two LIKE modes) discards the
   // pending edit, so text typed under the previous mode is never replayed and
   // re-entering the same text afterwards registers as a fresh edit.
+  // The displayed text reverts to the committed value too, so a discarded edit
+  // never lingers in the input without a matching filter value.
+  const committedLikeValueRef = useRef('');
+  committedLikeValueRef.current =
+    filterState.value?.[0] != null ? String(filterState.value[0]) : '';
   useEffect(() => {
     settleLikeValue.cancel();
     setPendingLikeValue(null);
+    setLikeInputValue(committedLikeValueRef.current);
   }, [operatorType, isLikeOperator, settleLikeValue]);
 
   useEffect(() => {

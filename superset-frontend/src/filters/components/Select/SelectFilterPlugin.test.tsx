@@ -2211,6 +2211,139 @@ test('clear-all does not restore a LIKE edit still pending in the deferred value
   );
 });
 
+const likeReduxState = {
+  useRedux: true,
+  initialState: {
+    nativeFilters: {
+      filters: { 'test-filter': { name: 'Test Filter' } },
+    },
+    dataMask: {
+      'test-filter': {
+        extraFormData: {},
+        filterState: { value: undefined },
+      },
+    },
+  },
+};
+
+test('switching match type discards the pending LIKE edit and clears the displayed text', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (operatorType: SelectFilterOperatorType) =>
+    buildSelectFilterProps({
+      formData: { operatorType },
+      filterState: { value: undefined },
+      setDataMask: setDataMaskMock,
+    });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+    likeReduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildProps(SelectFilterOperatorType.StartsWith)}
+      />,
+    );
+  });
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(
+    screen.getByPlaceholderText('Type to search (starts with)...'),
+  ).toHaveValue('');
+});
+
+test('re-entering the same LIKE text after a parent reset commits a new mask', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (value: string[] | undefined, defaultValue?: string[]) =>
+    buildSelectFilterProps({
+      formData: {
+        operatorType: SelectFilterOperatorType.Contains,
+        defaultValue,
+      },
+      filterState: { value },
+      setDataMask: setDataMaskMock,
+    });
+  const containsJen = expect.objectContaining({
+    extraFormData: expect.objectContaining({
+      filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+    }),
+  });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(undefined, undefined)} />,
+    likeReduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(setDataMaskMock).toHaveBeenCalledWith(containsJen);
+
+  // The parent echoes the committed value, then resets it to a different
+  // default, which moves the committed mask away from 'Jen'.
+  rerender(<SelectFilterPlugin {...buildProps(['Jen'])} />);
+  rerender(<SelectFilterPlugin {...buildProps(undefined, ['Bob'])} />);
+  await act(async () => {});
+  expect(input).toHaveValue('');
+
+  setDataMaskMock.mockClear();
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  await act(async () => {});
+
+  expect(setDataMaskMock).toHaveBeenCalledWith(containsJen);
+});
+
+test('Clear All publishes an empty server search after a settled search', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: true, multiSelect: true },
+    filterState: { value: ['boy'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...props} />,
+    likeReduxState,
+  );
+  const combobox = screen.getAllByRole('combobox')[0];
+  await userEvent.click(combobox);
+  await userEvent.type(combobox, 'ab');
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  await waitFor(() => {
+    const lastCall = setDataMaskMock.mock.calls.at(-1)?.[0];
+    expect(lastCall?.ownState?.search).toBe('ab');
+  });
+
+  rerender(
+    <SelectFilterPlugin {...props} clearAllTrigger={{ 'test-filter': true }} />,
+  );
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  const lastCall = setDataMaskMock.mock.calls.at(-1)?.[0];
+  expect(lastCall?.ownState?.search).toBe('');
+});
+
 test('renders standard Select dropdown when operatorType is Exact', () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
