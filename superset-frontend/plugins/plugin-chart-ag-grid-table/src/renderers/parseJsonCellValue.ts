@@ -199,6 +199,10 @@ function exceedsPreviewBudget(value: JsonContainer): boolean {
   return false;
 }
 
+function abbreviatedJson(value: JsonContainer): string {
+  return Array.isArray(value) ? '[…]' : '{…}';
+}
+
 /** One-line preview of a JSON object or array. */
 export function jsonCellPreview(
   value: JsonContainer,
@@ -208,23 +212,23 @@ export function jsonCellPreview(
     return collapseFormattingWhitespace(rawText);
   }
   if (exceedsPreviewBudget(value)) {
-    return Array.isArray(value) ? '[…]' : '{…}';
+    return abbreviatedJson(value);
   }
   try {
     return JSON.stringify(value);
   } catch {
-    return Array.isArray(value) ? '[…]' : '{…}';
+    return abbreviatedJson(value);
   }
 }
 
 /** Multiline text for a wrapping column. Oversized values stay abbreviated. */
 export function jsonCellWrappedText(value: JsonContainer): string {
   if (exceedsPreviewBudget(value)) {
-    return jsonCellPreview(value);
+    return abbreviatedJson(value);
   }
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return jsonCellPreview(value);
+    return abbreviatedJson(value);
   }
 }
