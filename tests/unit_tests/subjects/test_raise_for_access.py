@@ -517,6 +517,7 @@ def test_raise_for_access_query_schema_access_non_author(app_context):
 
     parse_result = MagicMock()
     parse_result.tables = {Table("t1", "main", None)}
+    parse_result.script.changes_default_schema.return_value = False
 
     with (
         patch.object(sm, "can_access_all_datasources", return_value=False),
@@ -551,6 +552,7 @@ def test_raise_for_access_query_schema_access_denied_ungranted_schema(app_contex
     parse_result = MagicMock()
     # SQL touches a table in "other" schema, not the granted "main" schema.
     parse_result.tables = {Table("t1", "other", None)}
+    parse_result.script.changes_default_schema.return_value = False
 
     with (
         patch.object(sm, "can_access_all_datasources", return_value=False),
