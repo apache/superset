@@ -34,6 +34,14 @@ export type EchartsBulletFormData = QueryFormData & {
   /** Comma-separated threshold values shaded as background bands */
   ranges?: string;
   rangeLabels?: string;
+  /**
+   * Optional per-range fill colors (hex), positionally matched to the
+   * thresholds parsed from `ranges`. An empty string (or a missing entry)
+   * means "no custom color" -- that band falls back to the default
+   * theme-token ramp. Absent entirely on charts saved before this control
+   * existed, which keeps them rendering identically.
+   */
+  rangeColors?: string[];
   /** Comma-separated values drawn as point markers */
   markers?: string;
   markerLabels?: string;

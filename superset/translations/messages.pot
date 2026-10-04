@@ -1239,6 +1239,9 @@ msgstr ""
 msgid "Add group"
 msgstr ""
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr ""
 
@@ -1264,6 +1267,9 @@ msgid "Add or edit display controls"
 msgstr ""
 
 msgid "Add or edit filters and controls"
+msgstr ""
+
+msgid "Add ranges above to configure their colors here."
 msgstr ""
 
 msgid "Add report"
@@ -2432,6 +2438,9 @@ msgstr ""
 msgid "Base"
 msgstr ""
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr ""
 
@@ -2499,6 +2508,9 @@ msgstr ""
 
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
+
+msgid "Border"
 msgstr ""
 
 msgid "Border color"
@@ -3547,6 +3559,20 @@ msgstr ""
 msgid "Color for breakpoint"
 msgstr ""
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr ""
 
@@ -3557,6 +3583,16 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -3697,9 +3733,6 @@ msgid "Columns to show in the tooltip."
 msgstr ""
 
 msgid "Combine metrics"
-msgstr ""
-
-msgid "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds."
 msgstr ""
 
 msgid "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. Last number should match the value provided for MAX."
@@ -3887,6 +3920,9 @@ msgid "Connection looks good!"
 msgstr ""
 
 msgid "Contact the report owner for error details."
+msgstr ""
+
+msgid "Container background"
 msgstr ""
 
 msgid "Contains"
@@ -6783,6 +6819,11 @@ msgstr ""
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
+msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
+
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
 msgstr ""
 
@@ -8142,6 +8183,9 @@ msgid "Lines column"
 msgstr ""
 
 msgid "Lines encoding"
+msgstr ""
+
+msgid "Link"
 msgstr ""
 
 msgid "Link Copied!"
@@ -9609,6 +9653,11 @@ msgstr ""
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr ""
 
@@ -9938,6 +9987,13 @@ msgid "Physical"
 msgstr ""
 
 msgid "Physical (table or view)"
+msgstr ""
+
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field are"
+" automatically resolved against the chosen color scheme the first time "
+"this panel is opened."
 msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
@@ -10449,6 +10505,9 @@ msgid "Range Inputs"
 msgstr ""
 
 msgid "Range Type"
+msgstr ""
+
+msgid "Range colors"
 msgstr ""
 
 msgid "Range filter"
@@ -11575,6 +11634,9 @@ msgstr ""
 msgid "Secondary currency format"
 msgstr ""
 
+msgid "Secondary text"
+msgstr ""
+
 msgid "Secondary y-axis Bounds"
 msgstr ""
 
@@ -11974,6 +12036,9 @@ msgid "Semantic View"
 msgstr ""
 
 msgid "Semantic Views"
+msgstr ""
+
+msgid "Semantic colors"
 msgstr ""
 
 msgid "Semantic layer"
@@ -15395,6 +15460,10 @@ msgstr ""
 msgid "Unverified"
 msgstr ""
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr ""
 
@@ -15497,6 +15566,9 @@ msgid "Use current extent"
 msgstr ""
 
 msgid "Use date formatting even when metric value is not a timestamp"
+msgstr ""
+
+msgid "Use default"
 msgstr ""
 
 msgid "Use gradient"
@@ -16872,9 +16944,6 @@ msgid "code ISO 3166-1 alpha-3 (cca3)"
 msgstr ""
 
 msgid "code International Olympic Committee (cioc)"
-msgstr ""
-
-msgid "color scheme for comparison"
 msgstr ""
 
 msgid "color type"
