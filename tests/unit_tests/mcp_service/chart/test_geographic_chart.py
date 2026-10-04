@@ -1461,6 +1461,10 @@ def test_explicit_geographic_time_update_overrides_native_granularity(
             "-122.4,37.8",
         ),
         (
+            {"type": "delimited", "lonlatCol": "location"},
+            "-122.4 W,37.8 N",
+        ),
+        (
             {
                 "type": "delimited",
                 "lonlatCol": "location",
@@ -1496,6 +1500,9 @@ async def test_saved_points_native_spatial_formats_export(
         ("delimited", "1"),
         ("delimited", "1,2,3"),
         ("delimited", "text,0"),
+        ("delimited", ""),
+        ("delimited", ",0"),
+        ("delimited", "Infinity,0"),
     ],
 )
 def test_native_point_spatial_formats_reject_invalid_coordinates(
@@ -1510,3 +1517,47 @@ def test_native_point_spatial_formats_reject_invalid_coordinates(
             {"location": value},
             {"spatial": {"type": spatial_type, column_key: "location"}},
         )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("-122.4 W,37.8 N", [-122.4, 37.8]),
+        ("  +.5deg,1.e1 N", [0.5, 10.0]),
+        ("1e+ W,2e- N", [1.0, 2.0]),
+        ("0x10,2_0", [0.0, 2.0]),
+        ("\ufeff-122.4,37.8", [-122.4, 37.8]),
+    ],
+)
+def test_delimited_coordinates_match_native_numeric_prefix(
+    value: str, expected: list[float]
+) -> None:
+    """Decode parseFloat prefixes without modifying the source export value."""
+    from superset.mcp_service.chart.plugins.geographic import (
+        _decode_geographic_coordinates,
+    )
+
+    assert _decode_geographic_coordinates(value, "delimited") == expected
+
+
+@pytest.mark.parametrize(
+    ("spatial", "row"),
+    [
+        (
+            {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+            {"lon": None, "lat": 0},
+        ),
+        ({"type": "geohash", "geohashCol": "location"}, {"location": "invalid!"}),
+        ({"type": "delimited", "lonlatCol": "location"}, {"location": "text,0"}),
+    ],
+)
+def test_native_skipped_points_consistently_fail_mcp_result_validation(
+    spatial: dict[str, str], row: dict[str, object]
+) -> None:
+    """Native null positions retain the same strict contract for every encoding."""
+    form = {**form_for("deck_scatter"), "spatial": spatial}
+    result = {"queries": [{"data": [row]}]}
+    normalized = DeckScatterChartPlugin().normalize_query_result(result, form)
+    assert isinstance(normalized, ChartError)
+    assert normalized.error_type == "InvalidGeographicResult"
+    assert result["queries"][0]["data"] == [row]

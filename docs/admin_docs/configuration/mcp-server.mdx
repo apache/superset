@@ -1601,7 +1601,10 @@ whose visualization type is stored only on the saved chart. Explicit temporal
 changes override inherited native time controls on same-type updates and type
 conversions. Saved point charts switched in Explore to Geohash or comma-delimited
 coordinates remain readable through MCP data and JSON/CSV/Excel exports; exports
-retain the original spatial column values.
+retain the original spatial column values. Delimited coordinates accept the
+same leading numeric prefixes as the native decoder (for example,
+`-122.4 W,37.8 N`). Values the native decoder skips still fail MCP result
+validation, consistent with invalid latitude/longitude and geohash values.
 
 Country/world map interactions use original source identifiers rather than
 normalized rendering codes or names. With an explicit region format, boundaries

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from collections.abc import Mapping
 from decimal import Decimal
 from functools import lru_cache
@@ -91,11 +92,22 @@ def _decode_geographic_coordinates(value: object, spatial_type: str) -> list[flo
         except (ValueError, KeyError, TypeError) as ex:
             raise ValueError("Invalid geographic geohash") from ex
         return [longitude, latitude]
-    # The native Deck.gl spatial transform reads comma-separated pairs.
-    try:
-        coordinates = [float(part.strip()) for part in value.split(",")]
-    except ValueError as ex:
-        raise ValueError("Invalid delimited geographic coordinates") from ex
+    # Match the numeric prefix consumed by JavaScript parseFloat in the native
+    # Deck.gl spatial transform, including incomplete exponents and suffixes.
+    coordinates: list[float] = []
+    for part in value.split(","):
+        prefix = re.match(
+            r"[+-]?(?:Infinity|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)"
+            r"(?:[eE][+-]?[0-9]+)?)",
+            part.lstrip(
+                "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003"
+                "\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028"
+                "\u2029\u202f\u205f\u3000\ufeff"
+            ),
+        )
+        if prefix is None:
+            raise ValueError("Invalid delimited geographic coordinates")
+        coordinates.append(float(prefix[0]))
     if len(coordinates) != 2:
         raise ValueError("Delimited coordinates require two values")
     return coordinates
