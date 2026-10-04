@@ -7317,6 +7317,41 @@ def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> Non
     assert SQLStatement(sql, engine).get_niladic_functions() == expected
 
 
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", True),
+        ("SELECT lower(country) AS x", True),
+        ("SELECT CAST(ds AS DATE)", True),
+        ("SELECT NULL", True),
+        # The case this exists for. `count_select_expressions` returns 1 here,
+        # so a caller gated on that alone splices the fragment in and whatever
+        # it appends -- an alias, a suffix -- lands inside the FROM clause.
+        ("SELECT secret FROM vault", False),
+        ("SELECT 1 WHERE 1 = 1", False),
+        ("SELECT 1 GROUP BY 1", False),
+        ("SELECT 1 ORDER BY 1", False),
+        ("SELECT 1 LIMIT 1", False),
+        ("SELECT a, b", False),
+        ("SELECT 1 UNION ALL SELECT 2", False),
+        ("INSERT INTO t VALUES (1)", False),
+        # A sub-query sits inside the projection, so it is bare by this
+        # measure. Callers that care need `has_subquery` as well.
+        ("SELECT (SELECT secret FROM vault)", True),
+    ],
+)
+def test_is_bare_select_expression(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `is_bare_select_expression` method.
+
+    Parametrized by engine because the predicate is stated as an allow-list
+    over the parsed node's arguments: a dialect that parses one of these into a
+    differently named argument has to keep failing closed.
+    """
+    assert SQLStatement(sql, engine).is_bare_select_expression() is expected
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [

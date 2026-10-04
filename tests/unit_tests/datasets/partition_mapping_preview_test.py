@@ -571,6 +571,36 @@ def test_preview_rejects_a_subquery_without_touching_the_engine(
     assert "emitted_predicate" not in response.json["result"]
 
 
+def test_preview_rejects_a_smuggled_from_clause_without_touching_the_engine(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The sibling above covers the sub-query. This covers the shape that got
+    past it: a top-level FROM is not a sub-query, so `ALLOW_ADHOC_SUBQUERY`
+    never applied, and the single-select-expression check counts only the
+    projection -- so `password || :value FROM ab_user` read as one expression
+    and the probe ran `SELECT password || '...' AS v0 FROM ab_user`, with the
+    alias landing on the table the transform smuggled in.
+
+    The verdict comes from the shape gate, so it arrives as a validation
+    reason and the probe is never reached.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "password || :value FROM ab_user",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "emitted_predicate" not in response.json["result"]
+
+
 def test_preview_renders_a_probed_value_read_from_a_dataframe(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:

@@ -1204,6 +1204,32 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return 0
         return len(self._parsed.expressions)
 
+    def is_bare_select_expression(self) -> bool:
+        """
+        Whether this is ``SELECT <one expression>`` and nothing else.
+
+        `count_select_expressions` counts only the projection, so
+        ``SELECT secret FROM vault`` holds one expression and satisfies it. A
+        caller that splices a user-supplied fragment into a larger statement as
+        *text* needs the stronger claim: no FROM, no WHERE, no GROUP BY, no
+        clause of any kind -- otherwise whatever the caller appends after the
+        fragment lands inside the fragment's own syntax instead of its own.
+
+        Stated as "no populated argument other than the projection" rather than
+        as a denylist of clause names, so a sqlglot release or a dialect that
+        introduces a clause this does not know about fails closed.
+
+        This says nothing about sub-queries, which live *inside* the projection:
+        callers that care need `has_subquery` as well.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return False
+        if len(self._parsed.expressions) != 1:
+            return False
+        return not any(
+            value for key, value in self._parsed.args.items() if key != "expressions"
+        )
+
     def get_niladic_functions(self) -> set[str]:
         """
         Names of functions called with no arguments.
