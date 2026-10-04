@@ -1980,6 +1980,18 @@ class SqlaTable(
         return self.db_engine_spec.partition_value_transform_default
 
     @property
+    def partition_filter_mapping(self) -> dict[str, Any] | None:
+        """
+        `partition_filter_mapping_summary` under the name its payload uses.
+
+        FAB resolves a `show_columns` entry as an attribute name, and the key
+        Explore's indicator reads is `partition_filter_mapping` -- the dataset
+        editor spreads this endpoint's result straight onto the chart's
+        datasource, so the two names have to be the same one.
+        """
+        return self.partition_filter_mapping_summary
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
