@@ -242,10 +242,11 @@ class TestExecuteSql:
             assert data["success"] is True
             assert data["error"] is None
 
-            # Verify template_params were passed to QueryOptions
+            # The tool renders once and executes that SQL. Passing the
+            # params through would make the executor render a second time.
             call_args = mock_database.execute.call_args
             options = call_args[0][1]
-            assert options.template_params == {"table": "orders", "status": "active"}
+            assert options.template_params is None
 
             # Verify statements contain both original and executed SQL
             assert data["statements"] is not None
@@ -444,14 +445,11 @@ class TestExecuteSql:
     async def test_execute_sql_authorizes_the_sql_that_executes(
         self, mock_db, mock_security_manager, mcp_server, template_params
     ):
-        """The access check and the executor must be handed the same
-        template_params, otherwise the authorized SQL is not the SQL that runs
-        and Jinja expanding on only one side escapes the table-access check.
+        """The executor must run the SQL the second access check authorized.
 
-        ``None`` is normalized to ``{}`` rather than passed through: the check
-        renders unconditionally, so leaving the executor unrendered would let a
-        template that hides a table from the renderer be authorized in its
-        rendered form and executed in its raw form.
+        ``None`` template params are still rendered before that check. The
+        executor receives the rendered text with ``template_params=None`` so
+        it does not render again.
         """
         mock_database = _mock_database()
         mock_database.execute.return_value = _create_select_result(
@@ -474,12 +472,60 @@ class TestExecuteSql:
             result = await client.call_tool("execute_sql", {"request": request})
             assert result.structured_content["success"] is True
 
-        authorized = mock_security_manager.raise_for_access.call_args.kwargs[
-            "template_params"
+        rendered_check = mock_security_manager.raise_for_access.call_args.kwargs
+        executed_sql = mock_database.execute.call_args[0][0]
+        executed_params = mock_database.execute.call_args[0][1].template_params
+        assert rendered_check["sql"] == executed_sql
+        assert rendered_check["template_params"] is None
+        assert executed_params is None
+
+    @patch("superset.jinja_context.get_template_processor")
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_denies_a_render_the_first_check_missed(
+        self,
+        mock_db,
+        mock_security_manager,
+        mock_get_template_processor,
+        mcp_server,
+    ):
+        """A second render that names a new table is denied and not executed."""
+        mock_database = _mock_database()
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_get_template_processor.return_value.process_template.return_value = (
+            "SELECT * FROM secret_table"
+        )
+        mock_security_manager.raise_for_access.side_effect = [
+            None,
+            SupersetSecurityException(
+                SupersetError(
+                    message="Access denied",
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ),
         ]
-        executed = mock_database.execute.call_args[0][1].template_params
-        assert authorized == executed
-        assert executed == (template_params or {})
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM {{ table_name }}",
+            "template_params": {"table_name": "secret_table"},
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+        assert data["success"] is False
+        assert data["error"] == "Access denied"
+        rendered_check = mock_security_manager.raise_for_access.call_args.kwargs
+        assert rendered_check["sql"] == "SELECT * FROM secret_table"
+        assert rendered_check["template_params"] is None
+        mock_get_template_processor.return_value.process_template.assert_called_once()
+        mock_database.execute.assert_not_called()
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
@@ -1511,13 +1557,12 @@ class TestDestructiveDDLBlocking:
     async def test_empty_template_params_rendered_before_ddl_check(
         self, ddl_mocks, mcp_server
     ):
-        """template_params={} must not skip Jinja rendering in the DDL guard.
+        """template_params={} must not skip Jinja rendering before the DDL guard.
 
-        The executor renders templates whenever template_params is not None
-        (including {}), so the guard must parse the same rendered SQL. With a
-        truthiness check, SQL whose destructive statement is hidden inside a
-        Jinja expression in a comment passes the guard unrendered and then
-        renders and executes.
+        The tool renders even an empty param dict, then the guard parses that
+        rendered SQL. With a truthiness check, SQL whose destructive statement
+        is hidden inside a Jinja expression in a comment passes the guard
+        unrendered.
         """
         ddl_mocks.execute.return_value = _create_select_result(
             rows=[{"x": 1}], columns=["x"], original_sql="SELECT 1"
@@ -1555,10 +1600,9 @@ class TestDestructiveDDLBlocking:
 
     @pytest.mark.asyncio
     async def test_no_template_params_still_renders(self, ddl_mocks, mcp_server):
-        """Omitting template_params must not skip rendering. The access check
-        renders unconditionally, so the guard and the executor have to render
-        as well, otherwise they inspect and run a different string than the one
-        that was authorized.
+        """Omitting template_params must not skip rendering. The rendered
+        string is what the second access check, the DDL guard, and execution
+        all use. Execution must not render it again.
         """
         sql = "SELECT * FROM logs WHERE msg = 'x'"
         ddl_mocks.execute.return_value = _create_select_result(
@@ -1576,8 +1620,8 @@ class TestDestructiveDDLBlocking:
         data = result.structured_content
         assert data["success"] is True
         mock_get_tp.return_value.process_template.assert_called_once_with(sql)
-        # the executor renders the same way, so it is handed {} rather than None
-        assert ddl_mocks.execute.call_args[0][1].template_params == {}
+        assert ddl_mocks.execute.call_args[0][0] == sql
+        assert ddl_mocks.execute.call_args[0][1].template_params is None
 
     @pytest.mark.asyncio
     async def test_select_allowed(self, ddl_mocks, mcp_server):
