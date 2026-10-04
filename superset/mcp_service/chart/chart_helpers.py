@@ -686,6 +686,28 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
+def _resolve_x_axis_sort_target(sort_col: str, metrics: list[Any]) -> Any:
+    """Resolve x_axis_sort string against metrics to preserve metric dict/label."""
+    sort_lower = sort_col.lower()
+    for m in metrics:
+        if isinstance(m, str) and m.lower() == sort_lower:
+            return m
+        if isinstance(m, dict):
+            col_info = m.get("column")
+            col_name = (
+                col_info.get("column_name") if isinstance(col_info, dict) else None
+            )
+            label = m.get("label")
+            sql_expr = m.get("sqlExpression")
+            if (
+                (label and label.lower() == sort_lower)
+                or (col_name and col_name.lower() == sort_lower)
+                or (sql_expr and sql_expr.lower() == sort_lower)
+            ):
+                return m
+    return sort_col
+
+
 # Viz types whose buildQuery reads a single "Sort query by" metric from
 # form_data['orderby'] (the dndSortByControl) rather than a sort flag.
 _SORT_METRIC_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
@@ -732,6 +754,7 @@ def build_single_query_dict(
     metrics: list[Any],
     row_limit: int | None = None,
     order_desc: bool | None = None,
+    is_timeseries: bool = False,
 ) -> dict[str, Any]:
     """Build one query entry for QueryContextFactory from form_data fields."""
     qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
@@ -749,6 +772,7 @@ def build_single_query_dict(
     # metric descending. buildQuery derives this on the frontend; translate
     # the flag here when there is no explicit ordering or a row_limit truncates
     # an unordered result (dropping the heaviest rows rather than the top-N).
+    is_temporal = is_timeseries or bool(form_data.get("granularity_sqla"))
     if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):
         qd["orderby"] = [(metrics[0], False)]
     elif sort_metric := resolve_sort_metric(form_data):
@@ -760,6 +784,22 @@ def build_single_query_dict(
             order_desc if order_desc is not None else form_data.get("order_desc", True)
         )
         qd["orderby"] = [(sort_metric, not descending)]
+    elif (
+        not is_temporal
+        and form_data.get("x_axis_sort")
+        and not form_data.get("groupby")
+        and not qd.get("orderby")
+    ):
+        sort_col = form_data["x_axis_sort"]
+        sort_asc = bool(form_data.get("x_axis_sort_asc", False))
+        sort_target = _resolve_x_axis_sort_target(sort_col, metrics)
+        col_labels = [
+            c if isinstance(c, str) else (c.get("label") or c.get("column_name"))
+            for c in columns
+            if isinstance(c, (str, dict))
+        ]
+        if sort_target in metrics or sort_target in col_labels:
+            qd["orderby"] = [(sort_target, sort_asc)]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
@@ -788,6 +828,7 @@ def build_mixed_timeseries_secondary(
         metrics_b,
         row_limit=row_limit,
         order_desc=order_desc,
+        is_timeseries=True,
     )
     if time_range_b := form_data.get("time_range_b"):
         qd["time_range"] = time_range_b

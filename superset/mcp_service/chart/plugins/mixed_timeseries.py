@@ -197,6 +197,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
                 metrics,
                 row_limit=row_limit,
                 order_desc=order_desc,
+                is_timeseries=True,
             ),
             build_mixed_timeseries_secondary(
                 form_data,
