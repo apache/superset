@@ -1179,17 +1179,35 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": _("No partition column is set."),
         }
 
-    column_names = {str(column.column_name) for column in datasource.columns}
-    if mapped_column not in column_names:
+    columns_by_name = {
+        str(column.column_name): column for column in datasource.columns
+    }
+    if mapped_column not in columns_by_name:
         return {
             "valid": False,
             "reason": "validation",
             "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
         }
 
+    # The bail-out `resolve_partition_mapping` makes at query time, and that
+    # `partition_filter_mapping_summary` repeats for the Explore indicator.
+    # Without it here, preview reports a valid emitted predicate for a mapping
+    # no chart will ever mirror -- the one answer a preview panel must not give.
+    if has_active_advanced_data_type(columns_by_name[mapped_column]):
+        return {
+            "valid": False,
+            "reason": "validation",
+            "error": _(
+                "%(name)s has an advanced data type, so its filters are "
+                "translated into their own predicate shape and cannot be "
+                "mirrored onto the partition column.",
+                name=mapped_column,
+            ),
+        }
+
     engine = datasource.database.backend
     for issue in validate_partition_mapping(
-        column_names=column_names,
+        column_names=set(columns_by_name),
         partition_column=str(partition_column),
         partition_mapped_column=mapped_column,
         main_dttm_col=datasource.main_dttm_col,

@@ -26,7 +26,7 @@ expression from costing a query at all.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
@@ -598,6 +598,46 @@ def test_preview_rejects_a_smuggled_from_clause_without_touching_the_engine(
     assert response.status_code == 200
     assert response.json["result"]["valid"] is False
     assert response.json["result"]["reason"] == "validation"
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
+    client: Any, full_api_access: None, dataset: Any, app: Flask
+) -> None:
+    """
+    `resolve_partition_mapping` refuses to mirror such a column -- its filters
+    go through `translate_filter`, which builds its own predicate shape from
+    translated values, so the `(operator, value)` pair the operator matrix
+    reasons about does not exist. The Explore indicator repeats the bail-out.
+    Preview did not, so it reported a valid emitted predicate for a mapping no
+    chart would ever mirror: the one answer a preview panel must not give.
+    """
+    column = next(
+        col for col in dataset.columns if col.column_name == "event_time"
+    )
+    column.advanced_data_type = "port"
+    db.session.flush()
+
+    app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"] = True
+    app.config["ADVANCED_DATA_TYPES"] = {"port": MagicMock()}
+    try:
+        with patch(PROBE, side_effect=AssertionError("probe must not run")):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "event_time",
+                    "value_transform": "unix_timestamp(:value)",
+                    "sample_values": ["2026-01-15 00:00:00"],
+                },
+            )
+    finally:
+        del app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"]
+        app.config["ADVANCED_DATA_TYPES"] = {}
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "advanced data type" in response.json["result"]["error"]
     assert "emitted_predicate" not in response.json["result"]
 
 
