@@ -39,6 +39,8 @@ from superset.connectors.sqla.partition_mapping import (
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
+    is_bare_expression,
+    is_parseable,
     is_transform_active,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
@@ -46,6 +48,7 @@ from superset.connectors.sqla.partition_mapping import (
     mirrorable_operators,
     parse_error_detail,
     resolve_partition_mapping,
+    stored_expression_error,
     validate_partition_mapping,
     validate_transform,
 )
@@ -766,8 +769,16 @@ def test_evaluate_transform_returns_none_for_no_values(app: Flask) -> None:
         "(SELECT password FROM ab_user LIMIT 1) || :value",
         "lower(:value) UNION ALL SELECT password FROM ab_user",
         "lower(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
+        "lower(:value) FROM ab_user WHERE 1 = 1",
     ],
-    ids=["subquery", "set-operation", "multi-statement"],
+    ids=[
+        "subquery",
+        "set-operation",
+        "multi-statement",
+        "bare-from",
+        "from-and-where",
+    ],
 )
 def test_a_transform_that_is_not_a_storable_expression_never_runs(
     app: Flask, transform: str
@@ -788,6 +799,130 @@ def test_a_transform_that_is_not_a_storable_expression_never_runs(
         assert evaluate_transform(database, None, None, transform, ["us"]) is None
 
     _probe(database).assert_not_called()
+
+
+def test_a_transform_smuggling_its_own_from_clause_is_refused(app: Flask) -> None:
+    """
+    The hole this gate was added for.
+
+    `is_parseable` counts only the projection, so `password || :value FROM
+    ab_user` reads as a single select expression and passed every write-side
+    gate -- including with `ALLOW_ADHOC_SUBQUERY` off, since a top-level FROM
+    is not a sub-query. `build_probe_sql` then emitted `SELECT password || 'us'
+    AS v0 FROM ab_user`, where its own alias is read as a table alias on the
+    FROM clause the transform brought with it: valid SQL, one row, and the
+    secret handed back through the predicate the preview panel renders.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = "password || :value FROM ab_user"
+
+    assert is_parseable(transform, "sqlite") is True
+    assert is_bare_expression(transform, "sqlite") is False
+
+    with app.app_context():
+        reason = stored_expression_error(database, None, None, transform)
+    assert reason is not None
+
+    blocking = _blocking(validate_transform(transform, "sqlite"))
+    assert len(blocking) == 1
+    assert "single SQL expression" in str(blocking[0].message)
+    assert is_transform_active(transform, "sqlite") is False
+
+
+def test_a_subquery_transform_is_refused_even_with_adhoc_subquery_enabled(
+    app: Flask,
+) -> None:
+    """
+    `validate_adhoc_subquery` admits a sub-query under `ALLOW_ADHOC_SUBQUERY`
+    and returns RLS-rewritten SQL -- which this path has no way to propagate,
+    because `build_probe_sql` splices the original transform text. So the probe
+    ran a sub-query with no row-level-security predicates at all and reported
+    the hidden row in `emitted_predicate`. A transform is a scalar function of
+    `:value`, so refusing the sub-query outright is both correct and what makes
+    the missing RLS rewrite moot.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = "(SELECT secret FROM vault LIMIT 1) || :value"
+
+    with app.app_context():
+        app.config["DEFAULT_FEATURE_FLAGS"]["ALLOW_ADHOC_SUBQUERY"] = True
+        try:
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            del app.config["DEFAULT_FEATURE_FLAGS"]["ALLOW_ADHOC_SUBQUERY"]
+
+    assert reason is not None
+    assert "sub-query" in reason
+
+
+def test_a_transform_calling_a_disallowed_function_is_refused(app: Flask) -> None:
+    """
+    The probe executes the transform, so the operator's function denylist has
+    to apply to it for the same reason it applies in SQL Lab.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = "version() || :value"
+
+    with app.app_context():
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
+        reason = stored_expression_error(database, None, None, transform)
+        assert reason is not None
+        assert "version" in reason
+
+        # Named, rather than echoing the operator's whole denylist back.
+        assert "current_user" not in reason
+
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
+        assert stored_expression_error(database, None, None, transform) is None
+
+
+def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> None:
+    """
+    Every other denylist gate in the codebase keys on the engine spec's own
+    name, which is also the name the config documentation tells an operator to
+    write, so this one does too -- a spec covering several SQLAlchemy backends
+    through `engine_aliases` reports the one canonical name under which its
+    entry exists.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    with app.app_context():
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {
+            database.db_engine_spec.engine: {"version"}
+        }
+        assert (
+            stored_expression_error(database, None, None, "version() || :value")
+            is not None
+        )
+
+
+def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
+    app: Flask,
+) -> None:
+    """
+    Resolving the engine spec loads the SQLAlchemy dialect entrypoint, which
+    imports the driver package. A deployment missing an optional driver that
+    raises on import rather than being absent must not have its dataset
+    imports turned into hard failures by this gate, so the key falls back to
+    the URL's backend -- the same string for every engine without aliases.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    with (
+        app.app_context(),
+        patch.object(
+            type(database),
+            "db_engine_spec",
+            new_callable=lambda: property(
+                lambda self: (_ for _ in ()).throw(ModuleNotFoundError("no driver"))
+            ),
+        ),
+    ):
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
+        assert (
+            stored_expression_error(database, None, None, "version() || :value")
+            is not None
+        )
 
 
 # ---------------------------------------------------------------------------

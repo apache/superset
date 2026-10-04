@@ -378,6 +378,33 @@ def is_parseable(transform: str | None, engine: str) -> bool:
     return statement is not None and statement.count_select_expressions() == 1
 
 
+def is_bare_expression(transform: str | None, engine: str) -> bool:
+    """
+    Whether the transform is a scalar expression and nothing more.
+
+    `is_parseable` is not enough, because it counts only the projection.
+    ``secret || :value FROM vault`` holds exactly one select expression, so it
+    parses as "a single expression" -- and `build_probe_sql` then emits
+    ``SELECT secret || 'us' AS v0``, where its own alias is read as a table
+    alias on the FROM clause the transform smuggled in. The probe reads a
+    column the owner was never granted and hands it back through the predicate
+    the preview panel renders.
+
+    A transform is a scalar function of ``:value`` by definition -- the whole
+    feature rests on ``partition_col = T(mapped_col)``, which only type-checks
+    for scalar ``T`` -- so there is no legitimate transform with a clause of
+    its own, and none with a sub-query either.
+    """
+    if not transform or not transform.strip():
+        return False
+    statement = _parse_skeleton(transform, engine)
+    return (
+        statement is not None
+        and statement.is_bare_select_expression()
+        and not statement.has_subquery()
+    )
+
+
 def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
     """
     Names of non-deterministic functions the transform calls.
@@ -487,6 +514,29 @@ def has_active_advanced_data_type(column: TableColumn) -> bool:
     return advanced_data_type in app.config.get("ADVANCED_DATA_TYPES", {})
 
 
+def _denylist_engine_key(database: "Database") -> str:
+    """
+    The name ``DISALLOWED_SQL_*`` is keyed by for this database.
+
+    The engine spec's own ``engine`` first, because that is what every other
+    denylist gate uses (`_raise_for_disallowed_sql`, `sql_lab`) and what an
+    operator writing the config reads in the documentation; a spec covering
+    several SQLAlchemy backends through ``engine_aliases`` reports the one
+    canonical name under which its entry is written.
+
+    Falling back to the URL's backend, because resolving the spec loads the
+    SQLAlchemy dialect entrypoint, which imports the driver package. On a
+    deployment missing an optional driver that raises rather than merely being
+    absent, asking for the spec here would turn a dataset import into a hard
+    failure -- and for every engine without aliases the two names are the same
+    string anyway.
+    """
+    try:
+        return database.db_engine_spec.engine
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return database.backend
+
+
 def stored_expression_error(
     database: "Database",
     catalog: str | None,
@@ -496,13 +546,20 @@ def stored_expression_error(
     """
     Why this transform may not be stored or run, if there is a reason.
 
-    The same subquery, function-denylist and RLS policy every other stored
-    expression goes through, applied to a value transform. It matters more
-    here than the name suggests: `build_probe_sql` binds only `:value` and
-    splices the rest of the transform in as SQL text, which the engine then
-    executes, so an ungated transform is arbitrary SQL. A dataset editor
-    without SQL Lab could store `(SELECT secret FROM protected_table LIMIT 1)
-    || :value` and read the answer back out of the emitted predicate.
+    Stricter than the policy a general stored expression goes through, because
+    a value transform is a narrower thing: `build_probe_sql` binds only
+    `:value` and splices the rest of the transform in as SQL text, which the
+    engine then executes, so an ungated transform is arbitrary SQL. A dataset
+    editor without SQL Lab could store `(SELECT secret FROM protected_table
+    LIMIT 1) || :value`, or `secret || :value FROM protected_table`, and read
+    the answer back out of the emitted predicate the preview panel renders.
+
+    So the transform must be a bare scalar expression: no clause of its own and
+    no sub-query, whatever `ALLOW_ADHOC_SUBQUERY` says. That is not a
+    restriction the feature pays for -- it rests on
+    ``partition_col = T(mapped_col)``, which only type-checks for scalar ``T``
+    -- and it is what makes the table denylist and the RLS rewrite moot here,
+    since neither has a table reference left to govern.
 
     Returns the engine-agnostic reason as a string rather than raising,
     because its four callers disagree about what to do with it: the preview
@@ -519,6 +576,50 @@ def stored_expression_error(
         validate_stored_expression,
     )
 
+    statement = _parse_skeleton(transform, database.backend)
+    if statement is None:
+        return str(
+            _("A partition value transform must parse as a single SQL expression.")
+        )
+
+    # The shape gate again, even though `validate_transform` blocks the same
+    # thing at save time. This is the last door before the transform becomes SQL
+    # an engine runs, and the only door a row written by an earlier release --
+    # or by an importer that ran with the feature flag off -- still passes
+    # through.
+    if not statement.is_bare_select_expression():
+        return str(
+            _(
+                "A partition value transform must be a single SQL expression, "
+                "with no FROM, WHERE or other clause."
+            )
+        )
+
+    # Unconditionally, not under `ALLOW_ADHOC_SUBQUERY`. A transform is a scalar
+    # function of `:value`, so a sub-query in one has no legitimate use, and it
+    # is a read primitive whose answer the preview panel renders back to its
+    # caller. Refusing it is also what lets this function skip the table
+    # denylist and the row-level-security rewrite: with no FROM clause and no
+    # sub-query there is no table reference for either to govern.
+    if statement.has_subquery():
+        return str(_("A partition value transform cannot contain a sub-query."))
+
+    denied = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+        _denylist_engine_key(database), set()
+    )
+    if denied and (found := statement.get_disallowed_functions(denied)):
+        return str(
+            _(
+                "A partition value transform cannot call %(functions)s.",
+                functions=", ".join(sorted(found)),
+            )
+        )
+
+    # Kept as the tail call rather than replaced: this is where `sanitize_clause`
+    # runs. Its own sub-query branch returns rewritten, RLS-injected SQL that
+    # this function has no way to propagate -- but that branch is unreachable
+    # from here now, because a transform containing a sub-query was refused
+    # above, so discarding the return value is correct rather than a leak.
     try:
         validate_stored_expression(database, catalog, schema, parse_skeleton(transform))
     except SupersetSecurityException as ex:
@@ -550,6 +651,10 @@ def build_probe_sql(
     Note this deliberately does *not* go through ``BaseEngineSpec``'s text
     helper, which escapes ``:`` on every engine but Athena and would destroy the
     ``:value`` placeholder before it can be bound.
+
+    Callers must have run `stored_expression_error` first. The ``AS v{index}``
+    alias and ``from_suffix`` are only safe on a transform with no clause of its
+    own; on one carrying its own FROM they attach to that instead.
     """
     selections = []
     for index, value in enumerate(values):
@@ -962,6 +1067,24 @@ def validate_transform(
                     )
                 ),
                 blocking=False,
+            )
+        ]
+
+    if not is_bare_expression(transform, engine):
+        # Blocking, and deliberately placed in `validate_transform` rather than
+        # only at the probe: one issue here closes the PUT, the importer, the
+        # query-time gate through `is_transform_active`, the Explore indicator's
+        # active verdict and the preview endpoint, all of which already consult
+        # this function.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    "A value transform must be a single SQL expression. It "
+                    "cannot carry a FROM, WHERE, GROUP BY or any other clause, "
+                    "and it cannot contain a sub-query."
+                ),
+                blocking=True,
             )
         ]
 
