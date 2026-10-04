@@ -72,6 +72,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['row_limit'],
         ['mcp_geographic'],
+        ['_mcp_dashboard_time_filter_subject'],
       ],
     },
     {

@@ -449,3 +449,23 @@ test.each([
     expect(features[0].radius).toBe(10);
   },
 );
+
+test.each(['position', 'weight', 'extraProps'])(
+  'typed scatter skips radius alias %s rather than corrupting native spatial fields',
+  label => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: label },
+      },
+      queriesData: [
+        {
+          data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [label]: 10 }],
+        },
+      ],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toEqual([]);
+  },
+);

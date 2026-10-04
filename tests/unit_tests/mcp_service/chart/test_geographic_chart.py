@@ -36,7 +36,10 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
 )
 from superset.mcp_service.chart.compile import _compile_chart
-from superset.mcp_service.chart.plugins.geographic import DeckScatterChartPlugin
+from superset.mcp_service.chart.plugins.geographic import (
+    CountryMapChartPlugin,
+    DeckScatterChartPlugin,
+)
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
@@ -770,6 +773,8 @@ async def _exercise_geographic_data_export(
     decimal_coordinates: bool = False,
     spatial: dict[str, Any] | None = None,
     spatial_value: str | None = None,
+    form_overrides: dict[str, Any] | None = None,
+    row_overrides: dict[str, Any] | None = None,
 ) -> None:
     """Exercise saved and cached data/export with pre-JSON database scalars."""
     import importlib
@@ -786,6 +791,8 @@ async def _exercise_geographic_data_export(
         form["spatial"] = spatial
         column = spatial.get("geohashCol") or spatial["lonlatCol"]
         rows[0] = {column: spatial_value}
+    form.update(form_overrides or {})
+    rows[0].update(row_overrides or {})
     source["queries"][0].update(colnames=list(rows[0]), rowcount=len(rows))
     query = {"columns": list(rows[0]), "metrics": [], "row_limit": 10000}
     context = SimpleNamespace(
@@ -1561,3 +1568,77 @@ def test_native_skipped_points_consistently_fail_mcp_result_validation(
     assert isinstance(normalized, ChartError)
     assert normalized.error_type == "InvalidGeographicResult"
     assert result["queries"][0]["data"] == [row]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache"])
+async def test_saved_country_map_legacy_iso_format_exports(
+    export_format: str, data_path: str
+) -> None:
+    """Explore's legacy ISO option preserves saved MCP data and export access."""
+    await _exercise_geographic_data_export(
+        "country_map",
+        data_path,
+        True,
+        export_format,
+        form_overrides={"region_format": None},
+        row_overrides={"state": "US-CA"},
+    )
+
+
+@pytest.mark.parametrize("label", ["position", "weight", "extraProps"])
+def test_scatter_metric_alias_cannot_replace_native_spatial_fields(label: str) -> None:
+    """Accepted radius aliases cannot overwrite native spatial feature fields."""
+    with pytest.raises(ValidationError, match="conflicts with a native spatial field"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["deck_scatter"][0],
+                "radius_metric": {"name": "sales", "aggregate": "SUM", "label": label},
+            }
+        )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("temporal_column", [None, "replacement_time"])
+def test_explore_saved_binding_can_be_cleared_or_replaced(
+    kind: str, temporal_column: str | None
+) -> None:
+    """A retained Explore hidden control identifies only the generated predicate."""
+    initial = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": "event_time"}
+    )
+    old = map_config_to_form_data(initial)
+    user_filter = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last week",
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+    }
+    old["adhoc_filters"].append(user_filter)
+    saved = json.loads(json.dumps(old))
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": temporal_column}
+    )
+    merged = merge_chart_form_data(saved, map_config_to_form_data(config), config)
+    assert user_filter in merged["adhoc_filters"]
+    generated = [
+        f
+        for f in merged["adhoc_filters"]
+        if f.get("operator") == "TEMPORAL_RANGE" and f.get("comparator") == "No filter"
+    ]
+    assert [f["subject"] for f in generated] == (
+        [] if temporal_column is None else [temporal_column]
+    )
+
+
+@pytest.mark.parametrize("value", ["CA", "BC", "CA-BC", "not-a-region"])
+def test_legacy_country_format_still_rejects_unmatched_boundaries(value: str) -> None:
+    """Legacy format means full selected-country ISO codes, not guessed aliases."""
+    plugin = CountryMapChartPlugin()
+    with pytest.raises(ValueError, match="unrecognized"):
+        plugin.row_identifier(
+            {"state": value},
+            {**form_for("country_map"), "region_format": None},
+        )

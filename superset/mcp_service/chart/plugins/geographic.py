@@ -430,10 +430,11 @@ class CountryMapChartPlugin(GeographicChartPlugin):
         entity = form_data.get("entity")
         if not isinstance(entity, str):
             raise ValueError("Geographic maps require an entity column")
+        # Explore's legacy format uses full boundary ISO codes without normalization.
         return resolve_region(
             row.get(entity),
             form_data.get("select_country", ""),
-            form_data.get("region_format", ""),
+            form_data.get("region_format") or "iso_3166_2",
         )
 
 

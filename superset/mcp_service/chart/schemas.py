@@ -3825,6 +3825,14 @@ class GeographicChartConfig(BaseChartConfig):
             if ref is None:
                 continue
             label = metric_result_label(create_metric_object(ref))
+            if self.chart_type == "deck_scatter" and label in {
+                "position",
+                "weight",
+                "extraProps",
+            }:
+                raise ValueError(
+                    f"Metric alias {label!r} conflicts with a native spatial field"
+                )
             if label in dimensions:
                 raise ValueError(
                     f"Metric alias {label!r} conflicts with a geographic column"

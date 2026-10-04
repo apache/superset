@@ -61,7 +61,14 @@ export function filterDrawableGeographicPoints(
     [spatial?.latCol, 90],
     [spatial?.lonCol, 180],
   ] as const;
+  const reservedMetricLabel =
+    radiusMetricLabel !== undefined &&
+    ['position', 'weight', 'extraProps'].includes(radiusMetricLabel);
   const drawable = records.filter(record => {
+    // Explore can change a metric label after MCP schema validation.
+    if (reservedMetricLabel) {
+      return false;
+    }
     const validCoordinates =
       spatial?.type !== 'latlong' ||
       coordinateColumns.every(([column, bound]) => {

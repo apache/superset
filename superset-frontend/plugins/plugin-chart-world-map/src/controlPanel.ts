@@ -56,6 +56,7 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         ['sort_by_metric'],
         ['mcp_geographic'],
+        ['_mcp_dashboard_time_filter_subject'],
       ],
     },
     {

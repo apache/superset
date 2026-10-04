@@ -1564,7 +1564,9 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   **strings**, such as `13`. Names are exact-first, then case/diacritic-insensitive
   only when the result is unique. No fuzzy matching or geocoding is performed.
   A name that folds onto more than one boundary is rejected as ambiguous and
-  needs an abbreviation or ISO code instead.
+  needs an abbreviation or ISO code instead. After an Explore switch to
+  **Legacy ISO values**, saved MCP reads and exports validate full ISO 3166-2
+  codes (e.g. `US-CA`); this option does not accept abbreviation-only values.
 - **World map:** set `country_format` to `name`, `cca2`, `cca3`, or `cioc`,
   plus `entity` and `metric`. Choropleth color uses `metric`. For bubbles set
   `show_bubbles: true` and supply `secondary_metric` for size (it may be the
@@ -1578,7 +1580,12 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   size at each location. Otherwise `radius` is fixed in `point_unit`: `radius_m` (default), `radius_km`,
   `radius_miles`, `square_m`, `square_km`, or `square_miles`. Native minimum
   and maximum on-screen radii are 2 and 250 pixels. Spatial null filters
-  exclude rows without coordinates.
+  exclude rows without coordinates. Radius metric aliases cannot be `position`,
+  `weight`, or `extraProps`, which are reserved native spatial feature fields.
+
+Explore saves preserve generated dashboard-time binding provenance. Explicit
+`temporal_column: null` clears that binding, and a replacement column removes
+the old generated predicate without removing user-authored time filters.
 
 Region values that cannot resolve for the selected country/format return an
 `InvalidGeographicResult` error (`INVALID_GEOGRAPHIC_RESULT` during compilation).
