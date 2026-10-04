@@ -3024,6 +3024,8 @@ class BulletChartConfig(BaseChartConfig):
         if not isinstance(raw_filters, list):
             raise ValueError("adhoc_filters must be an array")
         filters: list[dict[str, Any]] = []
+        temporal_pairs: list[tuple[str, str]] = []
+        inert_subjects: set[str] = set()
         for index, raw_filter in enumerate(raw_filters):
             if not isinstance(raw_filter, dict):
                 raise ValueError(f"adhoc_filters[{index}] must be an object")
@@ -3041,9 +3043,14 @@ class BulletChartConfig(BaseChartConfig):
                     raise ValueError(
                         f"adhoc_filters[{index}] temporal filter needs subject"
                     )
-                data.setdefault("temporal_column", subject)
-                if isinstance(comparator, str) and comparator.casefold() != "no filter":
-                    data.setdefault("time_range", comparator)
+                if not isinstance(comparator, str) or not comparator:
+                    raise ValueError(
+                        f"adhoc_filters[{index}] temporal filter needs a range"
+                    )
+                if comparator.casefold() == "no filter":
+                    inert_subjects.add(subject)
+                else:
+                    temporal_pairs.append((subject, comparator))
                 continue
             if not isinstance(operator, str):
                 raise ValueError(f"adhoc_filters[{index}] needs an operator")
@@ -3061,6 +3068,23 @@ class BulletChartConfig(BaseChartConfig):
             }
             operator = operator_map.get(operator, operator)
             filters.append({"column": subject, "op": operator, "value": comparator})
+        if len(temporal_pairs) > 1:
+            raise ValueError(
+                "Multiple active native temporal filters cannot be represented by "
+                "a single temporal_column/time_range pair"
+            )
+        if temporal_pairs:
+            subject, comparator = temporal_pairs[0]
+            if data.get("temporal_column") not in (None, subject) or data.get(
+                "time_range"
+            ) not in (None, "No filter", comparator):
+                raise ValueError(
+                    "Native temporal filter conflicts with temporal_column/time_range"
+                )
+            data["temporal_column"] = subject
+            data["time_range"] = comparator
+        elif len(inert_subjects) == 1:
+            data.setdefault("temporal_column", next(iter(inert_subjects)))
         data["filters"] = filters
 
     @model_validator(mode="before")

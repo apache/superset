@@ -1527,3 +1527,62 @@ def test_table_rebind_validates_guarded_legacy_metric(
     }
     result = validate_and_compile(None, form_data, dataset, run_compile_check=False)
     assert result.success is valid, result.error
+
+
+@pytest.mark.parametrize(
+    "sort_metric",
+    [
+        "sum_girls",
+        "SUM_GIRLS",
+        {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num"},
+            "aggregate": "SUM",
+            "label": "Other measure",
+        },
+    ],
+)
+@patch("superset.mcp_service.chart.compile._compile_chart")
+def test_table_rebind_accepts_independent_ordering_metrics(
+    mock_compile: Mock, sort_metric: Any
+) -> None:
+    """Sorting by a metric does not require displaying it in the table."""
+    mock_compile.return_value = CompileResult(success=True)
+    form_data = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["gender"],
+        "metrics": ["sum_boys"],
+        "timeseries_limit_metric": sort_metric,
+    }
+    result = validate_and_compile(
+        None, form_data, _orm_dataset(), run_compile_check=True
+    )
+    assert result.success
+    mock_compile.assert_called_once_with(form_data, 3)
+
+
+@patch("superset.mcp_service.chart.compile._compile_chart")
+def test_table_rebind_rejects_stale_adhoc_ordering_metric_column(
+    mock_compile: Mock,
+) -> None:
+    """An independent sorter must still resolve in the replacement dataset."""
+    result = validate_and_compile(
+        None,
+        {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["gender"],
+            "metrics": ["sum_boys"],
+            "timeseries_limit_metric": {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "missing_profit"},
+                "aggregate": "SUM",
+                "label": "Other measure",
+            },
+        },
+        _orm_dataset(),
+        run_compile_check=True,
+    )
+    assert not result.success
+    mock_compile.assert_not_called()

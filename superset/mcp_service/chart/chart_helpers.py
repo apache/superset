@@ -1379,7 +1379,8 @@ def _timeseries_post_processing(  # noqa: C901
                 }
             )
     elif (
-        x_label
+        comparison_type not in {"difference", "percentage", "ratio"}
+        and x_label
         and len(metrics) == 1
         and (series_labels or len(offsets) > 1)
         and form_data.get("truncate_metric") is not None

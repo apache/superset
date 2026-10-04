@@ -2720,3 +2720,101 @@ def test_query_result_bounds_tuple_metadata() -> None:
         assert data is None
         assert failure is not None
         assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize("column", ["numbers", "nested"])
+def test_query_result_normalizes_arrow_list_dataframe_cells(column: str) -> None:
+    """Arrow lists materialize as exact ndarray cells before MCP validation."""
+    import pyarrow as pa
+
+    from superset.dataframe import df_to_records
+
+    expected = {"numbers": [1, 2], "nested": [[1, 2], [3]]}[column]
+    frame = pa.table({column: [expected]}).to_pandas()
+    records = df_to_records(frame)
+    assert type(records[0][column]) is np.ndarray
+    data, failure = query_result_data({"queries": [{"data": records}]})
+    assert failure is None
+    assert data == [[{column: expected}]]
+    assert json.loads(json.dumps(data)) == data
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]),
+        (np.array(7), 7),
+        (np.empty((2, 0)), [[], []]),
+    ],
+)
+def test_query_result_normalizes_bounded_ndarray_shapes(
+    value: np.ndarray, expected: Any
+) -> None:
+    """Trusted arrays retain their JSON list shape and scalar normalization."""
+    data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+    assert failure is None
+    assert data == [[{"value": expected}]]
+
+
+def test_query_result_ndarray_retains_container_guards() -> None:
+    """Exact ndarray support retains width, depth, cycle and subclass guards."""
+
+    class HostileArray(np.ndarray):
+        """Reject conversion hooks on untrusted array subclasses."""
+
+        tolist = _hostile_call
+        __iter__ = _hostile_call
+        __getitem__ = _hostile_call
+
+    cycle = np.empty(1, dtype=object)
+    cycle[0] = cycle
+    scalar_cycle = np.empty((), dtype=object)
+    scalar_cycle[()] = scalar_cycle
+    values = [
+        cycle,
+        scalar_cycle,
+        np.broadcast_to(
+            np.array(0), (query_result_module._MAX_ROW_CONTAINER_ITEMS + 1,)
+        ),
+        np.zeros((1,) * (query_result_module._MAX_ROW_CONTAINER_DEPTH + 1)),
+        np.array([1]).view(HostileArray),
+        np.array([_HostileInt(1)], dtype=object),
+    ]
+    for value in values:
+        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_ndarray_charges_work_and_wire_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Array normalization cannot escape cumulative work or JSON budgets."""
+    result = {"queries": [{"data": [{"value": np.array([1, 2])}]}]}
+    data, failure = query_result_data(result)
+    assert failure is None
+    assert data == [[{"value": [1, 2]}]]
+    with monkeypatch.context() as limits:
+        limits.setattr(query_result_module, "MAX_QUERY_RESULT_VALUES", 3)
+        for width in (2, 4):
+            _, failure = query_result_data(
+                {"queries": [{"data": [{"value": np.arange(width)}]}]}
+            )
+            assert failure is not None
+    expected = {"queries": [{"data": [{"value": ["x" * 50]}]}]}
+    exact_size = len(json.dumps(expected, separators=(",", ":")).encode())
+    with monkeypatch.context() as limits:
+        limits.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size)
+        _, failure = query_result_data(
+            {"queries": [{"data": [{"value": np.array(["x" * 50])}]}]}
+        )
+        assert failure is None
+        limits.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size - 1
+        )
+        _, failure = query_result_data(
+            {"queries": [{"data": [{"value": np.array(["x" * 50])}]}]}
+        )
+        assert failure is not None
+        assert "total JSON-encoded byte limit" in failure.error

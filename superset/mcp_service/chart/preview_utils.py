@@ -726,6 +726,16 @@ def _validate_bullet_format(format_: Any, values: list[float]) -> str:
             "Bullet number format is unsupported by previews",
             error_type="UnsupportedFormat",
         )
+    from superset.utils.number_format import D3_FORMAT_RE
+
+    # Specifier length does not bound its requested output precision. Check the
+    # parsed precision before the formatter can allocate or round any value.
+    match = D3_FORMAT_RE.match(format_)
+    if match and match.group(8) is not None and int(match.group(8)) > 20:
+        raise BulletOutputError(
+            "Bullet number format precision must not exceed 20",
+            error_type="UnsupportedFormat",
+        )
     try:
         for value in values:
             _format_bullet_number(format_, value)

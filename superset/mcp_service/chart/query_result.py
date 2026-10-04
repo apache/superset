@@ -1486,6 +1486,41 @@ def _normalize_row_value(  # noqa: C901
         if depth > _MAX_ROW_CONTAINER_DEPTH:
             return "exceeds the nesting depth limit"
 
+        if type(item) is np.ndarray:
+            # Arrow list cells are exact arrays. Expand one bounded dimension at
+            # a time, never calling tolist() before shape/work checks or trusting
+            # ndarray subclasses. Object-array children use the same scalar and
+            # cycle guards as builtin containers.
+            identity = id(item)
+            if identity in active_containers:
+                return "contains cyclic containers"
+            if depth + item.ndim > _MAX_ROW_CONTAINER_DEPTH:
+                return "exceeds the nesting depth limit"
+            if any(width > _MAX_ROW_CONTAINER_ITEMS for width in item.shape):
+                return "contains an oversized array"
+            if item.size > MAX_QUERY_RESULT_VALUES - budget.values:
+                return "exceeds the total value limit"
+            active_containers.add(identity)
+            stack.append((item, None, None, depth, True))
+            scalar_array = item.ndim == 0
+            item = (
+                np.ndarray.__getitem__(item, ())
+                if scalar_array
+                else [
+                    np.ndarray.__getitem__(item, index)
+                    for index in range(item.shape[0])
+                ]
+            )
+            if type(parent) is list:
+                assert type(slot) is int
+                list.__setitem__(parent, slot, item)
+            elif type(parent) is dict:
+                assert type(slot) is str
+                dict.__setitem__(parent, slot, item)
+            if scalar_array:
+                stack.append((item, parent, slot, depth + 1, False))
+                continue
+
         if type(item) is list or type(item) is tuple:
             identity = id(item)
             if identity in active_containers:

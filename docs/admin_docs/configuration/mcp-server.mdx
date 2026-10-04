@@ -1365,7 +1365,10 @@ Range, marker, and marker-line label lists may be shorter than their value lists
 As in Explore, missing or empty range labels are not displayed, and missing or
 empty marker labels use the formatted numeric value. Extra labels have no value
 to annotate and are ignored. These rules also apply to saved-chart previews and
-updates; omitted label controls preserve the saved state.
+updates. Omitted label controls preserve the saved state only when their
+corresponding value controls (`ranges`, `markers`, or `marker_lines`) are also
+omitted. Replacing a value control without its labels clears the saved labels;
+resend the labels to retain annotations with the replacement values.
 
 Saved native `ranges`, `markers`, and `marker_lines` controls ignore empty,
 non-numeric, and NaN tokens, matching Explore. If no numeric range remains, the
@@ -1378,7 +1381,14 @@ generated dashboard-time binding. `temporal_column: null` clears only that
 generated binding, preserving user filters. Omitting those controls preserves
 the saved binding. Bullet Vega previews keep separate indexed rows even when
 dimension display labels are identical, and support both `SMART_NUMBER` and
-`SMART_NUMBER_SIGNED` number formats.
+`SMART_NUMBER_SIGNED` number formats. Bullet numeric format precision is limited
+to 20 digits before formatting, including on data reads.
+
+Native Bullet temporal filters retain the active filter's subject and range as a
+pair; `No filter` placeholders do not supply the subject of another active range.
+Typed configs support one such pair. Multiple active native temporal filters, or
+conflicts with explicit `temporal_column`/`time_range`, are rejected rather than
+silently dropping or moving a predicate.
 
 ### Query result limits
 
@@ -1412,6 +1422,9 @@ text values in the query, or use Superset's non-MCP query/export interfaces.
 Trusted NumPy extended-precision floating-point values are returned as
 round-trippable decimal strings in these responses and exports, rather than
 silently narrowed to binary64. Rendering may still use binary64 values.
+Exact NumPy array cells, including Arrow list columns materialized by pandas,
+are normalized to JSON lists under the same nesting, item, work, and byte limits.
+Array subclasses and unsupported element types remain rejected.
 
 ### Reporting query dates
 

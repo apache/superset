@@ -742,7 +742,18 @@ def _native_reference_error(  # noqa: C901
                 continue
             if isinstance(target, str) and target in metric_labels:
                 continue
-            if error := column_error(target, f"query {query_index} ordering column"):
+            # Native ordering can use a metric that is not displayed. Resolve
+            # saved names with the same exact/case-folded rules as other metrics,
+            # and validate adhoc metric columns rather than their output labels.
+            if (
+                isinstance(target, str)
+                and any(name.casefold() == target.casefold() for name in saved_metrics)
+            ) or (isinstance(target, dict) and _native_metric_ref(target) is not None):
+                if error := metric_error(
+                    target, f"query {query_index} ordering metric"
+                ):
+                    return error
+            elif error := column_error(target, f"query {query_index} ordering column"):
                 return error
     return None
 

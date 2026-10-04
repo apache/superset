@@ -3190,3 +3190,34 @@ def test_timeseries_resample_preserves_requested_boundaries(
         pd.DataFrame({"event_time": pd.to_datetime(["2024-01-03"]), "sales": [7.0]})
     )
     assert result["sales"].tolist() == ([0, 0, 7, 0, 0] if fill_time_range else [7])
+
+
+@pytest.mark.parametrize(
+    ("comparison_type", "truncates"),
+    [
+        ("difference", False),
+        ("percentage", False),
+        ("ratio", False),
+        ("values", True),
+        (None, True),
+    ],
+)
+def test_cleared_time_shifts_preserve_native_metric_rename_exclusions(
+    comparison_type: str | None, truncates: bool
+) -> None:
+    """Residual comparison controls retain Explore's column-name contract."""
+    query = _query_objects(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "event_time",
+            "groupby": ["region"],
+            "metrics": ["Revenue"],
+            "time_compare": [],
+            "comparison_type": comparison_type,
+            "truncate_metric": True,
+        }
+    )[0]
+    renames = [item for item in query.post_processing if item["operation"] == "rename"]
+    assert bool(renames) is truncates
+    if truncates:
+        assert renames[0]["options"]["columns"] == {"Revenue": None}

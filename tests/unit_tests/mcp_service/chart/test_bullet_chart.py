@@ -3240,8 +3240,21 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
         "range_labels": "Low,High",
         "markers": "15,18",
         "marker_labels": "Plan,Stretch",
+        "marker_lines": "12,16",
+        "marker_line_labels": "Goal,Forecast",
     }
-    config = BulletChartConfig(metric=_simple_metric(), ranges=[30], markers=[25])
+    preserved = BulletChartPlugin().merge_update_form_data(
+        existing,
+        map_bullet_config(BulletChartConfig(metric=_simple_metric())),
+        BulletChartConfig(metric=_simple_metric()),
+        dataset_rebind=False,
+    )
+    assert preserved is not None
+    for control in ("range_labels", "marker_labels", "marker_line_labels"):
+        assert preserved[control] == existing[control]
+    config = BulletChartConfig(
+        metric=_simple_metric(), ranges=[30], markers=[25], marker_lines=[28]
+    )
     mapped = BulletChartPlugin().merge_update_form_data(
         existing, map_bullet_config(config), config, dataset_rebind=False
     )
@@ -3250,6 +3263,8 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
     assert mapped["range_labels"] == ""
     assert mapped["markers"] == "25"
     assert mapped["marker_labels"] == ""
+    assert mapped["marker_lines"] == "28"
+    assert mapped["marker_line_labels"] == ""
     assert validate_merged_bullet_form_data(mapped) is not None
 
     stale = dict(existing)
@@ -4429,3 +4444,105 @@ def test_bullet_metric_accepts_javascript_numeric_strings(
     """Finite browser number spellings remain compatible with exact wire strings."""
     model = resolve_bullet_render_model([{"Revenue": value}], {"metric": "Revenue"})
     assert model.measures == [expected]
+
+
+@pytest.mark.parametrize("inert_first", [True, False])
+def test_bullet_native_temporal_range_keeps_its_own_subject(inert_first: bool) -> None:
+    """An inert temporal placeholder cannot steal an active range's subject."""
+    filters = [
+        {
+            "expressionType": "SIMPLE",
+            "subject": "OrderDate",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+        },
+        {
+            "expressionType": "SIMPLE",
+            "subject": "ShipDate",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "Last 30 days",
+        },
+    ]
+    config = BulletChartConfig.model_validate(
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "adhoc_filters": filters if inert_first else filters[::-1],
+        }
+    )
+    assert config.temporal_column == "ShipDate"
+    assert config.time_range == "Last 30 days"
+    mapped = map_bullet_config(config)
+    temporal = [
+        item for item in mapped["adhoc_filters"] if item["operator"] == "TEMPORAL_RANGE"
+    ]
+    assert [(item["subject"], item["comparator"]) for item in temporal] == [
+        ("ShipDate", "Last 30 days")
+    ]
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"temporal_column": "OrderDate"},
+        {"time_range": "Last year"},
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "OrderDate",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "Last year",
+                },
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ShipDate",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "Last 30 days",
+                },
+            ]
+        },
+    ],
+)
+def test_bullet_native_temporal_ranges_reject_lossy_typed_adaptation(
+    extra: dict[str, Any],
+) -> None:
+    """The typed temporal pair cannot silently overwrite another predicate."""
+    native = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ShipDate",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last 30 days",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError, match="temporal"):
+        BulletChartConfig.model_validate({**native, **extra})
+
+
+@pytest.mark.parametrize(
+    "format_", [".1000000000e", ".1000000000f", ".1000000000g", ".1000000000s", ".21e"]
+)
+def test_bullet_format_precision_is_bounded_before_formatter_runs(format_: str) -> None:
+    """Small zero-valued results cannot trigger unbounded format allocation."""
+    with patch(
+        "superset.mcp_service.chart.preview_utils._format_bullet_number"
+    ) as formatter:
+        with pytest.raises(BulletOutputError) as failure:
+            resolve_bullet_render_model(
+                [{"Revenue": 0}], {"metric": "Revenue", "y_axis_format": format_}
+            )
+    assert failure.value.error_type == "UnsupportedFormat"
+    formatter.assert_not_called()
+
+
+def test_bullet_format_accepts_bounded_precision() -> None:
+    """The frontend's maximum fixed/exponential precision remains usable."""
+    model = resolve_bullet_render_model(
+        [{"Revenue": 0}], {"metric": "Revenue", "y_axis_format": ".20e"}
+    )
+    assert model.y_axis_format == ".20e"
