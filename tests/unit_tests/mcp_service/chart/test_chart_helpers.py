@@ -269,7 +269,7 @@ def test_build_query_dicts_scopes_mixed_timeseries_ordering(monkeypatch):
     assert secondary["orderby"] == [[m2, True]]
 
 
-def test_build_query_dicts_mixed_secondary_does_not_inherit_primary_orderby(
+def test_build_query_dicts_mixed_secondary_retains_shared_orderby(
     monkeypatch,
 ):
     monkeypatch.setattr(
@@ -286,7 +286,7 @@ def test_build_query_dicts_mixed_secondary_does_not_inherit_primary_orderby(
     primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert primary["orderby"] == [["m1", False]]
-    assert secondary["orderby"] == [["m2", False]]
+    assert secondary["orderby"] == [["m1", False]]
 
 
 def test_build_query_dicts_preserves_native_orderby_for_single_query(monkeypatch):
@@ -425,7 +425,7 @@ def test_xy_and_both_mixed_queries_preserve_common_temporal_fields(
         ("event_time", "P1M"),
     ]
     assert mixed[0].orderby == [["sales", False]]
-    assert mixed[1].orderby == [["orders", False]]
+    assert mixed[1].orderby == [["sales", False]]
 
 
 @pytest.mark.parametrize(
@@ -918,7 +918,7 @@ def test_grouped_timeseries_keeps_ranking_metric_out_of_value_metrics(
     assert "sort" not in [item["operation"] for item in query.post_processing]
 
 
-def test_mixed_secondary_analytics_and_series_limits_do_not_leak_from_primary(
+def test_mixed_secondary_explicit_analytics_overrides_retain_shared_limits(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
@@ -941,6 +941,9 @@ def test_mixed_secondary_analytics_and_series_limits_do_not_leak_from_primary(
             "resample_rule": "D",
             "metrics_b": ["orders"],
             "groupby_b": [],
+            "time_compare_b": [],
+            "rolling_type_b": None,
+            "resample_method_b": None,
         }
     )
 
@@ -955,9 +958,9 @@ def test_mixed_secondary_analytics_and_series_limits_do_not_leak_from_primary(
         "rename",
         "flatten",
     ]
-    assert secondary.series_limit == 0
-    assert secondary.series_limit_metric is None
-    assert secondary.order_desc is True
+    assert secondary.series_limit == 5
+    assert secondary.series_limit_metric == "revenue_rank"
+    assert secondary.order_desc is False
     assert secondary.time_offsets == []
     assert [item["operation"] for item in secondary.post_processing] == [
         "pivot",
@@ -2838,7 +2841,7 @@ def test_shared_query_builder_preserves_explicit_orderby() -> None:
 def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     secondary_orderby: list[list[str | bool]] | None,
 ) -> None:
-    """Primary-only ordering must not leak into the secondary series query."""
+    """Suffixed ordering replaces shared ordering; omission retains it."""
     form_data = {
         "viz_type": "mixed_timeseries",
         "x_axis": "event_time",
@@ -2864,9 +2867,7 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     if secondary_orderby is not None:
         assert secondary["orderby"] == secondary_orderby
     else:
-        # normalizeOrderBy derives an ordering from this query's own metrics;
-        # what matters is that the primary ordering is not reused.
-        assert secondary["orderby"] == [["sum_sales", False]]
+        assert secondary["orderby"] == [["count", True]]
     assert form_data["orderby"] == [["count", True]]
 
 
@@ -3122,3 +3123,70 @@ def test_table_buckets_only_first_temporal_axis(
         from superset.semantic_layers.mapper import _normalize_column
 
         assert _normalize_column(query["columns"][0], {"created_at"}) == "created_at"
+
+
+@pytest.mark.parametrize("override", [False, True])
+def test_mixed_secondary_retains_shared_series_controls(
+    monkeypatch: pytest.MonkeyPatch, override: bool
+) -> None:
+    """Shared ranking controls survive unless a secondary control replaces them."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "ds",
+        "metrics": ["sales"],
+        "metrics_b": ["costs"],
+        "groupby": ["region"],
+        "limit": 5,
+        "timeseries_limit_metric": "sales",
+        "order_desc": False,
+    }
+    if override:
+        form_data.update(
+            limit_b=2, timeseries_limit_metric_b="costs", order_desc_b=True
+        )
+    primary, secondary = _query_objects(form_data)
+    assert primary.series_limit == 5
+    assert primary.series_limit_metric == "sales"
+    assert primary.order_desc is False
+    assert secondary.series_limit == (2 if override else 5)
+    assert secondary.series_limit_metric == ("costs" if override else "sales")
+    assert secondary.order_desc is override
+
+
+@pytest.mark.parametrize("fill_time_range", [False, True])
+def test_timeseries_resample_preserves_requested_boundaries(
+    monkeypatch: pytest.MonkeyPatch, app_context: None, fill_time_range: bool
+) -> None:
+    """Execute reconstructed resampling with observations inside the time range."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "event_time",
+            "metrics": ["sales"],
+            "time_range": "2024-01-01 : 2024-01-06",
+            "resample_method": "zerofill",
+            "resample_rule": "D",
+            "resample_fill_time_range": fill_time_range,
+        }
+    )[0]
+    options = next(
+        item["options"]
+        for item in query.post_processing
+        if item["operation"] == "resample"
+    )
+    assert options.get("fill_time_range", False) is fill_time_range
+    # ChartDataCommand resolves the query time range before post-processing.
+    query.from_dttm = pd.Timestamp("2024-01-01").to_pydatetime()
+    query.to_dttm = pd.Timestamp("2024-01-06").to_pydatetime()
+    result = query.exec_post_processing(
+        pd.DataFrame({"event_time": pd.to_datetime(["2024-01-03"]), "sales": [7.0]})
+    )
+    assert result["sales"].tolist() == ([0, 0, 7, 0, 0] if fill_time_range else [7])

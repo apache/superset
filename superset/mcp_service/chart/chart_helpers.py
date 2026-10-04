@@ -1302,6 +1302,11 @@ def _timeseries_post_processing(  # noqa: C901
                     "method": "asfreq" if zero_fill else method,
                     "rule": rule,
                     "fill_value": 0 if zero_fill else None,
+                    **(
+                        {"fill_time_range": True}
+                        if form_data.get("resample_fill_time_range")
+                        else {}
+                    ),
                 },
             }
         )
@@ -1463,29 +1468,8 @@ def _mixed_layer_form_data(
             key: value for key, value in form_data.items() if not key.endswith("_b")
         }
     layer = {key: value for key, value in form_data.items() if not key.endswith("_b")}
-    for isolated_key in (
-        "metrics",
-        "groupby",
-        "orderby",
-        "limit",
-        "series_limit",
-        "timeseries_limit_metric",
-        "series_limit_metric",
-        "order_desc",
-        "truncate_metric",
-        "time_compare",
-        "comparison_type",
-        "resample_method",
-        "resample_rule",
-        "rolling_type",
-        "rolling_periods",
-        "min_periods",
-        "show_empty_columns",
-    ):
-        if f"{isolated_key}_b" not in form_data:
-            layer.pop(isolated_key, None)
     # Suffixed values are visited first by retainFormDataSuffix and therefore
-    # override same-named shared controls without leaking primary-only state.
+    # override same-named shared controls; omitted overrides retain shared values.
     for key, value in form_data.items():
         if key.endswith("_b"):
             layer[key[:-2]] = value

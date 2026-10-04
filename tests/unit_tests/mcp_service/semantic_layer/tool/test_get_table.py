@@ -1913,3 +1913,31 @@ def test_external_view_malformed_configuration_is_sanitized(
     assert isinstance(result, SemanticLayerError)
     assert result.error_type == "ConfigurationError"
     assert result.error == "The semantic view configuration is invalid."
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_table_response_profiles_columns_once(
+    monkeypatch: pytest.MonkeyPatch, empty: bool
+) -> None:
+    """Both empty metadata and temporal nonempty results use one profiling pass."""
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    profiler = MagicMock(wraps=get_table_module.format_data_columns)
+    monkeypatch.setattr(get_table_module, "format_data_columns", profiler)
+    data = [] if empty else [{"created_at": "2024-01-01"}]
+    response = get_table_module._build_response(
+        GetTableRequest(dataset_id=1, metrics=["count"]),
+        True,
+        "orders",
+        {"rowcount": len(data)},
+        data,
+        ["created_at"],
+        [],
+        10,
+        [],
+        {"created_at"},
+    )
+    assert response.row_count == len(data)
+    profiler.assert_called_once()
+    if not empty:
+        assert profiler.call_args.kwargs["temporal_columns"] == {"created_at"}

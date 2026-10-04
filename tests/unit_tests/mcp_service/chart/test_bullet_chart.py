@@ -4393,3 +4393,39 @@ async def test_saved_bullet_replaced_metric_prunes_sort_with_omitted_hierarchy(
         {"metric": _simple_metric()},
     )
     assert persisted["orderby"] == [["Region", True]]
+
+
+@pytest.mark.parametrize("value", ["1_000", "１２３", "١٢٣", "\x1c100"])
+def test_bullet_metric_rejects_decimal_only_strings(value: str) -> None:
+    """Compilation and previews reject spellings that JavaScript Number rejects."""
+    rows = [{"Revenue": value}]
+    result = _compile_bullet_with_result({"queries": [{"data": rows}]})
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "MalformedBulletOutput"
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "amount", "aggregate": "SUM", "label": "Revenue"}
+        )
+    )
+    with pytest.raises(BulletOutputError, match="non-numeric text"):
+        resolve_bullet_render_model(rows, form_data)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("1e3", 1000),
+        ("\ufeff+4.25\u00a0", 4.25),
+        ("0x64", 100),
+        ("0b101", 5),
+        ("0o10", 8),
+        ("1.000000000000000001", 1),
+    ],
+)
+def test_bullet_metric_accepts_javascript_numeric_strings(
+    value: str, expected: float
+) -> None:
+    """Finite browser number spellings remain compatible with exact wire strings."""
+    model = resolve_bullet_render_model([{"Revenue": value}], {"metric": "Revenue"})
+    assert model.measures == [expected]

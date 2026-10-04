@@ -384,9 +384,8 @@ def _build_response(
     cache_status = get_cache_status_from_result(
         query_result, force_refresh=request.force_refresh
     )
-    columns_meta = format_data_columns(data, raw_columns, coltypes)
-
     if not data:
+        columns_meta = format_data_columns(data, raw_columns, coltypes)
         return GetTableResponse(
             from_dttm=query_result.get("from_dttm"),
             to_dttm=query_result.get("to_dttm"),

@@ -1359,13 +1359,13 @@ def _metadata_failure_for_value(  # noqa: C901
                 stack.append((child, depth + 1, False))
             continue
 
-        if type(item) is list:
+        if type(item) is list or type(item) is tuple:
             identity = id(item)
             if identity in active_containers:
                 return "metadata contains cyclic containers"
             active_containers.add(identity)
             stack.append((item, depth, True))
-            width = list.__len__(item)
+            width = len(item)
             # Chart Data emits one indexname per row. Only that outer array
             # receives the row limit; containers within an index stay bounded.
             max_items = (
@@ -1381,10 +1381,7 @@ def _metadata_failure_for_value(  # noqa: C901
                 metadata=True,
             ):
                 return reason
-            stack.extend(
-                (list.__getitem__(item, index), depth + 1, False)
-                for index in range(width)
-            )
+            stack.extend((item[index], depth + 1, False) for index in range(width))
             continue
 
         normalized, reason = _normalize_trusted_scalar(

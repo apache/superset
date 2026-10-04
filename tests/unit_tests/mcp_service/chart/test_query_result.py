@@ -2670,3 +2670,53 @@ def test_extended_numpy_metric_survives_numeric_consumers(viz_type: str) -> None
         command.return_value.run.return_value = result
         compiled = _compile_chart(form_data, 1)
     assert compiled.success, compiled.error
+
+
+def test_query_result_accepts_multi_index_pivot_metadata() -> None:
+    """Real pivot index tuples survive result validation and JSON projection."""
+    from superset.utils import json
+
+    frame = pd.DataFrame(
+        {"country": ["US"], "region": ["East"], "value": [7]}
+    ).pivot_table(index=["country", "region"], values="value")
+    indexnames = list(frame.index)
+    assert indexnames == [("US", "East")]
+    payload = {
+        "queries": [{"data": frame.to_dict(orient="records"), "indexnames": indexnames}]
+    }
+    data, failure = query_result_data(payload)
+    assert failure is None
+    assert data == [[{"value": 7}]]
+    assert json.loads(json.dumps(payload))["queries"][0]["indexnames"] == [
+        ["US", "East"]
+    ]
+
+
+def test_query_result_bounds_tuple_metadata() -> None:
+    """Metadata tuples retain width, depth, cycle, and exact-type guards."""
+    from superset.mcp_service.chart.query_result import (
+        _MAX_ROW_CONTAINER_DEPTH,
+        _MAX_ROW_CONTAINER_ITEMS,
+    )
+
+    class TupleSubclass(tuple[Any, ...]):
+        """A tuple subclass is not a trusted builtin metadata container."""
+
+    child: list[Any] = []
+    cyclic = (child,)
+    child.append(cyclic)
+    deep: Any = "leaf"
+    for _ in range(_MAX_ROW_CONTAINER_DEPTH + 1):
+        deep = (deep,)
+    for value in [
+        cyclic,
+        (0,) * (_MAX_ROW_CONTAINER_ITEMS + 1),
+        deep,
+        TupleSubclass(("US", "East")),
+    ]:
+        data, failure = query_result_data(
+            {"queries": [{"data": [], "indexnames": [value]}]}
+        )
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"

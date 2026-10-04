@@ -28,7 +28,7 @@ import re
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from enum import Enum
 from numbers import Real
 from typing import Any, Dict, List
@@ -624,6 +624,18 @@ def _bullet_category_value(  # noqa: C901
     return normalized, text
 
 
+def _javascript_numeric_string(value: str) -> float:
+    """Parse a nonempty trimmed string using JavaScript Number's grammar."""
+    if re.fullmatch(r"0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+", value):
+        return float(int(value, 0))
+    if re.fullmatch(
+        r"[+-]?(?:Infinity|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)",
+        value,
+    ):
+        return float(value)
+    raise ValueError("Invalid JavaScript number spelling")
+
+
 def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
     """Apply the frontend's useful ``Number(value ?? 0)`` numeric subset."""
     value = _safe_enum_backing(value)
@@ -645,14 +657,14 @@ def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
             raise BulletOutputError(
                 f"Bullet metric {metric_field!r} row {row_index} is not numeric"
             )
-        stripped = value.strip()
+        stripped = value.strip(_JAVASCRIPT_WHITESPACE)
         if not stripped:
             raise BulletOutputError(
                 f"Bullet metric {metric_field!r} row {row_index} is not numeric"
             )
         try:
-            number = float(Decimal(stripped))
-        except (InvalidOperation, ValueError, OverflowError) as ex:
+            number = _javascript_numeric_string(stripped)
+        except (ValueError, OverflowError) as ex:
             raise BulletOutputError(
                 f"Bullet metric {metric_field!r} row {row_index} returned "
                 f"non-numeric text"
@@ -1150,16 +1162,12 @@ def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noq
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
         if type(token) is str and len(token) > _MAX_BULLET_TEXT_BYTES:
             raise BulletOutputError(f"Bullet {role}[{index}] is not numeric")
-        if type(token) is str:
-            if re.fullmatch(r"0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+", token):
-                token = int(token, 0)
-            elif not re.fullmatch(
-                r"[+-]?(?:Infinity|(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)",
-                token,
-            ):
-                continue
         try:
-            number = float(token)
+            number = (
+                _javascript_numeric_string(token)
+                if type(token) is str
+                else float(token)
+            )
         except ValueError:
             # Native controls tolerate stray text and incomplete input.
             continue

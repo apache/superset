@@ -897,8 +897,8 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
-    def test_mixed_timeseries_empty_secondary(self, mock_get_ds, mock_factory_cls):
-        """mixed_timeseries with no metrics_b/groupby_b still produces two queries."""
+    def test_mixed_timeseries_shared_secondary(self, mock_get_ds, mock_factory_cls):
+        """Omitted secondary roles inherit shared controls, matching Explore."""
         mock_ds = Mock()
         mock_ds.database.db_engine_spec.engine = "postgresql"
         mock_get_ds.return_value = mock_ds
@@ -922,7 +922,7 @@ class TestBuildQueryContextTimeseriesAndMixed:
 
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 2
-        assert queries[1]["metrics"] == []
+        assert queries[1]["metrics"] == ["count"]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")

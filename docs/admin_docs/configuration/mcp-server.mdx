@@ -1319,7 +1319,7 @@ def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
 
 The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
 
-Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
+Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Shared Mixed controls remain on the secondary query unless a suffixed control overrides them. Timeseries resampling preserves the saved fill-time-range flag, including leading and trailing zero-filled buckets. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
 
 ## Security Best Practices
 
@@ -1356,7 +1356,9 @@ provenance are discarded.
 Dimension and metric output names are case-sensitive: quoted physical columns
 such as `Region` and `region` remain distinct. Reference lookup prefers exact
 names and uses case-insensitive matching only when there is a single candidate;
-ambiguous references require the exact spelling.
+ambiguous references require the exact spelling. Bullet metric strings use
+JavaScript numeric spellings: underscore separators and non-ASCII digits are
+rejected rather than interpreted as numbers.
 
 Range, marker, and marker-line label lists may be shorter than their value lists.
 As in Explore, missing or empty range labels are not displayed, and missing or
@@ -1383,7 +1385,8 @@ MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`
 array emitted by Chart Data uses the same 50,000-entry limit, rather than the
 4,096-entry limit for other metadata arrays. Index entries count toward the
 shared row-data work budget and retain the 1 MiB aggregate metadata byte limit.
-Nested containers within an index entry retain the standard container limits.
+Multi-dimension pivot index tuples are serialized as JSON arrays. Nested
+containers within an index entry retain the standard container limits.
 
 The shared query-result validator also enforces **non-configurable hard limits**:
 
