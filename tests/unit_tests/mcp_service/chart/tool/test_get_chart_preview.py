@@ -606,10 +606,14 @@ class TestGetChartPreview:
         preview_module = importlib.import_module(
             "superset.mcp_service.chart.tool.get_chart_preview"
         )
+
+        def _fake_build_query_context(*args: Any, **kwargs: Any) -> SimpleNamespace:
+            return query_context
+
         monkeypatch.setattr(
             preview_module,
             "build_query_context_from_form_data",
-            lambda *args, **kwargs: query_context,
+            _fake_build_query_context,
         )
         monkeypatch.setattr(
             get_data_command_module, "ChartDataCommand", ChartDataCommand
