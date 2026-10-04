@@ -255,7 +255,6 @@
     "@storybook/addon-docs": "10.6.0",
     "@storybook/addon-links": "10.6.0",
     "@storybook/react-webpack5": "10.6.0",
-    "@storybook/test-runner": "0.24.5",
     "@superset-ui/eslint-plugin-i18n-strings": "file:eslint-rules/eslint-plugin-i18n-strings",
     "@superset-ui/eslint-plugin-icons": "file:eslint-rules/eslint-plugin-icons",
     "@superset-ui/eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
@@ -293,7 +292,6 @@
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "baseline-browser-mapping": "^2.11.26",
     "cheerio": "1.2.0",
-    "concurrently": "^10.0.5",
     "copy-webpack-plugin": "^14.0.0",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.5",
@@ -343,7 +341,6 @@
     "tsx": "^4.23.15",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
-    "wait-on": "^9.1.0",
     "webpack": "^5.111.1",
     "webpack-bundle-analyzer": "^5.4.0",
     "webpack-cli": "^7.2.3",
@@ -377,8 +374,6 @@
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^3.15.1"
     },
-    "@jest/globals": "^30.4.0",
-    "@jest/types": "^30.4.0",
     "@loaders.gl/compression": {
       "fflate": "^0.7.5"
     },
@@ -403,11 +398,6 @@
     "fast-uri": "^3.1.8",
     "fast-xml-parser": "^5.8.0",
     "http-proxy-middleware": "^2.0.10",
-    "jest-circus": "^30.4.0",
-    "jest-environment-node": "^30.4.0",
-    "jest-mock": "^30.4.0",
-    "jest-runtime": "^30.4.0",
-    "jest-util": "^30.4.0",
     "js-yaml-loader": {
       "js-yaml": "^3.15.1"
     },
