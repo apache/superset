@@ -10264,6 +10264,9 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid "Preserves the generated dashboard-time predicate subject through Explore saves."
+msgstr ""
+
 msgid "Preview"
 msgstr ""
 
