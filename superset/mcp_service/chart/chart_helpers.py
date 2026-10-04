@@ -1187,6 +1187,11 @@ def _temporal_column(column: Any, form_data: dict[str, Any]) -> Any:
         "sqlExpression": column,
         "label": column,
         "expressionType": "SQL",
+        **(
+            {"isColumnReference": True}
+            if str(form_data.get("datasource", "")).endswith("__semantic_view")
+            else {}
+        ),
     }
 
 

@@ -252,7 +252,18 @@ def test_malformed_results_never_produce_success(result: Any) -> None:
 
 
 @pytest.mark.parametrize(
-    "value", [None, True, "3", float("nan"), float("inf"), 10**400]
+    "value",
+    [
+        None,
+        True,
+        "bad",
+        "1_000",
+        "NaN",
+        "Infinity",
+        float("nan"),
+        float("inf"),
+        10**400,
+    ],
 )
 def test_metric_outputs_must_be_finite_numeric(value: Any) -> None:
     """A single invalid metric fails instead of silently dropping a hierarchy node."""
@@ -1019,11 +1030,11 @@ def test_treemap_mixed_type_categories_remain_separate() -> None:
         (Decimal("Infinity"), False),
         (Decimal("-Infinity"), False),
         (True, False),
-        ("2.75", False),
+        ("2.75", True),
     ],
 )
 def test_decimal_result_contract(value: Any, valid: bool) -> None:
-    """SQL numeric values remain numeric; nonfinite and coercible strings do not."""
+    """SQL numeric values and exact decimal wire strings retain finite validation."""
     rows = [{**ROWS[0], "revenue": value}]
     result = {"queries": [{"data": rows}]}
     checked = normalize_chart_query_result(result, FORM_DATA)

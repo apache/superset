@@ -18,12 +18,13 @@
 """Helpers for interpreting ChartDataCommand result envelopes."""
 
 import math
+import re
 import time as system_time
 from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import Enum
 from numbers import Real
 from types import MappingProxyType
@@ -1488,17 +1489,25 @@ def _normalize_row_value(  # noqa: C901
         if depth > _MAX_ROW_CONTAINER_DEPTH:
             return "exceeds the nesting depth limit"
 
-        if type(item) is list:
-            if reason := _add_result_value_to_budget(item, budget):
-                return reason
+        if type(item) is list or type(item) is tuple:
             identity = id(item)
             if identity in active_containers:
                 return "contains cyclic containers"
-            active_containers.add(identity)
-            stack.append((item, None, None, depth, True))
-            width = list.__len__(item)
+            width = len(item)
             if width > _MAX_ROW_CONTAINER_ITEMS:
                 return "contains an oversized array"
+            active_containers.add(identity)
+            stack.append((item, None, None, depth, True))
+            if type(item) is tuple:
+                item = list(item)
+                if type(parent) is list:
+                    assert type(slot) is int
+                    list.__setitem__(parent, slot, item)
+                elif type(parent) is dict:
+                    assert type(slot) is str
+                    dict.__setitem__(parent, slot, item)
+            if reason := _add_result_value_to_budget(item, budget):
+                return reason
             if reason := _charge_json_bytes(
                 budget, _container_json_syntax_size(width, mapping=False)
             ):
@@ -1998,8 +2007,8 @@ def normalize_gauge_query_result(  # noqa: C901
                     ),
                     error_type="InvalidGaugeResult",
                 )
-            value = row[metric_label]
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
+            value = _numeric_metric_value(row[metric_label])
+            if isinstance(value, bool) or not isinstance(value, (Real, Decimal)):
                 value_error = value_error or ChartError(
                     error=(
                         f"Gauge query {query_index} row {row_index} metric "
@@ -2122,6 +2131,22 @@ def normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) ->
     return result
 
 
+def _numeric_metric_value(value: Any) -> Any:
+    """Interpret bounded exact decimal wire strings without changing row values."""
+    if type(value) is str:
+        if len(value) > MAX_QUERY_RESULT_DECIMAL_DIGITS or not re.fullmatch(
+            r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?",
+            value,
+        ):
+            return None
+        try:
+            decimal = Decimal(value)
+        except InvalidOperation:
+            return None
+        return decimal if _decimal_failure(decimal) is None else None
+    return value
+
+
 def _validate_treemap_rows(
     rows: list[Any], hierarchy: list[str], label: str
 ) -> ChartError | None:
@@ -2134,7 +2159,7 @@ def _validate_treemap_rows(
                 error=f"Treemap row {index} is missing hierarchy or metric outputs.",
                 error_type="InvalidTreemapResult",
             )
-        value = row[label]
+        value = _numeric_metric_value(row[label])
         try:
             valid = (
                 not isinstance(value, bool)

@@ -580,7 +580,10 @@ class TestGaugeResultAndPreview:
     def test_metric_result_aliases(self, metric: object, expected: str) -> None:
         assert metric_result_label(metric) == expected
 
-    @pytest.mark.parametrize("bad_value", ["12", True, float("nan"), float("inf")])
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["bad", "1_000", "NaN", "Infinity", True, float("nan"), float("inf")],
+    )
     def test_rejects_non_numeric_or_nonfinite_results(self, bad_value: object) -> None:
         failure = validate_gauge_query_result(
             {"queries": [{"data": [{"AVG(progress)": bad_value}]}]},

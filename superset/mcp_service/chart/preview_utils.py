@@ -1258,10 +1258,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         *model.marker_lines,
     )
     axis_max = max(
-        *model.measures,
-        *model.ranges,
-        *model.markers,
-        *model.marker_lines,
+        [*model.measures, *model.ranges, *model.markers, *model.marker_lines]
     )
     if axis_min == axis_max:
         axis_max = axis_min + (abs(axis_min) or 1)

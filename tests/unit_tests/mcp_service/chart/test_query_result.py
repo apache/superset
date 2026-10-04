@@ -2584,3 +2584,89 @@ def test_query_result_preserves_extended_numpy_float_precision(text: str) -> Non
     assert isinstance(wire, str)
     assert np.longdouble(wire) == value
     assert wire != "1.0"
+
+
+def test_query_result_normalizes_dataframe_tuple_cells() -> None:
+    """ClickHouse Tuple cells use bounded JSON arrays, including nested values."""
+    from superset.dataframe import df_to_records
+
+    records = df_to_records(
+        pd.DataFrame({"value": pd.Series([(np.int32(1), "a", (2,))], dtype=object)})
+    )
+    assert type(records[0]["value"]) is tuple
+    data, failure = query_result_data({"queries": [{"data": records}]})
+    assert failure is None
+    assert data == [[{"value": [1, "a", [2]]}]]
+
+
+def test_query_result_rejects_tuple_container_cycles_and_width() -> None:
+    """Tuple support retains cycle and array-width limits."""
+    from superset.mcp_service.chart.query_result import _MAX_ROW_CONTAINER_ITEMS
+
+    child: list[Any] = []
+    cyclic = (child,)
+    child.append(cyclic)
+    for value in [cyclic, (0,) * (_MAX_ROW_CONTAINER_ITEMS + 1)]:
+        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize("viz_type", ["treemap_v2", "gauge_chart"])
+def test_extended_numpy_metric_survives_numeric_consumers(viz_type: str) -> None:
+    """Exact wire strings work in chart validation and render-only projection."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from superset.dataframe import df_to_records
+    from superset.mcp_service.chart.compile import _compile_chart
+    from superset.mcp_service.chart.preview_utils import (
+        generate_gauge_vega_lite_preview,
+    )
+    from superset.mcp_service.chart.query_result import normalize_chart_query_result
+    from superset.mcp_service.chart.schemas import ChartError
+    from superset.mcp_service.chart.treemap_preview import treemap_vega_lite
+
+    value = np.longdouble("1.000000000000000001")
+    records = df_to_records(
+        pd.DataFrame({"value": pd.Series([value], dtype=object), "Region": ["EU"]})
+    )
+    form_data = {"viz_type": viz_type, "metric": "value", "groupby": ["Region"]}
+    result = {"queries": [{"data": records}]}
+    data, failure = query_result_data(result)
+    assert failure is None
+    assert data is not None
+    wire = data[0][0]["value"]
+    assert isinstance(wire, str)
+    assert np.longdouble(wire) == value
+    checked = normalize_chart_query_result(result, form_data)
+    assert not isinstance(checked, ChartError), checked
+    renderer = (
+        treemap_vega_lite
+        if viz_type == "treemap_v2"
+        else generate_gauge_vega_lite_preview
+    )
+    preview = renderer(data[0], form_data)
+    assert not isinstance(preview, ChartError), preview
+    assert data[0][0]["value"] == wire
+
+    query = {"metrics": ["value"], "columns": ["Region"]}
+    context = SimpleNamespace(
+        form_data=form_data,
+        queries=[
+            SimpleNamespace(**query, filter=[], time_range=None, to_dict=lambda: query)
+        ],
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            return_value=context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = result
+        compiled = _compile_chart(form_data, 1)
+    assert compiled.success, compiled.error

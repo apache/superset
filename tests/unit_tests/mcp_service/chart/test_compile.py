@@ -1502,3 +1502,28 @@ def test_table_rebind_ignores_unselected_temporal_lookup_metadata() -> None:
         merged = _build_replacement_form_data(previous, config, 3, 3)
     result = validate_and_compile(config, merged, dataset, run_compile_check=False)
     assert result.success, result.error
+
+
+@pytest.mark.parametrize(
+    "metric, valid",
+    [
+        ({"label": "Revenue"}, True),
+        ({"label": "Missing"}, False),
+        ({"label": "Revenue", "aggregate": "SUM"}, False),
+        ({"label": "Revenue", "column": {"column_name": "num"}}, False),
+        ({"label": "Revenue", "sqlExpression": "SUM(num)"}, False),
+    ],
+)
+def test_table_rebind_validates_guarded_legacy_metric(
+    metric: dict[str, object], valid: bool
+) -> None:
+    """Legacy saved metrics remain compatible without hiding malformed adhoc metrics."""
+    dataset = _orm_dataset(metric_names=["Revenue"])
+    form_data = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["gender"],
+        "metrics": [metric],
+    }
+    result = validate_and_compile(None, form_data, dataset, run_compile_check=False)
+    assert result.success is valid, result.error

@@ -383,6 +383,11 @@ def _native_metric_ref(value: Any) -> tuple[str, str] | None:
     if value.get("expressionType") == "SQL":
         return None
     if value.get("expressionType") != "SIMPLE":
+        # Match QueryObject's guarded legacy saved-metric normalization.
+        if not ({"sqlExpression", "aggregate", "column"} & value.keys()):
+            label = value.get("label")
+            if isinstance(label, str) and label:
+                return "saved_metric", label
         return None
     column = value.get("column")
     name = (

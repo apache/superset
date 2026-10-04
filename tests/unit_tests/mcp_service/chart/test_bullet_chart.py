@@ -1965,12 +1965,17 @@ def test_bullet_category_text_is_bounded_without_truncation_collisions() -> None
         )
 
 
-def test_grouped_empty_bullet_has_clear_no_data_without_fabricated_category() -> None:
+@pytest.mark.parametrize("ranges", [None, "100"])
+def test_grouped_empty_bullet_has_clear_no_data_without_fabricated_category(
+    ranges: str | None,
+) -> None:
     form_data = {
         "viz_type": "bullet",
         "metric": "Revenue",
         "groupby": ["Region"],
     }
+    if ranges is not None:
+        form_data["ranges"] = ranges
     model = resolve_bullet_render_model([], form_data)
     assert model.rows == []
     assert model.measures == []

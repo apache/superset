@@ -3080,8 +3080,9 @@ def test_mixed_secondary_retains_shared_row_limit(
     "columns",
     [["created_at", "updated_at"], ["category", "created_at", "updated_at"]],
 )
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
 def test_table_buckets_only_first_temporal_axis(
-    monkeypatch: pytest.MonkeyPatch, columns: list[str]
+    monkeypatch: pytest.MonkeyPatch, columns: list[str], datasource_type: str
 ) -> None:
     """Table wraps and moves only its first eligible temporal column."""
     monkeypatch.setattr(
@@ -3091,6 +3092,7 @@ def test_table_buckets_only_first_temporal_axis(
     query = build_query_dicts_from_form_data(
         {
             "viz_type": "table",
+            "datasource": f"1__{datasource_type}",
             "query_mode": "aggregate",
             "groupby": columns,
             "metrics": ["sales"],
@@ -3098,7 +3100,7 @@ def test_table_buckets_only_first_temporal_axis(
             "temporal_columns_lookup": {"created_at": True, "updated_at": True},
         },
         1,
-        "table",
+        datasource_type,
     )[0]
     assert query["columns"] == [
         {
@@ -3107,6 +3109,16 @@ def test_table_buckets_only_first_temporal_axis(
             "sqlExpression": "created_at",
             "label": "created_at",
             "expressionType": "SQL",
+            **(
+                {"isColumnReference": True}
+                if datasource_type == "semantic_view"
+                else {}
+            ),
         },
         *[column for column in columns if column != "created_at"],
     ]
+
+    if datasource_type == "semantic_view":
+        from superset.semantic_layers.mapper import _normalize_column
+
+        assert _normalize_column(query["columns"][0], {"created_at"}) == "created_at"
