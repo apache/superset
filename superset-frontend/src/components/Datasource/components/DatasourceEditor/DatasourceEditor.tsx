@@ -1456,7 +1456,20 @@ function DatasourceEditor({
       // override rather than on `mappedColumnIsImplicit`, which needs a
       // datetime column already set and so misses the transition that sets the
       // first one.
-      if (datasource.partition_column && !datasource.partition_mapped_column) {
+      //
+      // Gated on the flag for the reason `clear_unmapped_partition_transforms`
+      // is gated server-side: this discards stored configuration rather than
+      // repairing a broken reference, and with the flag off nothing mirrors,
+      // so there is no armed mapping to disarm and clearing is pure loss. The
+      // backend gate does not cover it either -- the cleared value travels as
+      // an explicit null inside the `columns` payload, which `update_columns`
+      // writes whatever the flag says. The datetime column select itself is
+      // not gated, since it predates this feature.
+      if (
+        isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+        datasource.partition_column &&
+        !datasource.partition_mapped_column
+      ) {
         setDatabaseColumns(prev =>
           applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
         );
@@ -1568,6 +1581,20 @@ function DatasourceEditor({
     addDangerToast,
   ]);
 
+  // The live column state, which is what a sync has to merge against.
+  // `datasource.columns` is the mount-time snapshot and never moves: no
+  // `setDatasource` call writes `columns`, and the props-sync effect only
+  // re-seeds the two column states. Merging a sync against it restored
+  // whatever the dataset held when the modal opened -- a transform and
+  // monotonicity flag just cleared, the `filterable`/`groupby` flags
+  // `applyPartitionColumnDefaults` just turned off, a description edited this
+  // session -- because `updateColumns` passes an unchanged column through
+  // verbatim.
+  const currentColumns = useMemo(
+    () => [...databaseColumns, ...calculatedColumns],
+    [databaseColumns, calculatedColumns],
+  );
+
   const syncMetadata = useCallback(async () => {
     // Abort previous syncMetadata if still pending
     if (abortControllers.current.syncMetadata) {
@@ -1583,7 +1610,7 @@ function DatasourceEditor({
       const newCols = await fetchSyncedColumns(datasource, signal);
 
       const columnChanges = updateColumns(
-        datasource.columns,
+        currentColumns,
         newCols,
         addSuccessToast,
       );
@@ -1639,6 +1666,7 @@ function DatasourceEditor({
     }
   }, [
     datasource,
+    currentColumns,
     addSuccessToast,
     addDangerToast,
     setColumns,
