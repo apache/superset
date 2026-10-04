@@ -26,9 +26,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
+import sqlalchemy as sa
 from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -702,6 +704,160 @@ def test_mirrored_predicates_reach_the_series_limit_subquery(app: Flask) -> None
             )
 
     assert sql.count("dt_epoch >= 1767225600") >= 2
+
+
+def _split_series_limit(sql: str) -> tuple[str, str]:
+    """The ranking subquery and the outer query, as separate text."""
+    _, marker, rest = sql.partition("JOIN (SELECT")
+    assert marker, "expected a series-limit subquery"
+    subquery, _, outer = rest.partition(") AS series_limit")
+    return subquery, outer
+
+
+def test_the_series_limit_subquery_mirrors_the_inner_time_window(
+    app: Flask,
+) -> None:
+    """
+    The ranking subquery filters the *inner* window, not the outer one. On a
+    time comparison `processing_time_offsets` shifts `from_dttm`/`to_dttm` to
+    the comparison period and leaves `inner_*` on the original, so an
+    outer-window mirror in the subquery demands partition keys from a period
+    the subquery's own time filter excludes: the ranking comes back empty and
+    the join drops the comparison series entirely.
+    """
+    table = _table()
+    epochs = {
+        datetime(2025, 1, 1): 1735689600,
+        datetime(2025, 2, 1): 1738368000,
+        datetime(2026, 1, 1): 1767225600,
+        datetime(2026, 2, 1): 1769904000,
+    }
+
+    with app.app_context():
+        with patch(
+            PROBE, side_effect=lambda *args, **kwargs: [epochs[v] for v in args[-1]]
+        ):
+            sql = _query(
+                table,
+                columns=["country"],
+                metrics=["hits"],
+                granularity="event_time",
+                is_timeseries=True,
+                from_dttm=datetime(2025, 1, 1),
+                to_dttm=datetime(2025, 2, 1),
+                inner_from_dttm=datetime(2026, 1, 1),
+                inner_to_dttm=datetime(2026, 2, 1),
+                timeseries_limit=5,
+                timeseries_limit_metric="hits",
+            )
+
+    subquery, outer = _split_series_limit(sql)
+
+    # The subquery asks for the window its own time filter describes.
+    assert "dt_epoch >= 1767225600" in subquery
+    assert "dt_epoch >= 1735689600" not in subquery
+
+    # The outer query still asks for the window it was given.
+    assert "dt_epoch >= 1735689600" in outer
+    assert "dt_epoch >= 1767225600" not in outer
+
+
+def test_the_series_limit_prequery_mirrors_the_inner_window(app: Flask) -> None:
+    """
+    The other series-limit branch is already right, for a different reason: it
+    re-enters `query()` with `inner_from_dttm or from_dttm` as its own
+    `from_dttm`, so the mirrors are recomputed for the inner window rather than
+    inherited. Pinned so a future refactor cannot quietly break the half that
+    works.
+    """
+    table = _table()
+    captured: list[dict[str, Any]] = []
+
+    def _capture(query_obj: dict[str, Any]) -> Any:
+        captured.append(query_obj)
+        return MagicMock(df=pd.DataFrame({"country": []}))
+
+    with app.app_context():
+        with patch.object(table.database.db_engine_spec, "allows_joins", False):
+            with patch(PROBE, return_value=[1767225600, 1769904000]):
+                with patch.object(type(table), "query", side_effect=_capture):
+                    _query(
+                        table,
+                        columns=["country"],
+                        metrics=["hits"],
+                        granularity="event_time",
+                        is_timeseries=True,
+                        from_dttm=datetime(2025, 1, 1),
+                        to_dttm=datetime(2025, 2, 1),
+                        inner_from_dttm=datetime(2026, 1, 1),
+                        inner_to_dttm=datetime(2026, 2, 1),
+                        timeseries_limit=5,
+                        timeseries_limit_metric="hits",
+                    )
+
+    assert captured, "expected a prequery"
+    assert captured[0]["from_dttm"] == datetime(2026, 1, 1)
+    assert captured[0]["to_dttm"] == datetime(2026, 2, 1)
+
+
+def test_one_probe_round_trip_when_both_windows_match(app: Flask) -> None:
+    """
+    The inner sink is collected unconditionally, but building its predicates a
+    second time would cost a second probe round trip. Every query that is not a
+    time comparison asks for the same thing twice, so the result is reused.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]) as probe:
+            _query(
+                table,
+                columns=["country"],
+                metrics=["hits"],
+                granularity="event_time",
+                is_timeseries=True,
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+                timeseries_limit=5,
+                timeseries_limit_metric="hits",
+            )
+
+    probe.assert_called_once()
+
+
+def test_the_series_limit_subquery_keeps_row_level_security(app: Flask) -> None:
+    """
+    The subquery takes a snapshot of `where_clause_and` from before the mirrors
+    are appended. That snapshot has to be taken *after* row level security and
+    the extras `where` go on, or swapping the mirrors would quietly drop them
+    from the ranking subquery -- which for row level security would be a
+    security bug, not a pruning one.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch.object(
+            type(table),
+            "get_sqla_row_level_filters",
+            return_value=[sa.text("country = 'US'")],
+        ):
+            with patch(PROBE, return_value=[1767225600, 1769904000]):
+                sql = _query(
+                    table,
+                    columns=["country"],
+                    metrics=["hits"],
+                    granularity="event_time",
+                    is_timeseries=True,
+                    from_dttm=datetime(2026, 1, 1),
+                    to_dttm=datetime(2026, 2, 1),
+                    timeseries_limit=5,
+                    timeseries_limit_metric="hits",
+                    extras={"where": "region_key <> 'x'"},
+                )
+
+    subquery, _ = _split_series_limit(sql)
+    assert "country = 'US'" in subquery
+    assert "region_key <> 'x'" in subquery
 
 
 def test_extra_cache_keys_include_the_mapping(app: Flask) -> None:
