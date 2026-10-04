@@ -1489,6 +1489,32 @@ def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_description_only_put_survives_an_implicit_self_mapping(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `fetch_metadata` could choose the partition column as the default datetime
+    column without anyone asking, and a blocking self-mapping error then made
+    the dataset unsaveable forever -- including by the very write that would
+    have set the override that fixes it, and including a write that changes
+    nothing but the description.
+
+    The mapping is inert in that state either way, since
+    `resolve_partition_mapping` bails out on it, so the issue is reported
+    rather than blocking.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._model.main_dttm_col = "dt_epoch"
+    command._properties["description"] = "a new description"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_a_self_mapping_is_rejected_while_the_feature_is_on(
     mocker: MockerFixture,
 ) -> None:

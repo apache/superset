@@ -1005,17 +1005,52 @@ def test_an_explicit_self_mapping_blocks_the_save() -> None:
     assert "itself" in issues[0].message
 
 
-def test_an_implicit_self_mapping_blocks_the_save() -> None:
+def test_an_implicit_self_mapping_is_reported_without_blocking() -> None:
     """
-    Checking only the explicit override misses the case an owner actually hits:
-    setting ``partition_column`` to the column that is *already* the default
-    datetime column, with no override in play.
+    Still caught -- checking only the explicit override would miss the case an
+    owner actually hits, where `partition_column` names the column that is
+    *already* the default datetime column -- but Tier 2 rather than Tier 1.
+
+    Blocking it made the state unescapable. `fetch_metadata` could choose the
+    partition column as the default datetime column without anyone asking, and
+    once it had, every later write failed validation -- including one that
+    changed nothing but the description, and including the write that would
+    have set the override that fixes it. The mapping is inert either way, since
+    `resolve_partition_mapping` bails out on it, so reporting is the whole job.
     """
+    issues = _issues(partition_column="event_time", main_dttm_col="event_time")
+
+    assert _blocking(issues) == []
+    reported = [issue for issue in issues if "points at itself" in str(issue.message)]
+    assert len(reported) == 1
+    assert reported[0].field == "partition_mapped_column"
+    # And it names the two ways out, since neither is obvious from the error.
+    assert "override" in str(reported[0].message)
+    assert "default datetime column" in str(reported[0].message)
+
+
+def test_an_explicit_self_mapping_still_blocks_the_save() -> None:
+    """The counterpart: asked for directly, it is the mistake it looks like."""
     issues = _blocking(
-        _issues(partition_column="event_time", main_dttm_col="event_time")
+        _issues(partition_column="event_time", partition_mapped_column="event_time")
     )
     assert len(issues) == 1
-    assert "itself" in issues[0].message
+    assert "itself" in str(issues[0].message)
+
+
+def test_an_override_clears_the_implicit_self_mapping_report() -> None:
+    """
+    The way out the message names has to actually work: setting an override
+    away from the partition column leaves no self-mapping at all.
+    """
+    issues = _issues(
+        partition_column="event_time",
+        main_dttm_col="event_time",
+        partition_mapped_column="country",
+    )
+
+    assert _blocking(issues) == []
+    assert not [issue for issue in issues if "points at itself" in str(issue.message)]
 
 
 def test_jinja_in_the_transform_blocks_the_save() -> None:
