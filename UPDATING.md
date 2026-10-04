@@ -1587,7 +1587,7 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
-### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control restored)
 
 Pivot Table subtotals and grand totals are now computed by the database at each
 rollup level instead of re-aggregating the already-aggregated cell values on the
@@ -1596,11 +1596,9 @@ client. This fixes long-standing incorrect totals for non-additive metrics
 which previously summed the displayed cell values.
 
 As a result the per-table **"Aggregation function"** control (which let you pick
-how totals were aggregated client-side, e.g. Sum/Average/Count) has been
-removed: totals now always reflect the metric's own definition evaluated at the
-total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. If you previously relied on a plain sum-of-cells total for a
-non-additive metric, that specific behavior is no longer available.
+how totals were aggregated client-side, e.g. Sum/Average/Count) was temporarily
+removed: totals reflected the metric's own definition evaluated at the total's
+granularity, with no way to pick a different reducer for subtotals/totals.
 
 The "Sum as Fraction of Total/Rows/Columns" display options are back as a
 new, standalone **"Show values as"** control (below "Combine metrics" in the
@@ -1613,9 +1611,28 @@ Fraction of ..." variants are **not** migrated: they divided a record count,
 while the new control divides the metric's own value, so translating them
 automatically would silently change what the chart displays rather than
 restore it; those charts need to be manually reconfigured if the value-based
-percentage is what's wanted. Charts that used any other non-fraction
-`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
-that specific behavior remains unavailable per the above.
+percentage is what's wanted.
+
+The **"Aggregation function"** control itself (form_data field
+`aggregateFunction`) is also back, as a second aggregation pass over a
+metric's own grouped results -- e.g. the median of a set of per-store
+`SUM(sales)` values -- computed correctly this time: every scope (subtotal,
+row/column total, grand total) reduces its own original contributing query
+results, never another scope's already-displayed value, so the previous
+non-additive-metric bug this section originally removed the control for does
+not return. It reuses the exact same field name and value spellings as
+before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
+unused in its saved `params` starts computing totals with that aggregation
+again automatically, with no action required and no value to reconfigure. A
+one-time migration tags every such chart with a `legacy-pivot-aggregation-restored`
+custom tag; opening a tagged chart in Explore shows a notice that its totals
+may now look different, which clears once you review and accept it (or save
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place.
 
 ### `thumbnail_url` removed from dashboard list API response
 

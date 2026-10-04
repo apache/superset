@@ -36,6 +36,7 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
+import { getResultAggregation } from './resultAggregation';
 import buildGroupbyCombinations, {
   additiveReducerFor,
   allMetricsAdditive,
@@ -102,9 +103,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     emitCrossFilters,
     theme,
   } = chartProps;
-  const groupbyCombinations = buildGroupbyCombinations(
-    formData as PivotTableQueryFormData,
-  );
+  const pivotFormData = formData as PivotTableQueryFormData;
+  const groupbyCombinations = buildGroupbyCombinations(pivotFormData);
   const metricsArr = ensureIsArray(formData.metrics);
   let data: QueryData[];
   // The rows that conditional formatting derives its color scale from. Only the
@@ -112,7 +112,30 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   // very cells being shaded, so letting them in makes the grand total the max
   // and leaves every detail cell nearly unshaded.
   let colorScaleRows: DataRecord[];
-  if (allMetricsAdditive(metricsArr)) {
+  const resultAggregation = getResultAggregation(
+    pivotFormData.aggregateFunction,
+  );
+  if (resultAggregation) {
+    // Result aggregation (see resultAggregation.ts): the query is always
+    // full-detail, and every scope -- cell, subtotal, grand total -- reduces
+    // its own original contributing leaf records inside PivotData
+    // (`processResultRecord`), not a level synthesized here. Pass the leaf
+    // rows through as a single, display-oriented groupby; PivotData derives
+    // every rollup depth from `rows`/`cols` itself.
+    const [rows, columns] = pivotFormData.transposePivot
+      ? [pivotFormData.groupbyColumns, pivotFormData.groupbyRows]
+      : [pivotFormData.groupbyRows, pivotFormData.groupbyColumns];
+    colorScaleRows = queriesData[0].data;
+    data = [
+      {
+        data: colorScaleRows,
+        groupby: {
+          rows: ensureIsArray(rows),
+          columns: ensureIsArray(columns),
+        },
+      },
+    ];
+  } else if (allMetricsAdditive(metricsArr)) {
     // Additive fast-path: a single full-detail query was issued; synthesize
     // each rollup level by reducing the leaf rows on the client (see SIP.md).
     const leafRows = queriesData[0].data;
@@ -188,11 +211,12 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormat,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
-  } = formData;
+  } = pivotFormData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
 
@@ -274,6 +298,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,

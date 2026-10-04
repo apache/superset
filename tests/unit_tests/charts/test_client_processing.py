@@ -2090,6 +2090,34 @@ def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
     assert len(pivoted.index) == 2
 
 
+def test_pivot_table_v2_metric_default_does_not_raise_key_error():
+    """`aggregateFunction: "Metric"` (the result-aggregation control's
+    default, meaning "use the metric's own definition") is not a key in
+    pivot_v2_aggfunc_map -- this backend path has no result-aggregation
+    support yet. It must fall back to the same "Sum" behavior an absent
+    field always got, not KeyError.
+
+    Regression test: this frontend default reaching this function used to
+    raise ``KeyError('Metric')`` for any Actual Values pivot with rows or
+    columns, breaking every scheduled report/alert/CSV/Excel export of a
+    pivot_table_v2 chart.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Metric",
+    }
+    without_field = {k: v for k, v in form_data.items() if k != "aggregateFunction"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_default = pivot_table_v2(
+        grouping_sets_df(), without_field, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_default)
+
+
 @pytest.mark.parametrize(
     "mode,expected",
     [
@@ -2142,6 +2170,94 @@ def test_pivot_table_v2_actual_values_uses_database_rollups():
     # ...while the leaf cells themselves are untouched
     assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == 20
     assert pivoted.loc[("US",), ("AVG(num)", "boy")] == 10
+
+
+@pytest.mark.parametrize(
+    "aggregate_function,expected",
+    [
+        ("Sample Variance", 50.0),
+        ("Sample Standard Deviation", 50.0**0.5),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_aggregations(
+    aggregate_function: str, expected: float
+):
+    """Sample variance/standard deviation must compute for two values at one
+    pivot address (10 and 20 give variance 50 and standard deviation ~7.071),
+    not raise on a misspelled ``pd.series`` or a non-callable tuple.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US"],
+            "gender": ["boy", "boy"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "aggregate_function",
+    ["Sample Variance", "Sample Standard Deviation"],
+)
+def test_pivot_table_v2_sample_statistics_with_summaries(aggregate_function: str):
+    """Row and column summaries invoke the reducer with ``axis``; the sample
+    statistics must handle the DataFrame/axis form, not just a Series.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "FR", "FR"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 20, 30, 50],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert not pivoted.empty
+
+
+def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
+    """A result aggregation hides `showValuesAs` in Explore and always wins
+    over it on the chart (`resultFactory ?? fractionType` in utilities.ts);
+    a persisted `showValuesAs` left over from before `aggregateFunction` was
+    set must not silently turn an export/report into a percent table the
+    live chart no longer renders as one.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    without_show_values_as = {k: v for k, v in form_data.items() if k != "showValuesAs"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_without = pivot_table_v2(
+        grouping_sets_df(), without_show_values_as, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_without)
 
 
 def test_pivot_table_v2_actual_values_falls_back_without_rollups():

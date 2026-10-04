@@ -810,6 +810,38 @@ PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT = frozenset(
 )
 
 
+def _sample_dispersion(
+    data: Union[pd.DataFrame, pd.Series],
+    method: str,
+    axis: Optional[int] = None,
+) -> Any:
+    """
+    Sample variance/standard deviation that is 0 for a single observation.
+
+    Accepts a Series (cell aggregation) or a DataFrame reduced along ``axis``
+    (row/column summaries), mirroring how the other reducers are invoked.
+    """
+    if isinstance(data, pd.DataFrame):
+        axis = 0 if axis is None else axis
+        result = getattr(data, method)(axis=axis)
+        return result.fillna(0) if data.shape[axis] <= 1 else result
+    return getattr(data, method)() if len(data) > 1 else 0
+
+
+def sample_variance(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample variance (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "var", axis)
+
+
+def sample_standard_deviation(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample standard deviation (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "std", axis)
+
+
 pivot_v2_aggfunc_map = {
     "Count": pd.Series.count,
     "Count Unique Values": pd.Series.nunique,
@@ -817,10 +849,8 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.series.var(series) if len(series) > 1 else 0,
-    "Sample Standard Deviation": (
-        lambda series: pd.series.std(series) if len(series) > 1 else 0,
-    ),
+    "Sample Variance": sample_variance,
+    "Sample Standard Deviation": sample_standard_deviation,
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
     "First": lambda series: series[:1],
@@ -1066,14 +1096,34 @@ def pivot_table_v2(
     # totals.
     df, rollup_levels = split_grouping_sets_levels(df)
     show_values_as = form_data.get("showValuesAs")
+    # A result aggregation (anything but the default "Metric") takes over the
+    # cell/summary computation on the frontend and hides this control in
+    # Explore (see `aggregateFunction`'s `visibility` in controlPanel.tsx and
+    # `resultFactory ?? fractionType` in utilities.ts, where the result
+    # aggregation always wins) -- ignore a stale persisted `showValuesAs`
+    # the same way once a result aggregation is active, rather than applying
+    # a percent transform the live chart no longer shows.
+    aggregate_function_raw = form_data.get("aggregateFunction")
     percent_mode = (
-        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
+        show_values_as
+        if show_values_as in SHOW_VALUES_AS_PERCENT_MODES
+        and aggregate_function_raw in (None, "Metric")
+        else None
     )
+    # "Metric" (the new result-aggregation control's default, meaning "use the
+    # metric's own definition, no second aggregation pass") isn't a key in
+    # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
+    # has no result-aggregation support yet (see #44625's follow-up scope).
+    # Treat it, and any other value this map doesn't recognize, the same way
+    # an absent field always has been: fall back to "Sum".
+    aggregate_function = aggregate_function_raw
+    if aggregate_function not in pivot_v2_aggfunc_map:
+        aggregate_function = "Sum"
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
         "metrics": metrics,
-        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "aggfunc": aggregate_function,
         "transpose_pivot": bool(form_data.get("transposePivot")),
         "combine_metrics": bool(form_data.get("combineMetric")),
         "show_rows_total": bool(form_data.get("rowTotals")),
