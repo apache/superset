@@ -129,7 +129,7 @@
 
     // === React plugin rules ===
     "react/jsx-filename-extension": [
-      "warn",
+      "error",
       { "extensions": [".jsx", ".tsx"] }
     ],
     "react/jsx-fragments": "error",
