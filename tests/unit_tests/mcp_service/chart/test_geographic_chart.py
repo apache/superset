@@ -1732,9 +1732,7 @@ async def test_geographic_saved_adhoc_entity_exports(
 
 
 @pytest.mark.parametrize("name", ["position", "weight", "extraProps"])
-def test_point_columns_cannot_replace_native_spatial_fields(
-    field: str, name: str
-) -> None:
+def test_point_dimension_cannot_replace_native_spatial_fields(name: str) -> None:
     """Fixed-radius maps protect feature fields even without radius metrics."""
     with pytest.raises(ValidationError, match="conflicts with a native spatial field"):
         CHART_CONFIG_ADAPTER.validate_python(
