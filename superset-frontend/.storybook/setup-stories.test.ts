@@ -70,7 +70,7 @@ test.afterEach(() => {
   Reflect.deleteProperty(globalThis, '__storyResult');
 });
 
-test('fails when throwPlayFunctionExceptions is false and the play function throws', async () => {
+test('fails when play function throws regardless of throwPlayFunctionExceptions value', async () => {
   const sentinelError = new Error('Sentinel play-function error');
 
   await expect(
@@ -84,8 +84,28 @@ test('fails when throwPlayFunctionExceptions is false and the play function thro
       entry,
     ),
   ).rejects.toThrow('Sentinel play-function error');
+
+  await expect(
+    visitStory(
+      createPage({
+        play: async () => {
+          throw sentinelError;
+        },
+        throwPlayFunctionExceptions: true,
+      }),
+      entry,
+    ),
+  ).rejects.toThrow('Sentinel play-function error');
 });
 
 test('passes when the story completes without errors', async () => {
-  await expect(visitStory(createPage(), entry)).resolves.toBeUndefined();
+  await expect(
+    visitStory(
+      createPage({
+        play: async () => {},
+        throwPlayFunctionExceptions: true,
+      }),
+      entry,
+    ),
+  ).resolves.toBeUndefined();
 });
