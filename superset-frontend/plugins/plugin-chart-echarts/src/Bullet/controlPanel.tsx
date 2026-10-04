@@ -74,6 +74,9 @@ const config: ControlPanelConfig = {
                 'Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading.',
               ),
               visibility: ({ controls }) => Boolean(controls?.ranges?.value),
+              // Clearing the `ranges` text hides this control while it is
+              // being retyped; keep the picked colors across that hide.
+              resetOnHide: false,
               shouldMapStateToProps: () => true,
               mapStateToProps: (state: ControlPanelState) => ({
                 ranges: state?.controls?.ranges?.value as string,
