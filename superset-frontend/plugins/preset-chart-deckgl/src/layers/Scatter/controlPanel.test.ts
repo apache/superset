@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DatasourceType,
-  QueryFormData,
-  getChartControlPanelRegistry,
-} from '@superset-ui/core';
-import { ControlStateMapping } from '@superset-ui/chart-controls';
-import {
-  getAllControlsState,
-  getFormDataFromControls,
-} from 'src/explore/controlUtils';
+import { testGeographicTimeProvenance } from 'spec/helpers/geographicControlPanel';
 import controlPanel from './controlPanel';
 
 const controlNames = (): string[] =>
@@ -49,41 +40,4 @@ test('keeps the MCP geographic marker and row limit through Explore hydration', 
   );
 });
 
-test.each(['event_time', null])(
-  'Explore saves preserve dashboard-time provenance %s',
-  subject => {
-    const vizType = 'test-geographic-time-binding';
-    const registry = getChartControlPanelRegistry();
-    registry.registerValue(vizType, controlPanel);
-    try {
-      const input: QueryFormData = {
-        viz_type: vizType,
-        datasource: '3__table',
-        mcp_geographic: true,
-        _mcp_dashboard_time_filter_subject: subject,
-        adhoc_filters: subject
-          ? [
-              {
-                subject,
-                operator: 'TEMPORAL_RANGE',
-                comparator: 'No filter',
-                clause: 'WHERE',
-                expressionType: 'SIMPLE',
-              },
-            ]
-          : [],
-      };
-      const controls = getAllControlsState(
-        vizType,
-        DatasourceType.Table,
-        null,
-        input,
-      );
-      const saved = getFormDataFromControls(controls as ControlStateMapping);
-      expect(saved._mcp_dashboard_time_filter_subject).toBe(subject);
-      expect(saved.adhoc_filters).toEqual(input.adhoc_filters);
-    } finally {
-      registry.remove(vizType);
-    }
-  },
-);
+testGeographicTimeProvenance(controlPanel);
