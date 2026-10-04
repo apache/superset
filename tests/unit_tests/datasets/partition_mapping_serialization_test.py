@@ -492,6 +492,35 @@ def test_the_engine_transform_default_is_readable_over_the_api() -> None:
     assert "partition_value_transform_default" in DatasetRestApi.show_columns
 
 
+def test_the_show_endpoint_exposes_the_mapping_summary() -> None:
+    """
+    Saving a dataset from Explore reloads `GET /api/v1/dataset/<pk>` and
+    replaces the chart's datasource with the response -- a replacement, not a
+    merge -- so a summary this payload omits is lost on an unrelated save and
+    the pruning glyphs vanish until the page is reloaded.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert "partition_filter_mapping" in DatasetRestApi.show_columns
+
+
+def test_the_summary_is_reachable_under_the_name_the_payload_uses() -> None:
+    """
+    FAB resolves a `show_columns` entry as an attribute name, and the key the
+    indicator reads is `partition_filter_mapping` -- the editor spreads the
+    result straight onto the datasource, so the two have to be one name.
+    """
+    assert hasattr(SqlaTable, "partition_filter_mapping")
+
+
+def test_the_summary_alias_and_the_property_agree(app: Flask) -> None:
+    table = _table()
+
+    with app.app_context():
+        assert table.partition_filter_mapping == table.partition_filter_mapping_summary
+        assert table.partition_filter_mapping is not None
+
+
 def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
     """
     With the flag off nothing is mirrored, so an "active" summary would have the
