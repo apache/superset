@@ -52,8 +52,9 @@ the column's **Datetime format** (`python_date_format`) or the database's
 `python_date_format_by_column_name`. This fixes ranges that started and ended
 one day late on `DATE` columns holding `YYYY-MM-DD` text. A `DATE` column that
 holds values in another format, such as `20260920`, `09/20/2026` or epoch
-seconds, is no longer filtered correctly. Columns declared as `INTEGER` are not
-affected.
+seconds, now matches no rows, even with a Datetime format set. Columns declared
+as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
+with a time of day is cut to its date.
 
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
