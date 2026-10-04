@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 from flask import current_app
 from pytest_mock import MockerFixture
 
+from superset.models.sql_lab import Query
 from superset.sqllab.utils import requires_dataset_match
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 
@@ -63,8 +64,6 @@ def test_execute_validator_follows_config(mocker: MockerFixture) -> None:
 
 def test_query_raise_for_access_follows_config(mocker: MockerFixture) -> None:
     """Result fetch and export stay aligned with the execute-time check."""
-    from superset.models.sql_lab import Query
-
     raise_for_access: MagicMock = mocker.patch(
         "superset.models.sql_lab.security_manager.raise_for_access"
     )
