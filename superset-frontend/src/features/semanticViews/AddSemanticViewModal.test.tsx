@@ -458,6 +458,28 @@ test('the save payload carries every selected metric', async () => {
     },
     { timeout: 10000 },
   );
+  // Each metric pick schedules a debounced views refetch, and fetchViews()
+  // clears the current view selection before its response arrives. Waiting only
+  // for the combobox to enable leaves a later refetch in flight, which would
+  // drop the pick below and leave handleSave with nothing to create. Wait until
+  // the refetches have stopped before selecting.
+  const viewsFetchCount = () =>
+    mockedPost.mock.calls.filter(
+      ([{ endpoint }]) => endpoint === '/api/v1/semantic_layer/layer-1/views',
+    ).length;
+  let previousViewsFetches = -1;
+  await waitFor(
+    () => {
+      const current = viewsFetchCount();
+      const settled = current > 0 && current === previousViewsFetches;
+      previousViewsFetches = current;
+      if (!settled) {
+        throw new Error('views refetch still in flight');
+      }
+    },
+    { timeout: 15000, interval: 700 },
+  );
+
   await pickFromSelect(/semantic views/i, 'orders');
   await userEvent.click(
     screen.getByRole('button', { name: /add 1 view\(s\)/i }),

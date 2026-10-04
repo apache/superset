@@ -773,9 +773,9 @@ class MigrateTableChart(MigrateViz):
     # it into an ag-grid-table chart the frontend can't render at all: "Item
     # with key ag-grid-table is not registered."
     requires_feature_flag = "AG_GRID_TABLE_ENABLED"
-    # allow_rearrange_columns/allow_render_html are kept as-is: v2 reads them
-    # under the same names (see rename_keys below), so nothing to remove.
-    # (allow_rearrange_columns still gets a value materialized in
+    # allow_rearrange_columns/allow_render_html/header_groups are kept as-is:
+    # v2 reads them under the same names (see rename_keys below), so nothing
+    # to remove.(allow_rearrange_columns still gets a value materialized in
     # _pre_action below when the source chart omits the key.)
     remove_keys: set[str] = set()
     rename_keys: dict[str, str] = {}  # no renames needed; names match 1:1
