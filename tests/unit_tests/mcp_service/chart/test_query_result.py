@@ -2756,7 +2756,9 @@ def test_query_result_normalizes_bounded_ndarray_shapes(
     assert data == [[{"value": expected}]]
 
 
-def test_query_result_ndarray_retains_container_guards() -> None:
+def test_query_result_ndarray_retains_container_guards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Exact ndarray support retains width, depth, cycle and subclass guards."""
 
     class HostileArray(np.ndarray):
@@ -2776,7 +2778,6 @@ def test_query_result_ndarray_retains_container_guards() -> None:
         np.broadcast_to(
             np.array(0), (query_result_module._MAX_ROW_CONTAINER_ITEMS + 1,)
         ),
-        np.zeros((1,) * (query_result_module._MAX_ROW_CONTAINER_DEPTH + 1)),
         np.array([1]).view(HostileArray),
         np.array([_HostileInt(1)], dtype=object),
     ]
@@ -2785,6 +2786,19 @@ def test_query_result_ndarray_retains_container_guards() -> None:
         assert data is None
         assert failure is not None
         assert failure.error_type == "MalformedQueryResult"
+
+    # Keep the array below NumPy 1.x's 32-dimensional limit.
+    value = np.zeros((1, 1, 1))
+    data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+    assert failure is None
+    assert data == [[{"value": [[[0.0]]]}]]
+    with monkeypatch.context() as limits:
+        limits.setattr(query_result_module, "_MAX_ROW_CONTAINER_DEPTH", 2)
+        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"
+        assert "nesting depth limit" in failure.error
 
 
 def test_query_result_ndarray_charges_work_and_wire_bytes(
