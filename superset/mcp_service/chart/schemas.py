@@ -3904,9 +3904,18 @@ class DeckScatterChartConfig(GeographicChartConfig):
 
     @model_validator(mode="after")
     def validate_coordinates(self) -> "DeckScatterChartConfig":
-        """Latitude and longitude must be distinct source columns."""
+        """Require distinct coordinates and protect computed spatial fields."""
         if self.latitude.name == self.longitude.name:
             raise ValueError("latitude and longitude must reference different columns")
+        if self.dimension is not None and self.dimension.name in {
+            "position",
+            "weight",
+            "extraProps",
+        }:
+            raise ValueError(
+                f"Dimension column {self.dimension.name!r} "
+                "conflicts with a native spatial field"
+            )
         return self
 
 

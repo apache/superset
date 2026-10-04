@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { WORLD_BOUNDARY_IDS } from '../src/worldGeometry';
 import { getCountry } from '../src/countries';
 import transformData from '../src/transformData';
 
@@ -144,6 +147,8 @@ test.each(['Curaçao', 'Curacao', 'CURAÇAO'])(
         ...formData,
         countryFieldtype: 'name',
         strict: true,
+        showBubbles: true,
+        secondaryMetric: formData.metric,
       }),
     ).toMatchObject([{ country: 'CUW', name: 'Curacao', m1: 1 }]);
     expect(data[0].country_code).toBe(country);
@@ -179,3 +184,59 @@ test.each(['cca2', 'cca3', 'cioc', 'name'])(
     expect(transformData(records, options)[0].country).toBe('XXX');
   },
 );
+
+test('world boundary snapshots match the real imported Datamaps topology', () => {
+  const Datamap = jest.requireActual<{
+    prototype: {
+      worldTopo: { objects: { world: { geometries: { id: string }[] } } };
+    };
+  }>('datamaps/dist/datamaps.all.min');
+  const geometryIds = new Set(
+    Datamap.prototype.worldTopo.objects.world.geometries.map(
+      geometry => geometry.id,
+    ),
+  );
+  expect(geometryIds.has('USA')).toBe(true);
+  expect(geometryIds.has('SGP')).toBe(false);
+  expect(WORLD_BOUNDARY_IDS).toEqual(geometryIds);
+  const backend = readFileSync(
+    resolve(__dirname, '../../../../superset/utils/geographic_world.py'),
+    'utf8',
+  );
+  const backendIds = new Set(
+    Array.from(backend.matchAll(/"([A-Z]{3}|-99)"/g), match => match[1]),
+  );
+  expect(backendIds).toEqual(geometryIds);
+});
+
+test('strict choropleths reject Singapore while bubbles can draw it', () => {
+  const records = [{ country_code: 'SG', sum__num: 42 }];
+  const options = { ...formData, countryFieldtype: 'cca2', strict: true };
+  expect(() => transformData(records, options)).toThrow(
+    'SGP has no world-map boundary',
+  );
+  expect(
+    transformData(records, {
+      ...options,
+      showBubbles: true,
+      secondaryMetric: formData.metric,
+    })[0],
+  ).toMatchObject({ country: 'SGP', m1: 42, m2: 42 });
+  expect(transformData(records, { ...options, strict: false })[0].country).toBe(
+    'SGP',
+  );
+});
+
+test('saved Custom SQL entities resolve their result label', () => {
+  expect(
+    transformData([{ region: 'USA', sum__num: 42 }], {
+      ...formData,
+      entity: {
+        sqlExpression: 'UPPER(country_code)',
+        label: 'region',
+        expressionType: 'SQL',
+      },
+      strict: true,
+    })[0],
+  ).toMatchObject({ country: 'USA', sourceValue: 'USA', m1: 42 });
+});

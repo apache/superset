@@ -4075,6 +4075,10 @@ msgstr ""
 msgid "Country"
 msgstr ""
 
+#, python-format
+msgid "Country %s has no world-map boundary; enable bubbles or filter the dataset."
+msgstr ""
+
 msgid "Country Color Scheme"
 msgstr ""
 

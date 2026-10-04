@@ -469,3 +469,44 @@ test.each(['position', 'weight', 'extraProps'])(
     expect(transformProps(props).payload.data.features).toEqual([]);
   },
 );
+
+test.each(['position', 'weight', 'extraProps'])(
+  'fixed-radius scatter keeps coordinates when dimension is %s',
+  dimension => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        dimension,
+        point_radius_fixed: { type: 'fix', value: 100 },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [dimension]: 'A' }] },
+      ],
+    };
+    const result = transformProps(props as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0].position).toEqual([-122.4, 37.8]);
+    expect(features[0].cat_color).toBe('A');
+    expect(features[0].radius).toBe(100);
+  },
+);
+
+test('legacy scatter reads a weight radius from the source without replacing geometry', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      point_radius_fixed: { type: 'metric', value: 'weight' },
+    },
+    queriesData: [
+      { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, weight: 42 }] },
+    ],
+  };
+  const features = transformProps(props as ChartProps).payload.data
+    .features as ScatterFeature[];
+  expect(features[0].position).toEqual([-122.4, 37.8]);
+  expect(features[0].radius).toBe(42);
+});

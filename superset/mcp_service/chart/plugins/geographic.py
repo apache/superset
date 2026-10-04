@@ -35,6 +35,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.query_result import (
+    column_result_label,
     metric_result_label,
     query_result_failure,
 )
@@ -121,6 +122,23 @@ def _world_country_entries(field: str) -> tuple[tuple[str, str], ...]:
     return tuple(
         (country[field], country["cca3"]) for country in countries if country[field]
     )
+
+
+def _metric_expression(metric: object) -> tuple[object, ...] | None:
+    """Identify native metric expressions without UI labels or column metadata."""
+    if isinstance(metric, str):
+        return ("saved", metric)
+    if not isinstance(metric, Mapping):
+        return None
+    expression_type = metric.get("expressionType")
+    if expression_type == "SQL" and isinstance(metric.get("sqlExpression"), str):
+        return (expression_type, metric["sqlExpression"])
+    column = metric.get("column")
+    if expression_type == "SIMPLE" and isinstance(column, Mapping):
+        name = column.get("column_name") or column.get("columnName")
+        if isinstance(name, str) and isinstance(metric.get("aggregate"), str):
+            return (expression_type, metric["aggregate"], name)
+    return None
 
 
 def _typed_row_limit(form_data: Mapping[str, Any]) -> int:
@@ -427,8 +445,8 @@ class CountryMapChartPlugin(GeographicChartPlugin):
         """Resolve the row to one bundled region boundary."""
         from superset.utils.geographic import resolve_region
 
-        entity = form_data.get("entity")
-        if not isinstance(entity, str):
+        entity = column_result_label(form_data.get("entity"))
+        if entity is None:
             raise ValueError("Geographic maps require an entity column")
         # Explore's legacy format uses full boundary ISO codes without normalization.
         return resolve_region(
@@ -488,6 +506,10 @@ class WorldMapChartPlugin(GeographicChartPlugin):
             and metric is not None
             and secondary is not None
             and metric != secondary
+            and (
+                _metric_expression(metric) is None
+                or _metric_expression(metric) != _metric_expression(secondary)
+            )
             and metric_result_label(metric) == metric_result_label(secondary)
         ):
             raise ValueError(
@@ -525,9 +547,10 @@ class WorldMapChartPlugin(GeographicChartPlugin):
     ) -> str | None:
         """Resolve the row to one ISO 3166-1 alpha-3 country."""
         from superset.utils.geographic import resolve_geographic_value
+        from superset.utils.geographic_world import WORLD_BOUNDARY_IDS
 
-        entity = form_data.get("entity")
-        if not isinstance(entity, str):
+        entity = column_result_label(form_data.get("entity"))
+        if entity is None:
             raise ValueError("Geographic maps require an entity column")
         field = form_data.get("country_fieldtype")
         if field not in {"name", "cca2", "cca3", "cioc"}:
@@ -536,11 +559,18 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         # as "Curaçao" reach their country. The ISO code fields are too short
         # to fold safely: an accented label like "Áo" would fold onto an
         # unrelated country's code and resolve silently to the wrong country.
-        return resolve_geographic_value(
+        identifier = resolve_geographic_value(
             row.get(entity),
             _world_country_entries(field),
             fold_diacritics=field == "name",
         )
+
+        if not _bubbles_shown(form_data) and identifier not in WORLD_BOUNDARY_IDS:
+            raise ValueError(
+                f"Country {identifier} has no bundled world-map boundary; "
+                "enable bubbles with a secondary metric or filter the dataset"
+            )
+        return identifier
 
 
 class DeckScatterChartPlugin(GeographicChartPlugin):

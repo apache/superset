@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getColumnLabel, getMetricLabel } from '@superset-ui/core';
+import {
+  getColumnLabel,
+  getMetricLabel,
+  QueryFormColumn,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { getCountry } from './countries';
+import { WORLD_BOUNDARY_IDS } from './worldGeometry';
 
 export interface WorldMapDataRow {
   country: string;
@@ -40,7 +45,7 @@ export interface WorldMapDataRow {
 export default function transformData(
   records: Record<string, unknown>[],
   options: {
-    entity?: string;
+    entity?: QueryFormColumn;
     metric?: unknown;
     secondaryMetric?: unknown;
     countryFieldtype?: string;
@@ -80,6 +85,14 @@ export default function transformData(
         throw new Error(
           t(
             'Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation.',
+          ),
+        );
+      }
+      if (!options.showBubbles && !WORLD_BOUNDARY_IDS.has(countryInfo.cca3)) {
+        throw new Error(
+          t(
+            'Country %s has no world-map boundary; enable bubbles or filter the dataset.',
+            countryInfo.cca3,
           ),
         );
       }

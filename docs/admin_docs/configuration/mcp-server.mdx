@@ -1572,7 +1572,9 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   `show_bubbles: true` and supply `secondary_metric` for size (it may be the
   same metric). A `secondary_metric` kept with `show_bubbles: false` is not
   rendered, so its values are not validated. Superset's bundled
-  world-country dictionary defines coverage.
+  world topology defines choropleth coverage, not the broader country
+  dictionary. Countries without a polygon (such as Singapore) require bubbles
+  or an explicit dataset filter; otherwise MCP validation returns an error.
 - **Geographic points:** set `chart_type: "deck_scatter"`,
   `latitude: {"name": "latitude"}`, and `longitude: {"name": "longitude"}`.
   Numeric coordinates must be within ±90 and ±180 respectively. Optional
@@ -1580,7 +1582,8 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   size at each location. Otherwise `radius` is fixed in `point_unit`: `radius_m` (default), `radius_km`,
   `radius_miles`, `square_m`, `square_km`, or `square_miles`. Native minimum
   and maximum on-screen radii are 2 and 250 pixels. Spatial null filters
-  exclude rows without coordinates. Radius metric aliases cannot be `position`,
+  exclude rows without coordinates. Dimension columns and radius
+  metric aliases cannot be `position`,
   `weight`, or `extraProps`, which are reserved native spatial feature fields.
 
 Explore saves preserve generated dashboard-time binding provenance. Explicit
@@ -1604,6 +1607,8 @@ After switching a point map to Geohash or delimited coordinates in Explore,
 coordinates use the native spatial decoder rather than the typed latitude/longitude
 guard; radius-metric validation remains active. This display behavior does not
 relax MCP generation's result validation.
+Country and world maps edited in Explore can use Custom SQL entities; MCP
+reads and exports resolve the saved entity's output label (or SQL expression).
 Source values remain intact for data/export and country-map cross-filtering.
 Database `NUMERIC`/Decimal query coordinates and metrics are supported when
 finite and representable as JSON numbers. Coordinate bounds are checked before

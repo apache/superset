@@ -423,8 +423,8 @@ test('popupTemplate handles null/undefined country data gracefully', () => {
 });
 
 test.each([
-  ['name', 'Curaçao', 'CUW'],
-  ['name', 'CURAÇAO', 'CUW'],
+  ['name', 'México', 'MEX'],
+  ['name', 'MÉXICO', 'MEX'],
   ['cca2', 'fr', 'FRA'],
 ])(
   'cross-filters and drills preserve source %s value %s',

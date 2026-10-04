@@ -127,23 +127,32 @@ function processScatterData(
       extraProps: feature.extraProps || {},
     };
 
+    // Reserved source columns live in extraProps to protect computed geometry.
+    const getSourceValue = (column?: string): unknown =>
+      column
+        ? feature.extraProps && column in feature.extraProps
+          ? feature.extraProps[column]
+          : feature[column]
+        : undefined;
+
     // Handle radius: either from metric or fixed value
     if (fixedRadiusValue != null) {
       // Use fixed radius value for all points
       if (parsedFixedRadius !== undefined) {
         scatterPoint.radius = parsedFixedRadius;
       }
-    } else if (radiusMetricLabel && feature[radiusMetricLabel] != null) {
+    } else if (radiusMetricLabel) {
       // Use metric value for radius
-      const radiusValue = parseMetricValue(feature[radiusMetricLabel]);
+      const radiusValue = parseMetricValue(getSourceValue(radiusMetricLabel));
       if (radiusValue !== undefined) {
         scatterPoint.radius = radiusValue;
         scatterPoint.metric = radiusValue;
       }
     }
 
-    if (categoryColumn && feature[categoryColumn] != null) {
-      scatterPoint.cat_color = String(feature[categoryColumn]);
+    const categoryValue = getSourceValue(categoryColumn);
+    if (categoryValue != null) {
+      scatterPoint.cat_color = String(categoryValue);
     }
 
     scatterPoint = addPropertiesToFeature(

@@ -1277,7 +1277,12 @@ def test_decimal_geographic_metric_rejects_non_json_numbers(value: object) -> No
 @pytest.mark.parametrize("value", ["Curaçao", "Åland Islands", "Réunion", "Curacao"])
 def test_world_map_accepts_accented_country_names(value: str) -> None:
     """Accented spellings resolve to their unaccented bundled alias."""
-    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
     result = result_for("world_map")
     result["queries"][0]["data"][0][form["entity"]] = value
     assert not isinstance(normalize_chart_query_result(result, form), ChartError)
@@ -1285,7 +1290,12 @@ def test_world_map_accepts_accented_country_names(value: str) -> None:
 
 def test_world_map_accented_and_plain_names_resolve_alike() -> None:
     """Both spellings reach one country, so the pair is a duplicate, not a miss."""
-    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
     result = result_for("world_map")
     row = result["queries"][0]["data"][0]
     result["queries"][0]["data"] = [
@@ -1299,7 +1309,12 @@ def test_world_map_accented_and_plain_names_resolve_alike() -> None:
 
 def test_world_map_folding_still_rejects_unknown_values() -> None:
     """Folding widens accepted spellings without inventing a country."""
-    form = {**form_for("world_map"), "country_fieldtype": "name"}
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
     result = result_for("world_map")
     result["queries"][0]["data"][0][form["entity"]] = "Cürãçaoland"
     assert isinstance(normalize_chart_query_result(result, form), ChartError)
@@ -1642,3 +1657,146 @@ def test_legacy_country_format_still_rejects_unmatched_boundaries(value: str) ->
             {"state": value},
             {**form_for("country_map"), "region_format": None},
         )
+
+
+@pytest.mark.parametrize("expression", ["SIMPLE", "SQL"])
+def test_world_map_row_limit_update_preserves_equivalent_bubble_metric(
+    expression: str,
+) -> None:
+    """UI option names and column metadata do not change metric semantics."""
+    metric = (
+        {"name": "sales", "aggregate": "SUM"}
+        if expression == "SIMPLE"
+        else {"sql_expression": "SUM(sales)", "label": "sales_total"}
+    )
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES["world_map"][0],
+            "metric": metric,
+            "secondary_metric": metric,
+            "show_bubbles": True,
+        }
+    )
+    old = map_config_to_form_data(config)
+    old["secondary_metric"]["optionName"] = "metric_explore_saved"
+    if expression == "SIMPLE":
+        old["secondary_metric"]["column"].update(id=42, type="DOUBLE")
+    update = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES["world_map"][0], "metric": metric, "row_limit": 50}
+    )
+    merged = merge_chart_form_data(old, map_config_to_form_data(update), update)
+    assert merged["row_limit"] == 50
+    assert merged["metric"] != merged["secondary_metric"]
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    assert plugin.validate_merged_form_data(merged, 3) is None
+    fields = plugin.resolve_query_fields(merged, "world_map")
+    assert fields is not None
+    metrics, _ = fields
+    assert len(metrics) == 1
+
+
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+@pytest.mark.parametrize("label", ["region", None])
+def test_geographic_adhoc_entity_result_label(kind: str, label: str | None) -> None:
+    """Explore Custom SQL entities resolve like native getColumnLabel."""
+    form = form_for(kind)
+    source = result_for(kind)
+    entity = form["entity"]
+    sql = f"UPPER({entity})"
+    form["entity"] = {"sqlExpression": sql, "label": label}
+    row = source["queries"][0]["data"][0]
+    row[label or sql] = row.pop(entity)
+    assert normalize_chart_query_result(source, form) is source
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+async def test_geographic_saved_adhoc_entity_exports(
+    kind: str, export_format: str
+) -> None:
+    """Saved Custom SQL entities remain readable in all MCP export formats."""
+    entity = form_for(kind)["entity"]
+    value = result_for(kind)["queries"][0]["data"][0][entity]
+    await _exercise_geographic_data_export(
+        kind,
+        "saved",
+        True,
+        export_format,
+        form_overrides={
+            "entity": {"sqlExpression": f"UPPER({entity})", "label": "region"}
+        },
+        row_overrides={"region": value},
+    )
+
+
+@pytest.mark.parametrize("name", ["position", "weight", "extraProps"])
+def test_point_columns_cannot_replace_native_spatial_fields(
+    field: str, name: str
+) -> None:
+    """Fixed-radius maps protect feature fields even without radius metrics."""
+    with pytest.raises(ValidationError, match="conflicts with a native spatial field"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {**_CHART_EXAMPLES["deck_scatter"][0], "dimension": {"name": name}}
+        )
+
+
+@pytest.mark.parametrize("show_bubbles", [False, True])
+def test_world_map_singapore_requires_visible_bubbles(show_bubbles: bool) -> None:
+    """A dictionary match without a boundary cannot silently vanish."""
+    form = form_for("world_map")
+    form.update(show_bubbles=show_bubbles, secondary_metric=form["metric"])
+    source = result_for("world_map")
+    source["queries"][0]["data"][0][form["entity"]] = "SG"
+    result = normalize_chart_query_result(source, form)
+    if show_bubbles:
+        assert result is source
+    else:
+        assert isinstance(result, ChartError)
+        assert "SGP" in result.error
+        assert "boundary" in result.error
+
+
+@pytest.mark.parametrize(
+    "secondary",
+    [
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "AVG",
+            "column": {"column_name": "sales"},
+        },
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "SUM",
+            "column": {"column_name": "profit"},
+        },
+        {"expressionType": "SQL", "sqlExpression": "AVG(sales)"},
+    ],
+)
+def test_world_map_shared_label_with_different_expression_is_rejected(
+    secondary: dict[str, Any],
+) -> None:
+    """Ignoring metadata must not hide real aggregate/column/SQL differences."""
+    form = form_for("world_map")
+    form.update(
+        show_bubbles=True,
+        secondary_metric={**secondary, "label": metric_result_label(form["metric"])},
+    )
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    with pytest.raises(ValueError, match="distinct result labels"):
+        plugin.validate_merged_form_data(form, 3)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry", ["generate_chart", "update_chart", "generate_explore_link"]
+)
+async def test_world_map_missing_boundary_fails_public_compile(entry: str) -> None:
+    """A valid dictionary alias without a polygon cannot compile as a choropleth."""
+    result = result_for("world_map")
+    result["queries"][0]["data"][0]["country"] = "SG"
+    await _exercise_public_geographic_entry(
+        "world_map", False, entry, True, result_override=result
+    )
