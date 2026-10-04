@@ -20,7 +20,7 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any, cast, TYPE_CHECKING
 from unittest.mock import Mock, patch
 
@@ -265,14 +265,14 @@ class TestChartSqlJinjaContext:
 
         from superset.common.query_object import QueryObject
 
-        get_data_command_module = importlib.import_module(
+        get_data_command_module: ModuleType = importlib.import_module(
             "superset.commands.chart.data.get_data_command"
         )
-        query = QueryObject(
+        query: QueryObject = QueryObject(
             filters=[{"col": "region", "op": "IN", "val": ["North"]}],
             time_range="Last week",
         )
-        query_context = SimpleNamespace(
+        query_context: SimpleNamespace = SimpleNamespace(
             queries=[query],
             form_data={"url_params": {"tenant": "acme"}},
             datasource=SimpleNamespace(id=7, type="table"),
@@ -289,7 +289,7 @@ class TestChartSqlJinjaContext:
             self._command_observing_jinja(observed),
         )
 
-        chart = SimpleNamespace(
+        chart: SimpleNamespace = SimpleNamespace(
             id=1,
             slice_name="Sales",
             datasource_name="orders",
@@ -297,7 +297,7 @@ class TestChartSqlJinjaContext:
             datasource_type="table",
         )
         with current_app.test_request_context():
-            result = _sql_from_form_data(
+            result: ChartSql | ChartError = _sql_from_form_data(
                 {
                     "datasource_id": 7,
                     "datasource_type": "table",
@@ -319,14 +319,14 @@ class TestChartSqlJinjaContext:
 
         from superset.common.query_object import QueryObject
 
-        get_data_command_module = importlib.import_module(
+        get_data_command_module: ModuleType = importlib.import_module(
             "superset.commands.chart.data.get_data_command"
         )
-        query = QueryObject(
+        query: QueryObject = QueryObject(
             filters=[{"col": "region", "op": "IN", "val": ["North"]}],
             time_range="Last week",
         )
-        query_context = SimpleNamespace(
+        query_context: SimpleNamespace = SimpleNamespace(
             queries=[query],
             form_data={"url_params": {"tenant": "acme"}},
         )
@@ -346,7 +346,7 @@ class TestChartSqlJinjaContext:
             self._command_observing_jinja(observed),
         )
 
-        chart = SimpleNamespace(
+        chart: SimpleNamespace = SimpleNamespace(
             id=1,
             slice_name="Sales",
             datasource_name="orders",
@@ -355,7 +355,9 @@ class TestChartSqlJinjaContext:
             query_context='{"datasource": {"id": 7, "type": "table"}, "queries": [{}]}',
         )
         with current_app.test_request_context():
-            result = _sql_from_saved_query_context(cast(Any, chart))
+            result: ChartSql | ChartError | None = _sql_from_saved_query_context(
+                cast(Any, chart)
+            )
 
         assert isinstance(result, ChartSql)
         assert observed["ran"] is True
