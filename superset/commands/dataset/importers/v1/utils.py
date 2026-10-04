@@ -50,6 +50,7 @@ from superset.commands.importers.v1.utils import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import (
     FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    is_unfinished,
     stored_expression_error,
     validate_transform,
 )
@@ -318,8 +319,18 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
             continue
 
         reasons: list[str] = []
-        if reason := stored_expression_error(database, catalog, schema, transform):
-            reasons.append(reason)
+        # Skipped only for a transform that is not SQL yet, which is the same
+        # condition `UpdateDatasetCommand` puts in front of this gate. A PUT
+        # stores a half-typed transform and reports the mapping inactive, and
+        # `stored_expression_error` fails closed on anything that does not
+        # parse -- as it must, for the probe's sake. Asking it here
+        # unconditionally made export-then-import discard configuration the
+        # editor keeps, flag on or off. Note this is narrower than "does not
+        # parse": a multi-statement transform also fails to parse as a
+        # statement, and it still has to be dropped.
+        if not is_unfinished(transform, database.backend):
+            if reason := stored_expression_error(database, catalog, schema, transform):
+                reasons.append(reason)
         if check_usability:
             reasons.extend(
                 str(issue.message)
@@ -329,9 +340,11 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
 
         if reasons:
             logger.warning(
-                "Dropping the partition value transform on %s.%s during import: %s",
+                "Dropping the partition value transform on %s.%s (dataset %s) "
+                "during import: %s",
                 config.get("table_name"),
                 column.get("column_name"),
+                config.get("uuid"),
                 "; ".join(reasons),
             )
             column["partition_value_transform"] = None

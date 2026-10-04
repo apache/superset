@@ -111,7 +111,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, feature_flag_manager
-from superset.sql.parse import SQLStatement
+from superset.sql.parse import SQLScript, SQLStatement
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
@@ -403,6 +403,31 @@ def is_bare_expression(transform: str | None, engine: str) -> bool:
         and statement.is_bare_select_expression()
         and not statement.has_subquery()
     )
+
+
+def is_unfinished(transform: str | None, engine: str) -> bool:
+    """
+    Whether the transform is not SQL yet, as opposed to the wrong SQL.
+
+    The distinction matters because the two deserve opposite treatment. A
+    half-typed ``unix_timestamp(:value`` is what a text input produces on the
+    way to something valid: a PUT stores it and reports the mapping inactive,
+    so discarding it would mean an export could not round-trip the dataset it
+    came from. ``unix_timestamp(:value); DROP TABLE t`` is not on the way to
+    anything, and has to be refused wherever it is offered.
+
+    Both fail `is_parseable`, and both fail to parse as a single *statement* --
+    so neither of those tells them apart. Parsing as a *script* does: the
+    multi-statement form is two valid statements, while unfinished text is no
+    statement at all.
+    """
+    if not transform or not transform.strip():
+        return False
+    try:
+        SQLScript(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
+    except SupersetParseError:
+        return True
+    return False
 
 
 def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
