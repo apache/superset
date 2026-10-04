@@ -135,6 +135,11 @@ export default function CRUDCollection({
     initialKeyed.current!.collectionArray.map(item => item.id),
   );
 
+  const sortRef = useRef<SortOrderEnum>(SortOrderEnum.Unsorted);
+  sortRef.current = sort;
+  const collectionArrayRef = useRef<CollectionItem[]>(collectionArray);
+  collectionArrayRef.current = collectionArray;
+
   // Sync with props.collection changes
   useEffect(() => {
     const { collection: newCollection, collectionArray: newCollectionArray } =
@@ -144,7 +149,19 @@ export default function CRUDCollection({
     // Refresh the restore order too, so that clearing a sort after an
     // external sync (e.g. a source-control-synced column set) reflects the
     // synced order and row set instead of stale, pre-sync ids.
-    unsortedOrderRef.current = newCollectionArray.map(item => item.id);
+    // While sorted, a sync whose row order matches what is already displayed
+    // is the parent echoing back our own sorted onChange; it must not
+    // overwrite the restore order with the sorted order. Any other sync is
+    // external and defines the new restore order.
+    const newIds = newCollectionArray.map(item => item.id);
+    const displayedIds = collectionArrayRef.current.map(item => item.id);
+    const isEcho =
+      sortRef.current !== SortOrderEnum.Unsorted &&
+      newIds.length === displayedIds.length &&
+      newIds.every((id, i) => id === displayedIds[i]);
+    if (!isEcho) {
+      unsortedOrderRef.current = newIds;
+    }
   }, [propsCollection]);
 
   useEffect(() => {

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -139,4 +140,59 @@ test('restores the synced order after a sort is cleared following an external re
   expect(rows[0].textContent).toContain('b_col');
   expect(rows[1].textContent).toContain('c_col');
   expect(rows[2].textContent).toContain('a_col');
+});
+
+test('restores the original order after a sort is cleared when the parent echoes onChange back', () => {
+  const initial = [
+    { id: 1, column_name: 'c_col', type: 'VARCHAR' },
+    { id: 2, column_name: 'a_col', type: 'VARCHAR' },
+    { id: 3, column_name: 'b_col', type: 'VARCHAR' },
+  ];
+
+  const Parent = () => {
+    const [collection, setCollection] = useState(initial);
+    return (
+      <CollectionTable
+        collection={collection}
+        tableColumns={['column_name', 'type']}
+        sortColumns={['column_name']}
+        itemRenderers={{
+          type: (val, onItemChange, _label, record) => (
+            <input
+              data-test={`type-input-${record.id}`}
+              value={val as string}
+              onChange={e => onItemChange(e.target.value)}
+            />
+          ),
+        }}
+        onChange={items => setCollection(items as typeof initial)}
+      />
+    );
+  };
+
+  const { container } = render(<Parent />);
+  const sorter = container.querySelector('.ant-table-column-sorters');
+  expect(sorter).toBeInTheDocument();
+
+  // Ascending sort, then edit a row so the parent echoes the sorted array.
+  fireEvent.click(sorter!);
+  const input = container.querySelector(
+    '[data-test="type-input-2"]',
+  ) as HTMLInputElement;
+  expect(input).toBeInTheDocument();
+  fireEvent.change(input, { target: { value: 'EDITED' } });
+
+  // ascend -> descend -> cancel
+  fireEvent.click(sorter!);
+  fireEvent.click(sorter!);
+
+  const rows = container.querySelectorAll('.ant-table-tbody tr');
+  expect(rows).toHaveLength(3);
+  expect(rows[0].textContent).toContain('c_col');
+  expect(rows[1].textContent).toContain('a_col');
+  expect(rows[2].textContent).toContain('b_col');
+  expect(
+    (container.querySelector('[data-test="type-input-2"]') as HTMLInputElement)
+      .value,
+  ).toBe('EDITED');
 });
