@@ -36,6 +36,7 @@ from flask import Flask
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -82,6 +83,27 @@ def _table(
             column.partition_value_transform = transform
             column.partition_transform_is_monotonic = monotonic
     return table
+
+
+def _rendering_dates_like_presto(table: SqlaTable) -> Any:
+    """
+    Make the dataset's engine spec render a bound the way Presto does.
+
+    `Database.db_engine_spec` is a derived property, so the spec cannot be
+    swapped wholesale; delegating `convert_dttm` keeps the test tied to the real
+    spec rather than to a hand-copied format string. Presto's DATE branch is
+    `DATE '{dttm.date().isoformat()}'`, which Trino, BigQuery and some two dozen
+    others share.
+    """
+    return patch.object(
+        table.database.db_engine_spec,
+        "convert_dttm",
+        classmethod(
+            lambda cls, target_type, dttm, db_extra=None: PrestoEngineSpec.convert_dttm(
+                target_type, dttm, db_extra=db_extra
+            )
+        ),
+    )
 
 
 def _query(table: SqlaTable, **kwargs: Any) -> str:
@@ -629,6 +651,142 @@ def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
         datetime(2026, 2, 1, 0, 0, 1),
     ]
     assert "dt_epoch <= 2" in sql
+
+
+def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
+    app: Flask,
+) -> None:
+    """
+    Presto, Trino, BigQuery and some two dozen other specs render a DATE bound
+    as `dttm.date().isoformat()`, so a 10:00 lower bound reaches the engine as
+    `DATE '2026-01-01'` while the probe was handed 10:00. A Jan-1 row then has
+    `dt_epoch = T(DATE '2026-01-01')`, which satisfies the real predicate and
+    *fails* the mirror -- the whole first day is dropped.
+
+    Rounding to the second cannot fix this: there is no sub-second part to
+    floor, and flooring one would leave 10:00 exactly where it was.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                sql = _query(
+                    table,
+                    granularity="event_date",
+                    from_dttm=datetime(2026, 1, 1, 10, 0),
+                    to_dttm=datetime(2026, 1, 2, 10, 0),
+                )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0),
+        datetime(2026, 1, 3, 0, 0),
+    ]
+    # Ceiled, so only safe inclusive -- exactly as a grain-widened bound is.
+    assert "dt_epoch <= 2" in sql
+
+
+def test_a_day_resolution_bound_already_at_midnight_is_left_alone(
+    app: Flask,
+) -> None:
+    """
+    Widening is outward-only, so a bound that already sits on the day boundary
+    needs nothing done to it -- and the upper bound must not be pushed out a
+    whole extra day for no reason.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                _query(
+                    table,
+                    granularity="event_date",
+                    from_dttm=datetime(2026, 1, 1),
+                    to_dttm=datetime(2026, 2, 1),
+                )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0),
+        datetime(2026, 2, 1, 0, 0),
+    ]
+
+
+def test_an_equality_is_not_mirrored_when_the_engine_drops_the_time(
+    app: Flask,
+) -> None:
+    """
+    An ungrained temporal equality -- what drill-to-detail builds -- compares
+    `event_date = DATE '2026-01-01'` on such an engine, so a mirror probed with
+    10:00 asks for a key no row holds. These entries are AND-ed onto the query,
+    so unlike a range there is nowhere to widen to: the only safe answer is to
+    emit no mirror and lose the pruning.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": datetime(2026, 1, 1, 10, 0),
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
+def test_an_equality_at_midnight_still_mirrors_on_a_date_column(
+    app: Flask,
+) -> None:
+    """
+    The guard above is about *lost* precision, not about DATE columns: at
+    midnight the engine's literal and the probe's value agree, so the mirror is
+    exact and the pruning is kept.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767225600]):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": datetime(2026, 1, 1),
+                        }
+                    ],
+                )
+
+    assert "dt_epoch = 1767225600" in sql
 
 
 def test_the_probe_keeps_full_precision_on_an_engine_that_does_not_truncate(

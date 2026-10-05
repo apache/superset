@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -457,6 +458,23 @@ def _shift_grainless_temporal_source(
         return value + (get_past_or_future(offset, truncated) - truncated)
 
     return source.map(shift)
+
+
+class LiteralResolution(Enum):
+    """
+    How much of a `datetime` survives into an engine's SQL literal for a column.
+
+    A mirror has to describe a range no narrower than the predicate it stands in
+    for, so the probe's bounds have to be widened to whatever the engine's own
+    literal resolves to -- see `ExploreMixin._engine_literal_resolution`.
+    """
+
+    #: The literal carries the full value, so the bounds need no widening.
+    FULL = "full"
+    #: The literal is floored to the second.
+    SECOND = "second"
+    #: The literal is a bare date; the time of day is absent entirely.
+    DAY = "day"
 
 
 class CachedTimeOffset(TypedDict):
@@ -4389,63 +4407,136 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return int(dttm_tz_aware.timestamp()) * EPOCH_FORMATS[tf]
         return dttm.strftime(tf)
 
-    def _engine_drops_subseconds(
+    def _engine_literal_resolution(
         self, dttm: datetime, col: Optional["TableColumn"]
-    ) -> bool:
+    ) -> LiteralResolution:
         """
-        Whether this engine's literal for ``dttm`` loses the sub-second part.
+        How much of ``dttm`` survives into this engine's literal for ``col``.
 
-        SQLite renders a timestamp with ``timespec="seconds"``, so the real
-        predicate compares a floored bound while the probe is handed the full
-        precision -- which makes the mirror *narrower* than the predicate it
-        stands in for, and narrower means dropped rows.
+        The real predicate compares `dttm_sql_literal(dttm, col)`, so whatever
+        that literal throws away is a bound the engine never sees. A mirror
+        derived from the full precision then describes a *narrower* range than
+        the predicate it stands in for -- and narrower means it drops rows the
+        filter keeps.
 
-        Detected rather than enumerated per engine: if the engine renders
-        ``dttm`` and ``dttm`` truncated to the second as the same text, it has
-        thrown the remainder away.
+        Two things get thrown away in practice:
+
+        - the sub-second part. SQLite renders a timestamp with
+          ``timespec="seconds"``.
+        - the time of day entirely. Every engine spec with a ``types.Date``
+          branch renders ``dttm.date().isoformat()``, so Presto, Trino,
+          BigQuery and some two dozen others answer `DATE '2026-01-01'` for a
+          bound of 10:00 -- and `T(DATE '2026-01-01')` is below the mirror's
+          own lower bound, so the whole first day is dropped.
+
+        Detected rather than enumerated per engine, because the branch depends
+        on the column's type as well as the spec: instants differing only in the
+        part under test render as the same text exactly when the engine has
+        thrown that part away.
+
+        The day test uses two fixed times of day rather than ``dttm`` and one
+        alternative, so a bound that happens to sit on the hour the alternative
+        uses cannot read as "no time at all". Neither probe sits at midnight on
+        purpose: SQLite renders a DATE column at exactly midnight as a bare
+        date, so a midnight probe would differ from its alternative for a
+        reason that has nothing to do with resolution.
+
+        Likewise both sub-second probes carry a non-zero remainder. Comparing
+        against ``dttm`` truncated to the second looks like the obvious test and
+        is wrong for the same formatting-boundary reason.
         """
-        if col is None or not col.type or not dttm.microsecond:
-            return False
+        if col is None or not col.type:
+            return LiteralResolution.FULL
+
+        def render(moment: datetime) -> Optional[str]:
+            return self.db_engine_spec.convert_dttm(
+                col.type, moment, db_extra=self.db_extra
+            )
+
         try:
-            rendered = self.db_engine_spec.convert_dttm(
-                col.type, dttm, db_extra=self.db_extra
+            early = render(dttm.replace(hour=1, minute=2, second=3, microsecond=444444))
+            late = render(
+                dttm.replace(hour=22, minute=33, second=44, microsecond=555555)
             )
-            truncated = self.db_engine_spec.convert_dttm(
-                col.type, dttm.replace(microsecond=0), db_extra=self.db_extra
-            )
-        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-            return False
-        return rendered is not None and rendered == truncated
+            if early is not None and early == late:
+                return LiteralResolution.DAY
 
-    def _round_bounds_to_the_second(
+            # Flooring to the second is a no-op on a bound that has no
+            # sub-second part, so there is nothing to detect.
+            if not dttm.microsecond:
+                return LiteralResolution.FULL
+
+            first = render(dttm.replace(microsecond=111111))
+            second = render(dttm.replace(microsecond=222222))
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return LiteralResolution.FULL
+
+        if first is not None and first == second:
+            return LiteralResolution.SECOND
+        return LiteralResolution.FULL
+
+    def _round_bounds_outward(
         self,
         start_dttm: Optional[datetime],
         end_dttm: Optional[datetime],
         col: Optional["TableColumn"],
     ) -> tuple[Optional[datetime], Optional[datetime], bool]:
         """
-        The bounds widened to whole seconds, if the engine renders them that way.
+        The bounds widened to whatever the engine's literal actually resolves to.
 
-        On an engine whose literal drops the sub-second part the real predicate
-        compares a floored bound, so a mirror derived from the full precision
-        describes a *narrower* range than the predicate it stands in for -- and
-        narrower means it drops rows the filter keeps. Rounding outward is never
-        narrower.
+        Rounding outward is never narrower than the predicate being mirrored,
+        which is the only property the mirror has to hold.
 
         Returns the bounds and whether anything moved, because a ceiled upper
         bound is only safe inclusive, exactly as a grain-widened one is.
         """
-        if not any(
-            bound is not None and self._engine_drops_subseconds(bound, col)
+        resolutions = {
+            self._engine_literal_resolution(bound, col)
             for bound in (start_dttm, end_dttm)
-        ):
-            return start_dttm, end_dttm, False
+            if bound is not None
+        }
 
-        if start_dttm is not None:
-            start_dttm = start_dttm.replace(microsecond=0)
-        if end_dttm is not None and end_dttm.microsecond:
-            end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
-        return start_dttm, end_dttm, True
+        if LiteralResolution.DAY in resolutions:
+            # The engine compares a bare date, so the real predicate's lower
+            # bound is the start of that day and its upper bound admits the
+            # whole of the day before. Anything finer excludes rows it keeps.
+            if start_dttm is not None:
+                start_dttm = start_dttm.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+            if end_dttm is not None and end_dttm != end_dttm.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ):
+                end_dttm = end_dttm.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                ) + timedelta(days=1)
+            return start_dttm, end_dttm, True
+
+        if LiteralResolution.SECOND in resolutions:
+            if start_dttm is not None:
+                start_dttm = start_dttm.replace(microsecond=0)
+            if end_dttm is not None and end_dttm.microsecond:
+                end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
+            return start_dttm, end_dttm, True
+
+        return start_dttm, end_dttm, False
+
+    def _literal_is_coarser_than(
+        self, dttm: datetime, col: Optional["TableColumn"]
+    ) -> bool:
+        """
+        Whether the engine's literal for ``dttm`` throws away part of it.
+
+        Unlike a range, an equality cannot be widened outward, so the only safe
+        answer when the engine compares less than the full value is to decline
+        the mirror.
+        """
+        resolution = self._engine_literal_resolution(dttm, col)
+        if resolution is LiteralResolution.DAY:
+            return dttm != dttm.replace(hour=0, minute=0, second=0, microsecond=0)
+        if resolution is LiteralResolution.SECOND:
+            return bool(dttm.microsecond)
+        return False
 
     def _collect_partition_mirror_range(
         self,
@@ -4507,8 +4598,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 end_dttm += widen_bounds_by
             upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
-        # Then round outward, if the engine's literal drops the sub-second part.
-        start_dttm, end_dttm, rounded = self._round_bounds_to_the_second(
+        # Then round outward, to whatever the engine's literal resolves to.
+        start_dttm, end_dttm, rounded = self._round_bounds_outward(
             start_dttm, end_dttm, mapped_col
         )
         if rounded:
@@ -4609,6 +4700,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     (col for col in self.columns if col.column_name == column_name),
                     None,
                 )
+                if self._literal_is_coarser_than(value, mapped_col):
+                    # The engine's literal drops part of this instant, so the
+                    # real predicate compares a coarser value than the probe
+                    # would be handed and the mirror would ask for a key no row
+                    # holds. A range can be widened outward instead, but these
+                    # entries are AND-ed onto the query (see the comment at the
+                    # collection site), so an equality has nowhere to widen to.
+                    return
                 value = self._mirror_probe_value(value, mapped_col)
             sink.append((operator, value))
 
