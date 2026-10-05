@@ -19,9 +19,13 @@ from typing import Any
 
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.commands.chart.importers.v1.utils import (
+    get_dependency_chart_uuids,
+    migrate_chart,
+)
 from superset.extensions import feature_flag_manager
 from superset.utils import json
+from superset.utils.dict_import_export import SELECTED_CHARTS_FILE_NAME
 
 
 def test_migrate_chart_area() -> None:
@@ -281,3 +285,25 @@ def test_migrate_chart_table_migrates_when_flag_enabled(
 
     assert new_config["viz_type"] == "ag-grid-table"
     assert json.loads(new_config["params"])["viz_type"] == "ag-grid-table"
+
+
+def test_get_dependency_chart_uuids_uses_selection_file() -> None:
+    """Charts missing from the selection file are dependencies."""
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}, {"uuid": "c"}]
+    contents: dict[str, str] = {SELECTED_CHARTS_FILE_NAME: "chart_uuids:\n- a\n"}
+    assert get_dependency_chart_uuids(contents, configs) == {"b", "c"}
+
+
+def test_get_dependency_chart_uuids_without_selection_file() -> None:
+    """Without a selection file every bundled chart counts as selected."""
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}]
+    assert get_dependency_chart_uuids({}, configs) == set()
+
+
+def test_get_dependency_chart_uuids_ignores_malformed_selection_file() -> None:
+    """A malformed selection file is ignored rather than failing the import."""
+    configs: list[dict[str, Any]] = [{"uuid": "a"}, {"uuid": "b"}]
+    raw: str
+    for raw in ("chart_uuids: a", "- a", "chart_uuids: [a"):
+        contents: dict[str, str] = {SELECTED_CHARTS_FILE_NAME: raw}
+        assert get_dependency_chart_uuids(contents, configs) == set()

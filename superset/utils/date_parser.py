@@ -349,7 +349,7 @@ def handle_nth_of(
         "DATETRUNC(..., year) : DATEADD(DATETRUNC(..., year), 1, week)"
     """
     # Convert ordinal to number
-    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdigit() else 1)
+    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdecimal() else 1)
 
     relative_base = get_relative_base(unit, relative_start)
     effective_scope = scope.lower() if scope else "this"
@@ -867,6 +867,19 @@ class EvalLastDayFunc:  # pylint: disable=too-few-public-methods
             return dttm.replace(
                 month=12, day=31, hour=0, minute=0, second=0, microsecond=0
             )
+        if unit == "quarter":
+            # Both arguments are passed to a single `replace` so the day is
+            # never briefly out of range for the new month (e.g. the 31st
+            # moving into a 30-day quarter-end month).
+            last_month = 3 * ((dttm.month - 1) // 3) + 3
+            return dttm.replace(
+                month=last_month,
+                day=calendar.monthrange(dttm.year, last_month)[1],
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
         if unit == "month":
             return dttm.replace(
                 day=calendar.monthrange(dttm.year, dttm.month)[1],
@@ -875,6 +888,11 @@ class EvalLastDayFunc:  # pylint: disable=too-few-public-methods
                 second=0,
                 microsecond=0,
             )
+        if unit == "day":
+            # The last day of a day is that same day. Truncating to midnight
+            # keeps the result consistent with every other unit here, which
+            # all return the final day at midnight rather than at its end.
+            return dttm.replace(hour=0, minute=0, second=0, microsecond=0)
         # unit == "week":
         mon = dttm - relativedelta(days=dttm.weekday())
         mon = mon.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -975,7 +993,12 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     lastday_func <<= (
         LASTDAY
         + lparen
-        + Group(date_expr + comma + (YEAR | MONTH | WEEK) + ppOptional(comma))
+        + Group(
+            date_expr
+            + comma
+            + (YEAR | QUARTER | MONTH | WEEK | DAY)
+            + ppOptional(comma)
+        )
         + rparen
     ).setParseAction(EvalLastDayFunc)
     holiday_func <<= (

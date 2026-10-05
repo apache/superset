@@ -16,6 +16,7 @@
 # under the License.
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -31,6 +32,7 @@ from superset.common.query_context_processor import (
     QueryContextProcessor,
 )
 from superset.exceptions import QueryObjectValidationError
+from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -194,12 +196,62 @@ def test_get_data_json(processor, mock_query_context):
     assert result == expected
 
 
+def test_get_data_json_preserves_browser_numeric_contract(
+    processor, mock_query_context
+) -> None:
+    """Producer output keeps big integers exact and classifies long doubles safely."""
+    finite_longdouble = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "big_integer": pd.Series([2**53 + 1, 2**53 + 1], dtype=object),
+            "longdouble": pd.Series(
+                [finite_longdouble, np.longdouble("inf")], dtype=object
+            ),
+        }
+    )
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(
+        frame, [GenericDataType.NUMERIC, GenericDataType.NUMERIC]
+    )
+
+    assert result[0]["big_integer"] == str(2**53 + 1)
+    assert result[0]["longdouble"] is finite_longdouble
+    assert result[1]["longdouble"] is None
+    # The browser-visible integer and non-finite value stay strict-JSON safe.
+    assert superset_json.loads(
+        superset_json.dumps(
+            {
+                "big_integer": result[0]["big_integer"],
+                "longdouble_nonfinite": result[1]["longdouble"],
+            },
+            ignore_nan=False,
+        )
+    ) == {
+        "big_integer": str(2**53 + 1),
+        "longdouble_nonfinite": None,
+    }
+
+
+def test_get_data_json_keeps_decimals_numeric(processor, mock_query_context) -> None:
+    """Chart JSON keeps decimals as numbers; only SQL Lab quotes them."""
+    frame = pd.DataFrame({"amount": [Decimal("10.50")]})
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(frame, [GenericDataType.NUMERIC])
+
+    assert type(result[0]["amount"]) is Decimal
+    assert superset_json.loads(superset_json.dumps(result)) == [{"amount": 10.5}]
+
+
 def test_get_data_invalid_dataframe(processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
     mock_query_context.result_format = ChartDataResultFormat.JSON
 
-    with patch.object(df, "to_dict", side_effect=ValueError("Invalid DataFrame")):
+    with patch.object(
+        pd.DataFrame, "itertuples", side_effect=ValueError("Invalid DataFrame")
+    ):
         with pytest.raises(ValueError, match="Invalid DataFrame"):
             processor.get_data(df, coltypes)
 
@@ -2220,6 +2272,34 @@ def test_raise_for_access_evaluates_access_before_validate():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_wraps_template_error_for_query_datasource():
+    """
+    When the datasource is a SQL Lab Query and raise_for_access() Jinja-renders
+    malformed SQL, the raw jinja2 TemplateError must be wrapped in
+    SupersetTemplateException (422) instead of leaking as an unhandled 500.
+    """
+    from jinja2.exceptions import TemplateSyntaxError
+
+    from superset.exceptions import SupersetTemplateException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    ):
+        with pytest.raises(SupersetTemplateException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must
@@ -2777,3 +2857,36 @@ def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> N
         "'My layer') was not found. Please ensure the chart is properly "
         "configured and has a valid query context."
     )
+
+
+def test_get_viz_annotation_data_ignores_source_chart_annotations(
+    app_context,
+) -> None:
+    """
+    The source chart's own annotation layers are dropped, so charts that use
+    each other as annotation sources don't recurse.
+    """
+    query_object = MagicMock(
+        annotation_layers=[{"sourceType": "line", "value": 1, "name": "Back"}],
+    )
+    query_context = MagicMock(queries=[query_object])
+    chart = MagicMock(id=42)
+    chart.get_query_context.return_value = query_context
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": [{"x": 1}]}]}
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, force=False
+        )
+
+    assert result == {"records": [{"x": 1}]}
+    assert query_object.annotation_layers == []

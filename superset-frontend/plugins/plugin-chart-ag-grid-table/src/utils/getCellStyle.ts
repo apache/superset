@@ -25,6 +25,10 @@ import {
 import { CellClassParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import { BasicColorFormatterType, InputColumn } from '../types';
 import getRowBasicColorFormatter from './getRowBasicColorFormatter';
+import {
+  isMainComparisonKey,
+  stripMainComparisonPrefix,
+} from './mainComparison';
 
 type CellStyleParams = CellClassParams & {
   hasColumnColorFormatters: boolean | undefined;
@@ -81,8 +85,8 @@ const getCellStyle = (params: CellStyleParams) => {
     // time-comparison columns rather than the row's actual data key, so
     // resolve it to the real field id before using it to read row values.
     const resolveColumnKey = (columnKey: string) =>
-      columnKey.startsWith('Main ')
-        ? columnKey.slice('Main '.length)
+      isMainComparisonKey(columnKey)
+        ? stripMainComparisonPrefix(columnKey)
         : columnKey;
 
     // Formatters with no formatting target color their own source column,

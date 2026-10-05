@@ -20,8 +20,10 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from typing import Annotated
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -76,9 +78,21 @@ __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_
     ),
 )
 async def generate_chart(  # noqa: C901
-    request: GenerateChartRequest, ctx: Context
+    request: Annotated[
+        GenerateChartRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "Preview only; save_chart=True saves. MUST display chart URL. "
+                "dataset_id: numeric ID/UUID, NOT schema.table_name. "
+                "config.chart_type required; line/bar/area/scatter are xy kind values. "
+                "Check get_chart_type_schema for host-gated types."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateChartResponse:
-    """Create a chart preview in Superset, optionally saving it permanently.
+    """Preview a chart; optionally save.
 
     IMPORTANT BEHAVIOR:
     - Charts are NOT saved by default (save_chart=False) - preview only
@@ -344,7 +358,8 @@ async def generate_chart(  # noqa: C901
             with event_logger.log_context(action="mcp.generate_chart.dataset_lookup"):
                 dataset = None
                 if isinstance(request.dataset_id, int) or (
-                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                    isinstance(request.dataset_id, str)
+                    and request.dataset_id.isdecimal()
                 ):
                     dataset_id = (
                         int(request.dataset_id)
@@ -618,7 +633,7 @@ async def generate_chart(  # noqa: C901
             from superset.daos.dataset import DatasetDAO
 
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 candidate_id = (
                     int(request.dataset_id)
@@ -748,7 +763,7 @@ async def generate_chart(  # noqa: C901
                                 # Convert dataset_id to int only if numeric
                                 if (
                                     isinstance(request.dataset_id, str)
-                                    and request.dataset_id.isdigit()
+                                    and request.dataset_id.isdecimal()
                                 ):
                                     dataset_id_for_preview = int(request.dataset_id)
                                 elif isinstance(request.dataset_id, int):
