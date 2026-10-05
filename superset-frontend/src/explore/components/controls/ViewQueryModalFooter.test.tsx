@@ -77,7 +77,9 @@ test('opens SQL Lab in a new window on Cmd+click', () => {
 
   fireEvent.click(screen.getByText('Open in SQL Lab'), { metaKey: true });
 
-  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', expectedPayload);
+  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', {
+    form_data: JSON.stringify(expectedPayload),
+  });
   expect(mockHistoryPush).not.toHaveBeenCalled();
 });
 
@@ -86,6 +88,8 @@ test('opens SQL Lab in a new window on Ctrl+click', () => {
 
   fireEvent.click(screen.getByText('Open in SQL Lab'), { ctrlKey: true });
 
-  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', expectedPayload);
+  expect(postFormSpy).toHaveBeenCalledWith('/sqllab/', {
+    form_data: JSON.stringify(expectedPayload),
+  });
   expect(mockHistoryPush).not.toHaveBeenCalled();
 });
