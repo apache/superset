@@ -187,8 +187,11 @@ def _lock_chart_datasource(model_cls: type, target_version: Any) -> Any | None:
         raise MissingDatasourceError(label)
     _reserve_sqlite_write_lock()
     with skip_visibility_filter(db.session, src_class):
+        # ``populate_existing`` re-reads a row the session already holds, so a
+        # rename committed before the lock is not hidden by a stale copy.
         datasource: Datasource | None = (
             db.session.query(src_class)
+            .populate_existing()
             .enable_eagerloads(False)
             .filter_by(id=datasource_id)
             .with_for_update()
@@ -545,8 +548,8 @@ def _find_target_version(
 ) -> Any | None:
     """Return *entity*'s version row at *transaction_id*, unless it is absent
     or a DELETE row (never a valid restore target)."""
-    ver_cls = version_class(model_cls)
-    target_version = (
+    ver_cls: type[Any] = version_class(model_cls)
+    target_version: Any | None = (
         db.session.query(ver_cls)
         .filter(
             # Pin to (id, uuid): a hard delete frees the integer id, so
@@ -622,7 +625,7 @@ def restore_version(
             "identified by entity_uuid"
         )
 
-    target_version = _find_target_version(model_cls, entity, transaction_id)
+    target_version: Any | None = _find_target_version(model_cls, entity, transaction_id)
     if target_version is None:
         return None
 

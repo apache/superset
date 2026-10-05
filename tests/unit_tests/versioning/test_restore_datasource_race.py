@@ -126,3 +126,60 @@ def test_concurrent_view_delete_cannot_leave_restored_chart_dangling(
     assert restored.datasource_type == "semantic_view"
     assert capture_session.get(SemanticView, view_id) is not None
     assert delete_errors, "the concurrent delete must wait for the restore"
+    # Lock contention, not some unrelated SQL error.
+    assert all(ex.sqlite_errorcode == sqlite3.SQLITE_BUSY for ex in delete_errors)
+
+
+def test_restore_copies_permissions_of_concurrently_renamed_datasource(
+    capture_session: Session,
+) -> None:
+    """A datasource loaded into the session before another connection renames
+    it is re-read under the restore's lock, so the chart gets the current
+    permission rather than the stale in-memory one."""
+    database: Database = Database(database_name="race_db", sqlalchemy_uri="sqlite://")
+    target: SqlaTable = SqlaTable(table_name="before", database=database)
+    capture_session.add(target)
+    capture_session.commit()
+    chart: Slice = Slice(
+        slice_name="table chart",
+        datasource_type="table",
+        datasource_id=target.id,
+        viz_type="table",
+    )
+    capture_session.add(chart)
+    capture_session.commit()
+    shadow: Any = version_class(Slice)
+    transaction_id: int = capture_session.scalar(
+        sa.select(sa.func.max(shadow.transaction_id)).where(shadow.id == chart.id)
+    )
+    target_version: UUID = derive_version_uuid(chart.uuid, transaction_id)
+    working: SqlaTable = SqlaTable(table_name="working", database=database)
+    capture_session.add(working)
+    capture_session.commit()
+    chart.datasource_id = working.id
+    capture_session.commit()
+    chart_uuid: UUID = chart.uuid
+    target_id: int = target.id
+
+    # Validation can load the target into the identity map before a rename
+    # by another connection commits.
+    stale: SqlaTable = capture_session.get(SqlaTable, target_id)
+    assert stale.perm == f"[race_db].[before](id:{target_id})"
+    renamed_perm: str = f"[race_db].[after](id:{target_id})"
+    other: sqlite3.Connection = sqlite3.connect(_DB_PATH)
+    try:
+        other.execute(
+            "UPDATE tables SET table_name = ?, perm = ? WHERE id = ?",
+            ("after", renamed_perm, target_id),
+        )
+        other.commit()
+    finally:
+        other.close()
+
+    with patch.object(security_manager, "raise_for_editorship"):
+        RestoreChartVersionCommand(chart_uuid, target_version).run()
+
+    capture_session.expire_all()
+    restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
+    assert restored.datasource_id == target_id
+    assert restored.perm == renamed_perm
