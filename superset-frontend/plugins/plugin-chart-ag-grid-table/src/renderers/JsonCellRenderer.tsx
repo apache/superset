@@ -101,10 +101,16 @@ const Preview = styled.span`
   flex: 1;
   min-width: 0;
 
+  .dt-truncate-cell:hover & {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+  }
+
   &[data-wrap='true'] {
     overflow: visible;
     text-overflow: unset;
-    white-space: pre-wrap;
+    white-space: normal;
     word-break: break-word;
   }
 `;

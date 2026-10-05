@@ -34,7 +34,10 @@ import {
 } from '../src/renderers/parseJsonCellValue';
 import { syncJsonCellRowHeight } from '../src/renderers/jsonCellRowHeight';
 import { TextCellRenderer } from '../src/renderers/TextCellRenderer';
-import { isJsonCellActionTarget } from '../src/utils/isJsonCellActionTarget';
+import {
+  isJsonCellActionTarget,
+  openJsonDialogOnEnter,
+} from '../src/utils/isJsonCellActionTarget';
 import { CellRendererProps } from '../src/types';
 
 const nestedJson = '{"user":"ada","address":{"city":"London"}}';
@@ -145,6 +148,31 @@ test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   );
   expect(isJsonCellActionTarget(document.getElementById('plain'))).toBe(false);
   expect(isJsonCellActionTarget(null)).toBe(false);
+
+  const cell = document.createElement('div');
+  cell.className = 'ag-cell';
+  const open = document.createElement('button');
+  open.setAttribute('data-test', 'json-cell-open');
+  const onClick = jest.fn();
+  open.addEventListener('click', onClick);
+  cell.appendChild(open);
+  const preventDefault = jest.fn();
+  expect(
+    openJsonDialogOnEnter({
+      key: 'Enter',
+      target: cell,
+      preventDefault,
+    } as unknown as KeyboardEvent),
+  ).toBe(true);
+  expect(onClick).toHaveBeenCalledTimes(1);
+  expect(
+    openJsonDialogOnEnter({
+      key: 'Enter',
+      ctrlKey: true,
+      target: cell,
+      preventDefault,
+    } as unknown as KeyboardEvent),
+  ).toBe(false);
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {

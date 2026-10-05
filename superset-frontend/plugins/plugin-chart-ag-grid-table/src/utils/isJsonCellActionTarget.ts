@@ -17,11 +17,39 @@
  * under the License.
  */
 
-import { JSON_CELL_ACTION_SELECTOR } from '../consts';
+import { JSON_CELL_ACTION_SELECTOR, JSON_CELL_OPEN_SELECTOR } from '../consts';
 
 export function isJsonCellActionTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
     target.closest(JSON_CELL_ACTION_SELECTOR) !== null
   );
+}
+
+/** Enter on a focused JSON cell opens the dialog. The grid keeps Tab on cells. */
+export function openJsonDialogOnEnter(
+  nativeEvent: Event | null | undefined,
+): boolean {
+  if (
+    !nativeEvent ||
+    !('key' in nativeEvent) ||
+    nativeEvent.key !== 'Enter' ||
+    ('ctrlKey' in nativeEvent && nativeEvent.ctrlKey) ||
+    ('metaKey' in nativeEvent && nativeEvent.metaKey) ||
+    ('altKey' in nativeEvent && nativeEvent.altKey)
+  ) {
+    return false;
+  }
+  const { target } = nativeEvent;
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  const cell = target.closest('.ag-cell') ?? target;
+  const open = cell.querySelector(JSON_CELL_OPEN_SELECTOR);
+  if (!(open instanceof HTMLElement)) {
+    return false;
+  }
+  nativeEvent.preventDefault();
+  open.click();
+  return true;
 }

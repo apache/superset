@@ -156,3 +156,32 @@ test('the wired onCellKeyDown copies the focused cell value on Ctrl/Cmd+C', asyn
 
   expect(writeText).toHaveBeenCalledWith('2,871');
 });
+
+test('Enter on a focused JSON cell opens the dialog', async () => {
+  renderChart();
+  await waitFor(() => expect(captured.props?.onCellKeyDown).toBeDefined());
+
+  const cell = document.createElement('div');
+  cell.className = 'ag-cell';
+  const open = document.createElement('button');
+  open.setAttribute('data-test', 'json-cell-open');
+  const onClick = jest.fn();
+  open.addEventListener('click', onClick);
+  cell.appendChild(open);
+  document.body.appendChild(cell);
+
+  const preventDefault = jest.fn();
+  captured.props?.onCellKeyDown({
+    event: { key: 'Enter', target: cell, preventDefault },
+  });
+  expect(onClick).toHaveBeenCalledTimes(1);
+  expect(preventDefault).toHaveBeenCalledTimes(1);
+
+  const plain = document.createElement('div');
+  plain.className = 'ag-cell';
+  captured.props?.onCellKeyDown({
+    event: { key: 'Enter', target: plain, preventDefault },
+  });
+  expect(onClick).toHaveBeenCalledTimes(1);
+  cell.remove();
+});
