@@ -126,7 +126,8 @@ An empty `unsupported_models` map means no registered models were skipped for
 this reason. A root whose eligible-row scan raises — an unreadable column, a
 transient database error — is counted in `scan_failures` and increments
 `deletion_retention.scan_failures`, leaving the remaining roots to purge
-normally. Reporting a model is not the same as purging it: a host adds
+normally. Rows that root had already purged before the failure stay in its
+reported counts, since those deletions are committed. Reporting a model is not the same as purging it: a host adds
 purge support for its own entities by installing a policy, described next.
 
 A host distribution that carries its own soft-deletable entities can supply

@@ -21,6 +21,7 @@ is preserved as the disable value, and malformed supplied values defer purge.
 """
 
 import runpy
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, ClassVar
@@ -229,7 +230,7 @@ def test_clock_uses_now_not_utcnow() -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now
@@ -330,48 +331,77 @@ def test_unsupported_model_is_reported_without_scanning(
         engine.dispose()
 
 
-@pytest.mark.parametrize("dry_run", [False, True])
-def test_scan_failure_does_not_prevent_supported_models_from_purging(
+def test_scan_failure_keeps_the_counts_earned_before_it(app_context: None) -> None:
+    """A scan that fails part-way reports itself and keeps what it purged.
+
+    By the time a later page fails, the earlier page's deletions are
+    committed. Discarding the counts would make the run's summary and its
+    purge gauges understate what was actually removed.
+    """
+    import superset.tasks.deletion_retention as mod
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    purged_result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="gone"
+    )
+
+    def pages(*args: Any, **kwargs: Any) -> Iterator[list[int]]:
+        yield [1, 2]
+        raise RuntimeError("no such column: id")
+
+    with (
+        patch.object(mod, "_iter_eligible_ids", side_effect=pages),
+        patch.object(mod, "_purge_one", return_value=purged_result),
+    ):
+        purged, would, failures, blocked, scan_failures = mod._purge_model(
+            Slice, datetime.now(), dry_run=False
+        )
+
+    assert (purged, would, failures, blocked) == (2, 0, 0, 0)
+    assert scan_failures == 1
+
+
+def test_root_without_a_table_name_does_not_abort_the_run(
     app_config: Config,
     monkeypatch: pytest.MonkeyPatch,
-    dry_run: bool,
 ) -> None:
-    """A root whose scan raises is counted and skipped, not fatal to the run.
+    """Resolving a root's table name is itself guarded.
 
-    The eligible-id scan sits outside the per-entity handler, so without this
-    one unreadable root would abort the pass and the roots that could have
-    purged never would.
+    The name is read off the model, so a root that cannot supply one must be
+    counted and skipped like any other failing root -- not end the pass before
+    the roots that could have purged are reached.
     """
     # avoid app-init regression: model helpers require the app_config fixture first.
     from superset.models.helpers import SoftDeleteMixin
     from superset.tasks import deletion_retention as task
 
     supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
-    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
 
-    def failing_scan(
-        model: type[SoftDeleteMixin], cutoff: Any, dry: bool
-    ) -> tuple[int, int, int, int]:
-        if model is supported_models[0]:
-            raise RuntimeError("no such column: id")
-        return (0, 1, 0, 0) if dry else (1, 0, 0, 0)
+    class NoTableName(SoftDeleteMixin):
+        """A registered root whose table name cannot be read."""
+
+    monkeypatch.setattr(
+        SoftDeleteMixin,
+        "_registered_subclasses",
+        [NoTableName, *supported_models],
+    )
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
 
     with (
-        patch.object(task, "_purge_model", side_effect=failing_scan),
+        patch.object(task, "_purge_model", return_value=(1, 0, 0, 0, 0)),
         patch.object(task.audit, "reconcile_pending"),
         patch.object(task, "resolve_retention_window", return_value=30),
         patch.object(
             task.feature_flag_manager, "is_feature_enabled", return_value=True
         ),
-        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "incr"),
         patch.object(task.stats_logger_manager.instance, "gauge"),
     ):
         result: dict[str, Any] = task.purge_soft_deleted.run()
 
     assert result["scan_failures"] == 1
-    outcome: dict[str, int] = result["would_purge" if dry_run else "purged"]
-    assert len(outcome) == len(supported_models) - 1
-    assert call("deletion_retention.scan_failures") in counter.call_args_list
+    assert len(result["purged"]) == len(supported_models)
 
 
 @pytest.mark.parametrize("dry_run", [False, True])
@@ -406,7 +436,9 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
     gauge: MagicMock
     with (
         patch.object(
-            task, "_purge_model", return_value=(0, 1, 0, 0) if dry_run else (1, 0, 0, 0)
+            task,
+            "_purge_model",
+            return_value=(0, 1, 0, 0, 0) if dry_run else (1, 0, 0, 0, 0),
         ) as purge,
         patch.object(task.audit, "reconcile_pending"),
         patch.object(task, "resolve_retention_window", return_value=30),
@@ -524,11 +556,11 @@ def test_purge_model_counts_only_committed_deletions(app_context: None) -> None:
         patch.object(mod, "_iter_eligible_ids", return_value=[[1]]),
         patch.object(mod, "_purge_one", return_value=lost_race),
     ):
-        result: tuple[int, int, int, int] = mod._purge_model(
+        result: tuple[int, int, int, int, int] = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
-    assert result == (0, 0, 0, 0)
+    assert result == (0, 0, 0, 0, 0)
 
 
 def test_scheduled_purge_fails_closed_when_write_ahead_fails(
@@ -550,12 +582,12 @@ def test_scheduled_purge_fails_closed_when_write_ahead_fails(
         patch.object(mod.audit, "write_ahead", return_value=None),
     ):
         session.get.return_value = entity
-        result: tuple[int, int, int, int] = mod._purge_model(
+        result: tuple[int, int, int, int, int] = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
     cascade.assert_not_called()
-    purged, would, failures, blocked = result
+    purged, would, failures, blocked, _ = result
     assert (purged, would, blocked) == (0, 0, 0)
     assert failures == 1
 
@@ -574,7 +606,7 @@ def test_immediate_cutoff_and_invalid_skip(days: int) -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]) as models,
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending") as reconcile,
     ):
         clock.now.return_value = now
@@ -608,7 +640,7 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         ),
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now

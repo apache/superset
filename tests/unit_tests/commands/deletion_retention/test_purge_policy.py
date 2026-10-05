@@ -37,6 +37,7 @@ from superset.commands.deletion_retention.purge_policy import (
     _dependency_owner_depth,
     _dependency_predicates,
     _fk_key,
+    BlockerReason,
     compare_policy,
     delete_associations,
     delete_owned_children,
@@ -1221,3 +1222,24 @@ def test_provider_is_invoked_once_however_many_roots_resolve() -> None:
             assert get_purge_policy(Slice) is not None
 
     assert len(invocations) == 1
+
+
+def test_declared_blocker_with_a_replaced_validator_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Blockers are applied by the stock validator, so replacing it drops them."""
+    model: type[Any] = _host_referenced("ownvalidator")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            _inbound_ref_key("ownvalidator"),
+            DependencyClassification.BLOCK,
+            ExecutionPhase.VALIDATE,
+            blocker=BlockerReason("host_reference", "a reference exists"),
+        ),
+    )
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, declared),
+        validate=lambda session, policy, entity_id: None,
+    )
+
+    _assert_rejected(model, policy, "which is what applies them", caplog)

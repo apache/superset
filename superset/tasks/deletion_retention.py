@@ -149,8 +149,13 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
     """Process each registered root, isolating one root's failure from the rest."""
     totals = _PassTotals()
     for model in _soft_delete_models():
-        entity_type = _model_table_name(model)
+        # The table name is itself read off the model, so resolving it belongs
+        # inside the guard: a root that cannot supply one would otherwise end
+        # the pass here, above the isolation meant to contain it. The class
+        # name stands in until it is known, for the failure log.
+        entity_type = model.__name__
         try:
+            entity_type = _model_table_name(model)
             if model not in purge_policy_registry():
                 totals.unsupported[entity_type] = 1
                 logger.warning(
@@ -160,17 +165,19 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
                     f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
                 )
                 continue
-            purged_n, would_n, failed_n, blocked_n = _purge_model(
+            purged_n, would_n, failed_n, blocked_n, scan_failed_n = _purge_model(
                 model, cutoff, dry_run
             )
         except Exception:  # pylint: disable=broad-except
-            # One root must not cost the others their run. The eligible-id scan
-            # runs outside _purge_model's per-entity handler, so a column it
-            # cannot read or a transient database error would otherwise abort
-            # the whole pass -- including the roots that would have purged.
+            # One root must not cost the others their run. _purge_model keeps
+            # its own counts when a scan fails part-way; this guards what is
+            # left -- resolving the registry, and anything else before the
+            # first page.
             db.session.rollback()  # pylint: disable=consider-using-transaction
             totals.scan_failures += 1
-            logger.exception("deletion_retention: scan failed for %s", entity_type)
+            logger.exception(
+                "deletion_retention: %s could not be processed", entity_type
+            )
             continue
         if would_n:
             totals.would_purge[entity_type] = would_n
@@ -178,6 +185,7 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
             totals.purged[entity_type] = purged_n
         totals.cascade_failures += failed_n
         totals.blocked += blocked_n
+        totals.scan_failures += scan_failed_n
     return totals
 
 
@@ -242,32 +250,44 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
 
 def _purge_model(
     model: type[SoftDeleteMixin], cutoff: datetime, dry_run: bool
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Process one model's eligible rows. Returns ``(purged, would_purge,
-    failures, blocked)``. A single entity's blocked/failed cascade never aborts
-    the batch."""
+    failures, blocked, scan_failures)``. A single entity's blocked/failed
+    cascade never aborts the batch.
+
+    A failure in the eligible-id scan itself -- a column it cannot read, a
+    transient database error between pages -- ends this model's pass and is
+    reported, but the counts earned before it are kept: by then those rows are
+    committed deletions, and a summary that omitted them would understate what
+    the run actually removed.
+    """
     entity_type = _model_table_name(model)
-    purged = would = failures = blocked = 0
-    for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
-        if dry_run:
-            would += len(id_batch)
-            continue
-        for entity_id in id_batch:
-            try:
-                result = _purge_one(model, entity_id, cutoff)
-                if result is not None and result.purged:
-                    purged += 1
-                elif result is not None and result.blocked_reason is not None:
-                    blocked += 1
-            except Exception:  # pylint: disable=broad-except
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-                failures += 1
-                logger.exception(
-                    "deletion_retention: cascade failed for %s id=%s",
-                    entity_type,
-                    entity_id,
-                )
-    return purged, would, failures, blocked
+    purged = would = failures = blocked = scan_failures = 0
+    try:
+        for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
+            if dry_run:
+                would += len(id_batch)
+                continue
+            for entity_id in id_batch:
+                try:
+                    result = _purge_one(model, entity_id, cutoff)
+                    if result is not None and result.purged:
+                        purged += 1
+                    elif result is not None and result.blocked_reason is not None:
+                        blocked += 1
+                except Exception:  # pylint: disable=broad-except
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    failures += 1
+                    logger.exception(
+                        "deletion_retention: cascade failed for %s id=%s",
+                        entity_type,
+                        entity_id,
+                    )
+    except Exception:  # pylint: disable=broad-except
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        scan_failures = 1
+        logger.exception("deletion_retention: scan failed for %s", entity_type)
+    return purged, would, failures, blocked, scan_failures
 
 
 def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:

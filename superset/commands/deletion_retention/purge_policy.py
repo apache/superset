@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any, NamedTuple
+from typing import Any, cast, NamedTuple
 
 import sqlalchemy as sa
 from flask import current_app, has_app_context
@@ -984,40 +984,64 @@ def _host_purge_policies(
     return tuple(accepted)
 
 
+#: Sentinel distinguishing "no index resolved yet" from an index resolved for
+#: no provider, which is the ordinary case.
+_UNRESOLVED: Any = object()
+
+
+@dataclass
+class _ResolvedRegistry:
+    """The index built for one provider, with the roots validated so far.
+
+    Compared by provider *identity* rather than memoized with ``lru_cache``: a
+    cache keyed on the provider would hash it, and a host callable
+    implemented as a mutable dataclass instance is unhashable. That would
+    raise here -- before the host boundary could isolate the host's mistake --
+    and stop the built-in roots purging too.
+    """
+
+    provider: Any = _UNRESOLVED
+    registry: Mapping[type[Any], PurgeEntityPolicy] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    validated: set[type[Any]] = field(default_factory=set)
+
+
+_RESOLVED: _ResolvedRegistry = _ResolvedRegistry()
+
+
 def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     """Index the built-in purge roots plus any the host installed.
 
-    The index is cached per installed provider, not once per process. Freezing
-    it at first use would pin whatever happened to be installed at that
-    moment -- including nothing at all, for a call made before startup
-    finished -- until a restart. Keying the cache on the provider means it is
-    invoked once however many roots are purged, a host that installs or
-    replaces one is honored, and the ordinary case (no provider) resolves to a
-    single cached index.
+    Rebuilt only when the installed provider changes. Freezing at first use
+    would pin whatever happened to be installed at that moment -- including
+    nothing at all, for a call made before startup finished -- until a
+    restart, while resolving on every call would invoke the provider once per
+    root and could hand back different objects each time.
     """
     provider: Callable[[], Any] | None = (
         current_app.config.get(HOST_POLICIES_CONFIG_KEY) if has_app_context() else None
     )
-    return _registry_for(provider)
+    if _RESOLVED.provider is not provider:
+        host_policies: tuple[PurgeEntityPolicy, ...] = _host_purge_policies(provider)
+        _RESOLVED.registry = validate_unique_root_policies(
+            (*_builtin_purge_policies(), *host_policies)
+        )
+        # Host roots were validated as they were admitted. Built-in roots stay
+        # lazy, so one unusable built-in cannot block the others.
+        _RESOLVED.validated = {policy.model for policy in host_policies}
+        _RESOLVED.provider = provider
+    return _RESOLVED.registry
 
 
-@lru_cache(maxsize=8)
-def _registry_for(
-    provider: Callable[[], Any] | None,
-) -> Mapping[type[Any], PurgeEntityPolicy]:
-    """Build one index per provider, so a provider runs once per process."""
-    return validate_unique_root_policies(
-        (*_builtin_purge_policies(), *_host_purge_policies(provider))
-    )
-
-
-@lru_cache(maxsize=None)
 def _validated_policy(policy: PurgeEntityPolicy) -> PurgeEntityPolicy:
-    """Validate one declaration, memoized on the declaration itself.
+    """Validate one declaration.
 
-    Keyed on the policy rather than its model, so a host that replaces a
-    root's declaration has the new one validated instead of being served the
-    old one for the life of the process.
+    Uncached, for the same reason the index is compared by identity: a policy
+    carrying a callable that is not hashable could not be an ``lru_cache``
+    key. Callers record which roots they have validated instead -- see
+    ``_ResolvedRegistry.validated``, which is discarded whenever the provider
+    changes, so a replaced declaration is validated afresh.
     """
     recursive_tables: frozenset[str] = frozenset(
         dependency.key.related_table
@@ -1205,6 +1229,17 @@ def _validate_sibling_ownership(policy: PurgeEntityPolicy) -> None:
                     )
 
 
+#: The phase each listener action is dispatched in by the stock callbacks:
+#: tag cleanup runs with the association deletes, permission cleanup once the
+#: entity row is gone and the captured permission name is available.
+_LISTENER_ACTION_PHASES: Mapping[ListenerAction, ExecutionPhase] = MappingProxyType(
+    {
+        ListenerAction.DELETE_TAGGED_OBJECTS: ExecutionPhase.ASSOCIATIONS,
+        ListenerAction.DELETE_DATASET_PERMISSION: ExecutionPhase.POST_DELETE,
+    }
+)
+
+
 #: Classifications the shared cleanup executes as SQL, through
 #: ``_dependency_predicates`` -- which only knows how to read an inbound
 #: foreign key.
@@ -1217,6 +1252,105 @@ _EXECUTABLE_CLASSIFICATIONS: frozenset[DependencyClassification] = frozenset(
 )
 
 
+def _validate_listener_dispatch(
+    policy: PurgeEntityPolicy, dependency: DependencyPolicy
+) -> None:
+    """Reject a listener effect no selected callback would dispatch.
+
+    Effects are dispatched from inside two stock callbacks -- association
+    cleanup and permission cleanup -- each for one phase. A declaration in any
+    other phase, or in a phase whose callback this policy replaces, is never
+    executed: the root purges and its declared cleanup silently does not run.
+    """
+    action: ListenerAction = cast(ListenerAction, dependency.listener_action)
+    expected_phase: ExecutionPhase | None = _LISTENER_ACTION_PHASES.get(action)
+    if expected_phase is None:
+        raise RuntimeError(
+            f"Unsupported listener action for {dependency.key.describe()}"
+        )
+    if dependency.phase is not expected_phase:
+        raise RuntimeError(
+            f"Listener effect {dependency.key.describe()} is declared for "
+            f"{cast(ExecutionPhase, dependency.phase).value}, but "
+            f"{action.value} is dispatched only in {expected_phase.value}"
+        )
+    if expected_phase is ExecutionPhase.ASSOCIATIONS:
+        dispatched = policy.delete_associations is delete_associations
+        callback = "delete_associations"
+    else:
+        dispatched = policy.cleanup_permission is cleanup_dataset_permission
+        callback = "cleanup_permission"
+    if not dispatched:
+        raise RuntimeError(
+            f"Listener effect {dependency.key.describe()} is dispatched by the "
+            f"stock {callback} callback, which this policy replaces"
+        )
+
+
+def _validate_dependency_declaration(
+    policy: PurgeEntityPolicy,
+    dependency: DependencyPolicy,
+    metadata: sa.MetaData,
+) -> None:
+    """Reject one declaration the shared cleanup could not carry out."""
+    key: DependencyKey = dependency.key
+    if dependency.classification in _EXECUTABLE_CLASSIFICATIONS:
+        if key.kind != "foreign_key" or key.direction != "inbound":
+            raise RuntimeError(
+                f"{dependency.classification.value} dependency "
+                f"{key.describe()} is not an inbound foreign key; the "
+                "shared cleanup can only act on those"
+            )
+        if key.related_table not in metadata.tables:
+            raise RuntimeError(
+                f"{dependency.classification.value} dependency "
+                f"{key.describe()} names a table outside the root's "
+                "metadata, which cleanup cannot resolve"
+            )
+    if (
+        dependency.classification is DependencyClassification.BLOCK
+        and dependency.blocker is None
+    ):
+        raise RuntimeError(f"Missing blocker reason for {key.describe()}")
+    if dependency.classification is DependencyClassification.LISTENER_EFFECT:
+        if dependency.listener_action is None:
+            raise RuntimeError(f"Missing listener action for {key.describe()}")
+        if dependency.phase is None:
+            # Listener effects are dispatched by phase, so one without a phase
+            # matches none and would never run.
+            raise RuntimeError(f"Missing execution phase for {key.describe()}")
+        _validate_listener_dispatch(policy, dependency)
+    if (
+        dependency.classification is DependencyClassification.VERSION_OWNED
+        and dependency.version_column is None
+    ):
+        raise RuntimeError(f"Missing version target column for {key.describe()}")
+
+
+def _validate_blocker_enforcement(policy: PurgeEntityPolicy) -> None:
+    """Reject declared blockers that no selected validator would apply.
+
+    Blockers take effect only through the stock ``validate_deletion_allowed``.
+    A policy that declares one and replaces the validator gets no blocking at
+    all, so rows its own declaration says to refuse are deleted instead --
+    the one failure in this family that destroys something rather than
+    skipping it.
+    """
+    if policy.validate is validate_deletion_allowed:
+        return
+    declared: list[str] = [
+        dependency.key.describe()
+        for dependency in policy.dependencies
+        if dependency.classification is DependencyClassification.BLOCK
+    ]
+    if declared:
+        raise RuntimeError(
+            f"Policy for {policy.model.__name__} declares blockers "
+            f"({', '.join(declared)}) but replaces validate_deletion_allowed, "
+            "which is what applies them"
+        )
+
+
 def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     """Reject declarations the shared cleanup could not carry out.
 
@@ -1226,56 +1360,31 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     """
     metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
     for dependency in policy.dependencies:
-        key: DependencyKey = dependency.key
-        if dependency.classification in _EXECUTABLE_CLASSIFICATIONS:
-            if key.kind != "foreign_key" or key.direction != "inbound":
-                raise RuntimeError(
-                    f"{dependency.classification.value} dependency "
-                    f"{key.describe()} is not an inbound foreign key; the "
-                    "shared cleanup can only act on those"
-                )
-            if key.related_table not in metadata.tables:
-                raise RuntimeError(
-                    f"{dependency.classification.value} dependency "
-                    f"{key.describe()} names a table outside the root's "
-                    "metadata, which cleanup cannot resolve"
-                )
-        if (
-            dependency.classification is DependencyClassification.BLOCK
-            and dependency.blocker is None
-        ):
-            raise RuntimeError(f"Missing blocker reason for {key.describe()}")
-        if dependency.classification is DependencyClassification.LISTENER_EFFECT:
-            if dependency.listener_action is None:
-                raise RuntimeError(
-                    f"Missing listener action for {dependency.key.describe()}"
-                )
-            if dependency.phase is None:
-                # Listener effects are dispatched by phase, so one without a
-                # phase matches none and would never run.
-                raise RuntimeError(
-                    f"Missing execution phase for {dependency.key.describe()}"
-                )
-        if (
-            dependency.classification is DependencyClassification.VERSION_OWNED
-            and dependency.version_column is None
-        ):
-            raise RuntimeError(
-                f"Missing version target column for {dependency.key.describe()}"
-            )
+        _validate_dependency_declaration(policy, dependency, metadata)
     _validate_scanner_requirements(policy)
-    _validate_owned_traversal(policy)
+    _validate_blocker_enforcement(policy)
     _validate_recursive_ownership(policy)
-    _validate_sibling_ownership(policy)
+    if policy.delete_owned_children is delete_owned_children:
+        # Both checks describe the stock cleanup: it orders deletes by
+        # ownership depth and builds each predicate by traversing that path. A
+        # host walking its own tree is bound by neither -- and a multi-level
+        # owned tree cannot even be measured by the stock depth calculation,
+        # which expects exactly one ownership path per table.
+        _validate_owned_traversal(policy)
+        _validate_sibling_ownership(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     """Resolve a complete policy or reject an unsupported purge model."""
+    registry: Mapping[type[Any], PurgeEntityPolicy] = purge_policy_registry()
     try:
-        policy: PurgeEntityPolicy = purge_policy_registry()[model]
+        policy: PurgeEntityPolicy = registry[model]
     except KeyError as ex:
         raise ValueError(f"Unsupported purge model: {model.__name__}") from ex
-    return _validated_policy(policy)
+    if model not in _RESOLVED.validated:
+        _validated_policy(policy)
+        _RESOLVED.validated.add(model)
+    return policy
 
 
 def listener_responsibilities(model: type[Any]) -> frozenset[str]:
