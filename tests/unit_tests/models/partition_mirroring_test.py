@@ -1155,6 +1155,63 @@ def test_extra_cache_keys_include_the_mapping(app: Flask) -> None:
     assert any("dt_epoch" in str(key) for key in keys)
 
 
+def _cache_key_query_obj() -> dict[str, Any]:
+    """A query object `get_extra_cache_keys` will actually build SQL from."""
+    return {
+        "columns": ["country"],
+        "metrics": [],
+        "granularity": "event_time",
+        "is_timeseries": False,
+        "from_dttm": datetime(2026, 1, 1),
+        "to_dttm": datetime(2026, 2, 1),
+    }
+
+
+def test_extra_cache_key_extraction_does_not_probe(app: Flask) -> None:
+    """
+    `get_extra_cache_keys` builds the whole query when the dataset uses a macro
+    like `current_username()`, and it runs unconditionally *before* the chart
+    cache is consulted -- so probing there meant a synchronous warehouse round
+    trip even on a cache hit. On a relative range the chart key is deliberately
+    stable as time passes while the probe key moves every second, so the probe
+    missed every single time.
+    """
+    table = _table()
+    table.sql = "SELECT * FROM t WHERE user = '{{ current_username() }}'"
+
+    with app.app_context():
+        with patch(PROBE) as probe:
+            table.get_extra_cache_keys(_cache_key_query_obj())
+
+    probe.assert_not_called()
+
+
+def test_suppressing_the_mirror_does_not_change_the_cache_key(app: Flask) -> None:
+    """
+    Skipping the probe during key extraction is only safe because the mirrors
+    contribute nothing to `extra_cache_keys` -- those come from the Jinja
+    template processor, and the mapping's own identity is appended separately.
+    """
+    table = _table()
+    table.sql = "SELECT * FROM t WHERE user = '{{ current_username() }}'"
+    query_obj = _cache_key_query_obj()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]):
+            mirrored = table.get_sqla_query(**query_obj, mirror_partition_filters=True)
+            plain = table.get_sqla_query(**query_obj, mirror_partition_filters=False)
+
+    assert mirrored.extra_cache_keys == plain.extra_cache_keys
+    # And the suppression really did change the SQL, so the comparison above is
+    # not vacuous.
+    assert "dt_epoch" in str(
+        mirrored.sqla_query.compile(compile_kwargs={"literal_binds": True})
+    )
+    assert "dt_epoch" not in str(
+        plain.sqla_query.compile(compile_kwargs={"literal_binds": True})
+    )
+
+
 def test_extra_cache_keys_are_unchanged_without_a_mapping(app: Flask) -> None:
     """Cache keys must not churn for the entire installed base."""
     table = _table(partition_column=None)
