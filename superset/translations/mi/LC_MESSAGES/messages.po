@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1045,6 +1045,14 @@ msgstr "Kōwhiri tīwae hei poroporo hei rā"
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "He rārangi māmā-wehea o ngā hanga e whakāetia ana ngā kōnae ki te tukuake."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "E hiahiatia ana he tauranga pātengi raraunga ina hono mā te SSH Tunnel."
 
@@ -1503,6 +1511,9 @@ msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Tāpiri ine ki te rārangi raraunga i te paerewa \"Whakatika puna "
 "raraunga\"\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Tāpiri kaihōputu tae hou"
@@ -3895,6 +3906,12 @@ msgstr "Kōwhiri tīwae hei poroporo hei rā"
 msgid "Choose columns to read"
 msgstr "Kōwhiri tīwae hei pānui"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4269,6 +4286,10 @@ msgstr "Tae mā te ahunga"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Ko te āpure tae me mātua he tae hekitara (#rrggbb) rānei 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -7226,6 +7247,9 @@ msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 msgid "Enter theme name"
 msgstr "Tāuru ingoa matohi"
 
+msgid "Enter values"
+msgstr ""
+
 msgid "Enter your current password"
 msgstr ""
 
@@ -7415,6 +7439,9 @@ msgstr "Taurite tōtika (IN)"
 
 msgid "Example"
 msgstr "Tauira"
+
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
 
 msgid "Examples"
 msgstr "Tauira"
@@ -8835,6 +8862,9 @@ msgstr "Kawemai %s"
 msgid "Import Error"
 msgstr "Hapa wā-pau"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "I rahua te kawemai kauwhata mō tētahi take kāore e mōhiotia ana"
 
@@ -9073,6 +9103,11 @@ msgstr "Whirihora lat/long muhu."
 #, fuzzy
 msgid "Invalid JSON metadata"
 msgstr "Metadata json"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -9368,6 +9403,9 @@ msgstr "Kiromita"
 
 msgid "Label"
 msgstr "Tapanga"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Ihirangi Tapanga"
@@ -10027,6 +10065,9 @@ msgstr "Whakaatu ora"
 
 msgid "Map Style"
 msgstr "Kāhua Mahere"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10837,6 +10878,9 @@ msgstr "Kāore he tātari wātea."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -12679,6 +12723,9 @@ msgstr "Tangohia te Tūāhua Pouri o te Pūnaha"
 msgid "Remove System Default Theme"
 msgstr "Whakahou i ngā uara taunoa"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Tango tātari-whiti"
 
@@ -12957,6 +13004,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Tautuhi anō"
 
@@ -12969,6 +13019,9 @@ msgstr "Tautuhi anō i ngā tīwae"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "Huria ngā kōpaki katoa ki te taunoa"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Tautuhi anō i ngā tīwae"
@@ -13557,6 +13610,14 @@ msgstr "Kāore i kitea te pātai kua tiakina."
 msgid "Saved query parameters are invalid."
 msgstr "He muhu ngā tawhā pātai kua tiakina."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "E tiaki ana..."
 
@@ -14097,6 +14158,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Tīpakohia, pato rānei i tētahi uara ritenga..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Tīpakohia, pato rānei i te tohu moni"
@@ -15352,6 +15416,21 @@ msgstr "Rā tīmata"
 msgid "Start date included in time range"
 msgstr "Rā tīmata kua whakauru ki te awhe wā"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Tīmata tukutuku-y i te 0"
 
@@ -15541,6 +15620,12 @@ msgstr "Kūmuri"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Kūmuri hei whakahaeretia i muri i te whakaatu ōrau"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -17941,6 +18026,11 @@ msgstr ""
 "māta."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr "Kei roto i tēnei wāhanga ngā hapa manatoko"
@@ -19308,6 +19398,11 @@ msgstr "Uara"
 
 msgid "Values are dependent on other filters"
 msgstr "E whakawhirinaki ana ngā uara ki ētahi atu tātari"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Uara e whakawhirinaki ana ki"
