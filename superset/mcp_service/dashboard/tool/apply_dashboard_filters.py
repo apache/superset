@@ -26,6 +26,7 @@ which DEFINES the filters and writes to the shared dashboard.
 """
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from fastmcp import Context
@@ -50,12 +51,23 @@ from superset.mcp_service.dashboard.tool.manage_native_filters import (
     _select_data_mask,
     current_native_filter_config,
 )
+from superset.utils.number_format import format_smart_number
 
 logger = logging.getLogger(__name__)
 
 # Filter types this tool knows how to apply a value to. Kept in step with the
 # types manage_native_filters can create.
-SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset({"filter_select", "filter_time"})
+SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
+    {"filter_select", "filter_time", "filter_range", "filter_timegrain"}
+)
+
+# Mirrors the frontend's SingleValueType enum
+# (superset-frontend/src/filters/components/Range/SingleValueType.ts),
+# which a filter_range filter's controlValues.enableSingleValue may hold to
+# restrict the slider to one side of the range.
+_SINGLE_VALUE_MINIMUM = 0
+_SINGLE_VALUE_EXACT = 1
+_SINGLE_VALUE_MAXIMUM = 2
 
 
 def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
@@ -133,6 +145,18 @@ def _resolve_filter(reference: str, configs: list[dict[str, Any]]) -> dict[str, 
     )
 
 
+def _filter_target_column(conf: dict[str, Any]) -> str:
+    """Return the first target's column name, or raise when there is none."""
+    targets = [target for target in (conf.get("targets") or []) if target]
+    column = (targets[0].get("column") or {}).get("name") if targets else None
+    if not column:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
+            "column, so a value cannot be applied to it."
+        )
+    return column
+
+
 def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
     """Build the data mask a filter_time filter produces for ``time_range``."""
     is_set = bool(time_range) and time_range != NO_TIME_RANGE
@@ -144,6 +168,145 @@ def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
     return {
         "extraFormData": {"time_range": time_range} if is_set else {},
         "filterState": {"value": time_range if is_set else None},
+    }
+
+
+def _format_range_bound(value: int | float) -> str:
+    """Format a range bound, preserving finite values that overflow rounding."""
+    try:
+        return format_smart_number(value)
+    except OverflowError:
+        return repr(value)
+
+
+def _validate_single_value_mode(
+    conf: dict[str, Any], lower: int | float | None, upper: int | float | None
+) -> None:
+    """Reject non-null bounds that don't match a configured single-value mode."""
+    single_value_type = (conf.get("controlValues") or {}).get("enableSingleValue")
+    if single_value_type == _SINGLE_VALUE_MINIMUM and upper is not None:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single lower-bound value; provide 'range: [value, "
+            "null]', not an upper bound."
+        )
+    if single_value_type == _SINGLE_VALUE_MAXIMUM and lower is not None:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single upper-bound value; provide 'range: [null, "
+            "value]', not a lower bound."
+        )
+    if single_value_type == _SINGLE_VALUE_EXACT and lower != upper:
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is configured "
+            "for a single exact value; provide 'range: [value, value]' "
+            "with matching bounds."
+        )
+
+
+def _range_data_mask(
+    conf: dict[str, Any], bounds: list[int | float | None]
+) -> dict[str, Any]:
+    """Build the data mask a filter_range filter produces for ``bounds``.
+
+    Mirrors the frontend's ``getRangeExtraFormData``: distinct non-null
+    bounds become a pair of ``>=``/``<=`` predicates, equal non-null bounds
+    collapse to a single ``==`` predicate, and two null bounds produce no
+    predicate at all (the "required filter, nothing chosen" state when the
+    filter is marked ``enableEmptyFilter``, raised rather than guessed).
+    """
+    column = _filter_target_column(conf)
+
+    lower, upper = bounds
+    if lower is None and upper is None:
+        if (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+            raise _FilterApplyError(
+                f"Filter '{conf.get('name') or conf.get('id')}' requires a "
+                "value and cannot be cleared."
+            )
+        return {
+            "extraFormData": {},
+            "filterState": {"value": [None, None], "label": ""},
+        }
+
+    _validate_single_value_mode(conf, lower, upper)
+
+    filters: list[dict[str, Any]] = []
+    if lower == upper:
+        filters.append({"col": column, "op": "==", "val": upper})
+    else:
+        if lower is not None:
+            filters.append({"col": column, "op": ">=", "val": lower})
+        if upper is not None:
+            filters.append({"col": column, "op": "<=", "val": upper})
+
+    if lower == upper:
+        assert upper is not None
+        label = f"x = {_format_range_bound(upper)}"
+    elif lower is not None and upper is not None:
+        label = f"{_format_range_bound(lower)} ≤ x ≤ {_format_range_bound(upper)}"
+    elif lower is not None:
+        label = f"x ≥ {_format_range_bound(lower)}"
+    else:
+        assert upper is not None
+        label = f"x ≤ {_format_range_bound(upper)}"
+    return {
+        "extraFormData": {"filters": filters},
+        "filterState": {"value": [lower, upper], "label": label},
+    }
+
+
+def _timegrain_data_mask(
+    conf: dict[str, Any], time_grain: Sequence[str]
+) -> dict[str, Any]:
+    """Build the data mask a filter_timegrain filter produces for ``time_grain``."""
+    is_set = bool(time_grain)
+    allowed_grains = conf.get("time_grains")
+    if is_set and allowed_grains and time_grain[0] not in allowed_grains:
+        raise _FilterApplyError(
+            f"Time grain '{time_grain[0]}' is not allowed for filter "
+            f"'{conf.get('name') or conf.get('id')}'. "
+            f"Available time grains: {', '.join(allowed_grains)}."
+        )
+    filter_state: dict[str, Any] = {"value": list(time_grain) if is_set else None}
+    if is_set:
+        from superset.daos.dataset import DatasetDAO
+
+        targets = [target for target in (conf.get("targets") or []) if target]
+        dataset_id = targets[0].get("datasetId") if targets else None
+        dataset = DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+        if dataset is None:
+            raise _FilterApplyError(
+                f"Cannot resolve target dataset (ID {dataset_id}) for filter "
+                f"'{conf.get('name') or conf.get('id')}'; "
+                "supported time grains cannot be determined."
+            )
+        # Reuse the datasource options exposed to Explore and native filters.
+        # Checked even when an allowlist is set: the two can drift apart (the
+        # dataset is repointed at another database, or the dashboard is
+        # imported), and the frontend plugin intersects both sets rather
+        # than trusting the allowlist alone.
+        available_grains = [
+            duration for duration, _ in dataset.time_grain_sqla if duration is not None
+        ]
+        if time_grain[0] not in available_grains:
+            raise _FilterApplyError(
+                f"Time grain '{time_grain[0]}' is not supported by dataset "
+                f"{dataset_id} for filter '{conf.get('name') or conf.get('id')}'. "
+                f"Available time grains: {', '.join(available_grains) or '(none)'}."
+            )
+        for grain in dataset.get_time_grains():
+            if grain["duration"] == time_grain[0]:
+                filter_state["label"] = grain["name"]
+                break
+    if not is_set and (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' requires a time "
+            "grain and cannot be cleared."
+        )
+    return {
+        "extraFormData": {"time_grain_sqla": time_grain[0]} if is_set else {},
+        "filterState": filter_state,
     }
 
 
@@ -179,7 +342,7 @@ def _apply_one(
             filter_type=filter_type,
             values=list(spec.values),
         )
-    else:
+    elif filter_type == "filter_time":
         if spec.time_range is None:
             raise _FilterApplyError(
                 f"Filter '{spec.filter_name_or_id}' is a filter_time filter; "
@@ -191,6 +354,34 @@ def _apply_one(
             name=conf.get("name"),
             filter_type=filter_type,
             time_range=spec.time_range,
+        )
+    elif filter_type == "filter_range":
+        if spec.range is None:
+            raise _FilterApplyError(
+                f"Filter '{spec.filter_name_or_id}' is a filter_range "
+                "filter; provide 'range', not 'values'."
+            )
+        data_mask = _range_data_mask(conf, spec.range)
+        summary = AppliedFilterSummary(
+            id=filter_id,
+            name=conf.get("name"),
+            filter_type=filter_type,
+            range=list(spec.range),
+        )
+    else:
+        # Every other member of SUPPORTED_FILTER_TYPES needs its own branch.
+        assert filter_type == "filter_timegrain", filter_type
+        if spec.time_grain is None:
+            raise _FilterApplyError(
+                f"Filter '{spec.filter_name_or_id}' is a filter_timegrain "
+                "filter; provide 'time_grain', not 'values'."
+            )
+        data_mask = _timegrain_data_mask(conf, spec.time_grain)
+        summary = AppliedFilterSummary(
+            id=filter_id,
+            name=conf.get("name"),
+            filter_type=filter_type,
+            time_grain=list(spec.time_grain),
         )
 
     # ``id`` and ``ownState`` complete the shape the dashboard's data mask
@@ -254,8 +445,11 @@ async def apply_dashboard_filters(
     its filter ID; call get_dashboard_info first to see which filters a
     dashboard has. Only exact-match select filters without inverse selection
     are supported. Supply ``values`` for a filter_select filter (an empty
-    list clears it, and a single-select filter accepts at most one value)
-    and ``time_range`` for a filter_time filter. Filters
+    list clears it, and a single-select filter accepts at most one value),
+    ``time_range`` for a filter_time filter, ``range`` as a ``[lower, upper]``
+    pair for a filter_range filter (either bound may be null, and
+    ``[null, null]`` clears it), and ``time_grain`` as a list of at most one
+    value for a filter_timegrain filter (an empty list clears it). Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
@@ -270,7 +464,9 @@ async def apply_dashboard_filters(
         "dashboard_id": 123,
         "filters": [
             {"filter_name_or_id": "Region", "values": ["EMEA", "APAC"]},
-            {"filter_name_or_id": "Time Range", "time_range": "Last month"}
+            {"filter_name_or_id": "Time Range", "time_range": "Last month"},
+            {"filter_name_or_id": "Cost", "range": [10, 100]},
+            {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}
         ]
     }
     ```
