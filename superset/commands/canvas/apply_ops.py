@@ -103,13 +103,18 @@ class ApplyCanvasOperationsCommand(BaseCommand):
     """
 
     def __init__(
-        self, canvas_id: int, base_revision: int, ops: list[Operation]
+        self, canvas_id_or_uuid: int | str, base_revision: int, ops: list[Operation]
     ) -> None:
-        self._canvas_id = canvas_id
+        self._canvas_ref = str(canvas_id_or_uuid)
+        self._canvas_id = 0
         self._base_revision = base_revision
         self._ops = ops
 
     def run(self) -> ApplyResult:
+        canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
+        if canvas is None:
+            raise CanvasNotFoundError()
+        self._canvas_id = canvas.id
         result = self._apply()
         publish_canvas_changed(self._canvas_id)
         return result

@@ -275,7 +275,8 @@ class FilterSelect(Widget):
     """
 
     controls_class = FilterSelectControls
-    behavior = WidgetBehavior(filter=True)
+    # Filterable too, so filters whose scope reaches it narrow its options.
+    behavior = WidgetBehavior(filter=True, filterable=True)
     ui = WidgetUi(default_size=(6, 2))
 
     @staticmethod

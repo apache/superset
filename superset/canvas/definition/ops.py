@@ -32,7 +32,7 @@ from enum import Enum
 from typing import Any
 
 from superset_core.canvas import InstanceResolver
-from superset_core.widgets import Widget
+from superset_core.widgets import PropsVersionError, Widget
 
 from superset.canvas.definition.placements import new_placement_id, placement_widgets
 from superset.canvas.definition.registry import (
@@ -98,6 +98,16 @@ class OperationError(ValueError):
         self.index = index
         self.message = message
         super().__init__(f"operation {index}: {message}")
+
+
+def current_props(
+    widget: type[Widget], props: dict[str, Any], version: int | None
+) -> dict[str, Any]:
+    """``props`` written at ``version`` (default current), at the current one."""
+    try:
+        return widget.upgrade_props(props, version or widget.schema_version)
+    except PropsVersionError as ex:
+        raise ValueError(str(ex)) from ex
 
 
 def overlapping(earlier: Iterable[Touch], later: Iterable[Touch]) -> set[str]:
@@ -259,7 +269,7 @@ class _Applier:
             raise ValueError(
                 f"{op.id!r} is not an inline instance of a registered widget"
             )
-        node["props"] = op.props
+        node["props"] = current_props(widget, op.props, op.schema_version)
         node["schemaVersion"] = widget.schema_version
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.PROPS)])
 
@@ -293,7 +303,7 @@ class _Applier:
             widget = self.widgets.get(op.widget)
             if widget is None:
                 raise ValueError(f"unknown widget {op.widget!r}")
-            props = op.props or {}
+            props = current_props(widget, op.props or {}, op.schema_version)
             title = props.get("title")
             name = title if isinstance(title, str) and title.strip() else widget.name
             node: dict[str, Any] = {

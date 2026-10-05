@@ -76,7 +76,7 @@ def test_get_canvas_is_lean_unless_resolution_is_asked_for() -> None:
         "nodes": {},
     }
     with patch(DAO) as dao:
-        dao.find_by_id.return_value = canvas
+        dao.find_by_id_or_uuid.return_value = canvas
         dao.load.return_value = definition
         lean = _get_canvas_impl(1, include_resolved=False)
         full = _get_canvas_impl(1, include_resolved=True)
@@ -87,7 +87,7 @@ def test_get_canvas_is_lean_unless_resolution_is_asked_for() -> None:
 
 def test_get_canvas_hides_missing_or_inaccessible_canvases() -> None:
     with patch(DAO) as dao:
-        dao.find_by_id.return_value = None
+        dao.find_by_id_or_uuid.return_value = None
         assert "error" in _get_canvas_impl(9, include_resolved=False)
 
 

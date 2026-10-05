@@ -147,8 +147,8 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
     }
 
 
-def _get_canvas(pk: int) -> Canvas:
-    canvas = CanvasDAO.find_by_id(pk)
+def _get_canvas(id_or_uuid: str) -> Canvas:
+    canvas = CanvasDAO.find_by_id_or_uuid(id_or_uuid)
     if canvas is None:
         raise CanvasNotFoundError()
     return canvas
@@ -440,7 +440,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             ),
         )
 
-    @expose("/<int:pk>/definition", methods=("GET",))
+    @expose("/<id_or_uuid>/definition", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -451,7 +451,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @_handle_canvas_errors
-    def get_definition(self, pk: int) -> Response:
+    def get_definition(self, id_or_uuid: str) -> Response:
         """Get a canvas' definition.
         ---
         get:
@@ -459,8 +459,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+              description: The canvas id or UUID
+            name: id_or_uuid
           responses:
             200:
               description: The definition, its revision and resolved filter scopes
@@ -507,7 +508,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        canvas = _get_canvas(pk)
+        canvas = _get_canvas(id_or_uuid)
         definition = CanvasDAO.load(canvas)
         return self.response(
             200,
@@ -520,7 +521,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/definition/changes", methods=("GET",))
+    @expose("/<id_or_uuid>/definition/changes", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -531,7 +532,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @_handle_canvas_errors
-    def get_definition_changes(self, pk: int) -> Response:
+    def get_definition_changes(self, id_or_uuid: str) -> Response:
         """Get the operations applied to a canvas' definition since a revision.
         ---
         get:
@@ -543,8 +544,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+              description: The canvas id or UUID
+            name: id_or_uuid
           - in: query
             schema:
               type: integer
@@ -567,7 +569,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         if since is None or since < 0:
             return self.response_400(message="`since` must be a revision number")
 
-        canvas = _get_canvas(pk)
+        canvas = _get_canvas(id_or_uuid)
         current = canvas.revision
         if since >= current:
             return self.response(200, result={"revision": current, "changes": []})
@@ -590,7 +592,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/definition", methods=("PATCH",))
+    @expose("/<id_or_uuid>/definition", methods=("PATCH",))
     @protect()
     @safe
     @statsd_metrics
@@ -601,7 +603,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @_handle_canvas_errors
-    def apply_definition_operations(self, pk: int) -> Response:
+    def apply_definition_operations(self, id_or_uuid: str) -> Response:
         """Apply operations to a canvas' definition.
         ---
         patch:
@@ -615,8 +617,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+              description: The canvas id or UUID
+            name: id_or_uuid
           requestBody:
             required: true
             content:
@@ -651,7 +654,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             body = ApplyOperationsRequest.model_validate(request.get_json(silent=True))
         except PydanticValidationError as ex:
             return self.response(400, message=_pydantic_errors(ex))
-        result = ApplyCanvasOperationsCommand(pk, body.base_revision, body.ops).run()
+        result = ApplyCanvasOperationsCommand(
+            id_or_uuid, body.base_revision, body.ops
+        ).run()
         return self.response(
             200,
             result={

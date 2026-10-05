@@ -373,6 +373,17 @@ def test_definition_from_a_newer_superset_is_refused(
     assert canvas.revision == 1
 
 
+def test_definition_routes_take_the_canvas_uuid(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    url = f"{BASE}/{canvas.uuid}/definition"
+
+    assert client.get(url).status_code == 200
+    response = client.patch(url, json={"base_revision": 1, "ops": [add("chart-1")]})
+    assert response.status_code == 200
+    assert client.get(f"{url}/changes?since=1").json["result"]["revision"] == 2
+
+
 def test_a_definition_from_a_newer_server_is_refused(
     client: Any,
     full_api_access: None,

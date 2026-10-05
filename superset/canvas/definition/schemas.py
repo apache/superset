@@ -197,7 +197,8 @@ def empty_definition() -> dict[str, Any]:
 class AddOp(_Model):
     """
     Place a persisted instance (``instance``) or a new inline one (``widget``
-    and ``props``) under ``parent``.
+    and ``props``) under ``parent``; how a committed draft of a new inline
+    instance lands on a canvas.
 
     The placement id is the caller's ``id`` when given, so later operations in
     the same request can reference it; otherwise the server derives one from
@@ -210,6 +211,9 @@ class AddOp(_Model):
     instance: str | None = Field(default=None, min_length=1)
     widget: str | None = Field(default=None, min_length=1)
     props: dict[str, Any] | None = None
+    # The schema version ``props`` were written at, e.g. by a draft; older
+    # props are migrated. Defaults to the widget's current version.
+    schema_version: int | None = Field(default=None, ge=1)
     layout: dict[str, Any] = Field(default_factory=dict)
     parent: str = ROOT_ID
     # Position in the parent's children (reading order); appended when omitted.
@@ -219,7 +223,9 @@ class AddOp(_Model):
     def _one_instance(self) -> AddOp:
         if (self.instance is None) == (self.widget is None):
             raise ValueError("add takes either instance or widget")
-        if self.instance is not None and self.props is not None:
+        if self.instance is not None and (
+            self.props is not None or self.schema_version is not None
+        ):
             raise ValueError("props are only for an inline widget")
         if self.id in RESERVED_IDS:
             raise ValueError(f"{self.id!r} is reserved")
@@ -261,6 +267,8 @@ class SetPropsOp(_Model):
     op: Literal["set_props"]
     id: str
     props: dict[str, Any]
+    # As on ``add``: older props are migrated to the current version.
+    schema_version: int | None = Field(default=None, ge=1)
 
 
 class SetScopeOp(_Model):

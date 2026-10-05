@@ -38,7 +38,7 @@ from superset.mcp_service.canvas.schemas import ApplyCanvasOpsResponse
 
 
 def _apply_canvas_ops_impl(
-    canvas_id: int, base_revision: int, ops: list[dict[str, Any]]
+    canvas_id: int | str, base_revision: int, ops: list[dict[str, Any]]
 ) -> dict[str, Any]:
     try:
         request = ApplyOperationsRequest.model_validate(
@@ -81,10 +81,11 @@ def _apply_canvas_ops_impl(
     ),
 )
 def apply_canvas_ops(
-    canvas_id: int, base_revision: int, ops: list[dict[str, Any]]
+    canvas_id: int | str, base_revision: int, ops: list[dict[str, Any]]
 ) -> ApplyCanvasOpsResponse:
-    """Apply operations to a canvas, in order and atomically: on any error
-    nothing changes and the error names the operation and the path at fault.
+    """Apply operations to a canvas (by id or UUID), in order and atomically:
+    on any error nothing changes and the error names the operation and the
+    path at fault.
 
     Operations (placement ids are readable slugs; ``parent`` defaults to
     ``"root"``):

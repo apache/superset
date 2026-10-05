@@ -211,6 +211,36 @@ def test_set_props_replaces_inline_props() -> None:
     assert applied[0].touched == [Touch("n0", FieldGroup.PROPS)]
 
 
+def test_props_written_at_an_older_version_are_migrated() -> None:
+    widgets = canvas_widgets()
+    chart = widgets["chart"]
+    widgets["chart"] = type(
+        "ChartV2",
+        (chart,),
+        {"schema_version": 2, "migrators": {1: lambda p: {"metric": p["measure"]}}},
+    )
+
+    def run(*raw: dict[str, Any]) -> dict[str, Any]:
+        return apply_operations(
+            empty_definition(), ops(*raw), widgets=widgets, resolver=FakeResolver()
+        )[0]
+
+    added = run(
+        {
+            "op": "add",
+            "id": "a",
+            "widget": "chart",
+            "props": {"measure": "sum"},
+            "schemaVersion": 1,
+        },
+        {"op": "set_props", "id": "a", "props": {"measure": "avg"}, "schemaVersion": 1},
+    )
+    assert added["nodes"]["a"]["props"] == {"metric": "avg"}
+    assert added["nodes"]["a"]["schemaVersion"] == 2
+    with pytest.raises(OperationError, match="supports up to 2"):
+        run({"op": "add", "widget": "chart", "props": {}, "schemaVersion": 3})
+
+
 def test_set_props_needs_an_inline_instance() -> None:
     doc = build(add("chart-1"))
 

@@ -23,9 +23,10 @@ converts them back, so stored definitions are always at the current version.
 The migration also clears ``canvas_ops``: logged operations are in the old
 format and can't be checked for overlap, so open clients get ``stale`` and
 reload.
-Additive changes ship expand/contract across two releases. Anything at another
-version, such as a definition from a newer server or an old export, is refused
-rather than read with the wrong schema.
+Additive changes ship expand/contract across two releases. Anything else at
+another version, such as a definition from a newer server, is refused rather
+than read with the wrong schema; importing an older snapshot converts it with
+the same transformations its migrations apply before this check.
 """
 
 from __future__ import annotations

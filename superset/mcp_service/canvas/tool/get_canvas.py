@@ -30,8 +30,8 @@ from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasResponse
 
 
-def _get_canvas_impl(canvas_id: int, include_resolved: bool) -> dict[str, Any]:
-    canvas = CanvasDAO.find_by_id(canvas_id)
+def _get_canvas_impl(canvas_id: int | str, include_resolved: bool) -> dict[str, Any]:
+    canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:
         return {"error": f"Canvas {canvas_id} not found, or no access to it"}
     try:
@@ -61,8 +61,10 @@ def _get_canvas_impl(canvas_id: int, include_resolved: bool) -> dict[str, Any]:
         openWorldHint=False,
     ),
 )
-def get_canvas(canvas_id: int, include_resolved: bool = False) -> GetCanvasResponse:
-    """Get a canvas: its placements, filter scope overrides, settings and
+def get_canvas(
+    canvas_id: int | str, include_resolved: bool = False
+) -> GetCanvasResponse:
+    """Get a canvas, by id or UUID: its placements, filter scope overrides, settings and
     revision.
 
     Placements are keyed by readable ids (``revenue-trend``); use them in
