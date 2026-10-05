@@ -47,6 +47,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_transform_active,
     is_unfinished,
     MappingValidationIssue,
+    mirror_operator,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
@@ -213,6 +214,46 @@ def test_ranges_survive_an_unsafe_equality() -> None:
         mirrorable_operators(is_monotonic=True, equality_is_safe=False)
         == MIRRORABLE_IF_MONOTONIC
     )
+
+
+@pytest.mark.parametrize(
+    "operator,expected",
+    [
+        (FilterOperator.GREATER_THAN, FilterOperator.GREATER_THAN_OR_EQUALS),
+        (FilterOperator.LESS_THAN, FilterOperator.LESS_THAN_OR_EQUALS),
+        (
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+        ),
+        (FilterOperator.LESS_THAN_OR_EQUALS, FilterOperator.LESS_THAN_OR_EQUALS),
+        (FilterOperator.EQUALS, FilterOperator.EQUALS),
+        (FilterOperator.IN, FilterOperator.IN),
+    ],
+)
+def test_a_strict_bound_mirrors_non_strictly(
+    operator: FilterOperator, expected: FilterOperator
+) -> None:
+    """
+    Order-preserving means non-decreasing, not injective, so ``col < v``
+    implies only ``T(col) <= T(v)``. A day-key transform maps a whole day onto
+    one value and a strict mirror drops the boundary bucket. The non-strict
+    cases are already safe and pass through, which is what makes applying this
+    twice harmless.
+    """
+    assert mirror_operator(operator) == expected
+
+
+def test_relaxing_a_bound_stays_inside_the_mirrorable_set() -> None:
+    """
+    The substitution is about strictness, not about which filters mirror. The
+    Explore indicator reads `mirrorable_operators`, so leaving that set alone is
+    what keeps the glyph from promising pruning the SQL does not do -- and it is
+    also what guarantees `handle_comparison_filter` is never handed an operator
+    it has no case for.
+    """
+    assert {
+        mirror_operator(operator) for operator in MIRRORABLE_IF_MONOTONIC
+    } <= MIRRORABLE_IF_MONOTONIC
 
 
 def _column(type_: str) -> TableColumn:

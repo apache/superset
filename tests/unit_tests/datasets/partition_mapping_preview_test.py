@@ -140,6 +140,37 @@ def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
     }
 
 
+def test_preview_shows_a_strict_bound_mirroring_non_strictly(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The preview and the query path agree only because both go through
+    `build_mirrored_predicates`. A preview rendering `<` while the chart emitted
+    `<=` would be the editor claiming something the SQL does not do.
+
+    `sample_input` describes the owner's filter and `emitted_predicate` the
+    mirror, so the two carrying different operators is the behaviour under test
+    rather than a defect.
+    """
+    with patch(PROBE, return_value=[1768435200]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "operator": "<",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time < '2026-01-15 00:00:00'",
+        "emitted_predicate": "dt_epoch <= 1768435200 OR dt_epoch IS NULL",
+    }
+
+
 def test_preview_refuses_a_range_when_the_transform_is_not_monotonic(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
