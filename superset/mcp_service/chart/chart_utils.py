@@ -1889,8 +1889,15 @@ def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, A
         ]
     for key in ("where", "having", "filters"):
         normalized.pop(key, None)
-    if "orderby" not in normalized and "order_by_cols" in normalized:
-        normalized["orderby"] = _parse_orderby(normalized["order_by_cols"])
+    if "order_by_cols" in normalized:
+        # Native extractQueryFields concatenates both aliases in key order.
+        ordering: list[Any] = []
+        for key, value in normalized.items():
+            if key == "order_by_cols":
+                ordering.extend(_parse_orderby(value))
+            elif key == "orderby":
+                ordering.extend(value or [])
+        normalized["orderby"] = ordering
     normalized.pop("order_by_cols", None)
     return normalized
 

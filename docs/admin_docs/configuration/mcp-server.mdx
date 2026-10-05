@@ -1322,6 +1322,9 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 
 Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Shared Mixed controls remain on the secondary query unless a suffixed control overrides them. Timeseries resampling preserves the saved fill-time-range flag, including leading and trailing zero-filled buckets. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
 
+Saved aggregate Table charts normalize empty-string `groupby` values to no
+grouping columns, matching Explore's native query extraction.
+
 ## Security Best Practices
 
 - **Use TLS** for all production MCP endpoints -- place the server behind a reverse proxy with HTTPS
@@ -1366,6 +1369,8 @@ SQL metrics without a label use their SQL expression as the output label.
 
 Presentation-only updates preserve saved predicates, including legacy top-level
 `where`, `having`, and `filters`, and normalize the native `order_by_cols` alias.
+When both `orderby` and `order_by_cols` are saved, their sort entries are
+concatenated in form-data key order, including when `orderby` is empty.
 Explicit `filters: []` and `order_by: []` clear those inherited controls.
 
 Range, marker, and marker-line label lists may be shorter than their value lists.

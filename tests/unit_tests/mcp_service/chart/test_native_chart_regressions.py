@@ -72,6 +72,58 @@ def test_bullet_update_preserves_legacy_predicates_and_ordering() -> None:
     assert query["row_limit"] == 1
 
 
+@pytest.mark.parametrize("canonical_orderby", [[], [["revenue", False]]])
+@pytest.mark.parametrize("legacy_first", [False, True])
+def test_bullet_update_preserves_combined_native_ordering(
+    canonical_orderby: list[list[Any]], legacy_first: bool
+) -> None:
+    """Native extraction concatenates ordering aliases in form-data key order."""
+    config = BulletChartConfig(metric="revenue", show_labels=True)
+    existing: dict[str, Any] = {
+        "viz_type": "bullet",
+        "metric": "revenue",
+        "groupby": ["region"],
+        "row_limit": 1,
+    }
+    ordering = {
+        "orderby": canonical_orderby,
+        "order_by_cols": ['["region", true]'],
+    }
+    existing.update(
+        dict(reversed(list(ordering.items()))) if legacy_first else ordering
+    )
+    expected = (
+        [["region", True], *canonical_orderby]
+        if legacy_first
+        else [*canonical_orderby, ["region", True]]
+    )
+    merged = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(config), config, dataset_rebind=False
+    )
+    assert merged is not None
+    query = build_query_dicts_from_form_data(merged, 1, "table")[0]
+    assert query["orderby"] == expected
+    assert query["row_limit"] == 1
+    assert "order_by_cols" not in merged
+
+
+@pytest.mark.parametrize("groupby", ["", [""], ["", "region"], None, []])
+def test_table_saved_empty_groupby_is_not_a_query_column(groupby: Any) -> None:
+    """Native query extraction excludes empty-string column references."""
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": groupby,
+            "metrics": ["revenue"],
+        },
+        1,
+        "table",
+    )[0]
+    assert query["columns"] == (["region"] if groupby == ["", "region"] else [])
+    assert query["metrics"] == ["revenue"]
+
+
 @pytest.mark.parametrize("role", ["groupby", "metrics", "all_columns"])
 def test_table_saved_scalar_roles_are_not_split(role: str) -> None:
     """Saved scalar controls follow ensureIsArray instead of string iteration."""
@@ -244,6 +296,7 @@ def test_bullet_explicit_clears_override_legacy_controls(
             }
         ],
         "order_by_cols": ['["region", true]'],
+        "orderby": [],
     }
     merged = BulletChartPlugin().merge_update_form_data(
         existing, map_bullet_config(config), config, dataset_rebind=False

@@ -1932,9 +1932,14 @@ def build_table_query_dicts(  # noqa: C901
         form_data.get("query_mode") not in {"raw", "aggregate"}
         and bool(form_data.get("all_columns"))
     )
-    table_columns = _as_list(
-        form_data.get("all_columns") if raw_mode else form_data.get("groupby")
-    )
+    # Native extractQueryFields excludes empty-string column references.
+    table_columns = [
+        column
+        for column in _as_list(
+            form_data.get("all_columns") if raw_mode else form_data.get("groupby")
+        )
+        if column != ""
+    ]
     table_metrics = [] if raw_mode else _as_list(form_data.get("metrics"))
     percent_metrics = [] if raw_mode else _as_list(form_data.get("percent_metrics"))
     table_metrics = _dedupe_query_fields(
