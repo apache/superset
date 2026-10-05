@@ -581,6 +581,18 @@ class SemanticView(AuditMixinNullable, Model):
     def data(self) -> ExplorableData:
         dimensions = self._unique_dimensions
         metrics = list(self.implementation.get_metrics())
+        preferred_time_dimension: str | None = (
+            self.implementation.preferred_time_dimension
+        )
+        main_dttm_col: str | None = next(
+            (
+                dimension.name
+                for dimension in dimensions
+                if dimension.name == preferred_time_dimension
+                and get_column_type(dimension.type) == GenericDataType.TEMPORAL
+            ),
+            None,
+        )
         verbose_map = {
             **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
@@ -679,7 +691,7 @@ class SemanticView(AuditMixinNullable, Model):
             # sql-specific
             "schema": None,
             "catalog": None,
-            "main_dttm_col": None,
+            "main_dttm_col": main_dttm_col,
             # ``time_grain_sqla`` in ``ExplorableData`` is the ``(duration,
             # name)`` tuple shape the explore UI consumes; the dict shape
             # lives on ``get_time_grains``.

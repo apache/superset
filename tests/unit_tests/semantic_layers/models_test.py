@@ -43,6 +43,7 @@ from superset.semantic_layers.models import (
     SemanticLayer,
     SemanticView,
 )
+from superset.superset_typing import ExplorableData
 from superset.utils.core import GenericDataType
 
 # =============================================================================
@@ -711,6 +712,43 @@ def test_semantic_view_abc_features_default_empty() -> None:
     )
 
     assert SemanticViewABC.features == frozenset()
+
+
+def test_semantic_view_abc_preferred_time_dimension_is_optional() -> None:
+    """Existing providers inherit no preferred temporal dimension."""
+    from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
+
+    assert SemanticViewABC.preferred_time_dimension is None
+
+
+@pytest.mark.parametrize(
+    ("preferred", "expected"),
+    [
+        ("metric_time", "metric_time"),
+        (None, None),
+        ("missing_time", None),
+        ("entity_name", None),
+    ],
+)
+def test_semantic_view_data_honors_exposed_temporal_preference(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    preferred: str | None,
+    expected: str | None,
+) -> None:
+    """Only an exposed temporal dimension can become Explore's default."""
+    mock_implementation.get_dimensions.return_value = [
+        Dimension(id="entity.time", name="entity_time", type=pa.date32()),
+        Dimension(id="entity.name", name="entity_name", type=pa.string()),
+        Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
+    ]
+    mock_implementation.preferred_time_dimension = preferred
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["columns"][0]["column_name"] == "entity_time"
+    assert data["columns"][0]["is_dttm"] is True
+    assert data["main_dttm_col"] == expected
 
 
 def test_semantic_view_data_features_empty(
