@@ -27,6 +27,7 @@ tests exist to catch.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from flask import Flask
@@ -112,8 +113,38 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "mapped_column": "event_time",
         "active": True,
         "is_monotonic": True,
+        # SQLite renders a timestamp with ``timespec="seconds"``.
+        "literal_resolution": "second",
         "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
     }
+
+
+def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
+    app: Flask,
+) -> None:
+    """
+    The one gate the Explore indicator cannot work out for itself. A `DATE`
+    column is compared on its date part alone, so an `=` carrying a time of day
+    is declined by the query path -- and without this the glyph would promise
+    the pruning that decline gives up.
+    """
+    table = _table()
+    table.columns[0].type = "DATE"
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(
+                lambda cls, target_type, dttm, db_extra=None: (
+                    f"DATE '{dttm.date().isoformat()}'"
+                )
+            ),
+        ):
+            summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["literal_resolution"] == "day"
 
 
 def test_the_mapping_summary_reports_inactive_without_a_transform(
@@ -222,6 +253,8 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         "mapped_column": "event_time",
         "active": False,
         "is_monotonic": True,
+        # SQLite renders a timestamp with ``timespec="seconds"``.
+        "literal_resolution": "second",
         "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
     }
 
