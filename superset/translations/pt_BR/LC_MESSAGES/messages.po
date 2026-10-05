@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 19:03+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -8354,6 +8354,10 @@ msgstr "Valor do filtro (diferencia maiúsculas de minúsculas)"
 msgid "Filter value is required"
 msgstr "O valor do filtro é obrigatório"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "A lista de valores do filtro não pode estar vazia"
 
@@ -11451,6 +11455,9 @@ msgid "No saved metrics found"
 msgstr "Nenhuma métrica salva foi encontrada"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
