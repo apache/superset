@@ -123,7 +123,10 @@ TOOL_BUDGETS = {
     "manage_dashboard_certification": 1_900,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    "manage_native_filters": 6_700,
+    # Includes default_value on FilterSelectSpec/NativeFilterUpdateSpec and its
+    # mutual-exclusion note with default_to_first_item: 7,347 bytes, rounded
+    # up plus the standard 100-byte headroom.
+    "manage_native_filters": 7_500,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,

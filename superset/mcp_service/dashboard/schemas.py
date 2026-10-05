@@ -2320,10 +2320,9 @@ class FilterSelectSpec(BaseNewFilterSpec):
     default_value: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Default selected value(s) for the filter, applied when a "
-            "viewer opens the dashboard without having changed it. Omit for "
-            "no default (an empty selection). Mutually exclusive with "
-            "default_to_first_item."
+            "Default selected value(s), shown when a viewer opens the "
+            "dashboard unchanged. Omit for no default. Mutually exclusive "
+            "with default_to_first_item."
         ),
     )
 
@@ -2399,12 +2398,9 @@ class NativeFilterUpdateSpec(BaseModel):
     default_value: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "New default selected value(s) for the filter (filter_select "
-            "only). Pass an empty list to clear the default to no "
-            "selection. Mutually exclusive with setting "
-            "default_to_first_item=True in the same update; if the filter "
-            "currently has default_to_first_item enabled, also pass "
-            "default_to_first_item=False in this same update."
+            "New default value(s) (filter_select only). Empty list clears "
+            "it. Mutually exclusive with default_to_first_item=True; if "
+            "already enabled, also pass default_to_first_item=False here."
         ),
     )
     default_time_range: str | None = Field(
