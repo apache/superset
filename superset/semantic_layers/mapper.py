@@ -415,6 +415,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
         time_dimensions=time_dimensions,
     )
 
+    offset_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
     queries = []
     for time_offset in [None] + query_object.time_offsets:
         filters = _get_filters_from_query_object(
@@ -422,6 +423,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             time_offset,
             all_dimensions,
             time_dimensions=time_dimensions,
+            is_time_series=offset_axis_column in normalized_columns,
         )
         queries.append(
             SemanticQuery(
@@ -447,6 +449,7 @@ def _get_filters_from_query_object(
     all_dimensions: dict[str, Dimension],
     *,
     time_dimensions: dict[str, Dimension] | None = None,
+    is_time_series: bool = False,
 ) -> set[Filter]:
     """
     Extract all filters from the query object, including time range filters.
@@ -490,7 +493,15 @@ def _get_filters_from_query_object(
         if time_filters
         else None
     )
-    filters.update(_get_adhoc_filters(query_object, all_dimensions, replaced_time_axis))
+    filters.update(
+        _get_adhoc_filters(
+            query_object,
+            all_dimensions,
+            replaced_time_axis,
+            replace_all_axis_ranges=time_offset is not None and is_time_series,
+            time_shift=time_offset if not is_time_series else None,
+        )
+    )
 
     return filters
 
@@ -499,12 +510,17 @@ def _get_adhoc_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
     replaced_time_axis: str | None,
+    *,
+    replace_all_axis_ranges: bool = False,
+    time_shift: str | None = None,
 ) -> set[Filter]:
-    """Replace only the axis predicate from which the factory derived bounds.
+    """Replace axis predicates with the factory-derived bounds.
 
     Match its original expression before parsing: relative clocks, time shifts
     and custom anchors can make a second evaluation differ from those bounds.
-    Independent columns and range expressions must survive offset/inner queries.
+    Time-series offsets and separate inner-bound queries replace all ranges on
+    the selected axis. Non-series offsets shift remaining temporal ranges
+    independently, matching the SQL-dataset comparison paths.
     """
     replaced_range: str | None = (
         get_time_range_from_filters(
@@ -520,10 +536,12 @@ def _get_adhoc_filters(
             replaced_time_axis is not None
             and filter_["op"] == FilterOperator.TEMPORAL_RANGE.value
             and filter_["col"] == replaced_time_axis
-            and filter_["val"] == replaced_range
+            and (replace_all_axis_ranges or filter_["val"] == replaced_range)
         ):
             continue
-        converted = _convert_query_object_filter(filter_, all_dimensions)
+        converted = _convert_query_object_filter(
+            filter_, all_dimensions, time_shift=time_shift
+        )
         if converted:
             filters.update(converted)
     return filters
@@ -710,6 +728,8 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
+    *,
+    time_shift: str | None = None,
 ) -> set[Filter] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
@@ -736,7 +756,9 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = get_since_until_from_time_range(time_range=value)
+        start, end = get_since_until_from_time_range(
+            time_range=value, time_shift=time_shift
+        )
         filters: set[Filter] = set()
         if start is not None:
             filters.add(
@@ -1070,6 +1092,7 @@ def _get_group_limit_filters(
             query_object,
             all_dimensions,
             time_axis_column if time_bounds_emitted else None,
+            replace_all_axis_ranges=time_bounds_emitted,
         )
     )
 

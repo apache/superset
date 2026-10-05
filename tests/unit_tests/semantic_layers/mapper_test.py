@@ -4334,7 +4334,7 @@ def test_ordering_on_ungrouped_dimension_keeps_default(mocker: MockerFixture) ->
 def test_resolution_preserves_independent_temporal_predicates(
     mocker: MockerFixture, secondary_column: str, date_only: bool
 ) -> None:
-    """Only the exact axis range is replaced by offset/inner time bounds."""
+    """Offset queries replace every range on their selected time axis."""
     temporal_type: pa.DataType = pa.date32() if date_only else pa.timestamp("us")
     raw: Dimension = Dimension("raw", "event_time", temporal_type)
     month: Dimension = Dimension(
@@ -4386,19 +4386,28 @@ def test_resolution_preserves_independent_temporal_predicates(
         Filter(PredicateType.WHERE, secondary, Operator.LESS_THAN, secondary_upper),
     }
     results: list[SemanticQuery] = map_query_object(query)
-    for result, lower, upper in zip(
-        results,
-        (datetime(2026, 1, 15), datetime(2025, 12, 15)),
-        (datetime(2026, 2, 1), datetime(2026, 1, 1)),
-        strict=True,
+    index: int
+    for index, (result, lower, upper) in enumerate(
+        zip(
+            results,
+            (datetime(2026, 1, 15), datetime(2025, 12, 15)),
+            (datetime(2026, 2, 1), datetime(2026, 1, 1)),
+            strict=True,
+        )
     ):
         assert result.dimensions == [month]
-        assert result.filters == independent | {
+        expected_independent: set[Filter] = (
+            set() if index and secondary_column == "event_time" else independent
+        )
+        assert result.filters == expected_independent | {
             Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, lower),
             Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, upper),
         }
         assert result.group_limit is not None
-        assert result.group_limit.filters == independent | {
+        expected_inner_independent: set[Filter] = (
+            set() if secondary_column == "event_time" else independent
+        )
+        assert result.group_limit.filters == expected_inner_independent | {
             Filter(
                 PredicateType.WHERE,
                 raw,
@@ -4407,6 +4416,123 @@ def test_resolution_preserves_independent_temporal_predicates(
             ),
             Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 1, 1)),
         }
+
+
+def test_aggregate_only_offset_shifts_secondary_temporal_range(
+    mocker: MockerFixture,
+) -> None:
+    """Non-series comparisons shift each authored temporal range independently."""
+    event_time: Dimension = Dimension("time", "event_time", pa.timestamp("us"))
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({event_time}, set())
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=[],
+        metrics=[],
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        filters=[
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-15 : 2026-02-01",
+            },
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-20 : 2026-01-25",
+            },
+        ],
+    )
+
+    base: SemanticQuery
+    comparison: SemanticQuery
+    base, comparison = map_query_object(query)
+    assert base.filters == {
+        Filter(
+            PredicateType.WHERE,
+            event_time,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2026, 1, 15),
+        ),
+        Filter(
+            PredicateType.WHERE, event_time, Operator.LESS_THAN, datetime(2026, 2, 1)
+        ),
+        Filter(
+            PredicateType.WHERE,
+            event_time,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2026, 1, 20),
+        ),
+        Filter(
+            PredicateType.WHERE, event_time, Operator.LESS_THAN, datetime(2026, 1, 25)
+        ),
+    }
+    assert comparison.filters == {
+        Filter(
+            PredicateType.WHERE,
+            event_time,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2025, 12, 15),
+        ),
+        Filter(
+            PredicateType.WHERE, event_time, Operator.LESS_THAN, datetime(2026, 1, 1)
+        ),
+        Filter(
+            PredicateType.WHERE,
+            event_time,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2025, 12, 20),
+        ),
+        Filter(
+            PredicateType.WHERE, event_time, Operator.LESS_THAN, datetime(2025, 12, 25)
+        ),
+    }
+
+
+def test_time_series_offset_with_multiple_temporal_dimensions(
+    mocker: MockerFixture,
+) -> None:
+    """Selected offset axis is a series even when grain selection is ambiguous."""
+    event_time: Dimension = Dimension("time", "event_time", pa.timestamp("us"))
+    shipped_at: Dimension = Dimension("shipped", "shipped_at", pa.timestamp("us"))
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({event_time, shipped_at}, set())
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time", "shipped_at"],
+        metrics=[],
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        filters=[
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-15 : 2026-02-01",
+            },
+            {
+                "col": "event_time",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-20 : 2026-01-25",
+            },
+        ],
+    )
+    comparison: SemanticQuery = map_query_object(query)[1]
+    assert comparison.filters == {
+        Filter(
+            PredicateType.WHERE,
+            event_time,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2025, 12, 15),
+        ),
+        Filter(
+            PredicateType.WHERE, event_time, Operator.LESS_THAN, datetime(2026, 1, 1)
+        ),
+    }
 
 
 @pytest.mark.parametrize("explicit_range", [False, True])
@@ -4466,18 +4592,22 @@ def test_replaced_relative_range_uses_factory_identity(
     }
     assert lower.day == 18 - day_shift
     assert upper.day == 25 - day_shift
-    for result, start, end in zip(
-        results,
-        (lower, lower.replace(year=2025, month=12)),
-        (upper, upper.replace(year=2025, month=12)),
-        strict=True,
+    index: int
+    for index, (result, start, end) in enumerate(
+        zip(
+            results,
+            (lower, lower.replace(year=2025, month=12)),
+            (upper, upper.replace(year=2025, month=12)),
+            strict=True,
+        )
     ):
-        assert result.filters == independent | {
+        expected_independent: set[Filter] = set() if index else independent
+        assert result.filters == expected_independent | {
             Filter(PredicateType.WHERE, raw, Operator.GREATER_THAN_OR_EQUAL, start),
             Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, end),
         }
         assert result.group_limit is not None
-        assert result.group_limit.filters == independent | {
+        assert result.group_limit.filters == {
             Filter(
                 PredicateType.WHERE,
                 raw,
