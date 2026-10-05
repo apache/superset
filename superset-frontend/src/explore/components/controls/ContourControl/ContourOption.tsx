@@ -49,7 +49,9 @@ const ContourOption = ({
 }: ContourOptionProps) => {
   const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
 
-  const isIsoband = Boolean(upperThreshold) || upperThreshold === 0;
+  const isIsoband =
+    (Boolean(upperThreshold) || upperThreshold === 0) &&
+    (Boolean(lowerThreshold) || lowerThreshold === 0);
 
   const formattedColor = color
     ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
