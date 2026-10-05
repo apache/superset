@@ -551,9 +551,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     ) -> Select | None:
         if partition_column := cls.get_time_partition_column(database, table):
             max_partition_id = cls.get_max_partition_id(database, table)
-            query = query.where(
-                column(partition_column) == func.PARSE_DATE("%Y%m%d", max_partition_id)
-            )
+            if max_partition_id is not None:
+                query = query.where(
+                    column(partition_column)
+                    == func.PARSE_DATE("%Y%m%d", max_partition_id)
+                )
 
         return query
 

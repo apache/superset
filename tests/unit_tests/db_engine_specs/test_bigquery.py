@@ -23,7 +23,7 @@ from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import select
+from sqlalchemy import column, select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
@@ -1181,3 +1181,40 @@ def test_where_latest_partition_filters_null_partitions(
     executed_sql = cursor_mock.execute.call_args[0][0]
     assert "__NULL__" in executed_sql or "NOT IN" in executed_sql
     assert "__UNPARTITIONED__" in executed_sql or "NOT IN" in executed_sql
+
+
+def test_where_latest_partition_skips_where_clause_when_max_is_none(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that where_latest_partition leaves the query untouched when the table
+    has only reserved partitions and get_max_partition_id returns None.
+
+    Without the guard, the filter would compile to
+    PARSE_DATE('%Y%m%d', None), which fails at query time.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.MagicMock()
+
+    # All partitions are reserved, so the aggregate returns NULL
+    cursor_mock = mock.MagicMock()
+    cursor_mock.fetchone.return_value = (None,)
+    raw_conn_mock = mock.MagicMock()
+    raw_conn_mock.cursor.return_value = cursor_mock
+    database.get_raw_connection.return_value.__enter__.return_value = raw_conn_mock
+    database.get_dialect.return_value = BigQueryDialect()
+
+    client = mocker.patch.object(BigQueryEngineSpec, "_get_client").return_value
+    bq_table_mock = mock.MagicMock()
+    bq_table_mock.time_partitioning.field = "partition_date"
+    client.get_table.return_value = bq_table_mock
+
+    table = Table("test_table", "test_dataset", "test_project")
+    query = select(column("foo"))
+
+    filtered = BigQueryEngineSpec.where_latest_partition(database, table, query)
+
+    # No WHERE clause was appended: the query is returned unchanged
+    assert filtered is query
+    assert not query.whereclause
