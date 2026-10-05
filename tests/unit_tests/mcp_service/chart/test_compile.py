@@ -848,8 +848,8 @@ def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
 
 @pytest.mark.parametrize(
     "value",
-    [10**5000, float("inf"), b"\xff", QueryStatus.SUCCESS],
-    ids=["huge-int", "infinity", "bytes", "query-status"],
+    [10**5000, float("inf"), b"\xff" * 65_537, QueryStatus.SUCCESS],
+    ids=["huge-int", "infinity", "oversized-bytes", "query-status"],
 )
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
