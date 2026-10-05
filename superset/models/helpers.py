@@ -94,6 +94,7 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    mirror_operator,
     normalize_mixed_numbers,
     PartitionMapping,
     raw_probe_value,
@@ -4486,15 +4487,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         start_dttm: Optional[datetime],
         end_dttm: Optional[datetime],
         col: Optional["TableColumn"],
-    ) -> tuple[Optional[datetime], Optional[datetime], bool]:
+    ) -> tuple[Optional[datetime], Optional[datetime]]:
         """
         The bounds widened to whatever the engine's literal actually resolves to.
 
         Rounding outward is never narrower than the predicate being mirrored,
         which is the only property the mirror has to hold.
-
-        Returns the bounds and whether anything moved, because a ceiled upper
-        bound is only safe inclusive, exactly as a grain-widened one is.
         """
         resolutions = {
             self._engine_literal_resolution(bound, col)
@@ -4516,16 +4514,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 end_dttm = end_dttm.replace(
                     hour=0, minute=0, second=0, microsecond=0
                 ) + timedelta(days=1)
-            return start_dttm, end_dttm, True
-
-        if LiteralResolution.SECOND in resolutions:
+        elif LiteralResolution.SECOND in resolutions:
             if start_dttm is not None:
                 start_dttm = start_dttm.replace(microsecond=0)
             if end_dttm is not None and end_dttm.microsecond:
                 end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
-            return start_dttm, end_dttm, True
 
-        return start_dttm, end_dttm, False
+        return start_dttm, end_dttm
 
     def _literal_is_coarser_than(
         self, dttm: datetime, col: Optional["TableColumn"]
@@ -4564,14 +4559,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Either bound may be `None` for an open-ended range, in which case only
         the bound that exists is mirrored.
 
+        Both bounds are recorded with the operators the real predicate uses,
+        `>=` and `<`. Relaxing the strict one is `mirror_operator`'s job, at the
+        single point where an operator becomes SQL -- which is also the point
+        the preview endpoint goes through.
+
         `widen_bounds_by` is one grain bucket width, passed when the filter this
         stands in for compares a *truncated* column. The real predicate then
         keeps rows the raw bounds exclude, and widening both ends by one bucket
         is the smallest range guaranteed to contain all of them -- see the "Time
-        grains" section of `superset.connectors.sqla.partition_mapping`. Note
-        the widened upper bound is `<=` rather than `<`: `ts < until + width`
-        only gives `T(ts) <= T(until + width)` for a transform that is monotonic
-        but not strictly so, such as `unix_timestamp` on a sub-second column.
+        grains" section of `superset.connectors.sqla.partition_mapping`.
 
         A widened range can also be wide enough to fail `_bounds_are_ordered`
         against a tighter filter on the same column. That fails open -- no
@@ -4596,20 +4593,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # bucket width has to be added there too. The two commute for the
         # hour-offset branch but not for the `ZoneInfo` one, where widening
         # across a DST boundary first lands an hour out.
-        upper_operator = utils.FilterOperator.LESS_THAN
         if widen_bounds_by is not None:
             if start_dttm is not None:
                 start_dttm -= widen_bounds_by
             if end_dttm is not None:
                 end_dttm += widen_bounds_by
-            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
         # Then round outward, to whatever the engine's literal resolves to.
-        start_dttm, end_dttm, rounded = self._round_bounds_outward(
+        start_dttm, end_dttm = self._round_bounds_outward(
             start_dttm, end_dttm, mapped_col
         )
-        if rounded:
-            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
         # Converted last. The widening and rounding above are `datetime`
         # arithmetic, and the stored representation may be an integer.
@@ -4622,7 +4615,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         if end_dttm is not None:
             sink.append(
-                (upper_operator, self._mirror_probe_value(end_dttm, mapped_col))
+                (
+                    utils.FilterOperator.LESS_THAN,
+                    self._mirror_probe_value(end_dttm, mapped_col),
+                )
             )
 
     def _array_mirror_probe_value(
@@ -4778,7 +4774,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         deduped: list[tuple[utils.FilterOperator, Any]] = []
         seen: set[Any] = set()
         for operator, value in requests:
-            key = (operator, value if isinstance(value, Hashable) else repr(value))
+            # Keyed on the operator the mirror is *emitted* with, not the one
+            # collected: a strict bound and its non-strict twin on the same
+            # value build the same predicate, so they are the same request.
+            key = (
+                mirror_operator(operator),
+                value if isinstance(value, Hashable) else repr(value),
+            )
             if key not in seen:
                 seen.add(key)
                 deduped.append((operator, value))

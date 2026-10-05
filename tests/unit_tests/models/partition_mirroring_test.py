@@ -193,7 +193,7 @@ def test_time_range_mirrors_both_bounds(app: Flask) -> None:
             )
 
     assert "dt_epoch >= 1767225600" in sql
-    assert "dt_epoch < 1769904000" in sql
+    assert "dt_epoch <= 1769904000" in sql
 
 
 def test_temporal_range_filter_mirrors_both_bounds(app: Flask) -> None:
@@ -213,21 +213,28 @@ def test_temporal_range_filter_mirrors_both_bounds(app: Flask) -> None:
             )
 
     assert "dt_epoch >= 1767225600" in sql
-    assert "dt_epoch < 1769904000" in sql
+    assert "dt_epoch <= 1769904000" in sql
 
 
 @pytest.mark.parametrize(
     "operator,expected",
     [
-        (FilterOperator.GREATER_THAN, "dt_epoch > 1767225600"),
+        (FilterOperator.GREATER_THAN, "dt_epoch >= 1767225600"),
         (FilterOperator.GREATER_THAN_OR_EQUALS, "dt_epoch >= 1767225600"),
-        (FilterOperator.LESS_THAN, "dt_epoch < 1767225600"),
+        (FilterOperator.LESS_THAN, "dt_epoch <= 1767225600"),
         (FilterOperator.LESS_THAN_OR_EQUALS, "dt_epoch <= 1767225600"),
     ],
 )
-def test_range_operators_mirror_with_the_same_direction(
+def test_strict_range_operators_mirror_non_strictly(
     app: Flask, operator: FilterOperator, expected: str
 ) -> None:
+    """
+    The direction is preserved; the strictness is not. "Preserves ordering"
+    means non-decreasing, so `col < v` only implies `T(col) <= T(v)` -- a
+    strict mirror would drop the rows a bucketing transform puts at the
+    boundary. The non-strict mirror reads one extra partition, and the original
+    filter is still there to exclude whatever it admits.
+    """
     table = _table()
 
     with app.app_context():
@@ -244,6 +251,91 @@ def test_range_operators_mirror_with_the_same_direction(
             )
 
     assert expected in sql
+
+
+def test_a_bucketing_transform_keeps_the_boundary_bucket(app: Flask) -> None:
+    """
+    A day key is monotonic but not *strictly* so: every instant in a day
+    maps to one value, so an upper bound at `2026-07-06 12:00` and a row at
+    `2026-07-06 06:00` share the bucket `20260706`. Mirroring that bound
+    strictly prunes the bucket the row is in and drops it from the chart --
+    silently, with the pruning glyph still promising only a speed-up.
+    """
+    table = _table(
+        transform="to_char(:value, 'YYYYMMDD')",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260705", "20260706"]):
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 7, 5),
+                to_dttm=datetime(2026, 7, 6, 12, 0),
+            )
+
+    assert "region_key >= '20260705'" in sql
+    assert "region_key <= '20260706'" in sql
+
+
+def test_an_intraday_strict_pair_does_not_mirror_to_an_empty_range(
+    app: Flask,
+) -> None:
+    """
+    The zero-instead-of-nine case. `event_time > '2026-07-05 06:00'` plus
+    `event_time < '2026-07-06 00:00'` is an ordinary pair of ad-hoc filters, and
+    under a day key the bounds land in adjacent buckets. Mirrored strictly it
+    reads `day_key > '20260705' AND day_key < '20260706'`, which is empty by
+    construction whatever the table holds -- so the chart returns nothing while
+    SQL Lab returns the real rows.
+    """
+    table = _table(
+        transform="to_char(:value, 'YYYYMMDD')",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260705", "20260706"]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.GREATER_THAN.value,
+                        "val": "2026-07-05 06:00:00",
+                    },
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.LESS_THAN.value,
+                        "val": "2026-07-06 00:00:00",
+                    },
+                ],
+            )
+
+    assert "region_key >= '20260705'" in sql
+    assert "region_key <= '20260706'" in sql
+
+
+def test_an_integer_bucket_key_is_mirrored_non_strictly_too(app: Flask) -> None:
+    """
+    The same loss was measured on a day *number* as well as a day string, so it
+    is a property of any many-to-one transform rather than of text keys or of
+    the formatting function used to build them.
+    """
+    table = _table(transform="cast(unix_timestamp(:value) / 86400 as bigint)")
+
+    with app.app_context():
+        with patch(PROBE, return_value=[20638, 20639]):
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 7, 5),
+                to_dttm=datetime(2026, 7, 6, 12, 0),
+            )
+
+    assert "dt_epoch >= 20638" in sql
+    assert "dt_epoch <= 20639" in sql
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +498,7 @@ def test_the_same_bound_is_not_mirrored_twice(app: Flask) -> None:
             )
 
     assert sql.count("dt_epoch >= 1767225600") == 1
-    assert sql.count("dt_epoch < 1769904000") == 1
+    assert sql.count("dt_epoch <= 1769904000") == 1
 
 
 def test_always_filter_main_dttm_mirrors_the_main_column_too(app: Flask) -> None:
@@ -428,7 +520,7 @@ def test_always_filter_main_dttm_mirrors_the_main_column_too(app: Flask) -> None
             )
 
     assert "dt_epoch >= 1767225600" in sql
-    assert "dt_epoch < 1769904000" in sql
+    assert "dt_epoch <= 1769904000" in sql
 
 
 def test_a_failing_probe_leaves_the_query_correct_and_unpruned(app: Flask) -> None:
@@ -633,8 +725,9 @@ def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
     ``event_time >= '2026-01-01 00:00:00'`` but not a mirror derived from
     ``.500000``.
 
-    Rounding outward is never narrower. The upper bound turns inclusive for the
-    same reason the grain widening does: a ceiled bound is only safe inclusive.
+    Rounding outward is never narrower. What it moves is the *value* the probe
+    is handed, which is what the assertion below pins -- every mirrored upper
+    bound is inclusive either way, see `mirror_operator`.
     """
     table = _table()
 
@@ -688,7 +781,6 @@ def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
         datetime(2026, 1, 1, 0, 0),
         datetime(2026, 1, 3, 0, 0),
     ]
-    # Ceiled, so only safe inclusive -- exactly as a grain-widened bound is.
     assert "dt_epoch <= 2" in sql
 
 
@@ -1293,9 +1385,8 @@ def test_a_grain_bearing_temporal_range_widens_both_bounds(app: Flask) -> None:
         datetime(2026, 2, 2),
     ]
     assert "dt_epoch" in sql
-    # The widened upper bound is inclusive: `ts < until + width` only gives
-    # `T(ts) <= T(until + width)` for a transform that is monotonic but not
-    # strictly so.
+    # Every mirrored upper bound is inclusive, widened or not -- see
+    # `mirror_operator`. What this test pins is the widening of the *value*.
     assert "dt_epoch <= 2" in sql
     assert "dt_epoch >= 1" in sql
 
@@ -1466,10 +1557,8 @@ def test_an_ungrained_filter_still_mirrors(app: Flask) -> None:
             )
 
     assert "dt_epoch" in sql
-    # The widened `<=` must not leak into the common path, which mirrors an
-    # exclusive upper bound exactly.
-    assert "dt_epoch < 1769904000" in sql
-    assert "dt_epoch <= " not in sql
+    assert "dt_epoch >= 1767225600" in sql
+    assert "dt_epoch <= 1769904000" in sql
 
 
 # ---------------------------------------------------------------------------
@@ -1560,7 +1649,7 @@ def test_the_null_escape_wraps_the_whole_conjunction(app: Flask) -> None:
     # OR, so this still parses as `(a AND b) OR p IS NULL`. What matters is that
     # the escape sits outside *both* comparisons, not between them.
     assert (
-        "(dt_epoch >= 1767225600 AND dt_epoch < 1769904000 OR dt_epoch IS NULL)"
+        "(dt_epoch >= 1767225600 AND dt_epoch <= 1769904000 OR dt_epoch IS NULL)"
     ) in sql
 
 
