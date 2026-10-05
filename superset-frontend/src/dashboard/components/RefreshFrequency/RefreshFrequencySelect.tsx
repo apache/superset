@@ -92,6 +92,7 @@ export const getRefreshFrequencyOptions = (
   configuredIntervals?: unknown,
 ): RefreshFrequencyOption[] => {
   const options: RefreshFrequencyOption[] = [];
+  const seen = new Set<number>();
 
   if (Array.isArray(configuredIntervals)) {
     configuredIntervals.forEach(interval => {
@@ -99,27 +100,34 @@ export const getRefreshFrequencyOptions = (
         return;
       }
       const [value, label] = interval;
-      const seconds = Number(value);
+      // `Number(null)`, `Number('')` and `Number([])` are all 0, and 0 is a real
+      // interval ("Don't refresh"), so a loose conversion would smuggle those
+      // in as a valid option instead of dropping the malformed entry.
+      const isNumeric = typeof value === 'number' || typeof value === 'string';
+      const seconds =
+        isNumeric && String(value).trim() !== '' ? Number(value) : Number.NaN;
       if (
         !Number.isFinite(seconds) ||
         seconds < 0 ||
         typeof label !== 'string' ||
-        !label.trim()
+        !label.trim() ||
+        seen.has(seconds)
       ) {
         return;
       }
+      seen.add(seconds);
       options.push({ value: seconds, label });
     });
   }
 
-  const presets = options.length ? options : REFRESH_FREQUENCY_OPTIONS;
-  const hasCustom = presets.some(
+  const baseOptions = options.length ? options : REFRESH_FREQUENCY_OPTIONS;
+  const hasCustom = baseOptions.some(
     option => option.value === CUSTOM_REFRESH_FREQUENCY,
   );
 
   return hasCustom
-    ? presets
-    : [...presets, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }];
+    ? baseOptions
+    : [...baseOptions, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }];
 };
 
 const getCustomValue = (

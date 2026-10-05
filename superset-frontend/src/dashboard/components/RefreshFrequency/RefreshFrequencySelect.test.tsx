@@ -101,3 +101,35 @@ test('getRefreshFrequencyOptions does not append a second Custom entry', () => {
     options.filter(option => option.value === CUSTOM_REFRESH_FREQUENCY),
   ).toHaveLength(1);
 });
+
+test('getRefreshFrequencyOptions rejects values that coerce to a real interval', () => {
+  // Number(null), Number('') and Number([]) are all 0, and 0 is the "Don't
+  // refresh" interval, so a loose conversion would smuggle them in as valid.
+  const options = getRefreshFrequencyOptions([
+    [null, 'Nothing'],
+    ['', 'Empty'],
+    [[], 'Array'],
+    [true, 'Boolean'],
+    [{}, 'Object'],
+    [600, '10 minutes'],
+  ]);
+
+  expect(options).toEqual([
+    { value: 600, label: '10 minutes' },
+    { value: CUSTOM_REFRESH_FREQUENCY, label: 'Custom' },
+  ]);
+});
+
+test('getRefreshFrequencyOptions keeps the first of two entries sharing an interval', () => {
+  // Duplicate React keys and two simultaneously-checked radios otherwise.
+  const options = getRefreshFrequencyOptions([
+    [600, 'Ten minutes'],
+    [600, 'Another ten minutes'],
+    ['600', 'A string spelling the same interval'],
+  ]);
+
+  expect(options).toEqual([
+    { value: 600, label: 'Ten minutes' },
+    { value: CUSTOM_REFRESH_FREQUENCY, label: 'Custom' },
+  ]);
+});
