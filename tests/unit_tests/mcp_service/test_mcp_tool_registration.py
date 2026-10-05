@@ -81,6 +81,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "get_task_info": "task_type",
     "get_theme_info": "theme_name",
     "get_user_info": "username",
+    "get_widget_info": "widget_type",
     "health_check": "status",
     "list_annotation_layers": "annotation_layers",
     "list_charts": "charts",
@@ -98,6 +99,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_tasks": "tasks",
     "list_themes": "themes",
     "list_users": "users",
+    "list_widgets": "widgets",
     "manage_dashboard_certification": "changed_fields",
     "manage_dashboard_owners": "owners",
     "manage_dashboard_roles": "roles",
@@ -686,6 +688,8 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
     assert "- health_check:" in full
     assert "- list_tasks:" in full
     assert "- get_task_info:" in full
+    assert "- list_widgets:" in full
+    assert "- get_widget_info:" in full
     assert full == also_full
 
 
@@ -715,6 +719,23 @@ def test_task_tools_removed_when_global_task_framework_disabled(
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert "list_tasks" in removed
     assert "get_task_info" in removed
+
+
+def test_widget_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
+    """Widget tools removed when CANVAS=False, mirroring the WidgetRestApi gate."""
+    gtf_ffm.is_feature_enabled.side_effect = lambda flag: flag != "CANVAS"
+
+    flask_app = _make_flask_app_mock(set())
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert {"list_widgets", "get_widget_info"} <= removed
+    assert "list_tasks" not in removed
 
 
 def test_config_guard_tools_excluded_from_instructions(
@@ -747,6 +768,8 @@ def test_config_guard_tools_excluded_from_instructions(
     assert len(captured) == 1
     assert "list_tasks" in captured[0]
     assert "get_task_info" in captured[0]
+    assert "list_widgets" in captured[0]
+    assert "get_widget_info" in captured[0]
 
 
 def test_instructions_generated_after_disabled_tools_removed() -> None:

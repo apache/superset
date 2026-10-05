@@ -99,6 +99,7 @@ TOOL_BUDGETS = {
     "get_task_info": 1_100,
     "get_theme_info": 1_000,
     "get_user_info": 1_000,
+    "get_widget_info": 1_100,
     "health_check": 700,
     "list_annotation_layers": 2_700,
     # Include the deleted_state edit/restore audience and under-enumeration
@@ -120,6 +121,7 @@ TOOL_BUDGETS = {
     "list_tasks": 2_700,
     "list_themes": 3_000,
     "list_users": 2_900,
+    "list_widgets": 3_000,
     "manage_dashboard_certification": 1_900,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,

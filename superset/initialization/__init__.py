@@ -255,6 +255,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.user_registrations import UserRegistrationsView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.widgets.api import WidgetRestApi
 
         set_app_error_handlers(self.superset_app)
         self.register_request_handlers()
@@ -276,6 +277,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(ThemeRestApi)
+        appbuilder.add_api(WidgetRestApi)
         appbuilder.add_api(CurrentUserRestApi)
         appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)

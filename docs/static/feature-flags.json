@@ -16,6 +16,12 @@
         "description": "Enables experimental tabs UI for Alerts and Reports"
       },
       {
+        "name": "CANVAS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables Canvas, the next generation of dashboards, and the Widget Framework it places: schema-driven, extension-delivered widgets and saved widget instances (SIPs: apache/superset#44989 and apache/superset#44875)"
+      },
+      {
         "name": "CHART_PLUGINS_EXPERIMENTAL",
         "default": false,
         "lifecycle": "development",
