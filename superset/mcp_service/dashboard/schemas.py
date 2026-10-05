@@ -425,32 +425,24 @@ MAX_DASHBOARD_DATASET_METRICS: int = 50
 
 
 class GetDashboardDatasetsRequest(BaseModel):
-    """Request schema for get_dashboard_datasets."""
+    """Dataset detail caps."""
 
     identifier: Annotated[
         int | str,
-        Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
-        ),
+        Field(description="Dashboard ID, UUID or slug"),
     ]
 
     max_columns: int = Field(
         MAX_DASHBOARD_DATASET_COLUMNS,
         ge=0,
         le=MAX_DASHBOARD_DATASET_COLUMNS,
-        description=(
-            "Column limit per dataset; 0 omits column details. "
-            "Total column counts retained. Defaults to 100."
-        ),
+        description="Per-dataset cap; 0: totals only.",
     )
     max_metrics: int = Field(
         MAX_DASHBOARD_DATASET_METRICS,
         ge=0,
         le=MAX_DASHBOARD_DATASET_METRICS,
-        description=(
-            "Metric limit per dataset; 0 omits metric details. "
-            "Total metric counts retained. Defaults to 50."
-        ),
+        description="Per-dataset cap; 0: totals only.",
     )
 
 
