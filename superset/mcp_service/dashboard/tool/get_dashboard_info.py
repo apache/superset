@@ -24,9 +24,10 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
-from typing import cast
+from typing import Annotated, cast
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -104,10 +105,22 @@ def _lookup_dashboard(
     ),
 )
 async def get_dashboard_info(
-    request: GetDashboardInfoRequest, ctx: Context
+    request: Annotated[
+        GetDashboardInfoRequest,
+        Field(
+            description=(
+                'Wrap {"request": {...}}. Filtered? Use permalink_key/filter_state: '
+                "snapshots, not query predicates; "
+                "heed scope/native_filter_values_incomplete. "
+                "Missing state != no filters. "
+                "Don't guess columns/query workspace-wide; clarify. "
+                "Charts: list_charts."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> DashboardInfo | DashboardError:
-    """
-    Get dashboard metadata by ID, UUID, slug, or dashboard permalink.
+    """Get dashboard info by ID, UUID, slug, or permalink.
 
     Returns title, charts, and layout details.
 

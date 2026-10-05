@@ -334,3 +334,58 @@ test('time_grain_sqla is hidden in raw records mode for an adhoc dimension', () 
     ),
   ).toBe(false);
 });
+
+/**
+ * Finds the visibility function of a control whether it is declared through a
+ * full `config` (e.g. `all_columns`) or through an `override` of a shared
+ * control (e.g. `groupby`, `metrics`).
+ */
+function getModeVisibility(controlName: string): VisibilityFn {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      c =>
+        typeof c === 'object' &&
+        c !== null &&
+        'name' in c &&
+        (c as { name: string }).name === controlName,
+    ) as
+    | {
+        config?: { visibility?: VisibilityFn };
+        override?: { visibility?: VisibilityFn };
+      }
+    | undefined;
+  const visibility = item?.config?.visibility ?? item?.override?.visibility;
+  if (typeof visibility !== 'function') {
+    throw new Error(`Control "${controlName}" with visibility not found`);
+  }
+  return visibility;
+}
+
+const modeProps = (mode: QueryMode): ControlPanelsContainerProps =>
+  ({
+    controls: { query_mode: { value: mode } },
+  }) as unknown as ControlPanelsContainerProps;
+
+test('raw mode shows the raw-only controls and hides the aggregate-only controls', () => {
+  const props = modeProps(QueryMode.Raw);
+
+  expect(getModeVisibility('all_columns')(props)).toBe(true);
+  expect(getModeVisibility('order_by_cols')(props)).toBe(true);
+  expect(getModeVisibility('groupby')(props)).toBe(false);
+  expect(getModeVisibility('metrics')(props)).toBe(false);
+  expect(getModeVisibility('percent_metrics')(props)).toBe(false);
+  expect(getModeVisibility('timeseries_limit_metric')(props)).toBe(false);
+});
+
+test('aggregate mode shows the aggregate-only controls and hides the raw-only controls', () => {
+  const props = modeProps(QueryMode.Aggregate);
+
+  expect(getModeVisibility('groupby')(props)).toBe(true);
+  expect(getModeVisibility('metrics')(props)).toBe(true);
+  expect(getModeVisibility('percent_metrics')(props)).toBe(true);
+  expect(getModeVisibility('timeseries_limit_metric')(props)).toBe(true);
+  expect(getModeVisibility('all_columns')(props)).toBe(false);
+  expect(getModeVisibility('order_by_cols')(props)).toBe(false);
+});
