@@ -39,6 +39,7 @@ from superset.commands.dataset.update import (
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from tests.unit_tests.conftest import with_feature_flags
@@ -1431,8 +1432,14 @@ def test_an_unparseable_transform_does_not_block_the_save(
 def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
     mocker: MockerFixture,
 ) -> None:
-    """The parser gate that governs every other stored expression still runs."""
-    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    """
+    The gate that governs every other stored expression still runs -- now the
+    same `stored_expression_error` preview, import and the legacy save path
+    use, so the function denylist applies here too.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error", return_value=None
+    )
     command = _mapping_command(mocker, "unix_timestamp(:value)")
 
     exceptions: list[ValidationError] = []
@@ -1440,7 +1447,7 @@ def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
 
     assert exceptions == []
     gate.assert_called_once()
-    assert ":value" not in gate.call_args.args[-1]
+    assert gate.call_args.args[-1] == "unix_timestamp(:value)"
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
@@ -1463,15 +1470,38 @@ def test_a_transform_that_is_the_wrong_sql_still_reaches_the_gate(
     keyed on parseability would have waved them through. None of them is on the
     way to a valid transform.
     """
-    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
     command = _mapping_command(mocker, transform)
 
     exceptions: list[ValidationError] = []
     command._validate_partition_mapping(exceptions)
 
-    # Either the shape issue reports it or the gate does; what matters is that
-    # it is not silently accepted the way an unfinished transform is.
-    assert exceptions or gate.called
+    # Reported rather than silently accepted the way an unfinished transform is.
+    assert exceptions
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_calling_a_denied_function_is_refused_on_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A normal PUT was the one door into this field that skipped the function
+    denylist: preview, import and the legacy save path all ran
+    `stored_expression_error`, while this ran only the narrower parser gate. So
+    an owner could store what preview had just refused, and the probe would run
+    it on the next chart load.
+    """
+    command = _mapping_command(mocker, "schema_to_xml('public') || :value")
+    # A real `Database`: the denylist is keyed on the engine spec's own name,
+    # which a mock cannot supply.
+    command._model.database = Database(
+        database_name="pfm_pg", sqlalchemy_uri="postgresql://u@h/d"
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+    assert "schema_to_xml" in str(exceptions[0].messages)
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)

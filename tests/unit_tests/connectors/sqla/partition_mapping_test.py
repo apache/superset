@@ -29,6 +29,7 @@ from dateutil.relativedelta import relativedelta
 from flask import Flask
 from sqlalchemy.dialects import mysql, postgresql
 
+from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
@@ -1040,16 +1041,79 @@ def test_a_transform_calling_a_disallowed_function_is_refused(app: Flask) -> Non
     transform = "version() || :value"
 
     with app.app_context():
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
-        reason = stored_expression_error(database, None, None, transform)
-        assert reason is not None
-        assert "version" in reason
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        try:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
+            reason = stored_expression_error(database, None, None, transform)
+            assert reason is not None
+            assert "version" in reason
 
-        # Named, rather than echoing the operator's whole denylist back.
-        assert "current_user" not in reason
+            # Named, rather than echoing the operator's whole denylist back.
+            assert "current_user" not in reason
 
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
-        assert stored_expression_error(database, None, None, transform) is None
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
+            assert stored_expression_error(database, None, None, transform) is None
+        finally:
+            # Restored: `app.config` is shared, and leaving it emptied silently
+            # disabled this gate for every test that ran afterwards.
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "database_to_xml",
+        "database_to_xmlschema",
+        "database_to_xml_and_xmlschema",
+        "schema_to_xml",
+        "schema_to_xmlschema",
+        "schema_to_xml_and_xmlschema",
+        "table_to_xml",
+        "table_to_xmlschema",
+        "table_to_xml_and_xmlschema",
+        "query_to_xml",
+        "query_to_xmlschema",
+        "query_to_xml_and_xmlschema",
+    ],
+)
+def test_the_whole_postgres_xml_family_is_denied_by_default(function: str) -> None:
+    """
+    These read tables with no FROM clause and no sub-query, so every gate that
+    reasons about table references is blind to them -- the denylist is the only
+    thing that can refuse them, and it has to name each shape. `schema_to_xml`
+    and three siblings were missing, so a bare scalar call cleared
+    `stored_expression_error` entirely and returned connection-user-readable
+    schema contents through preview.
+
+    Asserted against the shipped default rather than through the gate, because
+    the gap was an incomplete enumeration rather than broken wiring -- and
+    because `app.config` is ambient here, which the behavioural test below
+    handles by setting the denylist itself.
+    """
+    assert function in DISALLOWED_SQL_FUNCTIONS["postgresql"]
+
+
+def test_a_denied_read_capable_function_is_refused_despite_having_no_from(
+    app: Flask,
+) -> None:
+    """
+    The wiring half: a bare scalar call passes the length, single-statement,
+    bare-expression, sub-query and placeholder gates, so the denylist is what
+    has to stop it.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+    transform = "schema_to_xml('public', true, false, '') || :value"
+
+    with app.app_context():
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"postgresql": {"schema_to_xml"}}
+        try:
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+    assert reason is not None
+    assert "schema_to_xml" in reason
 
 
 def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> None:
