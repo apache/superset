@@ -4111,6 +4111,36 @@ def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> No
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
+def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
+    """Replacing +/-inf in an object column must not emit pandas' silent
+    downcasting ``FutureWarning``, and must still yield a float column."""
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts", is_dttm=True, python_date_format=None, datetime_format=None
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    df = pd.DataFrame(
+        {
+            "metric": pd.Series([1.0, np.inf, -np.inf, 2.0], dtype=object),
+            "count": pd.Series([1, 2, -np.inf, 4], dtype=object),
+            "label": ["a", "b", "c", "d"],
+        }
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        result = datasource.normalize_df(df, _raw_query_object())
+
+    assert result["metric"].dtype == np.float64
+    assert result["metric"].isna().tolist() == [False, True, True, False]
+    assert result["count"].dtype == np.float64
+    assert result["label"].dtype == object
+
+
 def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
     """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
     unaggregated column declaring it must also be converted to datetimes."""
