@@ -47,7 +47,7 @@ afterEach(async () => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-const WARNING_TEXT = /will break/i;
+const WARNING_TEXT = /may break/i;
 
 const goToNormalizeColumnsCheckbox = async () => {
   await userEvent.click(await screen.findByRole('tab', { name: 'Settings' }));

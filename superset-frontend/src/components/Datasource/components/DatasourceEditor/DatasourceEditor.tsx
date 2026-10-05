@@ -1915,8 +1915,8 @@ function DatasourceEditor({
                 type="warning"
                 showIcon
                 message={t(
-                  'Changing this setting will change the casing for all columns in this dataset, ' +
-                    'which will break any existing charts and dashboard filters that reference the ' +
+                  'Changing this setting may change the casing for all columns in this dataset, ' +
+                    'which may break any existing charts and dashboard filters that reference the ' +
                     'current column names.',
                 )}
               />
