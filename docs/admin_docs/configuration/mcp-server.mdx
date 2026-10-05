@@ -1672,11 +1672,10 @@ expressions — are excluded from these candidates for dimension and `WHERE`
 references, because only a physical column is legal there and suggesting a
 metric leads to invalid `SUM(metric)` SQL. A `HAVING` filter subject may
 legitimately name a saved metric, so metrics are included for that slot. When a
-reference carrying an `aggregate` near-misses a saved metric name, the error adds
-a hint to reference it as `{"name": "<metric>", "saved_metric": true}` instead.
-The hint needs the explicit `aggregate`: a `y` entry without one is also a legal
-metric slot, but the flattened reference cannot be told apart from a dimension,
-which must never be pointed at a saved metric.
+reference in a metric slot (`y`, `metric`, or an aggregated table column, for
+example) near-misses a saved metric name, the error adds a hint to reference it
+as `{"name": "<metric>", "saved_metric": true}` instead. Dimension references
+never receive this hint, even when they carry an `aggregate`.
 
 When more than one distinct column is missing, the error type is
 `multiple_invalid_columns`. The invalid names appear in escaped, length-limited
@@ -1689,5 +1688,7 @@ expressions. Suggested candidates are listed first so they are never cut by the
 bound (a hinted saved metric leads `available_metrics` the same way), and the
 error says `Showing 10 of N columns` or `Showing 10 of N saved metrics` when a
 list is partial.
-These names are returned verbatim per the Tool Result Value Contract. Use
+Context names are returned verbatim per the Tool Result Value Contract.
+"Did you mean" column candidates also preserve dataset spelling, including
+quotes and ampersands, with a 200-character bound per candidate. Use
 `get_dataset_info` for the complete schema.

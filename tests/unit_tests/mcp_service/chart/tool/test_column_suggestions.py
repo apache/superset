@@ -23,7 +23,11 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from superset.mcp_service.chart.schemas import ColumnRef, GenerateChartRequest
+from superset.mcp_service.chart.schemas import (
+    ColumnRef,
+    GenerateChartRequest,
+    TableChartConfig,
+)
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
@@ -288,7 +292,9 @@ def test_hinted_saved_metric_is_never_cut_from_the_context() -> None:
         + [{"name": "sum_boys"}],
     )
     error = DatasetValidator._validate_columns_exist(
-        [ColumnRef(name="sum_boy", aggregate="SUM")], context
+        [ColumnRef(name="sum_boy", aggregate="SUM")],
+        context,
+        metric_refs=[ColumnRef(name="sum_boy", aggregate="SUM")],
     )
     assert error is not None
     assert error.dataset_context is not None
@@ -319,12 +325,11 @@ def test_suggested_column_is_never_cut_from_the_context() -> None:
     assert error.dataset_context.available_columns[0] == {"name": "customer_region"}
 
 
-def test_each_candidate_gets_its_own_sanitization_budget() -> None:
-    """Candidates are a list template var, not one pre-joined string.
+def test_each_candidate_gets_its_own_length_budget() -> None:
+    """Each dataset-owned candidate has an independent length bound.
 
     A shared 200-character budget cut the third name mid-word and dropped the
-    closing ``?``; one candidate matching the filter regex blanked the whole
-    line.
+    closing ``?``; dataset-owned names must not be altered by the caller-input filter.
     """
     long_names = [f"{letter * 63}{i}" for i, letter in enumerate("abc")]
     error = ChartErrorBuilder.column_not_found_error("private_input", long_names)
@@ -335,18 +340,18 @@ def test_each_candidate_gets_its_own_sanitization_budget() -> None:
         "private_input", ["data:revenue", "revenue", "category"]
     )
     line = next(s for s in filtered.suggestions if s.startswith("Did you mean:"))
-    assert line == "Did you mean: [FILTERED], revenue, category?"
+    assert line == "Did you mean: data:revenue, revenue, category?"
     assert "private_input" not in " ".join(filtered.suggestions)
 
 
-def test_column_candidates_are_escaped_and_capped() -> None:
-    """Candidate guidance retains escaping and the three-candidate cap."""
+def test_column_candidates_are_verbatim_and_capped() -> None:
+    """Candidate guidance preserves dataset spelling and the three-candidate cap."""
     error = ChartErrorBuilder.column_not_found_error(
         "private_input", ["<fixture>", "revenue", "category", "excluded"]
     )
     assert error.error_type == "column_not_found"
     assert error.error_code == "CHART_COLUMN_NOT_FOUND"
-    assert "Did you mean: &lt;fixture&gt;, revenue, category?" in error.suggestions
+    assert "Did you mean: <fixture>, revenue, category?" in error.suggestions
     assert "excluded" not in " ".join(error.suggestions)
     assert "private_input" not in " ".join(error.suggestions)
 
@@ -438,7 +443,9 @@ def test_aggregate_near_miss_points_at_the_saved_metric() -> None:
         available_metrics=[{"name": "sum_boys"}, {"name": "sum_girls"}],
     )
     error = DatasetValidator._validate_columns_exist(
-        [ColumnRef(name="num_boys", aggregate="SUM")], context
+        [ColumnRef(name="num_boys", aggregate="SUM")],
+        context,
+        metric_refs=[ColumnRef(name="num_boys", aggregate="SUM")],
     )
     assert error is not None
     assert error.error_type == "column_not_found"
@@ -484,7 +491,9 @@ def test_physical_column_candidate_wins_over_a_metric_hint() -> None:
         available_metrics=[{"name": "num_boys_sum"}],
     )
     error = DatasetValidator._validate_columns_exist(
-        [ColumnRef(name="num_boys_totl", aggregate="SUM")], context
+        [ColumnRef(name="num_boys_totl", aggregate="SUM")],
+        context,
+        metric_refs=[ColumnRef(name="num_boys_totl", aggregate="SUM")],
     )
     assert error is not None
     assert "Did you mean: num_boys_total?" in error.suggestions
@@ -512,3 +521,97 @@ def test_metrics_are_suggested_only_where_they_are_legal(
         "sum_boy", context, include_metrics=include_metrics
     )
     assert [s.name for s in suggestions] == expected
+
+
+@pytest.mark.parametrize("slot", ["x", "group_by", "y"])
+@pytest.mark.parametrize("aggregate", [None, "SUM"])
+def test_saved_metric_hint_uses_slot_identity(slot: str, aggregate: str | None) -> None:
+    """Only a metric slot gets a hint, regardless of its aggregate field."""
+    config_data: dict[str, Any] = {
+        "chart_type": "xy",
+        "kind": "bar",
+        "x": {"name": "ds"},
+        "y": [{"name": "num", "aggregate": "SUM"}],
+    }
+    ref = {"name": "num_boys", "aggregate": aggregate}
+    config_data[slot] = ref if slot == "x" else [ref]
+    config = GenerateChartRequest.model_validate(
+        {"dataset_id": 3, "config": config_data}
+    ).config
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": "ds"}, {"name": "num", "type": "INTEGER"}],
+        available_metrics=[{"name": "sum_boys"}],
+    )
+    valid, error = DatasetValidator.validate_against_dataset(config, 3, context)
+    assert not valid
+    assert error is not None
+    hints = [s for s in error.suggestions if "Did you mean the saved metric" in s]
+    assert bool(hints) is (slot == "y")
+    if hints:
+        assert "'sum_boys'" in hints[0]
+
+
+@pytest.mark.parametrize("query_mode", [None, "aggregate", "raw"])
+def test_table_metric_hint_excludes_raw_columns(query_mode: str | None) -> None:
+    """Only aggregated table columns can be fixed with a saved metric."""
+    config = TableChartConfig.model_validate(
+        {
+            "chart_type": "table",
+            "query_mode": query_mode,
+            "columns": [{"name": "num_boys", "aggregate": "SUM"}],
+        }
+    )
+    context = DatasetContext(
+        id=3,
+        table_name="birth_names",
+        database_name="examples",
+        available_columns=[{"name": "ds"}],
+        available_metrics=[{"name": "sum_boys"}],
+    )
+    valid, error = DatasetValidator.validate_against_dataset(config, 3, context)
+    assert not valid
+    assert error is not None
+    assert any("Did you mean the saved metric" in s for s in error.suggestions) is (
+        query_mode != "raw"
+    )
+
+
+@pytest.mark.parametrize("multiple", [False, True])
+@pytest.mark.parametrize(
+    "name", ["Customer's Name", "Sales & Marketing", "<fixture>", "data:revenue"]
+)
+def test_dataset_candidate_spelling_is_copyable(name: str, multiple: bool) -> None:
+    """Hints match context spelling and resolve in the dataset namespace.
+
+    Construct refs directly to isolate dataset lookup from input-schema rules.
+    """
+    context = DatasetContext(
+        id=3,
+        table_name="fixture",
+        database_name="examples",
+        available_columns=[{"name": name}],
+    )
+    refs = [ColumnRef.model_construct(name=name[:-1])]
+    if multiple:
+        refs.append(ColumnRef(name="no_such_col"))
+    error = DatasetValidator._validate_columns_exist(refs, context)
+    assert error is not None
+    assert f"Did you mean: {name}?" in error.suggestions
+    assert error.dataset_context is not None
+    assert error.dataset_context.available_columns == [{"name": name}]
+    assert (
+        DatasetValidator._validate_columns_exist(
+            [ColumnRef.model_construct(name=name)], context
+        )
+        is None
+    )
+
+
+def test_dataset_candidate_length_is_bounded() -> None:
+    """Dataset names have a per-candidate bound without filtering their spelling."""
+    name = "x" * 250
+    error = ChartErrorBuilder.column_not_found_error("missing", [name, "revenue"])
+    assert f"Did you mean: {'x' * 200}...[truncated], revenue?" in error.suggestions

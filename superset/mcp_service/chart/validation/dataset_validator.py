@@ -28,8 +28,10 @@ from itertools import zip_longest
 from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
+    BubbleChartConfig,
     ChartConfig,
     ColumnRef,
+    TableChartConfig,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -237,7 +239,9 @@ class DatasetValidator:
 
         # Validate columns exist (skip saved metrics — already validated above)
         column_error = DatasetValidator._validate_columns_exist(
-            column_refs, dataset_context
+            column_refs,
+            dataset_context,
+            DatasetValidator._extract_metric_references(config),
         )
         if column_error:
             return False, column_error
@@ -310,7 +314,9 @@ class DatasetValidator:
 
     @staticmethod
     def _validate_columns_exist(  # noqa: C901
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        metric_refs: Iterable[ColumnRef] = (),
     ) -> ChartGenerationError | None:
         """Validate that non-saved-metric column refs exist in the dataset.
 
@@ -388,8 +394,9 @@ class DatasetValidator:
         # physical-column pass found nothing, so the more direct column fix
         # still wins when it exists.
         metric_hints: Dict[str, List[str]] = {}
-        for col_ref in invalid_columns:
-            if col_ref.name is None or col_ref.aggregate is None:
+        invalid_names = {ref.name for ref in invalid_columns}
+        for col_ref in metric_refs:
+            if col_ref.name is None or col_ref.name not in invalid_names:
                 continue
             if suggestions_map.get(col_ref.name):
                 continue
@@ -474,6 +481,22 @@ class DatasetValidator:
         except Exception as e:
             logger.error("Error getting dataset context for %s: %s", dataset_id, e)
             return None
+
+    @staticmethod
+    def _extract_metric_references(config: ChartConfig) -> List[ColumnRef]:
+        """Collect metric slots separately from dimension and filter references."""
+        refs: List[ColumnRef] = []
+        for field in ("y", "y_secondary", "metric", "metrics", "size"):
+            value = getattr(config, field, None)
+            if isinstance(value, ColumnRef):
+                refs.append(value)
+            elif isinstance(value, list):
+                refs.extend(ref for ref in value if isinstance(ref, ColumnRef))
+        if isinstance(config, BubbleChartConfig):
+            refs.append(config.x)
+        if isinstance(config, TableChartConfig) and config.query_mode != "raw":
+            refs.extend(ref for ref in config.columns if ref.aggregate is not None)
+        return refs
 
     @staticmethod
     def _extract_column_references(

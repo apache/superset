@@ -46,8 +46,7 @@ _COLUMN_GUIDANCE = [
     "Check column name spelling and case sensitivity",
     "Use get_dataset_info to see available columns",
 ]
-# ``candidates`` is a list template var so each name is sanitized and
-# length-limited on its own instead of sharing one budget with the prose.
+# Dataset-owned candidates retain exact spelling, with a per-name length bound.
 _DID_YOU_MEAN = "Did you mean: {candidates}?"
 _NO_CANDIDATES = "No matching columns found."
 
@@ -405,7 +404,7 @@ class ChartErrorBuilder:
     ) -> ChartGenerationError:
         """Build a column not found error."""
         candidates = list(suggestions or [])[:MAX_DID_YOU_MEAN_CANDIDATES]
-        return cls.build_error(
+        error = cls.build_error(
             error_type="column_not_found",
             template_key=(
                 "column_not_found_candidates"
@@ -415,6 +414,16 @@ class ChartErrorBuilder:
             template_vars={"column": column, "candidates": candidates},
             error_code="CHART_COLUMN_NOT_FOUND",
         )
+        if candidates:
+            # Dataset-owned names are tool-result values, not caller prose.
+            # Keep them copyable rather than HTML-escaping or filtering them.
+            error.suggestions[-1] = _DID_YOU_MEAN.format(
+                candidates=", ".join(
+                    name if len(name) <= 200 else name[:200] + "...[truncated]"
+                    for name in candidates
+                )
+            )
+        return error
 
     @classmethod
     def multiple_columns_not_found_error(
@@ -428,7 +437,7 @@ class ChartErrorBuilder:
         all missing columns, so they must already be ordered by relevance.
         """
         candidates = list(suggestions or [])[:MAX_DID_YOU_MEAN_CANDIDATES]
-        return cls.build_error(
+        error = cls.build_error(
             error_type="multiple_invalid_columns",
             template_key=(
                 "multiple_columns_not_found_candidates"
@@ -438,6 +447,16 @@ class ChartErrorBuilder:
             template_vars={"columns": columns, "candidates": candidates},
             error_code="MULTIPLE_INVALID_COLUMNS",
         )
+        if candidates:
+            # Dataset-owned names are tool-result values, not caller prose.
+            # Keep them copyable rather than HTML-escaping or filtering them.
+            error.suggestions[-1] = _DID_YOU_MEAN.format(
+                candidates=", ".join(
+                    name if len(name) <= 200 else name[:200] + "...[truncated]"
+                    for name in candidates
+                )
+            )
+        return error
 
     @classmethod
     def dataset_not_found_error(cls, dataset_id: Any) -> ChartGenerationError:
