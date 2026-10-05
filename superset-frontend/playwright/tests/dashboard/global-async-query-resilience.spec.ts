@@ -19,8 +19,9 @@
 
 /**
  * Global Async Queries (GAQ) under stress: a query that fails, a superseded
- * query racing a newer one, a programmatic request that must stay synchronous,
- * and a page torn down mid-flight.
+ * query racing a newer one -- cancelled both before and after the server
+ * accepts it -- a programmatic request that must stay synchronous, and a page
+ * torn down mid-flight.
  *
  * GAQ's happy path is visually identical to a synchronous load, so these are
  * the cases where its machinery actually becomes observable -- or where it
@@ -34,7 +35,9 @@ import { apiGetChart, apiPutChart } from '../../helpers/api/chart';
 import { GAQ, TIMEOUT } from '../../utils/constants';
 import { apiPost } from '../../helpers/api/requests';
 import {
+  BIG_NUMBER_ADHOC_COUNT_SPEC,
   BIG_NUMBER_COUNT_SPEC,
+  createCacheColdVirtualDataset,
   nativeFilterValuesIn,
   setupDashboardWithBigNumberCharts,
   setupDashboardWithSelectFilter,
@@ -337,6 +340,116 @@ testWithAssets(
     await expect(value).toHaveText(girlText);
 
     await page.unroute(raceRoute);
+  },
+);
+
+testWithAssets(
+  'superseding an accepted query cancels its tasks instead of leaving them running',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const FILTER_COLUMN = 'gender';
+    // Long enough that "boy"'s waiter cannot settle before "girl" supersedes it.
+    const POLL_DELAY_MS = 10000;
+
+    // The test above parks "boy" before its POST reaches the server, so it only
+    // covers cancelling the *submission*. Once a submission is accepted the
+    // client holds a waiter for its task ids, and the abort has to reach that
+    // waiter too (`chartAction.ts` forwards its signal into `waitForAsyncData`,
+    // which calls `cancelUnwaitedTasks`). Drop that forwarding and superseded
+    // jobs keep running server-side with nobody waiting -- invisible to the
+    // test above, because "boy" never reaches 202 there.
+    //
+    // A per-run dataset keeps the cache cold, so "boy" is guaranteed to be
+    // accepted (202) rather than served synchronously from a warm cache.
+    const { datasetId } = await createCacheColdVirtualDataset(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        namePrefix: 'gaq_tc9_supersede_cancel',
+        select: `SELECT name, ${FILTER_COLUMN} FROM birth_names`,
+      },
+    );
+
+    const { dashboardId, dashboard, filterBar } =
+      await setupDashboardWithSelectFilter(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetId,
+          namePrefix: 'gaq_tc9_supersede_cancel',
+          filterColumn: FILTER_COLUMN,
+          filterName: 'Gender',
+          // The per-run dataset carries no saved metrics.
+          chartSpec: BIG_NUMBER_ADHOC_COUNT_SPEC,
+        },
+      );
+
+    // Stall the completion transport rather than the submission: "boy" is
+    // accepted normally, but the client cannot observe its tasks finishing, so
+    // its waiter is still registered when "girl" aborts it. Without this the
+    // tasks could complete first and leave nothing to cancel.
+    const pollRoute = (url: URL) =>
+      url.toString().includes(GAQ.TASK_STATUS_CHANGES_PATH);
+    await page.route(pollRoute, async route => {
+      await new Promise(resolve => {
+        setTimeout(resolve, POLL_DELAY_MS);
+      });
+      await route.continue().catch(() => {});
+    });
+
+    let boyTaskIds: string[] = [];
+    page.on('response', async response => {
+      if (
+        response.request().method() !== 'POST' ||
+        !response.url().includes(GAQ.CHART_DATA_PATH) ||
+        response.status() !== 202 ||
+        !nativeFilterValuesIn(
+          response.request().postData() ?? '',
+          FILTER_COLUMN,
+        ).includes('boy')
+      ) {
+        return;
+      }
+      const body = await response.json().catch(() => null);
+      boyTaskIds = body?.task_ids ?? [];
+    });
+
+    const cancelledTaskIds: string[] = [];
+    page.on('request', request => {
+      const match = request.url().match(/\/api\/v1\/task\/([^/]+)\/cancel$/);
+      if (match && request.method() === 'POST') {
+        cancelledTaskIds.push(match[1]);
+      }
+    });
+
+    await dashboard.gotoById(dashboardId);
+    await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
+
+    await filterBar.selectOption('boy');
+    await filterBar.apply();
+    await expect
+      .poll(() => boyTaskIds.length, {
+        message: '"boy" should have been accepted (202) onto the async path',
+        timeout: TIMEOUT.CHART_RENDER,
+      })
+      .toBeGreaterThan(0);
+
+    // Supersede it while its tasks are still outstanding.
+    await filterBar.selectOption('girl');
+    await filterBar.apply();
+
+    await expect
+      .poll(() => cancelledTaskIds, {
+        message:
+          'superseding an accepted query should cancel its tasks, so they do not keep running with nobody waiting',
+        timeout: TIMEOUT.CHART_RENDER,
+      })
+      .toEqual(expect.arrayContaining(boyTaskIds));
+
+    await page.unroute(pollRoute);
   },
 );
 
