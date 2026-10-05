@@ -1558,6 +1558,33 @@ def _bubble_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
         query["orderby"] = [[sort_metric, not query.get("order_desc", True)]]
 
 
+def _entity_map_query(
+    form_data: dict[str, Any], query: dict[str, Any], *, world_map: bool
+) -> None:
+    """Group World/Country Map queries by their ``entity`` role.
+
+    Mirrors the World Map and Country Map ``buildQuery`` transforms: the
+    ``entity`` control is the only grouping column, Country Map selects one
+    ``metric``, and World Map adds a distinct ``secondary_metric`` and orders by
+    the primary metric only when ``sort_by_metric`` is enabled.
+    """
+    entity = form_data.get("entity")
+    query["columns"] = [entity] if entity else []
+    metric = form_data.get("metric")
+    metrics = [metric] if metric else []
+    if world_map:
+        secondary_metric = form_data.get("secondary_metric")
+        if secondary_metric and (
+            not metric
+            or _label(secondary_metric, metric=True) != _label(metric, metric=True)
+        ):
+            metrics.append(secondary_metric)
+        query.pop("orderby", None)
+        if form_data.get("sort_by_metric") and metric:
+            query["orderby"] = [[metric, False]]
+    query["metrics"] = metrics
+
+
 def build_query_objects_from_form_data(  # noqa: C901
     form_data: dict[str, Any],
     *,
@@ -1633,6 +1660,8 @@ def build_query_objects_from_form_data(  # noqa: C901
             query["orderby"] = [[form_data["metric"], False]]
     elif effective_viz in {"bubble", "bubble_v2"}:
         _bubble_query(form_data, query)
+    elif effective_viz in {"world_map", "country_map"}:
+        _entity_map_query(form_data, query, world_map=effective_viz == "world_map")
     elif effective_viz == "ag-grid-pivot-table":
         query["columns"] = _temporalized_columns(
             form_data, _as_list(form_data.get("groupby"))

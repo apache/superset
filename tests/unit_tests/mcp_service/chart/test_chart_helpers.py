@@ -226,6 +226,62 @@ def test_build_query_dicts_from_form_data_uses_raw_all_columns(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize(
+    ("form_data", "expected_query"),
+    [
+        (
+            {
+                "viz_type": "world_map",
+                "entity": "country_code",
+                "metric": "count",
+                "secondary_metric": "sum__population",
+                "sort_by_metric": True,
+                "adhoc_filters": [],
+            },
+            {
+                "columns": ["country_code"],
+                "metrics": ["count", "sum__population"],
+                "orderby": [["count", False]],
+            },
+        ),
+        (
+            {
+                "viz_type": "world_map",
+                "entity": "country_code",
+                "metric": "count",
+                "secondary_metric": "count",
+                "adhoc_filters": [],
+            },
+            {"columns": ["country_code"], "metrics": ["count"]},
+        ),
+        (
+            {
+                "viz_type": "country_map",
+                "entity": "iso_code",
+                "metric": "count",
+                "adhoc_filters": [],
+            },
+            {"columns": ["iso_code"], "metrics": ["count"]},
+        ),
+    ],
+)
+def test_build_query_dicts_groups_entity_maps_by_entity(
+    monkeypatch, form_data, expected_query
+):
+    """World/Country Map rebuilt without query_context keep per-entity rows."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert {key: queries[0].get(key) for key in expected_query} == expected_query
+    if "orderby" not in expected_query:
+        assert not queries[0].get("orderby")
+
+
 def test_merge_form_data_filters_into_query_applies_regular_overrides():
     query = {
         "filters": [{"col": "country", "op": "==", "val": "US"}],
