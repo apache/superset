@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -35,6 +36,7 @@ from superset_core.semantic_layers.metadata import (
 )
 
 from superset.semantic_layers.metadata import metadata_scope, ScopedMetadataStore
+from superset.utils import json
 
 
 class MemoryBackend:
@@ -325,7 +327,10 @@ def test_compatibility_invalidation_is_independent_of_catalog() -> None:
     assert store.read(catalog, deadline=store_deadline) == snapshot
 
 
-@pytest.mark.parametrize("payload", [b"[]", "not-json", "NaN", "\ud800"])
+@pytest.mark.parametrize(
+    "payload",
+    [b"[]", "not-json", "NaN", "\ud800", '{"value":1e9999999999999999999}'],
+)
 def test_invalid_provider_payload_never_replaces_a_valid_snapshot(payload: Any) -> None:
     backend: MemoryBackend = MemoryBackend()
     store_deadline: float = time.monotonic() + 5
@@ -336,6 +341,28 @@ def test_invalid_provider_payload_never_replaces_a_valid_snapshot(payload: Any) 
     with pytest.raises(MetadataRefreshError, match="invalid_payload"):
         store.refresh(lambda deadline: payload, deadline=store_deadline)
     assert store.peek() == original
+
+
+def test_unrepresentable_decimal_in_stored_payload_is_a_cache_miss() -> None:
+    """A corrupt envelope cannot escape the catalog decode failure path."""
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 5
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=deadline
+    )
+    store.read(catalog, deadline=deadline)
+    key: str = "semantic-metadata:{scope}:snapshot"
+    raw: bytes | None = backend.get(key)
+    assert raw is not None
+    envelope: dict[str, Any] = json.loads(raw)
+    payload: str = '{"value":1e9999999999999999999}'
+    envelope.update(
+        payload=payload, digest=hashlib.sha256(payload.encode()).hexdigest()
+    )
+    backend.set(key, json.dumps(envelope), ex=300)
+    assert store.peek() is None
+    replacement: CatalogSnapshot = store.read(catalog, deadline=deadline)
+    assert replacement.payload == catalog(deadline)
 
 
 def test_unknown_publish_outcome_reconciles_only_its_own_attempt() -> None:

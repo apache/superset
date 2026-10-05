@@ -181,10 +181,11 @@ def connection_metadata_scope(layer: SemanticLayer) -> str:
 
 def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
     """Resolve only stored, server-owned scope and recheck it before publication."""
-    state: MetadataOperation = _operation()
+    state: MetadataOperation = _operation(require_budget=False)
     scope: str = connection_metadata_scope(layer)
     if scope in state.stores:
         return state.stores[scope]
+    operation_deadline()
     config: Any = current_app.config.get("DISTRIBUTED_COORDINATION_CONFIG")
     if not isinstance(config, dict):
         raise MetadataRefreshError("unavailable")
@@ -253,7 +254,7 @@ def peek_view_metadata_token(view: SemanticView) -> str | None:
     if captured is not None:
         # An in-flight annotation query must retain its own observation even if
         # another request publishes a newer catalog before its host key is built.
-        return captured.metadata_cache_token
+        return view_implementation(view).metadata_cache_token
     snapshot: CatalogSnapshot | None = connection_store(view.semantic_layer).peek()
     return snapshot.cache_token if snapshot is not None else None
 
@@ -262,12 +263,18 @@ def view_implementation(view: SemanticView) -> ViewABC:
     """A view captures one observation for this operation, never across requests."""
     state: MetadataOperation = _operation(require_budget=False)
     key: tuple[str, str, str] = _view_key(view)
-    if key not in state.views:
+    implementation: ViewABC | None = state.views.get(key)
+    if implementation is None:
         operation_deadline()
-        implementation: ViewABC = layer_implementation(
-            view.semantic_layer
-        ).get_semantic_view(view.name, _configuration(view.configuration))
-        if not implementation.metadata_cache_token:
-            raise MetadataRefreshError("configuration")
-        state.views[key] = implementation
-    return state.views[key]
+        implementation = layer_implementation(view.semantic_layer).get_semantic_view(
+            view.name, _configuration(view.configuration)
+        )
+    token: str | None = implementation.metadata_cache_token
+    if (
+        not isinstance(token, str)
+        or not token
+        or connection_store(view.semantic_layer).observed_at(token) is None
+    ):
+        raise MetadataRefreshError("configuration")
+    state.views[key] = implementation
+    return implementation

@@ -161,11 +161,24 @@ def test_captured_view_survives_a_long_first_query(
 ) -> None:
     from unittest.mock import Mock
 
+    from superset.semantic_layers.metadata import ScopedMetadataStore
     from superset.semantic_layers.metadata_binding import request_metadata_budget
-    from tests.unit_tests.semantic_layers.metadata_store_test import Clock
+    from tests.unit_tests.semantic_layers.metadata_store_test import (
+        Clock,
+        MemoryBackend,
+    )
 
     clock: Clock = Clock()
-    provider: ResultView = ResultView("scope:captured", 17)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        MemoryBackend(clock), "scope", deadline=130, clock=clock
+    )
+    provider: ResultView = ResultView(
+        store.read(lambda deadline: "{}", deadline=130).cache_token, 17
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.connection_store",
+        lambda layer: store,
+    )
     view: SemanticView = view_for(provider)
     layer: Mock = Mock()
     layer.get_semantic_view.return_value = provider
@@ -579,3 +592,124 @@ def test_annotation_rls_context_retains_table_only_contract(
             rls.assert_called_once_with(table)
         else:
             rls.assert_not_called()
+
+
+@pytest.mark.parametrize("denied", [False, True])
+def test_semantic_annotation_is_captured_before_slow_sql_parent(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, denied: bool
+) -> None:
+    """Only a miss captures authorized annotations before warehouse execution."""
+    import pandas as pd
+    from superset_core.semantic_layers.metadata import CatalogSnapshot
+
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+    from superset.models.slice import Slice
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+    from tests.unit_tests.semantic_layers.metadata_store_test import (
+        Clock,
+        MemoryBackend,
+    )
+
+    clock: Clock = Clock()
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        MemoryBackend(clock), "scope", deadline=130, clock=clock
+    )
+    snapshot: CatalogSnapshot = store.read(lambda deadline: "{}", deadline=130)
+    source: SemanticView = view_for(ResultView(snapshot.cache_token, 17))
+    provider: Mock = Mock()
+    provider.get_semantic_view.return_value = source.__dict__["_fixture_implementation"]
+    parent: SqlaTable = SqlaTable(
+        id=12,
+        table_name="parent",
+        changed_on=datetime(2026, 1, 1),
+        columns=[TableColumn(column_name="orders")],
+        cache_timeout=300,
+    )
+    chart: Slice = Slice(
+        id=31,
+        datasource_id=source.id,
+        datasource_type="semantic_view",
+        semantic_view=source,
+    )
+    annotation_context: Mock = Mock(spec=QueryContext, datasource=source)
+    if denied:
+        annotation_context.raise_for_access.side_effect = QueryObjectValidationError(
+            "denied annotation"
+        )
+    monkeypatch.setattr(Slice, "get_query_context", lambda self: annotation_context)
+    monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda self, query: [])
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.connection_store",
+        lambda layer: store,
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.layer_implementation",
+        lambda layer: provider,
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.time.monotonic", clock
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_NAMESPACE", "tenant")
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
+    monkeypatch.setitem(query_cache_manager._cache, CacheRegion.DATA, cache)
+    parent_calls: list[str] = []
+
+    def slow_parent(self: QueryContextProcessor, query: QueryObject) -> QueryResult:
+        parent_calls.append("parent")
+        clock.advance(31)
+        return QueryResult(
+            df=pd.DataFrame({"orders": [1]}),
+            query="SELECT orders",
+            duration=timedelta(seconds=31),
+        )
+
+    def annotations(self: QueryContextProcessor, query: QueryObject) -> dict[str, Any]:
+        return {
+            "semantic": source.implementation.get_table(
+                SemanticQuery(metrics=[], dimensions=[])
+            ).results.to_pydict()
+        }
+
+    monkeypatch.setattr(QueryContextProcessor, "get_query_result", slow_parent)
+    monkeypatch.setattr(QueryContextProcessor, "get_annotation_data", annotations)
+    with (
+        app.test_request_context(),
+        patch("superset.common.query_context_processor.get_user_id", return_value=1),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+    ):
+        request_metadata_budget()
+        context: QueryContext
+        query: QueryObject
+        context, query = context_for(parent)
+        query.annotation_layers = [
+            {"sourceType": "line", "value": 31, "name": "semantic"}
+        ]
+        result: dict[str, Any] = context.get_df_payload(query)
+        if denied:
+            assert result["error"] == "denied annotation"
+            assert parent_calls == []
+            provider.get_semantic_view.assert_not_called()
+            return
+        assert clock() == 131
+        assert result["annotation_data"] == {"semantic": {"orders": [17]}}
+        assert context.get_df_payload(query)["is_cached"]
+        assert parent_calls == ["parent"]
+        provider.get_semantic_view.assert_called_once()
+        annotation_context.raise_for_access.assert_called_once()

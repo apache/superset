@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
     from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -309,6 +310,7 @@ class QueryContextProcessor:
                         )
                     )
 
+                self._capture_annotation_metadata(query_obj)
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
                 if query_obj.annotation_layers:
@@ -479,6 +481,48 @@ class QueryContextProcessor:
             else None
         )
         return cache_key, cacheable
+
+    def _capture_annotation_metadata(self, query_obj: QueryObject) -> None:
+        """Capture authorized annotation views on a miss before a slow parent query."""
+        if not query_obj.annotation_layers:
+            return
+        from superset.semantic_layers.metadata_binding import (
+            metadata_refresh_enabled,
+            participates,
+        )
+        from superset.semantic_layers.models import SemanticView
+
+        if not metadata_refresh_enabled():
+            return
+        layer: dict[str, Any]
+        for layer in query_obj.annotation_layers:
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
+                continue
+            value: int | str | None = layer.get("value")
+            chart: Slice | None = (
+                ChartDAO.find_by_id(value) if value is not None else None
+            )
+            source: Datasource | None = chart.resolved_datasource if chart else None
+            if not isinstance(source, SemanticView) or not participates(
+                source.semantic_layer
+            ):
+                continue
+            assert chart is not None
+            try:
+                context: QueryContext | None = chart.get_query_context()
+                if context is None:
+                    # The annotation executor reports its missing-context error.
+                    continue
+                context.raise_for_access()
+                if isinstance(context.datasource, SemanticView):
+                    # Reuse the annotation command's canonical query authority.
+                    # Later execution retains this view without renewing its budget.
+                    _captured: str | None = context.datasource.metadata_cache_token
+            except SupersetException as ex:
+                raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
         """
