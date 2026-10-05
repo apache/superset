@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -5714,6 +5714,9 @@ msgstr "Hōputu rā"
 msgid "Date format string"
 msgstr "Aho hōputu rā"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "Rā/Wā"
 
@@ -11028,6 +11031,9 @@ msgstr "Kāore i kitea he ine kua tiakina"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Kāore i kitea he hua kua penapena, me whakahaere anō koe i tō pātai"
 
@@ -12021,6 +12027,11 @@ msgid "Plain"
 msgstr ""
 "Tēnā tirohia tō pātai mō ngā hapa wetereo i, tata ki \"%(syntax_error)s\""
 " rānei. Kātahi, whakamātauhia anō tō pātai."
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

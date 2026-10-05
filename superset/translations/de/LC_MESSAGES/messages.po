@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -5485,6 +5485,9 @@ msgstr "Datumsformat"
 msgid "Date format string"
 msgstr "Datumsformat-Zeichenfolge"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "Datum/Zeit"
 
@@ -10450,6 +10453,9 @@ msgstr "Keine gespeicherten Metriken gefunden"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Keine gespeicherten Ergebnisse gefunden. Sie müssen Ihre Abfrage erneut "
@@ -11421,6 +11427,11 @@ msgstr "Pixel"
 
 msgid "Plain"
 msgstr "Unformatiert"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

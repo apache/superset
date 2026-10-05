@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -6677,6 +6677,9 @@ msgstr "Format datuma"
 msgid "Date format string"
 msgstr "Niz formata datuma"
 
+msgid "Date range filter"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Date/Time"
@@ -12808,6 +12811,9 @@ msgstr "Nisu pronađene sačuvane metrike"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nisu pronađeni sačuvani rezultati, potrebno je da ponovo izvršite upit"
@@ -13985,6 +13991,11 @@ msgstr "Pikseli"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Plain"
 msgstr "Običan"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

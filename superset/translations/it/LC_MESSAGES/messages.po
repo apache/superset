@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -6787,6 +6787,9 @@ msgstr "Formato date"
 msgid "Date format string"
 msgstr "Stringa di formato delle date"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "Tempo"
 
@@ -13176,6 +13179,9 @@ msgstr "Nessuna metrica salvata trovata"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Nessun risultato memorizzato trovato, è necessario eseguire nuovamente la"
@@ -14462,6 +14468,11 @@ msgstr "Pixel"
 # uk, zh, zh_TW]
 msgid "Plain"
 msgstr "Normale"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -5991,6 +5991,9 @@ msgstr "Format daty"
 msgid "Date format string"
 msgstr "Ciąg formatu daty"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "Data/godzina"
 
@@ -11593,6 +11596,9 @@ msgstr "Nie znaleziono zapisanych metryk"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nie znaleziono zapisanych wyników, musisz ponownie uruchomić zapytanie"
 
@@ -12628,6 +12634,11 @@ msgstr "Piksele"
 
 msgid "Plain"
 msgstr "Prosty"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

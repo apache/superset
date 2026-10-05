@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -5451,6 +5451,9 @@ msgstr "தேதி வடிவம்"
 msgid "Date format string"
 msgstr "தேதி வடிவ சரம் (string)"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "தேதி/நேரம்"
 
@@ -10366,6 +10369,9 @@ msgstr "சேமிக்கப்பட்ட அளவீடுகள் எ�
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "சேமிக்கப்பட்ட முடிவுகள் இல்லை, உங்கள் வினவலை மீண்டும் இயக்க வேண்டும்"
 
@@ -11275,6 +11281,11 @@ msgstr "பிக்சல்கள் (Pixels)"
 
 msgid "Plain"
 msgstr "சாதாரண (Plain)"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

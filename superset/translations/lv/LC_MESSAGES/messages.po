@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 07:30+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -5504,6 +5504,9 @@ msgstr "Datuma formāts"
 msgid "Date format string"
 msgstr "Datuma formāta virkne"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "Datums/Laiks"
 
@@ -10517,6 +10520,9 @@ msgstr "Nav atrasti saglabāti rādītāji"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nav atrasti saglabāti rezultāti, jāpalaiž vaicājums atkārtoti"
 
@@ -11479,6 +11485,11 @@ msgstr "Pikseļi"
 
 msgid "Plain"
 msgstr "Vienkāršs"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
