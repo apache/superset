@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from superset import security_manager
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.importers.v1 import utils as chart_import_utils
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
@@ -159,7 +160,8 @@ def test_each_importer_rebinds_semantic_chart(
     writer: Mock = Mock(
         return_value=Mock(id=91, uuid=UUID(CHART_UUID), viz_type="table")
     )
-    monkeypatch.setattr(module, "import_chart", writer)
+    # every importer writes charts through ``import_charts`` in this module
+    monkeypatch.setattr(chart_import_utils, "import_chart", writer)
     monkeypatch.setattr(module, "get_default_viewers_for_current_user", lambda: [])
     configs: dict[str, Any] = {"charts/chart.yaml": chart_config()}
     importer._import(configs, overwrite=True)
@@ -202,9 +204,13 @@ def test_dependency_failure_precedes_any_bundle_write(
     module: ModuleType = importlib.import_module(module_name)
     importer: Any = getattr(module, command_name)
     writes: list[Mock] = []
-    for name in ("import_database", "import_dataset", "import_chart"):
+    for target, name in (
+        (module, "import_database"),
+        (module, "import_dataset"),
+        (chart_import_utils, "import_chart"),
+    ):
         writer: Mock = Mock(side_effect=AssertionError("write before preflight"))
-        monkeypatch.setattr(module, name, writer)
+        monkeypatch.setattr(target, name, writer)
         writes.append(writer)
     if failure == "missing":
         refs.db.session.query.return_value.filter.return_value.all.return_value = []
@@ -638,7 +644,7 @@ def test_import_transaction_rolls_back_late_failure(
         assert session.query(Slice).filter(Slice.uuid == UUID(CHART_UUID)).count() == 1
         raise ImportFailedError("injected after chart write")
 
-    monkeypatch.setattr(module, "import_chart", write_then_fail)
+    monkeypatch.setattr(chart_import_utils, "import_chart", write_then_fail)
     with pytest.raises(ImportFailedError):
         command.run()
     assert session.query(Slice).filter(Slice.uuid == UUID(CHART_UUID)).count() == 0

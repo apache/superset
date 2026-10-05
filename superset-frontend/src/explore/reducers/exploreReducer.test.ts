@@ -23,9 +23,13 @@ import {
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
 import {
-  sections,
+  ControlConfig,
+  ControlPanelState,
+  ControlState,
   CustomControlItem,
   Dataset,
+  sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import {
   getControlStateFromControlConfig,
@@ -178,6 +182,205 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
     >[1],
   );
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
+});
+
+type ReducerAction = Parameters<typeof exploreReducer>[1];
+
+type MirrorControlState = ControlState & { mirroredValue?: unknown };
+
+// A control whose derived props depend on another control's current value.
+const mirrorOf = (sourceControl: string): ControlConfig =>
+  ({
+    type: 'TextControl',
+    mapStateToProps: (state: ControlPanelState) => ({
+      mirroredValue: state.controls?.[sourceControl]?.value,
+    }),
+  }) as unknown as ControlConfig;
+
+const buildControl = (
+  config: ControlConfig,
+  formData: QueryFormData,
+  value: unknown,
+  controls: Record<string, ControlState> = {},
+) =>
+  getControlStateFromControlConfig(
+    config,
+    { controls, form_data: formData },
+    value as never,
+  )!;
+
+test('SET_FIELD_VALUE re-derives controls listed in `rerender` from the updated control value', () => {
+  const form_data = {
+    matrixify_mode_rows: 'disabled',
+    matrixify_mode_columns: 'disabled',
+  } as unknown as QueryFormData;
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      matrixify_mode_rows: buildControl(
+        sharedControls.matrixify_mode_rows as unknown as ControlConfig,
+        form_data,
+        'disabled',
+      ),
+      matrixify_mode_columns: buildControl(
+        sharedControls.matrixify_mode_columns as unknown as ControlConfig,
+        form_data,
+        'disabled',
+      ),
+      matrixify_dimension_rows: buildControl(
+        sharedControls.matrixify_dimension_rows as unknown as ControlConfig,
+        form_data,
+        { dimension: '', values: [] },
+      ),
+    },
+  };
+  const metricsOption = (state: ExploreState) =>
+    (
+      state.controls.matrixify_mode_columns.options as Array<{
+        value: string;
+        disabled?: boolean;
+      }>
+    ).find(option => option.value === 'metrics');
+
+  // Columns offer "metrics" while the rows axis is not using it.
+  expect(metricsOption(initialState)?.disabled).toBe(false);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('matrixify_mode_rows', 'metrics') as ReducerAction,
+  );
+
+  // The rows axis now owns "metrics", so the columns control must be
+  // re-derived without the user touching it.
+  expect(metricsOption(newState)?.disabled).toBe(true);
+  expect(newState.controls.matrixify_mode_columns.value).toBe('disabled');
+});
+
+test('SET_FIELD_VALUE leaves controls that are not listed in `rerender` stale', () => {
+  const form_data = { source: 'a' } as unknown as QueryFormData;
+  const plain = { type: 'TextControl' } as unknown as ControlConfig;
+  const buildState = (rerender: string[]): ExploreState => {
+    const source = buildControl(
+      { ...plain, rerender } as unknown as ControlConfig,
+      form_data,
+      'a',
+    );
+    const controls = { source };
+    return {
+      form_data,
+      controls: {
+        source,
+        listed: buildControl(mirrorOf('source'), form_data, null, controls),
+        unlisted: buildControl(mirrorOf('source'), form_data, null, controls),
+      },
+    };
+  };
+  const mirrored = (state: ExploreState, name: string) =>
+    (state.controls[name] as MirrorControlState).mirroredValue;
+
+  const initialState = buildState(['listed']);
+  expect(mirrored(initialState, 'listed')).toBe('a');
+  expect(mirrored(initialState, 'unlisted')).toBe('a');
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('source', 'b') as ReducerAction,
+  );
+
+  expect(mirrored(newState, 'listed')).toBe('b');
+  expect(mirrored(newState, 'unlisted')).toBe('a');
+});
+
+test('SET_FIELD_VALUE only re-validates controls that declare the changed control in `validationDependencies`', () => {
+  const STALE_ERROR = 'Driven by the changed control';
+  const requiresOk = (declaresDependency: boolean): ControlConfig =>
+    ({
+      type: 'TextControl',
+      mapStateToProps: (state: ControlPanelState) => ({
+        externalValidationErrors:
+          state.form_data.source === 'bad' ? [STALE_ERROR] : [],
+      }),
+      ...(declaresDependency && { validationDependencies: ['source'] }),
+    }) as unknown as ControlConfig;
+
+  const form_data = { source: 'bad' } as unknown as QueryFormData;
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      source: buildControl(
+        { type: 'TextControl' } as unknown as ControlConfig,
+        form_data,
+        'bad',
+      ),
+      declared: buildControl(requiresOk(true), form_data, 'x'),
+      undeclared: buildControl(requiresOk(false), form_data, 'x'),
+    },
+  };
+
+  // Both dependents start out in error.
+  expect(initialState.controls.declared.validationErrors).toEqual([
+    STALE_ERROR,
+  ]);
+  expect(initialState.controls.undeclared.validationErrors).toEqual([
+    STALE_ERROR,
+  ]);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('source', 'good') as ReducerAction,
+  );
+
+  // The declared dependent re-validates against the new value; the other one
+  // keeps the error because nothing tells the reducer to re-run it.
+  expect(newState.controls.declared.validationErrors).toEqual([]);
+  expect(newState.controls.undeclared.validationErrors).toEqual([STALE_ERROR]);
+});
+
+test('SET_FIELD_VALUE raises a dependent control error when the changed control makes it invalid', () => {
+  const REQUIRED_DATE_ERROR = 'A date is required when using custom date shift';
+  const timeComparisonSection = sections.timeComparisonControls({
+    multi: false,
+    showCalculationType: false,
+    showFullChoices: false,
+  });
+  const timeCompareConfig = (
+    timeComparisonSection.controlSetRows[0][0] as CustomControlItem
+  ).config;
+  const startDateOffsetConfig = (
+    timeComparisonSection.controlSetRows[1][0] as CustomControlItem
+  ).config;
+  const form_data = {
+    time_compare: '1 week ago',
+    start_date_offset: '',
+  } as unknown as QueryFormData;
+  const controlPanelState = { controls: {}, form_data };
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      time_compare: getControlStateFromControlConfig(
+        timeCompareConfig,
+        controlPanelState,
+        '1 week ago',
+      )!,
+      start_date_offset: getControlStateFromControlConfig(
+        startDateOffsetConfig,
+        controlPanelState,
+        '',
+      )!,
+    },
+  };
+
+  // An empty start date is fine until the shift becomes "custom".
+  expect(initialState.controls.start_date_offset.validationErrors).toEqual([]);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('time_compare', 'custom') as ReducerAction,
+  );
+
+  expect(newState.controls.start_date_offset.validationErrors).toEqual([
+    REQUIRED_DATE_ERROR,
+  ]);
 });
 
 test('explicit semantic reset removes stale fields and stash and persists only new generation', () => {
