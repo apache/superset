@@ -552,3 +552,80 @@ def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
     with skip_visibility_filter(db.session, Slice):
         db.session.expire(dashboard, ["slices"])
         assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
+
+
+def test_copy_dashboard_duplicate_slices_remaps_native_filter_scopes(
+    session: Session,
+) -> None:
+    """Duplicating charts must move native filter scopes onto the new charts.
+
+    Regression test for #44983: ``chartsInScope`` and ``scope.excluded`` kept
+    the original dashboard's chart ids, so once the copy was reloaded its
+    filters no longer applied to the duplicated charts.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    original = _make_dashboard("copy-native-filters", 2)
+    chart_a, chart_b = original.slices
+    positions: dict[str, Any] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {
+            "id": "GRID_ID",
+            "type": "GRID",
+            "children": ["CHART-a", "CHART-b"],
+            "parents": ["ROOT_ID"],
+        },
+        "CHART-a": {
+            "id": "CHART-a",
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "meta": {"chartId": chart_a.id, "width": 4, "height": 50},
+        },
+        "CHART-b": {
+            "id": "CHART-b",
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "meta": {"chartId": chart_b.id, "width": 4, "height": 50},
+        },
+    }
+    metadata = {
+        "positions": positions,
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-1",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [chart_b.id]},
+                "chartsInScope": [chart_a.id],
+            }
+        ],
+    }
+
+    with (
+        patch("superset.daos.dashboard.g") as mock_g,
+        patch.object(security_manager, "is_editor", return_value=True),
+    ):
+        mock_g.user = None
+        dash = DashboardDAO.copy_dashboard(
+            original,
+            {
+                "dashboard_title": "copy",
+                "json_metadata": json.dumps(metadata),
+                "duplicate_slices": True,
+            },
+        )
+
+    new_ids = {slc.slice_name: slc.id for slc in dash.slices}
+    new_a = new_ids[chart_a.slice_name]
+    new_b = new_ids[chart_b.slice_name]
+    assert {new_a, new_b}.isdisjoint({chart_a.id, chart_b.id})
+
+    native_filter = dash.params_dict["native_filter_configuration"][0]
+    assert native_filter["scope"]["excluded"] == [new_b]
+    assert native_filter["chartsInScope"] == [new_a]
+
+    # The scope caches are re-derived on read, which is what the reloaded
+    # dashboard sees.
+    derived = derive_metadata_scopes(dash, dash.params_dict)
+    assert derived["native_filter_configuration"][0]["chartsInScope"] == [new_a]
