@@ -56,7 +56,7 @@ TOOL_BUDGETS = {
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,
-    "create_theme": 1_100,
+    "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
