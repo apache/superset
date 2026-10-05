@@ -50,6 +50,8 @@ import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { applyColumnAllowlist } from 'src/chartCustomizations/components/DynamicGroupBy/columnAllowlist';
+import { StatusMessage } from 'src/chartCustomizations/components/common';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import {
   displayControlBindingKey,
@@ -211,28 +213,6 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
     </Tooltip>
   </ToolTipContainer>
 );
-
-// Restrict the groupable column options to the builder-configured allowlist.
-// An unset or empty allowlist means "no restriction" so existing Group By
-// customizations (which never stored an allowlist) keep offering every
-// groupable column, preserving backwards compatibility.
-//
-// `appliedValues` are the viewer's currently applied group-by columns. They
-// stay in the options even when a later-narrowed allowlist excludes them, so
-// an applied selection keeps rendering with its verbose label instead of a
-// bare column name. The viewer can still clear it, and once cleared it is no
-// longer offered.
-export const applyColumnAllowlist = <T extends { value: string }>(
-  options: T[],
-  allowlist?: string[] | null,
-  appliedValues: string[] = [],
-): T[] => {
-  if (!Array.isArray(allowlist) || allowlist.length === 0) {
-    return options;
-  }
-  const allowed = new Set([...allowlist, ...appliedValues]);
-  return options.filter(option => allowed.has(option.value));
-};
 
 // Sort display values by label: ascending when sortAscending is true, descending
 // when false, and source order (no sort) when it is unset.
@@ -451,6 +431,16 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       ),
     [columnOptions, columnsAllowlist, currentValue],
   );
+
+  // Every column the builder allowed is gone from the dataset (dropped or no
+  // longer groupable). Rather than a silently empty control, viewers get a
+  // message; the control is not opened up to all columns behind the builder's
+  // back.
+  const allowlistUnavailable =
+    !loading &&
+    columnOptions.length > 0 &&
+    ensureIsArray(columnsAllowlist).length > 0 &&
+    applyColumnAllowlist(columnOptions, columnsAllowlist).length === 0;
 
   const columnDisplayName = useMemo(() => {
     if (customizationItem.name) {
@@ -673,6 +663,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       )}
 
+      {allowlistUnavailable && (
+        <StatusMessage status="warning">
+          {t(
+            'The columns allowed for this control are no longer in the dataset. Ask the dashboard owner to update it.',
+          )}
+        </StatusMessage>
+      )}
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <Loading position="inline" size="s" muted />
@@ -681,5 +678,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     </div>
   );
 };
+
+export { applyColumnAllowlist };
 
 export default GroupByFilterCard;

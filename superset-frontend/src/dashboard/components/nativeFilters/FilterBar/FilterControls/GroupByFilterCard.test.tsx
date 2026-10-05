@@ -490,3 +490,45 @@ test('keeps an applied selection that a narrowed allowlist excludes, with its la
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.queryByText('City')).not.toBeInTheDocument();
 });
+
+const allowlistGoneMessage =
+  'The columns allowed for this control are no longer in the dataset. Ask the dashboard owner to update it.';
+
+test('tells viewers when none of the allowed columns remain in the dataset', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/323', allowlistDataset);
+
+  render(
+    <GroupByFilterCard
+      customizationItem={{
+        ...customization([{ datasetId: 323 }]),
+        controlValues: { columnsAllowlist: ['dropped_col'] },
+      }}
+    />,
+    { useRedux: true, initialState },
+  );
+
+  expect(await screen.findByText(allowlistGoneMessage)).toBeInTheDocument();
+  // It does not quietly open the control up to every column instead.
+  userEvent.click(await screen.findByRole('combobox'));
+  await waitFor(() =>
+    expect(screen.queryByText('Country')).not.toBeInTheDocument(),
+  );
+});
+
+test('shows no message while at least one allowed column remains', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/324', allowlistDataset);
+
+  render(
+    <GroupByFilterCard
+      customizationItem={{
+        ...customization([{ datasetId: 324 }]),
+        controlValues: { columnsAllowlist: ['country', 'dropped_col'] },
+      }}
+    />,
+    { useRedux: true, initialState },
+  );
+
+  userEvent.click(await screen.findByRole('combobox'));
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.queryByText(allowlistGoneMessage)).not.toBeInTheDocument();
+});

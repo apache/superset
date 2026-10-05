@@ -25,7 +25,13 @@ import {
 } from '@superset-ui/core';
 import { Form, type FormInstance } from '@superset-ui/core/components';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { ChartCustomizationPlugins } from 'src/constants';
 import { transformCustomizationForSave } from '../transformers/customizationTransformer';
 import { ChartCustomizationsFormItem, NativeFiltersForm } from '../types';
@@ -63,6 +69,41 @@ fetchMock.get('glob:*/api/v1/dataset/2?*', {
       { column_name: 'internal_only', is_dttm: false, filterable: false },
     ],
   },
+});
+
+// Columns whose verbose names differ from column_name.
+fetchMock.get('glob:*/api/v1/dataset/3?*', {
+  result: {
+    columns: [
+      {
+        column_name: 'region',
+        verbose_name: 'Sales Region',
+        is_dttm: false,
+        filterable: true,
+      },
+      { column_name: 'country', is_dttm: false, filterable: true },
+    ],
+  },
+});
+
+// The dataset picker's list endpoint (path-matched so it never shadows the
+// per-dataset column endpoints above).
+fetchMock.get('path:/api/v1/dataset/', {
+  result: [
+    {
+      id: 1,
+      table_name: 'sales',
+      schema: 'public',
+      database: { database_name: 'examples' },
+    },
+    {
+      id: 2,
+      table_name: 'legacy_sales',
+      schema: 'public',
+      database: { database_name: 'examples' },
+    },
+  ],
+  count: 2,
 });
 
 const FILTER_ID = 'CHART_CUSTOMIZATION-groupby';
@@ -109,7 +150,7 @@ function renderForm({
           onModifyFilter={noop}
           getAvailableFilters={() => []}
           handleActiveFilterPanelChange={noop}
-          activeFilterPanelKeys={[]}
+          activeFilterPanelKeys={[`${FILTER_ID}-configuration`]}
           isActive
           setErroredFilters={() => []}
           validateDependencies={noop}
@@ -278,4 +319,111 @@ test('loading the allowlist columns does not reset the unrelated column field', 
   const allowlist = await getAllowlistScope();
   expect(await allowlist.findByText('state')).toBeInTheDocument();
   expect(form.getFieldValue(['filters', FILTER_ID, 'column'])).toBeUndefined();
+});
+
+async function pickDataset(tableName: string) {
+  const datasetSelect = screen.getByRole('combobox', { name: /dataset/i });
+  await userEvent.click(datasetSelect);
+  const option = await waitFor(() => {
+    // eslint-disable-next-line testing-library/no-node-access
+    const list = document.querySelector('.ant-select-dropdown-list');
+    if (!list) throw new Error('dataset list not open');
+    return within(list as HTMLElement).getByText(tableName);
+  });
+  await userEvent.click(option);
+}
+
+test("switching the dataset away and back never saves the other dataset's columns", async () => {
+  let form!: FormInstance<NativeFiltersForm>;
+  renderForm({
+    customizationToEdit: customizationWithNarrowedAllowlist,
+    initialControlValues: { columnsAllowlist: ['country'] },
+    onForm: f => {
+      form = f;
+    },
+  });
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('country')).toBeInTheDocument();
+
+  await pickDataset('legacy_sales');
+  expect(await allowlist.findByText('legacy_col')).toBeInTheDocument();
+  await pickDataset('sales');
+  expect(await allowlist.findByText('state')).toBeInTheDocument();
+
+  const values = form.getFieldValue('filters')?.[
+    FILTER_ID
+  ] as unknown as ChartCustomizationsFormItem;
+  expect(values.controlValues?.columnsAllowlist).toEqual(['country', 'state']);
+  expect(values.groupableColumns).toEqual(['country', 'state']);
+  // "All selected" on the current dataset saves as unrestricted.
+  const saved = await saveFormValues(form);
+  expect(saved.controlValues).not.toHaveProperty('columnsAllowlist');
+});
+
+test('labels and searches allowlist columns by verbose name', async () => {
+  renderForm({ datasetId: 3 });
+
+  const allowlist = await getAllowlistScope();
+  // Seeded tags use the verbose name, falling back to column_name.
+  expect(await allowlist.findByText('Sales Region')).toBeInTheDocument();
+  expect(allowlist.getByText('country')).toBeInTheDocument();
+
+  const combobox = screen.getByRole('combobox', { name: 'Column select' });
+  await userEvent.type(combobox, 'Sales Reg');
+  expect(
+    await screen.findByRole('option', { name: 'Sales Region' }),
+  ).toBeInTheDocument();
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'region');
+  expect(
+    await screen.findByRole('option', { name: 'Sales Region' }),
+  ).toBeInTheDocument();
+});
+
+test('explains that an empty allowlist means every groupable column', async () => {
+  renderForm({
+    customizationToEdit: {
+      ...customizationWithNarrowedAllowlist,
+      controlValues: { columnsAllowlist: [] },
+    },
+    initialControlValues: { columnsAllowlist: [] },
+  });
+
+  const allowlist = await getAllowlistScope();
+  expect(
+    await allowlist.findByText('All groupable columns'),
+  ).toBeInTheDocument();
+  expect(
+    allowlist.getByText(/including columns added to the dataset later/),
+  ).toBeInTheDocument();
+});
+
+test('warns about allowlisted columns the dataset no longer offers', async () => {
+  renderForm({
+    customizationToEdit: {
+      ...customizationWithNarrowedAllowlist,
+      controlValues: { columnsAllowlist: ['country', 'dropped_col'] },
+    },
+    initialControlValues: { columnsAllowlist: ['country', 'dropped_col'] },
+  });
+
+  const allowlist = await getAllowlistScope();
+  expect(
+    await allowlist.findByText(
+      'Not in this dataset, so viewers will not see: dropped_col',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('does not warn when every allowlisted column is available', async () => {
+  renderForm({
+    customizationToEdit: customizationWithNarrowedAllowlist,
+    initialControlValues: { columnsAllowlist: ['country'] },
+  });
+
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('country')).toBeInTheDocument();
+  expect(
+    allowlist.queryByText(/so viewers will not see/),
+  ).not.toBeInTheDocument();
 });

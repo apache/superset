@@ -29,6 +29,7 @@ import {
   ChartDataResponseResult,
   Column,
   DatasourceType,
+  ensureIsArray,
   Filter,
   ChartCustomization,
   ChartCustomizationType,
@@ -103,9 +104,13 @@ import {
   filterSupportsDependencies,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
-import { FilterRemoval, NativeFiltersForm } from '../types';
+import {
+  ChartCustomizationsFormItem,
+  FilterRemoval,
+  NativeFiltersForm,
+} from '../types';
 import { CollapsibleControl } from './CollapsibleControl';
-import { ColumnSelect } from './ColumnSelect';
+import { ColumnSelect, getDatasourceKey } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
 import DefaultValue from './DefaultValue';
 import FilterScope from './FilterScope/FilterScope';
@@ -583,6 +588,12 @@ const FiltersConfigForm = (
   });
 
   newFormData.extra_form_data = dependenciesDefaultValues;
+  if (isDynamicGroupBy) {
+    // Lets the default-value picker offer only columns viewers can group by.
+    newFormData.groupableColumns = (
+      formFilter as Partial<ChartCustomizationsFormItem> | undefined
+    )?.groupableColumns;
+  }
 
   const selectionsReset =
     !!formFilter?.semantic_selection_version &&
@@ -607,12 +618,27 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
+  // The datasource the allowlist in the form was chosen for. Starts as the
+  // saved control's datasource (undefined for a new control) and follows the
+  // columns ColumnSelect loads. It lets seeding detect a dataset change on its
+  // own instead of relying on the dataset picker's reset, which is skipped when
+  // the builder switches back to the dataset they started with.
+  const allowlistDatasourceKey = useRef<string | undefined>(
+    customizationToEdit?.targets?.[0]?.datasetId != null
+      ? getDatasourceKey(
+          customizationToEdit.targets[0].datasetId,
+          customizationToEdit.targets[0].datasourceType,
+        )
+      : undefined,
+  );
+
   // Seed a Dynamic Group By control's allowlist with every groupable column so
   // it defaults to "all selected" (builders can then deselect to restrict).
-  // Only seeds when no allowlist is set yet: a freshly created control, a
-  // legacy control that never stored one, or one whose dataset just changed
-  // (which clears the allowlist). An existing selection, including a
-  // deliberately narrowed or emptied one, is never overwritten. The column
+  // Seeds when no allowlist is set yet (a freshly created control, or a legacy
+  // control that never stored one) and whenever columns load for a different
+  // datasource than the allowlist was chosen for, because column names are
+  // dataset-specific. An existing selection for the same datasource, including
+  // a deliberately narrowed or emptied one, is never overwritten. The column
   // names come from the same source that populates the multi-select options,
   // so the default matches exactly what the builder can choose from.
   //
@@ -622,15 +648,20 @@ const FiltersConfigForm = (
   // collapseFullColumnsAllowlist), so the seed never freezes a snapshot of
   // the dataset's columns into the saved config.
   const seedGroupByAllowlist = useCallback(
-    (columnNames: string[]) => {
+    (columnNames: string[], datasourceKey: string) => {
       if (!isDynamicGroupBy) {
         return;
       }
+      const datasourceChanged =
+        allowlistDatasourceKey.current !== undefined &&
+        allowlistDatasourceKey.current !== datasourceKey;
+      allowlistDatasourceKey.current = datasourceKey;
       const currentControlValues =
         form.getFieldValue(['filters', filterId, 'controlValues']) || {};
       const shouldSeed =
         columnNames.length > 0 &&
-        currentControlValues.columnsAllowlist === undefined;
+        (datasourceChanged ||
+          currentControlValues.columnsAllowlist === undefined);
       setNativeFilterFieldValues(form, filterId, {
         groupableColumns: columnNames,
         ...(shouldSeed
@@ -646,6 +677,18 @@ const FiltersConfigForm = (
     },
     [isDynamicGroupBy, form, filterId, forceUpdate],
   );
+
+  // Allowlisted columns the loaded dataset can no longer offer (dropped, or no
+  // longer groupable). Viewers never see them, so the builder is warned.
+  const groupableColumns = (
+    formFilter as Partial<ChartCustomizationsFormItem> | undefined
+  )?.groupableColumns;
+  const unavailableAllowlistColumns =
+    isDynamicGroupBy && groupableColumns?.length
+      ? ensureIsArray<string>(
+          formFilter?.controlValues?.columnsAllowlist,
+        ).filter(column => !groupableColumns.includes(column))
+      : [];
 
   const hasPreFilter =
     !!formFilter?.adhoc_filters?.length ||
@@ -1382,10 +1425,28 @@ const FiltersConfigForm = (
                                             <InfoTooltip
                                               placement="top"
                                               tooltip={t(
-                                                'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                                                'Columns viewers can choose to group charts by.',
                                               )}
                                             />
                                           </>
+                                        }
+                                        extra={t(
+                                          'Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later.',
+                                        )}
+                                        validateStatus={
+                                          unavailableAllowlistColumns.length
+                                            ? 'warning'
+                                            : undefined
+                                        }
+                                        help={
+                                          unavailableAllowlistColumns.length
+                                            ? t(
+                                                'Not in this dataset, so viewers will not see: %s',
+                                                unavailableAllowlistColumns.join(
+                                                  ', ',
+                                                ),
+                                              )
+                                            : undefined
                                         }
                                         data-test="groupby-columns-allowlist"
                                       >
@@ -1404,6 +1465,10 @@ const FiltersConfigForm = (
                                             column?.filterable !== false
                                           }
                                           onColumnsLoaded={seedGroupByAllowlist}
+                                          showVerboseNames
+                                          placeholder={t(
+                                            'All groupable columns',
+                                          )}
                                           onChange={() => {
                                             forceUpdate();
                                             formChanged();

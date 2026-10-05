@@ -145,6 +145,43 @@ test('keeps the allowlist when the groupable columns never loaded', () => {
   expect(result.controlValues).toEqual({ columnsAllowlist: ['country'] });
 });
 
+const groupByDefault = (value: string[]) => ({
+  extraFormData: { custom_form_data: { groupby: value } },
+  filterState: { label: value.join(', '), value },
+});
+
+test('never saves a Group By default that the allowlist excludes', () => {
+  const formItem = {
+    ...groupByFormItem({ columnsAllowlist: ['country'] }, [
+      'region',
+      'country',
+    ]),
+    defaultDataMask: groupByDefault(['region', 'country']),
+  } as unknown as ChartCustomizationsFormItem;
+
+  const result = transformCustomizationForSave(
+    'CHART_CUSTOMIZATION-default',
+    formItem,
+  ) as ChartCustomization;
+
+  expect(result.defaultDataMask).toEqual(groupByDefault(['country']));
+});
+
+test('never saves a Group By default on a non-groupable column', () => {
+  // No allowlist (all columns), but 'internal' is not in the groupable set.
+  const formItem = {
+    ...groupByFormItem({}, ['region', 'country']),
+    defaultDataMask: groupByDefault(['internal']),
+  } as unknown as ChartCustomizationsFormItem;
+
+  const result = transformCustomizationForSave(
+    'CHART_CUSTOMIZATION-default-ng',
+    formItem,
+  ) as ChartCustomization;
+
+  expect(result.defaultDataMask?.filterState?.value).toBeNull();
+});
+
 test('passes an already-saved ChartCustomization through untouched', () => {
   const saved: ChartCustomization = {
     id: 'CHART_CUSTOMIZATION-ghi',

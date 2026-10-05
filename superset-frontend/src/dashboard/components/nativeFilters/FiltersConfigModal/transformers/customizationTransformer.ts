@@ -26,6 +26,11 @@ import {
   NativeFilterType,
 } from '@superset-ui/core';
 import { omit } from 'lodash-es';
+import {
+  getAllowedGroupByColumns,
+  pruneGroupByDataMask,
+} from 'src/chartCustomizations/components/DynamicGroupBy/columnAllowlist';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   ChartCustomizationsFormItem,
@@ -123,6 +128,26 @@ export function collapseFullColumnsAllowlist(
   return omit(controlValues, 'columnsAllowlist');
 }
 
+/**
+ * A Group By default must not group viewers by a column the allowlist (or the
+ * dataset's groupable set) excludes. The default-value picker already prunes
+ * as the builder edits; this re-checks on save so an excluded default can
+ * never be persisted.
+ */
+function pruneGroupByDefault(formInputs: ChartCustomizationsFormItem) {
+  const mask = formInputs.defaultDataMask ?? {};
+  if (formInputs.filterType !== ChartCustomizationPlugins.DynamicGroupBy) {
+    return mask;
+  }
+  return pruneGroupByDataMask(
+    mask,
+    getAllowedGroupByColumns(
+      formInputs.controlValues?.columnsAllowlist,
+      formInputs.groupableColumns,
+    ),
+  );
+}
+
 function transformFormInput(
   id: string,
   formInputs: ChartCustomizationsFormItem,
@@ -146,7 +171,7 @@ function transformFormInput(
     ),
     defaultDataMask: buildNativeFilterDefaultDataMask(
       formInputs,
-      formInputs.defaultDataMask ?? {},
+      pruneGroupByDefault(formInputs),
     ),
     removed: false,
   };
