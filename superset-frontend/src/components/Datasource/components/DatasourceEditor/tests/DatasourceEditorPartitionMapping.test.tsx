@@ -363,3 +363,54 @@ test('DatasourceEditor source pins syncMetadata to the live column state', () =>
     /const currentColumns = useMemo\(\s*[\s\S]{0,900}?\(\) => \[\.\.\.databaseColumns, \.\.\.calculatedColumns\],\s*\[databaseColumns, calculatedColumns\],/,
   );
 });
+
+test('"Customize the value transform" opens the mapped column\'s editor', async () => {
+  // The link filters the table to the mapped column *and* asks for its row to
+  // open. The expansion half was inert -- the editor passed `expandItemWhere`
+  // but `CollectionTable` no longer consumed it -- so clicking the link left
+  // the transform field out of reach behind a manual expand.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = 'state';
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Customize the value transform →',
+    }),
+  );
+
+  // No manual expand in between: the transform field is on screen.
+  expect(
+    await screen.findByTestId('partition-value-transform'),
+  ).toBeInTheDocument();
+});
+
+test("the mapped column's row is muted in the columns table", async () => {
+  // `StyledColumnsTableWrapper` styles `.partition-column-row`, which the
+  // editor asks for through `rowClassName`. Without the table applying it the
+  // styling was dead and the partition row read as an ordinary column.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = 'state';
+
+  const { container } = fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+
+  await waitFor(() => {
+    expect(container.querySelectorAll('tr.partition-column-row')).toHaveLength(
+      1,
+    );
+  });
+  expect(container.querySelector('tr.partition-column-row')).toHaveTextContent(
+    'num',
+  );
+});

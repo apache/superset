@@ -100,8 +100,18 @@ export interface CRUDCollectionProps {
    * Expand the first row this matches, for links elsewhere in the editor that
    * point at a particular item. Expansion is additive: rows the user opened
    * themselves stay open.
+   *
+   * Only consulted when `expandItemNonce` changes, so an inline arrow -- whose
+   * identity changes every render -- cannot force a row the user just
+   * collapsed back open.
    */
   expandItemWhere?: (record: any) => boolean;
+  /**
+   * Bumped once per reveal request. A request is an event rather than a state:
+   * the same row can be asked for twice, with a manual collapse in between, and
+   * a nonce is what makes the second ask visible.
+   */
+  expandItemNonce?: number;
 }
 
 export type Sort = number | string | boolean | any;

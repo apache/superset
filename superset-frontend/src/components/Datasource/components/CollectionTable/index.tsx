@@ -99,6 +99,9 @@ export default function CRUDCollection({
   pagination = false,
   filterTerm,
   filterFields,
+  rowClassName,
+  expandItemWhere,
+  expandItemNonce,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
@@ -326,6 +329,26 @@ export default function CRUDCollection({
       [id]: !prev[id],
     }));
   }, []);
+
+  // Read through a ref, and keyed on the nonce alone, because callers pass an
+  // inline arrow: an effect depending on the predicate's identity would run on
+  // every render and reopen a row the user had just collapsed, which is the
+  // opposite of the additive behaviour the prop documents.
+  const expandItemWhereRef = useRef(expandItemWhere);
+  expandItemWhereRef.current = expandItemWhere;
+
+  useEffect(() => {
+    const matches = expandItemWhereRef.current;
+    if (!matches || expandItemNonce === undefined) {
+      return;
+    }
+    const target = collectionArray.find(matches);
+    if (!target) {
+      return;
+    }
+    // Merged rather than replaced, so rows the user opened stay open.
+    setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
+  }, [expandItemNonce, collectionArray]);
 
   const handleTableChange = useCallback(
     (
@@ -621,6 +644,7 @@ export default function CRUDCollection({
           `
         }
         expandable={expandableConfig}
+        rowClassName={rowClassName}
         size={TableSize.Middle}
         tableLayout="auto"
       />
