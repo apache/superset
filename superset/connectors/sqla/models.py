@@ -154,6 +154,13 @@ ADDITIVE_METRIC_TYPES = {
 }
 ADDITIVE_METRIC_TYPES_LOWER = {op.lower() for op in ADDITIVE_METRIC_TYPES}
 
+#: Instant `SqlaTable.partition_filter_mapping_summary` measures the mapped
+#: column's literal resolution at. It carries both a time of day and a
+#: sub-second part on purpose: `_engine_literal_resolution` detects what an
+#: engine throws away by rendering two instants and comparing the text, and a
+#: probe at midnight with no remainder leaves it nothing to detect.
+_RESOLUTION_REFERENCE_INSTANT = datetime(2026, 1, 1, 12, 0, 0, 500000)
+
 
 @dataclass
 class MetadataResult:
@@ -2047,6 +2054,15 @@ class SqlaTable(
             "mapped_column": mapped_column_name,
             "active": active,
             "is_monotonic": is_monotonic,
+            # How much of a value this engine compares on the mapped column, so
+            # the Explore indicator can replay the one gate it otherwise cannot
+            # see: on a column compared at day resolution an equality carrying a
+            # time of day is declined, and the glyph would promise pruning the
+            # query does not do. Through the same helper the query path uses, for
+            # the same reason `mirrorable_operators` is.
+            "literal_resolution": self._engine_literal_resolution(
+                _RESOLUTION_REFERENCE_INSTANT, mapped_column
+            ).value,
             "mirrorable_operators": sorted(
                 operator.value
                 for operator in mirrorable_operators(
