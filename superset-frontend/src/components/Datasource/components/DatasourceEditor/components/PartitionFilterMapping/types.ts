@@ -50,7 +50,13 @@ export interface PartitionMappingPreview {
   emitted_predicate?: string;
   error?: string;
   /** Why it is invalid, so the panel can headline it correctly. */
-  reason?: 'parse' | 'validation' | 'operator' | 'engine' | 'unconfigured';
+  reason?:
+    | 'parse'
+    | 'validation'
+    | 'operator'
+    | 'engine'
+    | 'type'
+    | 'unconfigured';
 }
 
 /**

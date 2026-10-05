@@ -556,6 +556,72 @@ def test_a_failing_probe_leaves_the_query_correct_and_unpruned(app: Flask) -> No
     assert "event_time" in sql
 
 
+def test_a_probe_result_the_partition_column_cannot_hold_emits_nothing(
+    app: Flask,
+) -> None:
+    """
+    `cast(:value as text) || 'x'` evaluates perfectly and answers with a string,
+    and `dt_epoch` is a BIGINT. The predicate used to go out as
+    `dt_epoch >= '2026-01-01 00:00:00x'`, which Postgres refuses -- and by then
+    the mirror is in the statement, so the chart returned a 400 rather than
+    losing its pruning.
+    """
+    table = _table(transform="cast(:value as text) || 'x'")
+
+    with app.app_context():
+        probed = ["2026-01-01 00:00:00x", "2026-02-01 00:00:00x"]
+        with patch(PROBE, return_value=probed):
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert "dt_epoch" not in sql
+    assert "event_time" in sql
+
+
+def test_a_numeric_probe_result_still_mirrors_onto_a_numeric_key(
+    app: Flask,
+) -> None:
+    """The other side of the gate: the ordinary case is untouched."""
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]):
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert "dt_epoch >= 1767225600" in sql
+
+
+def test_a_day_key_still_mirrors_onto_a_text_partition_column(app: Flask) -> None:
+    """
+    A `to_char(:value, 'YYYYMMDD')`-style transform answers with text, and a
+    text partition column holds text. Refusing that would break the commonest
+    bucketing mapping there is.
+    """
+    table = _table(
+        transform="to_char(:value, 'YYYYMMDD')", partition_column="region_key"
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260101", "20260201"]):
+            sql = _query(
+                table,
+                granularity="event_time",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert "region_key >= '20260101'" in sql
+
+
 def test_an_inverted_transform_emits_nothing(app: Flask) -> None:
     """
     ``T(lower) <= T(upper)`` is a nearly-free runtime backstop for the
