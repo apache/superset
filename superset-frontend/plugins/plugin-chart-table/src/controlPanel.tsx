@@ -41,6 +41,7 @@ import {
   isPercentMetric,
   getHeaderGroupsControlProps,
   getTimeComparisonColumnKeys,
+  getKnownColumnConfigKeys,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -701,6 +702,10 @@ const config: ControlPanelConfig = {
                     coltypes,
                     childColumnMap,
                     timeComparisonColumnMap,
+                    knownKeys: getKnownColumnConfigKeys(
+                      colnames,
+                      explore.datasource,
+                    ),
                   },
                 };
               },

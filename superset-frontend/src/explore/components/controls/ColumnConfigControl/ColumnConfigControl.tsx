@@ -42,6 +42,7 @@ export type ColumnConfigControlProps<T extends ColumnConfig> =
       coltypes: GenericDataType[];
       childColumnMap?: Record<string, boolean>;
       timeComparisonColumnMap?: Record<string, boolean>;
+      knownKeys?: string[];
     };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
@@ -67,7 +68,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   height,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames: _colnames, coltypes: _coltypes } = columnsPropsObject || {};
+  const {
+    colnames: _colnames,
+    coltypes: _coltypes,
+    knownKeys,
+  } = columnsPropsObject || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
   if (appliedColumnNames.length === 0) {
@@ -83,9 +88,13 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+  const columnConfigKnownKeys = useMemo(
+    () => [...new Set([...(knownKeys ?? []), ...colnames])],
+    [colnames, knownKeys],
+  );
   const normalizedValue = useMemo(
-    () => normalizeColumnConfigKeys(value, colnames),
-    [colnames, value],
+    () => normalizeColumnConfigKeys(value, colnames, columnConfigKnownKeys),
+    [colnames, columnConfigKnownKeys, value],
   );
 
   const columnConfigs = useMemo(() => {

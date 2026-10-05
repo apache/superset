@@ -30,6 +30,7 @@ import {
   isHeaderGroupsTimeComparisonEnabled,
   nestColDefsInHeaderGroups,
   normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
   toStoredTimeComparisonColumnKey,
@@ -421,6 +422,15 @@ test('normalizeColumnConfigKeys keeps keys that do not match colnames', () => {
       comparisonRevenueColumns,
     ),
   ).toEqual({ leftover: { columnWidth: 10 } });
+});
+
+test('getKnownColumnConfigKeys includes colnames, dataset columns, and metrics', () => {
+  expect(
+    getKnownColumnConfigKeys(['__timestamp'], {
+      columns: [{ column_name: 'Time' }, { column_name: 'region' }],
+      metrics: [{ metric_name: 'count' }],
+    }),
+  ).toEqual(['__timestamp', 'Time', 'region', 'count']);
 });
 
 test('normalizeColumnConfigKeys remaps display aliases onto real column keys', () => {

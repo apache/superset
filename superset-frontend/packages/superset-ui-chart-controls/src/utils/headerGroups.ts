@@ -76,6 +76,20 @@ function getColumnNameAliasLabels(col: string): string[] {
   ];
 }
 
+export function getKnownColumnConfigKeys(
+  colnames: string[] = [],
+  datasource?: {
+    columns?: { column_name?: string }[] | null;
+    metrics?: { metric_name?: string }[] | null;
+  } | null,
+): string[] {
+  return [
+    ...colnames,
+    ...(datasource?.columns ?? []).map(col => col.column_name ?? ''),
+    ...(datasource?.metrics ?? []).map(metric => metric.metric_name ?? ''),
+  ].filter(Boolean);
+}
+
 const TIME_COMPARE_SYMBOL_PREFIXES = ['#', '△', '%'] as const;
 
 type TimeCompareSlot = {

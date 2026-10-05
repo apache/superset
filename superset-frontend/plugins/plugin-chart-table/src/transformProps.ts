@@ -45,6 +45,7 @@ import {
   getColorFormatters,
   ColorSchemeEnum,
   normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 
@@ -241,11 +242,7 @@ const processColumns = memoizeOne(function processColumns(
   const normalizedColumnConfig = normalizeColumnConfigKeys(
     columnConfig,
     colnames || [],
-    [
-      ...(colnames || []),
-      ...(props.datasource.columns ?? []).map(col => col.column_name),
-      ...(props.datasource.metrics ?? []).map(metric => metric.metric_name),
-    ].filter(Boolean),
+    getKnownColumnConfigKeys(colnames || [], props.datasource),
   );
 
   const columns: DataColumnMeta[] = (colnames || [])
