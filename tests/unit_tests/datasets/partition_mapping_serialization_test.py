@@ -112,6 +112,9 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "partition_column": "dt_epoch",
         "mapped_column": "event_time",
         "active": True,
+        # Nothing has probed this transform, which is not the same as its
+        # having failed -- see `known_mirror_verdict`.
+        "evaluable": None,
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
@@ -145,6 +148,32 @@ def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
 
     assert summary is not None
     assert summary["literal_resolution"] == "day"
+
+
+def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
+    app: Flask,
+) -> None:
+    """
+    `active` is a parse, and a misspelled function parses happily, so a
+    transform the database rejects was reported active -- and the editor's
+    banner and Explore's glyph both promised a speed-up the query path silently
+    gives up. The second, weaker claim is what the UI reads for that.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = "no_such_fn(:value)"
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.models.known_mirror_verdict",
+            return_value=False,
+        ):
+            summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    # Still active: the save path has no quarrel with it, and the editor has to
+    # go on naming the columns so the owner can fix them.
+    assert summary["active"] is True
+    assert summary["evaluable"] is False
 
 
 def test_the_mapping_summary_reports_inactive_without_a_transform(
@@ -252,6 +281,9 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         "partition_column": "dt_epoch",
         "mapped_column": "event_time",
         "active": False,
+        # Nothing has probed this transform, which is not the same as its
+        # having failed -- see `known_mirror_verdict`.
+        "evaluable": None,
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",

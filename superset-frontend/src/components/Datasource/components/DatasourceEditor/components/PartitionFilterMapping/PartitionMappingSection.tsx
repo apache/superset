@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -53,6 +54,13 @@ interface PartitionMappingSectionProps {
   onMoveMappingHere: (columnName: string) => void;
   onRemoveMapping: () => void;
   onMonotonicChange: (columnName: string, isMonotonic: boolean) => void;
+  /**
+   * Report whether the previewed transform mirrors, so the dataset-level
+   * banner can stop claiming a mirror this panel has already refused. A
+   * one-way report rather than a lift of the debounced transform this panel
+   * owns -- `null` while there is no verdict to report.
+   */
+  onPreviewVerdict?: (mirrors: boolean | null) => void;
 }
 
 /**
@@ -72,6 +80,7 @@ export default function PartitionMappingSection({
   onMoveMappingHere,
   onRemoveMapping,
   onMonotonicChange,
+  onPreviewVerdict,
 }: PartitionMappingSectionProps) {
   const theme = useTheme();
   const columnName = item?.column_name ?? '';
@@ -101,6 +110,13 @@ export default function PartitionMappingSection({
     isMonotonic,
     enabled: state === 'mapped',
   });
+
+  // Reported rather than read upward, because the transform the preview judges
+  // is the local, debounced one this panel holds. `null` while a request is in
+  // flight: the previous verdict belongs to text that is no longer on screen.
+  useEffect(() => {
+    onPreviewVerdict?.(loading || !preview ? null : preview.valid);
+  }, [loading, preview, onPreviewVerdict]);
 
   if (state === 'none' || state === 'partition') {
     return null;
