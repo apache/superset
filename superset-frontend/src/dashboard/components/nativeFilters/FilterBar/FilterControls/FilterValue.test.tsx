@@ -134,6 +134,29 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+test('semantic range renders without fetching bounds', async () => {
+  mockUseTransitiveParentIds.mockReturnValue([]);
+  mockUseFilterDependencies.mockReturnValue({});
+  mockRequestChartData.mockResolvedValue([{ data: [{ min: 1, max: 2 }] }]);
+  renderFilterValue({
+    filter: createMockFilter({
+      filterType: 'filter_range',
+      targets: [
+        {
+          datasetId: 3,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.age' },
+        },
+      ],
+    }),
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('mock-super-chart')).toBeInTheDocument(),
+  );
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
 test('renders loading spinner when filter has a data source', () => {
   mockRequestChartData.mockReturnValue(new Promise(() => {}));
 

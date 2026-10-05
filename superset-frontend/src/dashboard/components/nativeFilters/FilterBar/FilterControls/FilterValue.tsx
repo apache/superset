@@ -60,6 +60,7 @@ import {
   unsetHoveredChartCustomization,
 } from 'src/dashboard/actions/nativeFilters';
 import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -284,12 +285,15 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      requestChartDataResolved({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
+      const query = isSemanticRange(newFormData)
+        ? Promise.resolve(queriesDataPlaceholder)
+        : requestChartDataResolved({
+            formData: newFormData,
+            force: shouldRefresh,
+            ownState: filterOwnState,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
         .then(queriesResponse => {
           setState(queriesResponse as ChartDataResponseResult[]);
           setError(undefined);

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 16:15-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7965,6 +7965,9 @@ msgid "Layout type of tree"
 msgstr ""
 
 msgid "Least recently modified"
+msgstr ""
+
+msgid "Leave a bound empty for an unbounded range."
 msgstr ""
 
 msgid "Leave blank to keep the current password"
