@@ -1606,6 +1606,75 @@ def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
     assert "29)" not in sql
 
 
+def test_an_epoch_millisecond_equality_is_probed_as_the_predicate_renders_it(
+    app: Flask,
+) -> None:
+    """
+    `filter_values_handler` turns an epoch-millisecond value on a temporal
+    column into engine SQL rather than a value -- what drill-to-detail and
+    cross-filters send. That cannot be the value of a bind parameter, so the
+    probe's compilation raised and the query silently lost its pruning.
+
+    Carried as text it substitutes instead, which is also what the preview path
+    already does with the same input.
+    """
+    table = _table()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return [1767261600]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": 1767261600000,
+                    }
+                ],
+            )
+
+    assert probed == [[RawProbeValue("'2026-01-01 10:00:00'")]]
+    assert "dt_epoch = 1767261600" in sql
+
+
+def test_an_epoch_millisecond_in_filter_is_probed_element_wise(app: Flask) -> None:
+    """Same for the list form, which is the one a cross-filter builds."""
+    table = _table()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return [1767261600, 1767348000]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.IN.value,
+                        "val": [1767261600000, 1767348000000],
+                    }
+                ],
+            )
+
+    assert probed == [
+        [
+            RawProbeValue("'2026-01-01 10:00:00'"),
+            RawProbeValue("'2026-01-02 10:00:00'"),
+        ]
+    ]
+    assert "dt_epoch IN (1767261600, 1767348000)" in sql
+
+
 def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     app: Flask,
 ) -> None:
