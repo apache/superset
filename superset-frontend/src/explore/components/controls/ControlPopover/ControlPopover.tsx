@@ -176,9 +176,13 @@ const ControlPopover: FC<PopoverProps> = ({
   );
 
   useEffect(() => {
-    if (visible !== undefined) {
-      changeContainerScrollStatus(visible);
+    if (!visible) {
+      return undefined;
     }
+    changeContainerScrollStatus(true);
+    return () => {
+      changeContainerScrollStatus(false);
+    };
   }, [visible, changeContainerScrollStatus]);
 
   useEffect(() => {

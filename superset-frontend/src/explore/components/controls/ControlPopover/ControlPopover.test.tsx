@@ -115,6 +115,36 @@ test('Should lock the vertical scroll when the popover is visible', async () => 
   );
 });
 
+test('does not release the scroll lock when a closed sibling popover mounts', async () => {
+  const TwoPopovers = ({ showSibling = false }: { showSibling?: boolean }) => (
+    <div id="controlSections">
+      <div data-test="outer-container">
+        <ControlPopover {...createProps()} destroyOnHidden open>
+          <span data-test="open-popover">Open</span>
+        </ControlPopover>
+        {showSibling && (
+          <ControlPopover {...createProps()} destroyOnHidden open={false}>
+            <span data-test="closed-popover">Closed</span>
+          </ControlPopover>
+        )}
+      </div>
+    </div>
+  );
+
+  const { rerender } = render(<TwoPopovers />);
+
+  expect(await screen.findByText('Control Popover Test')).toBeInTheDocument();
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
+    'overflowY: hidden',
+  );
+
+  rerender(<TwoPopovers showSibling />);
+
+  expect(screen.getByTestId('outer-container')).toHaveStyle(
+    'overflowY: hidden',
+  );
+});
+
 test('Should place popover at the top', async () => {
   const { setStateMock } = setupTest({
     ...createProps(),
