@@ -618,6 +618,47 @@ def test_fetch_metadata_still_defaults_without_a_partition_column(
     assert table.main_dttm_col == "event_time"
 
 
+def test_fetch_metadata_keeps_the_flags_an_owner_turned_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A sync re-reads the source's columns; it is not a statement about which of
+    them belong in Explore's pickers. Setting the defaults on a column that
+    already exists undoes whatever the owner chose for it -- and a PUT with
+    `override_columns=true` runs this refresh *after* the update has committed
+    those choices, so saving through the editor's "Automatically sync columns"
+    box reverted the very flags it had just written, including the ones
+    designating a partition column turns off.
+    """
+    table = _fetch_metadata_table(mocker)
+    table.columns = [
+        TableColumn(
+            column_name="dt_epoch", type="TIMESTAMP", groupby=False, filterable=False
+        )
+    ]
+
+    table.fetch_metadata()
+
+    by_name = {column.column_name: column for column in table.columns}
+    assert by_name["dt_epoch"].groupby is False
+    assert by_name["dt_epoch"].filterable is False
+
+
+def test_fetch_metadata_gives_a_newly_discovered_column_the_defaults(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The other half: a column nobody has had an opinion about yet still arrives
+    available as a dimension and a filter, which is what a sync is for.
+    """
+    table = _fetch_metadata_table(mocker)
+
+    table.fetch_metadata()
+
+    assert all(column.groupby for column in table.columns)
+    assert all(column.filterable for column in table.columns)
+
+
 def test_fetch_metadata_with_comment_field_new_columns(mocker: MockerFixture) -> None:
     """Test that fetch_metadata correctly assigns comment field to description
     for new columns

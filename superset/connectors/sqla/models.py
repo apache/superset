@@ -2576,6 +2576,15 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
+                # Only on a column being discovered. Setting them on a matched
+                # existing column undoes whatever the owner chose for it -- and
+                # a PUT with `override_columns=true` runs this refresh *after*
+                # the update has committed those choices, so a save through the
+                # editor's "Automatically sync columns" box reverted the very
+                # flags it had just written, including the ones designating a
+                # partition column turns off.
+                new_column.groupby = True
+                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2590,8 +2599,6 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,
