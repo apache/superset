@@ -141,6 +141,17 @@ def _metric_expression(metric: object) -> tuple[object, ...] | None:
     return None
 
 
+def _bind_time_column(qd: dict[str, Any], form_data: Mapping[str, Any]) -> None:
+    """Bind the legacy SQL time column so a saved ``time_range`` stays applied.
+
+    Native map viz classes filter ``time_range`` on ``granularity_sqla``; a
+    normalized dashboard ``granularity`` override takes precedence.
+    """
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity:
+        qd["granularity"] = granularity
+
+
 def _typed_row_limit(form_data: Mapping[str, Any]) -> int:
     """Bound the typed map row limit, matching the frontend's full-map query."""
     try:
@@ -192,6 +203,28 @@ class GeographicChartPlugin(BaseChartPlugin):
     ) -> str | None:
         """Resolve the row's geography, or validate it and return None."""
         raise NotImplementedError
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Build the shared single query, keeping the saved time column bound."""
+        from superset.mcp_service.chart.chart_helpers import build_single_query_dict
+
+        fields = self.resolve_query_fields(form_data, viz_type)
+        if fields is None:
+            return None
+        metrics, groupby = fields
+        qd = build_single_query_dict(
+            form_data, groupby, metrics, row_limit=row_limit, order_desc=order_desc
+        )
+        _bind_time_column(qd, form_data)
+        return [qd]
 
     def _metric_labels(self, form_data: Mapping[str, Any]) -> list[str]:
         labels = [metric_result_label(m) for m in self.result_metrics(form_data)]
@@ -593,21 +626,25 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
     ) -> list[dict[str, Any]] | None:
         """Query raw points, ordered by radius metric, without time bucketing.
 
-        Charts without the typed MCP marker use the shared Deck.gl query.
+        Charts without the typed MCP marker use the shared Deck.gl query. Both
+        keep the saved time column bound so ``time_range`` still filters.
         """
-        if not form_data.get("mcp_geographic"):
-            return None
         from superset.mcp_service.chart.chart_helpers import (
             build_deck_gl_query_dict,
         )
 
+        typed = bool(form_data.get("mcp_geographic"))
         qd = build_deck_gl_query_dict(
             form_data,
             viz_type,
             row_limit=row_limit,
             order_desc=order_desc,
-            timeseries=False,
+            timeseries=not typed,
         )
+        if not qd.get("is_timeseries"):
+            _bind_time_column(qd, form_data)
+        if not typed:
+            return [qd]
         metrics = qd.get("metrics") or []
         qd["is_timeseries"] = False
         qd["orderby"] = [(metric_result_label(metrics[0]), False)] if metrics else []

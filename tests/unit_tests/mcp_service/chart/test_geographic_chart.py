@@ -1441,6 +1441,34 @@ def test_replacement_filters_discard_native_predicates(kind: str) -> None:
 
 
 @pytest.mark.parametrize("kind", KINDS)
+def test_update_omitting_time_keeps_saved_time_column_filter(kind: str) -> None:
+    """A saved bounded range stays filtered on its native time column."""
+    old = {
+        **form_for(kind),
+        "granularity_sqla": "created_at",
+        "time_grain_sqla": "P1D",
+        "time_range": "2024-01-01 : 2024-02-01",
+    }
+    config = config_for(kind)
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    native = {k: v for k, v in old.items() if k != "mcp_geographic"}
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+        native_query = build_query_dicts_from_form_data(native, 3, "table")[0]
+    for q in (query, native_query):
+        assert q["granularity"] == "created_at"
+        assert q["time_range"] == "2024-01-01 : 2024-02-01"
+    if kind == "deck_scatter":
+        # Typed points are never time-bucketed; native Explore charts keep it.
+        assert query["is_timeseries"] is False
+        assert "time_grain_sqla" not in (query.get("extras") or {})
+        assert native_query["is_timeseries"] is True
+
+
+@pytest.mark.parametrize("kind", KINDS)
 @pytest.mark.parametrize("previous_type", ["same", "table"])
 @pytest.mark.parametrize("temporal_column", ["event_time", None])
 def test_explicit_geographic_time_update_overrides_native_granularity(
