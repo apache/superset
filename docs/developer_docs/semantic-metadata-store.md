@@ -70,7 +70,9 @@ remain in the query-cache path. No global key scan or upstream cache purge occur
 A SQL-backed chart's composite result key also captures participating semantic
 annotation sources. Async contribution tasks resolve totals using the dependent
 task's captured catalog: a matching entry is reused, while a different catalog
-requires recomputation before caching percentages. Pending participating tasks
+requires recomputation before caching percentages. Failed totals acquisition
+(including a failed payload with an empty dataframe) stops the dependent query
+before contribution calculation or result caching. Pending participating tasks
 created without a serialized totals query fail closed; resubmit them after
 upgrading the fleet. Deploy workers before web nodes, or expect participating
 contribution tasks to fail until both are upgraded: an older worker cannot accept
@@ -122,14 +124,23 @@ network and discovery latency. Unset or invalid values use the remaining
 operation budget, which can leave no time to try a second node. Each command
 creates a new Sentinel client and can pay the first node's timeout again.
 Unit tests verify timeout configuration, not live second-node failover.
-Cleanup supports both redis-py 5.0.0's `close()` and later `aclose()` clients.
+Cleanup supports both redis-py 5.0.0's `close()` and later `aclose()` clients,
+and explicitly disconnects the private Sentinel master pool.
 The synchronous bridge owns and closes each event loop/client,
 without changing shared coordinator pools. An uncancellable system DNS lookup
-may finish in its resolver thread after timeout; the cancelled command cannot
+may finish in its resolver thread after timeout. At most four system lookups
+can be active per process; each retains its admission slot until the actual
+lookup finishes, even when the command has timed out. Waiting for a slot consumes
+the original deadline. The cancelled command cannot
 connect or publish when that lookup finishes. Calling it inside an already-running
 asyncio loop fails explicitly; async host integrations need a synchronous worker.
 Provider fetches receive the same absolute deadline and must enforce it in their
 own transport. Monotonic values are never serialized or used to order publications.
+
+The legacy `/fetch_datasource_metadata` and `/datasource/get/semantic_view/<id>/`
+HTTP routes return the same safe discovery errors as REST boundaries: storage
+unavailability is HTTP 503 and deadline expiry is HTTP 504. Their existing access
+checks still run before view discovery.
 
 ## Enablement limits
 

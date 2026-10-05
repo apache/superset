@@ -953,6 +953,9 @@ msgstr ""
 msgid "A map that takes rendering circles with a variable radius at latitude/longitude coordinates"
 msgstr ""
 
+msgid "A metadata sync is already in progress. Try again shortly."
+msgstr ""
+
 msgid "A metric to use for color"
 msgstr ""
 
@@ -3752,6 +3755,9 @@ msgid "Comparison font size"
 msgstr ""
 
 msgid "Comparison suffix"
+msgstr ""
+
+msgid "Complete the semantic layer configuration before syncing metadata."
 msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
@@ -8516,7 +8522,16 @@ msgstr ""
 msgid "Metadata Parameters"
 msgstr ""
 
+msgid "Metadata database is unavailable. Try again later."
+msgstr ""
+
 msgid "Metadata has been synced"
+msgstr ""
+
+msgid "Metadata sync could not be confirmed. Reload fields before trying again."
+msgstr ""
+
+msgid "Metadata sync timed out. Try again later."
 msgstr ""
 
 msgid "Meters"
@@ -12163,6 +12178,9 @@ msgstr ""
 msgid "Shared"
 msgstr ""
 
+msgid "Shared metadata storage is unavailable. Try again later."
+msgstr ""
+
 msgid "Shared query"
 msgstr ""
 
@@ -13895,6 +13913,15 @@ msgstr ""
 msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
 msgstr ""
 
+msgid "The semantic layer could not return its catalog. Try again later."
+msgstr ""
+
+msgid "The semantic layer returned an invalid or oversized catalog."
+msgstr ""
+
+msgid "The semantic view or connection changed. Reopen the editor and try again."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr ""
 
@@ -14610,6 +14637,9 @@ msgid "This section contains options that allow for advanced analytical post pro
 msgstr ""
 
 msgid "This section contains validation errors"
+msgstr ""
+
+msgid "This semantic layer does not support metadata sync."
 msgstr ""
 
 msgid "This semantic layer has no dependent semantic views."
