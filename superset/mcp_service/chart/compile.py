@@ -278,8 +278,8 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     and surface only when Explore tries to run the query.
     """
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
-    # (column, clause) pairs: the clause decides whether a saved metric is a
-    # legal reference, and so whether metrics belong in the suggestions.
+    # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
+    # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []
     has_simple_having = False
     for f in adhoc_filters:
@@ -325,9 +325,9 @@ def _validate_adhoc_filter_columns(  # noqa: C901
         return None
 
     suggestions: List[str] = []
-    for column, clause in invalid:
+    for column, _ in invalid:
         for suggestion in DatasetValidator._get_column_suggestions(
-            column, dataset_context, include_metrics=clause == "HAVING"
+            column, dataset_context, include_metrics=False
         ):
             name = (
                 suggestion.name

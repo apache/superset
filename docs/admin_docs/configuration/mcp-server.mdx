@@ -1695,12 +1695,13 @@ similar physical column names ("Did you mean: ..."), or explicit no-match
 guidance when nothing is close enough. Saved metrics — both names and
 expressions — are excluded from these candidates for dimension and `WHERE`
 references, because only a physical column is legal there and suggesting a
-metric leads to invalid `SUM(metric)` SQL. A `HAVING` filter subject may
-legitimately name a saved metric, so metrics are included for that slot. When a
-reference in a metric slot (`y`, `metric`, or an aggregated table column, for
-example) near-misses a saved metric name, the error adds a hint to reference it
-as `{"name": "<metric>", "saved_metric": true}` instead. Dimension references
-never receive this hint, even when they carry an `aggregate`.
+metric leads to invalid `SUM(metric)` SQL. SIMPLE `HAVING` filters are
+unsupported, so their column errors do not suggest saved metrics either. When a
+reference in a metric slot (`y`, `metric`, Sunburst `secondary_metric`, or an
+aggregated table column, for example) near-misses a saved metric name, the error
+adds a hint to reference it as `{"name": "<metric>", "saved_metric": true}`
+instead. Dimension references never receive this hint, even when they carry an
+`aggregate`.
 
 When more than one distinct column is missing, the error type is
 `multiple_invalid_columns`. The invalid names appear in escaped, length-limited

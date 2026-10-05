@@ -569,7 +569,14 @@ class DatasetValidator:
     def _extract_metric_references(config: ChartConfig) -> List[ColumnRef]:
         """Collect metric slots separately from dimension and filter references."""
         refs: List[ColumnRef] = []
-        for field in ("y", "y_secondary", "metric", "metrics", "size"):
+        for field in (
+            "y",
+            "y_secondary",
+            "metric",
+            "secondary_metric",
+            "metrics",
+            "size",
+        ):
             value = getattr(config, field, None)
             if isinstance(value, ColumnRef):
                 refs.append(value)

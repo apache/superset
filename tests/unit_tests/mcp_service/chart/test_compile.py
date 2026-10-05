@@ -42,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SunburstChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -490,17 +491,12 @@ class TestAdhocFiltersFromFormData:
 
     @pytest.mark.parametrize(
         ("clause", "suggested"),
-        [("HAVING", True), ("WHERE", False)],
+        [("HAVING", False), ("WHERE", False)],
     )
     def test_metric_suggestions_follow_the_filter_clause(
         self, clause: str, suggested: bool
     ) -> None:
-        """A stale HAVING subject gets the metric back; WHERE must not.
-
-        A HAVING subject may legitimately name a saved metric, so a misspelled
-        one should be offered the metric. In WHERE only a physical column is
-        legal, so suggesting a metric would steer the caller into invalid SQL.
-        """
+        """Unsupported HAVING and physical-only WHERE must not suggest metrics."""
         ds = _orm_dataset()
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="gender")]
@@ -940,3 +936,21 @@ def test_simple_having_is_rejected_with_multiple_filters(having_first: bool) -> 
     assert not result.success
     assert result.error_obj is not None
     assert result.error_obj.error_code == "UNSUPPORTED_FILTER_CLAUSE"
+
+
+@pytest.mark.parametrize("slot", ["metric", "secondary_metric"])
+def test_sunburst_metric_slot_typo_gets_saved_metric_hint(slot: str) -> None:
+    """Both sunburst metric slots guide near misses toward saved metrics."""
+    config = SunburstChartConfig.model_validate(
+        {
+            "chart_type": "sunburst",
+            "columns": [{"name": "gender"}],
+            "metric": {"name": "num", "aggregate": "SUM"},
+            slot: {"name": "num_boys", "aggregate": "SUM"},
+        }
+    )
+    result = validate_and_compile(config, {}, _orm_dataset(), run_compile_check=False)
+    assert not result.success
+    assert result.tier == "validation"
+    assert result.error_obj is not None
+    _assert_saved_metric_hint(result.error_obj)
