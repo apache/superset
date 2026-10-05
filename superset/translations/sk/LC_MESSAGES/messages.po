@@ -1887,6 +1887,9 @@ msgstr "Dimenze"
 msgid "All filters"
 msgstr "Všetky filtre"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Všetky panely"
 
@@ -4415,9 +4418,7 @@ msgstr "Stĺpce ke čtenie"
 msgid "Columns to show in the tooltip."
 msgstr "Stĺpce k zobrazenie v tooltipu."
 
-msgid ""
-"Columns viewers are allowed to group by. Leave empty to allow all "
-"groupable columns."
+msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
@@ -9434,6 +9435,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -10968,6 +10974,10 @@ msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Nie je v"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nie je null"
@@ -15989,6 +15999,11 @@ msgstr "Stĺpec, ktorý sa má použít ako cieľ hrany."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Stĺpec bol v databázy zmazaný alebo přejmenován."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Konfigurácia pre vrstvy mapy"

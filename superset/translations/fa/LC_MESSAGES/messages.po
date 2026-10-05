@@ -1917,6 +1917,9 @@ msgstr "ابعاد"
 msgid "All filters"
 msgstr "تمام فیلترها"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "همه پنل‌ها"
 
@@ -4558,9 +4561,7 @@ msgstr "ستون‌ها را برای خواندن انتخاب کنید"
 msgid "Columns to show in the tooltip."
 msgstr "راهنمای تیتر ستون"
 
-msgid ""
-"Columns viewers are allowed to group by. Leave empty to allow all "
-"groupable columns."
+msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
@@ -9830,6 +9831,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -11420,6 +11426,10 @@ msgstr "نمودار یافت نشد"
 
 msgid "Not in"
 msgstr "نه در"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "غیر خالی"
@@ -16635,6 +16645,11 @@ msgstr "ستونی که قرار است به عنوان هدف لبه استفا
 
 msgid "The column was deleted or renamed in the database."
 msgstr "ستون در پایگاه داده حذف یا تغییر نام داده شده است."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

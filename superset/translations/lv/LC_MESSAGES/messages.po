@@ -1882,6 +1882,9 @@ msgstr "Dimensijas"
 msgid "All filters"
 msgstr "Visi filtri"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Visi paneļi"
 
@@ -4365,9 +4368,7 @@ msgstr "Lasāmās kolonnas"
 msgid "Columns to show in the tooltip."
 msgstr "Kolonnas, kas jāparāda paskaidrē."
 
-msgid ""
-"Columns viewers are allowed to group by. Leave empty to allow all "
-"groupable columns."
+msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
@@ -9248,6 +9249,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -10751,6 +10757,10 @@ msgstr "Diagramma nav atrasta"
 
 msgid "Not in"
 msgstr "Neietilpst"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nav tukšs"
@@ -15682,6 +15692,11 @@ msgstr "Kolonna, kuru izmantot kā malas mērķi."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolonna datubāzē tika dzēsta vai pārdēvēta."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Kartes slāņu konfigurācija"
