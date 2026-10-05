@@ -24,6 +24,51 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Example export (`/export_as_example/`) rejects dashboards whose charts or
+  native-filter targets use semantic views; use the ordinary chart/dashboard
+  bundle export instead.
+
+- Semantic-view chart and dashboard bundles use typed UUID references and require
+  a destination with support for this format and an already provisioned, accessible
+  view with the same UUID. They do not provision semantic layers/views or export
+  their configuration or credentials. Older readers cannot import these semantic
+  bundles. Older dashboard bundles with semantic filter targets but no typed
+  `datasourceRef` are also rejected; re-export them with this version rather than
+  binding their local IDs to unrelated destination tables. Imports fail explicitly
+  if a semantic dependency is missing, inaccessible, feature-disabled or
+  provider-unregistered. Chart and dashboard exports omit references for missing
+  views so unrelated assets can still be archived; orphaned charts and dashboard
+  targets cannot be imported without repairing their datasources. Existing-view
+  access, feature and provider checks remain enforced, including in full asset
+  exports. Ordinary table bundles retain their existing format. The examples
+  loader rejects semantic bundles;
+  use the chart, dashboard or assets importer instead.
+
+### SQLite time filters on `DATE` columns
+
+On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`
+column writes its bounds as a date, such as `'2026-09-20'`, and no longer uses
+the column's **Datetime format** (`python_date_format`) or the database's
+`python_date_format_by_column_name`. This fixes ranges that started and ended
+one day late on `DATE` columns holding `YYYY-MM-DD` text. A `DATE` column that
+holds values in another format, such as `20260920`, `09/20/2026` or epoch
+seconds, now matches no rows, even with a Datetime format set. Columns declared
+as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
+with a time of day is cut to its date.
+
+### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
+
+`DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.
+The Doris engine spec's `default_driver` is `mysqldb` (the driver pydoris
+registers), so a deployment that hides Doris with `{"pydoris": {"pydoris"}}`
+sees it listed again; change the entry to `{"pydoris": {"mysqldb"}}`.
+
+The Doris connection form's SSL switch sets `ssl_mode=VERIFY_CA`. With MariaDB
+Connector/C this also verifies the server hostname, so the switch needs
+`ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
+host. A Doris FE on its default self-signed certificate fails to connect once
+the switch is on.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
@@ -66,6 +111,32 @@ format. Use a consistent timezone and precision for stored strings and bounds.
   `GET /register/activation/<hash>`, which previously stayed reachable and
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
+
+### SQL execution request limits are safety caps
+
+The MCP `execute_sql` request's `limit` no longer overrides a smaller outer SQL
+LIMIT. It caps the last statement at the smaller of the SQL LIMIT and the request
+limit, subject to `SQL_MAX_ROW`. For example, SQL `LIMIT 5` with request `limit: 10`
+keeps `LIMIT 5`. To return more rows, increase or remove the SQL LIMIT explicitly.
+Omitting the request limit still leaves SQL limits unchanged. Inner query and CTE
+limits are not changed.
+
+This contract change also applies to the public `Database.execute()` and
+`Database.execute_async()` APIs through `QueryOptions.limit`, including dry runs.
+
+SQL Lab also recognizes literal `FETCH FIRST` counts and parenthesized literal
+limits. SQL Server `TOP ... PERCENT` and `TOP ... WITH TIES` are no longer
+interpreted as fixed row counts: SQL Lab uses the row-limit dropdown (subject to
+server limits) and rewrites these clauses to a fixed `TOP` cap. For example,
+`TOP 5 PERCENT` with a 1000-row dropdown can return up to 1000 rows rather than
+the previous five.
+
+`BigQueryEngineSpec.fetch_data` no longer falls back to a plain `fetchall()` once
+it has read its initial sample, since a forward-only cursor cannot replay those
+rows. A BigQuery driver error after the sample now fails the query instead of
+returning the remaining rows as a success. This applies to every caller,
+including legacy SQL Lab execution and dataset column discovery. An error on the
+initial read still falls back as before.
 
 ### Doris SSL requests require TLS
 
@@ -125,6 +196,26 @@ get the same handling. With MariaDB Connector/Python
 (mariadb+mariadbconnector://), the toggle keeps ssl=True and enables
 ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
 StarRocks keep their existing SSL handling.
+
+### SQL Lab decimal results use exact strings
+
+SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
+of JSON numbers, preserving precision and trailing zeros in the results grid
+and exports. The strings use fixed-point notation, and non-finite `NaN` and
+`Infinity` decimals are returned as `null`. Numeric sorting still compares
+their exact values. API consumers performing arithmetic should parse these
+strings with a decimal library, not JavaScript `Number`. This includes SQL Lab
+extensions: the `data` rows passed to `sqlLab.onDidQuerySuccess` listeners
+carry strings for `numeric` columns (for example PostgreSQL `SUM(bigint)`,
+`AVG` or `ROUND` results), so adding them with `+` concatenates instead of
+summing. The `sqleditor.extension.resultTable` override, which replaces
+`FilterableTable` in both SQL Lab results and table previews, also receives
+string rows but not the built-in exact-decimal comparator; extensions must
+implement their own decimal sorting. Chart and dataset queries also use fixed-point strings for Decimal
+columns that fall back to string conversion (for example, Decimals mixed with
+floats), and non-finite Decimals in those columns become null. Other chart
+result serialization and chart number formatting are unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
 
 ### Version history retention setting
 
@@ -308,6 +399,15 @@ upgrading. See the two migrations' docstrings (`superset/migrations/versions/
 `..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
 per-permission mapping and reasoning.
 
+- Snowflake stage file-management statements (`PUT`, `GET`, `REMOVE` and its
+  `RM` alias) are rejected in user-submitted SQL (SQL Lab, the cost-estimate
+  path and alert queries), regardless of the database's `allow_dml` setting.
+  `PUT`/`GET` perform file I/O on the host running the
+  query, and `REMOVE`/`RM` delete files within a stage; none of them read or
+  write table data, so `allow_dml` does not govern them. Deployments that ran
+  these through SQL Lab should manage stage files with Snowflake's own clients
+  instead. `LIST`/`LS`, which only enumerate staged files, are unaffected.
+
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
 Superset has always *intended* to default the metadata-database isolation
@@ -337,6 +437,36 @@ requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
+
+### Legacy FAB password reset pages are removed
+
+The Flask-AppBuilder server-rendered password reset pages at
+`/resetpassword/form` (admin reset of another account) and
+`/resetmypassword/form` (self-service reset) are no longer registered; both
+routes answer 404, and the "Reset Password" and "Reset my password" buttons on
+the legacy FAB user pages that led to them are gone. `superset init` no longer
+assigns their permissions (`can this form get/post on ResetPasswordView` and
+`ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
+`UserDBModelView`) to any role. Every flow they served lives in the SPA:
+administrators reset a user's password from the "New password" fields in the
+Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
+own from the "Reset my password" modal on their profile page (`PUT
+/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
+change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
+instead of the removed form. Deployments that link to either legacy route should
+point at `/user_info/` or the Users list instead.
+
+### Unused `INCLUDE_FIREFOX` build arg and dead config removed
+
+Screenshots use only Playwright with Chromium, so the `INCLUDE_FIREFOX` Docker build
+arg, which installed a Firefox browser that nothing used, has been removed from the
+`Dockerfile` and the `docker-compose` files. Builds that still pass `INCLUDE_FIREFOX`
+keep working, though Docker may warn that the build argument is unused. Use
+`INCLUDE_CHROMIUM=true` to add the browser that screenshots need.
+
+The `EMAIL_PAGE_RENDER_WAIT` config key and the `ENABLE_PLAYWRIGHT` variable in
+`docker/.env` are also removed. Nothing in Superset read either of them, so setting
+them had no effect and they can be deleted from custom configs.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
@@ -803,6 +933,54 @@ placeholder back verbatim in the rendered URL and a warning in the logs; the
 substitution is deliberately not blanked so the broken link is visible rather than
 silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
 to your access-request system, and resolve the name there.
+
+### Semantic member selection versions
+
+Semantic providers can declare `selection_identity_version` when changing their
+member identity encoding. Cube's stable-member-ID adapter requires
+`cube-member-id-v1`. Deploy the compatible core library, host, frontend and Cube
+adapter together; do not roll back to title-keyed code after saving ID-based charts.
+
+Saved Cube selections without this version are rejected, even when a saved title
+happens to equal a member ID. No historical title mapping is recovered. Open each
+chart in Explore, choose **Start field selection**, reselect its metrics,
+dimensions, filters and sorting, then save. Reset also clears field-dependent
+formatting; it does not overwrite the saved chart until Save is chosen. Native
+filters and chart customizations have a separate reset in their configuration
+form that clears fields, pre-filters, sorting, defaults and dependencies.
+
+Dashboard filters retain their own saved generation. Old filter state and
+unversioned external member overrides cannot borrow a chart's version. Recreate
+old dashboard permalink/filter state after reselection. Cross-view overlays are
+rejected unless their source identity matches the receiving semantic view;
+matching display titles are not proof of matching members.
+
+Dynamic group-by display controls are unsupported on versioned semantic views,
+including Cube. Remove those charts from the control's scope; resetting or
+reselecting the group-by fields cannot repair this control's missing selection
+identity evidence. Static chart group-by selections remain available after the
+chart's explicit reselection. Supporting dynamic group-by requires preserving the
+version in target rebuilds and recording the source identity in the emitted mask;
+that follow-up is not included here.
+
+Matrixify All mode with A to Z or Z to A sorting cannot populate or refresh values
+for versioned semantic views. Saved values are preserved; for a new selection,
+switch to Members and enter values manually. The control explains this limitation
+when suggestions are unavailable.
+
+The marker is a compatibility contract, not an authorization credential. API
+clients must rebuild their selections from current member IDs before supplying
+`extras.semantic_selection_version` on each query. Providers without a required
+version retain their existing behavior. No metadata-database migration or
+automatic rewrite of saved charts is performed.
+
+Programmatic clients must explicitly select current member IDs. Chart-data API
+queries send `extras.semantic_selection_version`; name-based datasource queries
+and MCP `get_table` requests send top-level `semantic_selection_version`.
+Discover the value from datasource metadata (or each external metric returned by
+MCP `list_metrics`). The server never adds a missing marker from metadata.
+Explore query controls remain unavailable until explicit field initialization,
+so legacy filter subjects cannot trigger value suggestions before reselection.
 
 ### MCP tool results preserve stored string values
 

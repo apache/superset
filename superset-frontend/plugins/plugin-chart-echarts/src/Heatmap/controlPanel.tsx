@@ -24,12 +24,22 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { xAxisLabelRotation } from '../controls';
+import { SORT_Y_AXIS_NONE } from './types';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
   ['alpha_desc', t('Axis descending')],
   ['value_asc', t('Metric ascending')],
   ['value_desc', t('Metric descending')],
+];
+
+// Y-axis sort choices extend the shared list with an explicit "no sort" option.
+// Selecting SORT_Y_AXIS_NONE persists a non-null value that the transform layer
+// honours as "keep original order", giving users a way to opt out of the
+// alpha_asc default that applies when the control is cleared or never touched.
+const sortYAxisChoices = [
+  ...sortAxisChoices,
+  [SORT_Y_AXIS_NONE, t('No sort (original order)')],
 ];
 
 const config: ControlPanelConfig = {
@@ -62,7 +72,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Sort Y Axis'),
-              choices: sortAxisChoices,
+              choices: sortYAxisChoices,
               renderTrigger: false,
               clearable: true,
             },

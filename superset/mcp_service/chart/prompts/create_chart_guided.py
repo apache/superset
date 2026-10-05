@@ -30,8 +30,8 @@ async def create_chart_guided_prompt(
     Guided chart creation with step-by-step workflow.
 
     Args:
-        chart_type: Preferred chart type (auto, line, bar, table, scatter, area)
-        business_goal: Purpose (exploration, reporting, monitoring, presentation)
+        chart_type (str): Preferred chart type (auto, line, bar, table, scatter, area)
+        business_goal (str): Purpose (exploration, reporting, monitoring, presentation)
     """
 
     chart_intelligence = {

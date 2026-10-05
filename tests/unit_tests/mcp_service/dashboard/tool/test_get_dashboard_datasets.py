@@ -23,9 +23,10 @@ from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 from fastmcp import Client, FastMCP
-from sqlalchemy import event
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Load, Session
+from sqlalchemy.pool import StaticPool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -447,6 +448,16 @@ def _build_dashboard_mock(
 @pytest.fixture
 def mcp_server():
     return mcp
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    # The injected Session is handed from setup to a single tool worker
+    # sequentially; concurrent ownership is covered with scoped sessions.
+    return create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
 
 @pytest.fixture(autouse=True)

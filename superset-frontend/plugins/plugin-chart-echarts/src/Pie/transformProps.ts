@@ -376,7 +376,9 @@ export default function transformProps(
     onLegendStateChanged,
     onLegendScroll,
   } = hooks;
-  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const colorFn =
+    chartProps.colorScale ??
+    CategoricalColorNamespace.getScale(colorScheme as string);
 
   let totalValue = 0;
 

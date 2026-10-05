@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -37,6 +37,7 @@ from sqlglot.dialects.dialect import (
     DialectType,
     NormalizationStrategy,
 )
+from sqlglot.dialects.mysql import MySQL
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import OptimizeError, ParseError
 from sqlglot.generator import Generator
@@ -652,6 +653,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        Defaults to ``None``; engines that have such commands override this.
+
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
+        """
+        return None
+
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -744,6 +755,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         Get the limit value of the statement.
         """
         raise NotImplementedError()
+
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Apply a row cap without increasing an existing smaller limit."""
+        current_limit = self.get_limit_value()
+        if current_limit is None or limit < current_limit:
+            self.set_limit_value(limit, method)
 
     def set_limit_value(
         self,
@@ -888,6 +909,97 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     return node
 
 
+# Alternation ordered so a quoted region is consumed whole before either
+# comment form can match inside it, keeping a `--` or `/*` that is merely
+# part of a literal from truncating the text after it. Each of the two
+# regions that scan forward for a closing delimiter -- the dollar-quoted
+# literal and the block comment -- needs a trailing "runs to end"
+# alternative for the unterminated case: without one the lazy `.*?` rescans
+# to end of text from every opener in turn, which is quadratic on input a
+# user controls. The unterminated literal stays inside the `literal` group
+# so it is preserved rather than blanked, since text a gate would match must
+# not disappear.
+_COMMENT_RE_TEMPLATE = r"""
+      (?P<literal>
+          {single_quoted}                       # single-quoted string
+        | {double_quoted}                       # double-quoted identifier
+        | \$(?P<tag>\w*)\$.*?\$(?P=tag)\$       # dollar-quoted string
+        | \$\w*\$.*                             # unterminated: runs to end
+      )
+    | {line_comment}[^\n]*                      # line comment
+    | /\*.*?\*/                                 # block comment
+    | /\*.*                                     # unterminated: runs to end
+    """
+
+
+def _quoted_literal_pattern(quote: str, backslash_escapes: bool) -> str:
+    """
+    Build the pattern matching one quoted region, delimiters included.
+
+    The doubled delimiter (``'it''s'``) always escapes. A backslash only
+    escapes on the dialects that say so, and where it does it must be
+    recognised: without it the scan ends the literal at the escaped quote of
+    ``'it\\'s -- x'``, reads the rest as code, and lets the ``--`` blank out
+    text the server actually runs, hiding it from every gate that scans here.
+
+    The alternatives are kept mutually exclusive -- the negated class drops
+    the escape character rather than overlapping with it -- so exactly one
+    branch can start at any position. An overlapping form would let a run of
+    backslashes with no closing quote backtrack exponentially, on text a user
+    controls.
+
+    :param quote: The delimiter character
+    :param backslash_escapes: Whether a backslash escapes on this dialect
+    :return: The pattern for one quoted region
+    """
+    if backslash_escapes:
+        return rf"{quote}(?:[^{quote}\\]|\\.|{quote}{quote})*{quote}"
+    return rf"{quote}(?:[^{quote}]|{quote}{quote})*{quote}"
+
+
+@lru_cache(maxsize=None)
+def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
+    """
+    Return the comment pattern a dialect's raw statement text is lexed with.
+
+    Both rules that vary are read off sqlglot rather than listed here, so a
+    dialect cannot be lexed with the wrong one because a list was not kept in
+    step: the MySQL family is identified by subclassing (``Doris``,
+    ``StarRocks`` and ``SingleStore`` all subclass ``MySQL``, as does this
+    repo's own ``Pinot``), and backslash escaping is read off the tokenizer.
+
+    MySQL-family engines only start a comment on ``--`` when whitespace (or
+    end of line) follows: ``1--2`` is arithmetic there. Stripping it as a
+    comment would delete text the server executes and blind every gate that
+    scans this body, so those dialects get the stricter rule.
+
+    An unknown dialect is lexed as if backslashes escape. That direction is
+    the safe one: treating an escape that is not one only ever folds more
+    text into a literal, which is preserved and still scanned, while missing
+    a real escape blanks executable text.
+
+    Cached because the answer depends only on the dialect, so a script would
+    otherwise re-derive it, and instantiate a sqlglot ``Dialect``, per
+    statement.
+
+    :param dialect: The statement's sqlglot dialect, or ``None`` when unknown
+    :return: The compiled comment pattern
+    """
+    dialect_cls = Dialect.get_or_raise(dialect) if dialect else None
+    backslash_escapes = (
+        dialect_cls is None or "\\" in dialect_cls.tokenizer_class.STRING_ESCAPES
+    )
+    line_comment = r"--(?=[ \t\r\n]|$)" if isinstance(dialect_cls, MySQL) else "--"
+    return re.compile(
+        _COMMENT_RE_TEMPLATE.format(
+            single_quoted=_quoted_literal_pattern("'", backslash_escapes),
+            double_quoted=_quoted_literal_pattern('"', backslash_escapes),
+            line_comment=line_comment,
+        ),
+        re.DOTALL | re.VERBOSE,
+    )
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -1002,6 +1114,41 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # already blocks version()/pg_read_file), not in the mutation check.
         }
     )
+
+    # Stage file-management heads: ``PUT``/``GET`` move files between the host
+    # running the query and a stage, so they do host file I/O; ``REMOVE`` and
+    # its ``RM`` alias delete files within the stage. None read or write table
+    # data. This is Snowflake syntax but is matched on every dialect, since the
+    # heads are not valid statements elsewhere: a global list cannot reject a
+    # real query, while scoping it to one dialect would let Snowflake-compatible
+    # engines through.
+    _CLIENT_FILE_TRANSFER_COMMAND_NAMES: frozenset[str] = frozenset(
+        {"PUT", "GET", "REMOVE", "RM"}
+    )
+
+    # The same heads inside a nested body, which cannot be re-parsed and so is
+    # matched on raw text. A stage (``@``) or a ``file://`` URL has to follow
+    # the head, since these words are ordinary identifiers elsewhere and a bare
+    # keyword match would flag a body merely selecting a column named
+    # ``remove``. A run of quotes is skipped rather than exactly one: a body
+    # nested inside a string literal carries its own quotes doubled
+    # (``EXECUTE IMMEDIATE 'PUT ''file://...'''``).
+    _CLIENT_FILE_TRANSFER_NESTED_BODY_RE = re.compile(
+        rf"\b({'|'.join(sorted(_CLIENT_FILE_TRANSFER_COMMAND_NAMES))})"
+        r"""\s+['"]*(?:@|file://)""",
+        re.IGNORECASE,
+    )
+
+    # Opening delimiter of a dollar-quoted region, e.g. `$$` or `$tag$`.
+    _DOLLAR_QUOTE_OPEN_RE = re.compile(r"\$\w*\$")
+
+    # A literal nests once per level of dynamic-SQL indirection (an
+    # `EXECUTE IMMEDIATE` inside an `EXECUTE IMMEDIATE`), so a handful covers
+    # every form that actually executes. The bound is what stops a body of
+    # deeply nested `$tag$` regions, whose nesting a user controls, from
+    # recursing once per level and exhausting the stack; past it the text is
+    # left as found, which keeps it visible to the gates rather than removed.
+    _MAX_LITERAL_NESTING = 32
 
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
@@ -1173,20 +1320,157 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         parsed = self._parsed
         return parsed.name.upper() if isinstance(parsed, exp.Command) else None
 
+    @cached_property
     def _nested_body_text(self) -> str | None:
         """
         Return the raw body of a command that carries a statement as text.
 
         The body of a :attr:`_NESTED_BODY_COMMAND_NAMES` command is invisible
         to node-type matching and cannot be re-parsed, so gates that inspect
-        the tree fall back to scanning this text.
+        the tree fall back to scanning this text. Comments are stripped here
+        rather than by each caller, so every such gate scans the same text;
+        see :meth:`_strip_comments` for why.
 
-        :return: The raw body text, or ``None`` when this statement does not
-            carry a nested body
+        Cached because three gates ask for the same body in a single request,
+        one of them twice, so the strip would otherwise run about five times
+        over identical text. Caching is safe
+        because the two methods that rebuild ``_parsed`` in place cannot reach a
+        statement this returns text for: ``set_limit`` returns early unless the
+        node is an ``exp.Query``, and ``remove_unbounded_top_level_order_by``
+        needs an ``order`` argument, while a nested body is only ever carried by
+        an opaque ``exp.Command``, which is neither.
+
+        :return: The body text with comments removed, or ``None`` when this
+            statement does not carry a nested body
         """
-        if self._command_head() not in self._NESTED_BODY_COMMAND_NAMES:
+        if (head := self._command_head()) not in self._NESTED_BODY_COMMAND_NAMES:
             return None
-        return str(self._parsed.expression)
+        body = self._parsed.expression
+        # sqlglot keeps the body as a literal node, whose `str()` re-renders it
+        # as a quoted SQL string: the whole body gets wrapped in quotes and the
+        # quotes inside it are doubled. Reading the value off the node yields
+        # the body as written, so a scan sees the same text the server runs.
+        text = body.name if isinstance(body, exp.Literal) else str(body)
+        # A `DO $$ ... $$` body arrives with its dollar-quote wrapper attached.
+        # That wrapper is statement syntax, not a literal -- the code inside it
+        # runs -- so it is peeled off before the strip, leaving the text either
+        # side of it in place. Any `$tag$` region still nested inside really is
+        # a literal, and is preserved as one.
+        text = self._peel_dollar_quote(text, head)
+        return self._strip_comments(text)
+
+    @property
+    def _comment_re(self) -> re.Pattern[str]:
+        """
+        Return the comment pattern this statement's dialect is lexed with.
+
+        :return: The compiled comment pattern for this statement's dialect
+        """
+        return _comment_re_for(self._dialect)
+
+    @classmethod
+    def _peel_dollar_quote(cls, text: str, head: str | None) -> str:
+        """
+        Remove the delimiters of the body's dollar-quoted code wrapper, keeping
+        its contents and the text either side of it.
+
+        Only a region that the head itself introduces is a wrapper: a ``DO``
+        block, which takes nothing else, or a region running to the end of the
+        body (``EXECUTE IMMEDIATE $$...$$``). A region that stops short of the
+        end is one argument among several (``CALL p($q$...$q$, ...)``) and so is
+        an ordinary literal; unwrapping that would expose its contents as code,
+        letting a ``--`` inside it comment out the rest of the body and blind
+        every gate that scans this text.
+
+        Matching the closing delimiter by search rather than by backtracking
+        regex keeps this linear: a pattern that scans forward for a closer
+        rescans to end of text from every opener that has none, which is
+        quadratic on input a user controls.
+
+        :param text: The raw body text to peel
+        :param head: The statement's command head, which decides whether a
+            region that stops short of the end is a wrapper or an argument
+        :return: The text with the wrapper's delimiters removed, or unchanged
+            when the body has no dollar-quoted wrapper
+        """
+        if not (opener := cls._DOLLAR_QUOTE_OPEN_RE.search(text)):
+            return text
+        delimiter = opener.group()
+        closer = text.find(delimiter, opener.end())
+        if closer == -1:
+            return text
+        if head != "DO" and text[closer + len(delimiter) :].strip():
+            return text
+        return (
+            text[: opener.start()]
+            + text[opener.end() : closer]
+            + text[closer + len(delimiter) :]
+        )
+
+    @staticmethod
+    def _split_literal(literal: str) -> tuple[str, str, str]:
+        """
+        Split a matched literal into its delimiters and the text between them.
+
+        :param literal: The literal as matched, delimiters included
+        :return: The opening delimiter, the interior, and the closing
+            delimiter, which is empty when the literal is unterminated
+        """
+        if not literal.startswith("$"):
+            # `'...'` and `"..."` both delimit with a single character.
+            return literal[0], literal[1:-1], literal[-1]
+        delimiter = literal[: literal.index("$", 1) + 1]
+        interior = literal[len(delimiter) :]
+        if not interior.endswith(delimiter):
+            return delimiter, interior, ""
+        return delimiter, interior[: -len(delimiter)], delimiter
+
+    def _strip_comments(self, text: str, depth: int = 0) -> str:
+        """
+        Blank out SQL comments in raw statement text, preserving literals.
+
+        Commented-out code never runs, so no gate should classify on it.
+        Literals are deliberately kept: a nested body runs its dynamic SQL out
+        of a literal (``EXECUTE IMMEDIATE '...'``), so dropping them would
+        blind such a scan to the very form it exists to catch.
+
+        That same reason makes the text *inside* a literal executable, so its
+        comments are stripped too, one literal at a time. Rescanning only the
+        interior is what keeps that safe: a `--` inside a literal can blank out
+        the rest of that literal, but never reaches past the closing delimiter
+        to truncate the statements after it. Without this a comment wedged into
+        a quoted body (``EXECUTE IMMEDIATE 'PUT/**/file:///a @s'``) would split
+        a head from its argument and hide it from every gate that scans here,
+        while the dollar-quoted spelling of the same statement was caught.
+
+        :param text: The raw statement text to scan
+        :param depth: How many levels of literal this text is already inside
+        :return: The text with each comment replaced by a single space, so
+            tokens either side of a removed comment stay separated
+        """
+        # Text carrying neither comment opener has nothing to strip, and the
+        # substitution below would be an identity: no comment branch can match,
+        # and every literal branch returns the literal unchanged. This is the
+        # same test `replace` already applies per literal, hoisted to the whole
+        # scan so the common comment-free body skips the pass entirely.
+        if "--" not in text and "/*" not in text:
+            return text
+
+        def replace(match: re.Match[str]) -> str:
+            if (literal := match.group("literal")) is None:
+                return " "
+            # A literal carrying neither comment opener has nothing to strip,
+            # and descending anyway costs a full scan per literal on text a
+            # user controls: a body of nothing but quotes is one recursion per
+            # `''` pair, which is ~20x the per-character cost of ordinary text.
+            if depth >= self._MAX_LITERAL_NESTING or (
+                "--" not in literal and "/*" not in literal
+            ):
+                return literal
+            opening, interior, closing = self._split_literal(literal)
+            return opening + self._strip_comments(interior, depth + 1) + closing
+
+        return self._comment_re.sub(replace, text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -1395,6 +1679,28 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 return inner
 
         return False
+
+    def get_client_file_transfer_command(self) -> str | None:
+        """
+        Return the client-side file-transfer command head, if this is one.
+
+        :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
+        """
+        # Three shapes to cover: sqlglot models only the quoted-path forms
+        # structurally (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is
+        # the head lowercased); every other form falls back to an opaque
+        # ``exp.Command``; and a nested body executes for real yet is invisible
+        # to both, so it is scanned as raw text, as ``changes_search_path``
+        # does for its own forms.
+        if isinstance(self._parsed, (exp.Put, exp.Get)):
+            return self._parsed.key.upper()
+        if (head := self._command_head()) in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
+            return head
+        if (body := self._nested_body_text) and (
+            match := self._CLIENT_FILE_TRANSFER_NESTED_BODY_RE.search(body)
+        ):
+            return match.group(1).upper()
+        return None
 
     def is_destructive(self) -> bool:
         """
@@ -1617,7 +1923,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # because a computed setting name never spells the latter
         # contiguously. Whole-word matching keeps an unrelated identifier that
         # merely embeds one of them (`reset_config`) from being flagged.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         return bool(
             body and re.search(r"\b(search_path|set_config)\b", body, re.IGNORECASE)
         )
@@ -1662,7 +1968,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # required: a body that merely creates or references one is not a
         # rebind. The optional qualifier mirrors the tokens the non-nested
         # path strips, so `SET LOCAL SCHEMA` is matched in either position.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         if body and re.search(
             r"\bset\s+(?:(?:session|local|current)\s+)?(?:schema|catalog)\b",
             body,
@@ -1785,7 +2091,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def get_limit_value(self) -> int | None:
         """
-        Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
+        Return a fixed outer `LIMIT`, `TOP`, or `FETCH` row count, if known.
         """
         # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
         # here would make `_set_query_limit()` clamp the whole query to 2 rows.
@@ -1793,13 +2099,56 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return None
 
         if limit_node := self._parsed.args.get("limit"):
-            literal = limit_node.args.get("expression") or getattr(
-                limit_node, "this", None
-            )
+            options = limit_node.args.get("limit_options")
+            if options and (
+                options.args.get("percent") or options.args.get("with_ties")
+            ):
+                return None
+            if isinstance(limit_node, exp.Fetch):
+                literal = limit_node.args.get("count")
+                # FETCH FIRST ROW ONLY has an implicit count of one.
+                if literal is None:
+                    return 1
+            else:
+                literal = limit_node.args.get("expression")
+            while isinstance(literal, exp.Paren):
+                literal = literal.this
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
         return None
+
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Preserve complex limits, using a SQL cap only when safe to wrap."""
+        if (
+            self._parsed.args.get("limit") is not None
+            and self.get_limit_value() is None
+            and method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}
+            and isinstance(self._parsed, exp.Query)
+        ):
+            # SQL Server derived tables reject unnamed or duplicate output
+            # columns, including names hidden behind stars. Preserve the SQL
+            # restriction and let the executor cap returned rows instead.
+            if self._dialect == Dialects.TSQL:
+                return
+
+            # PERCENT, WITH TIES and expressions aren't fixed row counts. Keep
+            # them intact: replacing them could enlarge a smaller result set.
+            self.set_limit_value(limit, LimitMethod.WRAP_SQL)
+            subquery = self._parsed.args["from_"].this
+            subquery.set(
+                "alias",
+                exp.TableAlias(this=exp.to_identifier("__superset_limit")),
+            )
+            # Keep CTEs at statement level rather than inside the derived table.
+            if cte := subquery.this.args.pop("with_", None):
+                self._parsed.set("with_", cte)
+        else:
+            super().cap_limit_value(limit, method)
 
     def set_limit_value(
         self,
@@ -1954,6 +2303,46 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
         """
         return isinstance(self._parsed, exp.SetOperation)
+
+    def get_unmodelled_functions(self) -> set[str]:
+        """
+        Return the names of function calls SQLGlot does not model.
+
+        Such calls parse into ``exp.Anonymous`` and their behavior is opaque: a
+        user-defined function or a dialect builtin such as ``query_to_xml`` or
+        ``dblink`` can read tables named in string arguments, which ``tables``
+        cannot report.
+
+        :return: The function names, as written; a qualified call keeps its
+            qualifier (``my_schema.my_function``) so it is never mistaken for a
+            builtin of the same name
+        """
+        names: set[str] = set()
+        for node in self._parsed.find_all(exp.Anonymous):
+            parent = node.parent
+            if isinstance(parent, exp.Dot) and parent.expression is node:
+                names.add(f"{parent.this.sql()}.{node.name}")
+            else:
+                names.add(node.name)
+        return names
+
+    def has_dynamic_table_source(self) -> bool:
+        """
+        Check if the statement reads from something other than a named table.
+
+        Table functions (``read_csv(...)``, ``generate_series(...)``) and
+        dynamically named tables (``IDENTIFIER('t')``, Snowflake ``TABLE('t')``)
+        carry no table name for ``tables`` to report.
+
+        :return: True if any table source is not a plain named table
+        """
+        return (
+            any(
+                not isinstance(table.this, exp.Identifier)
+                for table in self._parsed.find_all(exp.Table)
+            )
+            or self._parsed.find(exp.TableFromRows) is not None
+        )
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -2513,6 +2902,25 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
+
+    def get_client_file_transfer_commands(self) -> list[str]:
+        """
+        Return the client-side file-transfer command heads in the script.
+
+        Sorted here so that every caller renders the heads in the same order:
+        the set these are deduplicated into iterates arbitrarily, which would
+        otherwise leave each error message to remember to sort for itself.
+
+        :return: The sorted, deduplicated uppercased command heads found
+            (empty when none).
+        """
+        return sorted(
+            {
+                command
+                for statement in self.statements
+                if (command := statement.get_client_file_transfer_command()) is not None
+            }
+        )
 
     def has_destructive(self) -> bool:
         """

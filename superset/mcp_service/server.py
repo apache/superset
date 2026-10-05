@@ -25,12 +25,14 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import inspect
 import logging
 import os
+import re
 from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from pydantic.fields import FieldInfo
 from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
@@ -50,6 +52,7 @@ from superset.mcp_service.middleware import (
     ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.mcp_service.worker import run_in_metadata_thread
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -300,30 +303,80 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+# A list item, an IMPORTANT marker, or a first line ending in a colon (heading).
+_STRUCTURED_PARAGRAPH = re.compile(
+    r"^\s*(?:[-*+]|\d+[.)])\s|^\W*IMPORTANT\b|\A[^\n]*:[ \t]*$", re.MULTILINE
+)
+
+
+def _complete_sentences(text: str, max_length: int) -> str:
+    """Return the longest prefix of *text* made of complete sentences."""
+    if max_length <= 0:
+        return ""
+    # Look one character past the budget so a boundary exactly at the limit counts.
+    boundaries = re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1])
+    ends = [match.end() for match in boundaries if match.end() <= max_length]
+    return text[: ends[-1]].strip() if ends else ""
+
+
+def _drop_trailing_lead_in(text: str) -> str:
+    """Drop a final sentence ending in a colon, which introduces a cut-off list."""
+    if not text.endswith(":"):
+        return text
+    boundaries = list(re.finditer(r"[.!?](?=\s)", text))
+    return text[: boundaries[-1].end()].strip() if boundaries else text
+
+
 def _truncate_description(text: str, max_length: int) -> str:
-    """Truncate a tool description for search results.
+    """Keep whole paragraphs, then whole sentences of the next one, within budget.
 
-    Cuts at the last sentence boundary before *max_length*, or at
-    *max_length* with an ellipsis if no sentence boundary is found.
-
-    Dedents first: Python 3.13 has the compiler strip a docstring's common
-    leading whitespace at compile time (``__doc__`` comes out already
-    cleaned), while 3.11/3.12 store it raw and leave that to the caller. A
-    multi-line tool docstring's raw, un-dedented form is longer per line, so
-    the same character budget lands at a different point in the text
-    depending on which Python compiled it. Cleaning here first makes the cut
-    point (and this function's callers' byte budgets) consistent regardless
-    of interpreter version.
+    Clean docstring indentation before applying the budget so the cut point
+    is consistent across Python versions that store docstrings differently.
     """
+    if max_length <= 0:
+        return ""
     text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
-    # Try to cut at the last sentence boundary
-    truncated = text[:max_length]
-    last_period = truncated.rfind(". ")
-    if last_period > max_length // 2:
-        return truncated[: last_period + 1]
-    return truncated.rstrip() + "..."
+    kept, rest = "", text
+    for match in _PARAGRAPH_BREAK.finditer(text):
+        if match.start() > max_length:
+            break
+        kept, rest = text[: match.start()].strip(), text[match.end() :]
+    kept = _drop_trailing_lead_in(kept)
+    following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
+    # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
+    if kept and _STRUCTURED_PARAGRAPH.search(following):
+        return kept
+    separator = "\n\n" if kept else ""
+    extra = _complete_sentences(following, max_length - len(kept) - len(separator))
+    return f"{kept}{separator}{extra}" if extra else kept
+
+
+def _request_instructions(tool: Any) -> str:
+    """Return calling instructions authored on the tool's ``request`` parameter.
+
+    Only ``Field(description=...)`` on the parameter itself counts. Schema
+    dereferencing also copies the request model's docstring onto the served
+    ``request`` property; that is model documentation, not calling instructions,
+    and must not be advertised or deducted from the prose budget.
+    """
+    try:
+        signature = inspect.signature(tool.fn)
+    except (AttributeError, TypeError, ValueError):
+        return ""
+    if (parameter := signature.parameters.get("request")) is None:
+        return ""
+    fields = (*getattr(parameter.annotation, "__metadata__", ()), parameter.default)
+    return next(
+        (
+            field.description
+            for field in fields
+            if isinstance(field, FieldInfo) and field.description
+        ),
+        "",
+    )
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -366,7 +419,8 @@ def _build_summary_serializer(max_desc: int) -> Any:
 
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
-    string listing top-level parameter names.  ``inputSchema`` and
+    string listing top-level parameter names and unabridged request instructions.
+    Instruction length is reserved from the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -377,12 +431,17 @@ def _build_summary_serializer(max_desc: int) -> Any:
                 mode="json", exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
+            instructions = _request_instructions(tool)
             if input_schema := data.pop("inputSchema", None):
                 hint = _extract_parameter_names(input_schema)
                 if hint:
-                    data["parameters_hint"] = hint
+                    data["parameters_hint"] = (
+                        f"{hint}: {instructions}" if instructions else hint
+                    )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(desc, max_desc)
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
             results.append(data)
         return results
 
@@ -429,6 +488,28 @@ def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
     return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
 
 
+async def _filter_visible_tools_fail_open(tools: Sequence[Any]) -> Sequence[Any]:
+    """Run the permission filter in the metadata thread, failing open on error.
+
+    ``run_in_metadata_thread`` reloads the caller's ORM user itself before the
+    filter ever runs (e.g. a metadata-pool-exhaustion failure), so a bare
+    ``await run_in_metadata_thread(...)`` here would raise before any fail-open
+    handling inside the filter gets a chance to run. Call-time RBAC still
+    enforces permissions, so an unexpected failure here shows every tool
+    rather than breaking search, matching
+    ``RBACToolVisibilityMiddleware.on_list_tools``.
+    """
+    try:
+        return await run_in_metadata_thread(
+            _filter_tools_by_current_user_permission, tools
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "MCP tool search: failed to filter tools, showing all", exc_info=True
+        )
+        return tools
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
@@ -447,7 +528,8 @@ def _create_search_result_serializer(
 
     Titles and output schemas are stripped by the base serializer. The legacy
     ``compact_schemas`` setting only selects the default description limit;
-    ``max_description_length`` explicitly controls description truncation.
+    ``max_description_length`` budgets prose plus request-wrapper instructions.
+    Instructions stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -465,9 +547,12 @@ def _create_search_result_serializer(
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
-        for data in results:
+        for tool, data in zip(tools, results, strict=True):
             if desc := data.get("description"):
-                data["description"] = _truncate_description(desc, max_desc)
+                instructions = _request_instructions(tool)
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
         return results
 
     return _serializer
@@ -661,6 +746,31 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
+    def _promote_exact_name(
+        tools: Sequence[Tool],
+        query: str,
+        ranked: Sequence[Tool],
+        max_results: int,
+    ) -> Sequence[Tool]:
+        """Promote caller-visible exact names without duplicating ranked matches."""
+        normalized_query = " ".join(query.casefold().replace("_", " ").split())
+        exact = [
+            tool
+            for tool in tools
+            if " ".join(tool.name.casefold().replace("_", " ").split())
+            == normalized_query
+        ]
+        if not exact:
+            return ranked
+        # Only inspect the caller-filtered candidates, never the full catalog.
+        # The upstream top-N contains enough non-exact results to fill the
+        # remaining slots, without changing upstream ordering or shared limits.
+        exact_names = {tool.name for tool in exact}
+        return [
+            *exact,
+            *(tool for tool in ranked if tool.name not in exact_names),
+        ][:max_results]
+
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
@@ -670,7 +780,14 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return _filter_tools_by_current_user_permission(tools)
+                return await _filter_visible_tools_fail_open(tools)
+
+            async def _search(
+                self, tools: Sequence[Tool], query: str
+            ) -> Sequence[Tool]:
+                """Promote visible exact names before applying the result limit."""
+                ranked = await super()._search(tools, query)
+                return _promote_exact_name(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -690,7 +807,14 @@ def _create_search_transform(  # noqa: C901
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
             """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
-            return _filter_tools_by_current_user_permission(tools)
+            # Permission lookups need a metadata connection; see
+            # RBACToolVisibilityMiddleware.on_list_tools.
+            return await _filter_visible_tools_fail_open(tools)
+
+        async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
+            """Promote visible exact names before applying the final result limit."""
+            ranked = await super()._search(tools, query)
+            return _promote_exact_name(tools, query, ranked, self._max_results)
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -990,6 +1114,13 @@ def run_server(
                 size_guard_middleware.excluded_tools.add(search_name)
 
     _register_health_endpoint(mcp_instance)
+
+    # Size tool admission against the metadata pool before serving traffic, so
+    # an unusable pool configuration fails at startup rather than per call.
+    from superset.mcp_service.flask_singleton import get_flask_app
+    from superset.mcp_service.worker import _get_pool
+
+    _get_pool(get_flask_app())
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
