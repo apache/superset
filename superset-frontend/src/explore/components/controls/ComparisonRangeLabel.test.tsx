@@ -191,15 +191,19 @@ test('maps the legacy time_comparison shorthand "c" to a custom shift resolved f
 });
 
 test('custom shift without start_date_offset never requests a comparison range', async () => {
-  renderLabel({ time_compare: ['custom'] });
+  const { container } = renderLabel({ time_compare: ['custom'] });
 
   await settle();
   expect(mockedFetchTimeRange).not.toHaveBeenCalled();
   expect(screen.queryByText(COMPARISON_LABEL)).not.toBeInTheDocument();
+  // No usable comparison range was computed, so the header must not render
+  // either -- otherwise it shows with nothing underneath it.
+  expect(screen.queryByText(HEADER)).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 });
 
 test('custom shift does not request a comparison when start_date_offset is after the current range start', async () => {
-  renderLabel({
+  const { container } = renderLabel({
     time_compare: ['custom'],
     start_date_offset: '2024-06-01',
   });
@@ -208,6 +212,10 @@ test('custom shift does not request a comparison when start_date_offset is after
   await settle();
   expect(mockedFetchTimeRange).toHaveBeenCalledTimes(1);
   expect(screen.queryByText(COMPARISON_LABEL)).not.toBeInTheDocument();
+  // No usable comparison range was computed, so the header must not render
+  // either -- otherwise it shows with nothing underneath it.
+  expect(screen.queryByText(HEADER)).not.toBeInTheDocument();
+  expect(container).toBeEmptyDOMElement();
 });
 
 test('inherit shift shifts back by the length of the current range', async () => {

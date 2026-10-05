@@ -173,7 +173,7 @@ export const ComparisonRangeLabel = ({
       });
       Promise.all(promises).then(res => {
         // access the value property inside the res and set the labels with it in the state
-        setLabels(res.map(r => r.value ?? ''));
+        setLabels(res.map(r => r.value ?? '').filter(Boolean));
       });
     }
   }, [currentTimeRangeFilters, shifts, startDate]);
@@ -182,17 +182,15 @@ export const ComparisonRangeLabel = ({
     <>
       <ControlHeader label={t('Actual range for comparison')} />
       {labels.flat().map(label => (
-        <>
-          <div
-            css={theme => css`
-              font-size: ${theme.fontSize}px;
-              color: ${theme.colorText};
-            `}
-            key={label}
-          >
-            {label}
-          </div>
-        </>
+        <div
+          css={theme => css`
+            font-size: ${theme.fontSize}px;
+            color: ${theme.colorText};
+          `}
+          key={label}
+        >
+          {label}
+        </div>
       ))}
     </>
   ) : null;
