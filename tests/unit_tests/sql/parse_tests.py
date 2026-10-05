@@ -7317,6 +7317,59 @@ def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> Non
     assert SQLStatement(sql, engine).get_niladic_functions() == expected
 
 
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country) AS v0", "hive", ["v0"]),
+        ("SELECT a AS v0, b AS v1", "hive", ["v0", "v1"]),
+        # Unaliased, which is the case the method exists to make visible: a
+        # caller that reads results back positionally needs the aliases it
+        # asked for to have survived.
+        ("SELECT lower(country)", "hive", [None]),
+        ("SELECT a AS v0, b", "hive", ["v0", None]),
+        # A comment swallows the rest of its line, alias included, and the
+        # query still returns the right number of columns -- so counting them
+        # does not notice and reading the aliases does.
+        ("SELECT 1 -- 'x' AS v0", "hive", [None]),
+        # A FROM clause is no obstacle; some engines cannot SELECT without one.
+        ("SELECT lower(country) AS v0 FROM t", "hive", ["v0"]),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", []),
+    ],
+)
+def test_get_select_aliases(sql: str, engine: str, expected: list[str | None]) -> None:
+    """Check the `get_select_aliases` method."""
+    assert SQLStatement(sql, engine).get_select_aliases() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, name, expected",
+    [
+        ("SELECT lower(standin)", "hive", "standin", 1),
+        ("SELECT concat(standin, standin)", "hive", "standin", 2),
+        ("SELECT CAST(standin AS BIGINT)", "hive", "standin", 1),
+        ("SELECT lower(country)", "hive", "standin", 0),
+        # The cases the method exists for: a caller that substitutes an
+        # identifier for a placeholder learns from the count whether the
+        # placeholder landed anywhere the engine evaluates. A string literal
+        # holds no column reference...
+        ("SELECT 'standin'", "hive", "standin", 0),
+        # ...and a comment is not parsed at all.
+        ("SELECT 1 -- standin", "hive", "standin", 0),
+        ("SELECT 1 /* standin */", "hive", "standin", 0),
+        # Compared case-insensitively, since a dialect may normalize the case
+        # of an unquoted identifier.
+        ("SELECT lower(STANDIN)", "hive", "standin", 1),
+        ("SELECT lower(standin)", "snowflake", "STANDIN", 1),
+    ],
+)
+def test_count_bare_column_references(
+    sql: str, engine: str, name: str, expected: int
+) -> None:
+    """Check the `count_bare_column_references` method."""
+    assert SQLStatement(sql, engine).count_bare_column_references(name) == expected
+
+
 @pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
 @pytest.mark.parametrize(
     "sql, expected",
