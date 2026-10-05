@@ -93,7 +93,9 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    normalize_mixed_numbers,
     PartitionMapping,
+    raw_probe_value,
     resolve_partition_mapping,
 )
 from superset.constants import (
@@ -663,6 +665,18 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
+
+
+#: Operators that compare an array column against whole array literal(s)
+#: rather than element-wise. Named because two places have to agree on the set:
+#: the branch that builds those literals, and the partition mirror that has to
+#: record the same literal rather than the raw filter value.
+_ARRAY_LITERAL_OPERATORS = {
+    utils.FilterOperator.EQUALS,
+    utils.FilterOperator.NOT_EQUALS,
+    utils.FilterOperator.IN,
+    utils.FilterOperator.NOT_IN,
+}
 
 
 def parse_array_literal(value: Any) -> list[Any]:
@@ -4514,6 +4528,48 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 (upper_operator, self._mirror_probe_value(end_dttm, mapped_col))
             )
 
+    def _array_mirror_probe_value(
+        self,
+        value: Any,
+        operator: utils.FilterOperator,
+        element_type: Optional[utils.GenericDataType],
+        db_engine_spec: builtins.type["BaseEngineSpec"],
+    ) -> Any:
+        """
+        The array literal the real predicate compares, ready to probe with.
+
+        On an array column the predicate is not built from `eq` at all: the
+        branch below reads the raw `val`, parses the pasted literal into
+        elements, coerces them to the array's element type and asks the engine
+        spec for its own array syntax. Mirroring `eq` would probe the transform
+        at a value the query never compares, so this reproduces that chain
+        instead -- the mirror then probes exactly what the predicate holds.
+
+        The result is SQL text rather than a value, because an array literal is
+        an expression; `RawProbeValue` carries it and `build_probe_sql`
+        substitutes rather than binds. Returns `None` when the engine spec
+        claims multi-value columns without implementing a literal for them,
+        which costs the query its pruning and nothing else.
+        """
+
+        def literal(entry: Any) -> Any:
+            return raw_probe_value(
+                self.database,
+                db_engine_spec.array_literal(
+                    coerce_array_values(parse_array_literal(entry), element_type)
+                ),
+            )
+
+        try:
+            if operator in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}:
+                candidates = (
+                    list(value) if isinstance(value, (list, tuple)) else [value]
+                )
+                return tuple(literal(candidate) for candidate in candidates)
+            return literal(value)
+        except NotImplementedError:
+            return None
+
     def _collect_partition_mirror_filter(
         self,
         mapping: Optional["PartitionMapping"],
@@ -5378,13 +5434,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         from_dttm,
                         to_dttm,
                     )
-                    self._collect_partition_mirror_range(
-                        partition_mapping,
-                        partition_mirror_inner,
-                        self.main_dttm_col,
-                        inner_from_dttm or from_dttm,
-                        inner_to_dttm or to_dttm,
-                    )
+                    if not db_engine_spec.time_groupby_inline:
+                        # Only where the subquery actually gets a time filter
+                        # -- see the longer note on the `dttm_col` mirror below.
+                        self._collect_partition_mirror_range(
+                            partition_mapping,
+                            partition_mirror_inner,
+                            self.main_dttm_col,
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
+                        )
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -5410,14 +5469,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         to_dttm,
                     )
                     # The bounds the series-limit subquery's own time filter
-                    # uses, which is the same expression it builds below.
-                    self._collect_partition_mirror_range(
-                        partition_mapping,
-                        partition_mirror_inner,
-                        dttm_col.column_name,
-                        inner_from_dttm or from_dttm,
-                        inner_to_dttm or to_dttm,
-                    )
+                    # uses, which is the same expression it builds below --
+                    # but only when it builds one. On a `time_groupby_inline`
+                    # engine (ClickHouse, Databend, Elasticsearch, Kusto) the
+                    # subquery is left unfiltered in time on purpose, so a
+                    # mirror here would be the one predicate narrowing it to a
+                    # window nothing else in that query mentions: the ranking
+                    # would be computed over a different span from the one the
+                    # engine was asked for, and which series come back "top"
+                    # could change just because mapping is enabled.
+                    #
+                    # The window-*independent* filter mirrors are collected
+                    # into both sinks above and stay -- those correspond to
+                    # `where_clause_and`, which the subquery does receive.
+                    if not db_engine_spec.time_groupby_inline:
+                        self._collect_partition_mirror_range(
+                            partition_mapping,
+                            partition_mirror_inner,
+                            dttm_col.column_name,
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
+                        )
 
         # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
         # real GROUP BY signal and also captures the timeseries time bucket. A
@@ -5677,10 +5749,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_extra=self.db_extra,
                 )
 
+                # Hoisted above the mirror collection below, which has to
+                # record the values the real predicate *binds*. SQLAlchemy
+                # infers an `IN` bind's type from the first element, so a mixed
+                # int/float list has to be widened before binding or every
+                # later float is truncated (see #33206). The `IN` branch did
+                # this itself, 100-odd lines down and by rebinding `eq` -- so
+                # the mirror had already copied the unwidened values and probed
+                # the transform at a number the query never compares.
+                #
+                # Scoped to the operators whose branch did it, so that moving
+                # the call changes when it runs and not what it applies to:
+                # `CONTAINS_ANY`/`CONTAINS_ALL` are list targets too and were
+                # never widened.
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and op in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}
+                    and isinstance(eq, (list, tuple))
+                ):
+                    eq = normalize_mixed_numbers(eq)
+
                 # Mirror onto the partition column. This single site covers
                 # ad-hoc filters, dashboard native filters and cross-filters,
                 # because they all arrive as entries in `filter`. `eq` rather
-                # than the raw `val`: it is the value the real predicate uses.
+                # than the raw `val`: it is the value the real predicate binds,
+                # which is only true because the numeric widening above now
+                # runs before this rather than inside the `IN` branch below.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
                 #
@@ -5702,6 +5796,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and op != utils.FilterOperator.TEMPORAL_RANGE
                     and not filter_grain
                 ):
+                    mirror_value: Any = eq
+                    if is_multivalue_col and op in _ARRAY_LITERAL_OPERATORS:
+                        # The array branch below never looks at `eq`; it builds
+                        # an engine array literal out of the raw `val`. Mirror
+                        # that same literal, or nothing.
+                        mirror_value = self._array_mirror_probe_value(
+                            val, op, array_element_type, db_engine_spec
+                        )
+
                     # Window-independent, so both sinks get it. The subquery
                     # filters a different time window but the same everything
                     # else, and this filter is in `where_clause_and` for both.
@@ -5711,7 +5814,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sink,
                             col_obj.column_name,
                             op,
-                            eq,
+                            mirror_value,
                         )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
@@ -5743,12 +5846,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col, op, bus_resp["values"]
                         )
                     )
-                elif is_multivalue_col and op in {
-                    utils.FilterOperator.EQUALS,
-                    utils.FilterOperator.NOT_EQUALS,
-                    utils.FilterOperator.IN,
-                    utils.FilterOperator.NOT_IN,
-                }:
+                elif is_multivalue_col and op in _ARRAY_LITERAL_OPERATORS:
                     # Whole-array (column-level) comparison against array
                     # literal(s). The value is a pasted array literal like
                     # ``['a', 'b']`` (parsed into elements): ``col = ['a', 'b']``
@@ -5799,16 +5897,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _("Filter value list cannot be empty")
                         )
 
-                    # Normalize mixed int/float values before binding, since
-                    # SQLAlchemy may infer the bind parameter type from the
-                    # first element and silently truncate other values
-                    # (see #33206)
-                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
-                        isinstance(v, float) for v in eq
-                    ):
-                        eq = [
-                            float(v) if isinstance(v, (int, float)) else v for v in eq
-                        ]
+                    # `eq` was already normalized where it was produced, so
+                    # that the partition mirror could record the same values
+                    # this binds -- see the comment there.
 
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]

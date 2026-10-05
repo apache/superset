@@ -115,6 +115,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
@@ -136,6 +137,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLScript, SQLStatement
+from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator
 
@@ -150,10 +152,16 @@ FEATURE_FLAG = "PARTITION_FILTER_MAPPING"
 
 #: Longest transform accepted anywhere. A transform is one SQL expression an
 #: owner types by hand, so this is generous; the point is that it is bounded.
-#: Every entry point enforces it -- the typed column field, the import schema
-#: and the preview request -- because `is_transform_active` parses the stored
-#: value on each Explore load, and an unbounded string would make that parse
-#: the expensive part of rendering a chart.
+#: The bound matters because `is_transform_active` parses the stored value on
+#: each Explore load, and an unbounded string would make that parse the
+#: expensive part of rendering a chart.
+#:
+#: The typed column field, the import schema and the preview request each
+#: enforce it through a marshmallow `Length` validator, which is what produces
+#: the per-field message those three callers want. `stored_expression_error`
+#: enforces it too, for the paths that load no schema -- the deprecated
+#: `POST /datasource/save/` is one, and it writes straight through
+#: `update_from_object`.
 MAX_TRANSFORM_LENGTH = 1024
 
 #: Placeholder the owner writes in the transform, e.g. ``unix_timestamp(:value)``.
@@ -168,6 +176,15 @@ JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 #: on most dialects. Mirrors the ``_JINJA_BLOCK_RE`` -> ``NULL`` trick used by
 #: ``validate_stored_expression``.
 _PARSE_STANDIN = "NULL"
+
+#: Substituted for ``:value`` to find out *where* the placeholder landed, which
+#: `_PARSE_STANDIN` cannot answer: ``NULL`` is a keyword, so after substitution
+#: the parse tree no longer records that a placeholder was ever there. An
+#: identifier does leave a trace -- a column reference -- and one that is
+#: missing is a placeholder the engine will never evaluate. Named so it cannot
+#: plausibly collide with a real column; a collision only makes the count
+#: disagree, which fails closed.
+_PLACEHOLDER_STANDIN = "superset_pfm_value_standin"
 
 #: Functions whose value depends on wall-clock time or randomness. The probe
 #: runs in a different session at a different moment from the chart query and
@@ -370,15 +387,18 @@ def contains_jinja(transform: str | None) -> bool:
     return bool(transform) and JINJA_BLOCK_RE.search(transform or "") is not None
 
 
-def parse_skeleton(transform: str) -> str:
+def parse_skeleton(transform: str, standin: str = _PARSE_STANDIN) -> str:
     """
     The transform with ``:value`` substituted out, ready for a SQL parser.
 
     ``sanitize_clause`` / sqlglot choke on a bare ``:value`` on most dialects,
     so the placeholder is swapped for a benign literal first -- the same trick
     ``validate_stored_expression`` uses for Jinja blocks.
+
+    :param standin: what to substitute. `placeholder_is_executable` passes
+        `_PLACEHOLDER_STANDIN` to find out where the placeholder landed.
     """
-    return VALUE_PLACEHOLDER_RE.sub(_PARSE_STANDIN, transform)
+    return VALUE_PLACEHOLDER_RE.sub(standin, transform)
 
 
 #: Prefix the transform is wrapped in before parsing. Its length is subtracted
@@ -386,14 +406,18 @@ def parse_skeleton(transform: str) -> str:
 _SELECT_PREFIX = "SELECT "
 
 
-def _parse_skeleton(transform: str, engine: str) -> SQLStatement | None:
+def _parse_skeleton(
+    transform: str, engine: str, standin: str = _PARSE_STANDIN
+) -> SQLStatement | None:
     """
     Parse ``SELECT <transform>`` with the placeholder substituted out.
 
     Returns ``None`` when the transform does not parse.
     """
     try:
-        return SQLStatement(f"{_SELECT_PREFIX}{parse_skeleton(transform)}", engine)
+        return SQLStatement(
+            f"{_SELECT_PREFIX}{parse_skeleton(transform, standin)}", engine
+        )
     except SupersetParseError:
         return None
 
@@ -442,6 +466,46 @@ def _position_in_transform(transform: str, parsed_column: int) -> int:
         if match.start() - index * shift < position
     )
     return position + preceding * shift
+
+
+def placeholder_is_executable(transform: str | None, engine: str) -> bool:
+    """
+    Whether every ``:value`` sits where the engine will evaluate it.
+
+    `contains_value_placeholder` is a regex over raw text, and `parse_skeleton`
+    substitutes before parsing, so neither notices a placeholder that is not in
+    an executable position. Two shapes reach the probe that way, and both are
+    worse than the inactive mapping a malformed transform earns:
+
+    ``':value'`` -- the placeholder inside a string literal. `build_probe_sql`
+    binds it anyway, because SQLAlchemy's own ``text()`` scan is no more
+    literal-aware than the regex, and the dialect then renders the bind
+    *including its own quotes* in the middle of the owner's quotes. A value of
+    ``" || (SELECT secret FROM vault LIMIT 1) || "`` closes the literal and
+    compiles to a working sub-query -- the very read primitive
+    `stored_expression_error` refuses when it is written openly.
+
+    ``1 -- :value`` -- the placeholder inside a comment. The probe's selections
+    are joined on one line, so the comment swallows its own ``AS v0`` alias and
+    everything after it; a single-value probe still returns one column, the
+    constant is accepted as the transform's result, and the mirror then emits
+    ``partition_col = <constant>`` for every filter value. That is wrong rows,
+    not lost pruning.
+
+    Answered structurally: substitute an identifier rather than a keyword and
+    count the column references it produced. A literal holds no column
+    reference and a comment is not parsed at all, so either case comes back
+    short of the number of placeholders the owner wrote.
+    """
+    if not transform:
+        return False
+    expected = len(VALUE_PLACEHOLDER_RE.findall(transform))
+    if not expected:
+        return False
+    statement = _parse_skeleton(transform, engine, _PLACEHOLDER_STANDIN)
+    if statement is None:
+        return False
+    return statement.count_bare_column_references(_PLACEHOLDER_STANDIN) == expected
 
 
 def is_parseable(transform: str | None, engine: str) -> bool:
@@ -686,6 +750,17 @@ def stored_expression_error(
         validate_stored_expression,
     )
 
+    # Ahead of the parse, both because it is the cheaper question and because
+    # the parse is the cost the bound exists to contain.
+    if len(transform) > MAX_TRANSFORM_LENGTH:
+        return str(
+            _(
+                "A partition value transform cannot be longer than "
+                "%(limit)d characters.",
+                limit=MAX_TRANSFORM_LENGTH,
+            )
+        )
+
     statement = _parse_skeleton(transform, database.backend)
     if statement is None:
         return str(
@@ -714,6 +789,27 @@ def stored_expression_error(
     if statement.has_subquery():
         return str(_("A partition value transform cannot contain a sub-query."))
 
+    # The shape gates above read the transform with `:value` replaced by the
+    # `NULL` keyword, which leaves no trace of where the placeholder was -- so
+    # none of them can see a placeholder that is not in an executable position.
+    # Checked here as well as in `validate_transform` because this is the door
+    # a row written by an earlier release still passes through, and because
+    # the escape only completes once a filter value is bound.
+    #
+    # Guarded on the placeholder being present at all: a transform without one
+    # is inert rather than refused (`validate_transform` reports it as Tier 2),
+    # and refusing it here would make this gate stricter than the PUT's.
+    if contains_value_placeholder(transform) and not placeholder_is_executable(
+        transform, database.backend
+    ):
+        return str(
+            _(
+                "A partition value transform must use the :value placeholder "
+                "where the engine will evaluate it, not inside a string "
+                "literal or a comment."
+            )
+        )
+
     denied = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
         _denylist_engine_key(database), set()
     )
@@ -737,6 +833,73 @@ def stored_expression_error(
     except QueryClauseValidationException as ex:
         return str(ex.message)
     return None
+
+
+@dataclass(frozen=True)
+class RawProbeValue:
+    """
+    A probe value that is already SQL text rather than a bindable scalar.
+
+    Almost every filter value is a Python scalar, which `build_probe_sql` binds
+    and lets the dialect render. An array column's value is not: the predicate
+    it mirrors compares an engine array literal -- ``array('a', 'b')`` on
+    ClickHouse -- which `BaseEngineSpec.array_literal` returns as a SQLAlchemy
+    expression, and an expression cannot be the value of a bind parameter.
+
+    Frozen, and holding text rather than the expression, for two reasons
+    besides immutability: `_probe_cache_key` keys on ``repr`` of each value, and
+    an expression's ``repr`` carries its memory address -- so caching the probe
+    would key every call differently. `_hashable` needs it hashable too.
+
+    Build one with `raw_probe_value`, which renders the expression through the
+    same literal compilation the bound path uses.
+    """
+
+    sql: str
+
+
+def raw_probe_value(database: "Database", element: Any) -> RawProbeValue:
+    """
+    Freeze an engine-built expression into probe-ready SQL text.
+
+    The text is produced entirely by SQLAlchemy and the engine spec from values
+    that have already been coerced, so no caller-supplied text reaches the probe
+    uninspected -- string elements are escaped by the dialect's own literal
+    processor. `probe_sql_is_evaluable` then re-reads the finished query, which
+    is what bounds the splice.
+
+    :param database: the database whose dialect renders the literal
+    :param element: a SQLAlchemy expression, e.g. from ``array_literal``
+    :return: the rendered expression, ready to stand in for ``:value``
+    """
+    return RawProbeValue(_compile_literal(element, _dialect_for(database)))
+
+
+def normalize_mixed_numbers(values: Sequence[Any]) -> list[Any]:
+    """
+    One numeric type across ``values``, so a bind cannot be inferred wrongly.
+
+    SQLAlchemy infers an ``IN`` bind's type from the first element it is given.
+    A list mixing an int with a float therefore binds as integer and truncates
+    every later float: ``[33, 29.02]`` emits ``IN (33, 29)`` and drops the row
+    matching ``29.02``.
+
+    Applied on both sides of the probe, which is why it lives here rather than
+    inline at either: the filter values collected for mirroring have to match
+    the ones the real predicate binds (see #33206), and the probe *results*
+    bound against the partition column have the same problem one step later.
+
+    Leaves the list alone when nothing in it is a float, so an exact integer
+    key above 2^53 is not rounded for no reason.
+
+    :param values: the values about to be bound
+    :return: the values, with every number widened to ``float`` if any was
+    """
+    if not any(isinstance(value, float) for value in values):
+        return list(values)
+    return [
+        float(value) if isinstance(value, (int, float)) else value for value in values
+    ]
 
 
 def build_probe_sql(
@@ -768,9 +931,54 @@ def build_probe_sql(
     """
     selections = []
     for index, value in enumerate(values):
-        clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
-        selections.append(f"{_compile_literal(clause, dialect)} AS v{index}")
+        if isinstance(value, RawProbeValue):
+            # Already SQL, so substituted rather than bound -- and deliberately
+            # not run through `_compile_literal`, which has nothing to compile
+            # and would undouble percent signs the owner typed on purpose.
+            rendered = parse_skeleton(transform, value.sql)
+        else:
+            clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
+            rendered = _compile_literal(clause, dialect)
+        selections.append(f"{rendered} AS v{index}")
     return "SELECT " + ", ".join(selections) + from_suffix
+
+
+def probe_sql_is_evaluable(sql: str, engine: str, expected: int) -> bool:
+    """
+    Whether the compiled probe is still the query `build_probe_sql` intended.
+
+    Every write-side gate reads the transform with ``:value`` standing in for a
+    value. The escape this guards against only completes once a *real* value is
+    rendered in its place, so it is invisible until this point -- and the values
+    are supplied by whoever is filtering a chart, not only by the owner who
+    wrote the transform.
+
+    Three things have to hold, and all three are about the probe still being
+    readable rather than about taste:
+
+    * One statement. A value that closes the expression and starts another
+      would otherwise run both.
+    * No sub-query. A placeholder inside a string literal lets a value close
+      the quote and concatenate one; `stored_expression_error` refuses a
+      sub-query written openly, and this refuses the same thing assembled.
+    * Exactly ``expected`` projections, aliased ``v0`` upward. A comment
+      swallows the rest of its line including its own alias, and the engine
+      still answers with a column -- so the count alone does not notice.
+      Checking the aliases is what makes a missing one visible.
+
+    A ``FROM`` clause is allowed: ``select_without_from_suffix`` adds one on the
+    engines that cannot select without a table.
+    """
+    try:
+        script = SQLScript(sql, engine)
+    except SupersetParseError:
+        return False
+    if len(script.statements) != 1:
+        return False
+    statement = script.statements[0]
+    if statement.has_subquery():
+        return False
+    return statement.get_select_aliases() == [f"v{index}" for index in range(expected)]
 
 
 def evaluate_transform(
@@ -860,6 +1068,16 @@ def _run_probe(
             _dialect_for(database),
             database.db_engine_spec.select_without_from_suffix,
         )
+        if not probe_sql_is_evaluable(sql, database.backend, len(distinct)):
+            # Declining rather than raising, for the same reason every other
+            # failure here declines: the chart query is already correct without
+            # the mirror, and it is the only thing the caller is waiting on.
+            logger.warning(
+                "Refusing to run a partition transform probe whose compiled SQL "
+                "is not a plain projection per input value; queries will not "
+                "prune"
+            )
+            return None
         frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
         if frame is None or frame.empty:
             logger.warning(
@@ -1233,6 +1451,25 @@ def validate_transform(
             )
         ]
 
+    if not placeholder_is_executable(transform, engine):
+        # Blocking, and for the same reason the shape gate above is: this is
+        # the function the PUT, the importer, `is_transform_active`, the
+        # Explore indicator and the preview all consult, so one issue here
+        # closes every door at once. A placeholder inside a string literal is
+        # a sub-query the engine will run once a filter value closes the quote;
+        # one inside a comment silently eats the probe's own alias.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    "The :value placeholder must appear where the engine will "
+                    "evaluate it. It cannot sit inside a string literal or a "
+                    "comment."
+                ),
+                blocking=True,
+            )
+        ]
+
     if functions := find_non_deterministic_functions(transform, engine):
         return [
             MappingValidationIssue(
@@ -1413,7 +1650,9 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             ),
         }
 
-    value: Any = sample_values if operator == FilterOperator.IN else sample_values[0]
+    value = _probe_input(
+        datasource, columns_by_name[mapped_column], operator, sample_values
+    )
     errors: list[str] = []
     predicates = build_mirrored_predicates(
         datasource, mapping, [(operator, value)], errors=errors
@@ -1439,6 +1678,62 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         "sample_input": sample_input,
         "emitted_predicate": _render_predicate(datasource, predicates[0]),
     }
+
+
+def _probe_input(
+    datasource: SqlaTable,
+    column: "TableColumn",
+    operator: FilterOperator,
+    sample_values: list[str],
+) -> Any:
+    """
+    The sample values as the query path would bind them.
+
+    The request carries samples as strings, and the probe is keyed on exactly
+    what it is handed, so passing them through raw asks the engine a different
+    question from the one a chart asks. A sample of ``2025`` on a numeric
+    column has to arrive as the integer the chart compares: under a transform
+    of ``typeof(:value)`` the raw string previewed ``'text'`` where the chart
+    emitted ``'integer'``. And because `_probe_cache_key` keys on each value's
+    ``repr``, the two also missed each other's cache entirely -- so the "a
+    previewed transform warms the chart path for free" claim in
+    `preview_partition_mapping`'s docstring did not actually hold.
+
+    Coerced by `filter_values_handler`, the same function the query path uses,
+    rather than by a second implementation of the same rules.
+
+    Ranges are not previewable (see `PREVIEWABLE_OPERATORS`), so the bound
+    conversion `_collect_partition_mirror_range` applies -- a ``datetime`` into
+    the column's stored representation -- has no counterpart here.
+    """
+    is_list = operator == FilterOperator.IN
+    column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)
+    handled = datasource.filter_values_handler(
+        # `list[str]` is not a `list[FilterValue]` to mypy, invariantly, even
+        # though every `str` is a `FilterValue`.
+        values=cast(FilterValues, sample_values if is_list else sample_values[0]),
+        operator=operator,
+        target_generic_type=(
+            column_spec.generic_type if column_spec else utils.GenericDataType.STRING
+        ),
+        target_native_type=column.type,
+        is_list_target=is_list,
+        db_engine_spec=datasource.db_engine_spec,
+        db_extra=datasource.db_extra,
+    )
+
+    def bindable(value: Any) -> Any:
+        # An epoch-milliseconds sample on a temporal column comes back as
+        # engine SQL rather than a value, and SQL cannot be the value of a bind
+        # parameter -- carried as text so the probe substitutes it, the same way
+        # an array literal is.
+        if isinstance(value, ColumnElement):
+            return raw_probe_value(datasource.database, value)
+        return value
+
+    if is_list and isinstance(handled, (list, tuple)):
+        return [bindable(entry) for entry in handled]
+    return bindable(handled)
 
 
 def _render_sample_input(
@@ -1553,7 +1848,12 @@ def build_mirrored_predicates(
         if any(value is None for value in chunk):
             continue
         if operator == FilterOperator.IN:
-            predicates.append(sqla_col.in_(chunk))
+            # The probe answers per value, so a transform over a mixed-number
+            # filter can answer with a mixed-number partition key -- and
+            # `in_` infers the bind type from the first element it is handed.
+            # Without this, probe results of `[33, 29.02]` emit
+            # `IN (33, 29)` and prune away the partition holding `29.02`.
+            predicates.append(sqla_col.in_(normalize_mixed_numbers(chunk)))
         else:
             predicates.append(
                 db_engine_spec.handle_comparison_filter(sqla_col, operator, chunk[0])

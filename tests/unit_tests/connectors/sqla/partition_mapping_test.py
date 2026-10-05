@@ -50,6 +50,8 @@ from superset.connectors.sqla.partition_mapping import (
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
     parse_error_detail,
+    placeholder_is_executable,
+    probe_sql_is_evaluable,
     resolve_partition_mapping,
     stored_expression_error,
     validate_partition_mapping,
@@ -535,8 +537,9 @@ def test_resolve_returns_none_when_the_mapped_column_has_an_advanced_data_type(
             with patch(
                 "superset.connectors.sqla.partition_mapping.feature_flag_manager."
                 "is_feature_enabled",
-                side_effect=lambda flag: flag
-                in {"PARTITION_FILTER_MAPPING", "ENABLE_ADVANCED_DATA_TYPES"},
+                side_effect=lambda flag: (
+                    flag in {"PARTITION_FILTER_MAPPING", "ENABLE_ADVANCED_DATA_TYPES"}
+                ),
             ):
                 assert resolve_partition_mapping(table) is None
 
@@ -1432,3 +1435,133 @@ def test_activity_is_exactly_the_absence_of_issues(transform: str | None) -> Non
     assert is_transform_active(transform, "hive") is (
         validate_transform(transform, "hive") == []
     )
+
+
+# ---------------------------------------------------------------------------
+# A placeholder the engine never evaluates
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("engine", ["sqlite", "postgresql", "hive", "snowflake"])
+@pytest.mark.parametrize(
+    "transform, executable",
+    [
+        ("unix_timestamp(:value)", True),
+        ("CAST(:value AS BIGINT)", True),
+        ("lower(:value)", True),
+        (":value", True),
+        ("concat(:value, :value)", True),
+        ("date_format(:value, '%Y%m%d')", True),
+        ("':value'", False),
+        ("concat(':value', :value)", False),
+        ("1 -- :value", False),
+        ("1 /* :value */", False),
+        ("lower(x)", False),
+        (None, False),
+    ],
+)
+def test_a_placeholder_is_executable_only_where_the_engine_reads_it(
+    transform: str | None, executable: bool, engine: str
+) -> None:
+    """
+    `contains_value_placeholder` is a regex, and `parse_skeleton` substitutes
+    before anything parses, so neither can say *where* the placeholder landed.
+    This can: an identifier stand-in leaves a column reference behind, and a
+    stand-in that fell inside a string literal or a comment leaves none.
+
+    `concat(':value', :value)` is the mixed case -- one occurrence is
+    executable and one is not, so the count disagrees and it is refused.
+    `lower(x)` has no placeholder at all, which is a separate (Tier 2) matter
+    `validate_transform` reports before reaching this.
+    """
+    assert placeholder_is_executable(transform, engine) is executable
+
+
+@pytest.mark.parametrize(
+    "transform",
+    ["':value'", "concat(':value', 'x')", "1 -- :value", "1 /* :value */"],
+    ids=["quoted", "quoted-in-call", "line-comment", "block-comment"],
+)
+def test_validate_transform_blocks_a_placeholder_the_engine_will_not_read(
+    transform: str,
+) -> None:
+    """
+    Blocking, not Tier 2. An inactive mapping is the right answer for a
+    transform that is merely wrong; these two are a sub-query waiting for a
+    filter value to close the quote, and a comment that eats the probe's own
+    alias and makes it answer with a constant.
+    """
+    issues = validate_transform(transform, "sqlite")
+
+    assert len(issues) == 1
+    assert issues[0].blocking is True
+    assert issues[0].field == "partition_value_transform"
+    assert ":value" in issues[0].message
+
+
+def test_a_quoted_placeholder_really_does_compile_into_a_subquery() -> None:
+    """
+    The reason the check above is blocking rather than cosmetic.
+
+    `sa.text`'s bind scan has no notion of SQL string literals, so the
+    placeholder inside the owner's quotes is bound regardless, and the String
+    literal processor renders the bind *with its own quotes*. A sample that
+    opens and closes with `||` therefore concatenates whatever it likes between
+    them -- here a sub-query, which is exactly what `stored_expression_error`
+    refuses when it is written in the open.
+    """
+    sql = build_probe_sql(
+        "':value'",
+        [" || (SELECT secret FROM vault LIMIT 1) || "],
+    )
+
+    assert "(SELECT secret FROM vault LIMIT 1)" in sql
+    # ...and the backstop declines to run it.
+    assert probe_sql_is_evaluable(sql, "sqlite", 1) is False
+
+
+def test_a_commented_placeholder_loses_the_alias_the_probe_reads_by() -> None:
+    """
+    The other half. `build_probe_sql` joins its selections with `", "` on one
+    line, so a comment swallows its own `AS v0` and every selection after it.
+    With one distinct value the engine still answers with one column, so the
+    probe's column-count guard is satisfied and the constant in front of the
+    comment is accepted as the transform's result -- the mirror then asks for
+    that constant whatever the filter value was.
+    """
+    sql = build_probe_sql("1 -- :value", ["2026-01-15"])
+
+    assert "AS v0" in sql  # the alias is *there*, but after the comment marker
+    assert sql.index("--") < sql.index("AS v0")
+    assert probe_sql_is_evaluable(sql, "sqlite", 1) is False
+
+
+@pytest.mark.parametrize(
+    "sql, expected, evaluable",
+    [
+        ("SELECT lower('a') AS v0", 1, True),
+        ("SELECT lower('a') AS v0, lower('b') AS v1", 2, True),
+        # `select_without_from_suffix`, for an engine that cannot select bare.
+        ("SELECT lower('a') AS v0 FROM DUAL", 1, True),
+        ("SELECT '' || (SELECT secret FROM vault) || '' AS v0", 1, False),
+        ("SELECT 1 -- 'x' AS v0", 1, False),
+        ("SELECT 1 AS v0; DROP TABLE t", 1, False),
+        ("SELECT lower('a') AS v0", 2, False),
+        ("SELECT lower('a')", 1, False),
+        ("not sql at all (", 1, False),
+    ],
+)
+def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
+    sql: str, expected: int, evaluable: bool
+) -> None:
+    """
+    The write-side gates all read the transform with a stand-in where the value
+    goes, so an escape that needs a real value to complete is invisible to them
+    -- and the values come from whoever is filtering the chart, not only from
+    the owner who wrote the transform. This is the gate that sees the finished
+    query.
+
+    A FROM clause is allowed, because `select_without_from_suffix` adds one on
+    Oracle and Db2.
+    """
+    assert probe_sql_is_evaluable(sql, "sqlite", expected) is evaluable

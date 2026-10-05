@@ -34,6 +34,8 @@ import sqlalchemy as sa
 from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.partition_mapping import RawProbeValue
+from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -1358,3 +1360,202 @@ def test_a_mapping_that_emits_nothing_emits_no_bare_null_check(app: Flask) -> No
             )
 
     assert "dt_epoch" not in sql
+
+
+# ---------------------------------------------------------------------------
+# The mirror has to use the value the real predicate binds
+# ---------------------------------------------------------------------------
+
+
+def test_a_mixed_number_in_list_is_probed_as_the_predicate_binds_it(
+    app: Flask,
+) -> None:
+    """
+    SQLAlchemy infers an `IN` bind's type from the first element, so a mixed
+    int/float list has to be widened to float before binding or every later
+    float truncates (#33206). That widening used to happen inside the `IN`
+    branch, a hundred lines after the mirror had already copied the unwidened
+    values -- so the probe was asked about `9007199254740993` while the query
+    compared `9007199254740992.0`, and the mirror then pruned away the very
+    partition the filter matched.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="metric_value",
+        partition_mapped_column="metric_value",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="metric_value", type="DOUBLE"))
+    for column in table.columns:
+        if column.column_name == "metric_value":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["a", "b"]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "metric_value",
+                        "op": FilterOperator.IN.value,
+                        "val": ["9007199254740993", "1.5"],
+                    }
+                ],
+            )
+
+    # Both widened, so the probe sees what the predicate binds.
+    assert probed == [[9007199254740992.0, 1.5]]
+
+
+def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
+    """
+    The same inference, one step later and on the other side of the probe. The
+    probe answers per value, so a transform over a mixed-number filter can
+    answer with a mixed-number *partition key*: results of `[33, 29.02]` bound
+    through `in_` emitted `region_key IN (33, 29)` and pruned away the
+    partition holding `29.02`.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=[33, 29.02]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", "CA"],
+                    }
+                ],
+            )
+
+    assert "region_key IN (33.0, 29.02)" in sql
+    assert "29)" not in sql
+
+
+def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
+    app: Flask,
+) -> None:
+    """
+    An array column's predicate is not built from the handled filter values at
+    all: it parses the pasted literal into elements, coerces them to the
+    array's element type and asks the engine spec for its own array syntax. So
+    mirroring the handled value probed the transform at something the query
+    never compares.
+
+    ClickHouse is the only spec implementing `array_literal`, so it is the only
+    engine this branch is reachable on.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="tags",
+        partition_mapped_column="tags",
+        partition_column="region_key",
+    )
+    table.columns.append(TableColumn(column_name="tags", type="Array(Int32)"))
+    for column in table.columns:
+        if column.column_name == "tags":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["us"]
+
+    with app.app_context():
+        with patch(PROBE, side_effect=record):
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "tags",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "[1, 2]",
+                        }
+                    ],
+                )
+
+    # Rendered SQL rather than a bound value, because an array literal is an
+    # expression -- and the elements coerced to the column's element type,
+    # which is what keeps `array(1, 2)` from becoming `array('1', '2')`.
+    assert probed == [[RawProbeValue("array(1, 2)")]]
+
+
+# ---------------------------------------------------------------------------
+# `time_groupby_inline`
+# ---------------------------------------------------------------------------
+
+
+def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
+    app: Flask,
+) -> None:
+    """
+    The ranking subquery's time predicate is skipped on a
+    `time_groupby_inline` engine -- the time grouping is inlined instead -- but
+    the inner time *mirror* was added regardless. That left the mirror as the
+    only predicate narrowing the subquery to a window nothing else in the query
+    mentions, so the ranking was computed over a different span from the one
+    asked for and which series came back "top" could change just because
+    mapping was enabled.
+
+    The window-independent filter mirrors are a different matter and stay: they
+    correspond to `where_clause_and`, which the subquery does receive.
+    """
+    table = _table()
+    epochs = {
+        datetime(2025, 1, 1): 1735689600,
+        datetime(2025, 2, 1): 1738368000,
+    }
+
+    with app.app_context():
+        with patch(
+            PROBE, side_effect=lambda *args, **kwargs: [epochs[v] for v in args[-1]]
+        ):
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                sql = _query(
+                    table,
+                    columns=["country"],
+                    metrics=["hits"],
+                    granularity="event_time",
+                    is_timeseries=True,
+                    from_dttm=datetime(2025, 1, 1),
+                    to_dttm=datetime(2025, 2, 1),
+                    timeseries_limit=5,
+                    timeseries_limit_metric="hits",
+                )
+
+    subquery, outer = _split_series_limit(sql)
+
+    # No time predicate in the subquery, so no time mirror either.
+    assert "event_time >=" not in subquery
+    assert "dt_epoch >=" not in subquery
+
+    # The outer query, which does carry the time filter, still prunes.
+    assert "dt_epoch >= 1735689600" in outer
