@@ -46,6 +46,52 @@ def _make_params(**kwargs: object) -> EstimateQueryCostType:
     return base
 
 
+@pytest.mark.parametrize("include_raw", [False, True])
+@patch("superset.commands.sql_lab.estimate.app")
+def test_raw_bytes_preserve_manual_estimate_contract(
+    mock_app: MagicMock, include_raw: bool
+) -> None:
+    """Exact bytes are opt-in; manual estimates retain their display fields."""
+    mock_app.config = {
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    command = QueryEstimationCommand(_make_params(include_raw=include_raw))
+    database = MagicMock()
+    database.db_engine_spec.engine = "bigquery"
+    database.db_engine_spec.estimate_query_cost.return_value = [
+        {"KB Processed": 1.0, "bytes_processed": 1025}
+    ]
+    database.db_engine_spec.query_cost_formatter.side_effect = lambda rows: [
+        {key: str(value) for key, value in row.items()} for row in rows
+    ]
+    command._database = database
+    with (
+        patch.object(command, "validate"),
+        patch.object(command, "_apply_sql_security", side_effect=lambda sql: sql),
+    ):
+        result = command.run()
+    display = [{"KB Processed": "1.0"}]
+    assert result == (
+        {"estimate": display, "bytes_processed": [1025]} if include_raw else display
+    )
+
+
+@pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
+def test_pre_run_check_does_not_estimate_unsupported_scripts(sql: str) -> None:
+    """Unsupported statement shapes return unavailable without contacting BigQuery."""
+    command = QueryEstimationCommand(_make_params(sql=sql, include_raw=True))
+    database = MagicMock()
+    database.db_engine_spec.engine = "bigquery"
+    command._database = database
+    with (
+        patch.object(command, "validate"),
+        patch.object(command, "_apply_sql_security", side_effect=lambda value: value),
+    ):
+        assert command.run() == {"estimate": [], "bytes_processed": [None]}
+    database.db_engine_spec.estimate_query_cost.assert_not_called()
+
+
 def _security_exception() -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(

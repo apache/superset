@@ -89,6 +89,7 @@ export type DatabaseObject = {
 
   // SQL Lab
   allows_cost_estimate?: boolean;
+  cost_estimate_warning_threshold_bytes?: number | null;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
@@ -243,6 +244,8 @@ export interface ExtraJson {
   allows_virtual_table_explore?: boolean; // in SQL Lab
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
+  cost_estimate_warning_enabled?: boolean;
+  cost_estimate_warning_threshold_bytes?: number;
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
   allow_multi_catalog?: boolean;

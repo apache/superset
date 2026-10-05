@@ -917,11 +917,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         # TODO: Humanize in case more db engine specs need to be added,
         # this should be made a function outside this scope.
         byte_division = 1024
-        if hasattr(query_job, "total_bytes_processed"):
-            query_bytes_processed = query_job.total_bytes_processed
+        query_bytes_processed = getattr(query_job, "total_bytes_processed", None)
+        if isinstance(query_bytes_processed, int) and not isinstance(
+            query_bytes_processed, bool
+        ):
             if query_bytes_processed // byte_division == 0:
                 byte_type = "B"
-                total_bytes_processed = query_bytes_processed
+                total_bytes_processed: int | float = query_bytes_processed
             elif query_bytes_processed // (byte_division**2) == 0:
                 byte_type = "KB"
                 total_bytes_processed = round(query_bytes_processed / byte_division, 2)
@@ -936,7 +938,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                     query_bytes_processed / (byte_division**3), 2
                 )
 
-            return {f"{byte_type} Processed": total_bytes_processed}
+            return {
+                f"{byte_type} Processed": total_bytes_processed,
+                "bytes_processed": query_bytes_processed,
+            }
         return {}
 
     @classmethod

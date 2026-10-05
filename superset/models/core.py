@@ -291,6 +291,24 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         )
 
     @property
+    def cost_estimate_warning_threshold_bytes(self) -> int | None:
+        """Return the enabled BigQuery SQL Lab warning threshold in bytes."""
+        extra = self.get_extra()
+        threshold = extra.get("cost_estimate_warning_threshold_bytes")
+        if (
+            is_feature_enabled("ESTIMATE_QUERY_COST")
+            and extra.get("cost_estimate_warning_enabled", threshold is not None)
+            is True
+            and self.backend == "bigquery"
+            and self.allows_cost_estimate
+            and isinstance(threshold, int)
+            and not isinstance(threshold, bool)
+            and 0 <= threshold <= 2**53 - 1
+        ):
+            return threshold
+        return None
+
+    @property
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
         return bool(extra.get("allows_virtual_table_explore", True))
