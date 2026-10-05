@@ -1606,7 +1606,10 @@ chart, and log a browser-console warning with the number of skipped points.
 After switching a point map to Geohash or delimited coordinates in Explore,
 coordinates use the native spatial decoder rather than the typed latitude/longitude
 guard; radius-metric validation remains active. This display behavior does not
-relax MCP generation's result validation.
+relax MCP generation's result validation. Preserved numeric-string radii are
+interpreted as fixed values only for typed MCP point maps (`mcp_geographic`).
+Native Scatter charts continue to interpret bare strings as saved metric names,
+including numeric names such as `100`.
 Country and world maps edited in Explore can use Custom SQL entities; MCP
 reads and exports resolve the saved entity's output label (or SQL expression).
 Source values remain intact for data/export and country-map cross-filtering.

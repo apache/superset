@@ -597,3 +597,29 @@ test('typed geographic points preserve legacy saved-metric radius', () => {
   expect(features.map(feature => feature.radius)).toEqual([50000, 75000]);
   expect(result.payload.data.metricLabels).toEqual(['population']);
 });
+
+test.each([undefined, false])(
+  'native scatter preserves numeric-string metric names with mcp_geographic=%s',
+  mcpGeographic => {
+    const result = transformProps({
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: mcpGeographic,
+        point_radius_fixed: '100',
+      },
+      queriesData: [
+        {
+          data: [
+            { LATITUDE: 37.8, LONGITUDE: -122.4, '100': 10 },
+            { LATITUDE: 37.9, LONGITUDE: -122.3, '100': 20 },
+          ],
+        },
+      ],
+    } as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features.map(feature => feature.radius)).toEqual([10, 20]);
+    expect(features.map(feature => feature.metric)).toEqual([10, 20]);
+    expect(result.payload.data.metricLabels).toEqual(['100']);
+  },
+);

@@ -170,8 +170,10 @@ export default function transformProps(chartProps: ChartProps) {
   const { spatial, point_radius_fixed, dimension } =
     formData as DeckScatterFormData;
 
-  // Legacy native controls store fixed radii as bare numeric strings.
+  // Typed compatibility accepts preserved numeric-string fixed radii.
+  // Native charts interpret bare strings as saved metric names.
   const legacyFixedRadius =
+    formData.mcp_geographic &&
     typeof point_radius_fixed === 'string' &&
     point_radius_fixed.trim() !== '' &&
     Number.isFinite(Number(point_radius_fixed))
