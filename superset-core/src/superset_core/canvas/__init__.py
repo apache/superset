@@ -17,10 +17,6 @@
 
 """Dashboard canvas contracts for widget providers."""
 
-from superset_core.canvas.base import (
-    CanvasLayoutRules,
-    GridPlacement,
-    WidgetResolver,
-)
+from superset_core.canvas.base import GridPlacement, InstanceResolver
 
-__all__ = ["CanvasLayoutRules", "GridPlacement", "WidgetResolver"]
+__all__ = ["GridPlacement", "InstanceResolver"]

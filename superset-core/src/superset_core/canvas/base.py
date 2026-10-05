@@ -16,23 +16,19 @@
 # under the License.
 
 """
-What the dashboard canvas needs to know about widgets.
+What a canvas needs from the widget side beyond the widget registry.
 
-The canvas places widgets; it never stores or reads their configuration.
-Widgets are their own entities, referenced from canvas nodes by id. The canvas
-asks two things of the widget side:
-
-- ``CanvasLayoutRules``, declared per widget type: whether the type holds
-  child nodes, which types may nest where, and how its children are laid out.
-  Types without registered rules are leaves.
-- ``WidgetResolver``: the type of each referenced widget, so nesting and
-  layout can be validated, and which widgets the current user may place.
+A canvas places widget instances. An inline instance is stored on its
+placement, as a widget id, schema version and props; a persisted instance is
+its own entity, referenced by UUID. The registry (``superset_core.widgets``)
+describes each widget's behavior; ``InstanceResolver`` looks up persisted
+instances.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Protocol
+from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
@@ -63,58 +59,19 @@ class GridPlacement(BaseModel):
         return self
 
 
-class CanvasLayoutRules:
-    """
-    How a widget type behaves on the canvas.
+class InstanceResolver(Protocol):
+    """Looks up the persisted widget instances a canvas references."""
 
-    A container sets ``is_container`` and either ``grid_columns`` (children
-    are placed with ``GridPlacement`` on a grid of that many columns) or
-    ``child_layout_model`` (children's layout is validated against that model
-    and arranged by the container's renderer).
-    """
-
-    widget_type: ClassVar[str]
-    is_container: ClassVar[bool] = False
-    # Child widget types this container accepts; ``None`` accepts any.
-    accepted_children: ClassVar[frozenset[str] | None] = None
-    # Container types this widget may live under; ``None`` allows any
-    # container that accepts it, including the root.
-    allowed_parents: ClassVar[frozenset[str] | None] = None
-    grid_columns: ClassVar[int | None] = None
-    child_layout_model: ClassVar[type[BaseModel] | None] = None
-
-    # Filters, cross-filter sources and customizations (e.g. dynamic group-by)
-    # drive filterable widgets. By default each drives every filterable widget
-    # under its nearest container that bounds filter scope (or the whole canvas
-    # at the root), never itself; the canvas can override that per node. A
-    # container that does not bound scope, e.g. a filter bar, lets its
-    # children reach further up.
-    is_filter: ClassVar[bool] = False
-    is_cross_filter_source: ClassVar[bool] = False
-    is_customization: ClassVar[bool] = False
-    is_filterable: ClassVar[bool] = False
-    bounds_filter_scope: ClassVar[bool] = True
-
-    # Size limits, in grid units, for this widget when its parent is a grid.
-    min_col_span: ClassVar[int | None] = None
-    max_col_span: ClassVar[int | None] = None
-    min_row_span: ClassVar[int | None] = None
-    max_row_span: ClassVar[int | None] = None
-
-
-class WidgetResolver(Protocol):
-    """Looks up the widgets a canvas references."""
-
-    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
+    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
         """
-        Return ``{widget id: widget type}`` for the widgets that exist.
+        Return ``{instance UUID: widget id}`` for the instances that exist.
 
-        Types are needed to validate nesting and layout for every node,
-        including widgets the current user cannot see, so this is not
-        filtered by access.
+        Needed to validate nesting and layout for every placement, including
+        instances the current user cannot see, so this is not filtered by
+        access.
         """
         ...
 
-    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
-        """The widgets the current user may place on a canvas."""
+    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
+        """The instances the current user may place on a canvas."""
         ...

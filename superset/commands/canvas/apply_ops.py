@@ -33,9 +33,9 @@ from superset.canvas.definition.ops import (
     overlapping,
     Touch,
 )
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import get_instance_resolver
 from superset.canvas.definition.render import render_context
-from superset.canvas.definition.schemas import AddOp, DEFINITION_VERSION, Operation
+from superset.canvas.definition.schemas import AddOp, Operation
 from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
@@ -77,15 +77,22 @@ class ApplyResult:
 
 
 def placement_issues(ops: list[Operation]) -> list[Issue]:
-    """Widgets being added that the current user may not place."""
-    added = [(index, op) for index, op in enumerate(ops) if isinstance(op, AddOp)]
+    """Persisted instances being added that the current user may not place."""
+    added = [
+        (index, op.instance)
+        for index, op in enumerate(ops)
+        if isinstance(op, AddOp) and op.instance is not None
+    ]
     if not added:
         return []
-    allowed = get_widget_resolver().placeable({op.widget for _, op in added})
+    allowed = get_instance_resolver().placeable({instance for _, instance in added})
     return [
-        Issue(pointer("ops", index, "widget"), "unknown widget, or no access to it")
-        for index, op in added
-        if op.widget not in allowed
+        Issue(
+            pointer("ops", index, "instance"),
+            "unknown widget instance, or no access to it",
+        )
+        for index, instance in added
+        if instance not in allowed
     ]
 
 
@@ -112,18 +119,17 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self.validate()
         canvas = CanvasDAO.lock(self._canvas_id)
         current = canvas.revision
-        # Logged operations predate the stored definition's upgrade, so they
-        # can't be checked for overlap; the log restarts with this write.
-        upgrading = canvas.definition_version != DEFINITION_VERSION
         if self._base_revision != current:
-            if upgrading:
-                raise DefinitionConflictError(current, [], stale=True)
             self._check_overlap(current, named_touches(self._ops))
 
         try:
             definition, applied = apply_operations(CanvasDAO.load(canvas), self._ops)
         except OperationError as ex:
-            raise DefinitionInvalidError(str(ex), operation_index=ex.index) from ex
+            raise DefinitionInvalidError(
+                str(ex),
+                issues=[Issue(pointer("ops", ex.index), ex.message)],
+                operation_index=ex.index,
+            ) from ex
         except DefinitionValidationError as ex:
             raise DefinitionInvalidError(
                 "The operations produce an invalid definition", issues=ex.issues
@@ -136,8 +142,6 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         canvas.definition = json.dumps(definition)
         canvas.definition_version = definition["version"]
         canvas.revision = revision
-        if upgrading:
-            CanvasDAO.prune(canvas.id)
         CanvasDAO.log(canvas.id, revision, applied, get_user_id())
         CanvasDAO.prune(canvas.id, revision - OP_LOG_RETAINED_REVISIONS)
         return ApplyResult(

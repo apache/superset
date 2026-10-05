@@ -15,24 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterator
+from unittest.mock import patch
 
 import pytest
 
-from tests.unit_tests.canvas.fixtures import canvas_rules, FakeResolver
+from tests.unit_tests.canvas.fixtures import canvas_widgets, FakeResolver
 
 
 @pytest.fixture
 def widgets() -> Iterator[FakeResolver]:
-    """Register the test widget types and resolver with the canvas registry."""
+    """Swap in the test widgets and a persisted-instance resolver."""
     from superset.canvas.definition import registry
+    from superset.widgets.registry import registry as widget_registry
 
     resolver = FakeResolver(hidden={"chart-secret"})
-    previous_resolver = registry.get_widget_resolver()
-    test_rules = list(canvas_rules())
-    for rules in test_rules:
-        registry.layout_rules.register(rules)
-    registry.set_widget_resolver(resolver)
-    yield resolver
-    registry.set_widget_resolver(previous_resolver)
-    for rules in test_rules:
-        registry.layout_rules.unregister(rules.widget_type)
+    previous_resolver = registry.get_instance_resolver()
+    registry.set_instance_resolver(resolver)
+    with patch.dict(widget_registry, canvas_widgets(), clear=True):
+        yield resolver
+    registry.set_instance_resolver(previous_resolver)

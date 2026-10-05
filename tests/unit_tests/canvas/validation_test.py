@@ -25,14 +25,15 @@ from superset.canvas.definition.validation import (
 )
 from tests.unit_tests.canvas.fixtures import (
     canvas,
-    canvas_rules,
+    canvas_widgets,
     FakeResolver,
+    inline,
     node,
 )
 
 
 def normalize(raw: dict[str, Any]) -> dict[str, Any]:
-    return normalize_definition(raw, canvas_rules(), FakeResolver())
+    return normalize_definition(raw, canvas_widgets(), FakeResolver())
 
 
 def issues(raw: dict[str, Any]) -> list[tuple[str, str]]:
@@ -56,10 +57,58 @@ def test_empty_canvas_is_valid() -> None:
     }
 
 
-def test_nodes_hold_only_a_widget_reference_and_placement() -> None:
-    found = issues(canvas({"a": node("chart", props={"title": "x"})}))
+def test_a_persisted_instance_placement_holds_no_props() -> None:
+    found = issues(canvas({"a": node("chart-1", props={"title": "x"})}))
 
-    assert found[0][0] == "/nodes/a/props"
+    assert found[0][0] == "/nodes/a"
+
+
+def test_inline_props_are_validated_against_the_widget() -> None:
+    found = issues(canvas({"a": inline("chart", {"metric": 3})}))
+
+    assert found == [("/nodes/a/props/metric", "Input should be a valid string")]
+
+
+def test_unknown_inline_widget_is_rejected_on_write() -> None:
+    found = issues(canvas({"a": inline("nope")}))
+
+    assert found[0][0] == "/nodes/a/widget"
+
+
+def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
+    raw = canvas(
+        {"a": inline("chart", {"future": 1}, schemaVersion=2), "b": node("chart-1")}
+    )
+
+    result = normalize_definition(
+        raw, canvas_widgets(), FakeResolver(), strict_nodes=["b"], props_nodes=[]
+    )
+
+    assert result["nodes"]["a"]["props"] == {"future": 1}
+    assert result["nodes"]["a"]["schemaVersion"] == 2
+
+
+def test_inline_props_are_migrated_to_the_widget_version() -> None:
+    rules = canvas_widgets()
+    chart = rules["chart"]
+    rules["chart"] = type(
+        "ChartV2",
+        (chart,),
+        {
+            "schema_version": 2,
+            "migrators": {1: lambda props: {"metric": props["measure"]}},
+        },
+    )
+    raw = canvas({"a": inline("chart", {"measure": "sum"})})
+
+    result = normalize_definition(raw, rules, FakeResolver())
+
+    assert result["nodes"]["a"]["schemaVersion"] == 2
+    assert result["nodes"]["a"]["props"] == {"metric": "sum"}
+
+
+def test_reserved_placement_ids_are_rejected() -> None:
+    assert "reserved" in issues(canvas({"settings": node("chart-1")}))[0][1]
 
 
 def test_unknown_version_is_rejected() -> None:
@@ -89,7 +138,7 @@ def test_a_widget_can_be_placed_more_than_once() -> None:
 
     result = normalize(raw)
 
-    assert result["nodes"]["a"]["widget"] == result["nodes"]["b"]["widget"]
+    assert result["nodes"]["a"]["instance"] == result["nodes"]["b"]["instance"]
     assert result["nodes"]["a"]["layout"] == {"colSpan": 8}
 
 
@@ -135,17 +184,17 @@ def test_unregistered_type_with_children_is_kept() -> None:
 
 
 def test_size_limits_apply_on_grids() -> None:
-    from superset_core.canvas import CanvasLayoutRules
+    from superset_core.widgets import WidgetUi
 
-    from tests.unit_tests.canvas.fixtures import canvas_rules
+    from tests.unit_tests.canvas.fixtures import canvas_widgets
 
-    class KpiRules(CanvasLayoutRules):
-        widget_type = "kpi"
-        min_col_span = 4
-        max_row_span = 6
-
-    rules = canvas_rules()
-    rules.register(KpiRules)
+    rules = canvas_widgets()
+    chart = rules["chart"]
+    rules["kpi"] = type(
+        "KpiWidget",
+        (chart,),
+        {"widget_type": "kpi", "ui": WidgetUi(min_col_span=4, max_row_span=6)},
+    )
     raw = canvas({"k": node("kpi", layout={"colSpan": 2, "rowSpan": 8})})
 
     with pytest.raises(DefinitionValidationError) as excinfo:
@@ -159,11 +208,11 @@ def test_size_limits_apply_on_grids() -> None:
 
 def test_nesting_rules() -> None:
     assert issues(canvas({"t": node("tab")})) == [
-        ("/nodes/t/widget", "a tab widget cannot be placed in root")
+        ("/nodes/t", "a tab widget cannot be placed in root")
     ]
     assert issues(
         canvas({"s": node("tabs", children=["m"]), "m": node("markdown")}, ["s"])
-    ) == [("/nodes/m/widget", "a markdown widget cannot be placed in tabs")]
+    ) == [("/nodes/m", "a markdown widget cannot be placed in tabs")]
 
 
 def test_containers_own_their_children_layout() -> None:

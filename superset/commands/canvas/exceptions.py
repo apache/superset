@@ -69,7 +69,7 @@ class DefinitionConflictError(CommandException):
         message = (
             _("The canvas changed too much since your revision; reload it.")
             if stale
-            else _("Nodes you edited were changed since your revision.")
+            else _("Placements you edited were changed since your revision.")
         )
         super().__init__(message)
 

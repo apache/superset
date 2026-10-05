@@ -15,27 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Upgrading stored definitions to the current schema version.
+The definition format version.
 
-Every change to the definition schema bumps ``DEFINITION_VERSION`` and adds an
-upgrade from the previous version to ``UPGRADES``. Definitions are upgraded
-when loaded; the next write stores the upgraded form. A definition newer than
-this server understands is refused rather than read with a partial schema.
+Every change to the definition format bumps ``DEFINITION_VERSION`` and ships
+an Alembic migration that rewrites stored definitions, with a downgrade that
+converts them back, so stored definitions are always at the current version.
+The migration also clears ``canvas_ops``: logged operations are in the old
+format and can't be checked for overlap, so open clients get ``stale`` and
+reload.
+Additive changes ship expand/contract across two releases. Anything at another
+version, such as a definition from a newer server or an old export, is refused
+rather than read with the wrong schema.
 """
 
 from __future__ import annotations
 
-import copy
-from collections.abc import Callable, Mapping
 from typing import Any
 
 from superset.canvas.definition.schemas import DEFINITION_VERSION
-
-Upgrade = Callable[[dict[str, Any]], dict[str, Any]]
-
-# Upgrades keyed by the version they upgrade from; each returns the definition
-# at the next version.
-UPGRADES: dict[int, Upgrade] = {}
 
 
 class DefinitionVersionError(ValueError):
@@ -52,23 +49,11 @@ class DefinitionVersionError(ValueError):
         super().__init__(message)
 
 
-def upgrade_definition(
-    definition: dict[str, Any],
-    current: int = DEFINITION_VERSION,
-    upgrades: Mapping[int, Upgrade] | None = None,
+def check_definition_version(
+    definition: dict[str, Any], current: int = DEFINITION_VERSION
 ) -> dict[str, Any]:
-    """Return ``definition`` at version ``current``, upgrading it if older."""
-    upgrades = UPGRADES if upgrades is None else upgrades
-    version = definition.get("version", 1)
-    if not isinstance(version, int) or isinstance(version, bool):
+    """Return ``definition`` if it is at version ``current``; refuse it otherwise."""
+    version = definition.get("version", current)
+    if isinstance(version, bool) or version != current:
         raise DefinitionVersionError(version, current)
-    if version > current or version < 1:
-        raise DefinitionVersionError(version, current)
-    if version == current:
-        return definition
-    upgraded = copy.deepcopy(definition)
-    while version < current:
-        upgraded = upgrades[version](upgraded)
-        version += 1
-        upgraded["version"] = version
-    return upgraded
+    return definition

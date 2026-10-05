@@ -15,56 +15,43 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Where the widget side plugs into the canvas.
+Where the canvas looks up widgets and persisted widget instances.
 
-Widget providers register layout rules for their container types and one
-resolver for widget references. Until a resolver is set, no widget exists,
-so a canvas can hold no nodes.
+Widgets come from the widget registry, which built-ins and extensions register
+into with ``@widget``; persisted instances through an ``InstanceResolver``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Mapping
 
-from superset_core.canvas import CanvasLayoutRules, WidgetResolver
+from superset_core.canvas import InstanceResolver
+from superset_core.widgets import Widget
 
-
-class LayoutRulesRegistry:
-    def __init__(self) -> None:
-        self._rules: dict[str, type[CanvasLayoutRules]] = {}
-
-    def register(self, rules: type[CanvasLayoutRules]) -> None:
-        if rules.widget_type in self._rules:
-            raise ValueError(f"widget type {rules.widget_type!r} already registered")
-        self._rules[rules.widget_type] = rules
-
-    def unregister(self, widget_type: str) -> None:
-        self._rules.pop(widget_type, None)
-
-    def __iter__(self) -> Iterator[type[CanvasLayoutRules]]:
-        return iter(self._rules.values())
-
-    def get(self, widget_type: str) -> type[CanvasLayoutRules]:
-        """Rules for ``widget_type``; types without rules are leaves."""
-        return self._rules.get(widget_type, CanvasLayoutRules)
+WidgetRegistry = Mapping[str, type[Widget]]
 
 
-class _NoWidgets:
-    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
+def get_widgets() -> WidgetRegistry:
+    from superset.widgets.registry import registry
+
+    return registry
+
+
+class _NoInstances:
+    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
         return {}
 
-    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
+    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
         return set()
 
 
-layout_rules = LayoutRulesRegistry()
-_resolver: WidgetResolver = _NoWidgets()
+_resolver: InstanceResolver = _NoInstances()
 
 
-def set_widget_resolver(resolver: WidgetResolver) -> None:
+def set_instance_resolver(resolver: InstanceResolver) -> None:
     global _resolver
     _resolver = resolver
 
 
-def get_widget_resolver() -> WidgetResolver:
+def get_instance_resolver() -> InstanceResolver:
     return _resolver

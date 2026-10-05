@@ -20,10 +20,10 @@ What a renderer needs besides the stored definition.
 Placement rules live on the server only: ``placements`` gives every node on a
 grid its resolved position, auto-placed nodes included, so clients render
 without re-implementing auto-placement and collision push-down.
-``widget_types`` maps nodes to their widget's type so clients pick a renderer;
-nodes whose widget no longer resolves are left out. ``gridColumns`` gives the
-column count of each grid container, whose children's placements are in its
-own grid units.
+``widgetTypes`` maps placements to their widget so clients pick a renderer;
+placements that don't resolve are left out and render as placeholders.
+``gridColumns`` gives the column count of each grid container, whose
+children's placements are in its own grid units.
 """
 
 from __future__ import annotations
@@ -31,43 +31,39 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import ValidationError
-from superset_core.canvas import GridPlacement, WidgetResolver
+from superset_core.canvas import GridPlacement, InstanceResolver
 
 from superset.canvas.definition.grid import resolve_grid
+from superset.canvas.definition.placements import placement_widgets
 from superset.canvas.definition.registry import (
-    get_widget_resolver,
-    layout_rules,
-    LayoutRulesRegistry,
+    get_instance_resolver,
+    get_widgets,
+    WidgetRegistry,
 )
 
 
 def render_context(
     definition: dict[str, Any],
-    rules: LayoutRulesRegistry | None = None,
-    resolver: WidgetResolver | None = None,
+    widgets: WidgetRegistry | None = None,
+    resolver: InstanceResolver | None = None,
 ) -> dict[str, Any]:
-    rules = rules or layout_rules
-    resolver = resolver or get_widget_resolver()
     nodes = definition["nodes"]
-    types = resolver.widget_types({node["widget"] for node in nodes.values()})
-    widget_types = {
-        node_id: types[node["widget"]]
-        for node_id, node in nodes.items()
-        if node["widget"] in types
-    }
+    node_widgets = placement_widgets(
+        nodes,
+        get_widgets() if widgets is None else widgets,
+        resolver or get_instance_resolver(),
+    )
+    widget_types = {node_id: w.widget_type for node_id, w in node_widgets.items()}
 
     grids: list[tuple[list[str], int]] = [
         (definition["root"]["children"], definition["root"]["layout"]["columns"])
     ]
     grid_columns: dict[str, int] = {}
-    for node_id, node in nodes.items():
-        widget_type = widget_types.get(node_id)
-        if widget_type is None:
-            continue
-        container = rules.get(widget_type)
-        if container.is_container and container.grid_columns is not None:
-            grids.append((node.get("children") or [], container.grid_columns))
-            grid_columns[node_id] = container.grid_columns
+    for node_id, widget in node_widgets.items():
+        columns = widget.behavior.grid_columns
+        if widget.behavior.container and columns is not None:
+            grids.append((nodes[node_id].get("children") or [], columns))
+            grid_columns[node_id] = columns
 
     placements: dict[str, dict[str, int]] = {}
     for children, columns in grids:

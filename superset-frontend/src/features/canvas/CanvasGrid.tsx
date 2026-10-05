@@ -207,6 +207,7 @@ export default function CanvasGrid({
     const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => ({
       nodeId: childId,
       widgetType: widgetTypes[childId],
+      props: definition.nodes[childId].props,
       layout: definition.nodes[childId].layout,
       element: renderNode(childId),
     }));
@@ -216,8 +217,10 @@ export default function CanvasGrid({
         <Renderer
           canvasId={canvasId}
           nodeId={nodeId}
-          widgetId={node.widget}
           widgetType={widgetType}
+          instanceId={node.instance}
+          props={node.props}
+          schemaVersion={node.schemaVersion}
           filters={filtersByNode[nodeId] ?? NO_VALUES}
           crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
           customizations={customizationsByNode[nodeId] ?? NO_VALUES}

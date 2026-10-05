@@ -24,11 +24,28 @@ export interface GridPlacement {
   rowSpan: number;
 }
 
-export interface CanvasNode {
-  widget: string;
+interface CanvasNodeBase {
   layout: Record<string, unknown>;
   children?: string[];
 }
+
+/** A placement of a persisted widget instance. */
+export interface PersistedCanvasNode extends CanvasNodeBase {
+  instance: string;
+  widget?: never;
+  schemaVersion?: never;
+  props?: never;
+}
+
+/** A placement holding an inline widget instance. */
+export interface InlineCanvasNode extends CanvasNodeBase {
+  widget: string;
+  schemaVersion: number;
+  props: Record<string, unknown>;
+  instance?: never;
+}
+
+export type CanvasNode = PersistedCanvasNode | InlineCanvasNode;
 
 export interface CanvasDefinition {
   version: number;

@@ -29,9 +29,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 from pydantic import TypeAdapter, ValidationError as PydanticValidationError
-from superset_core.canvas import CanvasLayoutRules, GridPlacement
+from superset_core.canvas import GridPlacement
+from superset_core.widgets import Widget
 
-from superset.canvas.definition.registry import layout_rules
+from superset.canvas.definition.registry import get_widgets
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
     ApplyOperationsRequest,
@@ -40,7 +41,8 @@ from superset.canvas.definition.schemas import (
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
-from superset.canvas.definition.upgrades import DefinitionVersionError
+from superset.canvas.definition.validation import request_pointer
+from superset.canvas.definition.versions import DefinitionVersionError
 from superset.canvas.filters import (
     CanvasAccessFilter,
     CanvasAllTextFilter,
@@ -109,31 +111,39 @@ def _handle_canvas_errors(
 
 
 def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
+    """Request errors as JSON-pointer paths into the request body."""
     return [
-        {"path": list(error["loc"]), "message": error["msg"]} for error in ex.errors()
+        {"path": request_pointer(error["loc"]), "message": error["msg"]}
+        for error in ex.errors()
     ]
 
 
-def describe_rules(rules: type[CanvasLayoutRules]) -> dict[str, Any]:
+def describe_widget(widget: type[Widget]) -> dict[str, Any]:
+    """How a widget takes part in a canvas: nesting, child layout, roles."""
+
     def names(types: frozenset[str] | None) -> list[str] | None:
         return sorted(types) if types is not None else None
 
+    behavior, ui = widget.behavior, widget.ui
     return {
-        "type": rules.widget_type,
-        "isContainer": rules.is_container,
-        "acceptedChildren": names(rules.accepted_children),
-        "allowedParents": names(rules.allowed_parents),
-        "gridColumns": rules.grid_columns,
-        "childLayout": rules.child_layout_model.model_json_schema(by_alias=True)
-        if rules.child_layout_model is not None
+        "id": widget.widget_type,
+        "name": widget.name,
+        "schemaVersion": widget.schema_version,
+        "container": behavior.container,
+        "acceptedChildren": names(behavior.accepted_children),
+        "allowedParents": names(behavior.allowed_parents),
+        "gridColumns": behavior.grid_columns,
+        "childLayout": behavior.child_layout_model.model_json_schema(by_alias=True)
+        if behavior.child_layout_model is not None
         else None,
-        "isFilter": rules.is_filter,
-        "isCrossFilterSource": rules.is_cross_filter_source,
-        "isCustomization": rules.is_customization,
-        "isFilterable": rules.is_filterable,
-        "boundsFilterScope": rules.bounds_filter_scope,
-        "colSpan": {"min": rules.min_col_span, "max": rules.max_col_span},
-        "rowSpan": {"min": rules.min_row_span, "max": rules.max_row_span},
+        "filter": behavior.filter,
+        "emitsFilters": behavior.emits_filters,
+        "customization": behavior.customization,
+        "filterable": behavior.filterable,
+        "boundsFilterScope": behavior.bounds_filter_scope,
+        "defaultSize": list(ui.default_size) if ui.default_size else None,
+        "colSpan": {"min": ui.min_col_span, "max": ui.max_col_span},
+        "rowSpan": {"min": ui.min_row_span, "max": ui.max_row_span},
     }
 
 
@@ -364,8 +374,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         delete:
           summary: Delete a canvas
           description: >-
-            Deletes the canvas and its operation log. The widgets it placed are
-            separate entities and are not deleted.
+            Deletes the canvas, its inline widget instances and its operation
+            log. Persisted widget instances it placed are separate entities and
+            are not deleted.
           parameters:
           - in: path
             schema:
@@ -663,11 +674,12 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         """Get the canvas definition contract.
         ---
         get:
-          summary: Get the canvas definition schema and layout rules
+          summary: Get the canvas definition schema and widget behavior
           description: >-
             JSON Schemas for the definition, its operations and grid placement,
-            plus the layout rules registered for container, filter and
-            filterable widget types. Widget types without rules are leaves.
+            plus how each registered widget takes part in a canvas: nesting,
+            child layout and filter roles. A widget's props schema is served
+            by the widget API.
           responses:
             200:
               description: The canvas contract
@@ -681,6 +693,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "definition": CanvasDefinition.model_json_schema(by_alias=True),
                 "operation": TypeAdapter(Operation).json_schema(by_alias=True),
                 "gridPlacement": GridPlacement.model_json_schema(by_alias=True),
-                "widgetTypes": [describe_rules(rules) for rules in layout_rules],
+                "widgets": [describe_widget(w) for w in get_widgets().values()],
             },
         )

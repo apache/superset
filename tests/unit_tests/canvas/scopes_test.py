@@ -31,7 +31,7 @@ from superset.canvas.definition.validation import (
 )
 from tests.unit_tests.canvas.fixtures import (
     canvas,
-    canvas_rules,
+    canvas_widgets,
     FakeResolver,
     node,
     ops,
@@ -39,7 +39,7 @@ from tests.unit_tests.canvas.fixtures import (
 
 
 def all_scopes(raw: dict[str, Any]) -> dict[str, dict[str, list[str]]]:
-    rules, resolver = canvas_rules(), FakeResolver()
+    rules, resolver = canvas_widgets(), FakeResolver()
     return resolve_scopes(normalize_definition(raw, rules, resolver), rules, resolver)
 
 
@@ -131,17 +131,17 @@ def test_filter_bars_do_not_contain_scope() -> None:
 )
 def test_invalid_overrides(override: dict[str, Any], message: str) -> None:
     with pytest.raises(DefinitionValidationError) as excinfo:
-        normalize_definition(analyst_view(**override), canvas_rules(), FakeResolver())
+        normalize_definition(analyst_view(**override), canvas_widgets(), FakeResolver())
 
     assert any(message in issue.message for issue in excinfo.value.issues)
 
 
 def apply(raw: dict[str, Any], *raw_ops: dict[str, Any]) -> Any:
-    rules, resolver = canvas_rules(), FakeResolver()
+    rules, resolver = canvas_widgets(), FakeResolver()
     return apply_operations(
         normalize_definition(raw, rules, resolver),
         ops(*raw_ops),
-        rules=rules,
+        widgets=rules,
         resolver=resolver,
     )
 
@@ -243,7 +243,7 @@ def test_scope_kinds_are_set_and_merged_independently() -> None:
     assert (
         overlapping(applied[0].touched, [Touch("x1", FieldGroup.FILTER_SCOPE)]) == set()
     )
-    rules, resolver = canvas_rules(), FakeResolver()
+    rules, resolver = canvas_widgets(), FakeResolver()
     assert resolve_scopes(doc, rules, resolver)["crossFilterScopes"]["x1"] == [
         "x2",
         "c1",

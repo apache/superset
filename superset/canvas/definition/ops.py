@@ -26,18 +26,19 @@ since the revision the caller last saw (see ``overlapping``).
 from __future__ import annotations
 
 import copy
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Container, Iterable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
-from uuid import uuid4
 
-from superset_core.canvas import WidgetResolver
+from superset_core.canvas import InstanceResolver
+from superset_core.widgets import Widget
 
+from superset.canvas.definition.placements import new_placement_id, placement_widgets
 from superset.canvas.definition.registry import (
-    get_widget_resolver,
-    layout_rules,
-    LayoutRulesRegistry,
+    get_instance_resolver,
+    get_widgets,
+    WidgetRegistry,
 )
 from superset.canvas.definition.schemas import (
     AddOp,
@@ -47,8 +48,10 @@ from superset.canvas.definition.schemas import (
     RemoveOp,
     ROOT_ID,
     SCOPE_FIELDS,
+    SetPropsOp,
     SetScopeOp,
     SetSettingsOp,
+    SETTINGS_ID,
 )
 from superset.canvas.definition.validation import normalize_definition
 
@@ -57,6 +60,8 @@ class FieldGroup(str, Enum):
     # Existence and position in the tree; overlaps with every other group.
     TREE = "tree"
     LAYOUT = "layout"
+    # An inline instance's props.
+    PROPS = "props"
     # A node's scope override, per kind.
     FILTER_SCOPE = "filterScope"
     CROSS_FILTER_SCOPE = "crossFilterScope"
@@ -75,10 +80,6 @@ SCOPE_GROUPS = {
 }
 
 
-# Stands in for the settings in touches; never a node id, which is a UUID.
-SETTINGS_ID = "settings"
-
-
 @dataclass(frozen=True)
 class Touch:
     node_id: str
@@ -95,6 +96,7 @@ class AppliedOperation:
 class OperationError(ValueError):
     def __init__(self, index: int, message: str) -> None:
         self.index = index
+        self.message = message
         super().__init__(f"operation {index}: {message}")
 
 
@@ -130,6 +132,8 @@ def named_touches(ops: Iterable[Operation]) -> list[Touch]:
             touches += [Touch(op.id, FieldGroup.TREE), Touch(op.id, FieldGroup.LAYOUT)]
         elif isinstance(op, PlaceOp):
             touches.append(Touch(op.id, FieldGroup.LAYOUT))
+        elif isinstance(op, SetPropsOp):
+            touches.append(Touch(op.id, FieldGroup.PROPS))
         elif isinstance(op, SetScopeOp):
             touches.append(Touch(op.id, SCOPE_GROUPS[op.kind]))
         elif isinstance(op, SetSettingsOp):
@@ -141,14 +145,22 @@ class _Applier:
     def __init__(
         self,
         canvas: dict[str, Any],
-        new_id: Callable[[], str],
-        is_container: Callable[[str], bool],
+        new_id: Callable[[str, Container[str]], str],
+        widgets: WidgetRegistry,
+        resolver: InstanceResolver,
     ) -> None:
         self.canvas = copy.deepcopy(canvas)
         self.new_id = new_id
-        # Takes a widget id. Nodes that are no longer resolvable keep their
-        # stored children but accept no new ones.
-        self.is_container = is_container
+        self.widgets = widgets
+        self.resolver = resolver
+
+    def is_container(self, node_id: str) -> bool:
+        # Placements that no longer resolve keep their stored children but
+        # accept no new ones.
+        resolved = placement_widgets(
+            {node_id: self.nodes[node_id]}, self.widgets, self.resolver
+        )
+        return node_id in resolved and resolved[node_id].behavior.container
 
     @property
     def nodes(self) -> dict[str, Any]:
@@ -163,7 +175,7 @@ class _Applier:
         if parent_id == ROOT_ID:
             return self.canvas["root"]["children"]
         parent = self.node(parent_id)
-        if not self.is_container(parent["widget"]):
+        if not self.is_container(parent_id):
             raise ValueError(f"{parent_id!r} cannot hold children")
         return parent.setdefault("children", [])
 
@@ -201,14 +213,9 @@ class _Applier:
     def apply(self, op: Operation) -> AppliedOperation:
         logged = op.model_dump(mode="json", by_alias=True, exclude_none=True)
         if isinstance(op, AddOp):
-            node_id = op.id or self.new_id()
-            if node_id in self.nodes:
-                raise ValueError(f"node {node_id!r} already exists")
-            self.insert(self.children(op.parent), node_id, op.index)
-            self.nodes[node_id] = {"widget": op.widget, "layout": op.layout}
-            return AppliedOperation(
-                {**logged, "id": node_id}, [Touch(node_id, FieldGroup.TREE)]
-            )
+            return self.add(op, logged)
+        if isinstance(op, SetPropsOp):
+            return self.set_props(op, logged)
         if isinstance(op, RemoveOp):
             self.node(op.id)
             self._siblings(self.parent_of(op.id)).remove(op.id)
@@ -244,6 +251,72 @@ class _Applier:
         assert isinstance(op, PlaceOp)  # noqa: S101
         self.node(op.id)["layout"] = op.layout
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
+
+    def set_props(self, op: SetPropsOp, logged: dict[str, Any]) -> AppliedOperation:
+        node = self.node(op.id)
+        widget = self.widgets.get(node.get("widget") or "")
+        if widget is None:
+            raise ValueError(
+                f"{op.id!r} is not an inline instance of a registered widget"
+            )
+        node["props"] = op.props
+        node["schemaVersion"] = widget.schema_version
+        return AppliedOperation(logged, [Touch(op.id, FieldGroup.PROPS)])
+
+    def grid_columns(self, parent_id: str) -> int | None:
+        """Columns of ``parent_id``'s grid, or ``None`` if it isn't a grid."""
+        if parent_id == ROOT_ID:
+            return self.canvas["root"].get("layout", {}).get("columns", 24)
+        resolved = placement_widgets(
+            {parent_id: self.node(parent_id)}, self.widgets, self.resolver
+        )
+        widget = resolved.get(parent_id)
+        return widget.behavior.grid_columns if widget is not None else None
+
+    def default_layout(
+        self, widget: type[Widget] | None, parent_id: str, layout: dict[str, Any]
+    ) -> dict[str, Any]:
+        """``layout`` with the widget's default size on a grid, where unset."""
+        columns = self.grid_columns(parent_id)
+        if widget is None or widget.ui.default_size is None or columns is None:
+            return layout
+        col_span, row_span = widget.ui.default_size
+        return {
+            "colSpan": min(col_span, columns),
+            "rowSpan": row_span,
+            **layout,
+        }
+
+    def add(self, op: AddOp, logged: dict[str, Any]) -> AppliedOperation:
+        widget: type[Widget] | None
+        if op.widget is not None:
+            widget = self.widgets.get(op.widget)
+            if widget is None:
+                raise ValueError(f"unknown widget {op.widget!r}")
+            props = op.props or {}
+            title = props.get("title")
+            name = title if isinstance(title, str) and title.strip() else widget.name
+            node: dict[str, Any] = {
+                "widget": op.widget,
+                "schemaVersion": widget.schema_version,
+                "props": props,
+            }
+        else:
+            assert op.instance is not None  # noqa: S101
+            widget_type = self.resolver.widget_types({op.instance}).get(op.instance)
+            widget = self.widgets.get(widget_type or "")
+            name = widget.name if widget is not None else "widget"
+            node = {"instance": op.instance}
+        node_id = op.id or self.new_id(name, self.nodes)
+        if node_id in self.nodes:
+            raise ValueError(f"node {node_id!r} already exists")
+        self.insert(self.children(op.parent), node_id, op.index)
+        layout = self.default_layout(widget, op.parent, op.layout)
+        self.nodes[node_id] = {**node, "layout": layout}
+        touched = [Touch(node_id, FieldGroup.TREE)]
+        if op.widget is not None:
+            touched.append(Touch(node_id, FieldGroup.PROPS))
+        return AppliedOperation({**logged, "id": node_id}, touched)
 
     def scopes(self, kind: str) -> dict[str, Any]:
         interactions = self.canvas.setdefault("interactions", {})
@@ -299,9 +372,9 @@ def apply_operations(
     canvas: dict[str, Any],
     ops: list[Operation],
     *,
-    rules: LayoutRulesRegistry | None = None,
-    resolver: WidgetResolver | None = None,
-    new_id: Callable[[], str] = lambda: str(uuid4()),
+    widgets: WidgetRegistry | None = None,
+    resolver: InstanceResolver | None = None,
+    new_id: Callable[[str, Container[str]], str] = new_placement_id,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply ``ops`` in order to a copy of ``canvas``.
@@ -310,21 +383,26 @@ def apply_operations(
     and an invalid result raises ``DefinitionValidationError``. Returns the
     normalized canvas and what each operation touched.
     """
-    rules = rules or layout_rules
-    resolver = resolver or get_widget_resolver()
-
-    def is_container(widget_id: str) -> bool:
-        widget_type = resolver.widget_types({widget_id}).get(widget_id)
-        return widget_type is not None and rules.get(widget_type).is_container
-
-    applier = _Applier(canvas, new_id, is_container)
+    widgets = get_widgets() if widgets is None else widgets
+    resolver = resolver or get_instance_resolver()
+    applier = _Applier(canvas, new_id, widgets, resolver)
     applied: list[AppliedOperation] = []
     for index, op in enumerate(ops):
         try:
             applied.append(applier.apply(op))
         except ValueError as ex:
             raise OperationError(index, str(ex)) from ex
-    # Widget rules are enforced on what these operations touched; the rest of
-    # the canvas keeps its stored placement even if a rule changed since.
-    touched = {touch.node_id for op in applied for touch in op.touched}
-    return normalize_definition(applier.canvas, rules, resolver, touched), applied
+    # Widget behavior is enforced on what these operations touched, and props
+    # validated where they were written; the rest of the canvas keeps its
+    # stored form even if a widget changed since.
+    touches = [touch for op in applied for touch in op.touched]
+    return (
+        normalize_definition(
+            applier.canvas,
+            widgets,
+            resolver,
+            strict_nodes={touch.node_id for touch in touches},
+            props_nodes={t.node_id for t in touches if t.group == FieldGroup.PROPS},
+        ),
+        applied,
+    )

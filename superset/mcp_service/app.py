@@ -796,6 +796,10 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     list_annotation_layers,
     list_layer_annotations,
 )
+from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
+    apply_canvas_ops,
+    get_canvas,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,
@@ -906,6 +910,10 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+from superset.mcp_service.widgets.tool import (  # noqa: F401, E402
+    get_widget_control_schema,
+    list_widget_types,
+)
 
 #: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
 #: here is a security-significant choice — review carefully. Entries are tools
@@ -999,6 +1007,15 @@ def _remove_tool_quietly(tool_name: str, reason: str) -> None:
         pass
 
 
+# Registered only with the CANVAS feature flag, like the canvas and widget APIs.
+CANVAS_TOOLS = (
+    "get_canvas",
+    "apply_canvas_ops",
+    "list_widget_types",
+    "get_widget_control_schema",
+)
+
+
 def _apply_config_guards(flask_app: Any) -> set[str]:
     """Remove tools whose backing features are administratively disabled.
 
@@ -1009,6 +1026,8 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    - Canvas and widget tools: mirror the canvas and widget APIs, which are
+      registered only with the CANVAS feature flag.
     """
     removed: set[str] = set()
 
@@ -1017,6 +1036,11 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
         for tool_name in ("list_tasks", "get_task_info"):
             _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    if not feature_flag_manager.is_feature_enabled("CANVAS"):
+        for tool_name in CANVAS_TOOLS:
+            _remove_tool_quietly(tool_name, "CANVAS not enabled")
             removed.add(tool_name)
 
     return removed

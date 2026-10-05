@@ -36,6 +36,10 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 # field assertion rejects missing or fully unconstrained output schemas.
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
+    "apply_canvas_ops": "revision",
+    "get_canvas": "definition",
+    "get_widget_control_schema": "control_schema",
+    "list_widget_types": "widget_types",
     "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
     "create_theme": "theme_name",
@@ -121,6 +125,7 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
 
 MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
+    "apply_canvas_ops",
     "apply_dashboard_filters",
     "create_dataset",
     "create_theme",
@@ -160,6 +165,7 @@ NON_COMMITTING_MUTATING_TOOLS = {
 
 
 DESTRUCTIVE_TOOLS = {
+    "apply_canvas_ops",
     "delete_chart",
     "delete_dashboard",
     "execute_sql",
@@ -595,6 +601,28 @@ def test_task_tools_removed_when_global_task_framework_disabled(
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert "list_tasks" in removed
     assert "get_task_info" in removed
+
+
+def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
+    """Canvas and widget tools follow the CANVAS flag, like their APIs."""
+    gtf_ffm.is_feature_enabled.side_effect = lambda flag: flag != "CANVAS"
+
+    flask_app = _make_flask_app_mock(set())
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert {
+        "get_canvas",
+        "apply_canvas_ops",
+        "list_widget_types",
+        "get_widget_control_schema",
+    } <= removed
+    assert "list_tasks" not in removed
 
 
 def test_config_guard_tools_excluded_from_instructions(

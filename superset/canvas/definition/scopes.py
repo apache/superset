@@ -33,12 +33,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.canvas import CanvasLayoutRules, WidgetResolver
+from superset_core.canvas import InstanceResolver
+from superset_core.widgets import Widget
 
+from superset.canvas.definition.placements import placement_widgets
 from superset.canvas.definition.registry import (
-    get_widget_resolver,
-    layout_rules,
-    LayoutRulesRegistry,
+    get_instance_resolver,
+    get_widgets,
+    WidgetRegistry,
 )
 from superset.canvas.definition.schemas import (
     FilterScopeMode,
@@ -46,11 +48,11 @@ from superset.canvas.definition.schemas import (
     SCOPE_FIELDS,
 )
 
-# The layout rule that makes a node own each kind of scope.
+# The behavior that makes a placement own each kind of scope.
 _ROLES = {
-    "filter": "is_filter",
-    "crossFilter": "is_cross_filter_source",
-    "customization": "is_customization",
+    "filter": "filter",
+    "crossFilter": "emits_filters",
+    "customization": "customization",
 }
 # Response keys for each kind's resolved scopes.
 SCOPE_RESULT_KEYS = {
@@ -73,28 +75,25 @@ def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
 
 def resolve_scopes(
     canvas: dict[str, Any],
-    rules: LayoutRulesRegistry | None = None,
-    resolver: WidgetResolver | None = None,
+    widgets: WidgetRegistry | None = None,
+    resolver: InstanceResolver | None = None,
 ) -> dict[str, dict[str, list[str]]]:
     """
     Map each kind's response key (``filterScopes``, ``crossFilterScopes``,
     ``customizationScopes``) to ``{node id: driven node ids}``, in reading order.
     """
-    rules = rules or layout_rules
-    resolver = resolver or get_widget_resolver()
     nodes = canvas["nodes"]
-    types = resolver.widget_types({node["widget"] for node in nodes.values()})
-    node_rules: dict[str, type[CanvasLayoutRules]] = {
-        node_id: rules.get(types[node["widget"]])
-        for node_id, node in nodes.items()
-        if node["widget"] in types
-    }
+    node_widgets = placement_widgets(
+        nodes,
+        get_widgets() if widgets is None else widgets,
+        resolver or get_instance_resolver(),
+    )
     parents = {
         child: parent
         for parent in [ROOT_ID, *nodes]
         for child in _children(canvas, parent)
     }
-    filterable = {n for n, r in node_rules.items() if r.is_filterable}
+    filterable = {n for n, w in node_widgets.items() if w.behavior.filterable}
     interactions = canvas.get("interactions", {})
     cross_filters_on = (
         canvas.get("settings", {}).get("crossFilters", {}).get("enabled", True)
@@ -107,8 +106,8 @@ def resolve_scopes(
         if kind == "crossFilter" and not cross_filters_on:
             continue
         overrides = interactions.get(SCOPE_FIELDS[kind], {})
-        for node_id, node_rule in node_rules.items():
-            if not getattr(node_rule, role):
+        for node_id, widget in node_widgets.items():
+            if not getattr(widget.behavior, role):
                 continue
             override = overrides.get(node_id, {})
             mode = FilterScopeMode(override.get("mode", FilterScopeMode.AUTO))
@@ -118,7 +117,7 @@ def resolve_scopes(
                 boundary = (
                     ROOT_ID
                     if mode == FilterScopeMode.GLOBAL
-                    else _scope_boundary(node_id, parents, node_rules)
+                    else _scope_boundary(node_id, parents, node_widgets)
                 )
                 excluded = set(override.get("exclude", []))
                 candidates = [
@@ -139,13 +138,13 @@ def _children(canvas: dict[str, Any], parent: str) -> list[str]:
 def _scope_boundary(
     node_id: str,
     parents: dict[str, str],
-    node_rules: dict[str, type[CanvasLayoutRules]],
+    node_widgets: dict[str, type[Widget]],
 ) -> str:
     current = parents.get(node_id, ROOT_ID)
     while current != ROOT_ID:
-        container = node_rules.get(current)
+        container = node_widgets.get(current)
         # An unresolved container keeps its filters contained.
-        if container is None or container.bounds_filter_scope:
+        if container is None or container.behavior.bounds_filter_scope:
             return current
         current = parents.get(current, ROOT_ID)
     return ROOT_ID

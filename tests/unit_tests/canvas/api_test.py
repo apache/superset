@@ -72,7 +72,7 @@ def patch_ops(client: Any, base_revision: int, *ops: dict[str, Any]) -> Any:
 
 
 def add(widget: str, **extra: Any) -> dict[str, Any]:
-    return {"op": "add", "widget": widget, **extra}
+    return {"op": "add", "instance": widget, **extra}
 
 
 def test_create_and_read_a_canvas(
@@ -214,7 +214,7 @@ def test_overlapping_stale_write_is_rejected(
 
     assert response.status_code == 409
     assert response.json == {
-        "message": "Nodes you edited were changed since your revision.",
+        "message": "Placements you edited were changed since your revision.",
         "revision": 3,
         "conflicts": [node_id],
         "stale": False,
@@ -261,6 +261,9 @@ def test_invalid_operation_reports_its_index(
 
     assert response.status_code == 422
     assert response.json["operation"] == 1
+    assert response.json["errors"] == [
+        {"path": "/ops/1", "message": "unknown node 'ghost'"}
+    ]
     assert canvas.revision == 1
     published.assert_not_called()
 
@@ -283,7 +286,10 @@ def test_widgets_the_author_cannot_place_are_rejected(
 
     assert response.status_code == 422
     assert response.json["errors"] == [
-        {"path": "/ops/1/widget", "message": "unknown widget, or no access to it"}
+        {
+            "path": "/ops/1/instance",
+            "message": "unknown widget instance, or no access to it",
+        }
     ]
 
 
@@ -291,6 +297,17 @@ def test_malformed_body(client: Any, full_api_access: None, canvas: Any) -> None
     response = client.patch(URL, json={"ops": [{"op": "explode"}]})
 
     assert response.status_code == 400
+    paths = {error["path"] for error in response.json["message"]}
+    assert "/base_revision" in paths
+
+
+def test_malformed_op_paths_point_into_the_body(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    response = patch_ops(client, 1, add("chart-1", layout=[]))
+
+    assert response.status_code == 400
+    assert response.json["message"][0]["path"] == "/ops/0/layout"
 
 
 def test_non_editors_cannot_write(
@@ -356,23 +373,23 @@ def test_definition_from_a_newer_superset_is_refused(
     assert canvas.revision == 1
 
 
-def test_write_that_upgrades_the_definition_restarts_the_op_log(
+def test_a_definition_from_a_newer_server_is_refused(
     client: Any,
     full_api_access: None,
     canvas: Any,
     published: MagicMock,
     session: Session,
 ) -> None:
-    patch_ops(client, 1, add("chart-1"))
-    # Stored by an older schema version.
-    canvas.definition_version = 0
+    canvas.definition = json.dumps({**json.loads(canvas.definition), "version": 2})
     session.commit()
 
-    assert patch_ops(client, 1, add("chart-2")).json["stale"] is True
-    assert patch_ops(client, 2, add("chart-2")).status_code == 200
-    assert canvas.definition_version == 1
-    assert client.get(f"{URL}/changes?since=1").status_code == 409
-    assert client.get(f"{URL}/changes?since=2").status_code == 200
+    read = client.get(URL)
+    write = patch_ops(client, 1, add("chart-1"))
+
+    assert read.status_code == 422
+    assert "Upgrade Superset" in read.json["message"]
+    assert write.status_code == 422
+    assert canvas.revision == 1
 
 
 def test_schema_is_published(
@@ -384,7 +401,8 @@ def test_schema_is_published(
     assert "interactions" in result["definition"]["properties"]
     assert result["operation"]["discriminator"]["propertyName"] == "op"
     assert "colSpan" in result["gridPlacement"]["properties"]
-    by_type = {rules["type"]: rules for rules in result["widgetTypes"]}
-    assert by_type["tabs"]["acceptedChildren"] == ["tab"]
-    assert by_type["filterbar"]["boundsFilterScope"] is False
-    assert by_type["chart"]["isFilterable"] is True
+    by_id = {widget["id"]: widget for widget in result["widgets"]}
+    assert by_id["tabs"]["acceptedChildren"] == ["tab"]
+    assert by_id["filterbar"]["boundsFilterScope"] is False
+    assert by_id["chart"]["filterable"] is True
+    assert by_id["chart"]["schemaVersion"] == 1

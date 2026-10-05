@@ -70,7 +70,9 @@ def test_create_rejects_widgets_the_author_cannot_place(
         command.validate()
 
     assert excinfo.value.normalized_messages() == {
-        "definition": {"/nodes/a/widget": ["unknown widget, or no access to it"]}
+        "definition": {
+            "/nodes/a/instance": ["unknown widget instance, or no access to it"]
+        }
     }
 
 

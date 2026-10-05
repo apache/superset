@@ -23,15 +23,15 @@ from typing import Any
 
 from marshmallow import ValidationError
 
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import get_instance_resolver
 from superset.canvas.definition.schemas import empty_definition
-from superset.canvas.definition.upgrades import (
-    DefinitionVersionError,
-    upgrade_definition,
-)
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
+)
+from superset.canvas.definition.versions import (
+    check_definition_version,
+    DefinitionVersionError,
 )
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.canvas.exceptions import (
@@ -67,7 +67,7 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
     def _validate_definition(self, exceptions: list[ValidationError]) -> None:
         raw = self._properties.pop("definition", None) or empty_definition()
         try:
-            definition = normalize_definition(upgrade_definition(raw))
+            definition = normalize_definition(check_definition_version(raw))
         except DefinitionVersionError as ex:
             exceptions.append(
                 ValidationError({"/version": [str(ex)]}, field_name="definition")
@@ -81,16 +81,20 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 )
             )
             return
-        widgets = {node["widget"] for node in definition["nodes"].values()}
-        if hidden := widgets - get_widget_resolver().placeable(widgets):
+        instances = {
+            node["instance"]
+            for node in definition["nodes"].values()
+            if "instance" in node
+        }
+        if hidden := instances - get_instance_resolver().placeable(instances):
             exceptions.append(
                 ValidationError(
                     {
-                        f"/nodes/{node_id}/widget": [
-                            "unknown widget, or no access to it"
+                        f"/nodes/{node_id}/instance": [
+                            "unknown widget instance, or no access to it"
                         ]
                         for node_id, node in definition["nodes"].items()
-                        if node["widget"] in hidden
+                        if node.get("instance") in hidden
                     },
                     field_name="definition",
                 )

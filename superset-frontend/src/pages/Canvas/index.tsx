@@ -38,8 +38,11 @@ import CanvasGrid, {
 } from 'src/features/canvas/CanvasGrid';
 import { CanvasMetadata } from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
+import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
+
+registerBuiltinRenderers();
 
 const Page = styled.div`
   ${({ theme }) => css`

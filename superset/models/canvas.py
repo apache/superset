@@ -42,10 +42,11 @@ from superset.utils import core as utils, json
 
 class Canvas(AuditMixinNullable, UUIDMixin, Model):
     """
-    A canvas and where its widgets are placed.
+    A canvas and its placements of widget instances.
 
-    Widgets are separate entities; ``definition`` only references them by id
-    and holds their placement and filter scopes (see ``superset.canvas``).
+    ``definition`` holds the placements, their layout and filter scopes, and
+    inline instances; persisted instances are referenced by UUID (see
+    ``superset.canvas``).
     The integer id plus ``uuid`` shape matches the versioned asset models, so
     version history can be enabled later by adding ``__versioned__``.
     """

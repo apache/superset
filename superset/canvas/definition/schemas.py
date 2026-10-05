@@ -17,10 +17,11 @@
 """
 The dashboard canvas and the operations that change it.
 
-A canvas is where a dashboard's widgets sit: a flat ``nodes`` map keyed by
-UUID node ids, with the tree expressed through ``children`` id lists.
-A node references a widget by id and holds only its placement; widget
-configuration lives with the widget. The root is not a node: it always
+A canvas is a tree of placements: a flat ``nodes`` map keyed by placement id,
+with the tree expressed through ``children`` id lists. A placement shows one
+widget instance, either persisted (referenced by UUID) or inline (its widget,
+schema version and props stored on the placement), and holds its layout; its
+filter scope lives in ``interactions``. The root is not a node: it always
 exists, is always a grid, and is addressed as ``"root"`` in operations.
 """
 
@@ -34,9 +35,15 @@ from pydantic.alias_generators import to_camel
 
 DEFINITION_VERSION = 1
 ROOT_ID = "root"
-# Caller-chosen node ids must be canonical lowercase UUIDs, like the ones the
-# server generates, so every reference to a node spells it the same way.
-NODE_ID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+# Stands in for the settings in the operation log; never a placement id.
+SETTINGS_ID = "settings"
+# Placement ids are readable slugs, unique within a canvas, e.g.
+# ``revenue-trend``; agents read and write them far more cheaply than UUIDs.
+NODE_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+NODE_ID_MAX_LENGTH = 64
+RESERVED_IDS = frozenset({ROOT_ID, SETTINGS_ID})
+
+NodeId = Annotated[str, Field(pattern=NODE_ID_PATTERN, max_length=NODE_ID_MAX_LENGTH)]
 
 
 class _Model(BaseModel):
@@ -57,12 +64,34 @@ class Root(_Model):
 
 
 class Node(_Model):
-    # Id of the placed widget.
-    widget: str = Field(min_length=1)
+    """A placement: a persisted instance by UUID, or an inline instance."""
+
+    instance: str | None = Field(default=None, min_length=1)
+    widget: str | None = Field(default=None, min_length=1)
+    # The widget schema version ``props`` conform to.
+    schema_version: int | None = Field(default=None, ge=1)
+    # Explicitly set values only; defaults come from the widget's schema.
+    props: dict[str, Any] | None = None
     # Placement within the parent, validated against the parent's rules.
     layout: dict[str, Any] = Field(default_factory=dict)
     # Present only when the widget is a container.
     children: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _one_instance(self) -> Node:
+        if (self.instance is None) == (self.widget is None):
+            raise ValueError("a placement takes either instance or widget")
+        if self.instance is not None:
+            if self.schema_version is not None or self.props is not None:
+                raise ValueError(
+                    "a persisted instance's schemaVersion and props live with "
+                    "the instance"
+                )
+        elif self.schema_version is None:
+            raise ValueError("an inline instance needs its schemaVersion")
+        elif self.props is None:
+            self.props = {}
+        return self
 
 
 class FilterScopeMode(str, Enum):
@@ -150,9 +179,15 @@ SettingsKey = Literal["refresh", "colors", "display", "crossFilters"]
 class CanvasDefinition(_Model):
     version: Literal[1] = 1
     root: Root = Field(default_factory=Root)
-    nodes: dict[str, Node] = Field(default_factory=dict)
+    nodes: dict[NodeId, Node] = Field(default_factory=dict)
     interactions: Interactions = Field(default_factory=Interactions)
     settings: Settings = Field(default_factory=Settings)
+
+    @model_validator(mode="after")
+    def _no_reserved_ids(self) -> CanvasDefinition:
+        if reserved := RESERVED_IDS.intersection(self.nodes):
+            raise ValueError(f"reserved placement ids: {sorted(reserved)}")
+        return self
 
 
 def empty_definition() -> dict[str, Any]:
@@ -161,19 +196,34 @@ def empty_definition() -> dict[str, Any]:
 
 class AddOp(_Model):
     """
-    Place a widget under ``parent``.
+    Place a persisted instance (``instance``) or a new inline one (``widget``
+    and ``props``) under ``parent``.
 
-    The node id is the caller's ``id`` when given, so later operations in the
-    same request can reference the new node; otherwise the server assigns one.
+    The placement id is the caller's ``id`` when given, so later operations in
+    the same request can reference it; otherwise the server derives one from
+    the widget's name. Inline props are stored at the widget's current schema
+    version.
     """
 
     op: Literal["add"]
-    id: str | None = Field(default=None, pattern=NODE_ID_PATTERN)
-    widget: str = Field(min_length=1)
+    id: NodeId | None = None
+    instance: str | None = Field(default=None, min_length=1)
+    widget: str | None = Field(default=None, min_length=1)
+    props: dict[str, Any] | None = None
     layout: dict[str, Any] = Field(default_factory=dict)
     parent: str = ROOT_ID
     # Position in the parent's children (reading order); appended when omitted.
     index: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _one_instance(self) -> AddOp:
+        if (self.instance is None) == (self.widget is None):
+            raise ValueError("add takes either instance or widget")
+        if self.instance is not None and self.props is not None:
+            raise ValueError("props are only for an inline widget")
+        if self.id in RESERVED_IDS:
+            raise ValueError(f"{self.id!r} is reserved")
+        return self
 
 
 class RemoveOp(_Model):
@@ -202,6 +252,17 @@ class PlaceOp(_Model):
     layout: dict[str, Any]
 
 
+class SetPropsOp(_Model):
+    """
+    Replace an inline instance's props, stored at its widget's current schema
+    version; how a committed draft of an inline instance is written back.
+    """
+
+    op: Literal["set_props"]
+    id: str
+    props: dict[str, Any]
+
+
 class SetScopeOp(_Model):
     """
     Override which widgets a filter, cross-filter source or customization
@@ -223,7 +284,7 @@ class SetSettingsOp(_Model):
 
 
 Operation = Annotated[
-    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetScopeOp, SetSettingsOp],
+    Union[AddOp, RemoveOp, MoveOp, PlaceOp, SetPropsOp, SetScopeOp, SetSettingsOp],
     Field(discriminator="op"),
 ]
 

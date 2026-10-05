@@ -20,8 +20,9 @@
 /**
  * @fileoverview Canvas API for Superset extensions.
  *
- * A canvas places widgets; widgets are separate entities that bring their own
- * renderers. This module lets a widget provider register the React component
+ * A canvas places widget instances: inline ones, stored on the placement as a
+ * widget id and props, or persisted ones, referenced by UUID. Widgets bring
+ * their own renderers. This module lets a widget provider register the React component
  * that renders a widget type on a canvas, and lets tools (such as the chat)
  * know which canvas the user has open.
  *
@@ -63,6 +64,8 @@ export interface CanvasChild {
   nodeId: string;
   /** The child's widget type, when its widget still resolves. */
   widgetType?: string;
+  /** The child's props, when it is an inline instance. */
+  props?: Record<string, unknown>;
   /** The child's stored layout within this container. */
   layout: Record<string, unknown>;
   /** The rendered child. */
@@ -72,9 +75,18 @@ export interface CanvasChild {
 /** The props the canvas passes to a widget renderer. */
 export interface CanvasWidgetProps {
   canvasId: number;
+  /** The placement's id, unique within the canvas, e.g. `revenue-trend`. */
   nodeId: string;
-  widgetId: string;
+  /** The widget id, e.g. `echarts` or `extensions.acme.kpi.kpi`. */
   widgetType: string;
+  /** For a persisted instance: its UUID. */
+  instanceId?: string;
+  /**
+   * For an inline instance: its props, valid against the widget's schema at
+   * `schemaVersion`. Only explicitly set values; defaults come from the schema.
+   */
+  props?: Record<string, unknown>;
+  schemaVersion?: number;
   /** Values of the filters whose scope includes this node. */
   filters: FilterValue[];
   /** Values of the cross-filter sources whose scope includes this node. */

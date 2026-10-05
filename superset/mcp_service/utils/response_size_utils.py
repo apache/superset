@@ -432,6 +432,7 @@ def _spec(
 # a second one.
 COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
+    "apply_canvas_ops": _spec("canvas", "ops"),
     "apply_dashboard_filters": _spec("dashboard"),
     "create_dataset": _spec("dataset"),
     "create_theme": _spec("theme", reports_success=True),

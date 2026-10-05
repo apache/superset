@@ -299,8 +299,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SavedQueryRestApi)
         if feature_flag_manager.is_feature_enabled("CANVAS"):
             from superset.canvas.api import CanvasRestApi
+            from superset.widgets.api import WidgetControlsRestApi
 
             appbuilder.add_api(CanvasRestApi)
+            appbuilder.add_api(WidgetControlsRestApi)
         if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
             from superset.semantic_layers.api import (
                 SemanticLayerRestApi,

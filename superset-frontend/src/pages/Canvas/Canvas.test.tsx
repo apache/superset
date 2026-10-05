@@ -42,7 +42,10 @@ const definition = (children: string[], revision = 1) => ({
       version: 1,
       root: { layout: { columns: 24, gap: 16, rowUnit: 40 }, children },
       nodes: Object.fromEntries(
-        children.map(nodeId => [nodeId, { widget: `w-${nodeId}`, layout: {} }]),
+        children.map(nodeId => [
+          nodeId,
+          { instance: `w-${nodeId}`, layout: {} },
+        ]),
       ),
       interactions: { filters: {}, crossFilters: {}, customizations: {} },
       settings: {

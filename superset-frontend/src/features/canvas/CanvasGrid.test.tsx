@@ -39,12 +39,17 @@ const result: CanvasDefinitionResult = {
       children: ['f', 'g', 'lost', 'odd', 'unknown'],
     },
     nodes: {
-      f: { widget: 'w-filter', layout: {} },
-      g: { widget: 'w-group', layout: {}, children: ['c1'] },
-      c1: { widget: 'w-chart', layout: { colSpan: 6 } },
-      lost: { widget: 'w-gone', layout: {} },
-      odd: { widget: 'w-odd', layout: {} },
-      unknown: { widget: 'w-unknown', layout: {} },
+      f: { instance: 'w-filter', layout: {} },
+      g: { instance: 'w-group', layout: {}, children: ['c1'] },
+      c1: {
+        widget: 'test.chart',
+        schemaVersion: 1,
+        props: { title: 'Revenue' },
+        layout: { colSpan: 6 },
+      },
+      lost: { instance: 'w-gone', layout: {} },
+      odd: { instance: 'w-odd', layout: {} },
+      unknown: { instance: 'w-unknown', layout: {} },
     },
     interactions: { filters: {}, crossFilters: {}, customizations: {} },
     settings,
@@ -71,7 +76,7 @@ const result: CanvasDefinitionResult = {
 };
 
 const Chart = ({
-  widgetId,
+  props,
   filters,
   crossFilters,
   colors,
@@ -79,7 +84,7 @@ const Chart = ({
   refreshKey,
 }: canvasApi.CanvasWidgetProps) => (
   <div>
-    <span>{`chart ${widgetId} filters=${JSON.stringify(filters)}`}</span>
+    <span>{`chart ${props?.title} filters=${JSON.stringify(filters)}`}</span>
     <span>{`cross=${JSON.stringify(crossFilters)}`}</span>
     <span>{`colors=${colors.scheme} timestamp=${showTimestamp} refresh=${refreshKey}`}</span>
   </div>
@@ -125,7 +130,7 @@ test('renders widgets through their renderers, nested in grid containers', () =>
   renderGrid();
 
   expect(screen.getByRole('region', { name: 'group' })).toHaveTextContent(
-    'chart w-chart filters=[]',
+    'chart Revenue filters=[]',
   );
   expect(
     screen.getByText('colors=supersetColors timestamp=true refresh=2'),
@@ -147,7 +152,7 @@ test('filter values reach the nodes in the filter scope', () => {
 
   expect(
     screen.getByText(
-      'chart w-chart filters=[{"filterNodeId":"f","value":"EMEA"}]',
+      'chart Revenue filters=[{"filterNodeId":"f","value":"EMEA"}]',
     ),
   ).toBeInTheDocument();
 

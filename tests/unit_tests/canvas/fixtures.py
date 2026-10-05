@@ -16,33 +16,42 @@
 # under the License.
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Container, Iterable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter
-from superset_core.canvas import CanvasLayoutRules
+from superset_core.widgets import Widget, WidgetBehavior
 
-from superset.canvas.definition.registry import LayoutRulesRegistry
 from superset.canvas.definition.schemas import Operation
 
 
-class GroupRules(CanvasLayoutRules):
-    widget_type = "group"
-    is_container = True
-    grid_columns = 12
+class Props(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = ""
 
 
-class TabsRules(CanvasLayoutRules):
-    widget_type = "tabs"
-    is_container = True
-    accepted_children = frozenset({"tab"})
+class ChartProps(Props):
+    metric: str = "count"
 
 
-class TabRules(CanvasLayoutRules):
-    widget_type = "tab"
-    is_container = True
-    allowed_parents = frozenset({"tabs"})
-    grid_columns = 24
+def _widget(
+    widget_type: str,
+    behavior: WidgetBehavior | None = None,
+    controls: type[BaseModel] = Props,
+    **attrs: Any,
+) -> type[Widget]:
+    return type(
+        f"{widget_type.title()}Widget",
+        (Widget,),
+        {
+            "widget_type": widget_type,
+            "name": widget_type.title(),
+            "controls_class": controls,
+            "behavior": behavior or WidgetBehavior(),
+            **attrs,
+        },
+    )
 
 
 class BoardColumn(BaseModel):
@@ -51,85 +60,64 @@ class BoardColumn(BaseModel):
     lane: str
 
 
-class BoardRules(CanvasLayoutRules):
-    """A container with its own, non-grid child layout."""
-
-    widget_type = "board"
-    is_container = True
-    child_layout_model = BoardColumn
-
-
-class ChartRules(CanvasLayoutRules):
-    widget_type = "chart"
-    is_filterable = True
-
-
-class CrossFilterChartRules(CanvasLayoutRules):
-    """A chart that can also cross-filter others."""
-
-    widget_type = "xchart"
-    is_filterable = True
-    is_cross_filter_source = True
-
-
-class GroupByRules(CanvasLayoutRules):
-    """A customization, e.g. a dynamic group-by control."""
-
-    widget_type = "groupby"
-    is_customization = True
-
-
-class FilterRules(CanvasLayoutRules):
-    widget_type = "filter"
-    is_filter = True
-
-
-class FilterBarRules(CanvasLayoutRules):
-    """Holds filters without containing their scope."""
-
-    widget_type = "filterbar"
-    is_container = True
-    grid_columns = 24
-    accepted_children = frozenset({"filter"})
-    bounds_filter_scope = False
-
-
-def canvas_rules() -> LayoutRulesRegistry:
-    rules = LayoutRulesRegistry()
-    for registered in (
-        GroupRules,
-        TabsRules,
-        TabRules,
-        BoardRules,
-        ChartRules,
-        CrossFilterChartRules,
-        GroupByRules,
-        FilterRules,
-        FilterBarRules,
-    ):
-        rules.register(registered)
-    return rules
+def canvas_widgets() -> dict[str, type[Widget]]:
+    """Test widgets by id, standing in for the widget registry."""
+    widgets = [
+        _widget("group", WidgetBehavior(container=True, grid_columns=12)),
+        _widget(
+            "tabs",
+            WidgetBehavior(container=True, accepted_children=frozenset({"tab"})),
+        ),
+        _widget(
+            "tab",
+            WidgetBehavior(
+                container=True, allowed_parents=frozenset({"tabs"}), grid_columns=24
+            ),
+        ),
+        # A container with its own, non-grid child layout.
+        _widget(
+            "board", WidgetBehavior(container=True, child_layout_model=BoardColumn)
+        ),
+        _widget("markdown"),
+        _widget("chart", WidgetBehavior(filterable=True), ChartProps),
+        # A chart that can also cross-filter others.
+        _widget("xchart", WidgetBehavior(filterable=True, emits_filters=True)),
+        # A customization, e.g. a dynamic group-by control.
+        _widget("groupby", WidgetBehavior(customization=True)),
+        _widget("filter", WidgetBehavior(filter=True)),
+        # Holds filters without containing their scope.
+        _widget(
+            "filterbar",
+            WidgetBehavior(
+                container=True,
+                grid_columns=24,
+                accepted_children=frozenset({"filter"}),
+                bounds_filter_scope=False,
+            ),
+        ),
+    ]
+    return {widget.widget_type: widget for widget in widgets}
 
 
 class FakeResolver:
     """
-    Widgets are named ``<type>`` or ``<type>-<n>``, so a widget's type is
-    readable from its id. Ids in ``hidden`` exist but cannot be placed, and
-    ids starting with ``missing`` do not exist.
+    Persisted instances are named ``<widget>`` or ``<widget>-<n>``, so an
+    instance's widget is readable from its id. Ids in ``hidden`` exist but
+    cannot be placed, and ids starting with ``missing`` do not exist.
     """
 
     def __init__(self, hidden: Iterable[str] = ()) -> None:
         self.hidden = set(hidden)
 
-    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
+    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
         return {
-            widget_id: widget_id.split("-")[0]
-            for widget_id in widget_ids
-            if not widget_id.startswith("missing")
+            instance_id: instance_id.split("-")[0]
+            for instance_id in instance_ids
+            if not instance_id.startswith("missing")
         }
 
-    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
-        return set(self.widget_types(widget_ids)) - self.hidden
+    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
+        return set(self.widget_types(instance_ids)) - self.hidden
 
 
 _ops_adapter = TypeAdapter(list[Operation])
@@ -139,13 +127,21 @@ def ops(*raw: dict[str, Any]) -> list[Operation]:
     return _ops_adapter.validate_python(list(raw))
 
 
-def sequential_ids() -> Callable[[], str]:
+def sequential_ids() -> Callable[[str, Container[str]], str]:
     counter = iter(range(10_000))
-    return lambda: f"n{next(counter)}"
+    return lambda _base, _taken: f"n{next(counter)}"
 
 
-def node(widget: str, **extra: Any) -> dict[str, Any]:
-    return {"widget": widget, **extra}
+def node(instance: str, **extra: Any) -> dict[str, Any]:
+    """A placement of a persisted instance."""
+    return {"instance": instance, **extra}
+
+
+def inline(
+    widget: str, props: dict[str, Any] | None = None, **extra: Any
+) -> dict[str, Any]:
+    """A placement holding an inline instance of ``widget``."""
+    return {"widget": widget, "schemaVersion": 1, "props": props or {}, **extra}
 
 
 def canvas(
