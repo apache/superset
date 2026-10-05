@@ -148,9 +148,11 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import numbers
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
@@ -1843,9 +1845,25 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         datasource, columns_by_name[mapped_column], operator, sample_values
     )
     errors: list[str] = []
+    type_errors: list[str] = []
     predicates = build_mirrored_predicates(
-        datasource, mapping, [(operator, value)], errors=errors
+        datasource,
+        mapping,
+        [(operator, value)],
+        errors=errors,
+        type_errors=type_errors,
     )
+    if type_errors:
+        # Its own reason, because "the database would not evaluate this" and
+        # "it evaluated and answered with the wrong kind of thing" are
+        # different problems with different fixes, and the owner is the only
+        # one who can tell which transform they meant to write.
+        return {
+            "valid": False,
+            "reason": "type",
+            "sample_input": sample_input,
+            "error": type_errors[0],
+        }
     if not predicates:
         return {
             "valid": False,
@@ -1980,6 +1998,7 @@ def build_mirrored_predicates(
     requests: list[tuple[FilterOperator, Any]],
     *,
     errors: list[str] | None = None,
+    type_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -1996,6 +2015,11 @@ def build_mirrored_predicates(
     the predicate the chart carries from disagreeing.
 
     :param errors: optional sink; see `evaluate_transform`.
+    :param type_errors: optional sink for a probe result the partition column
+        cannot hold -- see `probed_value_type_error`. Separate from ``errors``
+        because the two say different things to an owner: that one is "the
+        database would not evaluate this", and this one is "it evaluated, and
+        answered with the wrong kind of thing".
     """
     if not requests:
         return []
@@ -2034,9 +2058,55 @@ def build_mirrored_predicates(
     if not _bounds_are_ordered(evaluated, spans):
         return []
 
-    sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
-    db_engine_spec = datasource.db_engine_spec
+    # Declining here is the last chance to decline at all: once these
+    # predicates are in the statement, a value the partition column cannot
+    # hold fails the whole chart rather than its pruning.
+    if reason := probed_value_type_error(partition_column, evaluated):
+        logger.warning(
+            "Partition transform returned a value the partition column cannot "
+            "hold; queries will not prune: %s",
+            reason,
+        )
+        if type_errors is not None:
+            type_errors.append(reason)
+        record_mirror_verdict(
+            datasource.database,
+            datasource.catalog,
+            datasource.schema,
+            mapping.value_transform,
+            mirrors=False,
+        )
+        return []
 
+    sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
+    predicates = _predicates_from_probe(
+        sqla_col, datasource.db_engine_spec, evaluated, spans
+    )
+    if not predicates:
+        return []
+
+    # A comparison against a NULL partition value is NULL, so a row parked in a
+    # NULL partition is dropped by the mirror even when the real filter matches
+    # it -- Hive and Impala's default partition, or a transform that returns
+    # NULL for an input it cannot convert. The mirror only has to be no
+    # narrower than the filter it stands in for, so admitting NULL partitions
+    # keeps those rows. Engines still prune; they read one extra partition.
+    return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
+
+
+def _predicates_from_probe(
+    sqla_col: ColumnElement[Any],
+    db_engine_spec: type[BaseEngineSpec],
+    evaluated: list[Any],
+    spans: list[tuple[FilterOperator, int, int]],
+) -> list[ColumnElement[Any]]:
+    """
+    One predicate on the partition column per surviving mirror request.
+
+    A request whose probe answered `None` for any of its values is skipped
+    rather than emitted: `col = NULL` is `NULL`, so it would drop every row the
+    filter keeps. A strict bound is emitted non-strictly; see `mirror_operator`.
+    """
     predicates: list[ColumnElement[Any]] = []
     for operator, start, length in spans:
         chunk = evaluated[start : start + length]
@@ -2055,16 +2125,7 @@ def build_mirrored_predicates(
                     sqla_col, mirror_operator(operator), chunk[0]
                 )
             )
-    if not predicates:
-        return []
-
-    # A comparison against a NULL partition value is NULL, so a row parked in a
-    # NULL partition is dropped by the mirror even when the real filter matches
-    # it -- Hive and Impala's default partition, or a transform that returns
-    # NULL for an input it cannot convert. The mirror only has to be no
-    # narrower than the filter it stands in for, so admitting NULL partitions
-    # keeps those rows. Engines still prune; they read one extra partition.
-    return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
+    return predicates
 
 
 #: Operators whose value is the lower end of a range, and whose upper-end twins.
@@ -2082,6 +2143,88 @@ UPPER_BOUND_OPERATORS = {
     FilterOperator.LESS_THAN,
     FilterOperator.LESS_THAN_OR_EQUALS,
 }
+
+
+#: What Python type a probe result may have, per generic type of the partition
+#: column it is about to be compared against.
+#:
+#: Only the types a mismatch can actually break a query with are listed. A
+#: ``STRING`` partition column is deliberately absent: every engine accepts a
+#: number in a text comparison, and refusing one would break a working mapping
+#: for the sake of tidiness. An unresolvable column type is absent for the
+#: stronger reason that there is nothing to check against.
+#: ``numbers.Number`` rather than ``(int, float)``: Postgres answers
+#: ``extract(epoch from ...)`` with a `Decimal`, which is the single commonest
+#: transform this feature has, and an engine is free to answer with any number
+#: type its driver prefers. What the check is for is a *string* where a number
+#: belongs, and every numeric type is equally not that.
+_PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
+    utils.GenericDataType.NUMERIC: (numbers.Number,),
+    utils.GenericDataType.BOOLEAN: (bool,),
+    # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text.
+    utils.GenericDataType.TEMPORAL: (datetime, date, str),
+}
+
+
+def probed_value_type_error(
+    partition_column: "TableColumn",
+    values: Sequence[Any],
+) -> str | None:
+    """
+    Why these probe results cannot be compared against the partition column.
+
+    A transform can evaluate perfectly and still answer with something the
+    partition column cannot hold: ``cast(:value as text) || 'x'`` against a
+    ``BIGINT`` partition key probes fine, passes the ordering check -- two
+    strings compare -- and then reaches `handle_comparison_filter`, which is
+    just ``col >= value``. SQLAlchemy takes the bind's type from the *value*
+    rather than from the column, so the engine is the first thing to object,
+    and it objects by failing the whole chart: by that point the predicate is
+    in the statement and there is nothing left to fail open.
+
+    So the mismatch is caught here, where declining still costs only the
+    pruning, and reported to the preview, where the owner can see it before
+    they save. Nothing else in this module looks at the partition column's own
+    type: every other gate is about the mapped column.
+
+    Fails open wherever it has no information -- an unresolvable column type,
+    a generic type with nothing a mismatch can break -- and closed only on a
+    clear mismatch. ``bool`` is excluded from ``NUMERIC`` on purpose: it
+    satisfies `isinstance(x, int)` -- and `numbers.Number` -- while rendering
+    as ``true``, which is not a number to any engine that cares.
+    """
+    try:
+        generic_type = partition_column.type_generic
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return None
+    if generic_type is None:
+        return None
+
+    allowed = _PROBE_RESULT_TYPES.get(generic_type)
+    if allowed is None:
+        return None
+
+    for value in values:
+        if value is None:
+            # Handled by the caller's own NULL guard, which skips the request.
+            continue
+        # `bool` is checked separately because it satisfies every numeric
+        # `isinstance` there is while rendering as `true`.
+        held = isinstance(value, allowed) and (
+            bool in allowed or not isinstance(value, bool)
+        )
+        if not held:
+            return str(
+                _(
+                    "The transform returned %(returned)s for %(column)s, which "
+                    "is %(kind)s. Mirrored filters on this mapping would fail "
+                    "at the database.",
+                    returned=repr(value),
+                    column=partition_column.column_name,
+                    kind=generic_type.name.lower(),
+                )
+            )
+    return None
 
 
 def _bounds_are_ordered(

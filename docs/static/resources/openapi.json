@@ -24754,7 +24754,8 @@
                             "validation",
                             "parse",
                             "operator",
-                            "engine"
+                            "engine",
+                            "type"
                           ],
                           "type": "string"
                         },
