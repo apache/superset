@@ -18,9 +18,11 @@
 
 from collections.abc import Callable, Iterator
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from werkzeug.test import TestResponse
 
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -44,10 +46,10 @@ def test_export_maps_inaccessible_nested_object_to_not_found(
 
     # The endpoint refuses anonymous callers before exporting.
     mocker.patch("superset.dashboards.api.get_user_id", return_value=1)
-    command: Any = mocker.patch("superset.dashboards.api.ExportDashboardsCommand")
+    command: MagicMock = mocker.patch("superset.dashboards.api.ExportDashboardsCommand")
     command.return_value.run.side_effect = run
 
-    response: Any = client.get("/api/v1/dashboard/export/?q=!(1)")
+    response: TestResponse = client.get("/api/v1/dashboard/export/?q=!(1)")
 
     assert response.status_code == 404
     assert response.json == {"message": "Not found"}
