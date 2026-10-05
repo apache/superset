@@ -20,6 +20,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
+  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
@@ -61,6 +62,19 @@ export type HeaderGroupCell = {
 };
 
 export const TIME_COMPARE_MAIN_KEY = 'Main';
+
+/** English msgid for `__timestamp`; `COLUMN_NAME_ALIASES` holds `t('Time')`. */
+const DTTM_ALIAS_SOURCE_LABEL = 'Time';
+
+function getColumnNameAliasLabels(col: string): string[] {
+  const translated = COLUMN_NAME_ALIASES[col];
+  const source = col === DTTM_ALIAS ? DTTM_ALIAS_SOURCE_LABEL : undefined;
+  return [
+    ...new Set(
+      [source, translated].filter((label): label is string => Boolean(label)),
+    ),
+  ];
+}
 
 const TIME_COMPARE_SYMBOL_PREFIXES = ['#', '△', '%'] as const;
 
@@ -339,25 +353,29 @@ export function syncTimeComparisonGroups(
 export function normalizeColumnConfigKeys<T>(
   value: Record<string, T> | null | undefined,
   colnames: string[],
+  knownKeys: string[] = colnames,
 ): Record<string, T> {
   if (!value) {
     return {};
   }
   const colnamesSet = new Set(colnames);
+  const knownKeySet = new Set(knownKeys);
   const aliasToKey = new Map<string, string>();
   const ambiguousAliases = new Set<string>();
   colnames.forEach(col => {
-    const alias = COLUMN_NAME_ALIASES[col];
-    if (!alias || ambiguousAliases.has(alias)) {
-      return;
-    }
-    const existing = aliasToKey.get(alias);
-    if (existing && existing !== col) {
-      aliasToKey.delete(alias);
-      ambiguousAliases.add(alias);
-      return;
-    }
-    aliasToKey.set(alias, col);
+    getColumnNameAliasLabels(col).forEach(alias => {
+      // A saved key that names a real column or metric is not a legacy alias.
+      if (!alias || knownKeySet.has(alias) || ambiguousAliases.has(alias)) {
+        return;
+      }
+      const existing = aliasToKey.get(alias);
+      if (existing && existing !== col) {
+        aliasToKey.delete(alias);
+        ambiguousAliases.add(alias);
+        return;
+      }
+      aliasToKey.set(alias, col);
+    });
   });
   const next: Record<string, T> = {};
   Object.entries(value).forEach(([key, config]) => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisonType, QueryMode } from '@superset-ui/core';
+import { ComparisonType, DTTM_ALIAS, QueryMode } from '@superset-ui/core';
 import { COLUMN_NAME_ALIASES } from '../constants';
 import {
   buildHeaderGroupRows,
@@ -450,6 +450,53 @@ test('normalizeColumnConfigKeys prefers an existing stored key over a display al
   ).toEqual({
     __timestamp: { customColumnName: 'Stored' },
   });
+});
+
+test('normalizeColumnConfigKeys keeps a real Time column when it is not in colnames but __timestamp is', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { Time: { customColumnName: 'Keep me' } },
+      ['__timestamp'],
+      ['Time', '__timestamp'],
+    ),
+  ).toEqual({
+    Time: { customColumnName: 'Keep me' },
+  });
+});
+
+test('normalizeColumnConfigKeys keeps a current Time column when __timestamp is also present', () => {
+  expect(
+    normalizeColumnConfigKeys({ Time: { customColumnName: 'Keep me' } }, [
+      'Time',
+      '__timestamp',
+    ]),
+  ).toEqual({
+    Time: { customColumnName: 'Keep me' },
+  });
+});
+
+test('normalizeColumnConfigKeys remaps English and translated Time aliases', () => {
+  const originalAlias = COLUMN_NAME_ALIASES[DTTM_ALIAS];
+  COLUMN_NAME_ALIASES[DTTM_ALIAS] = 'Tiempo';
+
+  try {
+    expect(
+      normalizeColumnConfigKeys({ Tiempo: { customColumnName: 'Fecha' } }, [
+        '__timestamp',
+      ]),
+    ).toEqual({
+      __timestamp: { customColumnName: 'Fecha' },
+    });
+    expect(
+      normalizeColumnConfigKeys({ Time: { customColumnName: 'Date' } }, [
+        '__timestamp',
+      ]),
+    ).toEqual({
+      __timestamp: { customColumnName: 'Date' },
+    });
+  } finally {
+    COLUMN_NAME_ALIASES[DTTM_ALIAS] = originalAlias;
+  }
 });
 
 test('normalizeColumnConfigKeys skips remapping when a display alias is ambiguous', () => {
