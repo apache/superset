@@ -305,6 +305,19 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     if not any(column.get("partition_value_transform") for column in columns):
         return
 
+    # `ImportV1ColumnSchema` gives the monotonic declaration a `load_default`
+    # of False so a bundle predating the field cannot claim its transform
+    # preserves ordering. That default never reaches storage: the import
+    # pipeline validates the payload and then applies the *raw* config, so on
+    # an overwrite an omitted key keeps whatever is stored -- including a True
+    # left behind by the transform this bundle is replacing. A non-monotonic
+    # transform declared monotonic enables range mirrors that exclude rows the
+    # filter keeps, so the default is materialized here, where the importer
+    # already normalizes these two fields together.
+    for column in columns:
+        if column.get("partition_value_transform"):
+            column.setdefault("partition_transform_is_monotonic", False)
+
     database = db.session.query(Database).filter_by(id=config["database_id"]).first()
     if database is None:
         return

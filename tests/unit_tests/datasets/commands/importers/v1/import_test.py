@@ -2858,6 +2858,54 @@ def test_import_drops_a_transform_the_save_path_would_reject(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_defaults_an_omitted_monotonic_declaration_to_false(
+    session: Session,
+) -> None:
+    """
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False, but
+    the importer applies the raw config and throws `schema.load()`'s output
+    away, so the default never reaches storage. On an overwrite that leaves a
+    stored True standing next to a *replacement* transform -- and a
+    non-monotonic transform declared monotonic enables range mirrors that
+    exclude rows the filter keeps.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "hour(:value)")
+    del config["columns"][0]["partition_transform_is_monotonic"]
+
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "hour(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_leaves_a_declared_monotonic_transform_declared(
+    session: Session,
+) -> None:
+    """
+    Only an *omitted* declaration is defaulted. A bundle that says True still
+    means it, or export-then-import would downgrade every range mirror to
+    equality-only.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_import_keeps_a_usable_transform(session: Session) -> None:
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
