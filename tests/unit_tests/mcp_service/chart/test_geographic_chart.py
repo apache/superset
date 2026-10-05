@@ -532,6 +532,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     *,
     rebind: bool = False,
     result_override: dict[str, Any] | None = None,
+    existing_override: dict[str, Any] | None = None,
 ) -> None:
     """Run native public compile/save paths against controlled database results."""
     import importlib
@@ -561,6 +562,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         description="",
         url="/explore/?slice_id=9",
     )
+    if existing_override is not None:
+        chart.params = json.dumps({**form_for(kind), **existing_override})
     if rebind:
         old = json.loads(chart.params)
         old.update(
@@ -731,6 +734,9 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         assert command.return_value.run.called
         if valid:
             assert payload["form_data"]["viz_type"] == kind
+            if existing_override is not None and persist:
+                saved_form = json.loads(update.call_args.args[-1]["params"])
+                assert saved_form["adhoc_filters"] == []
             if rebind:
                 rebound = payload["form_data"]
                 assert not rebound.get("adhoc_filters"), rebound
@@ -1798,3 +1804,27 @@ async def test_world_map_missing_boundary_fails_public_compile(entry: str) -> No
     await _exercise_public_geographic_entry(
         "world_map", False, entry, True, result_override=result
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+async def test_saved_native_map_update_accepts_null_filters(kind: str) -> None:
+    """Same-dataset updates tolerate native nullable filters before saving."""
+    await _exercise_public_geographic_entry(
+        kind,
+        True,
+        "update_chart",
+        True,
+        existing_override={"adhoc_filters": None},
+    )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_null_native_filters_allow_explicit_temporal_clear(kind: str) -> None:
+    """Clearing the generated time binding also tolerates native null filters."""
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
+    )
+    old = {**form_for(kind), "adhoc_filters": None}
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    assert merged["adhoc_filters"] == []

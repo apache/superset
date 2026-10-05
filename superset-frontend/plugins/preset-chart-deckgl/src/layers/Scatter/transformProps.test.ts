@@ -561,3 +561,39 @@ test.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
     });
   },
 );
+
+test.each(['100', '2.5', '0'])(
+  'typed geographic points preserve legacy fixed radius %s',
+  radius => {
+    const result = transformProps({
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: radius,
+      },
+    } as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features).toHaveLength(2);
+    features.forEach(feature => {
+      expect(feature.radius).toBe(Number(radius));
+      expect(feature.metric).toBeUndefined();
+    });
+    expect(result.payload.data.metricLabels).toEqual([]);
+  },
+);
+
+test('typed geographic points preserve legacy saved-metric radius', () => {
+  const result = transformProps({
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      mcp_geographic: true,
+      point_radius_fixed: 'population',
+    },
+  } as ChartProps);
+  const features = result.payload.data.features as ScatterFeature[];
+  expect(features).toHaveLength(2);
+  expect(features.map(feature => feature.radius)).toEqual([50000, 75000]);
+  expect(result.payload.data.metricLabels).toEqual(['population']);
+});

@@ -1617,7 +1617,9 @@ JSON conversion; numeric strings and booleans are not accepted as coordinates.
 Generation validates the configured result (up to `row_limit`, bounded at
 10,000), not just the first two rows. This is not an audit of rows excluded by
 filters or limits. Saved and cached-preview updates preserve omitted controls;
-explicit null optional roles and empty filters clear them. Dataset rebinding
+explicit null optional roles and empty filters clear them. Native saved maps
+with null `adhoc_filters` are treated as having no filters. Preserved numeric-string
+point radii (for example, `"100"`) render as fixed sizes, not metric names. Dataset rebinding
 requires a complete typed config and discards old dataset roles and filters.
 
 Geographic updates cap inherited native row limits at 10,000 so compilation

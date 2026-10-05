@@ -170,12 +170,23 @@ export default function transformProps(chartProps: ChartProps) {
   const { spatial, point_radius_fixed, dimension } =
     formData as DeckScatterFormData;
 
-  // Check if this is a fixed value or metric
-  const fixedRadiusValue = isFixedValue(point_radius_fixed)
-    ? getFixedValue(point_radius_fixed)
-    : null;
+  // Legacy native controls store fixed radii as bare numeric strings.
+  const legacyFixedRadius =
+    typeof point_radius_fixed === 'string' &&
+    point_radius_fixed.trim() !== '' &&
+    Number.isFinite(Number(point_radius_fixed))
+      ? Number(point_radius_fixed)
+      : null;
+  const fixedRadiusValue =
+    legacyFixedRadius ??
+    (isFixedValue(point_radius_fixed)
+      ? getFixedValue(point_radius_fixed)
+      : null);
 
-  const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
+  const radiusMetricLabel =
+    legacyFixedRadius !== null
+      ? undefined
+      : getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
 
   const displayRecords = formData.mcp_geographic

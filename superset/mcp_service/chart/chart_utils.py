@@ -851,7 +851,7 @@ def _without_generated_dashboard_time_filter(
     generated_subject = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
     return [
         filter_
-        for filter_ in form_data.get("adhoc_filters", [])
+        for filter_ in form_data.get("adhoc_filters") or []
         if not (
             generated_subject
             and isinstance(filter_, dict)
@@ -2724,7 +2724,7 @@ def merge_geographic_update_form_data(  # noqa: C901
         # An absent marker also preserves an explicitly cleared binding.
         saved_binding = [
             filter_
-            for filter_ in existing.get("adhoc_filters", [])
+            for filter_ in existing.get("adhoc_filters") or []
             if filter_ not in _without_generated_dashboard_time_filter(existing)
         ]
         patch["adhoc_filters"] = [
