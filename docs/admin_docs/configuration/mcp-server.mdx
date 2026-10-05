@@ -1607,6 +1607,20 @@ structured errors instead of apparently successful previews, charts or exports.
 
 ## Dataset discovery and routing
 
+`list_datasets`, `get_dataset_info`, `update_dataset`, and `query_dataset`
+operate on registered **SQL datasets** (physical tables or virtual SQL queries),
+not external semantic views. `create_dataset` registers a physical table as a
+SQL dataset; it does not create or register semantic views. The `certified`
+filter in `list_datasets` selects certified SQL datasets, not external views.
+
+For existing semantic views, use `list_metrics` to discover metrics and
+`get_table` to query them, retaining the returned source and view identity.
+These tools do not provision or edit semantic views. A dataset not-found error
+offers this routing guidance without establishing whether a semantic view
+exists or is accessible. Numeric IDs can overlap across source types; do not
+reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
+All tool permissions, feature flags, and datasource access checks still apply.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID
