@@ -86,6 +86,12 @@ def dataset(session: Session) -> Any:
         columns=[
             TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
             TableColumn(column_name="dt_epoch", type="BIGINT"),
+            # A second, text-typed partition key. A transform that answers with
+            # text cannot be previewed against `dt_epoch` -- the predicate it
+            # would emit is `dt_epoch = 'us'`, which the database refuses, and
+            # `probed_value_type_error` says so before the preview can call it
+            # valid. Tests about anything other than the key's type point here.
+            TableColumn(column_name="region_key", type="VARCHAR"),
         ],
     )
     table.partition_column = "dt_epoch"
@@ -208,6 +214,7 @@ def test_preview_mirrors_in_element_wise(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
+                "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["US", "CA"],
                 "operator": "IN",
@@ -217,7 +224,7 @@ def test_preview_mirrors_in_element_wise(
     assert response.json["result"] == {
         "valid": True,
         "sample_input": "event_time IN ('US', 'CA')",
-        "emitted_predicate": "dt_epoch IN ('us', 'ca') OR dt_epoch IS NULL",
+        "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
     }
 
 
@@ -289,6 +296,38 @@ def test_preview_reports_an_unknown_mapped_column(
         )
 
     assert response.json["result"]["valid"] is False
+
+
+def test_preview_refuses_a_transform_whose_result_the_key_cannot_hold(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The one verdict a preview must never give: "Valid" for a mapping that makes
+    every chart fail. `cast(:value as text) || 'x'` evaluates perfectly, so the
+    probe succeeds -- and the preview went on to render the predicate the chart
+    would carry, `dt_epoch >= '2026-01-15 00:00:00x'` against a BIGINT, which
+    Postgres answers with a 400.
+
+    Its own `reason`, because "the database would not evaluate this" and "it
+    evaluated and answered with the wrong kind of thing" are different problems
+    and only the owner can say which transform they meant.
+    """
+    with patch(PROBE, return_value=["2026-01-15 00:00:00x"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "cast(:value as text) || 'x'",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "dt_epoch" in result["error"]
+    assert result["sample_input"] == "event_time == '2026-01-15 00:00:00'"
 
 
 def test_preview_reports_a_failed_probe_rather_than_erroring(
@@ -541,6 +580,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
+                "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["O'Hara"],
             },
@@ -548,7 +588,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
 
     assert response.status_code == 200
     result = response.json["result"]
-    assert result["emitted_predicate"] == "dt_epoch = 'o''hara' OR dt_epoch IS NULL"
+    assert result["emitted_predicate"] == "region_key = 'o''hara' OR region_key IS NULL"
     # The sample input is display-only but still reads as SQL, so the value it
     # echoes back is quoted and escaped the same way.
     assert result["sample_input"] == "event_time == 'O''Hara'"
@@ -771,6 +811,7 @@ def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
+                "partition_column": "region_key",
                 "value_transform": "date(:value)",
                 "sample_value": "2026-01-15 00:00:00",
             },
@@ -826,6 +867,7 @@ def test_preview_coerces_a_sample_the_way_a_chart_filter_is_coerced(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "year",
+                "partition_column": "region_key",
                 "value_transform": "typeof(:value)",
                 "sample_values": ["2025"],
             },

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, cast
 from importlib import import_module
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -55,6 +56,7 @@ from superset.connectors.sqla.partition_mapping import (
     parse_error_detail,
     placeholder_is_executable,
     probe_sql_is_evaluable,
+    probed_value_type_error,
     RawProbeValue,
     resolve_partition_mapping,
     stored_expression_error,
@@ -1533,6 +1535,85 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
 
     assert before != after_uri
     assert after_uri != after_extra
+
+
+# ---------------------------------------------------------------------------
+# A probe result the partition column cannot hold
+# ---------------------------------------------------------------------------
+
+
+def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
+    column = TableColumn(column_name="dt_epoch", type=column_type, **kwargs)
+    column.table = SqlaTable(
+        table_name="web_events",
+        database=Database(database_name="probe_db", sqlalchemy_uri="sqlite://"),
+    )
+    return column
+
+
+@pytest.mark.parametrize(
+    "column_type, value, mismatched",
+    [
+        ("BIGINT", 1767225600, False),
+        ("BIGINT", 1767225600.0, False),
+        # Postgres answers `extract(epoch from ...)` -- the commonest transform
+        # this feature has -- with a `Decimal`, and a driver is free to pick any
+        # number type it likes. Rejecting one would cost the feature its main
+        # use case on Postgres for nothing.
+        ("BIGINT", Decimal("1767225600.000000"), False),
+        ("BIGINT", "2026-01-01 00:00:00x", True),
+        # `bool` satisfies `isinstance(x, int)` and renders as `true`, which is
+        # not a number to any engine that cares about the difference.
+        ("BIGINT", True, True),
+        ("VARCHAR", "20260101", False),
+        # Every engine takes a number in a text comparison, and refusing one
+        # would break a working mapping for the sake of tidiness.
+        ("VARCHAR", 20260101, False),
+        ("BOOLEAN", True, False),
+        ("BOOLEAN", 1, True),
+        ("TIMESTAMP", datetime(2026, 1, 1), False),
+        # A `to_char` day key is legitimately text.
+        ("TIMESTAMP", "2026-01-01", False),
+        ("TIMESTAMP", 1767225600, True),
+    ],
+)
+def test_a_probe_result_is_judged_against_the_partition_column(
+    column_type: str, value: Any, mismatched: bool
+) -> None:
+    """
+    `cast(:value as text) || 'x'` evaluates fine, and two of its results
+    compare, so neither the probe nor the ordering backstop sees anything
+    wrong. The engine is the first thing to object, and it objects by failing
+    the whole chart -- so the mismatch has to be caught while declining still
+    costs only the pruning.
+    """
+    error = probed_value_type_error(_partition_column(column_type), [value])
+
+    assert (error is not None) is mismatched
+    if mismatched:
+        assert error is not None
+        assert "dt_epoch" in error
+
+
+def test_a_column_whose_type_says_nothing_is_left_alone() -> None:
+    """
+    Fails open wherever there is nothing to check against, which is the same
+    answer every other gate in this module gives to missing information.
+    """
+    assert probed_value_type_error(_partition_column(""), ["anything"]) is None
+
+
+def test_a_null_probe_result_is_not_a_type_mismatch() -> None:
+    """The caller skips those requests on its own; see `build_mirrored_predicates`."""
+    assert probed_value_type_error(_partition_column("BIGINT"), [None]) is None
+
+
+def test_one_bad_member_condemns_the_list() -> None:
+    """An `IN` is one predicate, so one unusable member breaks all of it."""
+    error = probed_value_type_error(_partition_column("BIGINT"), [1, "x"])
+
+    assert error is not None
+    assert "'x'" in error
 
 
 # ---------------------------------------------------------------------------

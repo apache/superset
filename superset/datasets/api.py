@@ -2237,6 +2237,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                             - parse
                             - operator
                             - engine
+                            - type
                           sample_input:
                             type: string
                           emitted_predicate:
