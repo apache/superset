@@ -493,6 +493,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     if (
       prevDatasource &&
       prevDatasource.type !== DatasourceType.Query &&
+      !props.exploreState.skipDatasetChangeAlert &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
@@ -502,6 +503,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   }, [
     props.exploreState.datasource?.id,
     props.exploreState.datasource?.type,
+    props.exploreState.skipDatasetChangeAlert,
     prevDatasource,
   ]);
 

@@ -39,14 +39,25 @@ export function resetSemanticSelections(sliceId?: number) {
 }
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
+export interface DatasourceChangeOptions {
+  /**
+   * Suppress the dataset-change settings alert for this call.
+   * Use when the caller handles form-data preservation itself.
+   * Dataset switching and control reconciliation are unchanged.
+   */
+  skipDatasetChangeAlert?: boolean;
+}
+
 export function updateFormDataByDatasource(
   prevDatasource: Dataset,
   newDatasource: Dataset,
+  { skipDatasetChangeAlert = false }: DatasourceChangeOptions = {},
 ) {
   return {
     type: UPDATE_FORM_DATA_BY_DATASOURCE,
     prevDatasource,
     newDatasource,
+    skipDatasetChangeAlert,
   };
 }
 

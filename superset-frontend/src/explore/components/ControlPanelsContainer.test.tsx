@@ -18,6 +18,8 @@
  */
 import { useDispatch, useSelector } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import { AnyAction } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
 import {
   act,
   render,
@@ -27,7 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
-import { getStandardizedControls } from '@superset-ui/chart-controls';
+import { Dataset, getStandardizedControls } from '@superset-ui/chart-controls';
 import {
   ComparisonType,
   DatasourceType,
@@ -44,6 +46,7 @@ import {
 } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
 import { setControlValue } from 'src/explore/actions/exploreActions';
+import { changeDatasource } from 'src/explore/actions/datasourcesActions';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
@@ -56,6 +59,41 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const originalScrollTo = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'scrollTo',
+);
+const datasetChangeAlert =
+  /Keep control settings\?|No form settings were maintained/;
+
+function createDataset(id: number): Dataset {
+  return {
+    id,
+    type: DatasourceType.Table,
+    uid: `${id}__table`,
+    columns: [{ column_name: 'name' }],
+    metrics: [],
+    verbose_map: {},
+    column_formats: {},
+    main_dttm_col: '',
+    datasource_name: `Dataset ${id}`,
+    description: null,
+  };
+}
+
+function dispatchDatasetChange(
+  store: ReturnType<typeof configureStore>,
+  ...args: Parameters<typeof changeDatasource>
+) {
+  const dispatch = store.dispatch as ThunkDispatch<
+    ExplorePageState,
+    undefined,
+    AnyAction
+  >;
+  act(() => {
+    dispatch(changeDatasource(...args));
+  });
+}
 
 const FormDataMock = () => {
   const formData = useSelector(
@@ -192,6 +230,11 @@ describe('ControlPanelsContainer', () => {
   });
 
   afterEach(() => {
+    if (originalScrollTo) {
+      Object.defineProperty(Element.prototype, 'scrollTo', originalScrollTo);
+    } else {
+      Reflect.deleteProperty(Element.prototype, 'scrollTo');
+    }
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().remove('switch-target');
     getChartControlPanelRegistry().remove('switch-mapped');
@@ -1093,5 +1136,54 @@ describe('ControlPanelsContainer', () => {
       expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
     });
     expect(setControlValue).not.toHaveBeenCalled();
+  });
+  test.each([
+    ['alerts on a dataset change', {}, true],
+    ['does not alert when requested', { skipDatasetChangeAlert: true }, false],
+    ['alerts when explicitly enabled', { skipDatasetChangeAlert: false }, true],
+  ])('%s', async (_, options, alerts) => {
+    // jsdom has no scrollTo; the alert scrolls the panel up to itself.
+    Element.prototype.scrollTo = jest.fn();
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    dispatchDatasetChange(store, createDataset(2), options);
+
+    await waitFor(() =>
+      expect(
+        (store.getState() as ExplorePageState).explore.form_data.datasource,
+      ).toBe('2__table'),
+    );
+    if (alerts) {
+      expect(await screen.findByText(datasetChangeAlert)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByText(datasetChangeAlert)).not.toBeInTheDocument();
+    }
+  });
+
+  test('alerts on a normal dataset change after a skipped alert', async () => {
+    // jsdom has no scrollTo; the alert scrolls the panel up to itself.
+    Element.prototype.scrollTo = jest.fn();
+    const store = createStoreBackedExplore();
+    render(<StoreBackedControlPanelsContainer />, { store });
+    await screen.findByRole('button', { name: /group by/i });
+
+    dispatchDatasetChange(store, createDataset(2), {
+      skipDatasetChangeAlert: true,
+    });
+    expect(
+      (store.getState() as ExplorePageState).explore.form_data.datasource,
+    ).toBe('2__table');
+    expect(screen.queryByText(datasetChangeAlert)).not.toBeInTheDocument();
+
+    dispatchDatasetChange(store, createDataset(3));
+    expect(
+      (store.getState() as ExplorePageState).explore.form_data.datasource,
+    ).toBe('3__table');
+    expect(
+      (store.getState() as ExplorePageState).explore.skipDatasetChangeAlert,
+    ).toBe(false);
+    expect(await screen.findByText(datasetChangeAlert)).toBeInTheDocument();
   });
 });
