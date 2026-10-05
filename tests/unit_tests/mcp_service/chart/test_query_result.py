@@ -1770,3 +1770,32 @@ def test_full_payload_index_metadata_stays_bounded_per_query() -> None:
 
     assert error is not None
     assert error.error_type == "InvalidQueryResult"
+
+
+def test_troubleshooting_guide_separates_mandatory_result_limits() -> None:
+    """The admin guide must not imply MCP_RESPONSE_SIZE_CONFIG lifts these caps."""
+    from pathlib import Path
+
+    from superset.mcp_service.chart.query_result import (
+        MAX_QUERY_RESULT_COLUMNS,
+        MAX_QUERY_RESULT_ROWS,
+        MAX_QUERY_RESULT_VALUES,
+    )
+
+    guide = Path(__file__).parents[4] / "docs/admin_docs/configuration/mcp-server.mdx"
+    if not guide.exists():
+        pytest.skip("documentation sources are not available")
+    section = guide.read_text().split("### Response too large", 1)[1]
+    section = section.split("\n## ", 1)[0]
+
+    assert "not** affected by `MCP_RESPONSE_SIZE_CONFIG`" in section
+    assert "InvalidQueryResult" in section
+    for limit in (
+        MAX_QUERY_RESULT_ROWS_PER_QUERY,
+        MAX_QUERY_RESULT_ROWS,
+        MAX_QUERY_RESULT_COLUMNS,
+        MAX_QUERY_RESULT_VALUES,
+        MAX_RESULT_STRING_LENGTH,
+    ):
+        assert f"{limit:,}" in section
+    assert f"{MAX_QUERY_RESULT_VALUE_BYTES // (1024 * 1024)} MiB" in section

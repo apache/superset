@@ -1168,10 +1168,13 @@ names do not make nonnumeric values eligible.
 
 ### Response too large
 
-- If a tool call returns an error about exceeding size limits, the response size guard is blocking an oversized result
-- Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
-- To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
-- To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+Two independent limits can reject a large result. Check the error type to tell them apart:
+
+- **Response size guard (configurable).** An error about exceeding the response size limit comes from `ResponseSizeGuardMiddleware`, which measures the serialized tool response.
+  - Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
+  - To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
+  - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+- **Chart query result limits (mandatory).** An `InvalidQueryResult` error such as "Chart query returned too many rows" or "hostile or oversized row data" comes from validation of the chart query result itself, before any response is built. These limits are fixed safety bounds and are **not** affected by `MCP_RESPONSE_SIZE_CONFIG`; raising `max_bytes` or disabling the guard does not change them. They cap a result at 50,000 rows per query and 100,000 rows in total, 4,096 columns, 2,500,000 values, 16 MiB of JSON, and 65,536 UTF-8 bytes per text cell (binary cells are bounded by the same per-cell limit). To resolve them, reduce the chart's row limit, add filters, select fewer or narrower columns, or aggregate the data.
 
 ---
 
