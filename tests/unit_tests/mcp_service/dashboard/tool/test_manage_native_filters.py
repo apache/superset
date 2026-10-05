@@ -587,6 +587,150 @@ async def test_update_default_value_empty_list_clears_default(mcp_server):
     }
 
 
+_EMEA_DEFAULT_MASK = {
+    "extraFormData": {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+    "filterState": {"value": ["EMEA"], "label": "EMEA"},
+}
+_CLEARED_MASK = {"extraFormData": {}, "filterState": {"value": None}}
+
+
+async def _update_existing(
+    mcp_server: object, existing: dict[str, Any], changes: dict[str, Any]
+) -> dict[str, Any]:
+    """Run one update against ``existing`` and return the saved filter config."""
+    captured: dict = {"current_config": [existing]}
+    dashboard = _mock_dashboard(filters=[existing])
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing1", **changes}],
+            },
+        )
+    assert data["error"] is None
+    return captured["payload"]["modified"][0]
+
+
+@pytest.mark.asyncio
+async def test_update_column_change_clears_stored_default(mcp_server):
+    """Retargeting a filter must not re-apply the old column's default."""
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(mcp_server, existing, {"column": "country"})
+
+    assert config["targets"][0]["column"] == {"name": "country"}
+    assert config["defaultDataMask"] == _CLEARED_MASK
+
+
+@pytest.mark.asyncio
+async def test_update_same_column_keeps_stored_default(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(
+        mcp_server, existing, {"column": "region", "name": "Renamed"}
+    )
+
+    assert config["defaultDataMask"] == _EMEA_DEFAULT_MASK
+
+
+@pytest.mark.asyncio
+async def test_update_column_change_with_new_default_sets_it(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(
+        mcp_server, existing, {"column": "country", "default_value": ["FR"]}
+    )
+
+    assert config["defaultDataMask"]["filterState"]["value"] == ["FR"]
+    assert config["defaultDataMask"]["extraFormData"]["filters"][0]["col"] == "country"
+
+
+@pytest.mark.asyncio
+async def test_update_single_select_clears_multi_value_default(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = {
+        "extraFormData": {
+            "filters": [{"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}]
+        },
+        "filterState": {"value": ["EMEA", "APAC"], "label": "EMEA, APAC"},
+    }
+
+    config = await _update_existing(mcp_server, existing, {"multi_select": False})
+
+    assert config["controlValues"]["multiSelect"] is False
+    assert config["defaultDataMask"] == _CLEARED_MASK
+
+
+@pytest.mark.asyncio
+async def test_update_single_select_keeps_single_value_default(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(mcp_server, existing, {"multi_select": False})
+
+    assert config["defaultDataMask"] == _EMEA_DEFAULT_MASK
+
+
+@pytest.mark.asyncio
+async def test_update_default_to_first_item_clears_explicit_default(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(
+        mcp_server, existing, {"default_to_first_item": True}
+    )
+
+    assert config["controlValues"]["defaultToFirstItem"] is True
+    assert config["defaultDataMask"] == _CLEARED_MASK
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "control_values",
+    [{"inverseSelection": True}, {"operatorType": "contains"}],
+)
+async def test_update_empty_default_clears_on_unsupported_ui_filter(
+    mcp_server, control_values
+):
+    """Clearing applies no predicate, so inverse-selection / non-exact filters
+    created in the UI can still have their default cleared."""
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"].update(control_values)
+    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+
+    config = await _update_existing(mcp_server, existing, {"default_value": []})
+
+    assert config["defaultDataMask"] == _CLEARED_MASK
+
+
+@pytest.mark.asyncio
+async def test_update_non_empty_default_still_rejected_on_inverse_filter(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"]["inverseSelection"] = True
+    dashboard = _mock_dashboard(filters=[existing])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": "NATIVE_FILTER-existing1", "default_value": ["EMEA"]}
+                ],
+            },
+        )
+
+    assert "inverse" in data["error"]
+
+
 @pytest.mark.asyncio
 async def test_update_default_value_on_time_filter_rejected(mcp_server):
     dashboard = _mock_dashboard(filters=[EXISTING_TIME_FILTER])

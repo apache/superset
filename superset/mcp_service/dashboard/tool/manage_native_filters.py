@@ -149,6 +149,25 @@ def _select_data_mask(
     return {"extraFormData": extra_form_data, "filterState": filter_state}
 
 
+def _default_data_mask(
+    conf: dict[str, Any], values: list[FilterSelectValue]
+) -> dict[str, Any]:
+    """Build the stored default data mask for a filter_select filter.
+
+    Clearing a default (empty ``values``) writes no predicate, so it must stay
+    possible on filters created in the UI with inverse selection or a
+    non-exact operator; those filters get the plain empty mask. Non-empty
+    defaults go through ``_select_data_mask`` and its guards.
+    """
+    control_values = conf.get("controlValues") or {}
+    if not values and (
+        control_values.get("inverseSelection")
+        or control_values.get("operatorType", "exact") != "exact"
+    ):
+        return _empty_data_mask()
+    return _select_data_mask(conf, values)
+
+
 def _time_data_mask(default_time_range: str | None) -> dict[str, Any]:
     """Build the default data mask for a time filter.
 
@@ -237,7 +256,7 @@ def _build_new_filter_config(
             "cascadeParentIds": [],
         }
         if spec.default_value is not None:
-            config["defaultDataMask"] = _select_data_mask(config, spec.default_value)
+            config["defaultDataMask"] = _default_data_mask(config, spec.default_value)
         return config
 
     # filter_time: no dataset target, empty controlValues
@@ -299,6 +318,57 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     merged["targets"] = [target]
 
 
+def _target_key(target: dict[str, Any]) -> tuple[Any, Any]:
+    """Identify a filter target by its dataset and column name."""
+    return target.get("datasetId"), (target.get("column") or {}).get("name")
+
+
+def _stored_default_is_stale(
+    spec: NativeFilterUpdateSpec, existing: dict[str, Any], target_changed: bool
+) -> bool:
+    """Whether an update without ``default_value`` invalidates the stored one.
+
+    A stored default goes stale when the filter is retargeted to another
+    column or dataset, when it becomes single-select while the default holds
+    several values, or when ``default_to_first_item`` is switched on (the
+    explicit default would otherwise win and the first item never applies).
+    """
+    if existing.get("filterType") != "filter_select":
+        return False
+    stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
+        "value"
+    )
+    if stored is None:
+        return False
+    stored_count = len(stored) if isinstance(stored, list) else 1
+    return (
+        target_changed
+        or spec.default_to_first_item is True
+        or (spec.multi_select is False and stored_count > 1)
+    )
+
+
+def _merge_select_default(
+    spec: NativeFilterUpdateSpec,
+    existing: dict[str, Any],
+    merged: dict[str, Any],
+    target_changed: bool,
+) -> None:
+    """Apply an explicit default_value, or drop a stored default gone stale."""
+    if spec.default_value is not None:
+        if (merged.get("controlValues") or {}).get("defaultToFirstItem"):
+            raise _FilterValidationError(
+                f"Filter '{spec.id}' has default_to_first_item enabled; "
+                "pass default_to_first_item=False in this same update "
+                "before setting an explicit default_value."
+            )
+        merged["defaultDataMask"] = _default_data_mask(merged, spec.default_value)
+    elif _stored_default_is_stale(spec, existing, target_changed):
+        # Reset rather than re-apply the old value against a different column,
+        # a single-select control, or a "first item" default.
+        merged["defaultDataMask"] = _default_data_mask(merged, [])
+
+
 def _merge_filter_update(
     spec: NativeFilterUpdateSpec,
     existing: dict[str, Any],
@@ -318,8 +388,13 @@ def _merge_filter_update(
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
         merged["scope"] = _build_scope(spec.scope_chart_ids, dashboard_chart_ids)
+    target_changed = False
     if spec.dataset_id is not None or spec.column is not None:
+        previous_target = dict((existing.get("targets") or [{}])[0] or {})
         _merge_target(spec, merged)
+        target_changed = _target_key(merged["targets"][0]) != _target_key(
+            previous_target
+        )
 
     control_values = dict(merged.get("controlValues") or {})
     for field, control_key in _SELECT_CONTROL_FIELDS.items():
@@ -328,14 +403,7 @@ def _merge_filter_update(
             control_values[control_key] = value
     merged["controlValues"] = control_values
 
-    if spec.default_value is not None:
-        if control_values.get("defaultToFirstItem"):
-            raise _FilterValidationError(
-                f"Filter '{spec.id}' has default_to_first_item enabled; "
-                "pass default_to_first_item=False in this same update "
-                "before setting an explicit default_value."
-            )
-        merged["defaultDataMask"] = _select_data_mask(merged, spec.default_value)
+    _merge_select_default(spec, existing, merged, target_changed)
 
     if spec.default_time_range is not None:
         merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
