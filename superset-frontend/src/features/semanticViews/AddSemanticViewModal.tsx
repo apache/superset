@@ -141,6 +141,7 @@ export default function AddSemanticViewModal({
   const [runtimeData, setRuntimeData] = useState<Record<string, unknown>>({});
   const [loadingRuntime, setLoadingRuntime] = useState(false);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
+  const [staleSchemaOptions, setStaleSchemaOptions] = useState(false);
   const errorsRef = useRef<ErrorObject[]>([]);
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
   const lastDepSnapshotRef = useRef('');
@@ -213,6 +214,25 @@ export default function AddSemanticViewModal({
   const retriedDepSnapshotRef = useRef('');
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
+    // Reconcile against the matching response, not an intermediate empty
+    // option list. Retain selections that are valid in both dependency states.
+    setRuntimeData(previous => {
+      const invalidFields = Object.entries(rawSchema.properties ?? {})
+        .filter(
+          ([key, field]) =>
+            (field as Record<string, unknown>)['x-dynamic'] === true &&
+            Array.isArray(field.enum) &&
+            key in previous &&
+            !field.enum.includes(previous[key]),
+        )
+        .map(([key]) => key);
+      if (invalidFields.length === 0) return previous;
+      const next = { ...previous };
+      invalidFields.forEach(key => {
+        delete next[key];
+      });
+      return next;
+    });
     const schema = sanitizeSchema(rawSchema);
     const uiSchema = buildUiSchema(schema);
     // Dedupe key = key-order-canonical schema + the derived ui schema.
@@ -261,6 +281,8 @@ export default function AddSemanticViewModal({
       setRuntimeSchema(null);
       setRuntimeUiSchema(undefined);
       setRuntimeData({});
+      setRefreshingSchema(false);
+      setStaleSchemaOptions(false);
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
@@ -328,10 +350,26 @@ export default function AddSemanticViewModal({
         const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
           areDependenciesSatisfied(deps, data),
         );
+        if (!hasSatisfiedDeps) {
+          lastDepSnapshotRef.current = serializeDependencyValues(
+            dynamicDeps,
+            data,
+          );
+          schemaRefreshGenRef.current += 1;
+          if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
+          setRefreshingSchema(false);
+          setStaleSchemaOptions(true);
+          setAvailableViews([]);
+          setSelectedViewNames([]);
+          lastViewsKeyRef.current = '';
+          return;
+        }
         if (hasSatisfiedDeps) {
           const snapshot = serializeDependencyValues(dynamicDeps, data);
           if (snapshot !== lastDepSnapshotRef.current) {
             lastDepSnapshotRef.current = snapshot;
+            setRefreshingSchema(true);
+            setStaleSchemaOptions(true);
             // Config is changing — clear views
             setAvailableViews([]);
             setSelectedViewNames([]);
@@ -341,7 +379,6 @@ export default function AddSemanticViewModal({
             schemaRefreshGenRef.current += 1;
             const refreshGen = schemaRefreshGenRef.current;
             schemaTimerRef.current = setTimeout(async () => {
-              setRefreshingSchema(true);
               try {
                 const { json } = await SupersetClient.post({
                   endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
@@ -357,7 +394,10 @@ export default function AddSemanticViewModal({
                 // retried) as a transient network failure.
                 refreshErrorToastShownRef.current = false;
                 retriedDepSnapshotRef.current = '';
-                if (json.result) applyRuntimeSchema(json.result);
+                if (json.result) {
+                  applyRuntimeSchema(json.result);
+                  setStaleSchemaOptions(false);
+                }
               } catch (error) {
                 if (
                   gen !== fetchGenRef.current ||
@@ -378,9 +418,8 @@ export default function AddSemanticViewModal({
                   retriedDepSnapshotRef.current = snapshot;
                   lastDepSnapshotRef.current = '';
                 }
-                // The form (and the user's selections) stay intact; only the
-                // dynamic narrowing is stale, so surface it without blocking
-                // — once per outage, not once per debounced attempt.
+                // Retain selections, but keep stale choices unavailable until
+                // a matching refresh succeeds. Toast once per outage.
                 if (!refreshErrorToastShownRef.current) {
                   refreshErrorToastShownRef.current = true;
                   addDangerToast(
@@ -401,11 +440,17 @@ export default function AddSemanticViewModal({
       }
 
       // No schema refresh needed — fetch views if form is valid
-      if (errorsRef.current.length === 0) {
+      if (!staleSchemaOptions && errorsRef.current.length === 0) {
         scheduleFetchViews(selectedLayerUuid, data);
       }
     },
-    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews, addDangerToast],
+    [
+      selectedLayerUuid,
+      applyRuntimeSchema,
+      scheduleFetchViews,
+      addDangerToast,
+      staleSchemaOptions,
+    ],
   );
 
   // After a schema refresh settles, JSON Forms re-validates and fires
@@ -413,7 +458,12 @@ export default function AddSemanticViewModal({
   // (in case onChange doesn't fire), try once refreshingSchema flips false.
   const prevRefreshingRef = useRef(false);
   useEffect(() => {
-    if (prevRefreshingRef.current && !refreshingSchema && selectedLayerUuid) {
+    if (
+      prevRefreshingRef.current &&
+      !refreshingSchema &&
+      !staleSchemaOptions &&
+      selectedLayerUuid
+    ) {
       const timer = setTimeout(() => {
         if (errorsRef.current.length === 0) {
           scheduleFetchViews(selectedLayerUuid, runtimeData);
@@ -424,7 +474,13 @@ export default function AddSemanticViewModal({
     }
     prevRefreshingRef.current = refreshingSchema;
     return undefined;
-  }, [refreshingSchema, selectedLayerUuid, runtimeData, scheduleFetchViews]);
+  }, [
+    refreshingSchema,
+    staleSchemaOptions,
+    selectedLayerUuid,
+    runtimeData,
+    scheduleFetchViews,
+  ]);
 
   // =========================================================================
   // Modal open / close
@@ -445,6 +501,7 @@ export default function AddSemanticViewModal({
       setRuntimeData({});
       setLoadingRuntime(false);
       setRefreshingSchema(false);
+      setStaleSchemaOptions(false);
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
@@ -536,8 +593,8 @@ export default function AddSemanticViewModal({
   // every control, so an inline literal would re-render all of them on each
   // modal render.
   const jsonFormsConfig = useMemo(
-    () => ({ refreshingSchema, formData: runtimeData }),
-    [refreshingSchema, runtimeData],
+    () => ({ refreshingSchema, staleSchemaOptions, formData: runtimeData }),
+    [refreshingSchema, staleSchemaOptions, runtimeData],
   );
 
   // Sorted copy — sorting in place would mutate React state during render.

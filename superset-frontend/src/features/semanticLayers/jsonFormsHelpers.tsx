@@ -190,7 +190,11 @@ export function areDependenciesSatisfied(
  * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
 export function DynamicFieldControl(props: ControlProps) {
-  const { refreshingSchema, formData: cfgData } = props.config ?? {};
+  const {
+    refreshingSchema,
+    staleSchemaOptions,
+    formData: cfgData,
+  } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
   const deps = schema?.['x-dependsOn'];
   const refreshing =
@@ -201,6 +205,7 @@ export function DynamicFieldControl(props: ControlProps) {
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+  const stale = !!staleSchemaOptions && Array.isArray(deps) && deps.length > 0;
 
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])
@@ -238,7 +243,8 @@ export function DynamicFieldControl(props: ControlProps) {
           value={(props.data as string | number | undefined) ?? undefined}
           onChange={value => props.handleChange(props.path, value)}
           options={options}
-          disabled={!props.enabled || refreshing}
+          // Disabling closes the menu without discarding a still-valid value.
+          disabled={!props.enabled || refreshing || stale}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
@@ -248,7 +254,7 @@ export function DynamicFieldControl(props: ControlProps) {
   }
 
   if (!refreshing) {
-    return TextControl(props);
+    return <TextControl {...props} enabled={props.enabled && !stale} />;
   }
 
   const uischema = {
@@ -259,7 +265,7 @@ export function DynamicFieldControl(props: ControlProps) {
       inputProps: { suffix: <Spin size="small" /> },
     },
   };
-  return TextControl({ ...props, uischema, enabled: false });
+  return <TextControl {...props} uischema={uischema} enabled={false} />;
 }
 const DynamicFieldRenderer = withJsonFormsControlProps(DynamicFieldControl);
 const dynamicFieldEntry = {

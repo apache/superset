@@ -60,3 +60,13 @@ For versioned semantic views, Matrixify **All** mode with **A to Z** or **Z to A
 sorting cannot populate or refresh dimension values from suggestions. Existing
 saved values are preserved. For a new selection, switch to **Members** and enter
 values manually; the control displays this guidance when suggestions are unavailable.
+
+## Dependent source selectors
+
+In **Add Semantic View**, changing a source dependency such as Database makes
+its dependent Schema choices unavailable while fresh options load, including
+the debounce interval. A matching response preserves selections that remain
+valid and clears those no longer offered. If loading fails, the form retains
+your selections but keeps stale choices unavailable; a subsequent form edit
+can retry once for that dependency state, or you can choose another database.
+Clearing the dependency keeps the dependent field unavailable until it is filled.
