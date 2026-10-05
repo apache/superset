@@ -49,7 +49,7 @@ from superset.commands.utils import compute_subjects, raise_if_managed_externall
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
     is_unfinished,
-    parse_skeleton,
+    stored_expression_error,
     validate_partition_mapping,
 )
 from superset.daos.dataset import DatasetDAO
@@ -521,21 +521,16 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # than "parses as a single expression": a set-operation or a
         # multi-statement transform fails that too, and has to reach this gate.
         if transform and not is_unfinished(transform, database.backend):
-            try:
-                validate_stored_expression(
-                    database, catalog, schema, parse_skeleton(transform)
-                )
-            except (SupersetSecurityException, QueryClauseValidationException) as ex:
-                message = (
-                    ex.error.message
-                    if isinstance(ex, SupersetSecurityException)
-                    else ex.message
-                )
+            # `stored_expression_error` rather than `validate_stored_expression`
+            # alone, which it already includes: it is the gate preview, import
+            # and the legacy save path all use, and running a narrower one here
+            # left a normal PUT the only door into this field that skipped the
+            # function denylist. A transform stored through that door is spliced
+            # into the probe as SQL and run by the engine, so it has to clear
+            # the same bar everywhere.
+            if reason := stored_expression_error(database, catalog, schema, transform):
                 exceptions.append(
-                    ValidationError(
-                        message,
-                        field_name="partition_value_transform",
-                    )
+                    ValidationError(reason, field_name="partition_value_transform")
                 )
 
     def _effective_transform(
