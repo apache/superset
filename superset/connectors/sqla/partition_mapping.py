@@ -398,7 +398,12 @@ def parse_skeleton(transform: str, standin: str = _PARSE_STANDIN) -> str:
     :param standin: what to substitute. `placeholder_is_executable` passes
         `_PLACEHOLDER_STANDIN` to find out where the placeholder landed.
     """
-    return VALUE_PLACEHOLDER_RE.sub(standin, transform)
+    # Substituted through a function so `standin` is taken literally. As a
+    # replacement *string* `re.sub` would read backslashes in it as escapes,
+    # and `build_probe_sql` passes rendered SQL here: a filter value containing
+    # `\n` would probe a newline instead of the two characters the predicate
+    # compares, and one containing `\1` would raise outright.
+    return VALUE_PLACEHOLDER_RE.sub(lambda _: standin, transform)
 
 
 #: Prefix the transform is wrapped in before parsing. Its length is subtracted
