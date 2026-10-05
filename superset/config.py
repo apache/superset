@@ -2498,15 +2498,23 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "lo_truncate",
         "lo_truncate64",
         "lo_unlink",
-        # XML functions that can execute SQL
+        # XML functions that can execute SQL. These read tables with no FROM
+        # clause and no sub-query of their own, so a gate that reasons about
+        # table references alone cannot see them -- the whole family has to be
+        # named here. All four shapes, for each of database / schema / table /
+        # query.
         "database_to_xml",
         "database_to_xmlschema",
+        "database_to_xml_and_xmlschema",
+        "schema_to_xml",
+        "schema_to_xmlschema",
+        "schema_to_xml_and_xmlschema",
         "query_to_xml",
         "query_to_xmlschema",
-        "table_to_xml",
-        "table_to_xml_and_xmlschema",
         "query_to_xml_and_xmlschema",
+        "table_to_xml",
         "table_to_xmlschema",
+        "table_to_xml_and_xmlschema",
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",

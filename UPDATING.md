@@ -100,6 +100,15 @@ assists people when migrating to a new version.
   orphans and can accumulate. Cleanup is also skipped if the isolation level
   cannot be verified.
 
+- `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family. Four
+  shapes were missing -- `schema_to_xml`, `schema_to_xmlschema`,
+  `schema_to_xml_and_xmlschema` and `database_to_xml_and_xmlschema` -- which,
+  being scalar calls with no FROM clause and no sub-query, cleared every gate
+  that reasons about table references. The denylist is shared with SQL Lab and
+  Charts, so a deployment relying on one of those four functions there will now
+  see it refused; override `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py`
+  if that is intended.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
