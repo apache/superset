@@ -245,18 +245,24 @@ refused when you save:
 | `PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT` | 24 hours | How long an evaluated transform stays cached |
 | `PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT` | 30 | Per-user, per-dataset preview requests per minute; the editor's preview panel runs a real query |
 
-### Both of those need a working cache backend
+### Three things need a working cache backend
 
-Neither setting does anything on its own. The probe cache and the preview
-budget both live in **`CACHE_CONFIG`**, whose default is
+None of them does anything on its own. The probe cache, the preview budget and
+the pruning indicator all live in **`CACHE_CONFIG`**, whose default is
 `{"CACHE_TYPE": "NullCache"}` — so out of the box:
 
 - every chart load on a mapped dataset re-probes the warehouse, because nothing
-  is cached; and
+  is cached;
 - the preview budget is never enforced, because a null cache reports every
-  request as the first one in its window.
+  request as the first one in its window; and
+- the pruning indicator stays optimistic. A transform the database rejects
+  parses fine, so Superset cannot tell it apart from a working one until
+  something probes — and with nothing to record that answer in, the editor's
+  banner and the glyph on a filter chip go on promising a speed-up the query
+  gives up. Charts stay correct either way; what is lost is the UI's ability
+  to stop claiming otherwise.
 
-Configuring `DATA_CACHE_CONFIG` does not help; these two read `CACHE_CONFIG`.
+Configuring `DATA_CACHE_CONFIG` does not help; all three read `CACHE_CONFIG`.
 
 The backend also has to be **shared** across processes. A per-process
 `SimpleCache` or a `FileSystemCache` on a local disk gives each gunicorn worker
