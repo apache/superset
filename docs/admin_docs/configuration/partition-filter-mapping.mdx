@@ -83,6 +83,12 @@ is greater than `hour('2026-01-02 01:00')` even though the first instant is earl
 a range through one of those would silently return wrong numbers, so Superset asks you to
 declare it rather than guessing.
 
+A *bucketing* transform preserves ordering and is the common case rather than
+an exception: `to_char(:value, 'YYYYMMDD')`, `date(:value)` and
+`cast(unix_timestamp(:value) / 86400 as bigint)` each map a whole day onto one
+partition key, which is exactly what a daily-partitioned table wants. Check the
+box for these.
+
 When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
 ## What is and isn't mirrored
@@ -90,8 +96,15 @@ When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 | Filter | Mirrored |
 |---|---|
 | `=`, `IN` | Always, except on a text column whose engine does not compare text exactly |
-| `>`, `>=`, `<`, `<=`, time ranges | Only when the transform preserves ordering |
+| `>`, `>=`, `<`, `<=`, time ranges | Only when the transform preserves ordering — and a strict bound mirrors non-strictly |
 | `!=`, `NOT IN`, `LIKE`, `ILIKE`, `IS NULL`, `IS TRUE` | Never |
+
+**Strict bounds.** Preserving ordering means non-decreasing, not strictly
+increasing, so `event_time < '2026-07-06 12:00'` mirrors to
+`day_key <= '20260706'` rather than `day_key < '20260706'`. Under a day key both
+sides of a mid-day boundary share a key, and the strict form would prune away
+the partition the boundary rows live in. The mirror reads one extra partition
+and keeps every row the filter keeps.
 
 Negations are never safe. A transform need not be injective: `lower(:value)` with
 `country != 'US'` would mirror to `region_key != 'us'`, which excludes rows whose `country`
@@ -163,7 +176,7 @@ engine.
 The mirrored predicate is therefore emitted as:
 
 ```sql
-(dt_epoch >= X AND dt_epoch < Y) OR dt_epoch IS NULL
+(dt_epoch >= X AND dt_epoch <= Y) OR dt_epoch IS NULL
 ```
 
 The mirror only has to be *no narrower* than the filter it stands in for, so admitting the

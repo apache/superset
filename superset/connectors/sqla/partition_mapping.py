@@ -56,6 +56,11 @@ Original                                     Safe when
 ``col != v``, ``NOT IN``, ``LIKE``, ...      never
 ===========================================  =============================
 
+Monotonic here means non-decreasing, not strictly increasing: a bucketing
+transform such as a day key is monotonic and maps a whole day of timestamps
+onto one value. ``col < v`` then only implies ``T(col) <= T(v)``, so a strict
+bound is mirrored non-strictly -- see `mirror_operator`.
+
 Equality under the engine's own rules
 -------------------------------------
 "``T`` is a function" gives ``col = v`` implies ``T(col) = T(v)`` for *value*
@@ -229,6 +234,35 @@ MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 #: a since/until pair, so there is no range for it to build. The editor never
 #: asks for one either: `previewOperatorFor` sends `>=`, `=` or `IN`.
 PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
+
+
+#: A transform that preserves ordering need not be *strictly* increasing: a day
+#: key such as ``to_char(ts, 'YYYYMMDD')`` maps a whole day of timestamps onto
+#: one value. For such a ``T``, ``col < v`` only implies ``T(col) <= T(v)`` and
+#: ``col > v`` only implies ``T(col) >= T(v)`` -- the rows in the bucket at the
+#: boundary satisfy the non-strict form and not the strict one. A strict mirror
+#: therefore drops rows the filter keeps, which is the one thing a mirror may
+#: never do, so a strict bound is mirrored non-strictly.
+_NON_STRICT_EQUIVALENT = {
+    FilterOperator.GREATER_THAN: FilterOperator.GREATER_THAN_OR_EQUALS,
+    FilterOperator.LESS_THAN: FilterOperator.LESS_THAN_OR_EQUALS,
+}
+
+
+def mirror_operator(operator: FilterOperator) -> FilterOperator:
+    """
+    The operator a mirrored predicate uses to stand in for ``operator``.
+
+    Strict bounds widen; everything else passes through. Idempotent, so it is
+    safe wherever a request may already have been widened.
+
+    The widened bound reads one extra partition at the edge, and the original
+    predicate is still in the query to exclude the rows that partition adds --
+    the same trade as the grain widening and the ``NULL``-partition escape.
+    Declaring the transform strictly increasing would buy that partition back,
+    which is not worth a second property only the owner can vouch for.
+    """
+    return _NON_STRICT_EQUIVALENT.get(operator, operator)
 
 
 def mirrorable_operators(
@@ -1805,6 +1839,12 @@ def build_mirrored_predicates(
     emitted as a literal constant, so "View query" shows the reader an ordinary
     ``WHERE`` clause rather than an inline expression.
 
+    A strict bound is emitted non-strictly; see `mirror_operator`. That happens
+    here, at the one point where a ``FilterOperator`` becomes SQL, rather than
+    at the collection sites in `ExploreMixin`: the preview endpoint calls this
+    directly, so this is what keeps the predicate the editor shows an owner and
+    the predicate the chart carries from disagreeing.
+
     :param errors: optional sink; see `evaluate_transform`.
     """
     if not requests:
@@ -1861,7 +1901,9 @@ def build_mirrored_predicates(
             predicates.append(sqla_col.in_(normalize_mixed_numbers(chunk)))
         else:
             predicates.append(
-                db_engine_spec.handle_comparison_filter(sqla_col, operator, chunk[0])
+                db_engine_spec.handle_comparison_filter(
+                    sqla_col, mirror_operator(operator), chunk[0]
+                )
             )
     if not predicates:
         return []
