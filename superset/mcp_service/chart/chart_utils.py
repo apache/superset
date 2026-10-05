@@ -1866,6 +1866,35 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
     return form_data
 
 
+def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fold inherited native predicates and ordering into canonical controls."""
+    from superset.mcp_service.chart.chart_helpers import _parse_orderby
+    from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
+
+    normalized = dict(form_data)
+    legacy_filters = [
+        form_data_to_adhoc(normalized, clause)
+        for clause in ("having", "where")
+        if normalized.get(clause)
+    ]
+    legacy_filters.extend(
+        simple_filter_to_adhoc(filter_, "where")
+        for filter_ in normalized.get("filters") or []
+        if filter_ is not None
+    )
+    if legacy_filters:
+        normalized["adhoc_filters"] = [
+            *legacy_filters,
+            *(normalized.get("adhoc_filters") or []),
+        ]
+    for key in ("where", "having", "filters"):
+        normalized.pop(key, None)
+    if "orderby" not in normalized and "order_by_cols" in normalized:
+        normalized["orderby"] = _parse_orderby(normalized["order_by_cols"])
+    normalized.pop("order_by_cols", None)
+    return normalized
+
+
 def merge_bullet_form_data(
     existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
 ) -> None:
@@ -1881,6 +1910,7 @@ def merge_bullet_form_data(
         or new_form_data.get("viz_type") != "bullet"
     ):
         return
+    existing_form_data = _normalize_bullet_query_aliases(existing_form_data)
     preserved_keys = {
         "groupby",
         "adhoc_filters",

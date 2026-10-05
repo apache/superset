@@ -28,7 +28,7 @@ import re
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from enum import Enum
 from numbers import Real
 from typing import Any, Dict, List
@@ -585,7 +585,20 @@ def _bullet_category_value(  # noqa: C901
 
     normalized: Any
     reason: str | None
-    if _is_chart_data_temporal_scalar(value):
+    if type(value) in {list, tuple, dict}:
+        from superset.mcp_service.chart.query_result import query_result_data
+
+        data, failure = query_result_data(
+            {"queries": [{"data": [{"value": value}]}]}, temporal_json_numbers=True
+        )
+        if failure is not None or data is None:
+            raise BulletOutputError(
+                f"Bullet dimension {dimension!r} row {row_index} "
+                "has an invalid or unbounded container value"
+            )
+        normalized = data[0][0]["value"]
+        reason = None
+    elif _is_chart_data_temporal_scalar(value):
         normalized, reason = _chart_data_temporal_number(value)
     elif _is_chart_data_duration_scalar(value):
         normalized, reason = _chart_data_duration_text(value)
@@ -603,7 +616,9 @@ def _bullet_category_value(  # noqa: C901
         )
 
     value_type = type(normalized)
-    if normalized is None:
+    if value_type in {list, dict}:
+        text = _bullet_container_category_text(normalized, dimension, row_index)
+    elif normalized is None:
         text = "null"
     elif value_type is str:
         text = normalized
@@ -622,6 +637,35 @@ def _bullet_category_value(  # noqa: C901
             f"Bullet dimension {dimension!r} row {row_index} exceeds the size limit"
         )
     return normalized, text
+
+
+def _bullet_container_category_text(value: Any, dimension: str, row_index: int) -> str:
+    """Stringify validated containers like JavaScript with a bounded text budget."""
+    from superset.mcp_service.chart.query_result import _bounded_utf8_length
+
+    if type(value) is dict:
+        return "[object Object]"
+    parts: list[str] = []
+    size = 0
+    for index, item in enumerate(value):
+        if type(item) in {list, dict}:
+            text = _bullet_container_category_text(item, dimension, row_index)
+        else:
+            text = (
+                ""
+                if item is None
+                else _bullet_category_value(item, dimension, row_index)[1]
+            )
+        text_size = _bounded_utf8_length(text, _MAX_BULLET_TEXT_BYTES)
+        size += (text_size if text_size is not None else _MAX_BULLET_TEXT_BYTES + 1) + (
+            index > 0
+        )
+        if size > _MAX_BULLET_TEXT_BYTES:
+            raise BulletOutputError(
+                f"Bullet dimension {dimension!r} row {row_index} exceeds the size limit"
+            )
+        parts.append(text)
+    return ",".join(parts)
 
 
 def _javascript_numeric_string(value: str) -> float:
@@ -752,7 +796,12 @@ def _format_bullet_number(format_: str, value: float) -> str:
     from superset.utils.number_format import format_numeric
 
     try:
-        return format_numeric(format_, value)
+        # Binary64 has at most 309 integer digits. Leave room for the bounded
+        # fractional precision, percent scaling, and a rounding carry without
+        # changing the caller's Decimal context.
+        with localcontext() as context:
+            context.prec = max(context.prec, 334)
+            return format_numeric(format_, value)
     except OverflowError:
         # SMART_NUMBER's significant-digit rounding can overflow a finite float
         # near DBL_MAX. Scientific repr remains deterministic and informative.
@@ -1297,6 +1346,31 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             "legend": {"title": None} if model.show_legend else None,
         }
 
+    label_field = _unique_bullet_derived_field(values, "__mcp_bullet_threshold_label")
+    value_field = _unique_bullet_derived_field(
+        values, "__mcp_bullet_threshold_value", (label_field,)
+    )
+
+    def threshold_details(
+        label: str, value: float, label_title: str, value_title: str
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Materialize constants as fields for valid Vega tooltip arrays."""
+        return (
+            [
+                {"calculate": json.dumps(label), "as": label_field},
+                {"calculate": json.dumps(value), "as": value_field},
+            ],
+            [
+                {"field": label_field, "type": "nominal", "title": label_title},
+                {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "title": value_title,
+                    "format": vega_format,
+                },
+            ],
+        )
+
     layers: list[dict[str, Any]] = []
     range_entries = sorted(
         [
@@ -1310,8 +1384,12 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         reverse=True,
     )
     for index, (threshold, label) in enumerate(range_entries):
+        transforms, threshold_tooltip = threshold_details(
+            label, threshold, "Range", "Threshold"
+        )
         layers.append(
             {
+                "transform": transforms,
                 "mark": {
                     "type": "rect",
                     "opacity": max(0.08, 0.28 - index * 0.04),
@@ -1324,15 +1402,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                         (f"{label}: " if label else "")
                         + f"≤ {_format_bullet_number(model.y_axis_format, threshold)}"
                     ),
-                    "tooltip": [
-                        {"value": label, "title": "Range"},
-                        {
-                            "value": _format_bullet_number(
-                                model.y_axis_format, threshold
-                            ),
-                            "title": "Threshold",
-                        },
-                    ],
+                    "tooltip": threshold_tooltip,
                 },
             }
         )
@@ -1366,8 +1436,12 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     )
     for index, marker in enumerate(model.markers):
         label = label_at(model.marker_labels, index, marker, "Marker")
+        transforms, threshold_tooltip = threshold_details(
+            label, marker, "Marker", "Value"
+        )
         layers.append(
             {
+                "transform": transforms,
                 "mark": {
                     "type": "point",
                     "shape": "triangle-up",
@@ -1380,13 +1454,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "color": legend_color(
                         f"{label}: {_format_bullet_number(model.y_axis_format, marker)}"
                     ),
-                    "tooltip": [
-                        {"value": label, "title": "Marker"},
-                        {
-                            "value": _format_bullet_number(model.y_axis_format, marker),
-                            "title": "Value",
-                        },
-                    ],
+                    "tooltip": threshold_tooltip,
                 },
             }
         )
@@ -1403,8 +1471,12 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             )
     for index, marker_line in enumerate(model.marker_lines):
         label = label_at(model.marker_line_labels, index, marker_line, "Marker line")
+        transforms, threshold_tooltip = threshold_details(
+            label, marker_line, "Marker line", "Value"
+        )
         layers.append(
             {
+                "transform": transforms,
                 "mark": {"type": "rule", "strokeWidth": 2},
                 "encoding": {
                     "x": {"datum": marker_line, "type": "quantitative"},
@@ -1412,15 +1484,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                         f"{label}: "
                         f"{_format_bullet_number(model.y_axis_format, marker_line)}"
                     ),
-                    "tooltip": [
-                        {"value": label, "title": "Marker line"},
-                        {
-                            "value": _format_bullet_number(
-                                model.y_axis_format, marker_line
-                            ),
-                            "title": "Value",
-                        },
-                    ],
+                    "tooltip": threshold_tooltip,
                 },
             }
         )

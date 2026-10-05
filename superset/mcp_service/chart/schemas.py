@@ -2935,7 +2935,7 @@ class BulletChartConfig(BaseChartConfig):
         if expression_type == "SQL":
             return {
                 "sql_expression": value.get("sqlExpression"),
-                "label": value.get("label"),
+                "label": value.get("label") or value.get("sqlExpression"),
             }
         if expression_type != "SIMPLE":
             raise ValueError("metric.expressionType must be 'SIMPLE' or 'SQL'")

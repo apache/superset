@@ -430,10 +430,13 @@ class BulletChartPlugin(BaseChartPlugin):
         if not isinstance(config, BulletChartConfig) or dataset_rebind:
             return None
         from superset.mcp_service.chart.chart_utils import (
+            _normalize_bullet_query_aliases,
             merge_bullet_form_data,
             merge_update_form_data,
         )
 
+        if existing_form_data.get("viz_type") == "bullet":
+            existing_form_data = _normalize_bullet_query_aliases(existing_form_data)
         merged = dict(new_form_data)
         merge_update_form_data(existing_form_data, merged, config)
         merge_bullet_form_data(existing_form_data, merged)

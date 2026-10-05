@@ -689,8 +689,17 @@ def _native_reference_error(  # noqa: C901
         for column in query.get("groupby") or []:
             if error := column_error(column, f"query {query_index} groupby column"):
                 return error
+        selected_column_labels = {
+            label
+            for column in query.get("columns") or []
+            if (label := _native_column_label(column)) is not None
+        }
         for level in query.get("grouping_sets") or []:
             for column in level:
+                # Grouping sets reference selected logical outputs, including
+                # Custom SQL labels. Their source columns were checked above.
+                if isinstance(column, str) and column in selected_column_labels:
+                    continue
                 if error := column_error(
                     column, f"query {query_index} grouping-set column"
                 ):

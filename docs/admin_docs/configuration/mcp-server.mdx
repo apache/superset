@@ -1359,7 +1359,14 @@ such as `Region` and `region` remain distinct. Reference lookup prefers exact
 names and uses case-insensitive matching only when there is a single candidate;
 ambiguous references require the exact spelling. Bullet metric strings use
 JavaScript numeric spellings: underscore separators and non-ASCII digits are
-rejected rather than interpreted as numbers.
+rejected rather than interpreted as numbers. Bounded array-valued dimensions
+retain their raw values in data reads and exports; preview category labels use
+JavaScript string conversion (for example, `[1, 2]` displays as `1,2`). Native
+SQL metrics without a label use their SQL expression as the output label.
+
+Presentation-only updates preserve saved predicates, including legacy top-level
+`where`, `having`, and `filters`, and normalize the native `order_by_cols` alias.
+Explicit `filters: []` and `order_by: []` clear those inherited controls.
 
 Range, marker, and marker-line label lists may be shorter than their value lists.
 As in Explore, missing or empty range labels are not displayed, and missing or

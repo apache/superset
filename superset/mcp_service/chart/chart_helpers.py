@@ -706,7 +706,7 @@ def _is_query_form_metric(value: Any) -> bool:
 
 def _timeseries_base_metrics(form_data: dict[str, Any]) -> list[Any]:
     """Return metrics extracted by the common frontend query-field aliases."""
-    metrics = list(_as_list(form_data.get("metrics")))
+    metrics = [*_as_list(form_data.get("metrics")), *_as_list(form_data.get("metric"))]
     if (size := form_data.get("size")) is not None:
         metrics.append(size)
     return _dedupe_query_fields(metrics, _metric_label)
@@ -1932,12 +1932,10 @@ def build_table_query_dicts(  # noqa: C901
         form_data.get("query_mode") not in {"raw", "aggregate"}
         and bool(form_data.get("all_columns"))
     )
-    table_columns = list(
-        (form_data.get("all_columns") or [])
-        if raw_mode
-        else (form_data.get("groupby") or [])
+    table_columns = _as_list(
+        form_data.get("all_columns") if raw_mode else form_data.get("groupby")
     )
-    table_metrics = [] if raw_mode else list(form_data.get("metrics") or [])
+    table_metrics = [] if raw_mode else _as_list(form_data.get("metrics"))
     percent_metrics = [] if raw_mode else _as_list(form_data.get("percent_metrics"))
     table_metrics = _dedupe_query_fields(
         [*table_metrics, *percent_metrics], _metric_label
@@ -2123,6 +2121,9 @@ def build_big_number_query_dicts(  # noqa: C901
 ) -> list[dict[str, Any]]:
     """Render Big Number (with or without trendline) buildQuery."""
     metric = form_data.get("metric")
+    if metric is None:
+        plural_metrics = _as_list(form_data.get("metrics"))
+        metric = plural_metrics[0] if plural_metrics else None
     columns = _resolve_big_number_query_columns(form_data) if trendline else []
     query = build_single_query_dict(
         form_data,
