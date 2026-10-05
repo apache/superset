@@ -2147,6 +2147,11 @@ _FORM_DATA_UPDATE_PRESERVE_KEYS = frozenset().union(
 )
 
 
+_SAVED_PREDICATE_FORM_DATA_KEYS = frozenset(
+    {"adhoc_filters", "extra_filters", "filters", "having", "where"}
+)
+
+
 def _merge_preserved_adhoc_filters(
     existing_form_data: Mapping[str, Any],
     new_form_data: Mapping[str, Any],
@@ -2234,7 +2239,10 @@ def merge_form_data_for_update(
 
     plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
     if dataset_rebind and not (plugin is not None and plugin.strict_dataset_rebind):
-        existing_form_data = scrub_dataset_bound_form_data(existing_form_data)
+        existing_form_data = scrub_dataset_bound_form_data(
+            existing_form_data,
+            target_viz_type=new_form_data.get("viz_type"),
+        )
         dataset_rebind = False
 
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
@@ -2297,7 +2305,10 @@ def overlay_update_form_data(
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     if getattr(config, "filters", None) == []:
-        merged.pop("adhoc_filters", None)
+        # Legacy ``filters``/``where``/``having`` are reconstructed into adhoc
+        # filters at query time, so an explicit clear removes every source.
+        for key in _SAVED_PREDICATE_FORM_DATA_KEYS:
+            merged.pop(key, None)
     elif getattr(config, "filters", None) is None:
         filters = _merge_preserved_adhoc_filters(
             existing_form_data,
@@ -2423,9 +2434,13 @@ _DATASET_BOUND_FORM_DATA_KEYS = frozenset(
         "extra_filters",
         "extra_form_data",
         "filters",
+        # Legacy top-level free-form SQL predicates are reconstructed into
+        # adhoc filters at query time, so they bind columns of the old dataset.
+        "having",
         "pivot_table_state",
         "standardizedFormData",
         "temporal_columns_lookup",
+        "where",
     }
 )
 
@@ -2498,8 +2513,27 @@ def _dataset_rebind_query_roles(form_data: Mapping[str, Any]) -> frozenset[str]:
 
 def scrub_dataset_bound_form_data(
     form_data: Mapping[str, Any],
+    *,
+    target_viz_type: Any = None,
 ) -> Dict[str, Any]:
-    """Remove saved values that can reference columns from another dataset."""
+    """Remove saved values that can reference columns from another dataset.
+
+    When ``target_viz_type`` names a different visualization, the replacement
+    starts from the mapped target config and the cross-viz merge inherits only
+    the shared preservation registry. The source viz's role contract is then
+    irrelevant, so only registry keys that are not dataset-bound are kept.
+    """
+    source_viz_type = form_data.get("viz_type")
+    if target_viz_type is not None and target_viz_type != source_viz_type:
+        return {
+            key: value
+            for key, value in form_data.items()
+            if key == "viz_type"
+            or (
+                key in _FORM_DATA_UPDATE_PRESERVE_KEYS
+                and key not in _DATASET_BOUND_FORM_DATA_KEYS
+            )
+        }
     query_roles = _dataset_rebind_query_roles(form_data)
     return {
         key: value

@@ -32,6 +32,8 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
+    SunburstChartConfig,
+    TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
 )
@@ -587,3 +589,112 @@ def test_big_number_raw_aggregation_preserves_two_query_contract() -> None:
     assert overall["columns"] == []
     assert overall["is_timeseries"] is False
     assert overall["post_processing"] == []
+
+
+def _sunburst_replacement_config() -> SunburstChartConfig:
+    return SunburstChartConfig(
+        hierarchy=[{"name": "region"}, {"name": "country"}],
+        metric={"name": "sales", "aggregate": "SUM"},
+    )
+
+
+def test_cached_table_rebind_drops_legacy_sql_predicates() -> None:
+    """Top-level ``where``/``having`` reference the previous dataset."""
+    cached = {
+        "viz_type": "table",
+        "datasource": "10__table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "where": "region = 'EMEA'",
+        "having": "COUNT(*) > 5",
+        "show_cell_bars": True,
+    }
+    config = TableChartConfig(columns=[{"name": "region"}])
+    new_form_data = map_config_to_form_data(config)
+
+    merged = merge_form_data_for_update(
+        cached, new_form_data, config, dataset_rebind=True
+    )
+
+    assert "where" not in merged
+    assert "having" not in merged
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        (query,) = build_query_dicts_from_form_data(merged, 99, "table")
+    assert "region = 'EMEA'" not in str(query)
+    assert "COUNT(*) > 5" not in str(query)
+
+
+def test_cross_viz_rebind_from_unregistered_viz_uses_mapped_target() -> None:
+    """A complete config replaces a source viz that has no role contract."""
+    saved = {
+        "viz_type": "word_cloud",
+        "datasource": "10__table",
+        "series": "old_word",
+        "metric": "old_count",
+        "rotation": "square",
+        "adhoc_filters": [{"subject": "old_word"}],
+        "color_scheme": "supersetColors",
+    }
+    config = _sunburst_replacement_config()
+    new_form_data = map_config_to_form_data(config)
+
+    merged = merge_form_data_for_update(
+        saved, new_form_data, config, dataset_rebind=True
+    )
+
+    assert merged["viz_type"] == "sunburst_v2"
+    assert merged["columns"] == ["region", "country"]
+    assert merged["color_scheme"] == "supersetColors"
+    assert {"series", "rotation", "adhoc_filters"}.isdisjoint(merged)
+    assert "old_word" not in str(merged)
+    assert "old_count" not in str(merged)
+
+
+def test_cross_viz_dataset_only_scrub_still_requires_role_contract() -> None:
+    """Without a replacement viz, an unknown source still fails closed."""
+    with pytest.raises(ValueError, match="no complete dataset role contract"):
+        scrub_dataset_bound_form_data({"viz_type": "word_cloud", "series": "old"})
+
+
+def test_explicit_empty_filters_clear_legacy_predicates_on_cross_viz_update() -> None:
+    """``filters=[]`` removes adhoc, legacy structured, and free-form SQL state."""
+    saved = {
+        "viz_type": "table",
+        "datasource": "10__table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+        "filters": [{"col": "region", "op": "==", "val": "EMEA"}],
+        "where": "region = 'EMEA'",
+        "having": "COUNT(*) > 5",
+    }
+    config = SunburstChartConfig(
+        hierarchy=[{"name": "region"}, {"name": "country"}],
+        metric={"name": "sales", "aggregate": "SUM"},
+        filters=[],
+    )
+    new_form_data = map_config_to_form_data(config)
+
+    merged = merge_form_data_for_update(saved, new_form_data, config)
+
+    assert {"adhoc_filters", "filters", "where", "having"}.isdisjoint(merged)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        (query,) = build_query_dicts_from_form_data(merged, 10, "table")
+    assert query["filters"] == []
+    assert "EMEA" not in str(query)

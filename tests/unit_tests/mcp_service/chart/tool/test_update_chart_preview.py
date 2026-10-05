@@ -332,6 +332,62 @@ class TestUpdateChartPreview:
     @patch.object(update_chart_preview_module, "_get_previous_form_data")
     @patch.object(update_chart_preview_module, "_find_dataset")
     @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_cross_viz_rebind_from_unregistered_viz_uses_target_config(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """A complete replacement config does not need the source role contract."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        mock_find_dataset.return_value = _mock_dataset(id=99)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "word_cloud",
+            "datasource": "10__table",
+            "series": "old_word",
+            "metric": "old_count",
+            "rotation": "square",
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+            generate_preview=False,
+        )
+
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["viz_type"] == "table"
+        assert generated["datasource"] == "99__table"
+        assert {"series", "rotation"}.isdisjoint(generated)
+        assert "old_word" not in str(generated)
+        assert "old_count" not in str(generated)
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
     def test_cached_same_dataset_preserves_populated_table_state(
         self,
         mock_get_user_from_request,

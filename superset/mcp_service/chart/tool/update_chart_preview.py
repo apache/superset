@@ -321,7 +321,8 @@ def update_chart_preview(  # noqa: C901
                     # Cached roles have no usable provenance unless their
                     # datasource identity matches the authorized target.
                     previous_form_data = scrub_dataset_bound_form_data(
-                        previous_form_data
+                        previous_form_data,
+                        target_viz_type=new_form_data.get("viz_type"),
                     )
                 else:
                     merge_table_column_config(previous_form_data, new_form_data)
