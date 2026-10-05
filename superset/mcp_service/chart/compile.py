@@ -48,10 +48,10 @@ from superset.mcp_service.chart.query_result import (
 )
 from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     build_dataset_context_from_orm,
     DatasetValidator,
-    metadata_entry_name,
-    resolve_exact_first_casefold,
+    resolve_dataset_reference,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -245,6 +245,26 @@ def _compile_chart(  # noqa: C901
         )
 
 
+def _adhoc_filter_column_valid(
+    column: str, clause: str, dataset_context: DatasetContext
+) -> bool:
+    """Return True if *column* is a valid reference for this filter clause.
+
+    WHERE filters must reference a physical column; HAVING filters may also
+    reference a saved metric because Superset resolves metric names there.
+    """
+    if clause == "HAVING":
+        return DatasetValidator._column_exists(column, dataset_context)
+    return (
+        resolve_dataset_reference(
+            column,
+            (col["name"] for col in dataset_context.available_columns),
+            "physical column",
+        )
+        is not None
+    )
+
+
 def _validate_adhoc_filter_columns(  # noqa: C901
     form_data: Dict[str, Any], dataset_context: DatasetContext
 ) -> ChartGenerationError | None:
@@ -258,7 +278,10 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     and surface only when Explore tries to run the query.
     """
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
-    invalid: List[str] = []
+    # (column, clause) pairs: the clause decides whether a saved metric is a
+    # legal reference, and so whether metrics belong in the suggestions.
+    invalid: list[tuple[str, str]] = []
+    has_simple_having = False
     for f in adhoc_filters:
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
@@ -277,7 +300,18 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 suggestions=["Use clause='WHERE'"],
                 error_code="INVALID_FILTER_CLAUSE",
             )
-        if clause == "HAVING":
+        has_simple_having = has_simple_having or clause == "HAVING"
+        column = f.get("subject") or f.get("col")
+        if not column or not isinstance(column, str):
+            continue
+        try:
+            if not _adhoc_filter_column_valid(column, clause, dataset_context):
+                invalid.append((column, clause))
+        except AmbiguousDatasetReferenceError as ex:
+            return DatasetValidator._build_ambiguous_reference_error(ex)
+
+    if not invalid:
+        if has_simple_having:
             return ChartGenerationError(
                 error_type="unsupported_filter_clause",
                 message="SIMPLE HAVING filters are unsupported",
@@ -288,37 +322,12 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 suggestions=["Use a supported WHERE filter"],
                 error_code="UNSUPPORTED_FILTER_CLAUSE",
             )
-        column = f.get("subject") or f.get("col")
-        if not column or not isinstance(column, str):
-            continue
-        candidates = list(dataset_context.available_columns)
-        match, folded_matches = resolve_exact_first_casefold(
-            column, candidates, metadata_entry_name
-        )
-        if match is not None:
-            continue
-        if folded_matches:
-            return ChartGenerationError(
-                error_type="ambiguous_dataset_reference",
-                message=f"Filter reference {column!r} is ambiguous",
-                details=(
-                    "The case-insensitive filter reference matches multiple "
-                    f"candidates: {', '.join(repr(name) for name in folded_matches)}."
-                ),
-                suggestions=[
-                    f"Use the exact name {name!r}" for name in folded_matches[:10]
-                ],
-                error_code="AMBIGUOUS_DATASET_REFERENCE",
-            )
-        invalid.append(column)
-
-    if not invalid:
         return None
 
     suggestions: List[str] = []
-    for column in invalid:
+    for column, clause in invalid:
         for suggestion in DatasetValidator._get_column_suggestions(
-            column, dataset_context
+            column, dataset_context, include_metrics=clause == "HAVING"
         ):
             name = (
                 suggestion.name
@@ -328,7 +337,7 @@ def _validate_adhoc_filter_columns(  # noqa: C901
             if name and name not in suggestions:
                 suggestions.append(name)
 
-    bad = ", ".join(sorted(set(invalid)))
+    bad = ", ".join(sorted({column for column, _ in invalid}))
     return ChartGenerationError(
         error_type="invalid_column",
         message=(f"Filter references column(s) not in dataset: {bad}"),
