@@ -90,6 +90,14 @@ built-in `pivot_table` chart type and is not offered when the host visualization
 is unavailable.
 :::
 
+For saved Bullet charts, updates that omit dimensions preserve Explore's
+hierarchy, including SQL expressions, along with native query metadata such as
+URL parameters. Replacing a metric also updates inherited expression-based
+ordering for that metric output. Raw chart data and CSV/Excel exports do not
+require the selected number formatter to be supported by MCP previews.
+For Table charts, time comparisons apply to ordinary metrics; percentage-only
+metrics remain available alongside their contribution columns.
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:

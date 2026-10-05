@@ -1942,7 +1942,7 @@ def build_table_query_dicts(  # noqa: C901
     ]
     table_metrics = [] if raw_mode else _as_list(form_data.get("metrics"))
     percent_metrics = [] if raw_mode else _as_list(form_data.get("percent_metrics"))
-    table_metrics = _dedupe_query_fields(
+    query_metrics = _dedupe_query_fields(
         [*table_metrics, *percent_metrics], _metric_label
     )
     table_orderby = _parse_orderby(form_data.get("order_by_cols"))
@@ -1955,7 +1955,7 @@ def build_table_query_dicts(  # noqa: C901
     query = build_single_query_dict(
         form_data,
         table_columns,
-        table_metrics,
+        query_metrics,
         row_limit=row_limit,
         order_desc=order_desc,
         orderby=table_orderby,
@@ -1971,7 +1971,9 @@ def build_table_query_dicts(  # noqa: C901
                     *table_columns[index + 1 :],
                 ]
                 break
-    offsets = _table_time_offsets(form_data, query)
+    # Native comparisons use ordinary metrics, before percentage-only metrics
+    # are added to the selected query and contribution operator.
+    offsets = _table_time_offsets(form_data, {**query, "metrics": table_metrics})
     query["time_offsets"] = offsets
     post_processing: list[dict[str, Any]] = []
     contribution: dict[str, Any] | None = None
@@ -2039,12 +2041,12 @@ def build_table_query_dicts(  # noqa: C901
                 "is_timeseries": False,
             }
         )
-    if table_metrics and form_data.get("show_totals") and not raw_mode:
+    if query_metrics and form_data.get("show_totals") and not raw_mode:
         totals = {
             **query,
             "columns": [],
             "metrics": _table_totals_metrics(
-                table_metrics, form_data.get("totals_aggregate")
+                query_metrics, form_data.get("totals_aggregate")
             ),
             "row_limit": 0,
             "row_offset": 0,

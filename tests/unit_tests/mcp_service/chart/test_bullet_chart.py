@@ -1231,9 +1231,17 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     command.run.return_value = {"queries": [{"data": rows}]}
     captured: list[list[dict[str, Any]]] = []
 
-    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+    def validate(
+        data: list[dict[str, Any]],
+        config: dict[str, Any],
+        *,
+        validate_format: bool = True,
+    ) -> Any:
+        """Capture the projected data while preserving render-model options."""
         captured.append(data)
-        return resolve_bullet_render_model(data, config)
+        return resolve_bullet_render_model(
+            data, config, validate_format=validate_format
+        )
 
     with (
         patch(
@@ -1310,9 +1318,17 @@ def test_bullet_compile_projects_real_dataframe_durations_to_chart_data_wire() -
     command.run.return_value = producer_result
     captured: list[list[dict[str, Any]]] = []
 
-    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+    def validate(
+        data: list[dict[str, Any]],
+        config: dict[str, Any],
+        *,
+        validate_format: bool = True,
+    ) -> Any:
+        """Capture the projected data while preserving render-model options."""
         captured.append(data)
-        return resolve_bullet_render_model(data, config)
+        return resolve_bullet_render_model(
+            data, config, validate_format=validate_format
+        )
 
     with (
         patch(
@@ -1395,9 +1411,17 @@ def test_bullet_compile_accepts_transitionless_dateutil_dataframe_producer() -> 
     command.run.return_value = producer_result
     captured: list[list[dict[str, Any]]] = []
 
-    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+    def validate(
+        data: list[dict[str, Any]],
+        config: dict[str, Any],
+        *,
+        validate_format: bool = True,
+    ) -> Any:
+        """Capture the projected data while preserving render-model options."""
         captured.append(data)
-        return resolve_bullet_render_model(data, config)
+        return resolve_bullet_render_model(
+            data, config, validate_format=validate_format
+        )
 
     with (
         patch(
@@ -4160,7 +4184,7 @@ async def _run_saved_bullet_update(
         patch(
             "superset.mcp_service.chart.compile._compile_chart",
             return_value=CompileResult(success=True),
-        ),
+        ) as compile_chart,
         patch(
             "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
         ),
@@ -4181,7 +4205,9 @@ async def _run_saved_bullet_update(
         result = await update_chart(request, ctx=ctx)
 
     assert result.success is True, result
-    return __import__("json").loads(command.call_args.args[1]["params"])
+    persisted = __import__("json").loads(command.call_args.args[1]["params"])
+    assert compile_chart.call_args.args[0] == persisted
+    return persisted
 
 
 @pytest.mark.asyncio
@@ -4572,3 +4598,137 @@ def test_bullet_format_accepts_bounded_precision() -> None:
         [{"Revenue": 0}], {"metric": "Revenue", "y_axis_format": ".20e"}
     )
     assert model.y_axis_format == ".20e"
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_labels_update_preserves_url_params() -> None:
+    """Query metadata must survive schema validation, compilation and persistence."""
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "url_params": {"region": "EU"},
+        },
+        {
+            "metric": {"name": "SavedRevenue", "saved_metric": True},
+            "show_labels": True,
+        },
+    )
+    assert persisted["url_params"] == {"region": "EU"}
+    assert persisted["show_labels"] is True
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_labels_update_preserves_sql_hierarchy() -> None:
+    """Inherited Explore dimensions remain native, not typed physical columns."""
+    dimension = {
+        "expressionType": "SQL",
+        "sqlExpression": "UPPER(Region)",
+        "label": "RegionUpper",
+    }
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": [dimension],
+            "orderby": [[dimension, True]],
+        },
+        {
+            "metric": {"name": "SavedRevenue", "saved_metric": True},
+            "show_labels": True,
+        },
+    )
+    assert persisted["groupby"] == [dimension]
+    assert persisted["orderby"] == [[dimension, True]]
+    query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
+    assert query["columns"] == [dimension]
+    assert query["orderby"] == [[dimension, True]]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", [None, 7])
+@pytest.mark.parametrize("expression_type", ["SIMPLE", "SQL"])
+async def test_saved_bullet_metric_sort_rebinds_same_label_expression(
+    dataset_id: int | None, expression_type: str
+) -> None:
+    """An inherited output sort must execute the replacement metric expression."""
+    old_metric = {
+        "expressionType": expression_type,
+        "label": "Amount",
+        **(
+            {"column": {"column_name": "OldRevenue"}, "aggregate": "SUM"}
+            if expression_type == "SIMPLE"
+            else {"sqlExpression": "SUM(OldRevenue)"}
+        ),
+    }
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": old_metric,
+            "groupby": ["Region"],
+            "orderby": [[old_metric, False]],
+        },
+        {"metric": {"name": "Revenue", "aggregate": "SUM", "label": "Amount"}},
+        dataset_id=dataset_id,
+    )
+    assert persisted["orderby"] == [[persisted["metric"], False]]
+    query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
+    assert query["orderby"] == [[persisted["metric"], False]]
+
+
+def test_bullet_native_hierarchy_still_validates_against_dataset() -> None:
+    """Excluding inherited roles from typed validation cannot hide missing columns."""
+    from superset.mcp_service.chart.compile import validate_and_compile
+
+    config = BulletChartConfig(metric=_simple_metric(), show_labels=True)
+    form_data = {**map_bullet_config(config), "groupby": ["MissingRegion"]}
+    validated = validate_merged_bullet_form_data(form_data, config)
+    assert validated is not None
+    result = validate_and_compile(
+        validated, form_data, _orm_dataset(), run_compile_check=False
+    )
+    assert not result.success
+    assert result.error_obj is not None
+    assert "MissingRegion" in result.error_obj.message
+
+
+def test_bullet_native_metadata_and_dimensions_do_not_weaken_typed_authoring() -> None:
+    """Native-only state cannot be newly supplied through the typed config surface."""
+    with pytest.raises(ValidationError, match="url_params"):
+        BulletChartConfig.model_validate(
+            {"metric": _simple_metric(), "url_params": {"region": "EU"}}
+        )
+    dimension = {
+        "expressionType": "SQL",
+        "sqlExpression": "UPPER(Region)",
+        "label": "RegionUpper",
+    }
+    with pytest.raises(ValidationError):
+        BulletChartConfig.model_validate(
+            {"metric": _simple_metric(), "dimensions": [dimension]}
+        )
+    config = BulletChartConfig(metric=_simple_metric(), dimensions=[])
+    with pytest.raises(ValidationError):
+        validate_merged_bullet_form_data(
+            {**map_bullet_config(config), "groupby": [dimension]}, config
+        )
+
+
+@pytest.mark.parametrize("number_format", ["DURATION", "MEMORY_BINARY"])
+def test_bullet_raw_validation_skips_formatter_but_keeps_numeric_checks(
+    number_format: str,
+) -> None:
+    """Unsupported preview presets cannot hide invalid metric output."""
+    form_data = {"metric": "Revenue", "y_axis_format": number_format}
+    result = {"queries": [{"data": [{"Revenue": "not numeric"}]}]}
+    plugin = BulletChartPlugin()
+    normalized = plugin.normalize_query_result(result, form_data)
+    assert isinstance(normalized, ChartError)
+    assert normalized.error_type == "MalformedBulletOutput"
+    rows, error = plugin.sanitize_data_rows(result["queries"][0]["data"], form_data)
+    assert rows == []
+    assert error is not None
+    assert error.error_type == "MalformedBulletOutput"
+    with pytest.raises(BulletOutputError) as failure:
+        resolve_bullet_render_model([{"Revenue": 1024}], form_data)
+    assert failure.value.error_type == "UnsupportedFormat"

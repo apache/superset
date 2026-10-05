@@ -3221,3 +3221,47 @@ def test_cleared_time_shifts_preserve_native_metric_rename_exclusions(
     assert bool(renames) is truncates
     if truncates:
         assert renames[0]["options"]["columns"] == {"Revenue": None}
+
+
+def test_table_time_comparison_retains_percentage_only_metric_columns(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    """Compare ordinary metrics only, retaining distinct contribution sources."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    query = _query_objects(
+        {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["sales"],
+            "percent_metrics": ["profit"],
+            "time_compare": ["1 year ago"],
+            "comparison_type": "difference",
+        }
+    )[0]
+    assert query.metrics == ["sales", "profit"]
+    result = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "region": ["EU", "US"],
+                "sales": [100.0, 200.0],
+                "sales__1 year ago": [80.0, 150.0],
+                "profit": [10.0, 30.0],
+                "profit__1 year ago": [5.0, 15.0],
+            }
+        )
+    )
+    assert list(result.columns) == [
+        "region",
+        "profit",
+        "profit__1 year ago",
+        "%profit",
+        "%profit__1 year ago",
+        "difference__sales__sales__1 year ago",
+    ]
+    assert result["profit"].tolist() == [10.0, 30.0]
+    assert result["difference__sales__sales__1 year ago"].tolist() == [20.0, 50.0]

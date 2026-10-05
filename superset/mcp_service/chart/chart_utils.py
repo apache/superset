@@ -1971,28 +1971,47 @@ def merge_bullet_form_data(
 def _orderby_for_final_output_roles(
     existing_form_data: Mapping[str, Any], new_form_data: Mapping[str, Any]
 ) -> Any:
-    """Drop saved sorts that no longer target a final exact query output."""
+    """Retain final output sorts and rebind inherited metric expressions."""
+    from superset.mcp_service.chart.chart_helpers import _column_label, _metric_label
+
     saved = existing_form_data.get("orderby")
     if not isinstance(saved, list):
         return saved
     outputs = {
-        name for name in new_form_data.get("groupby") or [] if isinstance(name, str)
+        label
+        for column in new_form_data.get("groupby") or []
+        if (label := _column_label(column)) is not None
     }
     metrics = new_form_data.get("metrics") or []
     if not isinstance(metrics, (list, tuple)):
         metrics = [metrics]
-    for metric in [new_form_data.get("metric"), *metrics]:
-        label = metric.get("label") if isinstance(metric, Mapping) else metric
-        if isinstance(label, str):
-            outputs.add(label)
+    metric_outputs = {
+        label: metric
+        for metric in [new_form_data.get("metric"), *metrics]
+        if (label := _metric_label(metric)) is not None
+    }
+    outputs.update(metric_outputs)
     retained = []
     for entry in saved:
         if isinstance(entry, (list, tuple)) and entry:
             target = entry[0]
-            if isinstance(target, Mapping):
-                target = target.get("label") or target.get("metric_name")
-            if isinstance(target, str) and target not in outputs:
+            label = (
+                _metric_label(target)
+                or _column_label(target)
+                or target.get("metric_name")
+                if isinstance(target, Mapping)
+                else target
+            )
+            if isinstance(label, str) and label not in outputs:
                 continue
+            if (
+                isinstance(target, Mapping)
+                and isinstance(label, str)
+                and label in metric_outputs
+            ):
+                # Label equality identifies an output role, not expression
+                # equality: execute the final metric, never the saved expression.
+                entry = [metric_outputs[label], *entry[1:]]
         retained.append(entry)
     return retained
 
@@ -2499,26 +2518,25 @@ def validate_merged_bullet_form_data(
     form_data: Mapping[str, Any],
     update_config: ChartConfig | None = None,
 ) -> BulletChartConfig | None:
-    """Validate final Bullet state without reclassifying preserved filters.
+    """Validate final Bullet controls without reinterpreting inherited query roles.
 
-    The typed Bullet surface intentionally creates only SIMPLE WHERE filters,
-    while saved Explore state may legitimately contain SQL WHERE or SIMPLE
-    HAVING filters. When an update omitted ``filters``, those native objects
-    came from the saved state and are validated by the form-data/query layer;
-    removing them only from this schema-validation copy avoids pretending they
-    were newly supplied typed filters. Explicit filter replacements, including
-    ``[]``, still take the strict native-to-typed path.
+    Saved Explore state may contain SQL dimensions and SQL WHERE/SIMPLE HAVING
+    filters beyond the typed authoring surface. Omitted roles are validated by
+    the native query contract and compilation, not as newly authored physical
+    columns or SIMPLE WHERE filters. Only this validation copy excludes them
+    and native query metadata; compiled and persisted form data stays intact.
+    Explicit replacements, including ``[]``, retain strict typed validation.
     """
     if form_data.get("viz_type") != "bullet":
         return None
     validation_data = dict(form_data)
-    preserves_native_filters = update_config is None or (
-        isinstance(update_config, BulletChartConfig)
-        and "filters" not in update_config.model_fields_set
-    )
-    if preserves_native_filters:
-        validation_data.pop("adhoc_filters", None)
-        validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    validation_data.pop("url_params", None)
+    if update_config is None or isinstance(update_config, BulletChartConfig):
+        if update_config is None or update_config.dimensions is None:
+            validation_data.pop("groupby", None)
+        if update_config is None or "filters" not in update_config.model_fields_set:
+            validation_data.pop("adhoc_filters", None)
+            validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     return BulletChartConfig.model_validate(validation_data)
 
 

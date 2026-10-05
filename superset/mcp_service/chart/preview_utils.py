@@ -831,9 +831,12 @@ def _containing_bullet_range_label(
 
 
 def resolve_bullet_render_model(  # noqa: C901
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    validate_format: bool = True,
 ) -> BulletRenderModel:
-    """Resolve and validate every Bullet row and presentation control."""
+    """Resolve Bullet rows; check preview formatter support only when rendering."""
     if type(data) is not list:
         raise BulletOutputError("Bullet query output must be an array of objects")
     for row_index in range(list.__len__(data)):
@@ -947,8 +950,12 @@ def resolve_bullet_render_model(  # noqa: C901
         marker_labels=marker_labels,
         marker_lines=marker_lines,
         marker_line_labels=marker_line_labels,
-        y_axis_format=_validate_bullet_format(
-            dict.get(form_data, "y_axis_format", "SMART_NUMBER"), all_numbers
+        y_axis_format=(
+            _validate_bullet_format(
+                dict.get(form_data, "y_axis_format", "SMART_NUMBER"), all_numbers
+            )
+            if validate_format
+            else "SMART_NUMBER"
         ),
         show_labels=show_labels,
         show_legend=show_legend,

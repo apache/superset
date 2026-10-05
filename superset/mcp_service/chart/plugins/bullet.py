@@ -67,7 +67,7 @@ def _canonical_reference(
 
 
 def _render_model_error(rows: Any, form_data: Mapping[str, Any]) -> ChartError | None:
-    """Return why ``rows`` cannot build the strict Bullet render model."""
+    """Validate Bullet result rows without requiring a backend preview formatter."""
     from superset.mcp_service.chart.preview_utils import (
         BulletOutputError,
         resolve_bullet_render_model,
@@ -75,7 +75,7 @@ def _render_model_error(rows: Any, form_data: Mapping[str, Any]) -> ChartError |
     from superset.mcp_service.chart.query_result import safe_exception_message
 
     try:
-        resolve_bullet_render_model(rows, dict(form_data))
+        resolve_bullet_render_model(rows, dict(form_data), validate_format=False)
     except BulletOutputError as ex:
         return ChartError(error=safe_exception_message(ex), error_type=ex.error_type)
     return None
@@ -332,7 +332,7 @@ class BulletChartPlugin(BaseChartPlugin):
     def sanitize_data_rows(
         self, data: list[Any], form_data: Mapping[str, Any]
     ) -> tuple[list[Any], ChartError | None]:
-        """Expose rows through the same strict model the renderers use."""
+        """Expose validated rows independently of backend preview formatter support."""
         from superset.mcp_service.chart.preview_utils import (
             _safe_enum_backing,
             BulletOutputError,
@@ -341,7 +341,9 @@ class BulletChartPlugin(BaseChartPlugin):
         from superset.mcp_service.chart.query_result import safe_exception_message
 
         try:
-            model = resolve_bullet_render_model(data, dict(form_data))
+            model = resolve_bullet_render_model(
+                data, dict(form_data), validate_format=False
+            )
         except BulletOutputError as ex:
             return [], ChartError(
                 error=safe_exception_message(ex), error_type=ex.error_type

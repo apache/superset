@@ -6220,3 +6220,72 @@ def test_excel_scalar_projection_survives_workbook_serialization(engine: str) ->
         "{'a': 1}",
         3.5,
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("number_format", ["DURATION", "MEMORY_BINARY"])
+@pytest.mark.parametrize("format_", ["json", "csv", "excel"])
+async def test_saved_bullet_native_formatter_does_not_block_data_or_export(
+    mcp_server: Any,
+    mock_auth: Any,
+    number_format: str,
+    format_: str,
+) -> None:
+    """Native presentation presets must not make valid raw rows unreadable."""
+    import base64
+    import io
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Region"],
+        "y_axis_format": number_format,
+    }
+    chart = SimpleNamespace(
+        id=21,
+        slice_name="Native Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    rows = [{"Revenue": 1024, "Region": "EU"}]
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {
+            "queries": [
+                {"data": rows, "colnames": ["Revenue", "Region"], "rowcount": 1}
+            ]
+        }
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 21, "format": format_}},
+            )
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload, payload
+    if format_ == "json":
+        assert payload["data"] == rows
+    elif format_ == "csv":
+        assert payload["csv_data"] == "Revenue,Region\r\n1024,EU\r\n"
+    else:
+        workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+        assert list(workbook.active.values) == [("Revenue", "Region"), (1024, "EU")]
