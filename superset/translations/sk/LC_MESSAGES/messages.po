@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-05 14:09+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -16858,6 +16858,12 @@ msgstr ""
 
 #, python-format
 msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
 msgstr ""
 
 #, fuzzy
