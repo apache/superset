@@ -306,9 +306,18 @@ def merge_extra_form_data(
     existing: Any,
     incoming: dict[str, Any],
 ) -> dict[str, Any]:
-    """Merge cached and request-level extra_form_data payloads."""
+    """Merge cached and request-level extra_form_data payloads.
+
+    Null filter lists are treated as absent so the downstream extra-filter
+    merge, which iterates them, never receives ``None``.
+    """
     merged: dict[str, Any] = dict(existing) if isinstance(existing, dict) else {}
+    for key in ("adhoc_filters", "filters"):
+        if key in merged and merged[key] is None:
+            del merged[key]
     for key, value in incoming.items():
+        if value is None and key in ("adhoc_filters", "filters"):
+            continue
         current = merged.get(key)
         if isinstance(current, list) and isinstance(value, list):
             merged[key] = [*current, *value]

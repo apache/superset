@@ -3142,6 +3142,18 @@ class TestSavedChartExtraFormDataFilters:
         assert "USA" not in result.content[0].text
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("null_key", ["filters", "adhoc_filters"])
+    async def test_null_extra_form_data_filter_lists_return_data(
+        self, mcp_server: Any, mock_auth: Any, null_key: str
+    ) -> None:
+        """A null filter list is absent, not an internal post-query failure."""
+        _, result = await self._run({null_key: None}, mcp_server)
+        data = json.loads(result.content[0].text)
+
+        assert "error_type" not in data
+        assert data["data"] == [{"country": "USA"}]
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
     @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
     @pytest.mark.parametrize("has_finite", [True, False])

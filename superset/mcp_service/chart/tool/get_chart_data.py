@@ -48,6 +48,7 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
     get_cached_form_data,
     merge_extra_form_data_filters_into_query,
+    rejected_requested_filter_columns,
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
@@ -105,65 +106,6 @@ class _ChartFacts(NamedTuple):
 def _is_expected_json_load_error(exc: Exception) -> bool:
     """Recognize only the exact exceptions emitted for ordinary JSON failures."""
     return type(exc) in {TypeError, ValueError, JSONDecodeError}
-
-
-def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
-    """Return simple column names explicitly requested through extra form data."""
-    if not extra_form_data:
-        return set()
-
-    columns: set[str] = set()
-    for filter_ in extra_form_data.get("filters", []):
-        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
-            columns.add(column)
-    for filter_ in extra_form_data.get("adhoc_filters", []):
-        if (
-            isinstance(filter_, dict)
-            and filter_.get("expressionType") == "SIMPLE"
-            and isinstance(column := filter_.get("subject"), str)
-        ):
-            columns.add(column)
-    return columns
-
-
-def _rejected_columns_in_query(query: Any) -> set[str]:
-    """Return the rejected filter column names reported by one query payload.
-
-    ``_materialize_full_payload`` converts the datasource's raw
-    ``rejected_filter_columns`` list into the ``rejected_filters`` entries
-    (``{"reason": ..., "column": ...}``) that every consumer of a chart-data
-    payload sees, so that is the primary shape to read. The raw key is still
-    accepted for payloads captured before that conversion.
-    """
-    if not isinstance(query, dict):
-        return set()
-
-    columns = {
-        column
-        for entry in query.get("rejected_filters", [])
-        if isinstance(entry, dict) and isinstance(column := entry.get("column"), str)
-    }
-    columns.update(
-        column
-        for column in query.get("rejected_filter_columns", [])
-        if isinstance(column, str)
-    )
-    return columns
-
-
-def _rejected_requested_filter_columns(
-    result: Any, extra_form_data: dict[str, Any] | None
-) -> list[str]:
-    """Find request filters rejected by datasource query construction."""
-    if not isinstance(result, dict):
-        return []
-    requested = _requested_filter_columns(extra_form_data)
-    rejected = {
-        column
-        for query in result.get("queries", [])
-        for column in _rejected_columns_in_query(query)
-    }
-    return sorted(requested & rejected)
 
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
@@ -926,7 +868,7 @@ async def _get_chart_data(  # noqa: C901
             if query_failure := query_result_failure(result):
                 return query_failure
 
-            if rejected := _rejected_requested_filter_columns(
+            if rejected := rejected_requested_filter_columns(
                 result, request.extra_form_data
             ):
                 rejected_columns = ", ".join(rejected)
@@ -1274,7 +1216,7 @@ async def _query_from_form_data(  # noqa: C901
         if query_failure := query_result_failure(result):
             return query_failure
 
-        if rejected := _rejected_requested_filter_columns(
+        if rejected := rejected_requested_filter_columns(
             result, request.extra_form_data
         ):
             rejected_columns = ", ".join(rejected)
