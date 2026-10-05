@@ -3108,6 +3108,88 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
     )
 
 
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "region", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "region", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "region", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param(
+            {"col": "region", "op": "NOT IN", "val": None}, id="not-in-val-none"
+        ),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_raises_validation_error(
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    An IN / NOT IN filter with no value must raise a QueryObjectValidationError
+    (surfaced to the client as a 4xx) rather than an AssertionError (a 500).
+    The filter must not be silently dropped, as that would widen the results.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="region", type="VARCHAR(255)"),
+            TableColumn(column_name="created_at", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="region"):
+        table.get_sqla_query(
+            columns=["region"],
+            filter=[
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                flt,  # type: ignore[list-item]
+            ],
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize("op", ["IN", "NOT IN"])
+def test_get_sqla_query_in_filter_with_value_builds_query(
+    database: Database,
+    op: str,
+) -> None:
+    """
+    A valid IN / NOT IN filter keeps building the expected IN clause.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="region", type="VARCHAR(255)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["region"],
+        filter=[{"col": "region", "op": op, "val": ["EMEA", "APAC"]}],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"region {op} ('EMEA', 'APAC')" in sql
+
+
 def test_multiple_calculated_columns_each_parenthesized(
     database: Database,
 ) -> None:
