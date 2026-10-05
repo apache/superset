@@ -374,6 +374,8 @@ interface ColumnCollectionTableProps {
   onRemoveMapping?: () => void;
   onMonotonicChange?: (columnName: string, isMonotonic: boolean) => void;
   expandedColumnName?: string | null;
+  /** Bumped per reveal request, so the same column can be asked for twice. */
+  expandedColumnNonce?: number;
 }
 
 interface StackedFieldProps {
@@ -645,6 +647,7 @@ function ColumnCollectionTable({
   onRemoveMapping,
   onMonotonicChange,
   expandedColumnName,
+  expandedColumnNonce,
 }: ColumnCollectionTableProps): JSX.Element {
   const tableColumns = [
     'column_name',
@@ -745,6 +748,7 @@ function ColumnCollectionTable({
             ? record => record.column_name === expandedColumnName
             : undefined
         }
+        expandItemNonce={expandedColumnNonce}
         stickyHeader
         expandFieldset={
           <FormContainer>
@@ -2928,6 +2932,7 @@ function DatasourceEditor({
               onRemoveMapping={handleRemoveMapping}
               onMonotonicChange={handleMonotonicChange}
               expandedColumnName={columnToReveal?.name ?? null}
+              expandedColumnNonce={columnToReveal?.nonce}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
