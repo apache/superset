@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
-import { t } from "@apache-superset/core/translation";
-import { styled } from "@apache-superset/core/theme";
-import { Input } from "@superset-ui/core/components";
-import { Radio, RadioChangeEvent } from "@superset-ui/core/components/Radio";
-import { RootState } from "src/dashboard/types";
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { Input } from '@superset-ui/core/components';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import { RootState } from 'src/dashboard/types';
 
 // Minimum custom refresh interval in seconds
 export const MINIMUM_REFRESH_INTERVAL = 1;
@@ -63,21 +63,21 @@ const CustomContent = styled.div`
 // kept out of the configured list.
 export const REFRESH_FREQUENCY_OPTIONS = [
   { value: 0, label: t("Don't refresh") },
-  { value: 10, label: t("10 seconds") },
-  { value: 30, label: t("30 seconds") },
-  { value: 60, label: t("1 minute") },
-  { value: 300, label: t("5 minutes") },
-  { value: 1800, label: t("30 minutes") },
-  { value: 3600, label: t("1 hour") },
-  { value: 21600, label: t("6 hours") },
-  { value: 43200, label: t("12 hours") },
-  { value: 86400, label: t("24 hours") },
-  { value: CUSTOM_REFRESH_FREQUENCY, label: t("Custom") },
+  { value: 10, label: t('10 seconds') },
+  { value: 30, label: t('30 seconds') },
+  { value: 60, label: t('1 minute') },
+  { value: 300, label: t('5 minutes') },
+  { value: 1800, label: t('30 minutes') },
+  { value: 3600, label: t('1 hour') },
+  { value: 21600, label: t('6 hours') },
+  { value: 43200, label: t('12 hours') },
+  { value: 86400, label: t('24 hours') },
+  { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') },
 ];
 
 const isPresetValue = (frequency: number, options: RefreshFrequencyOption[]) =>
   options.some(
-    (option) =>
+    option =>
       option.value === frequency && option.value !== CUSTOM_REFRESH_FREQUENCY,
   );
 
@@ -94,7 +94,7 @@ export const getRefreshFrequencyOptions = (
   const options: RefreshFrequencyOption[] = [];
 
   if (Array.isArray(configuredIntervals)) {
-    configuredIntervals.forEach((interval) => {
+    configuredIntervals.forEach(interval => {
       if (!Array.isArray(interval) || interval.length < 2) {
         return;
       }
@@ -103,7 +103,7 @@ export const getRefreshFrequencyOptions = (
       if (
         !Number.isFinite(seconds) ||
         seconds < 0 ||
-        typeof label !== "string" ||
+        typeof label !== 'string' ||
         !label.trim()
       ) {
         return;
@@ -114,12 +114,12 @@ export const getRefreshFrequencyOptions = (
 
   const presets = options.length ? options : REFRESH_FREQUENCY_OPTIONS;
   const hasCustom = presets.some(
-    (option) => option.value === CUSTOM_REFRESH_FREQUENCY,
+    option => option.value === CUSTOM_REFRESH_FREQUENCY,
   );
 
   return hasCustom
     ? presets
-    : [...presets, { value: CUSTOM_REFRESH_FREQUENCY, label: t("Custom") }];
+    : [...presets, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }];
 };
 
 const getCustomValue = (
@@ -128,7 +128,7 @@ const getCustomValue = (
 ) =>
   !isPresetValue(frequency, options) && frequency > 0
     ? frequency.toString()
-    : "";
+    : '';
 
 const normalizeRefreshLimitSeconds = (
   refreshLimit?: number,
@@ -166,7 +166,7 @@ export const RefreshFrequencySelect = ({
     [configuredIntervals],
   );
   const presets = options.filter(
-    (option) => option.value !== CUSTOM_REFRESH_FREQUENCY,
+    option => option.value !== CUSTOM_REFRESH_FREQUENCY,
   );
 
   // Separate radio selection state from value state
@@ -186,7 +186,7 @@ export const RefreshFrequencySelect = ({
     setCustomValue(
       selection === CUSTOM_REFRESH_FREQUENCY
         ? getCustomValue(value, options)
-        : "",
+        : '',
     );
   }, [value, options]);
 
@@ -220,7 +220,7 @@ export const RefreshFrequencySelect = ({
 
   return (
     <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
-      {presets.map((option) => (
+      {presets.map(option => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
@@ -228,7 +228,7 @@ export const RefreshFrequencySelect = ({
 
       <Radio value={CUSTOM_REFRESH_FREQUENCY}>
         <CustomContent>
-          {t("Custom")}
+          {t('Custom')}
           <Input
             type="number"
             min={MINIMUM_REFRESH_INTERVAL}
@@ -236,9 +236,9 @@ export const RefreshFrequencySelect = ({
             onChange={handleCustomInputChange}
             placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
             disabled={!isCustomSelected}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           />
-          <span>{t("seconds")}</span>
+          <span>{t('seconds')}</span>
         </CustomContent>
       </Radio>
     </StyledRadioGroup>
@@ -256,7 +256,7 @@ export const validateRefreshFrequency = (
   const normalizedLimit = normalizeRefreshLimitSeconds(refreshLimit);
   if (normalizedLimit && frequency > 0 && frequency < normalizedLimit) {
     errors.push(
-      t("Refresh frequency must be at least %s seconds", normalizedLimit),
+      t('Refresh frequency must be at least %s seconds', normalizedLimit),
     );
   }
   return errors;

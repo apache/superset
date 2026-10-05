@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from "spec/helpers/testing-library";
-import RefreshIntervalModal from "src/dashboard/components/RefreshIntervalModal";
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 
 const defaultProps = {
   show: true,
@@ -45,150 +45,150 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test("selecting an interval and saving persists it in edit mode", async () => {
+test('selecting an interval and saving persists it in edit mode', async () => {
   setup();
 
-  await userEvent.click(screen.getByRole("radio", { name: "5 minutes" }));
-  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(300, true);
   expect(defaultProps.onPauseOnInactiveTabChange).toHaveBeenCalledWith(false);
   expect(defaultProps.onHide).toHaveBeenCalledTimes(1);
   expect(defaultProps.addSuccessToast).toHaveBeenCalledWith(
-    "Refresh interval saved",
+    'Refresh interval saved',
   );
 });
 
-test("saving outside edit mode reports a session-only save", async () => {
+test('saving outside edit mode reports a session-only save', async () => {
   setup({ editMode: false });
 
   await userEvent.click(
-    screen.getByRole("button", { name: "Save for this session" }),
+    screen.getByRole('button', { name: 'Save for this session' }),
   );
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(60, false);
   expect(defaultProps.addSuccessToast).toHaveBeenCalledWith(
-    "Refresh interval set for this session",
+    'Refresh interval set for this session',
   );
 });
 
-test("an interval below the configured limit blocks save with an error", async () => {
+test('an interval below the configured limit blocks save with an error', async () => {
   setup({}, { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60 });
 
-  await userEvent.click(screen.getByRole("radio", { name: "10 seconds" }));
+  await userEvent.click(screen.getByRole('radio', { name: '10 seconds' }));
 
   expect(
-    screen.getByText("Refresh frequency must be at least 60 seconds"),
+    screen.getByText('Refresh frequency must be at least 60 seconds'),
   ).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(defaultProps.onChange).not.toHaveBeenCalled();
 });
 
-test("an interval below the limit shows the configured warning alongside the error", async () => {
+test('an interval below the limit shows the configured warning alongside the error', async () => {
   setup(
     {},
     {
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
-        "Frequent refreshes put load on the database",
+        'Frequent refreshes put load on the database',
     },
   );
 
-  await userEvent.click(screen.getByRole("radio", { name: "10 seconds" }));
+  await userEvent.click(screen.getByRole('radio', { name: '10 seconds' }));
 
   expect(
-    screen.getByText("Refresh frequency must be at least 60 seconds"),
+    screen.getByText('Refresh frequency must be at least 60 seconds'),
   ).toBeInTheDocument();
   expect(
-    screen.getByText("Frequent refreshes put load on the database"),
+    screen.getByText('Frequent refreshes put load on the database'),
   ).toBeInTheDocument();
 });
 
-test("the configured warning is hidden when the interval meets the limit", async () => {
+test('the configured warning is hidden when the interval meets the limit', async () => {
   setup(
     {},
     {
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
       SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
-        "Frequent refreshes put load on the database",
+        'Frequent refreshes put load on the database',
     },
   );
 
-  await userEvent.click(screen.getByRole("radio", { name: "5 minutes" }));
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
 
   expect(
-    screen.queryByText("Frequent refreshes put load on the database"),
+    screen.queryByText('Frequent refreshes put load on the database'),
   ).not.toBeInTheDocument();
 });
 
-test("an interval at or above the configured limit does not block save", async () => {
+test('an interval at or above the configured limit does not block save', async () => {
   setup({}, { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60 });
 
-  await userEvent.click(screen.getByRole("radio", { name: "5 minutes" }));
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
 
   expect(
     screen.queryByText(/Refresh frequency must be at least/),
   ).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
 
-test("cancel resets the selection back to the original frequency and does not save", async () => {
+test('cancel resets the selection back to the original frequency and does not save', async () => {
   // defaultProps.refreshFrequency (60) maps to the "1 minute" preset.
   setup();
-  expect(screen.getByRole("radio", { name: "1 minute" })).toBeChecked();
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeChecked();
 
-  await userEvent.click(screen.getByRole("radio", { name: "1 hour" }));
-  expect(screen.getByRole("radio", { name: "1 hour" })).toBeChecked();
+  await userEvent.click(screen.getByRole('radio', { name: '1 hour' }));
+  expect(screen.getByRole('radio', { name: '1 hour' })).toBeChecked();
 
-  await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   expect(defaultProps.onChange).not.toHaveBeenCalled();
   expect(defaultProps.onHide).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole("radio", { name: "1 minute" })).toBeChecked();
-  expect(screen.getByRole("radio", { name: "1 hour" })).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: '1 hour' })).not.toBeChecked();
 });
 
-test("the interval list comes from the configured DASHBOARD_AUTO_REFRESH_INTERVALS", async () => {
+test('the interval list comes from the configured DASHBOARD_AUTO_REFRESH_INTERVALS', async () => {
   setup(
     {},
     {
       DASHBOARD_AUTO_REFRESH_INTERVALS: [
         [0, "Don't refresh"],
-        [600, "10 minutes"],
-        [3600, "1 hour"],
+        [600, '10 minutes'],
+        [3600, '1 hour'],
       ],
     },
   );
 
-  expect(screen.getByRole("radio", { name: "10 minutes" })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '10 minutes' })).toBeInTheDocument();
   expect(
-    screen.queryByRole("radio", { name: "10 seconds" }),
+    screen.queryByRole('radio', { name: '10 seconds' }),
   ).not.toBeInTheDocument();
 
-  await userEvent.click(screen.getByRole("radio", { name: "10 minutes" }));
-  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await userEvent.click(screen.getByRole('radio', { name: '10 minutes' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(600, true);
 });
 
-test("a saved frequency missing from the configured list still renders and survives a save", async () => {
+test('a saved frequency missing from the configured list still renders and survives a save', async () => {
   // defaultProps.refreshFrequency is 60, which the configuration below omits.
   setup(
     {},
     {
       DASHBOARD_AUTO_REFRESH_INTERVALS: [
         [0, "Don't refresh"],
-        [3600, "1 hour"],
+        [3600, '1 hour'],
       ],
     },
   );
 
-  expect(screen.getByRole("radio", { name: "1 hour" })).toBeInTheDocument();
-  expect(screen.getByRole("spinbutton")).toHaveValue(60);
+  expect(screen.getByRole('radio', { name: '1 hour' })).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toHaveValue(60);
 
-  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(60, true);
 });

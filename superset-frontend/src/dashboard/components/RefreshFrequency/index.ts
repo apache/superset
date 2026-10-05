@@ -24,5 +24,5 @@ export {
   getRefreshFrequencyOptions,
   validateRefreshFrequency,
   getRefreshWarningMessage,
-} from "./RefreshFrequencySelect";
-export type { RefreshFrequencyOption } from "./RefreshFrequencySelect";
+} from './RefreshFrequencySelect';
+export type { RefreshFrequencyOption } from './RefreshFrequencySelect';
