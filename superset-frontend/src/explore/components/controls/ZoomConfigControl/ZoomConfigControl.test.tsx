@@ -22,10 +22,36 @@ import { ZoomConfigs } from './types';
 
 jest.mock('./ZoomConfigsChart', () => () => null);
 
+jest.mock('../ColumnConfigControl/ControlForm', () => {
+  const nextValues: Record<string, number> = {
+    baseWidth: 101,
+    baseHeight: 101,
+    slope: 3,
+    exponent: 1.2,
+  };
+
+  return {
+    ControlFormItem: ({
+      name,
+      onAfterChange,
+    }: {
+      name: string;
+      onAfterChange?: (value: number) => void;
+    }) => (
+      <button
+        type="button"
+        aria-label={name}
+        onClick={() => onAfterChange?.(nextValues[name])}
+      />
+    ),
+  };
+});
+
 test.each([
   {
     field: 'width' as const,
-    sliderIndex: 0,
+    controlName: 'baseWidth',
+    nextValue: 101,
     value: {
       type: 'FIXED',
       configs: { zoom: 5, width: 100, height: 100 },
@@ -34,7 +60,8 @@ test.each([
   },
   {
     field: 'height' as const,
-    sliderIndex: 1,
+    controlName: 'baseHeight',
+    nextValue: 101,
     value: {
       type: 'FIXED',
       configs: { zoom: 5, width: 100, height: 100 },
@@ -43,7 +70,8 @@ test.each([
   },
   {
     field: 'slope' as const,
-    sliderIndex: 2,
+    controlName: 'slope',
+    nextValue: 3,
     value: {
       type: 'LINEAR',
       configs: { zoom: 5, width: 100, height: 100, slope: 2 },
@@ -52,7 +80,8 @@ test.each([
   },
   {
     field: 'exponent' as const,
-    sliderIndex: 3,
+    controlName: 'exponent',
+    nextValue: 1.2,
     value: {
       type: 'EXP',
       configs: { zoom: 5, width: 100, height: 100, exponent: 1 },
@@ -61,7 +90,7 @@ test.each([
   },
 ])(
   'copies configs for $field without mutating the incoming value',
-  async ({ field, sliderIndex, value }) => {
+  async ({ field, controlName, nextValue, value }) => {
     const onChange = jest.fn();
     const originalFieldValue = value.configs[field];
     Object.freeze(value.configs);
@@ -75,12 +104,12 @@ test.each([
       />,
     );
 
-    const slider = screen.getAllByRole('slider')[sliderIndex];
-    await userEvent.click(slider);
-    await userEvent.type(slider, '{arrowright}');
+    await userEvent.click(screen.getByRole('button', { name: controlName }));
 
     expect(value.configs[field]).toBe(originalFieldValue);
+    expect(onChange).toHaveBeenCalled();
     const updatedValue = onChange.mock.lastCall?.[0] as ZoomConfigs;
     expect(updatedValue.configs).not.toBe(value.configs);
+    expect(updatedValue.configs[field]).toBe(nextValue);
   },
 );
