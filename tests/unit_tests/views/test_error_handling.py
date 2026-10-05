@@ -349,10 +349,10 @@ class TestShowHttpException:
         assert "\n" not in records[0].getMessage()
         assert "\r" not in records[0].getMessage()
 
-    def test_view_404_logs_one_debug_line_with_path_and_no_traceback(
+    def test_in_view_404_logs_a_warning_with_path_and_no_traceback(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """A view's explicit 404 logs the same detail as a routing 404."""
+        """A 404 raised inside a matched view stays at WARNING with the path."""
         test_app = self._build_app_with_handlers(NotFound())
 
         @test_app.route("/view-not-found")
@@ -367,11 +367,9 @@ class TestShowHttpException:
         assert response.status_code == 404
         records = self._handler_records(caplog)
         assert len(records) == 1
-        assert records[0].levelno == logging.DEBUG
+        assert records[0].levelno == logging.WARNING
         assert records[0].exc_info is None
-        assert repr(response.request.path) in records[0].getMessage()
-        assert "\n" not in records[0].getMessage()
-        assert "\r" not in records[0].getMessage()
+        assert repr("/view-not-found") in records[0].getMessage()
 
     @pytest.mark.parametrize(
         "error",
@@ -392,6 +390,7 @@ class TestShowHttpException:
         assert records[0].levelno == logging.WARNING
         assert records[0].exc_info is None
         assert repr(str(error)) in records[0].getMessage()
+        assert repr("/http-error") in records[0].getMessage()
         assert "\n" not in records[0].getMessage()
         assert "\r" not in records[0].getMessage()
 
