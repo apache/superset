@@ -57,6 +57,12 @@ One bound scope contains one catalog covering that connection's supported runtim
 configurations. A provider needing different catalogs per runtime database/schema
 must not opt in until its scope can satisfy that requirement.
 
+Discovery must be identical for every user of that connection scope. Providers
+whose discovery depends on per-user OAuth credentials, impersonation or another
+user-specific identity must not declare `supports_metadata_refresh`; the shared
+catalog has no per-user dimension. Query authorization and result-cache user/RLS
+identity remain separate host responsibilities.
+
 ## Data exchanged
 
 | Type | Fields / signature | Meaning |
