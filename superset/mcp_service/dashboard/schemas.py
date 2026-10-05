@@ -443,6 +443,15 @@ class GetDashboardDatasetsRequest(BaseModel):
             "Total column counts retained. Defaults to 100."
         ),
     )
+    max_metrics: int = Field(
+        MAX_DASHBOARD_DATASET_METRICS,
+        ge=0,
+        le=MAX_DASHBOARD_DATASET_METRICS,
+        description=(
+            "Metric limit per dataset; 0 omits metric details. "
+            "Total metric counts retained. Defaults to 50."
+        ),
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -2776,10 +2785,22 @@ def _serialize_dashboard_dataset(
     datasource_type: Literal["table", "semantic_view"] = "table",
     *,
     max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS,
+    max_metrics: int = MAX_DASHBOARD_DATASET_METRICS,
 ) -> DashboardDatasetSummary:
-    """Serialize a datasource to a lean, LLM-safe dataset summary."""
-    all_columns = list(getattr(datasource, "columns", None) or [])
-    all_metrics = list(getattr(datasource, "metrics", None) or [])
+    """Serialize a datasource to a lean, LLM-safe dataset summary.
+
+    Columns and metrics are sorted by name before capping: the ORM
+    relationships declare no ordering, so truncation would otherwise keep
+    whichever rows the engine returned first.
+    """
+    all_columns = sorted(
+        getattr(datasource, "columns", None) or [],
+        key=lambda column: getattr(column, "column_name", None) or "",
+    )
+    all_metrics = sorted(
+        getattr(datasource, "metrics", None) or [],
+        key=lambda metric: getattr(metric, "metric_name", None) or "",
+    )
 
     columns = [
         DashboardDatasetColumn(
@@ -2796,7 +2817,7 @@ def _serialize_dashboard_dataset(
             verbose_name=getattr(metric, "verbose_name", None),
             expression=getattr(metric, "expression", None),
         )
-        for metric in all_metrics[:MAX_DASHBOARD_DATASET_METRICS]
+        for metric in all_metrics[:max_metrics]
     ]
 
     is_view: bool = datasource_type == DatasourceType.SEMANTIC_VIEW
@@ -2840,7 +2861,7 @@ def _serialize_dashboard_dataset(
         total_column_count=len(all_columns),
         total_metric_count=len(all_metrics),
         columns_truncated=len(all_columns) > max_columns,
-        metrics_truncated=len(all_metrics) > MAX_DASHBOARD_DATASET_METRICS,
+        metrics_truncated=len(all_metrics) > max_metrics,
     )
 
 
@@ -2870,13 +2891,16 @@ def _has_dashboard_dataset_access(
 
 
 def dashboard_datasets_serializer(
-    dashboard: "Dashboard", *, max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS
+    dashboard: "Dashboard",
+    *,
+    max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS,
+    max_metrics: int = MAX_DASHBOARD_DATASET_METRICS,
 ) -> DashboardDatasets:
     """List the datasets and semantic views used by a dashboard's charts.
 
     Groups the dashboard's charts by datasource (mirroring
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
-    metric lists (capped, with a configurable column cap) since native-filter
+    metric lists (capped, with configurable caps) since native-filter
     configuration regularly needs columns that no chart references. Datasets
     the current user cannot access, or whose semantic provider metadata cannot
     be loaded, are excluded and only counted. Provider failures are logged.
@@ -2918,7 +2942,11 @@ def dashboard_datasets_serializer(
             continue
         try:
             summary: DashboardDatasetSummary = _serialize_dashboard_dataset(
-                datasource, len(slices), kind, max_columns=max_columns
+                datasource,
+                len(slices),
+                kind,
+                max_columns=max_columns,
+                max_metrics=max_metrics,
             )
         except Exception as exc:  # noqa: BLE001
             if kind != "semantic_view":

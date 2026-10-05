@@ -1128,30 +1128,50 @@ class TestTruncateQueryResult:
         {"request": {"max_columns": 10, "page_size": 10, "limit": 10}},
     ],
 )
-def test_dashboard_datasets_size_error_suggests_column_cap(
+def test_dashboard_datasets_size_error_suggests_detail_caps(
     params: dict[str, Any] | None,
 ) -> None:
-    """Oversized dataset responses recommend the tool's real bounding parameter."""
+    """Oversized dataset responses recommend the tool's real bounding parameters."""
     error = format_size_limit_error("get_dashboard_datasets", params, 100_000, 20_000)
-    assert "max_columns=0" in error
+    assert "'max_columns' (0-100) and 'max_metrics' (0-50)" in error
     assert "page_size" not in error
     assert "'limit'" not in error
     assert "select_columns" not in error
     assert "filters" not in error
 
 
+def test_dashboard_datasets_zero_column_cap_suggests_metric_cap() -> None:
+    """With columns omitted, metrics remain the reducible part of the response."""
+    error = format_size_limit_error(
+        "get_dashboard_datasets", {"request": {"max_columns": 0}}, 100_000, 20_000
+    )
+    assert "'max_metrics' (0-50)" in error
+    assert "'max_columns'" not in error
+    assert "already omitted" not in error
+
+
+def test_dashboard_datasets_zero_metric_cap_suggests_column_cap() -> None:
+    """With metrics omitted, columns remain the reducible part of the response."""
+    error = format_size_limit_error(
+        "get_dashboard_datasets", {"request": {"max_metrics": 0}}, 100_000, 20_000
+    )
+    assert "'max_columns' (0-100)" in error
+    assert "'max_metrics'" not in error
+
+
 @pytest.mark.parametrize("extra_params", [{}, {"page_size": 10, "limit": 10}])
-def test_dashboard_datasets_zero_cap_has_honest_size_advice(
+def test_dashboard_datasets_zero_caps_have_honest_size_advice(
     extra_params: dict[str, int],
 ) -> None:
-    """Do not recommend reducing columns when no columns are being returned."""
+    """Do not recommend reducing details when none are being returned."""
     error = format_size_limit_error(
         "get_dashboard_datasets",
-        {"request": {"max_columns": 0, **extra_params}},
+        {"request": {"max_columns": 0, "max_metrics": 0, **extra_params}},
         100_000,
         20_000,
     )
     assert "already omitted" in error
-    assert "max_columns=0" not in error
+    assert "'max_columns'" not in error
+    assert "'max_metrics'" not in error
     assert "page_size" not in error
     assert "'limit'" not in error

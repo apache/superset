@@ -113,6 +113,7 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
         "select_columns",
         "columns",
         "max_columns",
+        "max_metrics",
         # Filters
         "filters",
         # Search
@@ -460,17 +461,22 @@ def _dashboard_layout_suggestions(
 
 
 def _dashboard_datasets_suggestions(query_params: Dict[str, Any]) -> List[str]:
-    """Suggest the column cap, or a fallback when columns are already omitted."""
-    if query_params.get("max_columns") == 0:
+    """Suggest the per-dataset caps that remain, or a fallback when none do."""
+    remaining: List[str] = []
+    if query_params.get("max_columns") != 0:
+        remaining.append("'max_columns' (0-100)")
+    if query_params.get("max_metrics") != 0:
+        remaining.append("'max_metrics' (0-50)")
+    if not remaining:
         return [
-            "Column details are already omitted. This tool cannot reduce "
-            "the remaining dataset metadata further; use get_dashboard_info "
-            "with select_columns=['charts'] to identify chart datasources, "
-            "then get_dataset_info for individual datasets."
+            "Column and metric details are already omitted. This tool cannot "
+            "reduce the remaining dataset metadata further; use "
+            "get_dashboard_info with select_columns=['charts'] to identify "
+            "chart datasources, then get_dataset_info for individual datasets."
         ]
     return [
-        "Reduce 'max_columns' (0-100) to return fewer columns per dataset, "
-        "or use max_columns=0 to omit column details while retaining counts. "
+        f"Reduce {' and '.join(remaining)} to return fewer details per dataset; "
+        "a cap of 0 omits those details while retaining total counts. "
         "Use get_dataset_info for individual dataset details."
     ]
 
