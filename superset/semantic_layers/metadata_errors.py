@@ -35,7 +35,9 @@ from superset.superset_typing import FlaskResponse
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def metadata_error_response(api: BaseApi, error: MetadataRefreshError) -> FlaskResponse:
+def metadata_error_response(
+    api: BaseApi | type[BaseApi], error: MetadataRefreshError
+) -> FlaskResponse:
     """Return only stable categories and actionable, localized safe messages."""
     errors: dict[str, tuple[int, str]] = {
         "unsupported": (
@@ -136,5 +138,21 @@ def metadata_database_errors(
                 error="unavailable",
                 message=t("Metadata database is unavailable. Try again later."),
             )
+
+    return wrapped
+
+
+def metadata_legacy_errors(
+    func: Callable[..., FlaskResponse],
+) -> Callable[..., FlaskResponse]:
+    """Apply the REST error contract at legacy datasource HTTP boundaries."""
+
+    @wraps(func)
+    def wrapped(*args: Any, **kwargs: Any) -> FlaskResponse:
+        try:
+            return func(*args, **kwargs)
+        except MetadataRefreshError as error:
+            log_metadata_failure(error.category, error)
+            return metadata_error_response(BaseApi, error)
 
     return wrapped

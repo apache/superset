@@ -530,7 +530,10 @@ def test_inject_contribution_totals_includes_decimal_metrics(
 
 
 @pytest.mark.parametrize("refreshed", [False, True])
-@pytest.mark.parametrize("totals_state", ["available", "missing_query", "failed_query"])
+@pytest.mark.parametrize(
+    "totals_state",
+    ["available", "missing_query", "failed_query", "error_payload", "missing_frame"],
+)
 def test_scheduled_semantic_contribution_resolves_totals_in_dependent_catalog(
     mocker: MockerFixture,
     refreshed: bool,
@@ -561,6 +564,8 @@ def test_scheduled_semantic_contribution_resolves_totals_in_dependent_catalog(
     totals.datasource = view
     totals.get_df_payload_result.return_value.payload = {
         "df": pd.DataFrame({"orders": [40 if refreshed else 20]}),
+        "status": "success",
+        "error": None,
     }
     mocker.patch(
         "superset.tasks.async_queries.load_serialized_query",
@@ -590,10 +595,14 @@ def test_scheduled_semantic_contribution_resolves_totals_in_dependent_catalog(
             execute_chart_query.func(*dependent["args"], **kwargs)
         main.get_df_payload_result.assert_not_called()
         return
-    if totals_state == "failed_query":
+    if totals_state in {"failed_query", "error_payload", "missing_frame"}:
         from superset.exceptions import SupersetException
 
-        totals.get_df_payload_result.return_value.payload["df"] = None
+        totals.get_df_payload_result.return_value.payload.update(
+            df=None if totals_state == "missing_frame" else pd.DataFrame(),
+            status="failed" if totals_state == "failed_query" else "success",
+            error="Metric was removed" if totals_state == "error_payload" else None,
+        )
         with pytest.raises(SupersetException, match="did not return data"):
             execute_chart_query.func(*dependent["args"], **kwargs)
         main.get_df_payload_result.assert_not_called()

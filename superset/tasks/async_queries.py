@@ -186,6 +186,7 @@ def _inject_contribution_totals(
     ``contribution_totals`` is
     stripped from the cache key, so this affects only the result, not the key.
     """
+    from superset.common.db_query_status import QueryStatus
     from superset.common.query_context_processor import is_summable
     from superset.common.utils.query_cache_manager import QueryCacheManager
 
@@ -199,10 +200,15 @@ def _inject_contribution_totals(
         )
         totals_context.is_async_execution = True
         with _capture_query_cancellation(totals_context):
-            df = totals_context.get_df_payload_result(
+            payload: dict[str, Any] = totals_context.get_df_payload_result(
                 totals_context.queries[0]
-            ).payload["df"]
-        if df is None:
+            ).payload
+        df = payload["df"]
+        if (
+            payload.get("status") != QueryStatus.SUCCESS
+            or payload.get("error")
+            or df is None
+        ):
             raise SupersetException("Contribution totals query did not return data")
     else:
         cache: QueryCacheManager = QueryCacheManager.get(

@@ -42,6 +42,7 @@ from superset_core.semantic_layers.metadata import (
 )
 
 from superset.coordination.cache_backend import _COMPARE_AND_DELETE_LUA
+from superset.coordination.metadata_resolver import MetadataEventLoop
 
 if TYPE_CHECKING:
     from threading import local
@@ -214,6 +215,9 @@ class DeadlineRedisBackend:
                 client = sentinel.master_for(
                     self._config.get("CACHE_REDIS_SENTINEL_MASTER", "mymaster")
                 )
+                # redis-py 5.0 clients do not own the pool supplied by Sentinel.
+                # This command does: release it even on errors and cancellation.
+                stack.push_async_callback(client.connection_pool.disconnect)
             else:
                 client = Redis(
                     host=self._config.get("CACHE_REDIS_HOST", "localhost"),
@@ -263,7 +267,7 @@ class DeadlineRedisBackend:
             pass
         else:
             raise RedisError("Metadata backend requires a synchronous caller")
-        loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
+        loop: asyncio.AbstractEventLoop = MetadataEventLoop()
         task: asyncio.Task[Any] = loop.create_task(self._command(*args))
         if cancellation is not None:
             cancellation.bind(loop, task)
@@ -275,10 +279,8 @@ class DeadlineRedisBackend:
             except TimeoutError:
                 raise RedisTimeoutError("Metadata deadline expired") from None
         finally:
-            # asyncio.run waits for the default executor on shutdown, including
-            # uncancellable system DNS resolution. Closing our private loop does
-            # not wait for that resolver. The cancelled command cannot connect or
-            # publish when the resolver eventually finishes.
+            # Outstanding system DNS retains its process-wide admission slot.
+            # Closing this loop cannot resume a cancelled command or publish.
             if cancellation is not None:
                 cancellation.detach()
             loop.close()
