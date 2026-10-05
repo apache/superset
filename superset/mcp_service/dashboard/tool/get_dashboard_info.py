@@ -24,9 +24,10 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Annotated, cast
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -104,12 +105,34 @@ def _lookup_dashboard(
     ),
 )
 async def get_dashboard_info(
-    request: GetDashboardInfoRequest, ctx: Context
-) -> dict[str, Any] | DashboardError:
-    """
-    Get dashboard metadata by ID, UUID, slug, or dashboard permalink.
+    request: Annotated[
+        GetDashboardInfoRequest,
+        Field(
+            description=(
+                'Wrap {"request": {...}}. Filtered? Use permalink_key/filter_state: '
+                "snapshots, not query predicates; "
+                "heed scope/native_filter_values_incomplete. "
+                "Missing state != no filters. "
+                "Don't guess columns/query workspace-wide; clarify. "
+                "Charts: list_charts."
+            )
+        ),
+    ],
+    ctx: Context,
+) -> DashboardInfo | DashboardError:
+    """Get dashboard info by ID, UUID, slug, or permalink.
 
     Returns title, charts, and layout details.
+
+    Before answering about a filtered dashboard, supply its permalink_key or
+    filter_state to this tool and use the returned filter_state as context.
+    Restricted users receive native_filter_values (names, types, selected values,
+    labels and exclusion flags), not raw dataMask or column targets. Check
+    native_filter_values_incomplete: unsupported filters and chart state cannot
+    be summarized safely. Missing state is not evidence of no filters.
+    These are snapshot values, not automatically enforced query predicates.
+    Respect filter scope; do not guess columns or query workspace-wide data when
+    the available context is insufficient. Ask for clarification instead.
 
     For dashboards with many charts or native filters, the ``charts`` and
     ``native_filters`` lists may be capped below their true size (see
@@ -191,6 +214,7 @@ async def get_dashboard_info(
                         result.id,
                         result.uuid,
                         result.slug,
+                        result.native_filters,
                     )
                     if permalink_state is None:
                         await ctx.warning(
@@ -223,7 +247,9 @@ async def get_dashboard_info(
                 await ctx.info("Applying caller-supplied filter_state")
                 filter_state = request.filter_state
                 if not user_can_view_data_model_metadata():
-                    filter_state = redact_filter_state_data_model_metadata(filter_state)
+                    filter_state = redact_filter_state_data_model_metadata(
+                        filter_state, result.native_filters
+                    )
                 result = _apply_permalink_state(
                     result, None, filter_state, is_permalink=False
                 )
@@ -249,9 +275,12 @@ async def get_dashboard_info(
             ):
                 effective_select_columns.append("filter_state")
 
-            return result.model_dump(
-                mode="json",
-                context={"select_columns": effective_select_columns},
+            return cast(
+                DashboardInfo,
+                result.model_dump(
+                    mode="json",
+                    context={"select_columns": effective_select_columns},
+                ),
             )
         else:
             await ctx.warning(

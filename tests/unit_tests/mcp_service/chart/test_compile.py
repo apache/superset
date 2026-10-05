@@ -23,11 +23,13 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 
 from superset.mcp_service.chart.compile import (
+    _compile_chart,
     CompileResult,
     validate_and_compile,
 )
@@ -84,6 +86,36 @@ def _orm_dataset(
     return dataset
 
 
+def _assert_saved_metric_hint(error: Any) -> None:
+    """A metric-slot typo is steered at the saved metric, not SUM(column).
+
+    ``num_boys`` is neither a column nor an exact metric name, so the physical
+    column pass finds nothing. Without the metric near-miss hint the caller
+    dead-ends on "No matching columns found." and its likely next move is
+    ``SUM(num)`` — a valid chart answering a different question.
+    """
+    assert error.error_type == "column_not_found"
+    hint: str = next(
+        s for s in error.suggestions if s.startswith("Did you mean the saved metric")
+    )
+    assert "'sum_boys'" in hint
+    assert '"saved_metric": true' in hint
+    # Never suggest the broken SUM(metric) shape.
+    assert all("SUM(sum_boys)" not in s for s in error.suggestions)
+    assert error.dataset_context is not None
+    assert {c["name"] for c in error.dataset_context.available_columns} == {
+        "ds",
+        "gender",
+        "name",
+        "num",
+    }
+    # The dataset's saved metrics are listed, so an empty list means "none".
+    assert {m["name"] for m in error.dataset_context.available_metrics} == {
+        "sum_boys",
+        "sum_girls",
+    }
+
+
 class TestBuildDatasetContextFromOrm:
     """Cover the helper that converts ORM dataset → DatasetContext."""
 
@@ -126,7 +158,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_bad_metric_column_rejected(self):
         ds = _orm_dataset()
@@ -138,7 +170,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success, "Pie chart with bad metric column should fail"
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_valid_dimension_and_saved_metric_passes(self):
         ds = _orm_dataset()
@@ -432,6 +464,39 @@ class TestAdhocFiltersFromFormData:
             "A saved-metric name in a HAVING filter should pass Tier-1 validation"
         )
 
+    @pytest.mark.parametrize(
+        ("clause", "suggested"),
+        [("HAVING", True), ("WHERE", False)],
+    )
+    def test_metric_suggestions_follow_the_filter_clause(
+        self, clause: str, suggested: bool
+    ) -> None:
+        """A stale HAVING subject gets the metric back; WHERE must not.
+
+        A HAVING subject may legitimately name a saved metric, so a misspelled
+        one should be offered the metric. In WHERE only a physical column is
+        legal, so suggesting a metric would steer the caller into invalid SQL.
+        """
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
+        )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "sum_boy",  # near-miss of the saved metric
+                    "operator": ">",
+                    "comparator": "0",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert ("sum_boys" in result.error_obj.suggestions) is suggested
+
 
 class TestValidateAndCompileTier2:
     """When ``run_compile_check=True`` and Tier-1 passes, the helper must
@@ -618,6 +683,90 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+
+
+@pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"status": "FAILED", "message": "top-level failure", "queries": []},
+        {"error_message": "top-level failure", "queries": []},
+        {"queries": [{"status": "failed", "message": "boom", "data": []}]},
+        {
+            "queries": [
+                {"status": "success", "data": [{"value": 1}]},
+                {"status": "ERROR", "error_message": "second failed", "data": []},
+            ]
+        },
+    ],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_rejects_embedded_query_failures(
+    mock_factory, mock_cmd_cls, query_payload
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = query_payload
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.tier == "compile"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_allows_success_message_with_valid_empty_data(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "status": "success",
+        "message": "served from cache",
+        "queries": [{"status": "SUCCESS", "message": "no rows", "data": []}],
+    }
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert result.success
+    assert result.row_count == 0
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_big_number_uses_temporal_query_contract(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+    form_data = {
+        "viz_type": "big_number",
+        "granularity_sqla": "event_time",
+        "metric": "count",
+        "aggregation": "LAST_VALUE",
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+
+    result = _compile_chart(form_data, 1)
+
+    assert result.success
+    query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["columns"] == ["event_time"]
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 2
 
 
 @pytest.mark.parametrize(

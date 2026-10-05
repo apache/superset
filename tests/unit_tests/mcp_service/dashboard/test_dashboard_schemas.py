@@ -21,6 +21,7 @@ Unit tests for dashboard schema serialization.
 Tests that serialize_dashboard_object correctly handles slug and other fields.
 """
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -32,16 +33,23 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     AddChartToDashboardRequest,
+    ApplyFilterValueSpec,
     dashboard_serializer,
     DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
+    FilterRangeSpec,
+    FilterSelectSpec,
+    FilterTimeGrainSpec,
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
     GetDashboardLayoutRequest,
     ListDashboardsRequest,
     ManageDashboardOwnersResponse,
     ManageDashboardRolesResponse,
+    NativeFilterSummary,
+    NativeFilterUpdateSpec,
+    redact_filter_state_data_model_metadata,
     serialize_chart_summary,
     serialize_dashboard_object,
     UpdateDashboardRequest,
@@ -266,6 +274,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -276,6 +286,8 @@ class TestSerializeDashboardObject:
         assert result.charts[0].id == 5
         assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id == 3
+        assert result.charts[0].datasource_type == "table"
         assert result.charts[0].datasource_name == "sales"
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
         # Verify no heavy fields
@@ -297,6 +309,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -306,6 +320,8 @@ class TestSerializeDashboardObject:
         assert len(result.charts) == 1
         assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
         assert result.charts[0].datasource_name is None
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
 
@@ -323,6 +339,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -345,6 +363,8 @@ class TestSerializeDashboardObject:
 
         result = dashboard_serializer(dashboard)
 
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
         assert result.charts[0].datasource_name is None
         assert result.native_filters[0].targets == []
 
@@ -363,6 +383,8 @@ class TestSerializeDashboardObject:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
@@ -520,12 +542,16 @@ class TestSerializeChartSummary:
         chart.id = 5
         chart.slice_name = "Revenue Chart"
         chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
         chart.datasource_name = "sales"
         chart.description = "Monthly revenue"
 
         result = serialize_chart_summary(chart)
 
         assert result is not None
+        assert result.datasource_id is None
+        assert result.datasource_type is None
         assert result.datasource_name is None
 
 
@@ -1053,3 +1079,296 @@ class TestRequestSchemaAliasChoices:
     def test_add_chart_to_dashboard_chart_alias(self) -> None:
         req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
         assert req.chart_id == 2
+
+
+def test_generate_dashboard_request_chart_ids_is_bounded() -> None:
+    """chart_ids is bounded (min 1, max 250) to prevent an unbounded array,
+    matching the length caps on sibling MCP request schemas."""
+    GenerateDashboardRequest(chart_ids=[1])
+    GenerateDashboardRequest(chart_ids=list(range(250)))
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=[])
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=list(range(251)))
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA", None, False, 0]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "2026-01-01 : 2026-02-01"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+def test_native_filter_value_projection(filter_type: str, value: Any) -> None:
+    """Keep display values without copying arbitrary state or query metadata."""
+    raw = {
+        "dataMask": {
+            "f1": {
+                "extraFormData": {"filters": [{"col": "secret_column"}]},
+                "filterState": {
+                    "value": value,
+                    "label": "Display selection",
+                    "excludeFilterValues": True,
+                    "column": "secret_column",
+                    "nested": {"column": "secret_column"},
+                },
+            },
+        },
+        "activeTabs": ["tab1"],
+        "chartStates": {"1": {"column": "secret_column"}},
+        "native_filter_values": [{"column": "spoofed"}],
+    }
+    original = deepcopy(raw)
+    result = redact_filter_state_data_model_metadata(
+        raw,
+        [NativeFilterSummary(id="f1", name="Region", filter_type=filter_type)],
+    )
+    assert result == {
+        "activeTabs": ["tab1"],
+        "native_filter_values": [
+            {
+                "id": "f1",
+                "name": "Region",
+                "filter_type": filter_type,
+                "value": value,
+                "label": "Display selection",
+                "excludeFilterValues": True,
+            }
+        ],
+        "native_filter_values_incomplete": True,
+    }
+    assert raw == original
+    assert "secret_column" not in str(result)
+    assert "spoofed" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "entry"),
+    [
+        ("filter_timecolumn", {"filterState": {"value": ["secret_column"]}}),
+        ("custom_filter", {"filterState": {"value": "secret_column"}}),
+        ("filter_select", {"filterState": {"value": {"column": "secret_column"}}}),
+        ("filter_select", {"filterState": {"value": [{"column": "secret_column"}]}}),
+        ("filter_select", {"filterState": None}),
+        ("filter_select", {}),
+        ("filter_select", None),
+    ],
+)
+def test_native_filter_value_projection_fails_closed(
+    filter_type: str,
+    entry: Any,
+) -> None:
+    """Unsupported or malformed values are omitted and incompleteness is explicit."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": entry, "unknown": {"filterState": {"value": "secret"}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize("mask", [None, [], "invalid", {}])
+def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
+    """Distinguish an empty mask from malformed input without raising."""
+    result = redact_filter_state_data_model_metadata({"dataMask": mask}, [])
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is (mask != {})
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"adhoc_filters": [{"sqlExpression": "1 = 0"}]},
+        {"filters": [{"col": "secret", "op": "ILIKE", "val": "%EMEA%"}]},
+    ],
+)
+def test_native_filter_special_predicates_are_incomplete(extra: dict[str, Any]) -> None:
+    """Selections alone cannot express SQL or wildcard matching semantics."""
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {
+                    "filterState": {"value": ["EMEA"]},
+                    "extraFormData": extra,
+                }
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Region", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"][0]["value"] == ["EMEA"]
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret" not in str(result)
+    assert "sqlExpression" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "valid"),
+    [
+        ("filter_range", [None, 100], True),
+        ("filter_range", [0, None], True),
+        ("filter_range", None, True),
+        ("filter_range", [False, 100], False),
+        ("filter_range", ["private_event_ts"], False),
+        ("filter_range", ["0", "100"], False),
+        ("filter_range", [0, 1, 2], False),
+        ("filter_range", 100, False),
+        ("filter_time", "Last week", True),
+        ("filter_time", None, True),
+        ("filter_time", ["private_event_ts"], False),
+        ("filter_time", 123, False),
+        ("filter_timegrain", ["P1D"], True),
+        ("filter_timegrain", [], True),
+        ("filter_timegrain", None, True),
+        ("filter_timegrain", "P1D", False),
+        ("filter_timegrain", ["P1D", "P1M"], False),
+        ("filter_timegrain", [123], False),
+        ("filter_select", ["EMEA", None, False, 0], True),
+        ("filter_select", [], True),
+        ("filter_select", None, True),
+        ("filter_select", [["private_event_ts"]], False),
+    ],
+)
+def test_native_filter_type_specific_value_shapes(
+    filter_type: str, value: Any, valid: bool
+) -> None:
+    """Omit incompatible values rather than guessing their filter semantics."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert bool(result["native_filter_values"]) is valid
+    assert result["native_filter_values_incomplete"] is (
+        not valid or (value is not None and value != [])
+    )
+    if valid:
+        assert result["native_filter_values"][0]["value"] == value
+
+
+@pytest.mark.parametrize("extra", [None, [], "invalid"])
+def test_native_filter_malformed_extra_form_data(extra: Any) -> None:
+    """Do not project values when the mask's query metadata is malformed."""
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {"filterState": {"value": ["EMEA"]}, "extraFormData": extra}
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Filter", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA"]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "Last week"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"filters": None},
+        {"filters": [{"col": "secret_column", "op": "ILIKE", "val": "%x%"}]},
+    ],
+)
+def test_native_filter_incomplete_predicates_for_all_types(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Retain display context without claiming missing or unsupported predicates."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"][0]["value"] == value
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret_column" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "extra"),
+    [
+        ("filter_select", ["EMEA"], {"filters": [{"op": "IN"}]}),
+        ("filter_range", [0, 100], {"filters": [{"op": ">="}, {"op": "<="}]}),
+        ("filter_range", [0, 0], {"filters": [{"op": "=="}]}),
+        ("filter_time", "Last week", {"time_range": "Last week"}),
+        ("filter_timegrain", ["P1D"], {"time_grain_sqla": "P1D"}),
+        ("filter_select", None, {}),
+        ("filter_select", [], {}),
+    ],
+)
+def test_native_filter_supported_predicates_remain_complete(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Recognize built-in predicate operators and explicitly cleared selections."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values_incomplete"] is False
+
+
+@pytest.mark.parametrize(
+    "bound", ["NaN", "Infinity", "-Infinity", float("nan"), float("inf"), float("-inf")]
+)
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_non_finite_bounds(
+    bound: str | float, index: int
+) -> None:
+    """Reject non-finite strings and numbers in either range bound after coercion."""
+    bounds: list[str | float | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize("bound", [10**1000, -(10**1000)])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_overflowing_integer_bounds(
+    bound: int, index: int
+) -> None:
+    """Huge integers yield validation errors instead of leaking OverflowError."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize(
+    "model, payload",
+    [
+        (FilterSelectSpec, {"filter_type": "filter_select", "column": "region"}),
+        (FilterRangeSpec, {"filter_type": "filter_range", "column": "cost"}),
+        (FilterTimeGrainSpec, {"filter_type": "filter_timegrain"}),
+        (NativeFilterUpdateSpec, {"id": "NATIVE_FILTER-1"}),
+    ],
+)
+def test_filter_specs_reject_boolean_dataset_id(
+    model: Any, payload: dict[str, Any]
+) -> None:
+    """bool coerces to int in pydantic lax mode; dataset_id=true must not become 1."""
+    with pytest.raises(ValidationError, match="dataset_id must be an integer"):
+        model.model_validate({**payload, "name": "Filter", "dataset_id": True})
+    assert model.model_validate({**payload, "name": "Filter", "dataset_id": 1})
+
+
+@pytest.mark.parametrize("bound", [True, False])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> None:
+    """Boolean bounds must not coerce to numeric range predicates."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be numbers or null"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )

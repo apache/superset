@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.1.8
+cachetools==7.2.0
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -120,7 +120,7 @@ flask==3.1.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==5.2.2
+flask-appbuilder==5.2.3
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -163,7 +163,7 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.5
+greenlet==3.5.6
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
@@ -172,7 +172,7 @@ gunicorn==26.2.0
     # via apache-superset (pyproject.toml)
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
-holidays==0.103
+holidays==0.105
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
@@ -212,7 +212,7 @@ mako==1.4.1
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   alembic
-markdown==3.10.3
+markdown==3.11
     # via apache-superset (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
@@ -275,14 +275,10 @@ paramiko==3.5.1
     #   sshtunnel
 parsedatetime==2.6
     # via apache-superset (pyproject.toml)
-pgsanity==0.2.9
-    # via apache-superset (pyproject.toml)
 pillow==12.3.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
-polyline==2.0.4
-    # via apache-superset (pyproject.toml)
 prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
@@ -308,7 +304,7 @@ pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
 pygments==2.20.0
     # via rich
-pyjwt==2.13.0
+pyjwt==2.14.0
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -399,7 +395,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.18.0
+sqlglot==30.21.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core

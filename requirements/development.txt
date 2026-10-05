@@ -33,7 +33,7 @@ annotated-types==0.7.0
     #   pydantic
 antlr4-python3-runtime==4.13.2
     # via pymongosql
-anyio==4.11.0
+anyio==4.15.1
     # via
     #   httpx
     #   mcp
@@ -112,7 +112,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.1.8
+cachetools==7.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -176,7 +176,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.8.0
+clickhouse-connect==1.9.0
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
@@ -305,7 +305,7 @@ flask==3.1.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==5.2.2
+flask-appbuilder==5.2.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -407,7 +407,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.45.0
+google-cloud-bigquery==3.45.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -422,7 +422,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.5
+greenlet==3.5.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -451,7 +451,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.103
+holidays==0.105
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -568,7 +568,7 @@ mako==1.4.1
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.10.3
+markdown==3.11
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -627,7 +627,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via apache-superset
 nh3==0.3.7
     # via
@@ -724,10 +724,6 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
-pgsanity==0.2.9
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pillow==12.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -746,10 +742,6 @@ pluggy==1.5.0
     # via pytest
 polib==1.2.0
     # via apache-superset
-polyline==2.0.4
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pre-commit==4.1.0
     # via apache-superset
 prison==0.2.1
@@ -782,7 +774,7 @@ psutil==6.1.0
     # via
     #   apache-superset
     #   pandas-gbq
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.13
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp-slim
@@ -828,7 +820,7 @@ pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
-pyfakefs==5.3.5
+pyfakefs==6.2.0
     # via apache-superset
 pygeohash==3.2.2
     # via
@@ -842,7 +834,7 @@ pyhive==0.7.0
     # via apache-superset
 pyinstrument==5.1.3
     # via apache-superset
-pyjwt==2.13.0
+pyjwt==2.14.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -934,7 +926,7 @@ python-dotenv==1.2.2
     #   fastmcp-slim
     #   pydantic-settings
     #   testcontainers
-python-ldap==3.4.7
+python-ldap==3.4.8
     # via apache-superset
 python-multipart==0.0.29
     # via
@@ -968,8 +960,6 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-regex==2026.4.4
-    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -983,7 +973,6 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
-    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -1028,7 +1017,6 @@ setuptools==84.0.0
     #   pandas-gbq
     #   pydata-google-auth
     #   zope-event
-    #   zope-interface
 shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
@@ -1048,8 +1036,6 @@ slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sniffio==1.3.1
-    # via anyio
 sqlalchemy==2.0.52
     # via
     #   -c requirements/base-constraint.txt
@@ -1098,7 +1084,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.18.0
+sqlglot==30.21.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1128,8 +1114,6 @@ tabulate==0.10.0
     #   apache-superset
 testcontainers==4.15.0
     # via -r requirements/development.in
-tiktoken==0.14.0
-    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
@@ -1273,7 +1257,7 @@ ydb==3.31.4
     #   ydb-sqlalchemy
 ydb-dbapi==0.1.23
     # via ydb-sqlalchemy
-ydb-sqlalchemy==0.1.22
+ydb-sqlalchemy==0.1.24
     # via apache-superset
 ydb-sqlglot-plugin==0.2.8
     # via apache-superset
@@ -1281,7 +1265,9 @@ zipp==3.23.0
     # via importlib-metadata
 zope-event==5.0
     # via gevent
-zope-interface==5.4.0
-    # via gevent
+zope-interface==8.6
+    # via
+    #   -r requirements/development.in
+    #   gevent
 zstandard==0.23.0
     # via trino

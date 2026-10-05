@@ -553,7 +553,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=_("Manage"),
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
-        appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,
@@ -1263,7 +1262,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_password_change_enforcement,
         )
 
-        # Redirect users with a pending forced password change to the reset
+        # Redirect users with a pending forced password change to the profile
         # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
         register_password_change_enforcement(self.superset_app)
 
@@ -1426,7 +1425,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 set_isolation_level_to,
             )
             with self.superset_app.app_context():
-                db.engine.execution_options(isolation_level=set_isolation_level_to)
+                # update_execution_options mutates the engine in place.
+                # Its generative sibling execution_options() returns a NEW
+                # engine and leaves this one untouched — using it here
+                # silently discarded the isolation default for years,
+                # leaving MySQL deployments on InnoDB's REPEATABLE READ
+                # while this method logged the opposite (sc-120480).
+                db.engine.update_execution_options(
+                    isolation_level=set_isolation_level_to
+                )
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)

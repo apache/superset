@@ -18,10 +18,14 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
+// Type-only import: erased at build time, so html2canvas still reaches the core
+// bundle only through the dynamic import inside the Safari branch below.
+import type { Options as Html2CanvasOptions } from 'html2canvas';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { isSafari } from 'src/utils/common';
 import {
   dispatchWarningToast,
   forceLoadAllCharts,
@@ -58,6 +62,17 @@ type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
  */
 const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
+
+const triggerDownload = (
+  dataUrl: string,
+  description: string,
+  isPng: boolean,
+) => {
+  const link = document.createElement('a');
+  link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
+  link.href = dataUrl;
+  link.click();
+};
 
 const CRITICAL_STYLE_PROPERTIES = new Set([
   'display',
@@ -159,7 +174,23 @@ const copyAllComputedStyles = (
   }
 };
 
-const processCloneForVisibility = (clone: HTMLElement) => {
+// True when the element clips its content on at least one axis. `copyAllComputedStyles`
+// writes the computed `overflow` inline on the whole tree, so `[style*="overflow"]` below
+// matches nearly every node; only the ones that actually clip should have their overflow
+// rewritten. Both the shorthand and the longhands are read because engines disagree on
+// which of them a computed style resolves: browsers resolve the longhands, jsdom only
+// echoes back whichever form was specified.
+const clipsOverflow = (element: HTMLElement) => {
+  const computed = window.getComputedStyle(element);
+  return /auto|scroll|hidden|clip/.test(
+    `${computed.overflow} ${computed.overflowX} ${computed.overflowY}`,
+  );
+};
+
+const processCloneForVisibility = (
+  clone: HTMLElement,
+  clipHorizontalOverflow = false,
+) => {
   const cloneStyle = clone.style;
   cloneStyle.height = 'auto';
   cloneStyle.maxHeight = 'none';
@@ -183,9 +214,25 @@ const processCloneForVisibility = (clone: HTMLElement) => {
   scrollableSelectors.forEach(selector => {
     clone.querySelectorAll(selector).forEach(el => {
       const element = el as HTMLElement;
-      element.style.overflow = 'visible';
       element.style.height = 'auto';
       element.style.maxHeight = 'none';
+      if (!clipsOverflow(element)) return;
+      if (clipHorizontalOverflow) {
+        // The vertical axis stays unclipped so the whole chart paints while the
+        // grid reflows around its now auto-height slot. The horizontal axis keeps
+        // its clip: the clone preserves every element's on-screen pixel width, so
+        // a table that scrolls sideways would otherwise paint its off-slot columns
+        // across the charts sitting next to it in the same dashboard row.
+        // `clip` rather than `hidden`, because `hidden` paired with `visible` is
+        // not a legal computed combination: the engine promotes the `visible` axis
+        // to `auto` and clips that one too. `clip` paired with `visible` clips a
+        // single axis and leaves the element a non-scroll-container, so nothing
+        // but the sideways bleed changes.
+        element.style.overflowX = 'clip';
+        element.style.overflowY = 'visible';
+      } else {
+        element.style.overflow = 'visible';
+      }
     });
   });
 
@@ -302,6 +349,7 @@ const createEnhancedClone = (
   originalElement: Element,
   theme?: SupersetTheme,
   getInstanceByDom?: EChartsGetInstanceByDom,
+  clipHorizontalOverflow = false,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
   copyAllComputedStyles(originalElement, clone, theme);
@@ -319,7 +367,7 @@ const createEnhancedClone = (
   tempContainer.appendChild(clone);
   document.body.appendChild(tempContainer);
 
-  processCloneForVisibility(clone);
+  processCloneForVisibility(clone, clipHorizontalOverflow);
 
   const cleanup = () => {
     if (tempContainer.parentElement) {
@@ -526,14 +574,36 @@ export default function downloadAsImageOptimized(
           }),
         };
 
-        const dataUrl = isPng
-          ? await domToImage.toPng(agRootWrapper, agImageOptions)
-          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        let dataUrl: string;
+        if (isSafari()) {
+          // `dom-to-image-more` relies on SVG <foreignObject>, which WebKit does
+          // not reliably paint. Keep the ag-grid preparation above, then use a
+          // DOM painter for the actual Safari capture.
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(agRootWrapper, {
+            backgroundColor:
+              bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+            height: imageHeight,
+            width: originalWidth,
+            scale,
+            useCORS: true,
+            logging: false,
+            ignoreElements: element => !filter(element),
+            onclone: (_document, clone) => {
+              preserveCanvasContent(agRootWrapper, clone);
+            },
+          });
+          dataUrl = canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          );
+        } else {
+          dataUrl = isPng
+            ? await domToImage.toPng(agRootWrapper, agImageOptions)
+            : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        }
 
-        const link = document.createElement('a');
-        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
-        link.href = dataUrl;
-        link.click();
+        triggerDownload(dataUrl, description, isPng);
       } catch (error) {
         console.error('Creating image failed', error);
         await dispatchWarningToast(
@@ -560,7 +630,7 @@ export default function downloadAsImageOptimized(
       return;
     }
 
-    // All other chart types: use the clone-based approach
+    // All other chart types: preserve canvas contents and expand clipped content.
     let cleanup: (() => void) | null = null;
 
     // Only the PNG path upscales the layout (transform: scale(PNG_SCALE)), so only there does a
@@ -579,10 +649,65 @@ export default function downloadAsImageOptimized(
     }
 
     try {
+      if (isSafari()) {
+        // `dom-to-image-more` serializes through SVG <foreignObject>, which
+        // WebKit does not reliably paint. html2canvas clones the document itself;
+        // restore the clone-path canvas and visibility work in its clone callback.
+        const { default: html2canvas } = await import('html2canvas');
+        const captureOptions: Partial<Html2CanvasOptions> = {
+          backgroundColor:
+            bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+          height: (elementToPrint as HTMLElement).scrollHeight,
+          width: (elementToPrint as HTMLElement).scrollWidth,
+          scale,
+          // A cross-origin image on a server that sends no CORS headers cannot be drawn
+          // into an exportable canvas at all: html2canvas skips it when tainting is
+          // disallowed, and `allowTaint: true` would let it through but taint the canvas,
+          // making `toDataURL()` throw so the entire download fails instead of one image
+          // being left out. Keeping tainting off trades a missing image for an otherwise
+          // complete export, which is also what the dom-to-image path did.
+          useCORS: true,
+          logging: false,
+          ignoreElements: element => !filter(element),
+          onclone: (_document, clone) => {
+            processCloneForVisibility(clone, isDashboardCapture);
+            preserveCanvasContent(elementToPrint, clone, getInstanceByDom);
+            // `processCloneForVisibility` sets height/overflow to `auto` on the clone, so
+            // content clipped on screen (long tables, virtualized lists) extends past the
+            // source element's measurements. html2canvas reads width/height only after this
+            // callback returns, so widening them here captures the expanded content instead
+            // of cropping it to what was visible. `Math.max` keeps the on-screen size as a
+            // floor, so a clone that cannot be measured is never captured smaller than before.
+            captureOptions.width = Math.max(
+              captureOptions.width ?? 0,
+              clone.scrollWidth,
+            );
+            captureOptions.height = Math.max(
+              captureOptions.height ?? 0,
+              clone.scrollHeight,
+            );
+          },
+        };
+        const canvas = await html2canvas(
+          elementToPrint as HTMLElement,
+          captureOptions,
+        );
+        triggerDownload(
+          canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          ),
+          description,
+          isPng,
+        );
+        return;
+      }
+
       const { clone, cleanup: cleanupFn } = createEnhancedClone(
         elementToPrint,
         theme,
         getInstanceByDom,
+        isDashboardCapture,
       );
       cleanup = cleanupFn;
 
@@ -610,11 +735,7 @@ export default function downloadAsImageOptimized(
       cleanup();
       cleanup = null;
 
-      const extension = isPng ? 'png' : 'jpg';
-      const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.${extension}`;
-      link.href = dataUrl;
-      link.click();
+      triggerDownload(dataUrl, description, isPng);
     } catch (error) {
       console.error('Creating image failed', error);
       await dispatchWarningToast(

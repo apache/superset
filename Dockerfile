@@ -18,7 +18,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.14-slim-trixie
+ARG PY_VER=3.11-slim-trixie
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -195,17 +195,15 @@ RUN mkdir -p \
       requirements \
     && touch superset/static/version_info.json
 
-# Install Playwright and optionally setup headless browsers
+# Optionally install Playwright and the headless Chromium used for screenshots
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 
 ARG INCLUDE_CHROMIUM="false"
-ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    if [ "${INCLUDE_CHROMIUM}" = "true" ] || [ "${INCLUDE_FIREFOX}" = "true" ]; then \
+    if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
         uv pip install playwright && \
         playwright install-deps && \
-        if [ "${INCLUDE_CHROMIUM}" = "true" ]; then playwright install chromium; fi && \
-        if [ "${INCLUDE_FIREFOX}" = "true" ]; then playwright install firefox; fi; \
+        playwright install chromium; \
     else \
         echo "Skipping browser installation"; \
     fi
@@ -224,7 +222,6 @@ RUN /app/docker/apt-install.sh \
       libsasl2-dev \
       libsasl2-modules-gssapi-mit \
       libpq-dev \
-      libecpg-dev \
       libldap2-dev
 
 # Create data directory for DuckDB examples database

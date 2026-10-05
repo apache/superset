@@ -16,10 +16,12 @@
 # under the License.
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
+from decimal import Decimal
 from typing import TYPE_CHECKING
 from unittest import mock
 from uuid import uuid4
 
+import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
@@ -484,3 +486,44 @@ def test_consumer_policy_routing_channels_are_the_consumers() -> None:
     policy.on_subscribe(task, principal="user:5", client_ref="A")
     policy.on_subscribe(task, principal="user:7", client_ref="B")
     assert policy.routing_channels(task) == ["user:5:A", "user:7:B"]
+
+
+def test_inject_contribution_totals_includes_decimal_metrics(
+    mocker: MockerFixture,
+) -> None:
+    """The cached totals must sum Decimal metrics, as the synchronous path does.
+
+    ``_inject_contribution_totals`` exists to reproduce what
+    ``ensure_totals_available`` computes, reading the prerequisite task's cached
+    dataframe instead of re-running the totals query. A driver that returns
+    NUMERIC as ``decimal.Decimal`` gives that dataframe an object-dtype column,
+    so a dtype-kind test would drop the metric here and leave ``contribution()``
+    writing a zero for every row -- the two paths would disagree on the same
+    data.
+    """
+    from superset.tasks.async_queries import _inject_contribution_totals
+
+    cache = mocker.MagicMock()
+    cache.is_loaded = True
+    cache.df = pd.DataFrame(
+        {
+            "decimal_metric": [Decimal("40.0")],
+            "float_metric": [10.0],
+            "label": ["total"],
+        }
+    )
+    mocker.patch(
+        "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+        return_value=cache,
+    )
+
+    query_obj = mocker.MagicMock()
+    query_obj.post_processing = [
+        {"operation": "contribution", "options": {"columns": ["decimal_metric"]}}
+    ]
+
+    _inject_contribution_totals(query_obj, "totals-cache-key")
+
+    totals = query_obj.post_processing[0]["options"]["contribution_totals"]
+    assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
+    assert "label" not in totals
