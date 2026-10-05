@@ -1222,15 +1222,24 @@ function DatasourceEditor({
         validationErrors = validationErrors.concat(folderValidation.errors);
       }
 
-      // Validate the partition filter mapping. `databaseColumns` rather than
-      // `datasource.columns`, because the two only meet in `onChangeInternal`
-      // when the payload is assembled -- `datasource.columns` does not carry the
-      // transform the owner just typed.
+      // Validate the partition filter mapping. The editor's own two lists
+      // rather than `datasource.columns`, because the two only meet in
+      // `onChangeInternal` when the payload is assembled -- `datasource.columns`
+      // does not carry the transform the owner just typed.
+      //
+      // Both lists, because this asks what exists and not what may be picked.
+      // The backend builds its own column set from every column, so a
+      // calculated column is a valid mapped-column override; checking against
+      // `databaseColumns` alone called one that is really there missing, and
+      // that is a blocking error with no way out -- the partition-column
+      // dropdown is physical-only, so reopening such a dataset and changing
+      // nothing but its description left Save permanently disabled.
       if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
         validationErrors = validationErrors.concat(
-          partitionMappingErrors(datasource, databaseColumns).map(
-            issue => issue.message,
-          ),
+          partitionMappingErrors(datasource, [
+            ...databaseColumns,
+            ...calculatedColumns,
+          ]).map(issue => issue.message),
         );
       }
 
@@ -2023,6 +2032,7 @@ function DatasourceEditor({
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}
+              allColumns={[...databaseColumns, ...calculatedColumns]}
               onPartitionColumnChange={handlePartitionColumnChange}
               onNavigateToColumn={handleNavigateToColumn}
             />

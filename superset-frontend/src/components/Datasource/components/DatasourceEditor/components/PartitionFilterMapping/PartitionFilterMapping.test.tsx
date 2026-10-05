@@ -34,6 +34,20 @@ const COLUMNS = [
   { column_name: 'country', type: 'TEXT' },
 ];
 
+// `COLUMNS` with the mapping actually configured on `event_time`.
+const MAPPED_COLUMNS = COLUMNS.map(column =>
+  column.column_name === 'event_time'
+    ? { ...column, partition_value_transform: 'unix_timestamp(:value)' }
+    : column,
+);
+
+// A transform naming the column instead of `:value`, which cannot preview.
+const PLACEHOLDERLESS_COLUMNS = COLUMNS.map(column =>
+  column.column_name === 'event_time'
+    ? { ...column, partition_value_transform: 'unix_timestamp(event_time)' }
+    : column,
+);
+
 const PREVIEW_URL = 'glob:*/api/v1/dataset/1/partition_mapping/preview/';
 
 afterEach(() => {
@@ -49,6 +63,7 @@ test('the mapped column shows as following the default datetime column', () => {
         partition_mapped_column: null,
       }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
@@ -66,6 +81,7 @@ test('a partition column with nothing mapped warns that queries will not prune',
     <PartitionColumnFields
       datasource={{ main_dttm_col: null, partition_column: 'dt_epoch' }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
@@ -84,11 +100,8 @@ test('an active mapping states which column mirrors onto which', () => {
         main_dttm_col: 'event_time',
         partition_column: 'dt_epoch',
       }}
-      columns={COLUMNS.map(column =>
-        column.column_name === 'event_time'
-          ? { ...column, partition_value_transform: 'unix_timestamp(:value)' }
-          : column,
-      )}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
@@ -104,6 +117,7 @@ test('no partition column means no "maps to partition" at all', () => {
     <PartitionColumnFields
       datasource={{ main_dttm_col: 'event_time' }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
@@ -121,6 +135,7 @@ test('the override link navigates to the target column', async () => {
         partition_column: 'dt_epoch',
       }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={onNavigateToColumn}
     />,
@@ -605,11 +620,8 @@ test.each([
         main_dttm_col: 'event_time',
         partition_column: 'dt_epoch',
       }}
-      columns={COLUMNS.map(column =>
-        column.column_name === 'event_time'
-          ? { ...column, partition_value_transform: 'unix_timestamp(:value)' }
-          : column,
-      )}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={onNavigateToColumn}
     />,
@@ -628,6 +640,7 @@ test('"Map a column" is reachable from the keyboard', async () => {
     <PartitionColumnFields
       datasource={{ main_dttm_col: null, partition_column: 'dt_epoch' }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={onNavigateToColumn}
     />,
@@ -679,6 +692,7 @@ test('the override link leads somewhere when the mapping points at itself', asyn
         partition_column: 'event_time',
       }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={onNavigateToColumn}
     />,
@@ -701,14 +715,8 @@ test('an unparseable-but-nonblank transform is not announced as mirroring', () =
         main_dttm_col: 'event_time',
         partition_column: 'dt_epoch',
       }}
-      columns={COLUMNS.map(column =>
-        column.column_name === 'event_time'
-          ? {
-              ...column,
-              partition_value_transform: 'unix_timestamp(event_time)',
-            }
-          : column,
-      )}
+      columns={PLACEHOLDERLESS_COLUMNS}
+      allColumns={PLACEHOLDERLESS_COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
@@ -875,4 +883,61 @@ test('a commit landing mid-typing does not revert the keystrokes after it', asyn
   await waitFor(() => {
     expect(input).toHaveValue('lower(:value) -- x');
   });
+});
+
+test('a calculated mapped column is not reported as missing', () => {
+  // The backend builds its column set from every column on the dataset, so a
+  // calculated column is a valid mapped-column override and both PUT and
+  // import accept one. Validating against the physical columns alone called it
+  // missing -- a blocking error, and an inescapable one, because the
+  // partition-column dropdown is physical-only and the mapping picker does not
+  // render on a calculated column's row. Reopening such a dataset and changing
+  // nothing but its description left Save permanently disabled.
+  const calculated = {
+    column_name: 'event_day',
+    type: 'TEXT',
+    expression: 'date(event_time)',
+    partition_value_transform: 'unix_timestamp(:value)',
+  };
+
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: 'event_day',
+      }}
+      columns={COLUMNS}
+      allColumns={[...COLUMNS, calculated]}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByText(/is not a column on this dataset/),
+  ).not.toBeInTheDocument();
+});
+
+test('a mapped column that really is absent is still reported', () => {
+  // The counterweight: widening the validation set must not stop it noticing a
+  // mapped column that is genuinely gone, which is what happens when a column
+  // payload drops the column the mapping pointed at.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: 'long_gone',
+      }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(/long_gone is not a column on this dataset/),
+  ).toBeInTheDocument();
 });
