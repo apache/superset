@@ -64,6 +64,14 @@ interface PartitionColumnFieldsProps {
   onPartitionColumnChange: (columnName: string | null) => void;
   /** Open the given column's row expand in the Columns table. */
   onNavigateToColumn: (columnName: string) => void;
+  /**
+   * Whether the mapped column's own preview says the transform mirrors, or
+   * `null`/undefined when no verdict is in yet. The checks this section can
+   * make are all static -- a transform the database rejects clears every one
+   * of them -- so without the preview's answer the banner claimed a speed-up
+   * the query never delivers.
+   */
+  previewMirrors?: boolean | null;
 }
 
 /**
@@ -81,6 +89,7 @@ export default function PartitionColumnFields({
   allColumns,
   onPartitionColumnChange,
   onNavigateToColumn,
+  previewMirrors,
 }: PartitionColumnFieldsProps) {
   const theme = useTheme();
 
@@ -101,7 +110,17 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
-  const isActive = mappingIsActive(datasource, allColumns);
+  // The static checks are necessary, not sufficient: an unparseable expression
+  // or a function the database does not have needs the engine to spot, and the
+  // mapped column's row already asks it. Deferring to that answer where there
+  // is one is what keeps this banner and that panel from contradicting each
+  // other. A stored transform whose last probe failed says the same thing
+  // through the datasource's own summary, which is what an owner sees on
+  // reopening the editor.
+  const isActive =
+    mappingIsActive(datasource, allColumns) &&
+    previewMirrors !== false &&
+    datasource.partition_filter_mapping?.evaluable !== false;
   const { partition_column: partitionColumn } = datasource;
 
   // `field` is what the issues carry it for: a message about the partition

@@ -46,6 +46,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_parseable,
     is_transform_active,
     is_unfinished,
+    known_mirror_verdict,
     MappingValidationIssue,
     mirror_operator,
     MIRRORABLE_ALWAYS,
@@ -1532,6 +1533,86 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
 
     assert before != after_uri
     assert after_uri != after_extra
+
+
+# ---------------------------------------------------------------------------
+# The advisory verdict the UI reads
+# ---------------------------------------------------------------------------
+
+
+def test_nothing_is_claimed_before_anything_has_probed(app: Flask) -> None:
+    """
+    `None`, not `False`: a mapping nobody has run a chart on yet is not broken,
+    and reporting it so would trade one wrong claim for another.
+    """
+    database = _database_returning([1])
+
+    with app.app_context():
+        assert (
+            known_mirror_verdict(database, None, None, "unix_timestamp(:value)") is None
+        )
+
+
+def test_a_successful_probe_records_that_the_mapping_mirrors(app: Flask) -> None:
+    database = _database_returning([1767225600])
+
+    with app.app_context():
+        evaluate_transform(
+            database, None, None, "unix_timestamp(:value)", ["2026-01-01"]
+        )
+
+        assert (
+            known_mirror_verdict(database, None, None, "unix_timestamp(:value)") is True
+        )
+
+
+def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
+    """
+    The fact the editor's banner and Explore's glyph need and had nowhere to
+    read: a misspelled function parses happily, so `is_transform_active` calls
+    the transform active and both surfaces promise a speed-up the query path
+    then silently gives up.
+
+    Recorded even though the probe *result* deliberately is not -- see
+    `record_mirror_verdict`. Withholding a promise on one bad answer is not the
+    same trade as withholding the pruning itself.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("function no_such_fn(unknown) does not exist")
+    )
+
+    with app.app_context():
+        evaluate_transform(database, None, None, "no_such_fn(:value)", ["2026-01-01"])
+
+        assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
+
+
+def test_a_probe_that_returns_null_does_not_mirror_either(app: Flask) -> None:
+    """
+    The transform evaluated and gave nothing to build a predicate from, so the
+    query carries no mirror -- which is the same claim, reached differently.
+    """
+    database = _database_returning([None])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is False
+
+
+def test_one_filter_s_verdict_answers_for_the_next(app: Flask) -> None:
+    """
+    Whether a transform evaluates is a property of the transform and the
+    connection, not of the value that happened to be probing it, so the verdict
+    is keyed without the values -- one chart settles it for every other.
+    """
+    database = _database_returning([1])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, "lower(:value)", ["us"])
+
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
 
 
 # ---------------------------------------------------------------------------

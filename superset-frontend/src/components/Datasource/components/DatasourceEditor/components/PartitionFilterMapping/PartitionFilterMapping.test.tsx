@@ -112,6 +112,76 @@ test('an active mapping states which column mirrors onto which', () => {
   ).toBeInTheDocument();
 });
 
+test('the banner stops claiming a mirror the preview refused', () => {
+  // Every check this section can make is static, and `no_such_fn(:value)`
+  // clears all of them -- it parses, it has a `:value`, it is not Jinja. The
+  // mapped column's own panel has already asked the database and been told no,
+  // so the banner may not go on promising a speed-up the query gives up.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors={false}
+    />,
+  );
+
+  expect(
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
+});
+
+test('the banner also defers to the stored mapping the engine refused', () => {
+  // What an owner sees on reopening the editor: no preview has run yet this
+  // session, but the backend remembers that the last probe of the stored
+  // transform produced no mirror.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: { evaluable: false },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByText(/will automatically apply an equivalent filter to/),
+  ).not.toBeInTheDocument();
+});
+
+test('a mapping nothing has judged yet still states what it will do', () => {
+  // `null` is not a refusal: a preview still in flight, or a mapping no chart
+  // has run, must not read as broken.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: { evaluable: null },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+      previewMirrors={null}
+    />,
+  );
+
+  expect(
+    screen.getByText(/will automatically apply an equivalent filter to/),
+  ).toBeInTheDocument();
+});
+
 test('no partition column means no "maps to partition" at all', () => {
   render(
     <PartitionColumnFields
