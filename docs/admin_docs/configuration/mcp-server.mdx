@@ -1444,6 +1444,11 @@ Exact NumPy array cells, including Arrow list columns materialized by pandas,
 are normalized to JSON lists under the same nesting, item, work, and byte limits.
 Array subclasses and unsupported element types remain rejected.
 
+Excel exports store timezone-naive dates, datetimes, times, and nonnegative
+durations as native cells when they fit Excel's 1900 date system. Dates before
+1900-01-01, negative or overflowing durations, timezone-aware values, and values
+that would round past the final supported day or time retain their ISO text.
+
 ### Reporting query dates
 
 `query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`

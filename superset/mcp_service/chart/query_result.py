@@ -133,6 +133,14 @@ _PANDAS_NAT_TYPE = type(pd.NaT)
 _PANDAS_NA_TYPE = type(pd.NA)
 _PANDAS_PERIOD_TYPE = type(pd.Period("2000-01", freq="M"))
 _PANDAS_INTERVAL_TYPE = type(pd.Interval(0, 1))
+_EXCEL_MIN_DATE = date(1900, 1, 1)
+# Leave room for XLSX readers' millisecond rounding at the final serial day.
+_EXCEL_MAX_TIME = time(23, 59, 59, 999000)
+_EXCEL_MAX_DATETIME = datetime.combine(date.max, _EXCEL_MAX_TIME)
+# Serial day 2958465 is 9999-12-31 in Excel's 1900 date system.
+_EXCEL_MAX_DURATION = timedelta(
+    days=2958465, hours=23, minutes=59, seconds=59, milliseconds=999
+)
 
 
 @dataclass(frozen=True)
@@ -1457,32 +1465,51 @@ def _excel_temporal_cell(value: Any) -> Any | None:
 
     Called only after ``_normalize_trusted_scalar`` accepted ``value``. XLSX has
     no timezone-aware date cells, so aware values keep their ISO text, as do
-    NumPy durations whose unit may be ambiguous.
+    NumPy durations whose unit may be ambiguous. Values outside the 1900 date
+    system's range, including negative durations, also keep their ISO text.
     """
     value_type = type(value)
-    if value_type is date or value_type is timedelta:
-        return value
-    if value_type is datetime or value_type is time:
-        return value if value.tzinfo is None else None
+    if value_type is date:
+        return value if value >= _EXCEL_MIN_DATE else None
+    if value_type is timedelta:
+        return value if timedelta(0) <= value <= _EXCEL_MAX_DURATION else None
+    if value_type is datetime:
+        return (
+            value
+            if value.tzinfo is None
+            and value.date() >= _EXCEL_MIN_DATE
+            and value <= _EXCEL_MAX_DATETIME
+            else None
+        )
+    if value_type is time:
+        return value if value.tzinfo is None and value <= _EXCEL_MAX_TIME else None
     if value_type is np.datetime64:
         value = pd.Timestamp(value)
         value_type = pd.Timestamp
     if value_type is pd.Timestamp:
-        if value.tzinfo is not None:
+        if value.tzinfo is not None or not 1900 <= value.year <= 9999:
             return None
         # Excel stores millisecond precision; drop nanoseconds explicitly
         # instead of through pandas' lossy-conversion warning.
-        return datetime(
-            value.year,
-            value.month,
-            value.day,
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
+        return _excel_temporal_cell(
+            datetime(
+                value.year,
+                value.month,
+                value.day,
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+            )
         )
     if value_type is pd.Timedelta:
-        return timedelta(microseconds=int(value.value) // 1000)
+        if not 0 <= value.days <= _EXCEL_MAX_DURATION.days:
+            return None
+        return _excel_temporal_cell(
+            timedelta(
+                days=value.days, seconds=value.seconds, microseconds=value.microseconds
+            )
+        )
     return None
 
 

@@ -21,7 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
-from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
+from datetime import date, datetime, time as datetime_time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any, cast
@@ -6473,3 +6473,128 @@ def test_excel_export_keeps_temporal_cells_as_dates(engine: str) -> None:
     assert cells[1] == datetime(2024, 3, 1, 12, 30, 0, 123000)
     assert cells[2] == datetime(2024, 3, 2, 8, 0)
     assert cells[3] == "2024-03-05"
+
+
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        date(1800, 1, 1),
+        date(1899, 12, 31),
+        datetime(1899, 12, 31, 5),
+        pd.Timestamp("1899-12-31T05:00:00.123456789"),
+        np.datetime64("1800-01-01T05:00:00"),
+        timedelta(days=-2),
+        timedelta(microseconds=-1),
+        pd.Timedelta(days=-2),
+        pd.Timedelta(-1, unit="ns"),
+        timedelta(days=2958466),
+        pd.Timedelta(np.timedelta64(2958466 * 86400, "s")),
+        timedelta.max,
+        datetime.max,
+        pd.Timestamp(datetime.max),
+        np.datetime64("9999-12-31T23:59:59.999999"),
+        pd.Timestamp(np.datetime64("10000-01-01")),
+        np.datetime64("10000-01-01"),
+        datetime_time.max,
+    ],
+)
+def test_excel_export_keeps_unrepresentable_temporals_as_iso_text(
+    engine: str, value: Any
+) -> None:
+    """Both XLSX writers preserve out-of-range cells' JSON/ISO spelling."""
+    import base64
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    def result() -> dict[str, Any]:
+        return {"queries": [{"data": [{"value": value}], "colnames": ["value"]}]}
+
+    json_data, failure = query_result_data(result())
+    assert failure is None
+    assert json_data is not None
+    expected = json_data[0][0]["value"]
+    assert type(expected) is str
+
+    excel_data, failure = query_result_data(result(), preserve_excel_temporals=True)
+    assert failure is None
+    assert excel_data is not None
+    chart = cast(Any, SimpleNamespace(id=7, slice_name="Dates", viz_type="table"))
+    performance = PerformanceMetadata(query_duration_ms=1, cache_status="fresh")
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_data."
+            "_create_excel_with_openpyxl",
+            side_effect=ImportError,
+        )
+        if engine == "xlsxwriter"
+        else nullcontext()
+    ):
+        exported = _export_data_as_excel(
+            chart, excel_data[0], ["value"], None, performance
+        )
+
+    assert isinstance(exported, ChartData)
+    assert exported.excel_data is not None
+    cell = load_workbook(BytesIO(base64.b64decode(exported.excel_data))).active["A2"]
+    assert cell.data_type == "s"
+    assert cell.value == expected
+
+
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        date(1900, 1, 1),
+        datetime(1900, 1, 2),
+        date.max,
+        datetime(9999, 12, 31, 23, 59, 59, 999000),
+        pd.Timestamp(datetime(9999, 12, 31, 23, 59, 59)),
+        np.datetime64("9999-12-31T23:59:59"),
+        timedelta(0),
+        pd.Timedelta(np.timedelta64(2958465 * 86400, "s")),
+        timedelta(days=2958465, hours=23, minutes=59, seconds=59, milliseconds=999),
+        datetime_time(23, 59, 59, 999000),
+    ],
+)
+def test_excel_export_keeps_representable_boundary_temporals_native(
+    engine: str, value: Any
+) -> None:
+    """The range guard retains native cells at supported date/time boundaries."""
+    import base64
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    excel_data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "colnames": ["value"]}]},
+        preserve_excel_temporals=True,
+    )
+    assert failure is None
+    assert excel_data is not None
+    assert not isinstance(excel_data[0][0]["value"], str)
+    chart = cast(Any, SimpleNamespace(id=7, slice_name="Dates", viz_type="table"))
+    performance = PerformanceMetadata(query_duration_ms=1, cache_status="fresh")
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_data."
+            "_create_excel_with_openpyxl",
+            side_effect=ImportError,
+        )
+        if engine == "xlsxwriter"
+        else nullcontext()
+    ):
+        exported = _export_data_as_excel(
+            chart, excel_data[0], ["value"], None, performance
+        )
+
+    assert isinstance(exported, ChartData)
+    assert exported.excel_data is not None
+    cell = load_workbook(BytesIO(base64.b64decode(exported.excel_data))).active["A2"]
+    assert cell.data_type == "d"
+    if not isinstance(value, timedelta):
+        expected = (
+            datetime.combine(value, datetime_time()) if type(value) is date else value
+        )
+        assert cell.value == expected
