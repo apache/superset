@@ -113,7 +113,17 @@ rolled back, so do not blindly retry mutating SQL.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, and time filters. Inverse-selection configurations are rejected.
+selection, time filters, numeric range filters, and time-grain filters. Range
+bounds must be finite numbers representable as floats, or null; booleans are
+rejected. Range permalink labels use the dashboard's smart number formatting
+with ASCII minus signs, falling back to plain numeric representations if
+formatting overflows; time-grain labels come from
+the target datasource's grain names when available. Time grains must be supported
+by the filter's target dataset's database engine, as listed in the datasource's
+`time_grain_sqla` options. If the filter has a nonempty configured allowlist, the
+selected grain must also appear in that list. An unresolved target dataset is
+rejected.
+Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
@@ -918,7 +928,27 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose and request-wrapper instructions (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+
+The no-query catalog uses the same bounded serializer as targeted search.
+Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
+behavior, required URL display, and workflow guidance in request metadata rather
+than relying on truncated introductory prose. Paragraph truncation never leaves a
+partial IMPORTANT block or numbered workflow in the catalog.
+
+Calling constraints are authored as a `Field(description=...)` on the tool's
+`request` parameter and served as the `request` property's schema description, so
+schema-first clients can identify the wrapper without remembering previous calls.
+Summary mode preserves these instructions in `parameters_hint`. Instructions are
+never truncated: their length is deducted from the prose budget first. A request
+model's own docstring is not a calling instruction and is never deducted. If a
+configured limit is smaller than the instructions, prose is omitted rather than
+cutting the instructions. Built-in calling instructions are capped at 300
+characters by regression tests, and the complete tool entries retain per-tool
+size budgets. Field-level descriptions in the default full input schema also
+preserve tool-specific search semantics, sortable columns, chart pagination, and
+layout guidance. These details are not included in schema-free summary mode.
+This setting does not change result-size limits or schema validation.
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
@@ -969,6 +999,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
 | `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
+| `list_metrics`, `get_table`, `get_compatible_dimensions`, `get_compatible_metrics`                        | `can_read` on `Dataset`, plus a data-model metadata permission (`can_get_drill_info`, `can_get_or_create_dataset`, or `can_write` on `Dataset`); external semantic views also enforce their own datasource access check |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
 | `get_catalog`                                                                                            | `can_read` on the requested asset class (`Database`, `Dataset`, `Chart`, or `Dashboard`); databases and datasets also require data-model metadata access, otherwise the page is marked `restricted` |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
@@ -1658,3 +1689,53 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Managing and applying dashboard native filters
+
+`manage_native_filters` requires a numeric dataset column when adding a
+`filter_range` filter or changing its dataset/column target. Select filters
+continue to accept nonnumeric columns.
+
+For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
+one datasource-supported duration (for example, `["P1D"]`). Custom engine
+durations are accepted when exposed in the datasource's time-grain options,
+rather than limited to a fixed enum.
+A nonempty `time_grains` list in the saved filter configuration restricts the
+allowed selection to grains that appear in both that list and the target dataset's
+supported time grains; missing or empty lists use the dataset's supported grains.
+Pass `[]` to clear an optional time-grain filter; required filters cannot be
+cleared.
+
+## Missing chart columns
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` all validate column references through
+`validate_and_compile` and return the same structured errors.
+
+A reference to a missing column returns `column_not_found` with up to three
+similar physical column names ("Did you mean: ..."), or explicit no-match
+guidance when nothing is close enough. Saved metrics — both names and
+expressions — are excluded from these candidates for dimension and `WHERE`
+references, because only a physical column is legal there and suggesting a
+metric leads to invalid `SUM(metric)` SQL. A `HAVING` filter subject may
+legitimately name a saved metric, so metrics are included for that slot. When a
+reference in a metric slot (`y`, `metric`, or an aggregated table column, for
+example) near-misses a saved metric name, the error adds a hint to reference it
+as `{"name": "<metric>", "saved_metric": true}` instead. Dimension references
+never receive this hint, even when they carry an `aggregate`.
+
+When more than one distinct column is missing, the error type is
+`multiple_invalid_columns`. The invalid names appear in escaped, length-limited
+details, and the three-candidate cap is **shared across all missing columns**,
+filled round-robin so each missing column gets a turn.
+
+Column errors carry a bounded `dataset_context`: up to ten column names and ten
+saved-metric names from the authorized dataset, names only — never SQL
+expressions. Suggested candidates are listed first so they are never cut by the
+bound (a hinted saved metric leads `available_metrics` the same way), and the
+error says `Showing 10 of N columns` or `Showing 10 of N saved metrics` when a
+list is partial.
+Context names are returned verbatim per the Tool Result Value Contract.
+"Did you mean" column candidates also preserve dataset spelling, including
+quotes and ampersands, with a 200-character bound per candidate. Use
+`get_dataset_info` for the complete schema.
