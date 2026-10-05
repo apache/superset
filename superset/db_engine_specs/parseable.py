@@ -53,7 +53,7 @@ class ParseableEngineSpec(BaseEngineSpec):
             {
                 "description": "Example connection",
                 "connection_string": (
-                    "parseable+http://admin:admin@demo.parseable.com:443/ingress-nginx"
+                    "parseable+https://admin:admin@demo.parseable.com:443/ingress-nginx"
                 ),
             },
         ],

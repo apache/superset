@@ -37,6 +37,14 @@ def test_parseable_metadata() -> None:
     assert metadata["logo"] == "parseable.png"
     assert "sqlalchemy-parseable" in metadata["pypi_packages"]
     assert metadata["default_port"] == 8000
+    assert (
+        metadata["connection_string"]
+        == "parseable+http://{username}:{password}@{hostname}:{port}/{stream_name}"
+    )
+    assert (
+        metadata["connection_examples"][0]["connection_string"]
+        == "parseable+https://admin:admin@demo.parseable.com:443/ingress-nginx"
+    )
 
 
 def test_epoch_to_dttm() -> None:

@@ -36,7 +36,8 @@ def test_get_all_engine_specs_ast_annotated_attributes(
 ) -> None:
     """
     Engine specs with type-annotated engine, engine_name, and metadata
-    (inline initializers) are correctly discovered.
+    (inline initializers) are correctly discovered, including when named
+    with the *BaseEngineSpec suffix.
     """
     _write_spec(
         tmp_path,
@@ -45,7 +46,7 @@ def test_get_all_engine_specs_ast_annotated_attributes(
         from typing import Any
         from superset.db_engine_specs.base import BaseEngineSpec
 
-        class TypedInlineEngineSpec(BaseEngineSpec):
+        class TypedInlineBaseEngineSpec(BaseEngineSpec):
             engine: str = "typed_engine"
             engine_name: str = "Typed Engine"
             metadata: dict[str, Any] = {
@@ -60,7 +61,7 @@ def test_get_all_engine_specs_ast_annotated_attributes(
     )
 
     specs = get_all_engine_specs_ast()
-    matching = [s for s in specs if s["class_name"] == "TypedInlineEngineSpec"]
+    matching = [s for s in specs if s["class_name"] == "TypedInlineBaseEngineSpec"]
     assert len(matching) == 1
     spec = matching[0]
     assert spec["engine_name"] == "Typed Engine"
@@ -73,8 +74,9 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
 ) -> None:
     """
     Regression: a bare annotation `engine: str` followed by a plain
-    assignment `engine = "value"` must still be discovered (the scanner
-    must not break on the bare annotation).
+    assignment `engine = "value"` must still be discovered, including
+    when named with the *BaseEngineSpec suffix (the scanner must not break
+    on the bare annotation or skip the spec as a true base class).
     """
     _write_spec(
         tmp_path,
@@ -83,7 +85,7 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
         from typing import Any
         from superset.db_engine_specs.base import BaseEngineSpec
 
-        class DeclThenAssignEngineSpec(BaseEngineSpec):
+        class DeclThenAssignBaseEngineSpec(BaseEngineSpec):
             engine: str
             engine = "decl_then_assign"
             engine_name: str
@@ -101,9 +103,10 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
     )
 
     specs = get_all_engine_specs_ast()
-    matching = [s for s in specs if s["class_name"] == "DeclThenAssignEngineSpec"]
+    matching = [s for s in specs if s["class_name"] == "DeclThenAssignBaseEngineSpec"]
+    found_names = [s["class_name"] for s in specs]
     assert len(matching) == 1, (
-        f"DeclThenAssignEngineSpec not found; got: {[s['class_name'] for s in specs]}"
+        f"DeclThenAssignBaseEngineSpec not found; got: {found_names}"
     )
     spec = matching[0]
     assert spec["engine_name"] == "DeclThenAssign"
