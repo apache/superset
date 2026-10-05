@@ -1470,7 +1470,7 @@ def _normalize_index_names(
     charged to the shared aggregate value/byte budget like a data cell.
     MultiIndex labels arrive as tuples and are normalized as arrays.
     """
-    if not dict.__contains__(query, "indexnames"):
+    if "indexnames" not in query:
         return None
     names = dict.__getitem__(query, "indexnames")
     if type(names) is not list:

@@ -136,9 +136,7 @@ def full_producer_command_result(frame: pd.DataFrame) -> dict[str, Any]:
         datasource=datasource,
         result_type=ChartDataResultType.FULL,
         result_format=ChartDataResultFormat.JSON,
-        get_data=QueryContextProcessor(
-            cast(QueryContext, processor_context)
-        ).get_data,
+        get_data=QueryContextProcessor(cast(QueryContext, processor_context)).get_data,
     )
     query_obj = SimpleNamespace(
         datasource=None, result_type=None, applied_time_extras={}

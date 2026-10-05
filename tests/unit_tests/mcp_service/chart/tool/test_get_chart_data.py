@@ -3225,9 +3225,7 @@ class TestSavedChartExtraFormDataFilters:
         from openpyxl import load_workbook
 
         command_result = chart_data_command_result(
-            frame=pd.DataFrame(
-                {"order_date": [date(2025, 1, 2)], "country": ["USA"]}
-            ),
+            frame=pd.DataFrame({"order_date": [date(2025, 1, 2)], "country": ["USA"]}),
             coltypes=[GenericDataType.TEMPORAL, GenericDataType.STRING],
         )
 
