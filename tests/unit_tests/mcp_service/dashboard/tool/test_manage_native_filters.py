@@ -37,6 +37,7 @@ Covers:
 - Permission denied (DashboardForbiddenError)
 """
 
+import copy
 import logging
 from collections.abc import Callable, Iterator
 from typing import Any
@@ -298,6 +299,144 @@ async def test_add_filter_time(mcp_server):
     }
 
 
+@pytest.mark.asyncio
+async def test_add_filter_select_with_default_value(mcp_server):
+    """default_value on create builds defaultDataMask via the same
+    builder apply_dashboard_filters uses for applied values (SC-121506)."""
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_select",
+                        "name": "Region",
+                        "dataset_id": 5,
+                        "column": "region",
+                        "default_value": ["EMEA"],
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["defaultDataMask"] == {
+        "extraFormData": {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+        "filterState": {"value": ["EMEA"], "label": "EMEA"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_add_filter_select_default_value_empty_list(mcp_server):
+    """An explicit empty default_value is a no-selection default, distinct
+    from omitting the field entirely but producing the same empty mask when
+    enable_empty_filter is not set."""
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_select",
+                        "name": "Region",
+                        "dataset_id": 5,
+                        "column": "region",
+                        "default_value": [],
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["defaultDataMask"] == {
+        "extraFormData": {},
+        "filterState": {"value": None},
+    }
+
+
+@pytest.mark.asyncio
+async def test_add_filter_select_default_value_single_select_overflow_rejected(
+    mcp_server,
+):
+    """multi_select=False with multiple default values is rejected the same
+    way apply_dashboard_filters rejects multiple applied values."""
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_select",
+                        "name": "Region",
+                        "dataset_id": 5,
+                        "column": "region",
+                        "multi_select": False,
+                        "default_value": ["EMEA", "APAC"],
+                    }
+                ],
+            },
+        )
+
+    assert "single-select" in data["error"]
+    assert "2 were given" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_add_filter_select_default_to_first_item_and_default_value_rejected(
+    mcp_server,
+):
+    """Request-schema validation happens at the MCP tool-call boundary,
+    before the tool body runs, so the client raises ToolError rather than
+    returning a JSON error body (mirrors
+    test_add_filter_time_rejects_unparseable_default)."""
+    from fastmcp.exceptions import ToolError
+
+    dashboard = _mock_dashboard(filters=[])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        with pytest.raises(ToolError, match="mutually exclusive"):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "add": [
+                        {
+                            "filter_type": "filter_select",
+                            "name": "Region",
+                            "dataset_id": 5,
+                            "column": "region",
+                            "default_to_first_item": True,
+                            "default_value": ["EMEA"],
+                        }
+                    ],
+                },
+            )
+
+
 # ---------------------------------------------------------------------------
 # Update
 # ---------------------------------------------------------------------------
@@ -384,6 +523,144 @@ async def test_update_time_field_on_select_filter_rejected(mcp_server):
 
     assert "default_time_range" in data["error"]
     assert "filter_time" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_sets_default_value(mcp_server):
+    """default_value on update builds defaultDataMask via the same builder
+    used on create and by apply_dashboard_filters (SC-121506)."""
+    captured: dict = {"current_config": [EXISTING_SELECT_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing1",
+                        "default_value": ["APAC"],
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["defaultDataMask"] == {
+        "extraFormData": {"filters": [{"col": "region", "op": "IN", "val": ["APAC"]}]},
+        "filterState": {"value": ["APAC"], "label": "APAC"},
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_default_value_empty_list_clears_default(mcp_server):
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["defaultDataMask"] = {
+        "extraFormData": {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+        "filterState": {"value": ["EMEA"], "label": "EMEA"},
+    }
+    captured: dict = {"current_config": [existing]}
+    dashboard = _mock_dashboard(filters=[existing])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing1", "default_value": []}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["defaultDataMask"] == {
+        "extraFormData": {},
+        "filterState": {"value": None},
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_default_value_on_time_filter_rejected(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_TIME_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing2",
+                        "default_value": ["EMEA"],
+                    }
+                ],
+            },
+        )
+
+    assert "default_value" in data["error"]
+    assert "filter_select filters" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_default_value_with_existing_default_to_first_item_rejected(
+    mcp_server,
+):
+    """An update that sets default_value must also explicitly clear a
+    pre-existing default_to_first_item; the two cannot both be effectively
+    enabled after the merge (SC-121506)."""
+    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"]["defaultToFirstItem"] = True
+    dashboard = _mock_dashboard(filters=[existing])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing1",
+                        "default_value": ["EMEA"],
+                    }
+                ],
+            },
+        )
+
+    assert "default_to_first_item" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_default_to_first_item_and_default_value_rejected(mcp_server):
+    """Request-schema validation happens at the MCP tool-call boundary,
+    before the tool body runs, so the client raises ToolError rather than
+    returning a JSON error body."""
+    from fastmcp.exceptions import ToolError
+
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        with pytest.raises(ToolError, match="mutually exclusive"):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "update": [
+                        {
+                            "id": "NATIVE_FILTER-existing1",
+                            "default_to_first_item": True,
+                            "default_value": ["EMEA"],
+                        }
+                    ],
+                },
+            )
 
 
 @pytest.mark.asyncio
@@ -888,6 +1165,88 @@ class TestNativeFilterUpdateSpecTimeRangeValidation:
         with pytest.raises(ValidationError, match="Unrecognized time_range"):
             NativeFilterUpdateSpec.model_validate(
                 {"id": "NATIVE_FILTER-1", "default_time_range": "this week"}
+            )
+
+
+# ---------------------------------------------------------------------------
+# default_value validation (SC-121506)
+# ---------------------------------------------------------------------------
+
+
+class TestFilterSelectSpecDefaultValueValidation:
+    """FilterSelectSpec.default_value and default_to_first_item are
+    mutually exclusive, matching the Superset UI."""
+
+    def test_default_value_alone_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import FilterSelectSpec
+
+        spec = FilterSelectSpec.model_validate(
+            {
+                "filter_type": "filter_select",
+                "name": "Region",
+                "dataset_id": 5,
+                "column": "region",
+                "default_value": ["EMEA"],
+            }
+        )
+        assert spec.default_value == ["EMEA"]
+
+    def test_default_to_first_item_alone_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import FilterSelectSpec
+
+        spec = FilterSelectSpec.model_validate(
+            {
+                "filter_type": "filter_select",
+                "name": "Region",
+                "dataset_id": 5,
+                "column": "region",
+                "default_to_first_item": True,
+            }
+        )
+        assert spec.default_to_first_item is True
+        assert spec.default_value is None
+
+    def test_both_set_raises(self) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import FilterSelectSpec
+
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            FilterSelectSpec.model_validate(
+                {
+                    "filter_type": "filter_select",
+                    "name": "Region",
+                    "dataset_id": 5,
+                    "column": "region",
+                    "default_to_first_item": True,
+                    "default_value": ["EMEA"],
+                }
+            )
+
+
+class TestNativeFilterUpdateSpecDefaultValueValidation:
+    """NativeFilterUpdateSpec gets the same mutual-exclusion guard."""
+
+    def test_default_value_alone_passes(self) -> None:
+        from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+
+        spec = NativeFilterUpdateSpec.model_validate(
+            {"id": "NATIVE_FILTER-1", "default_value": ["EMEA"]}
+        )
+        assert spec.default_value == ["EMEA"]
+
+    def test_both_set_raises(self) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            NativeFilterUpdateSpec.model_validate(
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "default_to_first_item": True,
+                    "default_value": ["EMEA"],
+                }
             )
 
 

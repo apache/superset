@@ -30,10 +30,12 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
     FilterSelectSpec,
+    FilterSelectValue,
     FilterTimeSpec,
     ManageNativeFiltersRequest,
     ManageNativeFiltersResponse,
@@ -54,6 +56,12 @@ _SELECT_CONTROL_FIELDS: dict[str, str] = {
     "search_all_options": "searchAllOptions",
 }
 
+# Display strings the frontend uses when labelling a selected value; mirrored
+# here so a stored default's label reads the same as an applied one.
+_NULL_LABEL = "<NULL>"
+_TRUE_LABEL = "TRUE"
+_FALSE_LABEL = "FALSE"
+
 
 class _FilterValidationError(Exception):
     """Raised internally when a filter operation fails validation."""
@@ -62,6 +70,83 @@ class _FilterValidationError(Exception):
 def _empty_data_mask() -> dict[str, Any]:
     """Return the default data mask for a filter with no applied value."""
     return {"filterState": {"value": None}, "extraFormData": {}}
+
+
+def _value_label(value: FilterSelectValue) -> str:
+    """Format one selected value the way the dashboard UI labels it."""
+    if value is None:
+        return _NULL_LABEL
+    if isinstance(value, bool):
+        return _TRUE_LABEL if value else _FALSE_LABEL
+    return str(value)
+
+
+def _select_data_mask(
+    conf: dict[str, Any], values: list[FilterSelectValue]
+) -> dict[str, Any]:
+    """Build the data mask a filter_select filter produces for ``values``.
+
+    Mirrors the frontend's ``getSelectExtraFormData``: a non-empty selection
+    becomes an ``IN`` predicate on the filter's target column, and an empty
+    selection on a filter marked ``enableEmptyFilter`` becomes an impossible
+    predicate (the "required filter, nothing chosen" state) rather than no
+    filtering at all. Shared by ``apply_dashboard_filters`` (applied values)
+    and this module (default values on create/update) so both paths agree.
+    """
+    targets = [target for target in (conf.get("targets") or []) if target]
+    column = (targets[0].get("column") or {}).get("name") if targets else None
+    if not column:
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
+            "column, so a value cannot be applied to it."
+        )
+
+    control_values = conf.get("controlValues") or {}
+    if control_values.get("inverseSelection"):
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' enables inverse "
+            "selection, which this tool does not support."
+        )
+    if (operator := control_values.get("operatorType", "exact")) != "exact":
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' uses matching "
+            f"operator '{operator}', which this tool does not support. "
+            "Only exact-match select filters are supported."
+        )
+    # A single-select filter renders one value; storing several would disagree
+    # with the control the moment a viewer touches it. multiSelect defaults to
+    # true, so only an explicit false restricts the selection.
+    if control_values.get("multiSelect") is False and len(values) > 1:
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is single-select "
+            f"and accepts at most one value, but {len(values)} were given."
+        )
+
+    if values:
+        extra_form_data: dict[str, Any] = {
+            "filters": [{"col": column, "op": "IN", "val": list(values)}]
+        }
+        filter_state: dict[str, Any] = {
+            "value": list(values),
+            "label": ", ".join(_value_label(value) for value in values),
+        }
+    else:
+        extra_form_data = (
+            {
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "clause": "WHERE",
+                        "sqlExpression": EMPTY_FILTER_SQL_EXPRESSION,
+                    }
+                ]
+            }
+            if control_values.get("enableEmptyFilter")
+            else {}
+        )
+        filter_state = {"value": None}
+
+    return {"extraFormData": extra_form_data, "filterState": filter_state}
 
 
 def _time_data_mask(default_time_range: str | None) -> dict[str, Any]:
@@ -137,7 +222,7 @@ def _build_new_filter_config(
         }
         if spec.sort_ascending is not None:
             control_values["sortAscending"] = spec.sort_ascending
-        return {
+        config: dict[str, Any] = {
             "id": filter_id,
             "type": "NATIVE_FILTER",
             "filterType": "filter_select",
@@ -151,6 +236,9 @@ def _build_new_filter_config(
             "defaultDataMask": _empty_data_mask(),
             "cascadeParentIds": [],
         }
+        if spec.default_value is not None:
+            config["defaultDataMask"] = _select_data_mask(config, spec.default_value)
+        return config
 
     # filter_time: no dataset target, empty controlValues
     return {
@@ -173,7 +261,7 @@ def _validate_update_type_compat(
     """Reject update fields that do not apply to the filter's type."""
     select_fields_set = [
         field
-        for field in (*_SELECT_CONTROL_FIELDS, "dataset_id", "column")
+        for field in (*_SELECT_CONTROL_FIELDS, "dataset_id", "column", "default_value")
         if getattr(spec, field) is not None
     ]
     if filter_type != "filter_select" and select_fields_set:
@@ -239,6 +327,15 @@ def _merge_filter_update(
         if value is not None:
             control_values[control_key] = value
     merged["controlValues"] = control_values
+
+    if spec.default_value is not None:
+        if control_values.get("defaultToFirstItem"):
+            raise _FilterValidationError(
+                f"Filter '{spec.id}' has default_to_first_item enabled; "
+                "pass default_to_first_item=False in this same update "
+                "before setting an explicit default_value."
+            )
+        merged["defaultDataMask"] = _select_data_mask(merged, spec.default_value)
 
     if spec.default_time_range is not None:
         merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
