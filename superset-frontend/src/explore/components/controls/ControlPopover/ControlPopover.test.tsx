@@ -237,8 +237,8 @@ test('does not close on Escape when a parent keeps open={true}', async () => {
 
   fireEvent.keyDown(screen.getByTestId('control-popover'), {
     key: 'Escape',
-    code: 27,
-    charCode: 0,
+    code: 'Escape',
+    keyCode: 27,
   });
 
   expect(onOpenChange).toHaveBeenCalledWith(false);

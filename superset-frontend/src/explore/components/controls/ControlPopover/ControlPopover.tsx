@@ -147,15 +147,12 @@ const ControlPopover: FC<PopoverProps> = ({
 
   const handleOnVisibleChange = useCallback(
     (visible: boolean | undefined) => {
-      if (visible === undefined) {
-        changeContainerScrollStatus(visible);
-      }
       if (!isControlled) {
         setUncontrolledVisible(!!visible);
       }
       onOpenChange?.(!!visible);
     },
-    [isControlled, onOpenChange, changeContainerScrollStatus],
+    [isControlled, onOpenChange],
   );
 
   const handleDocumentKeyDownListener = useCallback(
