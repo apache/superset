@@ -656,7 +656,9 @@ def test_create_rejects_a_self_mapping() -> None:
 def test_create_accepts_a_well_formed_mapping() -> None:
     """
     The dataset's columns are synced by `fetch_metadata` after validation, so
-    "is that a real column?" has no answer yet and must not be guessed at.
+    "is that a real column?" has no answer here and must not be guessed at.
+    `test_create_rejects_a_partition_column_the_metadata_sync_does_not_find`
+    covers it once the sync has answered.
     """
     command = _create_command_with_mapping("dt_epoch", "event_time")
 
@@ -669,3 +671,141 @@ def test_create_skips_mapping_validation_while_the_feature_is_off() -> None:
     command = _create_command_with_mapping("dt_epoch", "dt_epoch")
 
     assert command._properties["partition_mapped_column"] == "dt_epoch"
+
+
+def _run_command_with_mapping(
+    mocker: MockerFixture,
+    partition_column: str,
+    partition_mapped_column: str | None = None,
+    *,
+    synced_columns: tuple[str, ...] = ("dt_epoch", "event_time"),
+) -> CreateDatasetCommand:
+    """
+    Drive `run()` with the metadata sync stubbed.
+
+    `validate()` is stubbed because the state under test is the one the sync
+    produces, which does not exist until validation has already passed.
+    """
+    database = Mock(spec=Database)
+    database.id = 1
+    database.backend = "hive"
+
+    dataset = Mock()
+    dataset.database = database
+    dataset.main_dttm_col = "event_time"
+    dataset.columns = [Mock(column_name=name) for name in synced_columns]
+
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create", return_value=dataset
+    )
+
+    return CreateDatasetCommand(
+        {
+            "database": 1,
+            "schema": "default",
+            "table_name": "web_events",
+            "partition_column": partition_column,
+            "partition_mapped_column": partition_mapped_column,
+        }
+    )
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_create_rejects_a_partition_column_the_metadata_sync_does_not_find(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `validate()` cannot answer this, so a POST naming a column that does not
+    exist was stored and then failed every later save -- including a
+    description-only PUT -- leaving a dataset that could only be saved by
+    clearing its partition column.
+    """
+    command = _run_command_with_mapping(mocker, "no_such_column")
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        command.run()
+
+    (exception,) = excinfo.value._exceptions
+    assert exception.field_name == "partition_column"
+    # Asserted verbatim: the editor and its frontend copy of this string key off
+    # the wording, and the save path has to report it identically.
+    assert exception.messages == [
+        "Partition column no_such_column is not a column on this dataset."
+    ]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_create_rejects_a_mapped_column_the_metadata_sync_does_not_find(
+    mocker: MockerFixture,
+) -> None:
+    command = _run_command_with_mapping(mocker, "dt_epoch", "no_such_column")
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        command.run()
+
+    (exception,) = excinfo.value._exceptions
+    assert exception.field_name == "partition_mapped_column"
+    assert exception.messages == [
+        "Mapped column no_such_column is not a column on this dataset."
+    ]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_create_accepts_a_mapping_the_metadata_sync_confirms(
+    mocker: MockerFixture,
+) -> None:
+    """Control: the pruning this feature exists for still gets created."""
+    command = _run_command_with_mapping(mocker, "dt_epoch", "event_time")
+
+    assert command.run() is not None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_rejected_mapping_rolls_the_partial_create_back(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The row is already inserted by the time the columns can be inspected, so
+    rejecting has to undo it -- otherwise the check would leave behind exactly
+    the unsaveable dataset it exists to prevent.
+
+    `@transaction` imports `db` inside its wrapper, so the session is patched
+    where it lives rather than on the decorator's module.
+    """
+    rollback = mocker.patch("superset.db.session.rollback")
+    command = _run_command_with_mapping(mocker, "no_such_column")
+
+    with pytest.raises(DatasetInvalidError):
+        command.run()
+
+    rollback.assert_called_once()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_create_skips_the_post_sync_mapping_check_while_the_feature_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """Same bargain as the save path: nothing reads a mapping with the flag off."""
+    command = _run_command_with_mapping(mocker, "no_such_column")
+
+    assert command.run() is not None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_mapping_is_rejected_once_the_sync_lower_cases_its_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `normalize_columns` makes the synced names differ in case from the submitted
+    ones. Rejecting is the right answer rather than a regression: a PUT would
+    reject it too, so accepting would create a dataset that cannot be saved.
+    """
+    command = _run_command_with_mapping(
+        mocker, "DT_EPOCH", synced_columns=("dt_epoch",)
+    )
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        command.run()
+
+    assert [exc.field_name for exc in excinfo.value._exceptions] == ["partition_column"]
