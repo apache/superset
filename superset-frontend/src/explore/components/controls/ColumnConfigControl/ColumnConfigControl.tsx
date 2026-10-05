@@ -146,7 +146,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
       >
         {columnsWithChildInfo.map(col => (
           <ColumnConfigItem
-            key={col.name}
+            key={col.key}
             column={col}
             onChange={config => setColumnConfig(col.key, config as T)}
             configFormLayout={
