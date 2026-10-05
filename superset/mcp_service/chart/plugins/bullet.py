@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from copy import deepcopy
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
@@ -273,16 +274,26 @@ class BulletChartPlugin(BaseChartPlugin):
 
         # Sort targets may use ergonomic role names or labels. Canonicalize
         # physical-name targets and leave explicit display labels untouched.
-        for order in config_dict.get("order_by") or []:
+        # A merged validation copy omits native dimensions; its native sorts
+        # belong to query-contract validation, not physical-column resolution.
+        orders = (
+            config_dict.get("order_by") or []
+            if config.dimensions is not None or config._inherited_groupby is not None
+            else []
+        )
+        for order in orders:
             role, index = resolve_bullet_order_target(
-                order["column"], config.dimensions or [], config.metric
+                order["column"], config.order_dimensions, config.metric
             )
             if role == "dimension" and index is not None:
-                order["column"] = config_dict["dimensions"][index]["name"]
+                if config.dimensions is not None:
+                    order["column"] = config_dict["dimensions"][index]["name"]
             elif not metric.get("sql_expression") and not metric.get("label"):
                 order["column"] = metric["name"]
 
         normalized = BulletChartConfig.model_validate(config_dict)
+        normalized._inherited_groupby = deepcopy(config._inherited_groupby)
+        normalized.validate_roles_and_outputs()
         normalized.model_fields_set.clear()
         normalized.model_fields_set.update(explicit_fields)
         return normalized
@@ -416,9 +427,9 @@ class BulletChartPlugin(BaseChartPlugin):
             if not dataset_rebind and existing_form_data.get("viz_type") == "bullet"
             else []
         )
-        return BulletChartConfig.model_validate(
-            {**config.model_dump(exclude_unset=True), "dimensions": dimensions}
-        )
+        resolved = config.model_copy(deep=True)
+        resolved._inherited_groupby = deepcopy(dimensions)
+        return resolved.validate_roles_and_outputs()
 
     def merge_update_form_data(
         self,

@@ -3484,10 +3484,23 @@ def test_bullet_null_dimension_alias_is_absent(
 
 @pytest.mark.parametrize("dataset_rebind", [False, True])
 @pytest.mark.parametrize("order_by", [[], [{"column": "Region", "ascending": True}]])
+@pytest.mark.parametrize("sql_dimension", [False, True])
 def test_update_chart_preview_tool_preserves_omitted_bullet_state(
     order_by: list[dict[str, Any]],
     dataset_rebind: bool,
+    sql_dimension: bool,
 ) -> None:
+    dimension: str | dict[str, Any] = (
+        {
+            "expressionType": "SQL",
+            "sqlExpression": "UPPER(Region)",
+            "label": "RegionUpper",
+        }
+        if sql_dimension
+        else "Region"
+    )
+    if sql_dimension and order_by:
+        order_by = [{"column": "RegionUpper", "ascending": True}]
     request = UpdateChartPreviewRequest(
         form_data_key="previous_bullet_key",
         dataset_id=7,
@@ -3499,7 +3512,7 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state(
         "datasource": "6__table" if dataset_rebind else "7__table",
         "viz_type": "bullet",
         "metric": "old_metric",
-        "groupby": ["Region", "Team"],
+        "groupby": [dimension, "Team"],
         "ranges": "100,250",
         "show_labels": True,
         MCP_DASHBOARD_TIME_FILTER_SUBJECT: "OrderDate",
@@ -3575,16 +3588,16 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state(
     ):
         result = asyncio.run(update_chart_preview(request, ctx=MagicMock()))
 
-    assert result["success"] is True
+    assert result["success"] is True, result
     preview_form_data = link.call_args.args[1]
     assert preview_form_data["metric"]["column"]["column_name"] == "Revenue"
-    assert preview_form_data["groupby"] == ["Region", "Team"]
+    assert preview_form_data["groupby"] == [dimension, "Team"]
     assert preview_form_data["ranges"] == "100,250"
     assert preview_form_data["show_labels"] is True
     assert preview_form_data["adhoc_filters"] == previous["adhoc_filters"]
 
     if order_by:
-        assert preview_form_data["orderby"] == [["Region", True]]
+        assert preview_form_data["orderby"] == [[dimension, True]]
 
 
 @pytest.mark.asyncio
@@ -4643,6 +4656,76 @@ async def test_saved_bullet_labels_update_preserves_sql_hierarchy() -> None:
     query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
     assert query["columns"] == [dimension]
     assert query["orderby"] == [[dimension, True]]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("metric_change", [False, True])
+@pytest.mark.parametrize("sort_target", [None, "", "metric", "RegionUpper"])
+@pytest.mark.parametrize("aliases", [{}, {"dimensions": None}, {"groupby": None}])
+async def test_saved_bullet_sql_hierarchy_update_with_explicit_sort(
+    metric_change: bool, sort_target: str | None, aliases: dict[str, Any]
+) -> None:
+    """Sort and metric updates preserve SQL dimensions through the native contract."""
+    dimension = {
+        "expressionType": "SQL",
+        "sqlExpression": "UPPER(Region)",
+        "label": "RegionUpper",
+    }
+    metric: dict[str, Any] = (
+        {"name": "Revenue", "aggregate": "SUM"}
+        if metric_change
+        else {"name": "SavedRevenue", "saved_metric": True}
+    )
+    metric_label = "SUM(Revenue)" if metric_change else "SavedRevenue"
+    config: dict[str, Any] = {"metric": metric, **aliases}
+    if sort_target is not None:
+        config["order_by"] = (
+            [{"column": metric_label if sort_target == "metric" else sort_target}]
+            if sort_target
+            else []
+        )
+    persisted = await _run_saved_bullet_update(
+        {"viz_type": "bullet", "metric": "SavedRevenue", "groupby": [dimension]},
+        config,
+    )
+    assert persisted["groupby"] == [dimension]
+    query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
+    assert query["columns"] == [dimension]
+    if sort_target:
+        target = persisted["metric"] if sort_target == "metric" else dimension
+        assert persisted["orderby"] == query["orderby"] == [[target, False]]
+    elif sort_target == "":
+        assert persisted["orderby"] == []
+        assert not query.get("orderby")
+
+
+@pytest.mark.parametrize("dimension_field", ["dimensions", "groupby"])
+@pytest.mark.parametrize(
+    "dimension",
+    [
+        {
+            "expressionType": "SQL",
+            "sqlExpression": "UPPER(Region)",
+            "label": "RegionUpper",
+        },
+        {"sql_expression": "UPPER(Region)", "label": "RegionUpper"},
+    ],
+)
+def test_bullet_update_rejects_caller_sql_dimension_with_metric_sort(
+    dimension_field: str,
+    dimension: dict[str, str],
+) -> None:
+    """Providing a sort does not make a caller-authored SQL dimension acceptable."""
+    with pytest.raises(ValidationError):
+        UpdateChartRequest(
+            identifier=9,
+            config={
+                "chart_type": "bullet",
+                "metric": {"name": "SavedRevenue", "saved_metric": True},
+                dimension_field: [dimension],
+                "order_by": [{"column": "SavedRevenue"}],
+            },
+        )
 
 
 @pytest.mark.asyncio

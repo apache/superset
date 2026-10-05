@@ -1783,7 +1783,11 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
     metric and the groupby hierarchy. Presentation controls stay in native
     snake_case form_data; the chart plugin camelizes them for transformProps.
     """
-    if config.dimensions is None and config.order_by:
+    if (
+        config.dimensions is None
+        and config._inherited_groupby is None
+        and config.order_by
+    ):
         # An update resolves its saved hierarchy before mapping. Without one,
         # creation must validate sort targets against an empty hierarchy.
         BulletChartConfig.model_validate(
@@ -1806,7 +1810,7 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
         form_data["time_range"] = config.time_range
 
     if config.order_by:
-        dimensions = config.dimensions or []
+        dimensions = config.order_dimensions
         orderby: list[list[Any]] = []
         for order in config.order_by:
             role, index = resolve_bullet_order_target(
@@ -1817,7 +1821,10 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
             else:
                 if index is None:  # Defensive: resolver pairs dimensions with indexes.
                     raise ValueError("Bullet dimension order target has no index")
-                order_target = dimensions[index].name
+                dimension = dimensions[index]
+                order_target = (
+                    dimension.name if isinstance(dimension, ColumnRef) else dimension
+                )
             orderby.append([order_target, order.ascending])
         form_data["orderby"] = orderby
     elif "order_by" in config.model_fields_set:

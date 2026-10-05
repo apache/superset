@@ -25,7 +25,7 @@ import difflib
 import logging
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
@@ -39,6 +39,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    PrivateAttr,
     StrictBool,
     ValidationError,
     WithJsonSchema,
@@ -2584,7 +2585,7 @@ def _bullet_metric_output_label(metric: ColumnRef) -> str:
 
 def resolve_bullet_order_target(
     target: str,
-    dimensions: List[ColumnRef],
+    dimensions: Sequence[ColumnRef | str | dict[str, Any]],
     metric: ColumnRef,
 ) -> tuple[str, int | None]:
     """Resolve a Bullet sort target to one actual query output role.
@@ -2593,9 +2594,20 @@ def resolve_bullet_order_target(
     Friendly dimension labels and a metric's source name are accepted only as
     secondary input aliases. This makes an exact physical name win when, for
     example, another dimension uses that name as its display label.
+    Inherited native dimensions use their query output labels instead.
     """
 
-    physical = [dimension.name or "" for dimension in dimensions]
+    from superset.mcp_service.chart.chart_helpers import _column_label
+
+    physical = [
+        (
+            dimension.name
+            if isinstance(dimension, ColumnRef)
+            else _column_label(dimension)
+        )
+        or ""
+        for dimension in dimensions
+    ]
     metric_output = _bullet_metric_output_label(metric)
 
     # Exact actual output fields are always preferred, with physical columns
@@ -2621,7 +2633,7 @@ def resolve_bullet_order_target(
     aliases: list[tuple[str, int | None, str]] = [
         ("dimension", index, dimension.label)
         for index, dimension in enumerate(dimensions)
-        if dimension.label
+        if isinstance(dimension, ColumnRef) and dimension.label
     ]
     for alias in (metric.name, metric.label):
         if alias and alias != metric_output:
@@ -2827,6 +2839,17 @@ class BulletChartConfig(BaseChartConfig):
     # native adapter accept saved Explore ``form_data`` without weakening the
     # unknown-field checks that catch misspelled controls.
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    # Saved query roles are internal sort context, never typed authoring input.
+    # Keeping them out of dimensions preserves omission and native SQL shapes.
+    _inherited_groupby: list[str | dict[str, Any]] | None = PrivateAttr(default=None)
+
+    @property
+    def order_dimensions(self) -> Sequence[ColumnRef | str | dict[str, Any]]:
+        """Return authored dimensions or the inherited native sort hierarchy."""
+        if self.dimensions is None and self._inherited_groupby is not None:
+            return self._inherited_groupby
+        return self.dimensions or []
 
     chart_type: Literal["bullet"] = "bullet"
     metric: ColumnRef = Field(
@@ -3259,7 +3282,7 @@ class BulletChartConfig(BaseChartConfig):
                 "dimension (its physical output name); provide a unique metric label"
             )
 
-        if self.dimensions is None:
+        if self.dimensions is None and self._inherited_groupby is None:
             # Partial updates resolve the saved hierarchy before mapping.
             # Creation validates with an empty hierarchy in map_bullet_config.
             return self
@@ -3267,7 +3290,9 @@ class BulletChartConfig(BaseChartConfig):
         for item in self.order_by:
             try:
                 resolved_order.append(
-                    resolve_bullet_order_target(item.column, dimensions, self.metric)
+                    resolve_bullet_order_target(
+                        item.column, self.order_dimensions, self.metric
+                    )
                 )
             except ValueError as ex:
                 raise ValueError(

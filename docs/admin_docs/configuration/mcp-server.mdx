@@ -1357,6 +1357,10 @@ cached-preview updates retain an omitted hierarchy only if its columns resolve
 in the replacement dataset; incompatible inherited roles and temporal-filter
 provenance are discarded.
 
+Inherited native SQL dimensions remain query expressions when updating metrics
+or `order_by`; reference their output labels to sort by them. Caller-supplied
+`dimensions` must still be physical columns, not SQL expressions.
+
 Dimension and metric output names are case-sensitive: quoted physical columns
 such as `Region` and `region` remain distinct. Reference lookup prefers exact
 names and uses case-insensitive matching only when there is a single candidate;
