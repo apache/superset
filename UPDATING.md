@@ -66,6 +66,18 @@ affects `get_chart_data`, `get_dashboard_data`, `query_dataset`, `get_table`, an
 `execute_sql`. Clients requiring numeric arithmetic should parse these strings
 with a decimal-aware type. Non-finite Decimal values remain JSON `null`.
 
+### SQLite time filters on `DATE` columns
+
+On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`
+column writes its bounds as a date, such as `'2026-09-20'`, and no longer uses
+the column's **Datetime format** (`python_date_format`) or the database's
+`python_date_format_by_column_name`. This fixes ranges that started and ended
+one day late on `DATE` columns holding `YYYY-MM-DD` text. A `DATE` column that
+holds values in another format, such as `20260920`, `09/20/2026` or epoch
+seconds, now matches no rows, even with a Datetime format set. Columns declared
+as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
+with a time of day is cut to its date.
+
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
 `DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.
