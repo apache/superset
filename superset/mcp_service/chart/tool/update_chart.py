@@ -645,9 +645,16 @@ def _validate_update_against_dataset(
     contract before the same query is compiled against the target dataset.
     """
     from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
 
     if dataset_id is not None:
         dataset = DatasetDAO.find_by_id(dataset_id)
+        # A rebind names a caller-supplied dataset, so enforce the data-level
+        # check the sibling tools run. Without it a column error could carry
+        # the target's table, schema, database and column names on a security
+        # manager whose datasource filter is broader than its access check.
+        if dataset is not None and not has_dataset_access(dataset):
+            dataset = None
     else:
         dataset = getattr(chart, "datasource", None)
         if dataset is None and getattr(chart, "datasource_id", None) is not None:

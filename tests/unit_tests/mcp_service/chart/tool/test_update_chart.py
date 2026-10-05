@@ -2870,6 +2870,7 @@ class TestUpdateChartDatasetIdIntegration:
             return CompileResult(success=True)
 
         with (
+            patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
             patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
             patch.object(
                 update_chart_module, "validate_and_compile", side_effect=validate
@@ -2940,6 +2941,7 @@ class TestUpdateChartDatasetIdIntegration:
             return CompileResult(success=True)
 
         with (
+            patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
             patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
             patch(
                 "superset.mcp_service.auth.check_chart_data_access",
@@ -3317,3 +3319,62 @@ def test_plugin_value_error_returns_validation_response() -> None:
     assert response.error is not None
     assert response.error.error_type == "ValidationError"
     assert response.error.details == "Invalid role"
+
+
+@pytest.mark.parametrize(
+    ("access", "accessible"),
+    [
+        pytest.param({"return_value": True}, True, id="granted"),
+        pytest.param({"return_value": False}, False, id="denied"),
+        pytest.param({"side_effect": RuntimeError("boom")}, False, id="raises"),
+    ],
+)
+def test_rebind_target_dataset_requires_data_level_access(
+    access: dict[str, Any], accessible: bool
+) -> None:
+    """A rebind enforces the same access check as the sibling chart tools.
+
+    Patching ``find_by_id`` to return the dataset regardless of the acting user
+    simulates a dataset the DAO's ``DatasourceFilter`` admits while the security
+    manager's access check denies it. Without the tool-level check a column
+    error would carry the target's table, schema, database and column names.
+    """
+    dataset = Mock(
+        id=77,
+        table_name="rebind_target",
+        schema=None,
+        database=Mock(database_name="fixture", db_engine_spec=None),
+        columns=[Mock(column_name="region", type="VARCHAR", is_temporal=False)],
+        metrics=[],
+    )
+    chart = Mock(datasource=Mock(id=1), datasource_id=1)
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.mcp_service.auth.g", Mock(user=Mock(id=1))),
+        patch(
+            "superset.mcp_service.auth.security_manager.can_access_datasource",
+            **access,
+        ) as checked,
+        patch.object(update_chart_module, "plugin_for_viz_type", return_value=None),
+        patch(
+            "superset.mcp_service.chart.compile.DatasetValidator"
+            ".validate_against_dataset",
+            return_value=(True, None),
+        ),
+    ):
+        response = update_chart_module._validate_update_against_dataset(
+            TableChartConfig(columns=[ColumnRef(name="region")]),
+            {"viz_type": "table"},
+            chart,
+            dataset_id=77,
+            run_compile_check=False,
+        )
+
+    checked.assert_called_with(datasource=dataset)
+    if accessible:
+        assert response is None
+    else:
+        assert response is not None
+        assert response.error is not None
+        assert response.error.error_type == "DatasetNotAccessible"
+        assert "rebind_target" not in response.model_dump_json()

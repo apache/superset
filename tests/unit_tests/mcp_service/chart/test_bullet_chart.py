@@ -4182,6 +4182,7 @@ async def _run_saved_bullet_update(
     ctx.warning = AsyncMock()
     ctx.error = AsyncMock()
     with (
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
         patch(
             "superset.mcp_service.auth.get_user_from_request",
             return_value=_tool_user(),
