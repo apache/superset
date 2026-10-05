@@ -135,6 +135,7 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   createDedupXAxisFormatter,
+  createPaddedExtentFloorFormatter,
   createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
@@ -1485,19 +1486,33 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
+  const [xDomainMin, xDomainMax] = getXAxisDomain(
+    [rebasedData as Record<string, unknown>[]],
+    xAxisLabel,
+  );
+  // ECharts pads a time axis beyond the data extent, and a tick on that
+  // padding can carry sub-second noise that drops smart_date to its
+  // millisecond tier ('.943ms', #44698). Floor only ticks outside the data
+  // domain — the padding — so genuine sub-second data keeps its precision.
+  const paddedExtentFormatter =
+    xAxisType === AxisType.Time
+      ? createPaddedExtentFloorFormatter(
+          xAxisFormatter,
+          xDomainMin,
+          xDomainMax,
+        )
+      : xAxisFormatter;
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
-      ? createDedupXAxisFormatter(xAxisFormatter)
+      ? createDedupXAxisFormatter(paddedExtentFormatter)
       : createSpacedXAxisFormatter(
-          xAxisFormatter,
-          ...getXAxisDomain(
-            [rebasedData as Record<string, unknown>[]],
-            xAxisLabel,
-          ),
+          paddedExtentFormatter,
+          xDomainMin,
+          xDomainMax,
           Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
           showAllLabels,
         )
-    : xAxisFormatter;
+    : paddedExtentFormatter;
 
   const temporalTickValues = resolveTemporalTickValues(
     rebasedData,

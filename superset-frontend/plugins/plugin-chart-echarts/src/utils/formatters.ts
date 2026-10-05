@@ -41,11 +41,11 @@ export const getSmartDateDetailedFormatter = () =>
 export const getSmartDateFormatter = (timeGrain?: string) => {
   const baseFormatter = getTimeFormatter(SMART_DATE_ID);
 
-  // The wrapper below normalizes the date based on time grain; without a
-  // grain no branch matches, so it falls through after zeroing milliseconds
-  // (the raw formatter's finest tier is '.%Lms' — a tick carrying sub-second
-  // noise, e.g. the padded axis-extent boundary label, would render as
-  // '.943ms'; #44698). Both paths therefore share this wrapper.
+  // If no time grain provided, use the standard smart date formatter
+  if (!timeGrain) {
+    return baseFormatter;
+  }
+
   // Create a wrapper that normalizes dates based on time grain
   return new TimeFormatter({
     id: SMART_DATE_ID,
@@ -405,4 +405,35 @@ export function getXAxisDomain(
     });
   });
   return [domainMin, domainMax];
+}
+
+/**
+ * Wraps a temporal x-axis formatter so ticks that fall outside the data
+ * domain — the sub-second noise ECharts adds when it pads a time axis
+ * beyond the data extent — are floored to the second before formatting,
+ * instead of triggering smart_date's millisecond tier ('.943ms', #44698).
+ * Ticks inside the data domain are passed through untouched: a genuine
+ * sub-second timestamp is real data and keeps its precision.
+ */
+export function createPaddedExtentFloorFormatter(
+  formatter: XAxisFormatterFn | undefined,
+  domainMin: number | undefined,
+  domainMax: number | undefined,
+): (value: number | string) => string {
+  const wrapper = (value: number | string) => {
+    if (
+      typeof value === 'number' &&
+      formatter &&
+      (value < (domainMin ?? -Infinity) || value > (domainMax ?? Infinity))
+    ) {
+      return formatter(Math.floor(value / 1000) * 1000);
+    }
+    return typeof formatter === 'function'
+      ? (formatter as Function)(value)
+      : String(value);
+  };
+  if (typeof formatter === 'function' && 'id' in formatter) {
+    (wrapper as { id?: unknown }).id = (formatter as { id?: unknown }).id;
+  }
+  return wrapper;
 }
