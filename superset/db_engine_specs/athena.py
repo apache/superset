@@ -60,11 +60,14 @@ class AthenaParametersSchema(Schema):
         metadata={"description": __("AWS region, e.g. us-east-1")},
     )
     s3_staging_dir = fields.Str(
-        required=True,
+        required=False,
+        allow_none=True,
         metadata={
             "description": __(
                 "S3 location where Athena query results are stored, "
-                "e.g. s3://my-bucket/staging/"
+                "e.g. s3://my-bucket/athena-results/. Can be left empty when "
+                "the work group defines a query result location or uses "
+                "managed query results."
             )
         },
     )
@@ -84,7 +87,7 @@ class AthenaParametersType(TypedDict, total=False):
     aws_access_key_id: Optional[str]
     aws_secret_access_key: Optional[str]
     region_name: str
-    s3_staging_dir: str
+    s3_staging_dir: Optional[str]
     schema_name: Optional[str]
     work_group: Optional[str]
 
@@ -163,7 +166,10 @@ class AthenaEngineSpec(BaseEngineSpec):
         ],
         "notes": (
             "URL-encode special characters in s3_staging_dir "
-            "(e.g., s3:// becomes s3%3A//)."
+            "(e.g., s3:// becomes s3%3A//). Either s3_staging_dir or "
+            "work_group is required; s3_staging_dir can be omitted when the "
+            "work group defines a query result location or uses managed "
+            "query results."
         ),
     }
 
@@ -267,7 +273,12 @@ class AthenaEngineSpec(BaseEngineSpec):
             dict[str, Any]
         ] = None,
     ) -> str:
-        query: dict[str, str] = {"s3_staging_dir": parameters["s3_staging_dir"]}
+        # PyAthena needs an S3 result location or a work group (which may define
+        # its own result location or use managed query results); empty values
+        # are left out of the URI.
+        query: dict[str, str] = {}
+        if s3_staging_dir := parameters.get("s3_staging_dir"):
+            query["s3_staging_dir"] = s3_staging_dir
         if work_group := parameters.get("work_group"):
             query["work_group"] = work_group
 
@@ -305,9 +316,10 @@ class AthenaEngineSpec(BaseEngineSpec):
             "aws_access_key_id": url.username,
             "aws_secret_access_key": url.password,
             "region_name": region_name,
-            "s3_staging_dir": query.get("s3_staging_dir", ""),
             "schema_name": url.database,
         }
+        if "s3_staging_dir" in query:
+            parameters["s3_staging_dir"] = query["s3_staging_dir"]
         if "work_group" in query:
             parameters["work_group"] = query["work_group"]
         return parameters
@@ -318,11 +330,20 @@ class AthenaEngineSpec(BaseEngineSpec):
         properties: BasicPropertiesType,
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
-        required = {"region_name", "s3_staging_dir"}
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
 
-        if missing := sorted(required - present):
+        missing: list[str] = []
+        if "region_name" not in present:
+            missing.append("region_name")
+        # Athena needs somewhere to write query results: either an explicit S3
+        # location or a work group (which may define its own result location
+        # or use managed query results). Both fields are flagged when neither
+        # is set.
+        if not present & {"s3_staging_dir", "work_group"}:
+            missing.extend(["s3_staging_dir", "work_group"])
+
+        if missing:
             errors.append(
                 SupersetError(
                     message=(

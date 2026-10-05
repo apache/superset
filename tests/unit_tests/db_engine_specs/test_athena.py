@@ -17,7 +17,7 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 from sqlalchemy.engine.url import make_url
@@ -278,6 +278,59 @@ def test_parameters_round_trip() -> None:
     assert AthenaEngineSpec.get_parameters_from_uri(uri) == parameters
 
 
+@pytest.mark.parametrize(
+    "s3_staging_dir",
+    ["", None, "absent"],
+)
+def test_build_sqlalchemy_uri_work_group_only(s3_staging_dir: str | None) -> None:
+    """
+    An empty or missing S3 location is left out of the URI.
+    """
+    from superset.db_engine_specs.athena import (
+        AthenaEngineSpec,
+        AthenaParametersType,
+    )
+
+    parameters: AthenaParametersType = {
+        "region_name": "us-east-1",
+        "work_group": "wg",
+    }
+    if s3_staging_dir != "absent":
+        parameters["s3_staging_dir"] = s3_staging_dir
+
+    uri = AthenaEngineSpec.build_sqlalchemy_uri(parameters)
+    assert uri == "awsathena+rest://athena.us-east-1.amazonaws.com?work_group=wg"
+
+
+def test_parameters_round_trip_work_group_only() -> None:
+    """
+    A work-group-only connection round-trips without an S3 location.
+    """
+    from superset.db_engine_specs.athena import (
+        AthenaEngineSpec,
+        AthenaParametersType,
+    )
+
+    uri = "awsathena+rest://athena.us-east-1.amazonaws.com/default?work_group=wg"
+    parameters = AthenaEngineSpec.get_parameters_from_uri(uri)
+    expected: AthenaParametersType = {
+        "aws_access_key_id": None,
+        "aws_secret_access_key": None,
+        "region_name": "us-east-1",
+        "schema_name": "default",
+        "work_group": "wg",
+    }
+    assert parameters == expected
+    assert "s3_staging_dir" not in parameters
+    assert AthenaEngineSpec.build_sqlalchemy_uri(parameters) == uri
+    assert (
+        AthenaEngineSpec.validate_parameters(
+            {"parameters": parameters}  # type: ignore
+        )
+        == []
+    )
+
+
 def test_get_parameters_from_uri_non_standard_host() -> None:
     """
     A host that doesn't match the ``athena.<region>.amazonaws.com`` shape is
@@ -308,24 +361,98 @@ def test_parameters_json_schema() -> None:
         "schema_name",
         "work_group",
     }
-    assert sorted(schema["required"]) == ["region_name", "s3_staging_dir"]
+    assert schema["required"] == ["region_name"]
+
+
+def test_parameters_schema_load_without_s3_staging_dir() -> None:
+    """
+    The S3 location is optional, so a work-group-only payload loads cleanly.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    assert AthenaEngineSpec.parameters_schema is not None
+    loaded = AthenaEngineSpec.parameters_schema.load(
+        {"region_name": "us-east-1", "work_group": "primary"}
+    )
+    assert loaded == {"region_name": "us-east-1", "work_group": "primary"}
 
 
 def test_validate_parameters_missing_required() -> None:
     """
-    Test that ``validate_parameters`` flags missing required parameters.
+    Test that ``validate_parameters`` flags a missing region.
     """
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     errors = AthenaEngineSpec.validate_parameters(
-        {"parameters": {"region_name": "us-east-1"}}  # type: ignore
+        {"parameters": {"work_group": "primary"}}  # type: ignore
     )
     assert len(errors) == 1
     assert errors[0].error_type == (
         SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
     )
     assert errors[0].extra is not None
-    assert errors[0].extra["missing"] == ["s3_staging_dir"]
+    assert errors[0].extra["missing"] == ["region_name"]
+
+
+@pytest.mark.parametrize(
+    "parameters",
+    [
+        {"region_name": "us-east-1"},
+        {"region_name": "us-east-1", "s3_staging_dir": "", "work_group": ""},
+        {"region_name": "us-east-1", "s3_staging_dir": None, "work_group": None},
+    ],
+)
+def test_validate_parameters_missing_s3_and_work_group(
+    parameters: dict[str, Any],
+) -> None:
+    """
+    Without an S3 location or a work group, both fields are flagged.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    errors = AthenaEngineSpec.validate_parameters(
+        {"parameters": parameters}  # type: ignore
+    )
+    assert len(errors) == 1
+    assert errors[0].error_type == (
+        SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    )
+    assert errors[0].extra is not None
+    assert errors[0].extra["missing"] == ["s3_staging_dir", "work_group"]
+
+
+def test_validate_parameters_missing_everything() -> None:
+    """
+    An empty payload flags the region plus both result-location fields.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    errors = AthenaEngineSpec.validate_parameters({"parameters": {}})
+    assert len(errors) == 1
+    assert errors[0].extra is not None
+    assert errors[0].extra["missing"] == [
+        "region_name",
+        "s3_staging_dir",
+        "work_group",
+    ]
+
+
+def test_validate_parameters_work_group_only() -> None:
+    """
+    A work group alone is enough; it can supply the result location.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    errors = AthenaEngineSpec.validate_parameters(
+        {
+            "parameters": {  # type: ignore
+                "region_name": "us-east-1",
+                "s3_staging_dir": "",
+                "work_group": "primary",
+            }
+        }
+    )
+    assert errors == []
 
 
 def test_validate_parameters_valid() -> None:

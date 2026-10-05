@@ -53,8 +53,9 @@ const FIELD_TEXT_MAP = {
     className: 'form-group-w-50',
   },
   s3_staging_dir: {
-    label: t('S3 Staging Directory'),
-    placeholder: t('e.g. s3://my-bucket/staging/'),
+    label: t('S3 query results location'),
+    placeholder: t('e.g. s3://my-bucket/athena-results/'),
+    helpText: t('Optional if your workgroup sets a result location.'),
   },
   schema_name: {
     label: t('Schema'),
