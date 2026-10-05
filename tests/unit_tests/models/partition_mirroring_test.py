@@ -38,6 +38,7 @@ from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.models.core import Database
+from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
@@ -1155,7 +1156,7 @@ def test_extra_cache_keys_include_the_mapping(app: Flask) -> None:
     assert any("dt_epoch" in str(key) for key in keys)
 
 
-def _cache_key_query_obj() -> dict[str, Any]:
+def _cache_key_query_obj() -> QueryObjectDict:
     """A query object `get_extra_cache_keys` will actually build SQL from."""
     return {
         "columns": ["country"],
@@ -1194,12 +1195,21 @@ def test_suppressing_the_mirror_does_not_change_the_cache_key(app: Flask) -> Non
     """
     table = _table()
     table.sql = "SELECT * FROM t WHERE user = '{{ current_username() }}'"
-    query_obj = _cache_key_query_obj()
+    # Spelled out rather than splatting `_cache_key_query_obj()`: that is a
+    # `QueryObjectDict`, which carries keys `get_sqla_query` does not accept.
+    bounds: dict[str, Any] = {
+        "columns": ["country"],
+        "metrics": [],
+        "granularity": "event_time",
+        "is_timeseries": False,
+        "from_dttm": datetime(2026, 1, 1),
+        "to_dttm": datetime(2026, 2, 1),
+    }
 
     with app.app_context():
         with patch(PROBE, return_value=[1, 2]):
-            mirrored = table.get_sqla_query(**query_obj, mirror_partition_filters=True)
-            plain = table.get_sqla_query(**query_obj, mirror_partition_filters=False)
+            mirrored = table.get_sqla_query(**bounds, mirror_partition_filters=True)
+            plain = table.get_sqla_query(**bounds, mirror_partition_filters=False)
 
     assert mirrored.extra_cache_keys == plain.extra_cache_keys
     # And the suppression really did change the SQL, so the comparison above is
