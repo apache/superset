@@ -598,7 +598,7 @@ async def _update_existing(
     mcp_server: object, existing: dict[str, Any], changes: dict[str, Any]
 ) -> dict[str, Any]:
     """Run one update against ``existing`` and return the saved filter config."""
-    captured: dict = {"current_config": [existing]}
+    captured: dict[str, Any] = {"current_config": [existing]}
     dashboard = _mock_dashboard(filters=[existing])
     with (
         patch(DAO_FIND_BY_ID, return_value=dashboard),
