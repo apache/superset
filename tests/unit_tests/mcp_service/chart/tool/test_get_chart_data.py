@@ -6289,3 +6289,187 @@ async def test_saved_bullet_native_formatter_does_not_block_data_or_export(
     else:
         workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
         assert list(workbook.active.values) == [("Revenue", "Region"), (1024, "EU")]
+
+
+def _paginated_table_params() -> dict[str, Any]:
+    """A server-paginated Table whose UI page (25) is smaller than its limit."""
+    return {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "server_pagination": True,
+        "server_page_length": 25,
+        "row_limit": 1000,
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("export_format", ["csv", "excel"])
+@pytest.mark.parametrize("path", ["saved_fallback", "saved_cached", "unsaved_cached"])
+async def test_server_paginated_table_export_queries_full_limit(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    export_format: str,
+) -> None:
+    """Downloads use the real query builder's full limit, not the 25-row UI page."""
+    import base64
+    from io import BytesIO
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    params = _paginated_table_params()
+    chart = SimpleNamespace(
+        id=31,
+        slice_name="Paginated table",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context=None,
+        params=json.dumps(params),
+    )
+    captured: list[dict[str, Any]] = []
+
+    class QueryContextFactory:
+        def create(self, **kwargs: Any) -> object:
+            captured.append(kwargs)
+            return _query_context_stub(kwargs.get("form_data"))
+
+    class LimitHonoringCommand:
+        """Return as many rows as the main query's LIMIT, like a warehouse."""
+
+        def __init__(self, _query_context: object) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            limit = captured[-1]["queries"][0]["row_limit"]
+            rows = [{"region": f"r{index}", "count": index} for index in range(limit)]
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["region", "count"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.QueryContextFactory",
+        QueryContextFactory,
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand",
+        LimitHonoringCommand,
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+    monkeypatch.setattr(
+        module,
+        "validate_chart_dataset",
+        lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+    )
+    monkeypatch.setattr(module, "get_cached_form_data", lambda _key: json.dumps(params))
+
+    request: dict[str, Any] = {"format": export_format, "limit": 1000}
+    if path != "unsaved_cached":
+        request["identifier"] = 31
+    if path != "saved_fallback":
+        request["form_data_key"] = "paginated-table"
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_chart_data", {"request": request})
+
+    payload = json.loads(result.content[0].text)
+    assert payload.get("format") == export_format, payload
+    main_query = captured[-1]["queries"][0]
+    assert main_query["row_limit"] == 1000
+    if export_format == "csv":
+        exported_rows = payload["csv_data"].strip().splitlines()[1:]
+    else:
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(BytesIO(base64.b64decode(payload["excel_data"])))
+        exported_rows = list(workbook.active.values)[1:]
+    assert len(exported_rows) == 1000
+    assert len(exported_rows) > 25
+
+
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+def test_excel_export_keeps_temporal_cells_as_dates(engine: str) -> None:
+    """XLSX keeps naive temporal cells as dates; JSON rows keep ISO text."""
+    import base64
+    from contextlib import ExitStack
+    from datetime import date
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    def result() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "day": date(2024, 3, 1),
+                            "at": pd.Timestamp("2024-03-01 12:30:00.123456789"),
+                            "py_at": datetime(2024, 3, 2, 8, 0),
+                            "np_at": np.datetime64("2024-03-03T00:00:00"),
+                            "aware": datetime(2024, 3, 4, tzinfo=timezone.utc),
+                            "took": pd.Timedelta(minutes=90),
+                            "label": "2024-03-05",
+                        }
+                    ],
+                    "colnames": ["day", "at", "py_at", "np_at", "aware", "took"],
+                    "rowcount": 1,
+                }
+            ]
+        }
+
+    json_data, failure = query_result_data(result())
+    assert failure is None
+    assert json_data is not None
+    assert json_data[0][0]["day"] == "2024-03-01"
+    assert json_data[0][0]["at"] == "2024-03-01T12:30:00.123456789"
+
+    excel_data, failure = query_result_data(result(), preserve_excel_temporals=True)
+    assert failure is None
+    assert excel_data is not None
+    row = excel_data[0][0]
+    assert type(row["day"]) is date
+    assert row["at"] == datetime(2024, 3, 1, 12, 30, 0, 123456)
+    assert type(row["at"]) is datetime
+    assert row["py_at"] == datetime(2024, 3, 2, 8, 0)
+    assert row["np_at"] == datetime(2024, 3, 3)
+    assert row["took"] == timedelta(minutes=90)
+    # XLSX has no timezone-aware cells; aware values keep their ISO text.
+    assert row["aware"] == "2024-03-04T00:00:00+00:00"
+    assert row["label"] == "2024-03-05"
+
+    columns = ["day", "at", "py_at", "label"]
+    chart = cast(Any, SimpleNamespace(id=7, slice_name="Dates", viz_type="table"))
+    performance = PerformanceMetadata(query_duration_ms=1, cache_status="fresh")
+    with ExitStack() as stack:
+        if engine == "xlsxwriter":
+            stack.enter_context(
+                patch(
+                    "superset.mcp_service.chart.tool.get_chart_data."
+                    "_create_excel_with_openpyxl",
+                    side_effect=ImportError,
+                )
+            )
+        exported = _export_data_as_excel(chart, [row], columns, None, performance)
+    assert isinstance(exported, ChartData)
+    assert exported.excel_data is not None
+    cells = list(
+        load_workbook(BytesIO(base64.b64decode(exported.excel_data))).active.values
+    )[1]
+    assert cells[0] == datetime(2024, 3, 1)
+    assert cells[1] == datetime(2024, 3, 1, 12, 30, 0, 123000)
+    assert cells[2] == datetime(2024, 3, 2, 8, 0)
+    assert cells[3] == "2024-03-05"

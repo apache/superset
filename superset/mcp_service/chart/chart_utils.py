@@ -1879,6 +1879,9 @@ def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, A
     from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
 
     normalized = dict(form_data)
+    if "groupby" in normalized and not isinstance(normalized["groupby"], list):
+        # Bullet/buildQuery and transformProps read ensureIsArray(groupby).
+        normalized["groupby"] = bullet_groupby_list(normalized["groupby"])
     legacy_filters = [
         form_data_to_adhoc(normalized, clause)
         for clause in ("having", "where")
@@ -1941,6 +1944,10 @@ def merge_bullet_form_data(
         "show_labels",
         "show_legend",
         "url_params",
+        # Native query context (dashboard/native filter predicates and time
+        # overrides) that buildQueryObject applies on top of the controls.
+        "extra_form_data",
+        "extra_filters",
         MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     }
 
@@ -1975,29 +1982,53 @@ def merge_bullet_form_data(
         )
 
 
+def _bullet_output_labels(
+    form_data: Mapping[str, Any],
+) -> tuple[set[str], dict[str, Any]]:
+    """Return a Bullet state's dimension output labels and metric outputs."""
+    from superset.mcp_service.chart.chart_helpers import _column_label, _metric_label
+
+    dimensions = {
+        label
+        for column in bullet_groupby_list(form_data.get("groupby"))
+        if (label := _column_label(column)) is not None
+    }
+    metrics = form_data.get("metrics") or []
+    if not isinstance(metrics, (list, tuple)):
+        metrics = [metrics]
+    metric_outputs = {
+        label: metric
+        for metric in [form_data.get("metric"), *metrics]
+        if (label := _metric_label(metric)) is not None
+    }
+    return dimensions, metric_outputs
+
+
+def bullet_groupby_list(groupby: Any) -> list[Any]:
+    """Normalize a saved Bullet hierarchy like the frontend ``ensureIsArray``."""
+    if groupby is None:
+        return []
+    return list(groupby) if isinstance(groupby, (list, tuple)) else [groupby]
+
+
 def _orderby_for_final_output_roles(
     existing_form_data: Mapping[str, Any], new_form_data: Mapping[str, Any]
 ) -> Any:
-    """Retain final output sorts and rebind inherited metric expressions."""
+    """Drop sorts on removed output roles and rebind inherited metric expressions.
+
+    Native ordering may also rank by a saved metric or column that is not a
+    displayed output (``get_sqla_query`` resolves it independently). Those
+    sorters never named a Bullet role, so a role change does not remove them.
+    """
     from superset.mcp_service.chart.chart_helpers import _column_label, _metric_label
 
     saved = existing_form_data.get("orderby")
     if not isinstance(saved, list):
         return saved
-    outputs = {
-        label
-        for column in new_form_data.get("groupby") or []
-        if (label := _column_label(column)) is not None
-    }
-    metrics = new_form_data.get("metrics") or []
-    if not isinstance(metrics, (list, tuple)):
-        metrics = [metrics]
-    metric_outputs = {
-        label: metric
-        for metric in [new_form_data.get("metric"), *metrics]
-        if (label := _metric_label(metric)) is not None
-    }
+    outputs, metric_outputs = _bullet_output_labels(new_form_data)
     outputs.update(metric_outputs)
+    previous_dimensions, previous_metrics = _bullet_output_labels(existing_form_data)
+    previous_outputs = previous_dimensions | set(previous_metrics)
     retained = []
     for entry in saved:
         if isinstance(entry, (list, tuple)) and entry:
@@ -2009,7 +2040,11 @@ def _orderby_for_final_output_roles(
                 if isinstance(target, Mapping)
                 else target
             )
-            if isinstance(label, str) and label not in outputs:
+            if (
+                isinstance(label, str)
+                and label not in outputs
+                and label in previous_outputs
+            ):
                 continue
             if (
                 isinstance(target, Mapping)
@@ -2537,7 +2572,8 @@ def validate_merged_bullet_form_data(
     if form_data.get("viz_type") != "bullet":
         return None
     validation_data = dict(form_data)
-    validation_data.pop("url_params", None)
+    for native_query_key in ("url_params", "extra_form_data", "extra_filters"):
+        validation_data.pop(native_query_key, None)
     if update_config is None or isinstance(update_config, BulletChartConfig):
         if update_config is None or update_config.dimensions is None:
             validation_data.pop("groupby", None)

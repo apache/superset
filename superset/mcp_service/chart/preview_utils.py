@@ -439,7 +439,8 @@ def _form_column_label(column: Any) -> str | None:
         return column
     if type(column) is not dict:
         return None
-    for key in ("label", "column_name"):
+    # getColumnLabel: an adhoc column without a label is keyed by its SQL.
+    for key in ("label", "sqlExpression", "column_name"):
         if type(value := dict.get(column, key)) is str and value:
             return value
     return None
@@ -858,8 +859,12 @@ def resolve_bullet_render_model(  # noqa: C901
     if not metric_label:
         raise BulletOutputError("Bullet metric has no declared result alias")
     raw_groupby = dict.get(form_data, "groupby")
+    # Bullet/transformProps.ts reads ensureIsArray(groupby): a saved scalar
+    # column (or adhoc column object) is a one-level hierarchy.
     if raw_groupby is None:
         raw_groupby = []
+    elif type(raw_groupby) is str or type(raw_groupby) is dict:
+        raw_groupby = [raw_groupby]
     if type(raw_groupby) is not list:
         raise BulletOutputError("Bullet dimensions must be an array")
     dimension_labels = [
@@ -997,24 +1002,21 @@ def _generate_ascii_bullet_chart(
             for index, value in enumerate(values)
         ]
 
-    if model.show_labels or model.show_legend or model.marker_lines:
-        lines.append("Key:")
-        if model.show_labels or model.show_legend:
-            lines.extend(
-                f"  range {item}"
-                for item in labeled(model.ranges, model.range_labels, "Range")
-            )
-            lines.extend(
-                f"  marker {item}"
-                for item in labeled(model.markers, model.marker_labels, "Marker")
-            )
-        # ECharts markLine labels are visible independently of show_labels.
-        lines.extend(
-            f"  line {item}"
-            for item in labeled(
-                model.marker_lines, model.marker_line_labels, "Marker line"
-            )
-        )
+    # The frontend always draws range bands, markers, and marker lines;
+    # show_labels/show_legend only toggle their text. A text preview has no
+    # geometry, so the comparison targets are always listed.
+    lines.append("Key:")
+    lines.extend(
+        f"  range {item}" for item in labeled(model.ranges, model.range_labels, "Range")
+    )
+    lines.extend(
+        f"  marker {item}"
+        for item in labeled(model.markers, model.marker_labels, "Marker")
+    )
+    lines.extend(
+        f"  line {item}"
+        for item in labeled(model.marker_lines, model.marker_line_labels, "Marker line")
+    )
     return "\n".join(lines)
 
 

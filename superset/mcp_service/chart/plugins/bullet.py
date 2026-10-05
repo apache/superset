@@ -25,6 +25,7 @@ from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
+    bullet_groupby_list,
     map_bullet_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
@@ -423,7 +424,7 @@ class BulletChartPlugin(BaseChartPlugin):
         if not config.order_by:
             return config
         dimensions = (
-            existing_form_data.get("groupby") or []
+            bullet_groupby_list(existing_form_data.get("groupby"))
             if not dataset_rebind and existing_form_data.get("viz_type") == "bullet"
             else []
         )

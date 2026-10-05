@@ -860,6 +860,7 @@ async def execute_chart_data(  # noqa: C901
                 preserve_nonfinite_floats=bool(
                     data_plugin and data_plugin.preserve_nonfinite_floats
                 ),
+                preserve_excel_temporals=request.format == "excel",
             )
             if query_failure is not None:
                 return query_failure
@@ -1211,6 +1212,7 @@ async def _query_from_form_data(  # noqa: C901
             preserve_nonfinite_floats=bool(
                 data_plugin and data_plugin.preserve_nonfinite_floats
             ),
+            preserve_excel_temporals=request.format == "excel",
         )
         if query_failure is not None:
             return query_failure
@@ -1494,7 +1496,13 @@ def _create_excel_with_xlsxwriter(
 
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(
-        output, {"in_memory": True, "nan_inf_to_errors": True}
+        output,
+        {
+            "in_memory": True,
+            "nan_inf_to_errors": True,
+            # Without a format, xlsxwriter stores date cells as bare serials.
+            "default_date_format": "yyyy-mm-dd hh:mm:ss",
+        },
     )
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)

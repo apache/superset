@@ -4816,3 +4816,220 @@ def test_bullet_raw_validation_skips_formatter_but_keeps_numeric_checks(
     with pytest.raises(BulletOutputError) as failure:
         resolve_bullet_render_model([{"Revenue": 1024}], form_data)
     assert failure.value.error_type == "UnsupportedFormat"
+
+
+@pytest.mark.parametrize(
+    ("groupby", "field"),
+    [
+        ("Region", "Region"),
+        (["Region"], "Region"),
+        ({"expressionType": "SQL", "sqlExpression": "UPPER(Region)"}, "UPPER(Region)"),
+        (
+            [{"expressionType": "SQL", "sqlExpression": "UPPER(Region)"}],
+            "UPPER(Region)",
+        ),
+    ],
+)
+def test_bullet_saved_groupby_follows_native_ensure_is_array_and_label(
+    groupby: Any, field: str
+) -> None:
+    """Scalar and unlabeled SQL groupings read/export/preview like Explore."""
+    form_data = {"viz_type": "bullet", "metric": "SavedRevenue", "groupby": groupby}
+    rows = [{field: "EU", "SavedRevenue": 75}, {field: "US", "SavedRevenue": 50}]
+
+    model = resolve_bullet_render_model(rows, form_data)
+    assert model.dimensions == [field]
+    exposed, error = BulletChartPlugin().sanitize_data_rows(rows, form_data)
+    assert error is None
+    assert [row[field] for row in exposed] == ["EU", "US"]
+    ascii_preview = _generate_ascii_preview_from_data(rows, form_data)
+    assert "EU" in ascii_preview.ascii_content
+    assert "US" in ascii_preview.ascii_content
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_scalar_groupby_resolves_sort_update() -> None:
+    """A scalar saved hierarchy is one dimension, not one per character."""
+    persisted = await _run_saved_bullet_update(
+        {"viz_type": "bullet", "metric": "SavedRevenue", "groupby": "Region"},
+        {
+            "metric": {"name": "SavedRevenue", "saved_metric": True},
+            "order_by": [{"column": "Region", "ascending": True}],
+        },
+    )
+    assert persisted["groupby"] == ["Region"]
+    assert persisted["orderby"] == [["Region", True]]
+
+
+@pytest.mark.parametrize("path", ["merge", "save"])
+def test_bullet_labels_update_preserves_native_query_context(path: str) -> None:
+    """Presentation-only updates keep inherited dashboard/native predicates."""
+    extra_form_data = {
+        "filters": [{"col": "Region", "op": "IN", "val": ["EU"]}],
+        "time_range": "Last year",
+    }
+    extra_filters = [{"col": "Region", "op": "in", "val": ["EU"]}]
+    existing = {
+        "viz_type": "bullet",
+        "datasource": "7__table",
+        "metric": "SavedRevenue",
+        "groupby": ["Region"],
+        "extra_form_data": extra_form_data,
+        "extra_filters": extra_filters,
+    }
+    config = BulletChartConfig(
+        metric={"name": "SavedRevenue", "saved_metric": True}, show_labels=True
+    )
+    if path == "merge":
+        merged = BulletChartPlugin().merge_update_form_data(
+            existing, map_bullet_config(config), config, dataset_rebind=False
+        )
+        assert merged is not None
+        assert validate_merged_bullet_form_data(merged, config) is not None
+    else:
+        chart = SimpleNamespace(
+            id=9,
+            datasource_id=7,
+            slice_name="Saved Bullet",
+            params=__import__("json").dumps(existing),
+        )
+        request = UpdateChartRequest(
+            identifier=9, config=config, generate_preview=False
+        )
+        merged = _build_preview_form_data(request, chart, config)
+        assert isinstance(merged, dict)
+    assert merged["extra_form_data"] == extra_form_data
+    assert merged["extra_filters"] == extra_filters
+    assert merged["show_labels"] is True
+
+
+@pytest.mark.parametrize("goal", [60, 80])
+def test_bullet_ascii_shows_targets_with_default_label_toggles(goal: int) -> None:
+    """Ranges and markers stay visible when show_labels/show_legend are false."""
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
+            ranges=[100],
+            markers=[goal],
+        )
+    )
+    assert "show_labels" not in form_data
+    assert "show_legend" not in form_data
+    content = _generate_ascii_preview_from_data(
+        [{"Revenue": 75}], form_data
+    ).ascii_content
+    assert "range Range: 100" in content
+    assert f"marker Marker: {goal}" in content
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_labels_update_keeps_sql_dimension_label_sort() -> None:
+    """A sort on a Custom SQL dimension's output alias is not a physical column."""
+    dimension = {
+        "expressionType": "SQL",
+        "sqlExpression": "UPPER(Region)",
+        "label": "RegionUpper",
+    }
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": [dimension],
+            "orderby": [["RegionUpper", True]],
+        },
+        {
+            "metric": {"name": "SavedRevenue", "saved_metric": True},
+            "show_labels": True,
+        },
+    )
+    assert persisted["groupby"] == [dimension]
+    assert persisted["orderby"] == [["RegionUpper", True]]
+
+
+def test_bullet_native_validation_resolves_sort_by_adhoc_column_label() -> None:
+    """Compile validation mirrors get_sqla_query's labelled adhoc-column lookup."""
+    from superset.mcp_service.chart.compile import _native_reference_error
+
+    dimension = {
+        "expressionType": "SQL",
+        "sqlExpression": "UPPER(Region)",
+        "label": "RegionUpper",
+    }
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        database_name="main",
+        available_columns=[{"name": "Region", "type": "VARCHAR"}],
+        available_metrics=[{"name": "SavedRevenue"}],
+    )
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "groupby": [dimension],
+        "orderby": [["RegionUpper", True]],
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        for strict in (False, True):
+            assert (
+                _native_reference_error(
+                    form_data, context, 7, strict_all_form_refs=strict
+                )
+                is None
+            )
+            # An alias that is not a selected column still fails closed.
+            missing = {**form_data, "orderby": [["Missing", True]]}
+            assert (
+                _native_reference_error(
+                    missing, context, 7, strict_all_form_refs=strict
+                )
+                is not None
+            )
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_labels_update_keeps_independent_ranking_metric() -> None:
+    """A saved metric that ranks but is not displayed survives role-preserving
+    updates, so ``row_limit: 1`` still selects the same top category."""
+    sales = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "Revenue"},
+        "aggregate": "SUM",
+        "label": "SUM(Revenue)",
+    }
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": sales,
+            "groupby": ["Region"],
+            "orderby": [["SavedRevenue", False]],
+            "row_limit": 1,
+        },
+        {"metric": _simple_metric("Revenue"), "show_labels": True},
+    )
+    assert persisted["orderby"] == [["SavedRevenue", False]]
+    assert persisted["row_limit"] == 1
+    query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
+    assert query["orderby"] == [["SavedRevenue", False]]
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_labels_update_persists_native_query_context() -> None:
+    """The saved update path persists and compiles the inherited predicates."""
+    extra_form_data = {"filters": [{"col": "Region", "op": "IN", "val": ["EU"]}]}
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "extra_form_data": extra_form_data,
+            "extra_filters": [{"col": "Region", "op": "in", "val": ["EU"]}],
+        },
+        {
+            "metric": {"name": "SavedRevenue", "saved_metric": True},
+            "show_labels": True,
+        },
+    )
+    assert persisted["extra_form_data"] == extra_form_data
+    assert persisted["extra_filters"] == [{"col": "Region", "op": "in", "val": ["EU"]}]

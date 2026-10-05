@@ -696,6 +696,13 @@ def _native_reference_error(  # noqa: C901
             for column in query.get("columns") or []
             if (label := _native_column_label(column)) is not None
         }
+        adhoc_column_labels = {
+            label
+            for column in query.get("columns") or []
+            if isinstance(column, dict)
+            and isinstance(label := column.get("label"), str)
+            and label
+        }
         for level in query.get("grouping_sets") or []:
             for column in level:
                 # Grouping sets reference selected logical outputs, including
@@ -752,6 +759,10 @@ def _native_reference_error(  # noqa: C901
             if target in metrics or (target_label and target_label in metric_labels):
                 continue
             if isinstance(target, str) and target in metric_labels:
+                continue
+            # get_sqla_query resolves a string sort against labelled adhoc
+            # (Custom SQL) query columns before physical columns.
+            if isinstance(target, str) and target in adhoc_column_labels:
                 continue
             # Native ordering can use a metric that is not displayed. Resolve
             # saved names with the same exact/case-folded rules as other metrics,
