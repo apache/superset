@@ -45,7 +45,22 @@ import type {
 
 interface PartitionColumnFieldsProps {
   datasource: PartitionMappingDatasource;
+  /**
+   * Physical columns: what the partition-column dropdown may offer, and where
+   * a replacement mapped column may be suggested from. A calculated column
+   * belongs in neither -- the engine cannot partition on an expression, and
+   * the mapping picker only renders on a physical column's row.
+   */
   columns: PartitionMappingColumn[];
+  /**
+   * Every column on the dataset, physical and calculated. What *exists* is a
+   * different question from what may be picked, and validation asks the first:
+   * the backend accepts a calculated column as the mapped-column override, so
+   * checking existence against the physical columns alone reported a column
+   * that is really there as missing -- and blocked Save with no way out, since
+   * the dropdown cannot offer it back.
+   */
+  allColumns: PartitionMappingColumn[];
   onPartitionColumnChange: (columnName: string | null) => void;
   /** Open the given column's row expand in the Columns table. */
   onNavigateToColumn: (columnName: string) => void;
@@ -63,6 +78,7 @@ interface PartitionColumnFieldsProps {
 export default function PartitionColumnFields({
   datasource,
   columns,
+  allColumns,
   onPartitionColumnChange,
   onNavigateToColumn,
 }: PartitionColumnFieldsProps) {
@@ -85,15 +101,15 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
-  const isActive = mappingIsActive(datasource, columns);
+  const isActive = mappingIsActive(datasource, allColumns);
   const { partition_column: partitionColumn } = datasource;
 
   // `field` is what the issues carry it for: a message about the partition
   // column belongs under the partition column, not only in the Save button's
   // tooltip, where an owner has to guess which of the two selects is at fault.
   const issues = useMemo(
-    () => partitionMappingErrors(datasource, columns),
-    [datasource, columns],
+    () => partitionMappingErrors(datasource, allColumns),
+    [datasource, allColumns],
   );
   const issueFor = (field: PartitionMappingIssue['field']) =>
     issues.find(issue => issue.field === field)?.message;
