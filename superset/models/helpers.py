@@ -460,6 +460,12 @@ def _shift_grainless_temporal_source(
     return source.map(shift)
 
 
+#: Returned by `ExploreMixin._as_probe_input` when the engine cannot render a
+#: filter value as a literal. A sentinel rather than `None`, because `None` is a
+#: filter value in its own right.
+_UNRENDERABLE = object()
+
+
 class LiteralResolution(Enum):
     """
     How much of a `datetime` survives into an engine's SQL literal for a column.
@@ -4661,6 +4667,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         except NotImplementedError:
             return None
 
+    def _as_probe_input(self, value: Any) -> Any:
+        """
+        ``value`` in a form `build_probe_sql` can put into the probe.
+
+        `filter_values_handler` returns engine SQL rather than a value for an
+        epoch-millisecond bound on a temporal column -- what drill-to-detail and
+        cross-filters send -- and SQL cannot be the value of a bind parameter.
+        Carrying it as text lets the probe substitute it instead, exactly as the
+        preview path's own coercion does and as an array literal needs.
+
+        Text rather than the expression itself also matters for caching: the
+        probe cache keys on `repr` of each value, and a `ColumnClause`'s default
+        `repr` carries its memory address, so every request would miss.
+
+        Returns `_UNRENDERABLE` when the engine cannot render the literal, which
+        costs the query its pruning and nothing else -- the same thing the probe
+        itself does on failure.
+        """
+
+        def rendered(entry: Any) -> Any:
+            if isinstance(entry, ColumnElement):
+                return raw_probe_value(self.database, entry)
+            return entry
+
+        try:
+            if isinstance(value, (list, tuple)):
+                return type(value)(rendered(item) for item in value)
+            return rendered(value)
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            logger.warning(
+                "Could not render a filter value for the partition mirror; "
+                "queries will not prune",
+                exc_info=True,
+            )
+            return _UNRENDERABLE
+
     def _collect_partition_mirror_filter(
         self,
         mapping: Optional["PartitionMapping"],
@@ -4679,6 +4721,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return
         if not mapping.mirrors(operator):
             return
+
+        probe_input = self._as_probe_input(value)
+        if probe_input is _UNRENDERABLE:
+            return
+        value = probe_input
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:
