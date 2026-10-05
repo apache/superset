@@ -492,10 +492,12 @@ async def test_list_charts_datasource_id_filter(
         session.execute(
             Slice.__table__.insert(),
             [
-                {"id": 1, "datasource_id": 10},
-                {"id": 2, "datasource_id": 10},
-                {"id": 3, "datasource_id": 20},
-                {"id": 4, "datasource_id": 30},
+                {"id": 1, "datasource_id": 10, "datasource_type": "table"},
+                {"id": 2, "datasource_id": 10, "datasource_type": "table"},
+                {"id": 3, "datasource_id": 20, "datasource_type": "table"},
+                {"id": 4, "datasource_id": 30, "datasource_type": "table"},
+                {"id": 5, "datasource_id": 10, "datasource_type": "semantic_view"},
+                {"id": 6, "datasource_id": 20, "datasource_type": "semantic_view"},
             ],
         )
 
