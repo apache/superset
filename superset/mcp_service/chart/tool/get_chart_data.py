@@ -370,7 +370,9 @@ async def get_chart_data(
     `headline`: the number the chart displays, computed from the full result
     (for big_number, by the chart's aggregation over the whole trend series).
     The data rows alone are not that number, so report `headline.value`; when it
-    is null, `headline.reason` says why and the chart's value is unknown.
+    is null, `headline.reason` says why and the chart's value is unknown. The
+    "Overall value" (raw) aggregation needs the chart's saved query context, so
+    it has no headline for unsaved state or a `form_data_key`.
     """
     return await execute_chart_data(request, ctx)
 

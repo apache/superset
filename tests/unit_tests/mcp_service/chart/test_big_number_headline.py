@@ -358,17 +358,70 @@ def test_no_rolling_window_needs_no_post_processing(rolling_type: Any) -> None:
     assert headline.value == 6
 
 
+@pytest.mark.parametrize(
+    "resample",
+    [
+        {"resample_rule": "1D", "resample_method": "zerofill"},
+        {"resample_rule": "1D", "resample_method": "asfreq"},
+        {"resample_rule": "1W", "resample_method": "ffill"},
+    ],
+)
+@pytest.mark.parametrize("aggregation", ["LAST_VALUE", "sum", "mean", "min", "median"])
+def test_resample_not_in_the_rows_has_no_headline(
+    resample: dict[str, Any], aggregation: str
+) -> None:
+    """Resampling changes the series, so unresampled rows give no headline."""
+    headline = _headline(
+        _trend_rows([70, 70, 70, 70]), aggregation=aggregation, **resample
+    )
+
+    assert headline is not None
+    assert headline.value is None
+    assert "resamples" in (headline.reason or "")
+
+    reflected = _headline(
+        _trend_rows([70, 70, 70, 70]),
+        aggregation=aggregation,
+        operations=("pivot", "resample", "flatten"),
+        **resample,
+    )
+    assert reflected is not None
+    assert reflected.value is not None
+
+
+@pytest.mark.parametrize(
+    "resample",
+    [
+        {"resample_rule": "1D"},
+        {"resample_method": "zerofill"},
+        {"resample_rule": None, "resample_method": "asfreq"},
+        {"resample_rule": "1D", "resample_method": ""},
+    ],
+)
+def test_incomplete_resample_needs_no_post_processing(
+    resample: dict[str, Any],
+) -> None:
+    """Like the frontend, resampling needs both a rule and a method."""
+    headline = _headline(_trend_rows([1, 2, 3]), aggregation="sum", **resample)
+
+    assert headline is not None
+    assert headline.value == 6
+
+
 @pytest.mark.parametrize("timestamp", [None, "invalid", float("nan"), float("inf")])
+@pytest.mark.parametrize("undated_metric", [1, None])
 @pytest.mark.parametrize("aggregation", ["LAST_VALUE", "RAW"])
 @pytest.mark.parametrize("row_order", list(permutations(range(3))))
-def test_latest_value_never_selects_an_undated_row(
+def test_latest_value_with_an_undated_row_has_no_headline(
     timestamp: str | float | None,
+    undated_metric: int | None,
     aggregation: str,
     row_order: tuple[int, ...],
 ) -> None:
-    """Mixed timestamps select the newest dated value in every input order."""
+    """The frontend comparator treats an undated row as equal to every row, so
+    the value it renders depends on input order; no latest value is exact."""
     rows: list[dict[str, Any]] = [
-        {"__timestamp": timestamp, METRIC: 1},
+        {"__timestamp": timestamp, METRIC: undated_metric},
         {"__timestamp": 5, METRIC: 2},
         {"__timestamp": 3, METRIC: 3},
     ]
@@ -376,16 +429,31 @@ def test_latest_value_never_selects_an_undated_row(
     headline = _headline([rows[index] for index in row_order], aggregation=aggregation)
 
     assert headline is not None
-    assert headline.value == 2
-    assert headline.rows_used == 2
+    assert headline.value is None
+    assert "timestamp" in (headline.reason or "")
+
+
+def test_latest_value_does_not_diverge_from_the_rendered_chart() -> None:
+    """For these rows the frontend sort leaves the order unchanged and the
+    chart shows 10, not the newest dated 30."""
+    headline = _headline(
+        [
+            {"__timestamp": 1000, METRIC: 10},
+            {"__timestamp": None, METRIC: 99},
+            {"__timestamp": 3000, METRIC: 30},
+        ]
+    )
+
+    assert headline is not None
+    assert headline.value is None
 
 
 @pytest.mark.parametrize("aggregation", ["LAST_VALUE", "RAW"])
 @pytest.mark.parametrize("has_dated_null", [False, True])
-def test_latest_value_requires_a_dated_non_null_metric(
+def test_latest_value_requires_dated_rows(
     aggregation: str, has_dated_null: bool
 ) -> None:
-    """Missing timestamps cannot supply a latest value, even as a fallback."""
+    """Missing timestamps cannot supply a latest value."""
     rows: list[dict[str, Any]] = [{METRIC: 1}, {"__timestamp": None, METRIC: 3}]
     if has_dated_null:
         rows.append({"__timestamp": 5, METRIC: None})
@@ -397,12 +465,29 @@ def test_latest_value_requires_a_dated_non_null_metric(
     assert headline.reason
 
 
+@pytest.mark.parametrize("row_order", list(permutations(range(3))))
+def test_latest_value_with_an_undated_row_and_one_distinct_value(
+    row_order: tuple[int, ...],
+) -> None:
+    """When every non-null metric is equal, row order cannot change the value."""
+    rows: list[dict[str, Any]] = [
+        {"__timestamp": None, METRIC: 7},
+        {"__timestamp": 5, METRIC: 7},
+        {"__timestamp": 3, METRIC: None},
+    ]
+
+    headline = _headline([rows[index] for index in row_order])
+
+    assert headline is not None
+    assert headline.value == 7
+    assert headline.rows_used == 2
+
+
 def test_latest_value_preserves_input_order_for_equal_timestamps() -> None:
     """Equal dated timestamps use the first non-null metric in input order."""
     headline = _headline(
         [
             {"__timestamp": 5, METRIC: None},
-            {METRIC: 99},
             {"__timestamp": 5, METRIC: 2},
             {"__timestamp": 5, METRIC: 3},
         ]
@@ -411,20 +496,6 @@ def test_latest_value_preserves_input_order_for_equal_timestamps() -> None:
     assert headline is not None
     assert headline.value == 2
     assert headline.rows_used == 2
-
-
-def test_last_value_with_missing_timestamp_skips_null_metric() -> None:
-    """A null metric with no timestamp does not prevent the latest headline."""
-    headline = _headline(
-        [
-            {METRIC: None},
-            {"__timestamp": 1, METRIC: 2},
-            {"__timestamp": 2, METRIC: 3},
-        ]
-    )
-
-    assert headline is not None
-    assert headline.value == 3
 
 
 def test_order_independent_aggregations_need_no_times() -> None:

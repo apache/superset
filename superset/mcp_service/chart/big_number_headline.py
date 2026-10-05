@@ -254,6 +254,17 @@ def _series_problem(
             f"The chart uses a rolling window ({rolling_type}) that the returned "
             "rows do not reflect."
         )
+    # As in the frontend's `resampleOperator`, both controls add the step.
+    if (
+        form_data.get("resample_rule")
+        and form_data.get("resample_method")
+        and "resample" not in post_processing_operations
+    ):
+        return (
+            f"The chart resamples the series ({form_data['resample_rule']}, "
+            f"{form_data['resample_method']}), which the returned rows do not "
+            "reflect."
+        )
     rows = first.get("data") or []
     returned_total = first.get("rowcount")
     if (row_limit and len(rows) >= row_limit) or (
@@ -272,34 +283,31 @@ def _trend_values(
     rows: Sequence[Mapping[str, Any]],
     *,
     newest_first: bool,
-) -> list[int | float]:
-    """Non-null metrics, ordered by usable timestamps for latest-value picks."""
+) -> list[int | float] | None:
+    """Non-null metric values, newest first when the aggregation needs it.
+
+    Returns None when the newest value cannot be determined exactly. The
+    frontend sorts with a comparator that treats a row lacking a usable
+    timestamp as equal to every other row, so with such a row present the order
+    it renders depends on the input order and the browser's sort, and the value
+    it shows need not be the newest dated one.
+    """
+    values = [_parse_metric_value(row.get(label)) for row in rows]
     if not newest_first:
-        return [
-            value
-            for row in rows
-            if (value := _parse_metric_value(row.get(label))) is not None
-        ]
+        return [value for value in values if value is not None]
     x_label = next(
         (name for name in x_labels if any(name in row for row in rows)), None
     )
-    dated = [
-        (
-            _timestamp_ms(row.get(x_label)) if x_label else None,
-            _parse_metric_value(row.get(label)),
-        )
-        for row in rows
-    ]
-
-    # Dated rows come first, newest first; ties retain their input order.
-    dated.sort(key=lambda item: (item[0] is None, -(item[0] or 0)))
-    # An undated metric cannot establish a latest value, even if dated metrics
-    # are all null. Order-independent aggregations above still include it.
-    return [
-        value
-        for timestamp, value in dated
-        if timestamp is not None and value is not None
-    ]
+    timestamps = [_timestamp_ms(row.get(x_label)) if x_label else None for row in rows]
+    non_null = [value for value in values if value is not None]
+    if None in timestamps and len(set(non_null)) > 1:
+        return None
+    # Descending by time; ties retain their input order, as in the stable
+    # frontend sort.
+    ordered = sorted(
+        zip(timestamps, values, strict=True), key=lambda item: -(item[0] or 0)
+    )
+    return [value for _, value in ordered if value is not None]
 
 
 def compute_big_number_headline(
@@ -359,6 +367,12 @@ def compute_big_number_headline(
         rows,
         newest_first=key in (DEFAULT_AGGREGATION, RAW_AGGREGATION),
     )
+    if values is None:
+        return _unavailable(
+            key,
+            "Some rows have no usable timestamp, so the latest value the chart "
+            "shows depends on row order and cannot be determined exactly.",
+        )
     result = _AGGREGATIONS[key](values)
     if result is None:
         return _unavailable(key, "The series has no non-null values.")

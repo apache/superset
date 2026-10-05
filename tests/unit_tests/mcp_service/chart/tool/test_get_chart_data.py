@@ -3687,6 +3687,31 @@ class TestBigNumberHeadline:
         assert with_rolling["value"] == 6
 
     @pytest.mark.asyncio
+    async def test_headline_is_null_when_resample_is_not_in_the_executed_query(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        form_data = {
+            "aggregation": "mean",
+            "resample_rule": "1D",
+            "resample_method": "zerofill",
+        }
+        queries = [self._query([70, 70, 70, 70])]
+
+        without = await self._headline(mcp_server, form_data, queries)
+        with_resample = await self._headline(
+            mcp_server,
+            form_data,
+            queries,
+            post_processing=[{"operation": "resample"}],
+        )
+
+        assert without is not None
+        assert without["value"] is None
+        assert "resamples" in without["reason"]
+        assert with_resample is not None
+        assert with_resample["value"] == 70
+
+    @pytest.mark.asyncio
     async def test_raw_headline_comes_from_the_overall_value_layer(
         self, mcp_server: Any, mock_auth: Any
     ) -> None:
