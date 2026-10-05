@@ -41,7 +41,8 @@ export function openJsonDialogOnEnter(
     return false;
   }
   const { target } = nativeEvent;
-  if (!(target instanceof Element)) {
+  // A focused JSON control keeps the browser's own Enter activation.
+  if (!(target instanceof Element) || isJsonCellActionTarget(target)) {
     return false;
   }
   const cell = target.closest('.ag-cell') ?? target;

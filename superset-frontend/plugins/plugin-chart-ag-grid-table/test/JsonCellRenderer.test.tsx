@@ -152,7 +152,7 @@ test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
   const cell = document.createElement('div');
   cell.className = 'ag-cell';
   const open = document.createElement('button');
-  open.setAttribute('data-test', 'json-cell-open');
+  open.setAttribute('data-json-cell-open', '');
   const onClick = jest.fn();
   open.addEventListener('click', onClick);
   cell.appendChild(open);
@@ -173,6 +173,19 @@ test('isJsonCellActionTarget matches controls inside a JSON cell', () => {
       preventDefault,
     } as unknown as KeyboardEvent),
   ).toBe(false);
+
+  const arrow = document.createElement('button');
+  arrow.setAttribute('data-json-cell-action', '');
+  cell.appendChild(arrow);
+  onClick.mockClear();
+  expect(
+    openJsonDialogOnEnter({
+      key: 'Enter',
+      target: arrow,
+      preventDefault,
+    } as unknown as KeyboardEvent),
+  ).toBe(false);
+  expect(onClick).not.toHaveBeenCalled();
 });
 
 test('collapsed JSON shows a one-line preview and hides nested keys', async () => {

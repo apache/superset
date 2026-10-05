@@ -215,12 +215,14 @@ function JsonActionButton({
   expanded,
   onActivate,
   testId,
+  opensDialog = false,
   children,
 }: {
   label?: string;
   expanded?: boolean;
   onActivate: () => void;
   testId?: string;
+  opensDialog?: boolean;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -256,6 +258,7 @@ function JsonActionButton({
       aria-expanded={expanded}
       aria-label={label}
       data-json-cell-action
+      data-json-cell-open={opensDialog ? '' : undefined}
       data-test={testId}
     >
       {children}
@@ -540,6 +543,7 @@ export function JsonCellRenderer({
         <JsonActionButton
           label={t('Open JSON')}
           testId="json-cell-open"
+          opensDialog
           onActivate={openJsonModal}
         >
           <Icons.FullscreenOutlined iconSize="xs" />

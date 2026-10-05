@@ -164,7 +164,7 @@ test('Enter on a focused JSON cell opens the dialog', async () => {
   const cell = document.createElement('div');
   cell.className = 'ag-cell';
   const open = document.createElement('button');
-  open.setAttribute('data-test', 'json-cell-open');
+  open.setAttribute('data-json-cell-open', '');
   const onClick = jest.fn();
   open.addEventListener('click', onClick);
   cell.appendChild(open);
