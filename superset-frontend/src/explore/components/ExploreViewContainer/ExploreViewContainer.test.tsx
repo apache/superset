@@ -24,7 +24,6 @@ import {
   getChartControlPanelRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
-  SupersetClient,
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
@@ -328,11 +327,12 @@ test('shows an error when fetching datasource metadata fails', async () => {
       },
     },
   };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    500,
+  );
   const store = createStore(initialState, reducerIndex);
   renderWithRouter({ initialState, store: store as Store });
-  jest
-    .spyOn(SupersetClient, 'get')
-    .mockRejectedValueOnce(new Error('Request failed'));
 
   act(() => {
     store.dispatch(

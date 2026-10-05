@@ -704,11 +704,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         (previousControls.datasource == null ||
           props.controls.datasource.value !== previousControls.datasource.value)
       ) {
-        Promise.resolve(
-          props.actions.fetchDatasourceMetadata(props.form_data.datasource),
-        ).catch(() => {
-          props.addDangerToast(t('Failed to load datasource metadata'));
-        });
+        Promise.resolve()
+          .then(() =>
+            props.actions.fetchDatasourceMetadata(props.form_data.datasource),
+          )
+          .catch(() => {
+            props.addDangerToast(t('Failed to load datasource metadata'));
+          });
       }
 
       const changedControlKeys = Object.keys(props.controls).filter(
