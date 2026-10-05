@@ -1384,8 +1384,15 @@ def _mapping_command(
     *,
     partition_mapped_column: str | None = None,
     main_dttm_col: str = "event_time",
+    database: Database | None = None,
 ) -> UpdateDatasetCommand:
-    """A command whose stored dataset maps `event_time` onto `dt_epoch`."""
+    """
+    A command whose stored dataset maps `event_time` onto `dt_epoch`.
+
+    `database` takes a real one, for the gates that read more of it than
+    `backend` -- the function denylist is keyed on the engine spec's own name,
+    which a mock cannot supply.
+    """
     mapped_column = mocker.MagicMock()
     mapped_column.column_name = "event_time"
     mapped_column.partition_value_transform = transform
@@ -1395,7 +1402,10 @@ def _mapping_command(
     partition_column.partition_value_transform = None
 
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
-    mock_dataset.database.backend = "sqlite"
+    if database is not None:
+        mock_dataset.database = database
+    else:
+        mock_dataset.database.backend = "sqlite"
     mock_dataset.catalog = None
     mock_dataset.schema = "main"
     mock_dataset.columns = [mapped_column, partition_column]
@@ -1490,11 +1500,10 @@ def test_a_transform_calling_a_denied_function_is_refused_on_save(
     an owner could store what preview had just refused, and the probe would run
     it on the next chart load.
     """
-    command = _mapping_command(mocker, "schema_to_xml('public') || :value")
-    # A real `Database`: the denylist is keyed on the engine spec's own name,
-    # which a mock cannot supply.
-    command._model.database = Database(
-        database_name="pfm_pg", sqlalchemy_uri="postgresql://u@h/d"
+    command = _mapping_command(
+        mocker,
+        "schema_to_xml('public') || :value",
+        database=Database(database_name="pfm_pg", sqlalchemy_uri="postgresql://u@h/d"),
     )
 
     exceptions: list[ValidationError] = []
