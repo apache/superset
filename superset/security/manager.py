@@ -881,7 +881,8 @@ def _native_filter_allowed_targets(
             if _datasource_matches(
                 datasource,
                 target.get("datasetId"),
-                target.get("datasourceType", DatasourceType.TABLE),
+                # A missing or null type is a legacy SQL dataset target.
+                target.get("datasourceType") or DatasourceType.TABLE,
             )
         ]
         if not matching_targets:
@@ -2689,7 +2690,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .one_or_none()
             )
             and slc in dashboard.slices
-            and slc.datasource == datasource
+            and _datasource_matches(datasource, slc.datasource_id, slc.datasource_type)
             and (dimensions := form_data.get("groupby"))
             and datasource.has_drill_by_columns(dimensions)
         )
@@ -5265,7 +5266,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                 _datasource_matches(
                                     datasource,
                                     target.get("datasetId"),
-                                    target.get("datasourceType", DatasourceType.TABLE),
+                                    target.get("datasourceType")
+                                    or DatasourceType.TABLE,
                                 )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
@@ -5864,8 +5866,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_dashboard_access_error_object(dashboard)
                 )
-            if datasets is not None and resolved.id not in datasets:
-                continue  # the token will not grant this datasource
+            if datasets is not None and (
+                resolved.type != DatasourceType.TABLE or resolved.id not in datasets
+            ):
+                continue  # the allowlist grants only the SQL datasets it lists
             if not self.can_access_datasource(resolved):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(resolved)

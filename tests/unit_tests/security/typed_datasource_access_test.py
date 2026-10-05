@@ -92,7 +92,9 @@ def native_filter_context(
     """Bind a query to a stored native-filter target, including legacy tables."""
     source: SqlaTable | SemanticView = datasource(requested_type)
     target: dict[str, Any] = {"datasetId": 7, "column": {"name": "region"}}
-    if target_type is not None:
+    if target_type == "null":
+        target["datasourceType"] = None
+    elif target_type is not None:
         target["datasourceType"] = target_type
     dashboard: Dashboard = Dashboard(
         id=20,
@@ -127,7 +129,7 @@ def native_filter_context(
     )
 
 
-@pytest.mark.parametrize("target_type", [None, "table", "semantic_view"])
+@pytest.mark.parametrize("target_type", [None, "null", "table", "semantic_view"])
 @pytest.mark.parametrize("requested_type", ["table", "semantic_view"])
 @pytest.mark.parametrize("guest", [False, True])
 def test_native_filter_access_requires_typed_target(
@@ -142,7 +144,9 @@ def test_native_filter_access_requires_typed_target(
         mocker, manager, requested_type, target_type
     )
     mocker.patch.object(manager, "is_guest_user", return_value=guest)
-    if (target_type or "table") == requested_type:
+    # A missing or null target type refers to a SQL dataset.
+    effective_type: str = "table" if target_type in (None, "null") else str(target_type)
+    if effective_type == requested_type:
         manager.raise_for_access(query_context=context)
     else:
         with pytest.raises(SupersetSecurityException):
@@ -296,3 +300,60 @@ def test_guest_multilayer_child_requires_typed_datasource(
     else:
         with pytest.raises(SupersetSecurityException):
             manager.raise_for_access(query_context=context)
+
+
+@pytest.mark.parametrize("chart_type", ["table", "semantic_view"])
+@pytest.mark.parametrize("requested_type", ["table", "semantic_view"])
+def test_drill_by_requires_typed_chart_datasource(
+    manager: SupersetSecurityManager,
+    mocker: MockerFixture,
+    chart_type: str,
+    requested_type: str,
+) -> None:
+    """Drill By is bound to the source chart datasource's type and id."""
+    source: SqlaTable | SemanticView = datasource(requested_type)
+    chart: Slice = Slice(id=10, datasource_id=7, datasource_type=chart_type)
+    if chart_type == "table" and isinstance(source, SqlaTable):
+        chart.table = source
+    dashboard: Dashboard = Dashboard(id=20, slices=[chart])
+    mocker.patch.object(
+        manager.session, "query"
+    ).return_value.filter.return_value.one_or_none.return_value = chart
+    mocker.patch.object(type(source), "has_drill_by_columns", return_value=True)
+    form_data: dict[str, Any] = {"slice_id": 0, "chart_id": 10, "groupby": ["region"]}
+    assert manager.has_drill_access(form_data, dashboard, source) == (
+        chart_type == requested_type
+    )
+
+
+@pytest.mark.parametrize("kind", ["table", "semantic_view"])
+@pytest.mark.parametrize("allowed_datasets", [None, [7]])
+def test_guest_token_minting_checks_only_datasources_the_token_grants(
+    manager: SupersetSecurityManager,
+    mocker: MockerFixture,
+    kind: str,
+    allowed_datasets: list[int] | None,
+) -> None:
+    """Minting requires access to each member datasource the token can grant;
+    a dataset allowlist grants SQL datasets only."""
+    source: SqlaTable | SemanticView = datasource(kind)
+    chart: Slice = Slice(id=10, datasource_id=7, datasource_type=kind)
+    dashboard: Dashboard = Dashboard(id=20, slices=[chart])
+    mocker.patch.object(manager, "is_admin", return_value=False)
+    mocker.patch.object(
+        Slice, "resolved_datasource", new_callable=PropertyMock, return_value=source
+    )
+    mocker.patch.object(manager, "can_access_datasource", return_value=False)
+    mocker.patch.object(
+        manager, "get_datasource_access_error_object", return_value=MagicMock()
+    )
+    grants_datasource: bool = allowed_datasets is None or kind == "table"
+    if grants_datasource:
+        with pytest.raises(SupersetSecurityException):
+            manager._raise_for_guest_token_datasource_access(  # noqa: SLF001
+                dashboard, allowed_datasets
+            )
+    else:
+        manager._raise_for_guest_token_datasource_access(  # noqa: SLF001
+            dashboard, allowed_datasets
+        )
