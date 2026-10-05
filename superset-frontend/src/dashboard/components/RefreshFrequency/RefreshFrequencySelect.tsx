@@ -81,6 +81,13 @@ const isPresetValue = (frequency: number, options: RefreshFrequencyOption[]) =>
       option.value === frequency && option.value !== CUSTOM_REFRESH_FREQUENCY,
   );
 
+// `Number(null)`, `Number('')` and `Number([])` all yield 0, and 0 is a real
+// interval, so a bare Number() would smuggle malformed entries in as valid.
+const toIntervalSeconds = (value: unknown): number => {
+  const isNumeric = typeof value === 'number' || typeof value === 'string';
+  return isNumeric && String(value).trim() !== '' ? Number(value) : Number.NaN;
+};
+
 /**
  * Builds the interval list from DASHBOARD_AUTO_REFRESH_INTERVALS, which reaches
  * the browser as a list of `[seconds, label]` pairs. Labels stay verbatim: the
@@ -94,31 +101,26 @@ export const getRefreshFrequencyOptions = (
   const options: RefreshFrequencyOption[] = [];
   const seen = new Set<number>();
 
-  if (Array.isArray(configuredIntervals)) {
-    configuredIntervals.forEach(interval => {
-      if (!Array.isArray(interval) || interval.length < 2) {
+  (Array.isArray(configuredIntervals) ? configuredIntervals : []).forEach(
+    pair => {
+      if (!Array.isArray(pair)) {
         return;
       }
-      const [value, label] = interval;
-      // `Number(null)`, `Number('')` and `Number([])` are all 0, and 0 is a real
-      // interval ("Don't refresh"), so a loose conversion would smuggle those
-      // in as a valid option instead of dropping the malformed entry.
-      const isNumeric = typeof value === 'number' || typeof value === 'string';
-      const seconds =
-        isNumeric && String(value).trim() !== '' ? Number(value) : Number.NaN;
-      if (
-        !Number.isFinite(seconds) ||
-        seconds < 0 ||
-        typeof label !== 'string' ||
-        !label.trim() ||
-        seen.has(seconds)
-      ) {
+      const [value, label] = pair;
+      const seconds = toIntervalSeconds(value);
+      const isLabelled = typeof label === 'string' && label.trim() !== '';
+      if (!Number.isFinite(seconds) || seconds < 0 || !isLabelled) {
+        return;
+      }
+      // Deployment overrides are unvalidated; a repeated interval would render
+      // duplicate React keys and two simultaneously-checked radios.
+      if (seen.has(seconds)) {
         return;
       }
       seen.add(seconds);
       options.push({ value: seconds, label });
-    });
-  }
+    },
+  );
 
   const baseOptions = options.length ? options : REFRESH_FREQUENCY_OPTIONS;
   const hasCustom = baseOptions.some(
