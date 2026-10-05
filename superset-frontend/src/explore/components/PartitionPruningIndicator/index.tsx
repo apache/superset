@@ -140,6 +140,31 @@ function isNullish(value: unknown): boolean {
   return value == null || value === NULL_STRING;
 }
 
+const ISO_DATETIME =
+  /^\d{4}-\d{2}-\d{2}[ T](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/;
+const MIDNIGHT = /^00:00(?::00(?:\.0+)?)?$/;
+
+/**
+ * A value written as an ISO date *and* a non-zero time of day.
+ *
+ * Deliberately narrower than the backend's `datetime.fromisoformat`, and
+ * deliberately only ever used to *hide* the glyph. `Date.parse` accepts strings
+ * `fromisoformat` rejects and the reverse, so matching the server's acceptance
+ * set here is not achievable; what is achievable is a pattern that only ever
+ * fires on a value the server certainly declines. Anything else falls back to
+ * showing the glyph, which is the advisory behaviour this control has always
+ * had -- see `isMirroredFilter`.
+ */
+function carriesTimeOfDay(value: unknown): boolean {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const time = ISO_DATETIME.exec(value)?.[1];
+  // Midnight is not a time of day for this purpose: the engine's comparison and
+  // the mirror's value agree there, so the filter does mirror.
+  return time !== undefined && !MIDNIGHT.test(time);
+}
+
 /**
  * Whether the comparator is one the mirrored predicate can be built from.
  *
@@ -150,8 +175,19 @@ function isNullish(value: unknown): boolean {
  * An empty string is *not* excluded. The backend's mirror collector skips only
  * `None`, so `col = ''` -- which Explore writes as the `<empty string>`
  * sentinel -- does mirror, and hiding the glyph for it contradicted the SQL.
+ *
+ * On a mapped column the engine compares at day resolution, an `=` or `IN`
+ * whose value carries a time of day is declined server-side: the filter keeps
+ * the whole day while a mirror derived from the time keeps one instant of it,
+ * and an AND-ed equality has nowhere to widen to. Only those two operators --
+ * a bound does have somewhere to widen to, and widens to the day rather than
+ * declining, so the glyph stays on it.
  */
-function hasMirrorableValue(operator: string, comparator: unknown): boolean {
+function hasMirrorableValue(
+  operator: string,
+  comparator: unknown,
+  resolution: PartitionFilterMapping['literal_resolution'],
+): boolean {
   if (operator === 'TEMPORAL_RANGE') {
     // `No filter` resolves to neither bound, so no range is mirrored.
     return typeof comparator === 'string' && comparator !== NO_TIME_RANGE;
@@ -160,8 +196,16 @@ function hasMirrorableValue(operator: string, comparator: unknown): boolean {
     return (
       Array.isArray(comparator) &&
       comparator.length > 0 &&
-      !comparator.some(isNullish)
+      !comparator.some(isNullish) &&
+      !(resolution === 'day' && comparator.some(carriesTimeOfDay))
     );
+  }
+  if (
+    operator === '==' &&
+    resolution === 'day' &&
+    carriesTimeOfDay(comparator)
+  ) {
+    return false;
   }
   return !isNullish(comparator);
 }
@@ -221,5 +265,9 @@ export function isMirroredFilter(
   if (filter.grain && filter.operator !== 'TEMPORAL_RANGE') {
     return false;
   }
-  return hasMirrorableValue(filter.operator, filter.comparator);
+  return hasMirrorableValue(
+    filter.operator,
+    filter.comparator,
+    mapping.literal_resolution,
+  );
 }

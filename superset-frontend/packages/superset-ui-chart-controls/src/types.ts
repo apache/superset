@@ -124,6 +124,13 @@ export interface PartitionFilterMapping {
    * `is_monotonic` so the operator matrix lives in one place.
    */
   mirrorable_operators: string[];
+  /**
+   * How much of a filter's value this engine compares on the mapped column.
+   * `day` means a `DATE`-typed column whose comparison drops the time of day,
+   * so an `=` or `IN` carrying one is declined server-side -- see
+   * `hasMirrorableValue`.
+   */
+  literal_resolution?: 'full' | 'second' | 'day';
 }
 
 export interface ControlPanelState {

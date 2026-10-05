@@ -238,3 +238,94 @@ test('the glyph explains itself to a keyboard user', async () => {
   await userEvent.tab();
   expect(glyph).toHaveFocus();
 });
+
+test('an equality carrying a time of day is not mirrored at day resolution', () => {
+  // The engine compares a DATE column on its date part alone, so the filter
+  // keeps the whole day while a mirror derived from the time keeps one instant
+  // of it. The query path declines rather than emit something narrower than the
+  // filter, and the glyph has to say the same thing.
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
+  expect(
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      comparator: '2024-01-01 10:08:11',
+    }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(DAY, { ...equalsFilter, comparator: '2024-01-01T10:08' }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['2024-01-01', '2024-01-02 09:00:00'],
+    }),
+  ).toBe(false);
+});
+
+test('a date, or a date at midnight, still mirrors at day resolution', () => {
+  // The decline is about a *lost* time of day, not about DATE columns: where the
+  // value sits on the day boundary the engine's comparison and the mirror's
+  // value agree.
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
+  expect(isMirroredFilter(DAY, equalsFilter)).toBe(true);
+  expect(
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      comparator: '2024-01-01T00:00:00',
+    }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['2024-01-01', '2024-01-02'],
+    }),
+  ).toBe(true);
+});
+
+test('a range at day resolution still mirrors, by widening to the day', () => {
+  // A bound has somewhere to widen to where an equality does not, so the glyph
+  // stays on it.
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
+  expect(
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      operator: '>=',
+      comparator: '2024-01-01 10:08:11',
+    }),
+  ).toBe(true);
+});
+
+test('a value the pattern cannot read keeps the glyph', () => {
+  // Matching the server's `datetime.fromisoformat` acceptance set in the browser
+  // is not achievable, so the pattern only ever fires on a value the server
+  // certainly declines. Everything else falls back to the advisory behaviour.
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
+  expect(
+    isMirroredFilter(DAY, { ...equalsFilter, comparator: '01/01/2024 10:08' }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(DAY, { ...equalsFilter, comparator: 1704103691000 }),
+  ).toBe(true);
+});
+
+test('a summary with no resolution, or full resolution, is unaffected', () => {
+  // Every engine that compares the whole value, which is most of them.
+  expect(
+    isMirroredFilter(ACTIVE, {
+      ...equalsFilter,
+      comparator: '2024-01-01 10:08:11',
+    }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(
+      { ...ACTIVE, literal_resolution: 'full' as const },
+      { ...equalsFilter, comparator: '2024-01-01 10:08:11' },
+    ),
+  ).toBe(true);
+});
