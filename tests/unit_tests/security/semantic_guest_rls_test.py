@@ -64,6 +64,8 @@ def provider(mocker: MockerFixture) -> MagicMock:
     """A provider returns both tenants unless the application denies the call."""
     implementation: MagicMock = MagicMock()
     implementation.features = frozenset()
+    # An unversioned view, so value suggestions are served normally.
+    implementation.selection_identity_version = None
     implementation.uid.return_value = "guest-rls-view"
     implementation.get_dimensions.return_value = {
         Dimension("category", "category", pa.string()),
