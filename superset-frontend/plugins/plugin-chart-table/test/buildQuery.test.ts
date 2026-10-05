@@ -212,6 +212,48 @@ describe('plugin-chart-table', () => {
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
     });
+
+    test.each([
+      { orderDesc: true, expectedAscending: false },
+      { orderDesc: false, expectedAscending: true },
+    ])(
+      'orders by the sort-by metric in aggregate mode when order_desc is $orderDesc',
+      ({ orderDesc, expectedAscending }) => {
+        const query = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['col1'],
+          metrics: ['first_metric', 'sort_metric'],
+          timeseries_limit_metric: 'sort_metric',
+          order_desc: orderDesc,
+        }).queries[0];
+        expect(query.orderby).toEqual([['sort_metric', expectedAscending]]);
+      },
+    );
+
+    test('orders by the first metric descending in aggregate mode without a sort-by metric', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Aggregate,
+        groupby: ['col1'],
+        metrics: ['first_metric', 'second_metric'],
+        order_desc: false,
+      }).queries[0];
+      expect(query.orderby).toEqual([['first_metric', false]]);
+    });
+
+    test('maps order_by_cols to orderby in raw records mode', () => {
+      const query = buildQueryCached({
+        ...basicFormData,
+        query_mode: QueryMode.Raw,
+        columns: ['col1', 'col2'],
+        order_by_cols: ['["col1", true]', '["col2", false]'],
+      }).queries[0];
+      expect(query.orderby).toEqual([
+        ['col1', true],
+        ['col2', false],
+      ]);
+    });
     test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
       const query = buildQueryCached({
         ...basicFormData,
