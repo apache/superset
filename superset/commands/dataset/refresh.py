@@ -72,6 +72,22 @@ class RefreshDatasetCommand(BaseCommand):
                 ex.message,
             )
 
+        # `fetch_metadata` writes the columns itself rather than going through
+        # `DatasetDAO.update`, so neither of the mapping's own repairs runs. It
+        # can drop the column `partition_column` names -- leaving a reference
+        # that fails `UpdateDatasetCommand`'s validation on every later edit,
+        # including a description-only PUT, which carries no columns payload and
+        # so cannot reach the branch that forgives a stored-only dangle -- and
+        # it can *set* `main_dttm_col`, which moves the effective mapped column
+        # and can bring a parked transform live.
+        #
+        # No flush needed to read the columns: `fetch_metadata` reassigns the
+        # relationship, so the surviving set is already correct in memory.
+        DatasetDAO.clear_dangling_partition_mapping(
+            self._model, {column.column_name for column in self._model.columns}
+        )
+        DatasetDAO.clear_unmapped_partition_transforms(self._model)
+
         # Detect datetime formats if feature is enabled
         if current_app.config.get("DATASET_AUTO_DETECT_DATETIME_FORMATS", True):
             try:
