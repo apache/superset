@@ -344,11 +344,21 @@ export function normalizeColumnConfigKeys<T>(
     return {};
   }
   const colnamesSet = new Set(colnames);
-  const aliasToKey = new Map(
-    colnames
-      .filter(col => COLUMN_NAME_ALIASES[col])
-      .map(col => [COLUMN_NAME_ALIASES[col], col]),
-  );
+  const aliasToKey = new Map<string, string>();
+  const ambiguousAliases = new Set<string>();
+  colnames.forEach(col => {
+    const alias = COLUMN_NAME_ALIASES[col];
+    if (!alias || ambiguousAliases.has(alias)) {
+      return;
+    }
+    const existing = aliasToKey.get(alias);
+    if (existing && existing !== col) {
+      aliasToKey.delete(alias);
+      ambiguousAliases.add(alias);
+      return;
+    }
+    aliasToKey.set(alias, col);
+  });
   const next: Record<string, T> = {};
   Object.entries(value).forEach(([key, config]) => {
     const stored = toStoredTimeComparisonColumnKey(key, colnames);

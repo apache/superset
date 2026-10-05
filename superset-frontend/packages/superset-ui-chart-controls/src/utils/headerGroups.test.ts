@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ComparisonType, QueryMode } from '@superset-ui/core';
+import { COLUMN_NAME_ALIASES } from '../constants';
 import {
   buildHeaderGroupRows,
   buildTimeComparisonHeaderGroups,
@@ -449,6 +450,33 @@ test('normalizeColumnConfigKeys prefers an existing stored key over a display al
   ).toEqual({
     __timestamp: { customColumnName: 'Stored' },
   });
+});
+
+test('normalizeColumnConfigKeys skips remapping when a display alias is ambiguous', () => {
+  const originalAliases = { ...COLUMN_NAME_ALIASES };
+  Object.keys(COLUMN_NAME_ALIASES).forEach(key => {
+    delete COLUMN_NAME_ALIASES[key];
+  });
+  Object.assign(COLUMN_NAME_ALIASES, {
+    __timestamp: 'Time',
+    other_time: 'Time',
+  });
+
+  try {
+    expect(
+      normalizeColumnConfigKeys({ Time: { customColumnName: 'Date' } }, [
+        '__timestamp',
+        'other_time',
+      ]),
+    ).toEqual({
+      Time: { customColumnName: 'Date' },
+    });
+  } finally {
+    Object.keys(COLUMN_NAME_ALIASES).forEach(key => {
+      delete COLUMN_NAME_ALIASES[key];
+    });
+    Object.assign(COLUMN_NAME_ALIASES, originalAliases);
+  }
 });
 
 test('buildHeaderGroupRows fills empty cells for ungrouped columns', () => {
