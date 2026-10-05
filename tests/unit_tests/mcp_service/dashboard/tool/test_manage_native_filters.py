@@ -1422,3 +1422,120 @@ async def test_add_filter_time_rejects_unparseable_default(mcp_server):
                     ],
                 },
             )
+
+
+def test_required_empty_default_applies_in_server_dashboard_context() -> None:
+    """An explicit required empty default must reach server-side chart queries."""
+    from superset.charts.data.dashboard_filter_context import (
+        _extract_filter_extra_form_data,
+        DashboardFilterStatus,
+    )
+    from superset.mcp_service.dashboard.schemas import FilterSelectSpec
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _build_new_filter_config,
+    )
+
+    with patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()):
+        config = _build_new_filter_config(
+            FilterSelectSpec(
+                filter_type="filter_select",
+                name="Region",
+                dataset_id=5,
+                column="region",
+                default_value=[],
+                enable_empty_filter=True,
+            ),
+            [10, 11],
+        )
+
+    extra, status = _extract_filter_extra_form_data(config)
+    assert status == DashboardFilterStatus.APPLIED
+    assert extra == {
+        "adhoc_filters": [
+            {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": "1 = 0"}
+        ]
+    }
+    assert config["defaultDataMask"]["filterState"]["value"] == []
+
+
+@pytest.mark.parametrize("inverse", [False, True])
+def test_clear_required_non_exact_default(inverse: bool) -> None:
+    """Empty non-exact defaults obey required and inverse-selection semantics."""
+    from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _merge_filter_update,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"].update(
+        enableEmptyFilter=True, operatorType="contains", inverseSelection=inverse
+    )
+    merged = _merge_filter_update(
+        NativeFilterUpdateSpec(id=existing["id"], default_value=[]), existing, [10, 11]
+    )
+    mask = merged["defaultDataMask"]
+    if inverse:
+        assert mask == {"filterState": {"value": None}, "extraFormData": {}}
+    else:
+        assert mask["filterState"]["value"] == []
+        assert mask["extraFormData"]["adhoc_filters"][0]["sqlExpression"] == "1 = 0"
+
+
+@pytest.mark.parametrize("update", [{"column": "country"}, {"dataset_id": 6}])
+def test_update_legacy_string_target(update: dict[str, Any]) -> None:
+    """Legacy string columns can be retargeted and their stale defaults cleared."""
+    from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _merge_filter_update,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["targets"][0]["column"] = "region"
+    existing["defaultDataMask"] = {
+        "filterState": {"value": ["EMEA"]},
+        "extraFormData": {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+    }
+    with patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()):
+        merged = _merge_filter_update(
+            NativeFilterUpdateSpec(id=existing["id"], **update), existing, [10, 11]
+        )
+    assert merged["targets"] == [
+        {
+            "datasetId": update.get("dataset_id", 5),
+            "column": {"name": update.get("column", "region")},
+        }
+    ]
+    assert merged["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
+    assert existing["targets"][0]["column"] == "region"
+
+
+@pytest.mark.parametrize("value", [None, []])
+def test_disable_required_empty_default(value: list[object] | None) -> None:
+    """Disabling the required control drops old and new empty-default predicates."""
+    from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _merge_filter_update,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"]["enableEmptyFilter"] = True
+    existing["defaultDataMask"] = {
+        "filterState": {"value": value},
+        "extraFormData": {
+            "adhoc_filters": [
+                {"expressionType": "SQL", "clause": "WHERE", "sqlExpression": "1 = 0"}
+            ]
+        },
+    }
+    merged = _merge_filter_update(
+        NativeFilterUpdateSpec(id=existing["id"], enable_empty_filter=False),
+        existing,
+        [10, 11],
+    )
+    assert merged["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
