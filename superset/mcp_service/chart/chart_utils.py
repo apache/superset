@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -70,8 +71,6 @@ from superset.utils import json
 from superset.utils.core import FilterOperator
 
 logger = logging.getLogger(__name__)
-
-MCP_DASHBOARD_TIME_FILTER_SUBJECT = "_mcp_dashboard_time_filter_subject"
 
 
 def _orm_column_name(candidate: Any) -> str:

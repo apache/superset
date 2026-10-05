@@ -2261,6 +2261,8 @@ class SunburstLegacySavedFields(BaseModel):
 
 
 _NATIVE_FORM_DATA_MARKER = "_mcp_native_form_data"
+# Provenance key the MCP mapper writes for its generated dashboard time binding.
+MCP_DASHBOARD_TIME_FILTER_SUBJECT = "_mcp_dashboard_time_filter_subject"
 _SUNBURST_IGNORED_LEGACY_FIELDS = frozenset(
     {
         "country_fieldtype",
@@ -2506,9 +2508,9 @@ class SunburstChartConfig(BaseChartConfig):
 
     @staticmethod
     def _coerce_native_filter(
-        native_filter: Any, data: dict[str, Any]
+        native_filter: Any, temporal_ranges: list[tuple[Any, Any]]
     ) -> dict[str, Any] | None:
-        """Convert one native SIMPLE filter, extracting temporal controls."""
+        """Convert one native SIMPLE filter, collecting temporal predicates."""
         if not isinstance(native_filter, dict):
             raise ValueError("Each Sunburst native adhoc_filter must be an object")
         allowed_keys = {
@@ -2541,9 +2543,9 @@ class SunburstChartConfig(BaseChartConfig):
                 "cannot preserve HAVING semantics"
             )
         if operator == "TEMPORAL_RANGE":
-            if "temporal_column" not in data and "granularity_sqla" not in data:
-                data["temporal_column"] = native_filter.get("subject")
-            data.setdefault("time_range", native_filter.get("comparator"))
+            temporal_ranges.append(
+                (native_filter.get("subject"), native_filter.get("comparator"))
+            )
             return None
         mapped_operator = "=" if operator == "==" else operator
         comparator = native_filter.get("comparator")
@@ -2575,12 +2577,66 @@ class SunburstChartConfig(BaseChartConfig):
             return
         if not isinstance(native_filters, list):
             raise ValueError("Sunburst native adhoc_filters must be a list")
+        temporal_ranges: list[tuple[Any, Any]] = []
         filters = [
             converted
             for native_filter in native_filters or []
-            if (converted := cls._coerce_native_filter(native_filter, data)) is not None
+            if (converted := cls._coerce_native_filter(native_filter, temporal_ranges))
+            is not None
         ]
+        cls._promote_native_temporal_range(data, temporal_ranges)
         data["filters"] = filters
+
+    @staticmethod
+    def _promote_native_temporal_range(
+        data: dict[str, Any], temporal_ranges: list[tuple[Any, Any]]
+    ) -> None:
+        """Promote native TEMPORAL_RANGE predicates to the single typed range.
+
+        The typed contract carries one ``temporal_column``/``time_range`` pair.
+        Neutral ("No filter") predicates restrict nothing. More than one
+        distinct restricting predicate, or a restricting predicate that
+        disagrees with an explicit native time subject or range, cannot be
+        represented and is rejected rather than silently dropped.
+        """
+        if not temporal_ranges:
+            return
+        restricting = list(
+            dict.fromkeys(
+                (subject, comparator)
+                for subject, comparator in temporal_ranges
+                if comparator not in (None, "", NO_TIME_RANGE)
+            )
+        )
+        if len(restricting) > 1:
+            raise ValueError(
+                "Sunburst supports one temporal range; native adhoc_filters "
+                "contain multiple distinct TEMPORAL_RANGE predicates. Keep one "
+                "temporal range or express the chart with the typed fields"
+            )
+        subject, comparator = restricting[0] if restricting else temporal_ranges[0]
+        if not restricting:
+            if "temporal_column" not in data and "granularity_sqla" not in data:
+                data["temporal_column"] = subject
+            data.setdefault("time_range", comparator)
+            return
+
+        bound_subject = data.get("temporal_column", data.get("granularity_sqla"))
+        existing_range = data.get("time_range")
+        if bound_subject not in (None, subject) or existing_range not in (
+            None,
+            NO_TIME_RANGE,
+            comparator,
+        ):
+            raise ValueError(
+                "Sunburst native TEMPORAL_RANGE on "
+                f"{subject!r} conflicts with the saved temporal binding; "
+                "multiple distinct temporal ranges are not supported"
+            )
+        if "temporal_column" not in data and "granularity_sqla" not in data:
+            data["temporal_column"] = subject
+        if existing_range == NO_TIME_RANGE or "time_range" not in data:
+            data["time_range"] = comparator
 
     @model_validator(mode="before")
     @classmethod
@@ -2596,6 +2652,15 @@ class SunburstChartConfig(BaseChartConfig):
         data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
         if is_native_form_data:
+            # The MCP mapper records the generated dashboard time-binding
+            # subject in its own form data; it is provenance, not a control.
+            marker_present = MCP_DASHBOARD_TIME_FILTER_SUBJECT in data
+            marker = data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+            if marker_present and (not isinstance(marker, str) or not marker):
+                raise ValueError(
+                    f"{MCP_DASHBOARD_TIME_FILTER_SUBJECT} must be a non-empty "
+                    "physical column name"
+                )
             cls._discard_legacy_saved_fields(data)
             cls._coerce_native_hierarchy(data)
 

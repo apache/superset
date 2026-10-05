@@ -5414,3 +5414,98 @@ def test_null_sunburst_metrics_normalize_without_changing_null_hierarchy(
     _, error = normalize_and_validate_sunburst_result_data(data, form_data)
     assert error is None
     assert data == [{**row, null_role: 0}]
+
+
+def _native_temporal_filter(subject: str, comparator: str) -> dict[str, str]:
+    return {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": subject,
+        "operator": "TEMPORAL_RANGE",
+        "comparator": comparator,
+    }
+
+
+def test_native_multiple_temporal_ranges_are_rejected_not_dropped() -> None:
+    """Only one temporal range is representable; the second must not vanish."""
+    with pytest.raises(ValidationError, match="multiple distinct TEMPORAL_RANGE"):
+        SunburstChartConfig.model_validate(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "metric": "SavedSales",
+                "adhoc_filters": [
+                    _native_temporal_filter("order_date", "Last year"),
+                    _native_temporal_filter("ship_date", "Last month"),
+                ],
+            }
+        )
+
+
+def test_native_restricting_temporal_range_wins_over_neutral_binding() -> None:
+    config = SunburstChartConfig.model_validate(
+        {
+            "viz_type": "sunburst_v2",
+            "columns": ["region"],
+            "metric": "SavedSales",
+            "time_range": "No filter",
+            "adhoc_filters": [
+                _native_temporal_filter("order_date", "No filter"),
+                _native_temporal_filter("ship_date", "Last month"),
+                _native_temporal_filter("ship_date", "Last month"),
+            ],
+        }
+    )
+
+    assert config.temporal_column == "ship_date"
+    assert config.time_range == "Last month"
+    assert config.filters == []
+
+
+def test_native_temporal_range_on_another_bound_column_is_rejected() -> None:
+    with pytest.raises(ValidationError, match="conflicts with the saved temporal"):
+        SunburstChartConfig.model_validate(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "metric": "SavedSales",
+                "granularity_sqla": "order_date",
+                "time_range": "Last year",
+                "adhoc_filters": [
+                    _native_temporal_filter("ship_date", "Last month"),
+                ],
+            }
+        )
+
+
+def test_generated_temporal_binding_marker_round_trips_as_native_config() -> None:
+    """Form data produced by the mapper can be reused as a Sunburst config."""
+    config = _config(temporal_column="order_date", time_range="Last year")
+    with patch(
+        "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+        return_value=True,
+    ):
+        form_data = map_config_to_form_data(config, dataset_id=7)
+    assert form_data["_mcp_dashboard_time_filter_subject"] == "order_date"
+
+    reused = SunburstChartConfig.model_validate(form_data)
+
+    assert reused.temporal_column == "order_date"
+    assert reused.time_range == "Last year"
+    assert [dimension.name for dimension in reused.hierarchy] == [
+        "region",
+        "country",
+    ]
+
+
+def test_native_time_binding_marker_must_name_a_column() -> None:
+    with pytest.raises(ValidationError, match="_mcp_dashboard_time_filter_subject"):
+        SunburstChartConfig.model_validate(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "metric": "SavedSales",
+                "adhoc_filters": [],
+                "_mcp_dashboard_time_filter_subject": "",
+            }
+        )
