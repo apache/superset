@@ -17,6 +17,7 @@
 
 """Canonicalize and validate ``ChartDataCommand`` result envelopes."""
 
+import base64
 import math
 import time as system_time
 from bisect import bisect_right
@@ -41,6 +42,7 @@ from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.mcp_service.chart.schemas import ChartError
+from superset.mcp_service.utils.serialization import BINARY_PREFIX
 from superset.utils.core import (
     ExtraFiltersReasonType,
     ExtraFiltersTimeColumnType,
@@ -846,6 +848,31 @@ def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
         return None, "an invalid timestamp"
 
 
+def _canonical_binary(
+    value: bytes | bytearray | memoryview,
+) -> tuple[str | None, str | None]:
+    """Render exact binary cells as UTF-8 text or ``base64:``-prefixed text.
+
+    Matches the MCP response serializer: valid UTF-8 is returned as text and
+    anything else is losslessly base64-encoded. The raw size is bounded before
+    copying so the rendered string stays within the per-cell text budget.
+    """
+    size = value.nbytes if type(value) is memoryview else len(value)
+    if size > MAX_RESULT_STRING_LENGTH:
+        return None, "an oversized binary value"
+    try:
+        raw = bytes(value)
+    except (BufferError, TypeError, ValueError):
+        return None, "an invalid binary value"
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = BINARY_PREFIX + base64.b64encode(raw).decode("ascii")
+    if _bounded_utf8_length(text, MAX_RESULT_STRING_LENGTH) is None:
+        return None, "an oversized binary value"
+    return text, None
+
+
 def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
     """Convert one exact trusted producer scalar to a JSON-safe scalar."""
     value_type = type(value)
@@ -872,6 +899,8 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
             return None, "an invalid duration"
     if value_type is UUID:
         return UUID.__str__(value), None
+    if value_type is bytes or value_type is bytearray or value_type is memoryview:
+        return _canonical_binary(value)
 
     if value_type is _PANDAS_NAT_TYPE or value_type is _PANDAS_NA_TYPE:
         return None, None

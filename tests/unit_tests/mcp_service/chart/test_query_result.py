@@ -650,9 +650,9 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
         Decimal("NaN"),
         Decimal("Infinity"),
         Decimal("1e5000"),
-        b"\xff",
-        bytearray(b"unsafe"),
-        memoryview(b"unsafe"),
+        b"\xff" * (MAX_RESULT_STRING_LENGTH + 1),
+        bytearray(b"a" * (MAX_RESULT_STRING_LENGTH + 1)),
+        memoryview(b"\xff" * MAX_RESULT_STRING_LENGTH),
         QueryStatus.SUCCESS,
         HostileScalarInt(1),
     ],
@@ -663,9 +663,9 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
         "decimal-nan",
         "decimal-infinity",
         "decimal-magnitude",
-        "bytes",
-        "bytearray",
-        "memoryview",
+        "oversized-bytes",
+        "oversized-bytearray",
+        "oversized-base64-memoryview",
         "query-status",
         "hostile-int-subclass",
     ],
@@ -685,6 +685,30 @@ def test_row_scalars_are_exact_finite_bounded_primitives(value: Any) -> None:
 
     assert error is not None
     assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (b"\xff", "base64:/w=="),
+        (b"caf\xc3\xa9", "café"),
+        (bytearray(b"\x00\xff"), "base64:AP8="),
+        (memoryview(b"plain"), "plain"),
+    ],
+    ids=["bytes", "utf8-bytes", "bytearray", "memoryview"],
+)
+def test_binary_cells_use_the_response_serializer_encoding(
+    value: Any, expected: str
+) -> None:
+    """Binary cells become UTF-8 text or ``base64:`` text, not a failure."""
+    result = {
+        "queries": [
+            {"data": [{"value": value}], "colnames": ["value"], "coltypes": [1]}
+        ]
+    }
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"value": expected}]
 
 
 def test_exact_known_status_enum_is_allowed_only_in_status_slot() -> None:
