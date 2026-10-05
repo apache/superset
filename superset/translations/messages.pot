@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -899,12 +899,7 @@ msgstr ""
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 
-msgid ""
-"A dashboard filter or display control has incompatible semantic "
-"selections. Dynamic group-by is unsupported on versioned semantic views; "
-"remove this chart from that control's scope. For other filters or "
-"controls, reset and reselect fields or saved values. If it targets "
-"another semantic view, remove this chart from its scope."
+msgid "A dashboard filter or display control has incompatible semantic selections. Dynamic group-by is unsupported on versioned semantic views; remove this chart from that control's scope. For other filters or controls, reset and reselect fields or saved values. If it targets another semantic view, remove this chart from its scope."
 msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
@@ -1251,6 +1246,9 @@ msgid "Add metric"
 msgstr ""
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
+msgstr ""
+
+msgid "Add more"
 msgstr ""
 
 msgid "Add new color formatter"
@@ -3534,6 +3532,10 @@ msgid "Color by direction"
 msgstr ""
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
+msgstr ""
+
+#, python-format
+msgid "Color for %s"
 msgstr ""
 
 msgid "Color for bars on the left side of the chart"
@@ -7522,6 +7524,9 @@ msgstr ""
 msgid "Invalid JSON metadata"
 msgstr ""
 
+msgid "Invalid JSON metadata. Please resolve syntax errors in Advanced settings to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr ""
@@ -7779,6 +7784,9 @@ msgid "Kilometers"
 msgstr ""
 
 msgid "Label"
+msgstr ""
+
+msgid "Label Colors"
 msgstr ""
 
 msgid "Label Contents"
@@ -8352,6 +8360,9 @@ msgid "Map Renderer"
 msgstr ""
 
 msgid "Map Style"
+msgstr ""
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
 msgid "MapLibre (open-source)"
@@ -9056,6 +9067,9 @@ msgstr ""
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr ""
 
@@ -9180,6 +9194,9 @@ msgid "No saved metrics found"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -10610,6 +10627,9 @@ msgstr ""
 msgid "Remove System Default Theme"
 msgstr ""
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr ""
 
@@ -11392,12 +11412,7 @@ msgstr ""
 msgid "Saved query parameters are invalid."
 msgstr ""
 
-msgid ""
-"Saved semantic selections use an older identity format. Reset and "
-"explicitly reselect the metrics and dimensions, then save the chart. "
-"Display titles cannot be recovered automatically. For API requests, "
-"select current member IDs and supply semantic_selection_version from "
-"datasource metadata or MCP list_metrics."
+msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
 msgstr ""
 
 msgid "Saving..."
@@ -11847,6 +11862,9 @@ msgid "Select or type CC recipients"
 msgstr ""
 
 msgid "Select or type a custom value..."
+msgstr ""
+
+msgid "Select or type a label"
 msgstr ""
 
 msgid "Select or type currency symbol"
@@ -12795,16 +12813,10 @@ msgstr ""
 msgid "Start field selection"
 msgstr ""
 
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"field selections, pre-filters, sorting, defaults and dependencies. Saved "
-"display titles cannot be recovered automatically."
+msgid "Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically."
 msgstr ""
 
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
+msgid "Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -14617,9 +14629,7 @@ msgstr ""
 msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 
-msgid ""
-"This saved filter state predates the member-ID format. Reset it and "
-"explicitly choose its values again."
+msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
 msgstr ""
 
 msgid ""
@@ -15677,9 +15687,7 @@ msgstr ""
 msgid "Values are dependent on other filters"
 msgstr ""
 
-msgid ""
-"Values cannot be refreshed in All mode for this semantic view. Saved "
-"values are preserved. Switch to Members to enter values manually."
+msgid "Values cannot be refreshed in All mode for this semantic view. Saved values are preserved. Switch to Members to enter values manually."
 msgstr ""
 
 msgid "Values dependent on"
