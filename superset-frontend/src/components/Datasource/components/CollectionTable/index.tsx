@@ -101,6 +101,7 @@ export default function CRUDCollection({
   filterFields,
   rowClassName,
   expandItemWhere,
+  expandItemNonce,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
@@ -299,6 +300,26 @@ export default function CRUDCollection({
       [id]: !prev[id],
     }));
   }, []);
+
+  // Read through a ref, and keyed on the nonce alone, because callers pass an
+  // inline arrow: an effect depending on the predicate's identity would run on
+  // every render and reopen a row the user had just collapsed, which is the
+  // opposite of the additive behaviour the prop documents.
+  const expandItemWhereRef = useRef(expandItemWhere);
+  expandItemWhereRef.current = expandItemWhere;
+
+  useEffect(() => {
+    const matches = expandItemWhereRef.current;
+    if (!matches || expandItemNonce === undefined) {
+      return;
+    }
+    const target = collectionArray.find(matches);
+    if (!target) {
+      return;
+    }
+    // Merged rather than replaced, so rows the user opened stay open.
+    setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
+  }, [expandItemNonce, collectionArray]);
 
   const handleTableChange = useCallback(
     (
@@ -518,18 +539,6 @@ export default function CRUDCollection({
     return collectionArray;
   }, [collectionArray, filterTerm, filterFields]);
 
-  // Open a row on request from elsewhere in the editor -- the dataset settings
-  // link to the mapped column's transform, which is only reachable expanded.
-  useEffect(() => {
-    if (!expandItemWhere) {
-      return;
-    }
-    const match = collectionArray.find(item => expandItemWhere(item));
-    if (match) {
-      setExpandedColumns(prev => ({ ...prev, [match.id]: true }));
-    }
-  }, [expandItemWhere, collectionArray]);
-
   const paginationConfig = useMemo((): false | TablePaginationConfig => {
     if (pagination === false || pagination === undefined) {
       return false;
@@ -594,7 +603,6 @@ export default function CRUDCollection({
         columns={antdColumns}
         data={displayData}
         rowKey={(record: CollectionItem) => String(record.id)}
-        rowClassName={rowClassName}
         sticky={stickyHeader}
         pagination={paginationConfig}
         onChange={handleTableChange}
@@ -607,6 +615,7 @@ export default function CRUDCollection({
           `
         }
         expandable={expandableConfig}
+        rowClassName={rowClassName}
         size={TableSize.Middle}
         tableLayout="auto"
       />

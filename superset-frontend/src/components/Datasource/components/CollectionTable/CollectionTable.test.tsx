@@ -363,3 +363,96 @@ test('a fieldset commit preserves the collection order', () => {
   const rows = container.querySelectorAll('.ant-table-tbody tr');
   expect(rows).toHaveLength(2);
 });
+
+test('applies rowClassName to each row', () => {
+  // The dataset editor mutes the partition column's row this way; without the
+  // prop reaching the table the class was never applied and the styling in
+  // `StyledColumnsTableWrapper` was dead.
+  const { container } = render(
+    <CollectionTable
+      {...props}
+      rowClassName={record =>
+        record.column_name === 'num_boys' ? 'partition-column-row' : ''
+      }
+    />,
+  );
+
+  const tagged = container.querySelectorAll('tr.partition-column-row');
+  expect(tagged).toHaveLength(1);
+  expect(tagged[0]).toHaveTextContent('num_boys');
+});
+
+test('expands the row a reveal request points at', () => {
+  // A link elsewhere in the editor asks for a column by name; the row has to
+  // open on its own, with nothing for the user to click.
+  render(
+    <CollectionTable
+      {...props}
+      expandFieldset={<Fieldset compact>{null}</Fieldset>}
+      expandItemWhere={record => record.column_name === 'num_boys'}
+      expandItemNonce={1}
+    />,
+  );
+
+  expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
+});
+
+test('re-opens a revealed row the user collapsed, on a second request', () => {
+  // The request is an event, not a state: asking for the same column twice
+  // has to work, which is what the nonce carries. Without it a bare name
+  // would make the second ask a no-op and the row would stay shut.
+  const Harness = () => {
+    const [nonce, setNonce] = useState(1);
+    return (
+      <>
+        <button type="button" onClick={() => setNonce(n => n + 1)}>
+          reveal again
+        </button>
+        <CollectionTable
+          {...props}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={nonce}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getByLabelText('Collapse row'));
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'reveal again' }));
+
+  expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
+});
+
+test('a reveal request leaves rows the user opened open', () => {
+  // Expansion is additive, so revealing one row must not close another.
+  const Harness = () => {
+    const [nonce, setNonce] = useState<number | undefined>(undefined);
+    return (
+      <>
+        <button type="button" onClick={() => setNonce(1)}>
+          reveal
+        </button>
+        <CollectionTable
+          {...props}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={nonce}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getAllByLabelText('Expand row')[0]);
+  expect(screen.getAllByLabelText('Collapse row')).toHaveLength(1);
+
+  fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
+
+  expect(screen.getAllByLabelText('Collapse row')).toHaveLength(2);
+});
