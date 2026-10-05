@@ -52,6 +52,7 @@ from superset.connectors.sqla.partition_mapping import (
     parse_error_detail,
     placeholder_is_executable,
     probe_sql_is_evaluable,
+    RawProbeValue,
     resolve_partition_mapping,
     stored_expression_error,
     validate_partition_mapping,
@@ -800,6 +801,41 @@ def test_the_probe_select_is_unchanged_on_a_dialect_that_does_not_double() -> No
         build_probe_sql("date_format(:value, '%Y%m%d')", ["2026-01-15"])
         == "SELECT date_format('2026-01-15', '%Y%m%d') AS v0"
     )
+
+
+def test_a_raw_probe_value_is_substituted_literally() -> None:
+    r"""
+    `RawProbeValue.sql` is rendered from a filter value, so it reaches
+    `parse_skeleton` as the *replacement* for `:value`. Read as a replacement
+    template, a backslash in it is an escape: `array('a\nb')` -- which is how a
+    dialect renders the two characters `\` and `n` -- would become a real
+    newline, so the engine is asked about a different array than the predicate
+    compares and the mirror can exclude rows the filter keeps.
+    """
+    sql = build_probe_sql("toYYYYMM(:value)", [RawProbeValue(r"array('a\nb')")])
+
+    assert sql == r"SELECT toYYYYMM(array('a\nb')) AS v0"
+
+
+def test_a_raw_probe_value_does_not_re_inject_the_placeholder() -> None:
+    r"""
+    `\g<0>` in a replacement template expands to the whole match, which would
+    put `:value` back into the probe -- an unbound parameter the engine refuses.
+    """
+    sql = build_probe_sql("toYYYYMM(:value)", [RawProbeValue(r"'a\g<0>b'")])
+
+    assert sql == r"SELECT toYYYYMM('a\g<0>b') AS v0"
+    assert ":value" not in sql
+
+
+def test_a_raw_probe_value_with_a_group_reference_does_not_raise() -> None:
+    r"""
+    `\1` is an invalid group reference for this pattern, so as a replacement
+    template it raised `re.PatternError` rather than probing anything.
+    """
+    sql = build_probe_sql("toYYYYMM(:value)", [RawProbeValue(r"'a\1b'")])
+
+    assert sql == r"SELECT toYYYYMM('a\1b') AS v0"
 
 
 def test_a_probed_literal_keeps_its_percent_sign(app: Flask) -> None:
