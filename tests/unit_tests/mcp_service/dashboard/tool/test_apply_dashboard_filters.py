@@ -2127,3 +2127,27 @@ def test_range_labels_preserve_bounds_that_overflow_smart_number_format(
         "extraFormData": {"filters": filters},
         "filterState": {"value": bounds, "label": label},
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bound", [True, False])
+@pytest.mark.parametrize("index", [0, 1])
+async def test_range_boolean_bounds_are_rejected(
+    mcp_server: object, bound: bool, index: int
+) -> None:
+    """Reject boolean range bounds without creating a permalink."""
+    bounds: list[int] = [0, 100]
+    bounds[index] = bound
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([RANGE_FILTER])),
+        patch(CREATE_PERMALINK) as create,
+        pytest.raises(ToolError, match="range bounds must be numbers or null"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Cost", "range": bounds}],
+            },
+        )
+    create.assert_not_called()

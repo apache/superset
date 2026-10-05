@@ -75,6 +75,7 @@ from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 from pydantic import (
     AliasChoices,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     field_validator,
@@ -2546,6 +2547,13 @@ class ManageNativeFiltersResponse(BaseModel):
 FilterSelectValue = bool | int | float | str | None
 
 
+def _reject_bool_range_bound(value: object) -> object:
+    """Reject boolean bounds before they can be coerced to integers."""
+    if isinstance(value, bool):
+        raise ValueError("range bounds must be numbers or null, not booleans")
+    return value
+
+
 class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
@@ -2580,7 +2588,10 @@ class ApplyFilterValueSpec(BaseModel):
             "'No filter' to clear the filter."
         ),
     )
-    range: List[int | float | None] | None = Field(
+    range: (
+        List[Annotated[int | float | None, BeforeValidator(_reject_bool_range_bound)]]
+        | None
+    ) = Field(
         None,
         min_length=2,
         max_length=2,

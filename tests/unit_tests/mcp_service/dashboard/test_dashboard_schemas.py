@@ -1360,3 +1360,15 @@ def test_filter_specs_reject_boolean_dataset_id(
     with pytest.raises(ValidationError, match="dataset_id must be an integer"):
         model.model_validate({**payload, "name": "Filter", "dataset_id": True})
     assert model.model_validate({**payload, "name": "Filter", "dataset_id": 1})
+
+
+@pytest.mark.parametrize("bound", [True, False])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> None:
+    """Boolean bounds must not coerce to numeric range predicates."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be numbers or null"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
