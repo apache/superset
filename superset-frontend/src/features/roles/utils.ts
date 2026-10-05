@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ReactNode } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import rison from 'rison';
@@ -59,6 +60,51 @@ export const formatPermissionLabel = (
   permissionName: string,
   viewMenuName: string,
 ) => `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`;
+
+// Numeric-aware collation so "[yyy2]" sorts before "[yyy10]" instead of the
+// plain string order produced by localeCompare ("[yyy10]" before "[yyy2]").
+const naturalCollator = new Intl.Collator(undefined, { numeric: true });
+
+/**
+ * Ranks how closely a label matches a search term, mirroring the tiers of
+ * rankedSearchCompare (exact, prefix, substring; case-sensitive first).
+ * Lower is a better match.
+ */
+const getSearchMatchRank = (label: string, search: string) => {
+  const labelLower = label.toLowerCase();
+  const searchLower = search.toLowerCase();
+  const tiers = [
+    label === search,
+    label.startsWith(search),
+    labelLower === searchLower,
+    labelLower.startsWith(searchLower),
+    label.includes(search),
+    labelLower.includes(searchLower),
+  ];
+  const rank = tiers.indexOf(true);
+  return rank === -1 ? tiers.length : rank;
+};
+
+/**
+ * Sort comparator for permission options. Orders by search relevance when a
+ * search term is given, then by label using natural (numeric-aware) ordering.
+ */
+export const comparePermissionOptions = (
+  a: { label?: ReactNode },
+  b: { label?: ReactNode },
+  search?: string,
+) => {
+  const aLabel = String(a.label ?? '');
+  const bLabel = String(b.label ?? '');
+  return (
+    (search
+      ? getSearchMatchRank(aLabel, search) - getSearchMatchRank(bLabel, search)
+      : 0) || naturalCollator.compare(aLabel, bLabel)
+  );
+};
+
+export const sortPermissionOptions = (options: SelectOption[]) =>
+  [...options].sort((a, b) => comparePermissionOptions(a, b));
 
 type PermissionResult = {
   id: number;

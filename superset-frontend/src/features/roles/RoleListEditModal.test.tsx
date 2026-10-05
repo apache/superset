@@ -38,7 +38,16 @@ const mockToasts = {
   addSuccessToast: jest.fn(),
 };
 
-jest.mock('./utils');
+// Auto-mock the API helpers but keep the pure formatting/sorting helpers real,
+// since an auto-mocked sort would return undefined instead of the options.
+jest.mock('./utils', () => {
+  const actual = jest.requireActual('./utils');
+  return {
+    ...jest.createMockFromModule<typeof actual>('./utils'),
+    formatPermissionLabel: actual.formatPermissionLabel,
+    sortPermissionOptions: actual.sortPermissionOptions,
+  };
+});
 const mockUpdateRoleName = jest.mocked(updateRoleName);
 const mockUpdateRoleGroups = jest.mocked(updateRoleGroups);
 const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);

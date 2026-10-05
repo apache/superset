@@ -50,6 +50,7 @@ import {
   updateRolePermissions,
   updateRoleUsers,
   formatPermissionLabel,
+  sortPermissionOptions,
 } from './utils';
 import { getUserDisplayLabel } from 'src/features/users/utils';
 
@@ -176,11 +177,15 @@ function RoleListEditModal({
         if (cancelled) return;
         permissionFetchSucceeded.current = true;
         const result: RolePermissions[] = response.json.result ?? [];
+        // The API returns permissions in database order; sort them so the
+        // selected tags read in a predictable, natural order.
         setRolePermissions(
-          result.map(p => ({
-            value: p.id,
-            label: formatPermissionLabel(p.permission_name, p.view_menu_name),
-          })),
+          sortPermissionOptions(
+            result.map(p => ({
+              value: p.id,
+              label: formatPermissionLabel(p.permission_name, p.view_menu_name),
+            })),
+          ),
         );
       })
       .catch(() => {
