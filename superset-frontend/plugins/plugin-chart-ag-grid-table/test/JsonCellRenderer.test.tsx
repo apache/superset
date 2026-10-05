@@ -623,6 +623,39 @@ test('text cells render JSON, and leave other strings untouched', () => {
   );
 });
 
+test('a column formatter that rewrites the cell keeps the formatted text', () => {
+  const { unmount } = render(
+    <TextCellRenderer
+      {...textCellParams}
+      value={nestedJson}
+      valueFormatted="Ada Lovelace"
+    />,
+  );
+  expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
+  expect(screen.queryByTestId('json-cell')).not.toBeInTheDocument();
+  unmount();
+
+  const { unmount: unmountObject } = render(
+    <TextCellRenderer
+      {...textCellParams}
+      value={{ user: 'ada' }}
+      valueFormatted="Ada"
+    />,
+  );
+  expect(screen.getByText('Ada')).toBeInTheDocument();
+  expect(screen.queryByTestId('json-cell')).not.toBeInTheDocument();
+  unmountObject();
+
+  render(
+    <TextCellRenderer
+      {...textCellParams}
+      value={{ user: 'ada' }}
+      valueFormatted="[object Object]"
+    />,
+  );
+  expect(screen.getByTestId('json-cell-preview')).toHaveTextContent('ada');
+});
+
 test('JSON that the HTML renderer would claim stays HTML', () => {
   const htmlJson = '{"message":"<b>ok</b>"}';
   const params = {

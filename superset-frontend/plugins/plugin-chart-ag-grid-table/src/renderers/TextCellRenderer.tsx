@@ -31,6 +31,24 @@ const SUMMARY_TOOLTIP_TEXT = t(
   'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
 );
 
+/**
+ * A column formatter rewrote the cell when its display text is neither the
+ * default String(value) nor a JSON serialization of the raw value.
+ */
+function columnFormatterRewroteCell(
+  value: unknown,
+  valueFormatted: unknown,
+): boolean {
+  if (typeof valueFormatted !== 'string' || valueFormatted === String(value)) {
+    return false;
+  }
+  try {
+    return valueFormatted !== JSON.stringify(value);
+  } catch {
+    return true;
+  }
+}
+
 export const TextCellRenderer = (params: CellRendererProps) => {
   const {
     node,
@@ -79,7 +97,7 @@ export const TextCellRenderer = (params: CellRendererProps) => {
   }
 
   const parsedJson = parseJsonCellValue(value);
-  if (parsedJson) {
+  if (parsedJson && !columnFormatterRewroteCell(value, valueFormatted)) {
     return (
       <JsonCellRenderer
         value={parsedJson}
