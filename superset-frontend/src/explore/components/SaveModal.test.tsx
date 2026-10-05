@@ -776,7 +776,7 @@ test('addChartToDashboard successfully adds chart to existing row with space', a
       body: expect.stringContaining('position_json'),
     });
 
-    const putCall = SupersetClient.put.mock.calls[0][0];
+    const [[putCall]] = SupersetClient.put.mock.calls;
     const body = JSON.parse(putCall.body);
     const updatedPositionJson = JSON.parse(body.position_json);
 

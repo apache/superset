@@ -415,8 +415,8 @@ test('resets the comparator when switching between array value families', () => 
     props as unknown as Props,
   );
   onOperatorChange(Operators.ContainsAll);
-  const lastCall =
-    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  const [lastCall] =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1];
   expect(lastCall.operatorId).toEqual(Operators.ContainsAll);
   expect(lastCall.comparator).toBeUndefined();
 });
@@ -437,8 +437,8 @@ test('keeps the value when switching within the element family', () => {
     props as unknown as Props,
   );
   onOperatorChange(Operators.ContainsAll);
-  const lastCall =
-    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  const [lastCall] =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1];
   expect(lastCall.comparator).toEqual(['5', '6']);
 });
 
@@ -468,8 +468,8 @@ test('editing a dashboard-inherited time range filter clears isExtra so the new 
     props as unknown as Props,
   );
   onDatePickerChange('ds', '2025-01-01 : 2025-02-01');
-  const editedFilter =
-    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  const [editedFilter] =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1];
   expect(editedFilter.comparator).toEqual('2025-01-01 : 2025-02-01');
   expect(editedFilter.isExtra).toBe(false);
 });
@@ -489,8 +489,8 @@ test('editing a dashboard-inherited filter comparator clears isExtra so the new 
     props as unknown as Props,
   );
   onComparatorChange('20');
-  const editedFilter =
-    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  const [editedFilter] =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1];
   expect(editedFilter.comparator).toEqual('20');
   expect(editedFilter.isExtra).toBe(false);
 });

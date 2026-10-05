@@ -140,7 +140,7 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
   fireEvent.contextMenu(rowHeader!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const contextMenuFilters = onContextMenu.mock.calls[0][2];
+  const [[, , contextMenuFilters]] = onContextMenu.mock.calls;
   expect(contextMenuFilters?.drillToDetail).toEqual([
     {
       col: 'install_date',
@@ -204,7 +204,7 @@ test('keeps non-numeric temporal values for drill-to-detail formatted labels', (
   fireEvent.contextMenu(rowHeader!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const contextMenuFilters = onContextMenu.mock.calls[0][2];
+  const [[, , contextMenuFilters]] = onContextMenu.mock.calls;
   expect(contextMenuFilters?.drillToDetail).toEqual([
     {
       col: 'install_date',
@@ -234,7 +234,7 @@ test('keeps non-formatted drill-to-detail values as strings', () => {
   fireEvent.contextMenu(rowHeader!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const contextMenuFilters = onContextMenu.mock.calls[0][2];
+  const [[, , contextMenuFilters]] = onContextMenu.mock.calls;
   expect(contextMenuFilters?.drillToDetail).toEqual([
     {
       col: 'country',
@@ -376,7 +376,7 @@ test('emits drill filters from formatted column headers', () => {
   fireEvent.contextMenu(columnHeader!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const contextMenuFilters = onContextMenu.mock.calls[0][2];
+  const [[, , contextMenuFilters]] = onContextMenu.mock.calls;
   expect(contextMenuFilters?.drillToDetail).toEqual([
     {
       col: 'Install date expression',

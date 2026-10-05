@@ -190,7 +190,7 @@ test('opens a socket when enabled and routes its messages to handlers', () => {
   connectRealtime(ENABLED);
 
   expect(FakeWebSocket.instances).toHaveLength(1);
-  const ws = FakeWebSocket.instances[0];
+  const [ws] = FakeWebSocket.instances;
   // The connect URL is the configured base plus this tab's id, so the server
   // can bind a per-tab channel. getTabId is mocked to 'test-tab-id' (shim).
   const wsUrl = new URL(ws.url);
@@ -297,7 +297,7 @@ test('a synchronous WebSocket constructor failure still schedules a reconnect', 
 test('disconnect closes the socket and stops reconnecting', () => {
   jest.useFakeTimers();
   connectRealtime(ENABLED);
-  const ws = FakeWebSocket.instances[0];
+  const [ws] = FakeWebSocket.instances;
 
   // disconnect via a superseding reset; the prior socket must not reconnect.
   resetRealtimeForTests();
@@ -346,7 +346,7 @@ test('a socket that drops just before keepalive reconnects (not a keepalive hand
   subscribeRealtimeOpen(reason => reasons.push(reason));
   try {
     connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
-    const ws = FakeWebSocket.instances[0];
+    const [ws] = FakeWebSocket.instances;
     ws.readyState = 1; // OPEN
     ws.onopen?.();
     expect(reasons).toEqual(['initial']);

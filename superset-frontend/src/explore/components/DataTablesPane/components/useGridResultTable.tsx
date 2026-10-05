@@ -140,7 +140,7 @@ export function useGridHeight(fallbackHeight = 400) {
     if (!el) return;
 
     const observer = new ResizeObserver(entries => {
-      const entry = entries[0];
+      const [entry] = entries;
       if (entry) {
         const h = Math.floor(entry.contentRect.height);
         if (h > 0) {

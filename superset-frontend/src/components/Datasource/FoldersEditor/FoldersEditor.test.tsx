@@ -287,7 +287,7 @@ test('edits folder name when clicked in edit mode', async () => {
   await waitFor(() => {
     expect(onChange).toHaveBeenCalled();
     const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1];
-    const folders = lastCall[0];
+    const [folders] = lastCall;
     expect(folders[0].name).toBe('Updated Folder');
   });
 });
@@ -405,7 +405,7 @@ test('folders are rendered with proper @dnd-kit integration', () => {
     '[aria-roledescription="sortable"]',
   );
   expect(sortableElements.length).toBeGreaterThan(0);
-  const sortableElement = sortableElements[0];
+  const [sortableElement] = sortableElements;
   expect(sortableElement).toHaveAttribute('tabindex', '0');
   expect(sortableElement).toHaveAttribute('role', 'button');
 });
@@ -597,7 +597,7 @@ test('auto-expands folders when searching for items inside them', async () => {
   renderEditor(<FoldersEditor {...testProps} />);
 
   // Collapse the Metrics folder first
-  const metricsIcon = screen.getAllByRole('img', { name: 'down' })[0];
+  const [metricsIcon] = screen.getAllByRole('img', { name: 'down' });
   fireEvent.click(metricsIcon);
 
   await waitFor(() => {
@@ -751,7 +751,7 @@ test('restores previous collapsed state when search is cleared', async () => {
   renderEditor(<FoldersEditor {...testProps} />);
 
   // Collapse Metrics folder
-  const metricsIcon = screen.getAllByRole('img', { name: 'down' })[0];
+  const [metricsIcon] = screen.getAllByRole('img', { name: 'down' });
   fireEvent.click(metricsIcon);
 
   await waitFor(() => {

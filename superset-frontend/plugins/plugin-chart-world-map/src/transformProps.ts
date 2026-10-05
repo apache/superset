@@ -59,7 +59,7 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+  const [{ data: rawData, detected_currency: detectedCurrency }] = queriesData;
 
   // The legacy explore_json endpoint joined country metadata server-side;
   // rows carrying both the entity and metric labels are v1 records that

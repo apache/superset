@@ -489,7 +489,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         return undefined;
       }
 
-      const [key, val] = Object.entries(value)[0];
+      const [[key, val]] = Object.entries(value);
       let values = { ...selectedFilters };
       if (isActiveFilterValue(key, val)) {
         values = {};

@@ -179,7 +179,7 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.mock.calls.length).toBe(1);
-      const { jsonPayload } = postStub.mock.calls[0][0];
+      const [[{ jsonPayload }]] = postStub.mock.calls;
       const parsedJsonMetadata = JSON.parse(jsonPayload.json_metadata);
       expect(
         parsedJsonMetadata.positions[DASHBOARD_GRID_ID].parents,
@@ -233,7 +233,7 @@ describe('dashboardState actions', () => {
         expect(getStub.mock.calls.length).toBe(0);
         expect(postStub.mock.calls.length).toBe(0);
         await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-        const { body } = putStub.mock.calls[0][0];
+        const [[{ body }]] = putStub.mock.calls;
         expect(body).toBe(JSON.stringify(confirmedDashboardData));
       });
 

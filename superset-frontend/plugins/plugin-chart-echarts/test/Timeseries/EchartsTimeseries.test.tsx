@@ -882,7 +882,7 @@ test('context menu cross-filter is available for a temporal bar point', async ()
     expect(onContextMenu).toHaveBeenCalled();
   });
 
-  const { crossFilter } = onContextMenu.mock.calls[0][2];
+  const [[, , { crossFilter }]] = onContextMenu.mock.calls;
   expect(crossFilter.dataMask.extraFormData.filters).toEqual([
     {
       col: 'ds',

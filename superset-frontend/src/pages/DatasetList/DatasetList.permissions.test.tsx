@@ -236,7 +236,7 @@ test('action buttons respect user permissions', async () => {
   // Setup API with full admin permissions
   setupApiPermissions(['can_read', 'can_write', 'can_export', 'can_duplicate']);
 
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -262,7 +262,7 @@ test('read-only user sees no delete or duplicate buttons in row', async () => {
   // Setup API with read-only permissions
   setupApiPermissions(['can_read']);
 
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -331,7 +331,7 @@ test('export-only user has no Actions column (no write/duplicate permissions)', 
   // Note: Export action alone doesn't render Actions column - it's in toolbar/bulk select
   setupApiPermissions(['can_read', 'can_export']);
 
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -363,8 +363,8 @@ test('user with can_duplicate sees duplicate button only for virtual datasets', 
   // Setup API with duplicate permission
   setupApiPermissions(['can_read', 'can_duplicate']);
 
-  const physicalDataset = mockDatasets[0]; // kind: 'physical'
-  const virtualDataset = mockDatasets[1]; // kind: 'virtual'
+  const [physicalDataset] = mockDatasets; // kind: 'physical'
+  const [, virtualDataset] = mockDatasets; // kind: 'virtual'
 
   mockDatasetListEndpoints({
     result: [physicalDataset, virtualDataset],

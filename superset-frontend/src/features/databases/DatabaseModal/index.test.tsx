@@ -344,7 +344,7 @@ describe('DatabaseModal', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButtons = await screen.findAllByLabelText('Close');
-      const closeButton = closeButtons[0];
+      const [closeButton] = closeButtons;
       const step1Header = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -677,7 +677,7 @@ describe('DatabaseModal', () => {
       // <Tabs> - Basic/Advanced tabs
       const basicTab = screen.getByRole('tab', { name: /basic/i });
       const advancedTab = screen.getByRole('tab', { name: /advanced/i });
-      const advancedTabPanel = screen.getAllByRole('tabpanel')[0];
+      const [advancedTabPanel] = screen.getAllByRole('tabpanel');
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       // These are the checkbox SVGs that cover the actual checkboxes
@@ -1436,13 +1436,13 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
         const textboxes = await screen.findAllByRole('textbox');
-        const hostField = textboxes[0];
+        const [hostField] = textboxes;
         const portField = screen.getByRole('spinbutton');
         // textboxes[1] is the connection `database` field; the engine display
         // name (`database_name`) auto-fills and is asserted separately.
-        const databaseField = textboxes[1];
-        const usernameField = textboxes[2];
-        const passwordField = textboxes[3];
+        const [, databaseField] = textboxes;
+        const [, , usernameField] = textboxes;
+        const [, , , passwordField] = textboxes;
         const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         expect(hostField).toHaveValue('');
@@ -1496,7 +1496,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
         const textboxes = await screen.findAllByRole('textbox');
-        const hostField = textboxes[0];
+        const [hostField] = textboxes;
 
         // Type a value and blur - should trigger validation
         fireEvent.change(hostField, { target: { value: 'localhost' } });
@@ -1539,11 +1539,11 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
         const textboxes = await screen.findAllByRole('textbox');
-        const hostField = textboxes[0];
+        const [hostField] = textboxes;
         const portField = screen.getByRole('spinbutton');
-        const databaseField = textboxes[1];
-        const usernameField = textboxes[2];
-        const passwordField = textboxes[3];
+        const [, databaseField] = textboxes;
+        const [, , usernameField] = textboxes;
+        const [, , , passwordField] = textboxes;
         const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         fireEvent.change(hostField, { target: { value: 'localhost' } });

@@ -295,7 +295,7 @@ describe('ColorBreakpointPopoverControl', () => {
       },
     ];
 
-    const editingBreakpoint = existingBreakpoints[0];
+    const [editingBreakpoint] = existingBreakpoints;
     renderComponent({
       colorBreakpoints: existingBreakpoints,
       value: editingBreakpoint,

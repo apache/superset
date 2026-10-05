@@ -313,7 +313,7 @@ export function transformSpatialProps(chartProps: ChartProps) {
   const { spatial, size: metric } = formData as SpatialFormData;
   const metricLabel = metric ? getMetricLabel(metric) : undefined;
 
-  const queryData = queriesData[0];
+  const [queryData] = queriesData;
   const records = queryData?.data || [];
   const features = processSpatialData(records, spatial, metricLabel);
 

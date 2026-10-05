@@ -550,9 +550,9 @@ export default typedMemo(function DataTable<D extends object>({
         ([option]) => option >= resultCurrentPageSize,
       );
       if (nearestOption) {
-        resultCurrentPageSize = nearestOption[0];
+        [resultCurrentPageSize] = nearestOption;
       } else if (pageSizeOptions.length > 0) {
-        resultCurrentPageSize = pageSizeOptions[pageSizeOptions.length - 1][0];
+        [resultCurrentPageSize] = pageSizeOptions[pageSizeOptions.length - 1];
       } else {
         resultCurrentPageSize = 0;
       }

@@ -2785,7 +2785,7 @@ test('selecting filter triggers chart data request with correct params', async (
   });
 
   // Verify it was called with correct datasource and groupby
-  const callArgs = mockGetChartDataRequest.mock.calls[0][0];
+  const [[callArgs]] = mockGetChartDataRequest.mock.calls;
   expect(callArgs.formData.groupby).toEqual(['country']);
   expect(callArgs.formData.datasource).toBe('1__table');
 

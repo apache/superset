@@ -779,7 +779,7 @@ test('WS mode: an in-flight catch-up does not clobber a cursor rewound mid-fligh
   });
 
   // The queued follow-up must fetch from T1 (the rewound watermark), not T3.
-  const secondCall = fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT)[1];
+  const [, secondCall] = fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT);
   expect(decodeURIComponent(secondCall.url)).toContain('2020-01-01T00:00:01');
   expect(decodeURIComponent(secondCall.url)).not.toContain(
     '2020-01-01T00:00:03',

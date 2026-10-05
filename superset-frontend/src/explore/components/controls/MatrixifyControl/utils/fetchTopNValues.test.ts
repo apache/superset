@@ -79,7 +79,7 @@ test('defaults to descending order, no filters and no time range', async () => {
 
   await fetchTopNValues(baseParams);
 
-  const { formData } = mockGetChartDataRequest.mock.calls[0][0];
+  const [[{ formData }]] = mockGetChartDataRequest.mock.calls;
   expect(formData.orderby).toEqual([['count', false]]);
   expect(formData.adhoc_filters).toEqual([]);
   expect(formData.time_range).toBeUndefined();

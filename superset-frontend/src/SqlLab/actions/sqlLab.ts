@@ -987,7 +987,7 @@ export function setActiveSouthPaneTab(tabId: string): SqlLabAction {
 export function toggleLeftBar(shouldHide: boolean): SqlLabThunkAction {
   return (dispatch: AppDispatch, getState: GetState) => {
     const { sqlLab } = getState();
-    const id = sqlLab.tabHistory.slice(-1)[0];
+    const [id] = sqlLab.tabHistory.slice(-1);
     if (!id) return;
     const qe = sqlLab.queryEditors.find(e => e.id === id);
     const merged =
@@ -1643,7 +1643,7 @@ export function popDatasourceQuery(
 ): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     const QUERY_TEXT = t('Query');
-    const datasetId = datasourceKey.split('__')[0];
+    const [datasetId] = datasourceKey.split('__');
 
     const queryParams = rison.encode({
       keys: ['none'],

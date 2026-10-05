@@ -121,8 +121,7 @@ describe('RangeFilterPlugin', () => {
     getWrapper({ filterState: { value: [null, null] } });
 
     const inputs = screen.getAllByRole('spinbutton');
-    const fromInput = inputs[0];
-    const toInput = inputs[1];
+    const [fromInput, toInput] = inputs;
 
     await userEvent.clear(fromInput);
     await userEvent.type(fromInput, '20');
@@ -428,7 +427,7 @@ describe('RangeFilterPlugin', () => {
       getWrapper(decimalProps);
 
       const inputs = screen.getAllByRole('spinbutton');
-      const fromInput = inputs[0];
+      const [fromInput] = inputs;
 
       await userEvent.clear(fromInput);
       await userEvent.type(fromInput, '2.5');

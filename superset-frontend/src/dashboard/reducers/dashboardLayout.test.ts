@@ -527,7 +527,7 @@ describe('dashboardLayout reducer', () => {
       payload: { dropResult },
     });
 
-    const newId = result[DASHBOARD_GRID_ID].children[1];
+    const [, newId] = result[DASHBOARD_GRID_ID].children;
     expect(result[DASHBOARD_GRID_ID].children).toHaveLength(2);
     expect(result[newId].type).toBe(ROW_TYPE);
   });

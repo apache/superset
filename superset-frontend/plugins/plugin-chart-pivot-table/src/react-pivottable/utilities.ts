@@ -60,7 +60,7 @@ const addSeparators = function (
   decimalSep: string,
 ): string {
   const x = String(nStr).split('.');
-  let x1 = x[0];
+  let [x1] = x;
   const x2 = x.length > 1 ? decimalSep + x[1] : '';
   const rgx = /(\d+)(\d{3})/;
   while (rgx.test(x1)) {

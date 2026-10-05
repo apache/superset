@@ -534,7 +534,7 @@ export const waitForAsyncData = async <T = unknown[]>(
       typeof asyncJob.cursor === 'string' &&
       (cursor === null || asyncJob.cursor < cursor)
     ) {
-      cursor = asyncJob.cursor;
+      ({ cursor } = asyncJob);
     }
     taskIds.forEach(taskId => {
       let waiters = waitersByTaskId.get(taskId);

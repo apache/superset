@@ -34,7 +34,7 @@ describe('TimeTable Control Panel', () => {
   });
 
   test('should have query section with required controls', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
+    const [, querySection] = controlPanelConfig.controlPanelSections;
     const { controlSetRows } = querySection!;
 
     expect(querySection).toBeDefined();
@@ -49,7 +49,7 @@ describe('TimeTable Control Panel', () => {
   });
 
   test('should have column collection control', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
+    const [, querySection] = controlPanelConfig.controlPanelSections;
     const columnCollectionRow = querySection!.controlSetRows.find(
       (row: any) =>
         Array.isArray(row) &&
@@ -70,7 +70,7 @@ describe('TimeTable Control Panel', () => {
   });
 
   test('should have URL control', () => {
-    const querySection = controlPanelConfig.controlPanelSections[1];
+    const [, querySection] = controlPanelConfig.controlPanelSections;
     const urlRow = querySection!.controlSetRows.find(
       (row: any) =>
         Array.isArray(row) && row.length === 1 && row[0].name === 'url',

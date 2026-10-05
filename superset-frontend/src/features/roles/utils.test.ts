@@ -125,7 +125,7 @@ test('fetchPermissionOptions makes single request when search term is empty', as
 
   expect(getMock).toHaveBeenCalledTimes(1);
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
+  const [, queryString] = endpoint.split('?q=');
   expect(rison.decode(queryString)).toEqual({
     page: 0,
     page_size: 100,
@@ -238,7 +238,7 @@ test('fetchGroupOptions sends filters array with search term', async () => {
 
   expect(getMock).toHaveBeenCalledTimes(1);
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
+  const [, queryString] = endpoint.split('?q=');
   expect(rison.decode(queryString)).toEqual({
     page: 1,
     page_size: 25,
@@ -265,7 +265,7 @@ test('fetchGroupOptions omits filters when search term is empty', async () => {
   await fetchGroupOptions('', 0, 100, addDangerToast);
 
   const { endpoint } = getMock.mock.calls[0][0] as { endpoint: string };
-  const queryString = endpoint.split('?q=')[1];
+  const [, queryString] = endpoint.split('?q=');
   expect(rison.decode(queryString)).toEqual({
     page: 0,
     page_size: 100,

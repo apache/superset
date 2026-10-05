@@ -281,7 +281,7 @@ function applyChartSpecificGroupBy(
       chartType,
       groupByColumns,
     );
-    groupByFormData.series = limitedColumns[0];
+    [groupByFormData.series] = limitedColumns;
     groupByFormData.groupby = [];
   } else if (chartType === 'heatmap' || chartType === 'heatmap_v2') {
     groupByFormData.groupby =
@@ -302,18 +302,18 @@ function applyChartSpecificGroupBy(
       chartType,
       groupByColumns,
     );
-    groupByFormData.source = limitedColumns[0];
+    [groupByFormData.source] = limitedColumns;
     if (limitedColumns.length > 1) {
-      groupByFormData.target = limitedColumns[1];
+      [, groupByFormData.target] = limitedColumns;
     }
   } else if (chartType === 'sankey_v2') {
     const { limitedColumns } = limitColumnsForChartType(
       chartType,
       groupByColumns,
     );
-    groupByFormData.source = limitedColumns[0];
+    [groupByFormData.source] = limitedColumns;
     if (limitedColumns.length > 1) {
-      groupByFormData.target = limitedColumns[1];
+      [, groupByFormData.target] = limitedColumns;
     }
   } else if (['chord'].includes(chartType)) {
     groupByFormData.groupby =
@@ -323,9 +323,9 @@ function applyChartSpecificGroupBy(
       chartType,
       groupByColumns,
     );
-    groupByFormData.series = limitedColumns[0];
+    [groupByFormData.series] = limitedColumns;
     if (limitedColumns.length > 1) {
-      groupByFormData.entity = limitedColumns[1];
+      [, groupByFormData.entity] = limitedColumns;
     }
     groupByFormData.groupby = [];
   } else if (chartType === 'pivot_table_v2') {
@@ -354,8 +354,7 @@ function getMatchingGroupByCustomizations(
   // datasource type to avoid matching a semantic-view customization to a
   // table chart that happens to share its numeric ID.
   const chartDatasetParts = String(chartDataset).split('__');
-  const chartDatasetId = chartDatasetParts[0];
-  const chartDatasourceType = chartDatasetParts[1];
+  const [chartDatasetId, chartDatasourceType] = chartDatasetParts;
 
   return chartCustomizationItems.filter(item => {
     if (item.removed) return false;
@@ -452,7 +451,7 @@ function processGroupByCustomizations(
     const previousLength = groupByColumns.length;
     if (isSingleColumnDimensionChart(chartType)) {
       if (!heatmapColumnAdded && nonConflictingColumns.length > 0) {
-        const firstColumn = nonConflictingColumns[0];
+        const [firstColumn] = nonConflictingColumns;
         if (!groupByColumns.includes(firstColumn)) {
           groupByColumns.push(firstColumn);
           heatmapColumnAdded = true;

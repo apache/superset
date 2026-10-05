@@ -95,8 +95,7 @@ describe('Gantt transformProps', () => {
 
     expect(transformedProps.echartOptions.series).toHaveLength(4);
     const series = transformedProps.echartOptions.series as any[];
-    const series0 = series[0];
-    const series1 = series[1];
+    const [series0, series1] = series;
 
     // exclude renderItem because it can't be serialized
     expect(typeof series0.renderItem).toBe('function');

@@ -63,7 +63,7 @@ function formatTooltip(
     return '';
   }
 
-  const { dataIndex, name } = axisParams[0];
+  const [{ dataIndex, name }] = axisParams;
   const title =
     (typeof dataIndex === 'number'
       ? categoryLabels.at(dataIndex)
@@ -95,7 +95,7 @@ export default function transformProps(
     emitCrossFilters,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  const [{ data = [] }] = queriesData;
   const {
     setDataMask = () => {},
     onContextMenu,

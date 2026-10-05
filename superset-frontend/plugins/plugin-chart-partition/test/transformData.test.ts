@@ -39,7 +39,7 @@ test('builds the summed hierarchy for the not-time option', () => {
     timeSeriesOption: 'not_time',
   });
   expect(data).toHaveLength(1);
-  const root = data[0];
+  const [root] = data;
   expect(root.name).toEqual('sum__num');
   expect(root.val).toEqual(100);
   expect(root.children.map(child => [child.name, child.val])).toEqual([
@@ -104,13 +104,13 @@ test('nests metric -> time -> groups for period analysis', () => {
     [t1, 60],
     [t2, 40],
   ]);
-  const firstTime = data[0].children[0];
+  const [firstTime] = data[0].children;
   expect(firstTime.children.map(child => [child.name, child.val])).toEqual([
     ['boy', 30],
     ['girl', 30],
   ]);
   // missing combinations are pivot-filled with 0
-  const secondTime = data[0].children[1];
+  const [, secondTime] = data[0].children;
   expect(secondTime.children.map(child => [child.name, child.val])).toEqual([
     ['boy', 40],
     ['girl', 0],
@@ -133,7 +133,7 @@ test('normalizes each period when contribution is on', () => {
     timeSeriesOption: 'adv_anal',
     contribution: true,
   });
-  const firstTime = data[0].children[0];
+  const [firstTime] = data[0].children;
   expect(firstTime.children.map(child => child.val)).toEqual([0.5, 0.5]);
 });
 

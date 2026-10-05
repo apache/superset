@@ -385,7 +385,7 @@ export const WithControlledSorting: StoryFn = () => {
   const data = useMemo(() => {
     const rawData = generateSampleData(15);
     if (sortBy.length > 0) {
-      const { id, desc } = sortBy[0];
+      const [{ id, desc }] = sortBy;
       return [...rawData].sort((a, b) => {
         const aVal = a[id as keyof SampleData];
         const bVal = b[id as keyof SampleData];

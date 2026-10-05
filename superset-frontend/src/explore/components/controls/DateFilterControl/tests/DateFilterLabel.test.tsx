@@ -512,7 +512,7 @@ test('correcting an invalid Advanced expression clears the error and re-enables 
   render(setup({ ...defaultProps, value: 'Last week' }));
   await userEvent.click(screen.getByText('Last week'));
   await selectOption('Advanced', RANGE_TYPE_LABEL);
-  const sinceInput = screen.getAllByRole('textbox')[0];
+  const [sinceInput] = screen.getAllByRole('textbox');
   await userEvent.type(sinceInput, 'bogus');
   await screen.findByText(INVALID_EXPRESSION_ERROR, {}, { timeout: 3000 });
 

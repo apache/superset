@@ -173,18 +173,18 @@ describe('RoleListEditModal', () => {
       );
 
       // Verify APIs receive plain number[], not {value, label}[]
-      const permissionArg = mockUpdateRolePermissions.mock.calls[0][1];
+      const [[, permissionArg]] = mockUpdateRolePermissions.mock.calls;
       expect(permissionArg).toEqual([10, 20]);
       expect(permissionArg.every((id: unknown) => typeof id === 'number')).toBe(
         true,
       );
 
       // updateRoleUsers is called with the hydrated user IDs
-      const userArg = mockUpdateRoleUsers.mock.calls[0][1];
+      const [[, userArg]] = mockUpdateRoleUsers.mock.calls;
       expect(userArg).toEqual([5, 7]);
       expect(userArg.every((id: unknown) => typeof id === 'number')).toBe(true);
 
-      const groupArg = mockUpdateRoleGroups.mock.calls[0][1];
+      const [[, groupArg]] = mockUpdateRoleGroups.mock.calls;
       expect(groupArg).toEqual([1, 2]);
       expect(groupArg.every((id: unknown) => typeof id === 'number')).toBe(
         true,

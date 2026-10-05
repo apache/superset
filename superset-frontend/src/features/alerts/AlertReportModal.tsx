@@ -797,11 +797,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const addNativeFilterOptions = (nativeFilters: NativeFilterObject[]) => {
     nativeFilterData.map(nativeFilter => {
       if (!nativeFilter.nativeFilterId) return;
-      const filter = nativeFilters.filter(
+      const [filter] = nativeFilters.filter(
         f => f.id === nativeFilter.nativeFilterId,
-      )[0];
+      );
 
-      const { datasetId } = filter.targets[0];
+      const [{ datasetId }] = filter.targets;
       const filterName = filter.name;
       const columnName = filter.targets[0].column?.name || filterName;
       const dashboardId = currentAlert?.dashboard?.value;
@@ -1485,7 +1485,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     // find specific filter tied to the selected filter
     const filters = Object.values(tabNativeFilters).flatMap(arr => arr ?? []);
-    const filter = filters.filter(f => f.id === nativeFilterId)[0];
+    const [filter] = filters.filter(f => f.id === nativeFilterId);
 
     const { filterType, adhoc_filters: adhocFilters } = filter;
     const filterAlreadyExist = nativeFilterData.some(

@@ -240,7 +240,7 @@ describe('ListView', () => {
     // sort-header[0] is the first data column ('id'); the select-all
     // column header carries `data-test="header-toggle-all"` instead
     // of `sort-header` (see TableCollection's `header.cell` slot).
-    const sortHeader = screen.getAllByTestId('sort-header')[0];
+    const [sortHeader] = screen.getAllByTestId('sort-header');
     await userEvent.click(sortHeader);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({

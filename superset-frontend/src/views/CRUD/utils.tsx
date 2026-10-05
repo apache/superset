@@ -594,7 +594,7 @@ export const getEncryptedExtraFieldsNeeded = (
           .map((e: string) => {
             const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
             if (!match) return null;
-            const path = match[1];
+            const [, path] = match;
             return { path, label: match[2] || path };
           })
           .filter(Boolean) as EncryptedExtraField[],

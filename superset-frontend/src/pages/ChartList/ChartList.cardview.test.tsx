@@ -156,7 +156,7 @@ describe('ChartList Card View Tests', () => {
       expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
     });
 
-    const testChart = mockCharts[0];
+    const [testChart] = mockCharts;
 
     // 1. Verify chart name appears
     expect(screen.getByText(testChart.slice_name)).toBeInTheDocument();

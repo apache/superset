@@ -117,7 +117,7 @@ test('fetches the bare dataset endpoint with no query projection', async () => {
       fetchMock.callHistory.calls('glob:*/api/v1/dataset/301'),
     ).toHaveLength(1),
   );
-  const { url } = fetchMock.callHistory.calls('glob:*/api/v1/dataset/301')[0];
+  const [{ url }] = fetchMock.callHistory.calls('glob:*/api/v1/dataset/301');
   // Characterized: the full resource, no rison ?q= column projection.
   expect(url.endsWith('/api/v1/dataset/301')).toBe(true);
 });
@@ -243,10 +243,10 @@ test('selecting a dimension persists a target that still carries datasourceType'
   await userEvent.click(await screen.findByText('Orders Users City'));
 
   await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
-  const persisted =
+  const [persisted] =
     setPendingChartCustomization.mock.calls[
       setPendingChartCustomization.mock.calls.length - 1
-    ][0];
+    ];
   expect(persisted.targets[0]).toMatchObject({
     datasetId: 307,
     datasourceType: DatasourceType.SemanticView,
@@ -282,10 +282,10 @@ test('clearing the selection keeps the datasource binding intact', async () => {
     await screen.findByRole('option', { name: 'Orders State' }),
   );
   await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
-  const cleared =
+  const [cleared] =
     setPendingChartCustomization.mock.calls[
       setPendingChartCustomization.mock.calls.length - 1
-    ][0];
+    ];
   expect(cleared.targets[0]).toMatchObject({
     datasetId: 308,
     datasourceType: DatasourceType.SemanticView,
