@@ -123,7 +123,10 @@ Each skip increments `deletion_retention.unsupported_models.<table>` once per
 run. Unsupported models are excluded from `would_purge` and do not count as
 `cascade_failures`; supported models continue to use their existing policies.
 An empty `unsupported_models` map means no registered models were skipped for
-this reason. Reporting a model is not the same as purging it: a host adds
+this reason. A root whose eligible-row scan raises — an unreadable column, a
+transient database error — is counted in `scan_failures` and increments
+`deletion_retention.scan_failures`, leaving the remaining roots to purge
+normally. Reporting a model is not the same as purging it: a host adds
 purge support for its own entities by installing a policy, described next.
 
 A host distribution that carries its own soft-deletable entities can supply
@@ -134,12 +137,30 @@ model that gains an installed policy stops being reported as unsupported. A
 provider that fails, returns something other than a sequence of policies, or
 redeclares a built-in chart, dashboard or dataset root is logged and ignored,
 leaving the built-in roots unchanged. Two declarations for one root are also
-ignored, leaving that root reported as unsupported rather than purged by an
-arbitrary one of them. So is a policy whose owned table is reachable only
-through an association: associations are deleted before owned children, so
-those rows would be orphaned — declare the intermediate table owned instead.
-A host that wants to confirm this hook exists before
-relying on it can check for `HOST_POLICIES_CONFIG_KEY` in
+ignored, so that root is reported as unsupported rather than purged by an
+arbitrary one of them.
+
+The shapes the shared cleanup can execute are the shapes it accepts. A policy
+is refused when its root has no `id` column (the scheduled scan pages eligible
+rows by it) or no `deleted_at` column (every purge path requires an archived
+row), and when a dependency it would have to execute cannot be:
+
+- an owned, association or block dependency that is not an inbound foreign
+  key, or that names a table outside the root's metadata;
+- a block with no audit reason code, or a listener effect with no execution
+  phase, which is dispatched by phase and would never run;
+- an owned table reachable only through an association, since associations are
+  deleted first and those rows would be orphaned — declare the intermediate
+  table owned instead;
+- an owned table that references itself while the policy keeps the stock
+  `delete_owned_children`, which prunes one level and would leave a deeper
+  sub-tree behind — such a policy supplies cleanup that walks the sub-tree;
+- two owned tables at the same depth that reference each other, because owned
+  deletes run in declaration order and an enforced constraint would refuse one
+  of the two orders.
+
+A host that wants to confirm this hook exists before relying on it can check
+for `HOST_POLICIES_CONFIG_KEY` in
 `superset.commands.deletion_retention.purge_policy`; installing the key on a
 version without the hook is harmless, since nothing reads it.
 
