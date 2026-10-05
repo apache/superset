@@ -38,6 +38,7 @@ from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDA
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers.metadata_errors import metadata_legacy_errors
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -168,6 +169,7 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     @deprecated(new_target="/api/v1/dataset/<int:pk>")
+    @metadata_legacy_errors
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id

@@ -56,6 +56,51 @@ def test_expired_budget_never_opens_a_connection() -> None:
         client.assert_not_called()
 
 
+@pytest.mark.parametrize("outcome", ["success", "error", "timeout"])
+@pytest.mark.parametrize("external", [True, False])
+def test_sentinel_disconnects_its_external_master_pool(
+    outcome: str, external: bool
+) -> None:
+    """redis-py 5.0 Sentinel clients do not own their supplied connection pool."""
+    from redis.asyncio import ConnectionPool, Redis
+    from redis.asyncio.sentinel import Sentinel
+    from redis.exceptions import RedisError
+
+    pool: ConnectionPool = ConnectionPool()
+    client: Redis = Redis(connection_pool=pool)
+    assert not client.auto_close_connection_pool
+    if not external:
+        client = Sentinel([]).master_for("owned-master")
+        pool = client.connection_pool
+    manager: Mock = Mock(sentinels=[], master_for=Mock(return_value=client))
+
+    async def execute(*args: object, **kwargs: object) -> bytes:
+        if outcome == "error":
+            raise RedisError("test failure")
+        if outcome == "timeout":
+            await asyncio.sleep(2)
+        return b"observed"
+
+    disconnect: AsyncMock
+    with (
+        patch("superset.coordination.deadline_backend.Sentinel", return_value=manager),
+        patch.object(client, "execute_command", execute),
+        patch.object(pool, "disconnect", new_callable=AsyncMock) as disconnect,
+    ):
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisSentinelCache"}, deadline=time.monotonic() + 0.05
+        )
+        if outcome == "success":
+            assert backend.get("owned") == b"observed"
+        else:
+            with pytest.raises(RedisError):
+                backend.get("owned")
+        if external:
+            disconnect.assert_awaited_once()
+        else:
+            disconnect.assert_awaited()
+
+
 @pytest.mark.parametrize("close_method", ["close", "aclose"])
 def test_sentinel_and_tls_configuration_use_private_clients_without_retries(
     close_method: str,
@@ -65,6 +110,7 @@ def test_sentinel_and_tls_configuration_use_private_clients_without_retries(
     client: Mock = Mock()
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=None)
+    client.connection_pool.disconnect = AsyncMock()
     client.execute_command = AsyncMock(return_value=b"observed")
     sentinel_client: Mock = Mock(spec=[close_method])
     close: AsyncMock = AsyncMock()
@@ -190,6 +236,7 @@ def test_sentinel_node_timeouts_respect_configuration_and_operation_ceiling(
     client: Mock = Mock()
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=None)
+    client.connection_pool.disconnect = AsyncMock()
     client.execute_command = AsyncMock(return_value=b"observed")
     manager: Mock = Mock()
     manager.sentinels = []
@@ -495,3 +542,124 @@ def test_metadata_pool_preserves_native_ownership_and_fork_lifecycle(mode: str) 
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "pool lifecycle passed" in result.stdout
+
+
+@pytest.mark.parametrize("patched", [False, True])
+def test_timed_out_system_dns_retains_bounded_admission(patched: bool) -> None:
+    """Stalled native lookups retain capacity after their callers have timed out."""
+    import subprocess
+    import sys
+    import textwrap
+
+    pytest.importorskip("gevent")
+    script: str = textwrap.dedent(
+        """
+        import sys
+        if sys.argv[1] == "True":
+            from gevent import monkey
+            monkey.patch_all()
+        import asyncio
+        import socket
+        import time
+        import gevent
+        from gevent.monkey import get_original
+        from unittest.mock import patch
+        from redis.exceptions import TimeoutError as RedisTimeoutError
+        from superset.coordination.deadline_backend import DeadlineRedisBackend
+
+        from _thread import LockType
+        gate: LockType = get_original("_thread", "allocate_lock")()
+        gate.acquire()
+        guard: LockType = get_original("_thread", "allocate_lock")()
+        started: list[int] = []
+        finished: list[int] = []
+        published: list[bytes] = []
+
+        def dns(*args: object, **kwargs: object) -> list[object]:
+            with guard:
+                started.append(1)
+            with gate:
+                pass
+            with guard:
+                finished.append(1)
+            return []
+
+        async def command(self: object, *args: object) -> bytes:
+            await asyncio.get_running_loop().getaddrinfo("stalled.invalid", 6379)
+            published.append(b"unexpected")
+            return b"resolved"
+
+        def request() -> None:
+            backend: DeadlineRedisBackend = DeadlineRedisBackend(
+                {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 0.04
+            )
+            try:
+                backend.get("owned")
+            except RedisTimeoutError:
+                return
+            raise AssertionError("request did not time out")
+
+        # Patch the underlying system resolver in either monkey-patching mode.
+        if sys.argv[1] == "True":
+            from gevent.monkey import saved
+            saved["socket"]["getaddrinfo"] = dns
+        with (
+            patch("socket.getaddrinfo", dns),
+            patch("redis.asyncio.Redis.execute_command", command),
+        ):
+            try:
+                for _ in range(9):
+                    if sys.argv[1] == "True":
+                        gevent.spawn(request).get(timeout=2)
+                    else:
+                        request()
+                assert 1 <= len(started) <= 4, len(started)
+                assert not finished
+                assert not published
+                if sys.argv[1] == "False":
+                    import os
+                    import traceback
+                    pid: int = os.fork()
+                    if pid == 0:
+                        # Inherited blocked parent lookups do not exist here.
+                        gate.release()
+                        try:
+                            child: DeadlineRedisBackend = DeadlineRedisBackend(
+                                {"CACHE_TYPE": "RedisCache"},
+                                deadline=time.monotonic() + 1,
+                            )
+                            assert child.get("child") == b"resolved"
+                        except BaseException:
+                            traceback.print_exc()
+                            os._exit(1)
+                        os._exit(0)
+                    status: int
+                    _, status = os.waitpid(pid, 0)
+                    assert status == 0
+            finally:
+                gate.release()
+                deadline: float = time.monotonic() + 2
+                while len(finished) != len(started) and time.monotonic() < deadline:
+                    gevent.sleep(0.01)
+            assert len(finished) == len(started)
+            assert not published
+            backend: DeadlineRedisBackend = DeadlineRedisBackend(
+                {"CACHE_TYPE": "RedisCache"}, deadline=time.monotonic() + 1
+            )
+            if sys.argv[1] == "True":
+                healthy: gevent.Greenlet = gevent.spawn(backend.get, "healthy")
+                assert healthy.get(timeout=2) == b"resolved"
+            else:
+                assert backend.get("healthy") == b"resolved"
+            assert published == [b"unexpected"]
+        print("bounded outstanding DNS; no late publication; capacity recovered")
+        """
+    )
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script, str(patched)],
+        text=True,
+        capture_output=True,
+        timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

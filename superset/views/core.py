@@ -72,6 +72,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.metadata_errors import metadata_legacy_errors
 from superset.superset_typing import (
     ExplorableData,
     FlaskResponse,
@@ -680,6 +681,7 @@ class Superset(BaseSupersetView):
     @deprecated(
         new_target="api/v1/database/<int:pk>/table/<path:table_name>/<schema_name>/"
     )
+    @metadata_legacy_errors
     def fetch_datasource_metadata(self) -> FlaskResponse:
         """
         Fetch the datasource metadata.
