@@ -1379,10 +1379,12 @@ async def test_add_filter_select_default_value_single_select_overflow_rejected(
     assert "2 were given" in data["error"]
 
 
+@pytest.mark.parametrize("values", [[], ["EMEA"]])
 @pytest.mark.asyncio
 async def test_add_filter_select_default_to_first_item_and_default_value_rejected(
-    mcp_server,
-):
+    mcp_server: object,
+    values: list[str],
+) -> None:
     """Request-schema validation happens at the MCP tool-call boundary,
     before the tool body runs, so the client raises ToolError rather than
     returning a JSON error body (mirrors
@@ -1404,7 +1406,7 @@ async def test_add_filter_select_default_to_first_item_and_default_value_rejecte
                             "dataset_id": 5,
                             "column": "region",
                             "default_to_first_item": True,
-                            "default_value": ["EMEA"],
+                            "default_value": values,
                         }
                     ],
                 },
@@ -1667,8 +1669,12 @@ async def test_update_default_value_with_existing_default_to_first_item_rejected
     assert "default_to_first_item" in data["error"]
 
 
+@pytest.mark.parametrize("values", [[], ["EMEA"]])
 @pytest.mark.asyncio
-async def test_update_default_to_first_item_and_default_value_rejected(mcp_server):
+async def test_update_default_to_first_item_and_default_value_rejected(
+    mcp_server: object,
+    values: list[str],
+) -> None:
     """Request-schema validation happens at the MCP tool-call boundary,
     before the tool body runs, so the client raises ToolError rather than
     returning a JSON error body."""
@@ -1686,7 +1692,7 @@ async def test_update_default_to_first_item_and_default_value_rejected(mcp_serve
                         {
                             "id": "NATIVE_FILTER-existing1",
                             "default_to_first_item": True,
-                            "default_value": ["EMEA"],
+                            "default_value": values,
                         }
                     ],
                 },
@@ -1808,3 +1814,75 @@ def test_disable_required_empty_default(value: list[object] | None) -> None:
         "filterState": {"value": None},
         "extraFormData": {},
     }
+
+
+def test_select_null_label_uses_shared_constant() -> None:
+    """Stored NULL labels follow the shared display constant."""
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _select_data_mask,
+    )
+
+    with patch(
+        "superset.mcp_service.dashboard.tool.manage_native_filters.NULL_STRING",
+        "<shared-null-label>",
+        create=True,
+    ):
+        mask = _select_data_mask(EXISTING_SELECT_FILTER, [None])
+    assert mask["filterState"]["label"] == "<shared-null-label>"
+
+
+def test_select_data_mask_legacy_string_column() -> None:
+    """Applied values accept the same legacy column shape as target updates."""
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _select_data_mask,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["targets"][0]["column"] = "region"
+    mask = _select_data_mask(existing, ["EMEA"])
+    assert mask["extraFormData"] == {
+        "filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]
+    }
+
+
+def test_update_default_legacy_string_column() -> None:
+    """Setting a default on a legacy target preserves its column and config."""
+    from superset.mcp_service.dashboard.schemas import NativeFilterUpdateSpec
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _merge_filter_update,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["targets"][0]["column"] = "region"
+    merged = _merge_filter_update(
+        NativeFilterUpdateSpec(id=existing["id"], default_value=["EMEA"]),
+        existing,
+        [10, 11],
+    )
+    assert merged["defaultDataMask"]["extraFormData"] == {
+        "filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]
+    }
+    assert existing["defaultDataMask"]["filterState"]["value"] is None
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        {"column": 42},
+        {"column": ["region"]},
+        {"column": {"name": 42}},
+        {"column": {}},
+        "region",
+    ],
+)
+def test_select_data_mask_invalid_target(target: object) -> None:
+    """Malformed stored targets produce validation errors, not invalid predicates."""
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _FilterValidationError,
+        _select_data_mask,
+    )
+
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["targets"] = [target]
+    with pytest.raises(_FilterValidationError, match="has no target column"):
+        _select_data_mask(existing, ["EMEA"])

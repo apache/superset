@@ -30,7 +30,7 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.constants import EMPTY_FILTER_SQL_EXPRESSION
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
@@ -85,7 +85,6 @@ _ALL_TYPE_SPECIFIC_UPDATE_FIELDS: frozenset[str] = frozenset().union(
 
 # Display strings the frontend uses when labelling a selected value; mirrored
 # here so a stored default's label reads the same as an applied one.
-_NULL_LABEL = "<NULL>"
 _TRUE_LABEL = "TRUE"
 _FALSE_LABEL = "FALSE"
 
@@ -102,7 +101,7 @@ def _empty_data_mask() -> dict[str, Any]:
 def _value_label(value: FilterSelectValue) -> str:
     """Format one selected value the way the dashboard UI labels it."""
     if value is None:
-        return _NULL_LABEL
+        return NULL_STRING
     if isinstance(value, bool):
         return _TRUE_LABEL if value else _FALSE_LABEL
     return str(value)
@@ -121,8 +120,10 @@ def _select_data_mask(
     and this module (default values on create/update) so both paths agree.
     """
     targets = [target for target in (conf.get("targets") or []) if target]
-    column = (targets[0].get("column") or {}).get("name") if targets else None
-    if not column:
+    column = (
+        _target_key(targets[0])[1] if targets and isinstance(targets[0], dict) else None
+    )
+    if not isinstance(column, str) or not column:
         raise _FilterValidationError(
             f"Filter '{conf.get('name') or conf.get('id')}' has no target "
             "column, so a value cannot be applied to it."
