@@ -19,8 +19,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, cast
 from importlib import import_module
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pandas as pd
@@ -281,9 +281,7 @@ def test_the_byte_exact_engines_opt_in(module: str, spec_name: str) -> None:
 
 
 @pytest.mark.parametrize("module, spec_name", [("mysql", "MySQLEngineSpec")])
-def test_a_case_insensitive_engine_does_not_opt_in(
-    module: str, spec_name: str
-) -> None:
+def test_a_case_insensitive_engine_does_not_opt_in(module: str, spec_name: str) -> None:
     """
     MySQL's default collation is `utf8mb4_0900_ai_ci`, which is exactly the
     case the reviewer raised.

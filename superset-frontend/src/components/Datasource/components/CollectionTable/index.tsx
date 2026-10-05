@@ -99,8 +99,6 @@ export default function CRUDCollection({
   pagination = false,
   filterTerm,
   filterFields,
-  rowClassName,
-  expandItemWhere,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
@@ -112,12 +110,9 @@ export default function CRUDCollection({
   if (!initialKeyed.current) {
     initialKeyed.current = createKeyedCollection(propsCollection);
   }
-  // Only `collectionArray` is kept as state. The keyed index it was mirrored
-  // into had exactly one reader -- the old `onFieldsetChange`, which closed
-  // over it and wrote it back as an absolute value -- and that is the bug
-  // being fixed here, so nothing reads it any more. Every writer updated both
-  // in lockstep, and the array is what the render and `onChange` are built
-  // from, so dropping it changes nothing but the bookkeeping.
+  const [collection, setCollection] = useState<
+    Record<PropertyKey, CollectionItem>
+  >(() => initialKeyed.current!.collection);
   const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
     () => initialKeyed.current!.collectionArray,
   );
@@ -132,16 +127,62 @@ export default function CRUDCollection({
       : 10,
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
+  // The row order to restore when a sort is cleared. Tracked from
+  // collectionArray itself (not propsCollection) so it reflects in-progress
+  // edits whose onChange round trip to the parent hasn't landed back in
+  // props yet.
+  const unsortedOrderRef = useRef<Array<string | number>>(
+    initialKeyed.current!.collectionArray.map(item => item.id),
+  );
+
+  const sortRef = useRef<SortOrderEnum>(SortOrderEnum.Unsorted);
+  sortRef.current = sort;
+  const collectionArrayRef = useRef<CollectionItem[]>(collectionArray);
+  collectionArrayRef.current = collectionArray;
 
   // Sync with props.collection changes
   useEffect(() => {
-    const { collectionArray: newCollectionArray } =
+    const { collection: newCollection, collectionArray: newCollectionArray } =
       createKeyedCollection(propsCollection);
+    setCollection(newCollection);
     setCollectionArray(newCollectionArray);
+    // Refresh the restore order too, so that clearing a sort after an
+    // external sync (e.g. a source-control-synced column set) reflects the
+    // synced order and row set instead of stale, pre-sync ids.
+    // While sorted, a sync whose row order matches what is already displayed
+    // is the parent echoing back our own sorted onChange; it must not
+    // overwrite the restore order with the sorted order. Any other sync is
+    // external and defines the new restore order.
+    const newIds = newCollectionArray.map(item => item.id);
+    const displayedIds = collectionArrayRef.current.map(item => item.id);
+    const isEcho =
+      sortRef.current !== SortOrderEnum.Unsorted &&
+      newIds.length === displayedIds.length &&
+      newIds.every((id, i) => id === displayedIds[i]);
+    if (!isEcho) {
+      unsortedOrderRef.current = newIds;
+    }
   }, [propsCollection]);
+
+  useEffect(() => {
+    if (sort === SortOrderEnum.Unsorted) {
+      unsortedOrderRef.current = collectionArray.map(item => item.id);
+    }
+  }, [collectionArray, sort]);
 
   const onCellChange = useCallback(
     (id: string | number, col: string, val: unknown) => {
+      setCollection(prevCollection => {
+        const updatedCollection = {
+          ...prevCollection,
+          [id]: {
+            ...prevCollection[id],
+            [col]: val,
+          },
+        };
+        return updatedCollection;
+      });
+
       setCollectionArray(prevCollectionArray => {
         const updatedCollectionArray = prevCollectionArray.map(item => {
           if (item.id === id) {
@@ -165,6 +206,12 @@ export default function CRUDCollection({
 
   const deleteItem = useCallback(
     (id: string | number) => {
+      setCollection(prevCollection => {
+        const newColl = { ...prevCollection };
+        delete newColl[id];
+        return newColl;
+      });
+
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = prevCollectionArray.filter(
           item => item.id !== id,
@@ -189,6 +236,11 @@ export default function CRUDCollection({
       }
       delete newItem.expanded;
 
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [newItem.id]: newItem,
+      }));
+
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = [newItem, ...prevCollectionArray];
 
@@ -207,24 +259,33 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      // A functional updater, like every other mutator here -- and for a
+      // Functional updaters, like every other mutator here -- and for a
       // sharper reason than consistency. A fieldset's edits are committed on a
       // debounce, and each expanded row renders its own `Fieldset`, so the
       // collection a closure captured at the keystroke is older than the real
       // one by the time the timer fires. Writing that snapshot back as an
       // absolute value reverted whatever a *different* row had committed in
-      // between: edit row A's value transform and row B's description within a
-      // debounce interval of each other and one of the two was silently lost
-      // on save.
+      // between: edit one column's value transform and another's description
+      // within a debounce interval and one of the two was silently lost.
+      //
+      // Both structures, not just the array: `onSortChange` restores the
+      // pre-sort order by reading `collection[id]`, so a keyed entry left
+      // behind here would resurface as a stale row the moment a sort is
+      // cleared.
       //
       // `onChange` inside an updater is impure and double-fires under
       // StrictMode in development -- as it already does in `onCellChange`,
       // `deleteItem` and `onAddItem`, so matching them beats inventing a
       // fourth shape here.
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [item.id]: item,
+      }));
+
       setCollectionArray(prevCollectionArray => {
         // A fieldset only ever edits a row that already exists; the append is
-        // a safety net, and it is also what preserves order, which the
-        // previous two-pass rebuild was doing by hand.
+        // a safety net, and mapping in place is also what preserves order,
+        // which the previous two-pass rebuild was doing by hand.
         const newCollectionArray = prevCollectionArray.some(
           existing => existing.id === item.id,
         )
@@ -293,11 +354,17 @@ export default function CRUDCollection({
 
       const col = newSortColumn;
 
+      // A pagination or page-size change re-emits the current sorter. The
+      // rows are already ordered, so re-sorting would only churn tie order.
+      if (newSortColumn === sortColumn && newSortOrder === sort) {
+        return;
+      }
+
       if (
         sortColumns?.includes(col) ||
         newSortOrder === SortOrderEnum.Unsorted
       ) {
-        let sortedArray = [...propsCollection] as CollectionItem[];
+        let sortedArray: CollectionItem[];
 
         if (newSortOrder !== SortOrderEnum.Unsorted) {
           const compareSort = (m: Sort, n: Sort) => {
@@ -315,16 +382,31 @@ export default function CRUDCollection({
             return mStr.localeCompare(nStr);
           };
 
-          sortedArray.sort((a: CollectionItem, b: CollectionItem) =>
-            compareSort(a[col] as Sort, b[col] as Sort),
+          // Sort the live, edited collection rather than propsCollection, so
+          // an edit that hasn't round-tripped back through onChange yet
+          // isn't dropped when a sort is applied.
+          sortedArray = [...collectionArray];
+          // Negate the comparator for descending order (rather than reversing
+          // the array) so equal-key rows keep their relative order.
+          const direction = newSortOrder === SortOrderEnum.Desc ? -1 : 1;
+          sortedArray.sort(
+            (a: CollectionItem, b: CollectionItem) =>
+              direction * compareSort(a[col] as Sort, b[col] as Sort),
           );
-          if (newSortOrder === SortOrderEnum.Desc) {
-            sortedArray.reverse();
-          }
         } else {
-          const { collectionArray: resetArray } =
-            createKeyedCollection(propsCollection);
-          sortedArray = resetArray;
+          // Restore the pre-sort order, but take each row's current value
+          // from the live `collection` map (not propsCollection) so an edit
+          // made while sorted survives clearing the sort. Any row not part
+          // of the tracked order (e.g. added while sorted) is appended.
+          const trackedIds = new Set(unsortedOrderRef.current);
+          sortedArray = unsortedOrderRef.current
+            .filter(id => collection[id])
+            .map(id => collection[id]);
+          collectionArray.forEach(item => {
+            if (!trackedIds.has(item.id)) {
+              sortedArray.push(item);
+            }
+          });
         }
 
         setCollectionArray(sortedArray);
@@ -332,7 +414,7 @@ export default function CRUDCollection({
         setSort(newSortOrder);
       }
     },
-    [propsCollection, sortColumns],
+    [collection, collectionArray, sortColumns, sortColumn, sort],
   );
 
   const renderExpandableSection = useCallback(
@@ -463,18 +545,6 @@ export default function CRUDCollection({
     return collectionArray;
   }, [collectionArray, filterTerm, filterFields]);
 
-  // Open a row on request from elsewhere in the editor -- the dataset settings
-  // link to the mapped column's transform, which is only reachable expanded.
-  useEffect(() => {
-    if (!expandItemWhere) {
-      return;
-    }
-    const match = collectionArray.find(item => expandItemWhere(item));
-    if (match) {
-      setExpandedColumns(prev => ({ ...prev, [match.id]: true }));
-    }
-  }, [expandItemWhere, collectionArray]);
-
   const paginationConfig = useMemo((): false | TablePaginationConfig => {
     if (pagination === false || pagination === undefined) {
       return false;
@@ -539,7 +609,6 @@ export default function CRUDCollection({
         columns={antdColumns}
         data={displayData}
         rowKey={(record: CollectionItem) => String(record.id)}
-        rowClassName={rowClassName}
         sticky={stickyHeader}
         pagination={paginationConfig}
         onChange={handleTableChange}

@@ -4342,22 +4342,34 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         precision -- which makes the mirror *narrower* than the predicate it
         stands in for, and narrower means dropped rows.
 
-        Detected rather than enumerated per engine: if the engine renders
-        ``dttm`` and ``dttm`` truncated to the second as the same text, it has
-        thrown the remainder away.
+        Detected rather than enumerated per engine: two instants that differ
+        only below the second render as the same text exactly when the engine
+        has thrown the remainder away.
+
+        Both probes carry a non-zero sub-second part on purpose. Comparing
+        against ``dttm`` truncated to the second looks like the obvious test
+        and is wrong, because truncating can cross a formatting boundary as
+        well as a precision one -- SQLite renders a DATE column at exactly
+        midnight as a bare date, so the two texts differ for a reason that has
+        nothing to do with precision and the truncation goes unnoticed.
+
+        Note this only distinguishes second-level precision. An engine that
+        rendered no time part at all would need the bounds widened to the whole
+        day, which this does not do; no supported engine does that for a value
+        carrying a time.
         """
         if col is None or not col.type or not dttm.microsecond:
             return False
         try:
-            rendered = self.db_engine_spec.convert_dttm(
-                col.type, dttm, db_extra=self.db_extra
+            first = self.db_engine_spec.convert_dttm(
+                col.type, dttm.replace(microsecond=111111), db_extra=self.db_extra
             )
-            truncated = self.db_engine_spec.convert_dttm(
-                col.type, dttm.replace(microsecond=0), db_extra=self.db_extra
+            second = self.db_engine_spec.convert_dttm(
+                col.type, dttm.replace(microsecond=222222), db_extra=self.db_extra
             )
         except Exception:  # pylint: disable=broad-except  # noqa: BLE001
             return False
-        return rendered is not None and rendered == truncated
+        return first is not None and first == second
 
     def _round_bounds_to_the_second(
         self,

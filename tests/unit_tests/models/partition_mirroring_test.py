@@ -629,6 +629,38 @@ def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
     assert "dt_epoch <= 2" in sql
 
 
+def test_the_probe_rounds_outward_on_a_date_column_too(app: Flask) -> None:
+    """
+    The truncation test cannot be "does this render the same as the bound
+    truncated to the second". SQLite renders a DATE column at exactly midnight
+    as a bare date, so truncating a `.500000` bound crosses a *formatting*
+    boundary as well as a precision one: the two texts differ for a reason that
+    has nothing to do with precision, and the truncation that is really
+    happening goes unnoticed. Two probes that both carry a sub-second part see
+    it.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1, 0, 0, 0, 500000),
+                to_dttm=datetime(2026, 2, 1, 0, 0, 0, 500000),
+            )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0, 0),
+        datetime(2026, 2, 1, 0, 0, 1),
+    ]
+
+
 def test_the_probe_keeps_full_precision_on_an_engine_that_does_not_truncate(
     app: Flask,
 ) -> None:
