@@ -67,7 +67,7 @@ def test_chart_viewer_requires_typed_datasource_identity(
     chart_type: str,
     requested_type: str,
 ) -> None:
-    """A chart viewer cannot read another datasource with a colliding ID."""
+    """Chart-viewer access is bound to the chart datasource's type and id."""
     source: SqlaTable | SemanticView = datasource(requested_type)
     chart: Slice = Slice(id=10, datasource_id=7, datasource_type=chart_type)
     mocker.patch.object(
@@ -157,7 +157,7 @@ def test_native_filter_sort_metric_requires_matching_target(
     requested_type: str,
     target_type: str | None,
 ) -> None:
-    """A saved sort metric cannot grant access across target identities."""
+    """A saved sort metric applies only to a filter target of the same type and id."""
     context: MagicMock = native_filter_context(
         mocker, manager, requested_type, target_type
     )
@@ -217,7 +217,7 @@ def test_guest_dataset_allowlist_remains_in_sql_dataset_id_space(
     kind: str,
     allowed_datasets: list[int] | None,
 ) -> None:
-    """A SQL dataset allowlist never grants a colliding semantic view."""
+    """The guest-token dataset allowlist applies to SQL datasets only."""
     context: MagicMock = native_filter_context(mocker, manager, kind, kind)
     token: GuestToken = {
         "user": {},
