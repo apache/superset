@@ -194,6 +194,22 @@ with the timestamp bounds they mirror. Prefer explicitly-anchored transforms.
 Jinja templating is not supported in a transform. The template would render in a different
 context and at a different time from the chart query.
 
+### What a transform may be
+
+A transform has to be one scalar SQL expression around `:value` and nothing more. These are
+refused when you save:
+
+- A clause of its own, or a sub-query — `password || :value FROM users`,
+  `(SELECT secret FROM vault LIMIT 1) || :value`. Superset splices the transform into the
+  probe as SQL text and the engine runs it, so a transform carrying its own `FROM` reads a
+  table the mapping has no business reading.
+- A `:value` the engine would never evaluate, because it sits inside a string literal
+  (`':value'`) or inside a comment (`1 -- :value`). Neither is a transform of the filter
+  value: the first is the constant text `:value`, and the second comments out the rest of the
+  probe's own query.
+- More than 1,024 characters. A transform is one hand-written expression, and the stored
+  value is parsed on every Explore load.
+
 ## Related configuration
 
 | Setting | Default | Purpose |
