@@ -26,6 +26,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from decimal import InvalidOperation
 from typing import Literal, Protocol, TYPE_CHECKING
 from uuid import uuid4
 
@@ -181,7 +182,7 @@ class ScopedMetadataStore:
                 envelope["attempt"],
                 envelope["created_at"],
             )
-        except (ValueError, UnicodeError, RecursionError):
+        except (ValueError, UnicodeError, RecursionError, InvalidOperation):
             return None
 
     def _load(self) -> StoredCatalog | None:
@@ -198,7 +199,11 @@ class ScopedMetadataStore:
 
     def observed_at(self, token: str) -> str | None:
         """Read the timestamp captured with a provider's token, without backend I/O."""
-        return self._observations.get(token)
+        return (
+            self._observations.get(token)
+            if token.startswith(f"{self._scope}:")
+            else None
+        )
 
     def peek(self) -> CatalogSnapshot | None:
         """Read the current observation without acquiring, filling or renewing it."""
@@ -310,7 +315,7 @@ class ScopedMetadataStore:
                 separators=(",", ":"),
                 allow_nan=False,
             )
-        except (TypeError, ValueError, UnicodeError, RecursionError):
+        except (TypeError, ValueError, UnicodeError, RecursionError, InvalidOperation):
             raise MetadataRefreshError("invalid_payload") from None
         digest: str = hashlib.sha256(payload.encode()).hexdigest()
         status: Literal["changed", "unchanged"] = (

@@ -92,6 +92,8 @@ def compatibility_identity(
             raise MetadataRefreshError("configuration")
         token = captured
         observed = store.observed_at(token)
+        if observed is None:
+            raise MetadataRefreshError("configuration")
     key: str = (
         "compatible:"
         + hashlib.sha256(

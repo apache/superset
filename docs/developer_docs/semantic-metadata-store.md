@@ -221,12 +221,23 @@ A host chart's cache key includes the annotation source's metadata identity with
 constructing its provider or running discovery. It uses the view observation already
 captured in the operation, or peeks at the stored catalog snapshot. A current snapshot
 allows a warm host result to be served even if provider discovery is unavailable.
+On a miss, the annotation query context is prepared and authorized before the
+parent warehouse query, and its participating view is captured within the original
+discovery budget. A slow parent does not require a first annotation bind after that
+budget expires. Cache hits do not prepare or discover annotation providers.
 On a miss, the write key is recomputed after annotation acquisition so a concurrent
 refresh cannot store the result under a different observation. Refreshing the catalog
 changes the identity for subsequent operations. If the snapshot
 is missing, expired or unreadable, a unique key forces a miss; an unknown identity never
 reuses cached annotation data. If acquisition still cannot capture the keyed view,
 the host returns its data without persisting the unreachable result key. Flag-off and nonparticipating providers keep legacy keys.
+
+Participating views must return a scope-qualified token issued through their
+operation's store. Unknown, forged or previously expired tokens from a provider's
+own cache are rejected as configuration errors; they cannot address derived hits.
+A view already captured in the operation retains its known observation after the
+discovery budget or shared entry expires. This does not authorize another store
+read or extend the discovery deadline.
 
 ### Gevent request isolation
 

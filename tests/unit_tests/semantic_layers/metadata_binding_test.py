@@ -170,6 +170,12 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
             ).snapshot
             assert view_implementation(view) is first
             assert first.metadata_cache_token != changed.cache_token
+            with patch(
+                "superset.semantic_layers.metadata_binding.time.monotonic",
+                return_value=store_deadline + 1,
+            ):
+                assert connection_store(layer) is store
+                assert view_implementation(view) is first
         with metadata_operation():
             second: ViewABC = view_implementation(view)
             assert second is not first
@@ -536,3 +542,91 @@ def test_configuration_parse_is_operation_scoped_and_tracks_stored_changes(
             assert participates(layer)
             assert parse.call_count == 3
     assert seen == [{}, {}, {"changed": True}, {"changed": True}]
+
+
+@pytest.mark.parametrize(
+    "kind", ["missing", "unscoped", "other_scope", "forged", "expired", "valid"]
+)
+@pytest.mark.parametrize(
+    "consumer", ["binding", "result", "compatibility", "annotation"]
+)
+def test_provider_token_must_belong_to_the_operation_store(
+    app: Flask, kind: str, consumer: str
+) -> None:
+    """A reused provider cannot carry unknown identities into any derived key."""
+    from collections.abc import Callable
+
+    from superset.semantic_layers import metadata_cache
+    from tests.unit_tests.semantic_layers.metadata_identity_test import ResultView
+    from tests.unit_tests.semantic_layers.metadata_store_test import catalog, Clock
+
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    previous: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=130, clock=clock
+    )
+    expired: CatalogSnapshot = previous.read(catalog, deadline=130)
+    clock.advance(301)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=clock() + 30, clock=clock
+    )
+    current: CatalogSnapshot = store.read(catalog, deadline=clock() + 30)
+    tokens: dict[str, str] = {
+        "missing": "",
+        "unscoped": "provider-token",
+        "other_scope": "other:token",
+        "forged": "scope:forged",
+        "expired": expired.cache_token,
+        "valid": current.cache_token,
+    }
+    provider: Mock = Mock()
+    provider.get_semantic_view.return_value = ResultView(tokens[kind], 17)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    view: SemanticView = SemanticView(
+        uuid=uuid4(), name="orders", configuration="{}", semantic_layer=layer
+    )
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant"}),
+        patch(
+            "superset.semantic_layers.metadata_binding.participates", return_value=True
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.layer_implementation",
+            return_value=provider,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.connection_store",
+            return_value=store,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_cache.connection_store",
+            return_value=store,
+        ),
+        metadata_operation(),
+    ):
+        if consumer == "annotation":
+            # A previously captured provider can mutate its token after binding.
+            provider.get_semantic_view.return_value.token = current.cache_token
+            view_implementation(view)
+            provider.get_semantic_view.return_value.token = tokens[kind]
+            token: str | None = metadata_cache.annotation_cache_token(view)
+            assert token is not None
+            assert token.startswith("uncaptured:") is (kind != "valid")
+            return
+        if kind != "valid":
+            consumers: dict[str, Callable[[], object]] = {
+                "binding": lambda: view_implementation(view),
+                "result": lambda: view.metadata_cache_token,
+                "compatibility": lambda: metadata_cache.compatibility_identity(
+                    view, ["orders"], []
+                ),
+            }
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                consumers[consumer]()
+            return
+        assert view_implementation(view).metadata_cache_token == current.cache_token
+        assert view.metadata_cache_token is not None
+        assert metadata_cache.compatibility_identity(view, ["orders"], []) is not None
