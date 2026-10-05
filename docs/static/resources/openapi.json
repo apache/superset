@@ -6413,6 +6413,9 @@
             "nullable": true,
             "type": "string"
           },
+          "partition_filter_mapping": {
+            "readOnly": true
+          },
           "partition_mapped_column": {
             "maxLength": 250,
             "nullable": true,
