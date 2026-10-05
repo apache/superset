@@ -86,6 +86,23 @@ def _table(
     return table
 
 
+def _mapped_date_table() -> SqlaTable:
+    """
+    A dataset whose mapped column is a ``DATE``.
+
+    That is the type whose literal an engine resolves to a bare day, which is
+    what the resolution reasoning is about; `_rendering_dates_like_presto` is
+    what makes this table's spec answer that way.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+    return table
+
+
 def _rendering_dates_like_presto(table: SqlaTable) -> Any:
     """
     Make the dataset's engine spec render a bound the way Presto does.
@@ -910,6 +927,387 @@ def test_the_probe_keeps_full_precision_on_an_engine_that_does_not_truncate(
         datetime(2026, 1, 1, 0, 0, 0, 500000),
         datetime(2026, 2, 1, 0, 0, 0, 500000),
     ]
+
+
+# ---------------------------------------------------------------------------
+# The value the engine actually compares
+# ---------------------------------------------------------------------------
+
+
+def test_a_string_equality_carrying_a_time_does_not_mirror_on_a_date_column(
+    app: Flask,
+) -> None:
+    """
+    A simple filter arrives as the text the chart author typed, not as a
+    `datetime`: `filter_values_handler` rewrites only an all-digit value, which
+    it reads as epoch milliseconds. On a DATE column the engine compares that
+    text on its date part alone, so the filter keeps the whole of 2026-01-01
+    while a mirror probed at 10:00 asks for a key no row holds.
+
+    The `datetime` form of this has been covered since the day resolution was
+    detected at all -- see
+    `test_an_equality_is_not_mirrored_when_the_engine_drops_the_time`. The
+    string form is the one a user can actually produce, and it was the one that
+    dropped rows.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "2026-01-01 10:00:00",
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+    assert "event_date = '2026-01-01 10:00:00'" in sql
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        ["2026-01-01 10:00:00", "2026-01-02 09:00:00"],
+        ["2026-01-01", "2026-01-02 09:00:00"],
+    ],
+    ids=["every-member-coarse", "one-member-coarse"],
+)
+def test_a_string_in_list_declines_entire_when_any_member_carries_a_time(
+    app: Flask, values: list[str]
+) -> None:
+    """
+    An `IN` list is mirrored as one predicate, so a member the engine compares
+    more coarsely than the mirror can be built from is the whole list's
+    problem. Mirroring only the members that do work would be *narrower* than
+    the filter -- the same narrowing the `None`-member guard refuses -- so the
+    list declines entire.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.IN.value,
+                            "val": values,
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
+def test_a_string_in_list_of_dates_mirrors_element_wise(app: Flask) -> None:
+    """
+    The guard above is about a *time of day*, not about `IN` on a DATE column:
+    every member at the start of its day is compared in full, so the list
+    mirrors and the pruning is kept.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767225600, 1767312000]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.IN.value,
+                            "val": ["2026-01-01", "2026-01-02"],
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == ["2026-01-01", "2026-01-02"]
+    assert "dt_epoch IN (1767225600, 1767312000)" in sql
+
+
+def test_a_string_lower_bound_rounds_outward_on_a_date_column(app: Flask) -> None:
+    """
+    A bound has somewhere to widen to where an equality does not. The engine
+    compares `event_date >= DATE '2026-01-05'`, so every row on 2026-01-05
+    satisfies the filter and the mirror has to admit that whole day -- which is
+    what moving the bound back to midnight does.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767571200]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": "2026-01-05 10:00:00",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert "dt_epoch >= 1767571200" in sql
+
+
+def test_a_string_upper_bound_rounds_outward_on_a_date_column(app: Flask) -> None:
+    """
+    The upper bound moves the other way, and by a whole day: the engine compares
+    `event_date < DATE '2026-01-20'`, and the mirror must not exclude the
+    partition the boundary rows live in.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1768953600]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.LESS_THAN.value,
+                            "val": "2026-01-20 10:00:00",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 21, 0, 0)]
+    assert "dt_epoch <= 1768953600" in sql
+
+
+def test_a_date_only_string_equality_still_mirrors_unchanged(app: Flask) -> None:
+    """
+    A value the engine compares in full is left exactly as it arrived, down to
+    the type the probe binds: reading the string back into an instant would
+    change the bind type and the probe's cache key on a query that was already
+    correct, for no gain at all.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767225600]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "2026-01-01",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == ["2026-01-01"]
+    assert "dt_epoch = 1767225600" in sql
+
+
+def test_a_datetime_lower_bound_rounds_outward_instead_of_declining(
+    app: Flask,
+) -> None:
+    """
+    A `datetime` bound used to reach the same guard an equality does and
+    decline, which left a string and the `datetime` denoting the same instant
+    mirroring differently -- the asymmetry that let the string case above go
+    unnoticed. A bound widens whichever shape it arrived in.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767571200]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": datetime(2026, 1, 5, 10, 0),
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 5, 0, 0)]
+    assert "dt_epoch >= 1767571200" in sql
+
+
+def test_a_string_filter_value_is_untouched_on_a_full_precision_engine(
+    app: Flask,
+) -> None:
+    """
+    The widening is detected, not enumerated per engine. An engine whose
+    literal carries the whole value needs none of this, and substituting an
+    instant for the text would move the probe off the cache entry every
+    already-correct query shares.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(lambda cls, target_type, dttm, db_extra=None: repr(dttm)),
+        ):
+            with patch(PROBE, return_value=[1]) as probe:
+                _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_time",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": "2026-01-05 10:00:00",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == ["2026-01-05 10:00:00"]
+
+
+def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
+    app: Flask,
+) -> None:
+    """The `IN` counterpart: the new element-wise routing disturbs nothing."""
+    table = _table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(lambda cls, target_type, dttm, db_extra=None: repr(dttm)),
+        ):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_time",
+                            "op": FilterOperator.IN.value,
+                            "val": ["2026-01-01 10:00:00", "2026-01-02 09:00:00"],
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == [
+        "2026-01-01 10:00:00",
+        "2026-01-02 09:00:00",
+    ]
+    assert "dt_epoch IN (1, 2)" in sql
+
+
+def test_an_unparseable_string_is_left_exactly_as_it_arrived(app: Flask) -> None:
+    """
+    Only ISO 8601 is read, because it is the one format whose meaning is not a
+    guess. Reading ``'06/07/2026'`` as July 6 or as June 7 is a coin flip, and a
+    mirror derived from the wrong one is the silent narrowing all of this is
+    here to prevent -- so a value the mirror cannot read is passed through.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1]) as probe:
+                _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": "06/07/2026",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == ["06/07/2026"]
+
+
+def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> None:
+    """
+    Rounding an offset-bearing bound outward would first have to place it in the
+    frame the partition column was written in, and guessing that frame is how a
+    mirror ends up a whole offset narrower than the filter. Declining costs the
+    query its pruning and nothing else.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": "2026-01-05T10:00:00+02:00",
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
+def test_a_non_temporal_string_equality_is_unaffected(app: Flask) -> None:
+    """
+    Every string value is now offered to an ISO parse, so the text mapping most
+    of this file exercises has to come out the other side unchanged: `'US'` does
+    not parse, and a VARCHAR column's `convert_dttm` answers nothing either way.
+    """
+    table = _mapped_country_table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert probe.call_args.args[-1] == ["US"]
+    assert "region_key = 'us'" in sql
+
+
+def test_a_rounded_string_bound_dedupes_against_the_time_filter(app: Flask) -> None:
+    """
+    Rounding a string bound outward lands it on the same instant the chart's own
+    time filter already contributed, so the two collapse into one request --
+    which is what the dedupe in `_build_partition_mirror_predicates` promises
+    and what a reader of "View query" expects to see.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1767571200, 1768953600]):
+                sql = _query(
+                    table,
+                    granularity="event_date",
+                    from_dttm=datetime(2026, 1, 5),
+                    to_dttm=datetime(2026, 1, 20),
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
+                            "val": "2026-01-05 10:00:00",
+                        }
+                    ],
+                )
+
+    assert sql.count("dt_epoch >=") == 1
 
 
 def test_one_probe_round_trip_per_query(app: Flask) -> None:

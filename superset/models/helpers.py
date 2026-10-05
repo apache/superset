@@ -94,11 +94,13 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    LOWER_BOUND_OPERATORS,
     mirror_operator,
     normalize_mixed_numbers,
     PartitionMapping,
     raw_probe_value,
     resolve_partition_mapping,
+    UPPER_BOUND_OPERATORS,
 )
 from superset.constants import (
     CacheRegion,
@@ -465,6 +467,41 @@ def _shift_grainless_temporal_source(
 #: filter value as a literal. A sentinel rather than `None`, because `None` is a
 #: filter value in its own right.
 _UNRENDERABLE = object()
+
+#: Returned by `ExploreMixin._mirror_probe_input` when the engine compares less
+#: of the filter's value than any mirror could be built from. A sentinel rather
+#: than `None` for the same reason `_UNRENDERABLE` is, and a *separate* sentinel
+#: because the two decline for different reasons: that one is an engine that
+#: cannot render a literal at all, which is worth a warning, and this one is an
+#: ordinary filter the mirror has to stay quiet about.
+_UNMIRRORABLE = object()
+
+
+def _instant_from_filter_value(value: Any) -> Optional[datetime]:
+    """
+    The instant a filter value denotes, or `None` if it denotes none.
+
+    Only ISO 8601 is read, because it is the one format whose meaning is not a
+    guess. A general parser reads ``'06/07/2026'`` as a date and ``'tomorrow'``
+    as an instant, and a mirror derived from the wrong one of day and month is
+    precisely the silent narrowing `ExploreMixin._mirror_probe_input` exists to
+    prevent -- so a value this cannot read is left exactly as it arrived.
+
+    A value that is already a `datetime` -- an ungrained equality, as
+    drill-to-detail builds -- is returned as it is, so that the same filter
+    cannot mirror differently depending on which of the two shapes it arrived
+    in. That asymmetry is what let the string case go unnoticed.
+
+    An offset is kept rather than dropped, so the caller can see it and decline.
+    """
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 class LiteralResolution(Enum):
@@ -4539,6 +4576,112 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return bool(dttm.microsecond)
         return False
 
+    def _round_bound_outward(
+        self,
+        instant: datetime,
+        col: Optional["TableColumn"],
+        *,
+        is_upper: bool,
+    ) -> datetime:
+        """
+        One bound widened to whatever the engine resolves ``col`` to.
+
+        `_round_bounds_outward` answers for a since/until pair, because a time
+        range is the shape it was written for. A single comparison is one end of
+        such a pair with the other end absent, and the widening is per-end
+        already -- a lower bound moves back, an upper bound forward.
+
+        Narrowing the return type is the other half of the point: a bound handed
+        in non-`None` comes back non-`None`, and saying so here saves every
+        caller from re-establishing it.
+        """
+        start_dttm, end_dttm = self._round_bounds_outward(
+            None if is_upper else instant,
+            instant if is_upper else None,
+            col,
+        )
+        rounded = end_dttm if is_upper else start_dttm
+        return rounded if rounded is not None else instant
+
+    def _mirror_probe_input(
+        self,
+        operator: utils.FilterOperator,
+        value: Any,
+        col: Optional["TableColumn"],
+    ) -> Any:
+        """
+        ``value`` in the representation the mirror may probe the transform at.
+
+        A simple filter on a temporal column carries a *string*.
+        `filter_values_handler` rewrites only an all-digit value, which it reads
+        as epoch milliseconds, so ``'2026-07-06 10:08:11'`` reaches here exactly
+        as the chart author typed it and is bound as text. The engine compares
+        that text against the column under its own cast, and on a ``DATE``
+        column the cast drops the time of day: the filter keeps the whole of
+        2026-07-06 while a mirror probed at 10:08:11 keeps one instant of it,
+        which is narrower than the predicate it stands in for.
+
+        So the text is read back into the instant it denotes -- the only way
+        `_engine_literal_resolution`, which answers about a `datetime`, reaches
+        a filter value at all -- and where the engine compares less of that
+        instant than the filter carries, what to do about it is a property of
+        the *operator*:
+
+        * a bound rounds outward, through the helper the range collector uses.
+          Reading one extra bucket at the edge is the trade this feature makes
+          everywhere else too -- see `mirror_operator` -- and the original
+          predicate is still in the query to exclude the rows that bucket adds.
+        * an equality, or one member of an ``IN`` list, has nowhere to widen to.
+          These entries are ``AND``-ed onto the query, so "or the day either
+          side" is not something this sink can express, and the request is
+          declined with `_UNMIRRORABLE`. The query is then correct and unpruned,
+          which is the one failure mode this feature is allowed.
+
+        An instant carrying a UTC offset is declined for every operator, a
+        bound included. Rounding one outward would first have to place it in the
+        frame the partition column was written in, and guessing that frame is
+        how a mirror ends up a whole offset narrower than the filter -- see the
+        load-bearing assumption in
+        `superset.connectors.sqla.partition_mapping`.
+
+        Where the engine compares the whole instant, a string is returned
+        exactly as it arrived -- down to the type the probe binds and the cache
+        key it lands on, because every query that was already correct has to
+        stay byte-for-byte correct. A `datetime` is still converted, which it
+        has always needed: on a column stored as an epoch integer the transform
+        is a function of an integer, and a `datetime` is not the value the real
+        predicate compares.
+        """
+        parsed = _instant_from_filter_value(value)
+        if parsed is None:
+            return value
+
+        if (
+            self._engine_literal_resolution(parsed.replace(tzinfo=None), col)
+            is LiteralResolution.FULL
+        ):
+            return (
+                self._mirror_probe_value(parsed, col)
+                if isinstance(value, datetime)
+                else value
+            )
+
+        if parsed.tzinfo is not None:
+            return _UNMIRRORABLE
+
+        if operator in LOWER_BOUND_OPERATORS:
+            instant = self._round_bound_outward(parsed, col, is_upper=False)
+        elif operator in UPPER_BOUND_OPERATORS:
+            instant = self._round_bound_outward(parsed, col, is_upper=True)
+        elif self._literal_is_coarser_than(parsed, col):
+            return _UNMIRRORABLE
+        else:
+            instant = parsed
+
+        if instant == parsed and not isinstance(value, datetime):
+            return value
+        return self._mirror_probe_value(instant, col)
+
     def _collect_partition_mirror_range(
         self,
         mapping: Optional["PartitionMapping"],
@@ -4712,16 +4855,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Only operators the mapping declares safe are recorded; see the operator
         matrix in `superset.connectors.sqla.partition_mapping`.
+
+        Every value then goes through `_mirror_probe_input`, which is where what
+        the engine actually compares is applied. Routing per *value* rather than
+        per Python type is what makes a bound widen and an equality decline
+        whichever shape the value arrived in -- a `datetime` from
+        drill-to-detail, or the raw string a simple filter binds.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
         if not mapping.mirrors(operator):
             return
 
+        # First, and ahead of anything that reads the value as an instant: a
+        # value `filter_values_handler` already turned into engine SQL is
+        # carried as text from here on, and the probe has to receive exactly
+        # that literal -- it is what the real predicate compares, so there is
+        # nothing left to resolve about it.
         probe_input = self._as_probe_input(value)
         if probe_input is _UNRENDERABLE:
             return
         value = probe_input
+
+        mapped_col = next(
+            (col for col in self.columns if col.column_name == column_name), None
+        )
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:
@@ -4730,29 +4888,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # A `None` in the list widens the real predicate to
                 # `col IS NULL OR col IN (...)`. Mirroring only the non-null
                 # members would be *narrower* than the original filter and
-                # would drop rows it keeps.
+                # would drop rows it keeps. Checked before the conversion
+                # below, which passes a `None` straight through and could not
+                # be told apart from a value afterwards.
                 return
-            sink.append((operator, tuple(value)))
+            members = tuple(
+                self._mirror_probe_input(operator, item, mapped_col) for item in value
+            )
+            if any(member is _UNMIRRORABLE for member in members):
+                # One member the engine compares more coarsely than the mirror
+                # can be built from is the whole list's problem: dropping just
+                # that member is the same narrowing the `None` guard above
+                # refuses. So the list declines entire.
+                return
+            sink.append((operator, members))
         elif value is not None:
-            if isinstance(value, datetime):
-                # Same reason as the range collector: on a column stored as an
-                # epoch integer the transform is a function of an integer, and
-                # a `datetime` is not the value the real predicate compares.
-                # Reached by an ungrained equality, as drill-to-detail builds.
-                mapped_col = next(
-                    (col for col in self.columns if col.column_name == column_name),
-                    None,
-                )
-                if self._literal_is_coarser_than(value, mapped_col):
-                    # The engine's literal drops part of this instant, so the
-                    # real predicate compares a coarser value than the probe
-                    # would be handed and the mirror would ask for a key no row
-                    # holds. A range can be widened outward instead, but these
-                    # entries are AND-ed onto the query (see the comment at the
-                    # collection site), so an equality has nowhere to widen to.
-                    return
-                value = self._mirror_probe_value(value, mapped_col)
-            sink.append((operator, value))
+            probe_value = self._mirror_probe_input(operator, value, mapped_col)
+            if probe_value is _UNMIRRORABLE:
+                return
+            sink.append((operator, probe_value))
 
     def _build_partition_mirror_predicates(
         self,
