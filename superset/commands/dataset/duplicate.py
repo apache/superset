@@ -95,6 +95,15 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 is_dttm=c.is_dttm,
                 type=c.type,
                 description=c.description,
+                # `override` above copies the table-level `partition_column`
+                # and `partition_mapped_column`, so without these two the clone
+                # keeps references pointing at real columns that carry no
+                # transform -- a mapping that looks configured in the editor and
+                # never mirrors. Copied together: the transform without the
+                # declaration downgrades range mirrors to equality-only, and
+                # the declaration without the transform is inert.
+                partition_value_transform=c.partition_value_transform,
+                partition_transform_is_monotonic=c.partition_transform_is_monotonic,
             )
             for c in self._base_model.columns
         ]
