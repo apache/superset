@@ -762,13 +762,19 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
-  const [xDomainMin, xDomainMax] = getXAxisDomain(
-    [
-      rebasedDataA as Record<string, unknown>[],
-      rebasedDataB as Record<string, unknown>[],
-    ],
-    xAxisLabel,
-  );
+  // The domain is only read by the two Time-axis formatters below, and the
+  // scan coerces every record's x value, so keep it behind the Time check
+  // instead of walking the data on every render of a category axis.
+  const [xDomainMin, xDomainMax] =
+    xAxisType === AxisType.Time
+      ? getXAxisDomain(
+          [
+            rebasedDataA as Record<string, unknown>[],
+            rebasedDataB as Record<string, unknown>[],
+          ],
+          xAxisLabel,
+        )
+      : [undefined, undefined];
   // ECharts pads a time axis beyond the data extent, and a tick on that
   // padding can carry sub-second noise that drops smart_date to its
   // millisecond tier ('.943ms', #44698). Floor only ticks outside the data
