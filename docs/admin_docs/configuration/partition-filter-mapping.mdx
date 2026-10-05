@@ -217,4 +217,28 @@ refused when you save:
 | `PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT` | 24 hours | How long an evaluated transform stays cached |
 | `PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT` | 30 | Per-user, per-dataset preview requests per minute; the editor's preview panel runs a real query |
 
+### Both of those need a working cache backend
+
+Neither setting does anything on its own. The probe cache and the preview
+budget both live in **`CACHE_CONFIG`**, whose default is
+`{"CACHE_TYPE": "NullCache"}` — so out of the box:
+
+- every chart load on a mapped dataset re-probes the warehouse, because nothing
+  is cached; and
+- the preview budget is never enforced, because a null cache reports every
+  request as the first one in its window.
+
+Configuring `DATA_CACHE_CONFIG` does not help; these two read `CACHE_CONFIG`.
+
+The backend also has to be **shared** across processes. A per-process
+`SimpleCache` or a `FileSystemCache` on a local disk gives each gunicorn worker
+its own counter and its own probe cache, so the effective preview budget is the
+configured one multiplied by the number of workers. Use Redis or Memcached if
+you run more than one.
+
+Throttling fails **open** by design: if the cache backend errors, or cannot
+count, the preview is allowed rather than refused, so a cache outage does not
+take the dataset editor down with it. That is also why an unconfigured cache
+leaves previews unthrottled rather than blocked.
+
 Mappings travel with the dataset in import/export.
