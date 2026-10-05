@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
 } from '@superset-ui/chart-controls';
-import { omit, pick } from 'lodash-es';
+import { isEqual, omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -418,17 +418,22 @@ export default function exploreReducer(
           const rerenderControl = (
             newState.controls as Record<string, ControlState>
           )[rerenderControlName];
+          const updatedControl = getControlStateFromControlConfig(
+            rerenderControl as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            newState as Parameters<typeof getControlStateFromControlConfig>[1],
+            rerenderControl?.value,
+          );
           rerenderedControls[rerenderControlName] = {
-            ...getControlStateFromControlConfig(
-              rerenderControl as Parameters<
-                typeof getControlStateFromControlConfig
-              >[0],
-              newState as Parameters<
-                typeof getControlStateFromControlConfig
-              >[1],
-              rerenderControl?.value,
-            ),
+            ...updatedControl,
           } as ExtendedControlState;
+          if (
+            updatedControl &&
+            !isEqual(updatedControl.value, rerenderControl?.value)
+          ) {
+            new_form_data[rerenderControlName] = updatedControl.value;
+          }
         });
       }
 
