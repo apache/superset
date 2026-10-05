@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Hashable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
@@ -254,6 +254,22 @@ def _fk_key(
     )
 
 
+@dataclass
+class _Traversal:
+    """Tables already walked, split by how much each kind of walk can see.
+
+    Walking a table through its mapper yields its foreign keys *and* its
+    relationship keys; walking it as a plain table yields only the foreign
+    keys. A mapper walk therefore subsumes a table walk, but not the reverse
+    -- so a table reached first as a table must still be walkable as a
+    mapper, or relationship-only edges (a child's version shadow, say) go
+    undiscovered and read as stale declarations.
+    """
+
+    tables: set[str] = field(default_factory=set)
+    mappers: set[str] = field(default_factory=set)
+
+
 def _relationship_has_physical_edge(relationship: Any) -> bool:
     """Return whether a mapper relationship is represented by a physical FK."""
     for local, remote in relationship.local_remote_pairs:
@@ -274,11 +290,33 @@ def discover_dependencies(
     recursive_tables: frozenset[str] = frozenset(),
     visited: frozenset[str] = frozenset(),
 ) -> frozenset[DependencyKey]:
-    """Discover physical FKs and relationships, recursing through owned tables."""
+    """Discover physical FKs and relationships, recursing through owned tables.
+
+    Visited tables are tracked across the whole traversal rather than per
+    branch. Each table's edges depend only on that table, so walking it once
+    yields the same key set -- while restarting the bookkeeping per sibling
+    makes every sibling re-walk all the others, growing factorially in the
+    number of recursive tables. A root owning a dozen of them would spend
+    minutes in discovery before a single row could be purged.
+    """
+    return _discover_mapper(
+        mapper,
+        recursive_tables,
+        _Traversal(tables=set(visited), mappers=set(visited)),
+    )
+
+
+def _discover_mapper(
+    mapper: Mapper[Any],
+    recursive_tables: frozenset[str],
+    seen: _Traversal,
+) -> frozenset[DependencyKey]:
+    """Discover one mapper's edges, marking its table walked for the rest."""
     table: sa.Table = mapper.local_table
-    if table.name in visited:
+    if table.name in seen.mappers:
         return frozenset()
-    next_visited: frozenset[str] = visited | {table.name}
+    seen.mappers.add(table.name)
+    seen.tables.add(table.name)
     discovered: set[DependencyKey] = {
         _fk_key(table, constraint, "outbound")
         for constraint in table.foreign_key_constraints
@@ -290,13 +328,7 @@ def discover_dependencies(
     for relationship in mapper.relationships:
         related_mapper: Mapper[Any] = relationship.mapper
         if related_mapper.local_table.name in recursive_tables:
-            discovered.update(
-                discover_dependencies(
-                    related_mapper,
-                    recursive_tables=recursive_tables,
-                    visited=next_visited,
-                )
-            )
+            discovered.update(_discover_mapper(related_mapper, recursive_tables, seen))
         if not _relationship_has_physical_edge(relationship):
             discovered.add(
                 DependencyKey(
@@ -308,25 +340,20 @@ def discover_dependencies(
                 )
             )
     discovered.update(
-        _discover_recursive_table_dependencies(
-            table,
-            recursive_tables=recursive_tables,
-            visited=next_visited,
-        )
+        _discover_recursive_table_dependencies(table, recursive_tables, seen)
     )
     return frozenset(discovered)
 
 
 def _discover_table_dependencies(
     table: sa.Table,
-    *,
     recursive_tables: frozenset[str],
-    visited: frozenset[str],
+    seen: _Traversal,
 ) -> frozenset[DependencyKey]:
     """Discover physical edges for unmapped association and owned tables."""
-    if table.name in visited:
+    if table.name in seen.tables:
         return frozenset()
-    next_visited: frozenset[str] = visited | {table.name}
+    seen.tables.add(table.name)
     discovered: set[DependencyKey] = {
         _fk_key(table, constraint, "outbound")
         for constraint in table.foreign_key_constraints
@@ -336,34 +363,34 @@ def _discover_table_dependencies(
             if constraint.elements[0].column.table is table:
                 discovered.add(_fk_key(table, constraint, "inbound"))
     discovered.update(
-        _discover_recursive_table_dependencies(
-            table,
-            recursive_tables=recursive_tables,
-            visited=next_visited,
-        )
+        _discover_recursive_table_dependencies(table, recursive_tables, seen)
     )
     return frozenset(discovered)
 
 
 def _discover_recursive_table_dependencies(
     table: sa.Table,
-    *,
     recursive_tables: frozenset[str],
-    visited: frozenset[str],
+    seen: _Traversal,
 ) -> frozenset[DependencyKey]:
-    """Discover dependencies for named recursive tables not already visited."""
+    """Discover dependencies for named recursive tables not already visited.
+
+    Sorted so a traversal is reproducible, and driven off the shared
+    bookkeeping so each table is walked at most once per kind of walk.
+    """
     discovered: set[DependencyKey] = set()
-    for recursive_table_name in recursive_tables - visited:
+    for recursive_table_name in sorted(recursive_tables - seen.tables):
+        # Re-checked inside the loop: the set grows as the walk descends, so
+        # a table a nested call already covered is skipped rather than
+        # re-entered to return nothing.
+        if recursive_table_name in seen.tables:
+            continue
         recursive_table: sa.Table | None = table.metadata.tables.get(
             recursive_table_name
         )
         if recursive_table is not None:
             discovered.update(
-                _discover_table_dependencies(
-                    recursive_table,
-                    recursive_tables=recursive_tables,
-                    visited=visited,
-                )
+                _discover_table_dependencies(recursive_table, recursive_tables, seen)
             )
     return frozenset(discovered)
 
@@ -1057,16 +1084,148 @@ def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
             table_name = hop.key.owner_table
 
 
-def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
-    """Reject executable classifications missing their required action metadata."""
+def _tables_share_a_foreign_key(metadata: sa.MetaData, first: str, second: str) -> bool:
+    """Whether either table declares a foreign key into the other."""
+    for owner_name, other_name in ((first, second), (second, first)):
+        table: sa.Table | None = metadata.tables.get(owner_name)
+        if table is None:
+            continue
+        for constraint in table.foreign_key_constraints:
+            if constraint.elements[0].column.table.name == other_name:
+                return True
+    return False
+
+
+def _validate_scanner_requirements(policy: PurgeEntityPolicy) -> None:
+    """Reject a root the scheduled scan cannot page through.
+
+    The retention task selects, windows and orders eligible rows by ``id``,
+    and the cascade pins each row by it. A root keyed on something else -- a
+    UUID primary key with no ``id`` column -- raises inside the scan, outside
+    the per-row error handling, so the run aborts before the remaining roots
+    are reached.
+    """
+    table: sa.Table = sa.inspect(policy.model).local_table
+    if "id" not in table.c:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no 'id' column; the "
+            "scheduled scan pages eligible rows by id"
+        )
+    if "deleted_at" not in table.c:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no 'deleted_at' column; "
+            "every purge path requires the row to be archived first"
+        )
+
+
+def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
+    """Reject a self-referencing owned table under the stock cleanup.
+
+    ``delete_owned_children`` issues one statement per declared edge, so a
+    table that owns itself is pruned one level deep: a three-level tree
+    leaves its deepest rows behind -- orphaned where foreign keys are
+    unenforced, and blocking the root's own delete where they are not. A host
+    declaring this shape supplies cleanup that walks the whole sub-tree.
+    """
     for dependency in policy.dependencies:
-        if (
-            dependency.classification is DependencyClassification.LISTENER_EFFECT
-            and dependency.listener_action is None
-        ):
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        key: DependencyKey = dependency.key
+        if key.owner_table != key.related_table:
+            continue
+        if policy.delete_owned_children is delete_owned_children:
             raise RuntimeError(
-                f"Missing listener action for {dependency.key.describe()}"
+                f"Owned dependency {key.describe()} is self-referencing; the "
+                "stock owned-child cleanup deletes one level, so this policy "
+                "must supply its own delete_owned_children"
             )
+
+
+def _validate_sibling_ownership(policy: PurgeEntityPolicy) -> None:
+    """Reject owned siblings that reference one another.
+
+    Owned deletes are sorted by ownership depth with a stable sort, so two
+    owned tables at the same depth are deleted in the order they were
+    declared. With a foreign key between them, that order decides the
+    outcome: removing the referenced table first is refused by an enforced
+    constraint and rolls the purge back. Ordering deletes by their own
+    foreign keys would be the richer fix; refusing the shape keeps the
+    engine's contract honest until something needs it.
+    """
+    metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
+    by_depth: dict[int, list[DependencyPolicy]] = {}
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        depth: int = _dependency_owner_depth(policy, dependency.key)
+        by_depth.setdefault(depth, []).append(dependency)
+    for siblings in by_depth.values():
+        for index, first in enumerate(siblings):
+            for second in siblings[index + 1 :]:
+                if first.key.related_table == second.key.related_table:
+                    continue
+                if _tables_share_a_foreign_key(
+                    metadata, first.key.related_table, second.key.related_table
+                ):
+                    raise RuntimeError(
+                        f"Owned dependencies {first.key.describe()} and "
+                        f"{second.key.describe()} reference each other; owned "
+                        "deletes run in declaration order, so whether this "
+                        "graph purges depends on it"
+                    )
+
+
+#: Classifications the shared cleanup executes as SQL, through
+#: ``_dependency_predicates`` -- which only knows how to read an inbound
+#: foreign key.
+_EXECUTABLE_CLASSIFICATIONS: frozenset[DependencyClassification] = frozenset(
+    {
+        DependencyClassification.OWNED,
+        DependencyClassification.ASSOCIATION,
+        DependencyClassification.BLOCK,
+    }
+)
+
+
+def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
+    """Reject declarations the shared cleanup could not carry out.
+
+    Each shape here would otherwise raise mid-purge: for the scheduled task,
+    after the write-ahead audit row is already committed, so the attempt is
+    recorded as a failure on every run. Refused at registration instead.
+    """
+    metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
+    for dependency in policy.dependencies:
+        key: DependencyKey = dependency.key
+        if dependency.classification in _EXECUTABLE_CLASSIFICATIONS:
+            if key.kind != "foreign_key" or key.direction != "inbound":
+                raise RuntimeError(
+                    f"{dependency.classification.value} dependency "
+                    f"{key.describe()} is not an inbound foreign key; the "
+                    "shared cleanup can only act on those"
+                )
+            if key.related_table not in metadata.tables:
+                raise RuntimeError(
+                    f"{dependency.classification.value} dependency "
+                    f"{key.describe()} names a table outside the root's "
+                    "metadata, which cleanup cannot resolve"
+                )
+        if (
+            dependency.classification is DependencyClassification.BLOCK
+            and dependency.blocker is None
+        ):
+            raise RuntimeError(f"Missing blocker reason for {key.describe()}")
+        if dependency.classification is DependencyClassification.LISTENER_EFFECT:
+            if dependency.listener_action is None:
+                raise RuntimeError(
+                    f"Missing listener action for {dependency.key.describe()}"
+                )
+            if dependency.phase is None:
+                # Listener effects are dispatched by phase, so one without a
+                # phase matches none and would never run.
+                raise RuntimeError(
+                    f"Missing execution phase for {dependency.key.describe()}"
+                )
         if (
             dependency.classification is DependencyClassification.VERSION_OWNED
             and dependency.version_column is None
@@ -1074,7 +1233,10 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
             raise RuntimeError(
                 f"Missing version target column for {dependency.key.describe()}"
             )
+    _validate_scanner_requirements(policy)
     _validate_owned_traversal(policy)
+    _validate_recursive_ownership(policy)
+    _validate_sibling_ownership(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:

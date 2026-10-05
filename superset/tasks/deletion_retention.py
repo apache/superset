@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, cast
 from uuid import UUID
@@ -132,6 +133,54 @@ def _report_model_counts(outcome: str, counts: dict[str, int]) -> None:
         )
 
 
+@dataclass
+class _PassTotals:
+    """What one pass over the soft-delete roots produced."""
+
+    purged: dict[str, int] = field(default_factory=dict)
+    would_purge: dict[str, int] = field(default_factory=dict)
+    unsupported: dict[str, int] = field(default_factory=dict)
+    cascade_failures: int = 0
+    blocked: int = 0
+    scan_failures: int = 0
+
+
+def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
+    """Process each registered root, isolating one root's failure from the rest."""
+    totals = _PassTotals()
+    for model in _soft_delete_models():
+        entity_type = _model_table_name(model)
+        try:
+            if model not in purge_policy_registry():
+                totals.unsupported[entity_type] = 1
+                logger.warning(
+                    "deletion_retention: skipping %s: no purge policy", entity_type
+                )
+                stats_logger_manager.instance.incr(
+                    f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
+                )
+                continue
+            purged_n, would_n, failed_n, blocked_n = _purge_model(
+                model, cutoff, dry_run
+            )
+        except Exception:  # pylint: disable=broad-except
+            # One root must not cost the others their run. The eligible-id scan
+            # runs outside _purge_model's per-entity handler, so a column it
+            # cannot read or a transient database error would otherwise abort
+            # the whole pass -- including the roots that would have purged.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            totals.scan_failures += 1
+            logger.exception("deletion_retention: scan failed for %s", entity_type)
+            continue
+        if would_n:
+            totals.would_purge[entity_type] = would_n
+        if purged_n:
+            totals.purged[entity_type] = purged_n
+        totals.cascade_failures += failed_n
+        totals.blocked += blocked_n
+    return totals
+
+
 def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
     if window_days == 0 or window_days < -1:
@@ -151,38 +200,24 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         else datetime.now() - timedelta(days=window_days)
     )
     _reconcile_unless_dry_run(dry_run)
-    purged: dict[str, int] = {}
-    would_purge: dict[str, int] = {}
-    unsupported_models: dict[str, int] = {}
-    failures = 0
-    blocked = 0
-
-    for model in _soft_delete_models():
-        entity_type = _model_table_name(model)
-        if model not in purge_policy_registry():
-            unsupported_models[entity_type] = 1
-            logger.warning(
-                "deletion_retention: skipping %s: no purge policy", entity_type
-            )
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
-            )
-            continue
-        purged_n, would_n, failed_n, blocked_n = _purge_model(model, cutoff, dry_run)
-        if would_n:
-            would_purge[entity_type] = would_n
-        if purged_n:
-            purged[entity_type] = purged_n
-        failures += failed_n
-        blocked += blocked_n
+    totals: _PassTotals = _purge_roots(cutoff, dry_run)
+    purged = totals.purged
+    would_purge = totals.would_purge
+    unsupported_models = totals.unsupported
+    failures = totals.cascade_failures
+    blocked = totals.blocked
+    scan_failures = totals.scan_failures
 
     if dry_run:
         _report_model_counts("would_purge", would_purge)
         logger.info("deletion_retention: DRY RUN would_purge=%s", would_purge)
+        if scan_failures:
+            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.scan_failures")
         return {
             "dry_run": 1,
             "would_purge": would_purge,
             "unsupported_models": unsupported_models,
+            "scan_failures": scan_failures,
         }
 
     _report_model_counts("purged", purged)
@@ -192,11 +227,14 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         stats_logger_manager.instance.gauge(
             f"{_METRIC_PREFIX}.blocked_by_reference", blocked
         )
+    if scan_failures:
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.scan_failures")
     stats = {
         "purged": purged,
         "cascade_failures": failures,
         "blocked_by_reference": blocked,
         "unsupported_models": unsupported_models,
+        "scan_failures": scan_failures,
     }
     logger.info("deletion_retention: %s", stats)
     return stats

@@ -331,6 +331,50 @@ def test_unsupported_model_is_reported_without_scanning(
 
 
 @pytest.mark.parametrize("dry_run", [False, True])
+def test_scan_failure_does_not_prevent_supported_models_from_purging(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+    dry_run: bool,
+) -> None:
+    """A root whose scan raises is counted and skipped, not fatal to the run.
+
+    The eligible-id scan sits outside the per-entity handler, so without this
+    one unreadable root would abort the pass and the roots that could have
+    purged never would.
+    """
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.tasks import deletion_retention as task
+
+    supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
+
+    def failing_scan(
+        model: type[SoftDeleteMixin], cutoff: Any, dry: bool
+    ) -> tuple[int, int, int, int]:
+        if model is supported_models[0]:
+            raise RuntimeError("no such column: id")
+        return (0, 1, 0, 0) if dry else (1, 0, 0, 0)
+
+    with (
+        patch.object(task, "_purge_model", side_effect=failing_scan),
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge"),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert result["scan_failures"] == 1
+    outcome: dict[str, int] = result["would_purge" if dry_run else "purged"]
+    assert len(outcome) == len(supported_models) - 1
+    assert call("deletion_retention.scan_failures") in counter.call_args_list
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
 def test_unsupported_model_does_not_prevent_supported_models_from_purging(
     app_config: Config,
     monkeypatch: pytest.MonkeyPatch,

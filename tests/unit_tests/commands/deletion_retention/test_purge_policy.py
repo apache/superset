@@ -31,6 +31,7 @@ from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import configure_mappers, registry
 from sqlalchemy.sql import Select
 
+from superset.commands.deletion_retention import purge_policy as purge_policy_module
 from superset.commands.deletion_retention.purge_policy import (
     _dependency_owner_depth,
     _dependency_predicates,
@@ -46,6 +47,7 @@ from superset.commands.deletion_retention.purge_policy import (
     get_purge_policy,
     HOST_POLICIES_CONFIG_KEY,
     listener_responsibilities,
+    ListenerAction,
     PolicyCoverage,
     purge_policy_registry,
     PurgeEntityPolicy,
@@ -723,6 +725,7 @@ def _host_chain(prefix: str) -> type[Any]:
         f"{prefix}_entity",
         metadata,
         sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
     )
     sa.Table(
         f"{prefix}_link",
@@ -807,3 +810,334 @@ def test_owned_table_behind_an_owned_link_is_accepted() -> None:
 
     with _installed(lambda: [policy]):
         assert get_purge_policy(model) is policy
+
+
+def _host_bare_root(prefix: str, *columns: str) -> type[Any]:
+    """Map a host root carrying only *columns*, to probe scan requirements."""
+    available: dict[str, sa.Column[Any]] = {
+        "id": sa.Column("id", sa.Integer, primary_key=True),
+        "uuid": sa.Column("uuid", sa.String(36), primary_key=True),
+        "deleted_at": sa.Column("deleted_at", sa.DateTime, nullable=True),
+    }
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity", metadata, *(available[name] for name in columns)
+    )
+
+    class HostBareRoot:
+        """Temporary mapped root missing a column some purge path needs."""
+
+    registry().map_imperatively(HostBareRoot, root_table)
+    return HostBareRoot
+
+
+def _host_referenced(prefix: str) -> type[Any]:
+    """Map a host root with one inbound foreign key and nothing else."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    sa.Table(
+        f"{prefix}_ref",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
+    )
+
+    class HostReferencedRoot:
+        """Temporary mapped root referenced by one other table."""
+
+    registry().map_imperatively(HostReferencedRoot, root_table)
+    return HostReferencedRoot
+
+
+def _inbound_ref_key(prefix: str) -> DependencyKey:
+    return DependencyKey(
+        "foreign_key",
+        f"{prefix}_entity",
+        f"{prefix}_ref",
+        ("id",),
+        ("entity_id",),
+        "inbound",
+    )
+
+
+def _host_tree(prefix: str) -> type[Any]:
+    """Map a host root whose table owns itself through a parent column."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_node",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("parent_id", sa.Integer, sa.ForeignKey(f"{prefix}_node.id")),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class HostTreeRoot:
+        """Temporary mapped root with a recursive sub-tree."""
+
+    registry().map_imperatively(HostTreeRoot, root_table)
+    return HostTreeRoot
+
+
+def _host_tree_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
+    node: str = f"{prefix}_node"
+    return (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", node, node, ("id",), ("parent_id",), "inbound"
+            ),
+            DependencyClassification.OWNED,
+            ExecutionPhase.OWNED,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", node, node, ("parent_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+
+
+def _host_siblings(prefix: str) -> type[Any]:
+    """Map a host root owning two tables, one referencing the other."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    sa.Table(
+        f"{prefix}_asset",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
+    )
+    sa.Table(
+        f"{prefix}_task",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
+        sa.Column("asset_id", sa.Integer, sa.ForeignKey(f"{prefix}_asset.id")),
+    )
+
+    class HostSiblingRoot:
+        """Temporary mapped root with two owned, cross-linked children."""
+
+    registry().map_imperatively(HostSiblingRoot, root_table)
+    return HostSiblingRoot
+
+
+def _host_sibling_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
+    entity: str = f"{prefix}_entity"
+    asset: str = f"{prefix}_asset"
+    task: str = f"{prefix}_task"
+    owned = (DependencyClassification.OWNED, ExecutionPhase.OWNED)
+    return (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", entity, asset, ("id",), ("entity_id",), "inbound"
+            ),
+            *owned,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", entity, task, ("id",), ("entity_id",), "inbound"
+            ),
+            *owned,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", asset, task, ("id",), ("asset_id",), "inbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", asset, entity, ("entity_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", task, entity, ("entity_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key", task, asset, ("asset_id",), ("id",), "outbound"
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+
+
+def test_root_without_an_id_column_is_rejected() -> None:
+    """The scheduled scan pages by id, so a root must have one."""
+    model: type[Any] = _host_bare_root("uuidonly", "uuid")
+
+    with _installed(lambda: [_host_policy(model, ())]):
+        with pytest.raises(RuntimeError, match="has no 'id' column"):
+            get_purge_policy(model)
+
+
+def test_self_referencing_owned_table_rejects_stock_cleanup() -> None:
+    """Stock cleanup prunes one level, which would orphan a deeper tree."""
+    model: type[Any] = _host_tree("stocktree")
+    policy: PurgeEntityPolicy = _host_policy(model, _host_tree_edges("stocktree"))
+
+    with _installed(lambda: [policy]):
+        with pytest.raises(RuntimeError, match="must supply its own"):
+            get_purge_policy(model)
+
+
+def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
+    """A host that walks the sub-tree itself may declare the shape."""
+    model: type[Any] = _host_tree("customtree")
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, _host_tree_edges("customtree")),
+        delete_owned_children=lambda session, policy, entity_id: None,
+    )
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(model) is policy
+
+
+def test_cross_linked_owned_siblings_are_rejected() -> None:
+    """Same-depth owned deletes run in declaration order, so this is a trap."""
+    model: type[Any] = _host_siblings("siblings")
+    policy: PurgeEntityPolicy = _host_policy(model, _host_sibling_edges("siblings"))
+
+    with _installed(lambda: [policy]):
+        with pytest.raises(RuntimeError, match="reference each other"):
+            get_purge_policy(model)
+
+
+def test_discovery_walks_each_recursive_table_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Traversal is per table, not per permutation of tables.
+
+    Five link tables walked per permutation is already hundreds of visits;
+    a dozen is billions, which a host root could reach before any row is
+    purged.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "wide_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    link_names: list[str] = [f"wide_link{index}" for index in range(5)]
+    for name in link_names:
+        sa.Table(
+            name,
+            metadata,
+            sa.Column("id", sa.Integer, primary_key=True),
+            sa.Column("entity_id", sa.Integer, sa.ForeignKey("wide_entity.id")),
+        )
+
+    class WideRoot:
+        """Temporary mapped root owning several independent link tables."""
+
+    registry().map_imperatively(WideRoot, root_table)
+
+    walked: list[str] = []
+    original = purge_policy_module._discover_table_dependencies  # noqa: SLF001
+
+    def counting(table: sa.Table, recursive_tables: Any, seen: Any) -> Any:
+        walked.append(table.name)
+        return original(table, recursive_tables, seen)
+
+    monkeypatch.setattr(purge_policy_module, "_discover_table_dependencies", counting)
+
+    discover_dependencies(sa.inspect(WideRoot), recursive_tables=frozenset(link_names))
+
+    assert sorted(walked) == sorted(link_names)
+
+
+def test_root_without_a_deleted_at_column_is_rejected() -> None:
+    """Every purge path requires the row to be archived first."""
+    model: type[Any] = _host_bare_root("noflag", "id")
+
+    with _installed(lambda: [_host_policy(model, ())]):
+        with pytest.raises(RuntimeError, match="no 'deleted_at' column"):
+            get_purge_policy(model)
+
+
+def test_executable_classification_on_an_outbound_key_is_rejected() -> None:
+    """Cleanup reads inbound foreign keys; an outbound one has nothing to delete."""
+    model: type[Any] = _host_root("outbound")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            _host_edge("outbound").key,
+            DependencyClassification.OWNED,
+            ExecutionPhase.OWNED,
+        ),
+    )
+
+    with _installed(lambda: [_host_policy(model, declared)]):
+        with pytest.raises(RuntimeError, match="not an inbound foreign key"):
+            get_purge_policy(model)
+
+
+def test_executable_dependency_outside_the_metadata_is_rejected() -> None:
+    """A table cleanup cannot resolve is refused before it is executed."""
+    model: type[Any] = _host_root("elsewhere")
+    declared: tuple[DependencyPolicy, ...] = (
+        _host_edge("elsewhere"),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                "elsewhere_entity",
+                "a_table_in_another_metadata",
+                ("id",),
+                ("entity_id",),
+                "inbound",
+            ),
+            DependencyClassification.ASSOCIATION,
+            ExecutionPhase.ASSOCIATIONS,
+        ),
+    )
+
+    with _installed(lambda: [_host_policy(model, declared)]):
+        with pytest.raises(RuntimeError, match="outside the root's metadata"):
+            get_purge_policy(model)
+
+
+def test_blocker_without_a_reason_is_rejected() -> None:
+    """A block with no audit code could not report why it refused."""
+    model: type[Any] = _host_referenced("noreason")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            _inbound_ref_key("noreason"),
+            DependencyClassification.BLOCK,
+            ExecutionPhase.VALIDATE,
+        ),
+    )
+
+    with _installed(lambda: [_host_policy(model, declared)]):
+        with pytest.raises(RuntimeError, match="Missing blocker reason"):
+            get_purge_policy(model)
+
+
+def test_listener_effect_without_a_phase_is_rejected() -> None:
+    """Listener effects are dispatched by phase, so one without it never runs."""
+    model: type[Any] = _host_root("nophase")
+    declared: tuple[DependencyPolicy, ...] = (
+        _host_edge("nophase"),
+        DependencyPolicy(
+            DependencyKey("synthetic", "", "tagged_object", relationship="tags"),
+            DependencyClassification.LISTENER_EFFECT,
+            listener_action=ListenerAction.DELETE_TAGGED_OBJECTS,
+        ),
+    )
+
+    with _installed(lambda: [_host_policy(model, declared)]):
+        with pytest.raises(RuntimeError, match="Missing execution phase"):
+            get_purge_policy(model)
