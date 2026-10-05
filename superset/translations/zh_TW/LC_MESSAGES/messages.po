@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-05 13:20+0000\n"
+"POT-Creation-Date: 2026-10-05 14:09+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1219,6 +1219,10 @@ msgid "A new dashboard will be created."
 msgstr "將會創建一個新看板"
 
 #, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "A partition value transform cannot call %(functions)s."
 msgstr ""
 
@@ -1231,6 +1235,11 @@ msgid ""
 msgstr ""
 
 msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
 msgid ""
@@ -17041,6 +17050,11 @@ msgstr "刷新於 %s"
 
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
+msgstr ""
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

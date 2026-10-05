@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-05 13:20+0000\n"
+"POT-Creation-Date: 2026-10-05 14:09+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1158,6 +1158,10 @@ msgid "A new dashboard will be created."
 msgstr "Yeni bir pano oluşturulacak."
 
 #, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
 msgid "A partition value transform cannot call %(functions)s."
 msgstr ""
 
@@ -1170,6 +1174,11 @@ msgid ""
 msgstr ""
 
 msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
 msgid ""
@@ -16209,6 +16218,11 @@ msgstr "%s"
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr "Bu grafikle bağlantılı %s silinmiş olabilir."
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
