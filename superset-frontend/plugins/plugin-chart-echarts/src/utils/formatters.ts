@@ -349,6 +349,42 @@ export function createSpacedXAxisFormatter(
   return wrapper;
 }
 
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
+/**
+ * Coerces a data record's raw x-axis value to epoch milliseconds. A temporal
+ * column can carry any of the shapes the query/data pipeline produces for it
+ * (a raw epoch number, a `Date` from client-side parsing, or an ISO string
+ * straight off the wire) — every caller comparing or bucketing temporal
+ * values needs to recognize all three the same way, so this is the single
+ * place that does it. Returns `NaN` for a value that isn't temporal at all
+ * (nullish, an unparseable string, ...); callers filter with
+ * `Number.isFinite`.
+ */
+export function coerceTemporalMs(value: unknown): number {
+  // eslint-disable-next-line no-nested-ternary
+  return value instanceof Date
+    ? value.getTime()
+    : typeof value === 'string'
+      ? parseTemporalString(value)
+      : Number(value ?? NaN);
+}
+
 /**
  * Computes the [min, max] of a temporal x-axis column across one or more
  * data record arrays, for use with createSpacedXAxisFormatter.
@@ -361,8 +397,8 @@ export function getXAxisDomain(
   let domainMax: number | undefined;
   dataRecordArrays.forEach(records => {
     records.forEach(record => {
-      const value = record[xAxisCol];
-      if (typeof value === 'number') {
+      const value = coerceTemporalMs(record[xAxisCol]);
+      if (Number.isFinite(value)) {
         if (domainMin === undefined || value < domainMin) domainMin = value;
         if (domainMax === undefined || value > domainMax) domainMax = value;
       }

@@ -1,0 +1,49 @@
+---
+title: Google Sheets credentials
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+## Service-account connections
+
+When configuring Google Sheets with service-account JSON in the database dialog,
+share private spreadsheets with the service account's `client_email`.
+Both catalog validation and queries use the service account, not the Google
+identity of the administrator adding the spreadsheet. This applies when creating
+a connection and when editing its catalog.
+
+The dialog's stored `impersonate_user` flag does not enable domain-wide delegation
+for this service-account credential path. A spreadsheet shared only with the
+administrator cannot be validated on that basis, even if the service account has
+domain-wide delegation enabled. Creating an empty connection and editing it later
+does not change the identity used to access the spreadsheet.
+
+## Upload values
+
+Date and datetime upload values are sent as ISO strings rather than numeric
+nanosecond counts. Timezone-aware datetimes are converted to UTC, then uploaded
+without a timezone suffix so Google Sheets can parse them as datetime cells
+with `USER_ENTERED` input. For example, `2024-03-01 00:30:00+02:00` is uploaded as
+`2024-02-29 22:30:00`. The original timezone is not retained; interpret these cell
+values as UTC. Naive datetimes keep their original clock time.
+
+Nullable integer columns retain integer values in the upload payload, and missing
+values become empty cells. Time-only values use `HH:MM:SS[.ffffff]` strings.
+Durations are sent as signed `H:MM:SS[.ffffff]` strings, with hours including days.

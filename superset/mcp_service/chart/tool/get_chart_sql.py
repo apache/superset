@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
     GetChartSqlRequest,
+    resolve_chart_datasource_name,
 )
 
 logger = logging.getLogger(__name__)
@@ -247,7 +248,7 @@ def _sql_from_saved_query_context(
             result,
             chart.id,
             chart.slice_name,
-            chart.datasource_name,
+            resolve_chart_datasource_name(chart),
             extra_form_data=extra_form_data,
         )
     except SupersetSecurityException:
@@ -266,7 +267,7 @@ def _resolve_datasource_name(
     from form_data so that the response includes a meaningful name.
     """
     if chart:
-        return getattr(chart, "datasource_name", None)
+        return resolve_chart_datasource_name(chart)
 
     # Unsaved chart — resolve from form_data
     datasource_id = form_data.get("datasource_id")

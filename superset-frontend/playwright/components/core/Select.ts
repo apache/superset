@@ -70,9 +70,15 @@ export class Select {
    * Handles cases where the option may not be initially visible in the dropdown.
    * Waits for dropdown to close after selection to avoid stale dropdowns.
    * @param optionText - The text of the option to select
+   * @param options.afterOpen - Awaited after opening and before typing, e.g.
+   *   the options request of a lazily loading async select
    */
-  async selectOption(optionText: string): Promise<void> {
+  async selectOption(
+    optionText: string,
+    options?: { afterOpen?: Promise<unknown> },
+  ): Promise<void> {
     await this.open();
+    await options?.afterOpen;
     await this.type(optionText);
     await this.clickOption(optionText);
     // Wait for dropdown to close to avoid multiple visible dropdowns

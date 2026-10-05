@@ -194,12 +194,41 @@ def register(plugin: "ChartTypePlugin") -> None:
     logger.debug("Registered chart plugin: %r", plugin.chart_type)
 
 
-def get(chart_type: str) -> "ChartTypePlugin | None":
-    """Return the plugin for chart_type, or None if unknown or disabled."""
+def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
+    """Return the registered plugin that owns a Superset-internal viz_type.
+
+    Ownership covers ``native_viz_types`` and ``additional_viz_types``.
+    Native owners take priority over additional owners across all plugins;
+    insertion order breaks ties within each category. The lookup ignores runtime
+    enablement: a saved chart must be queried, previewed and updated with its
+    plugin's contract even when creating new charts of that type is disabled.
+    """
+    if not viz_type:
+        return None
     _ensure_plugins_loaded()
-    if chart_type not in _REGISTRY or not _is_plugin_enabled(chart_type):
+    additional_owner: ChartTypePlugin | None = None
+    for plugin in list(_REGISTRY.values()):
+        if viz_type in plugin.native_viz_types:
+            return plugin
+        if additional_owner is None and viz_type in plugin.additional_viz_types:
+            additional_owner = plugin
+    return additional_owner
+
+
+def get(chart_type: str, *, include_disabled: bool = False) -> "ChartTypePlugin | None":
+    """Look up a chart type; saved-chart updates may include disabled plugins."""
+    _ensure_plugins_loaded()
+    if chart_type not in _REGISTRY or (
+        not include_disabled and not _is_plugin_enabled(chart_type)
+    ):
         return None
     return _REGISTRY[chart_type]
+
+
+def all_plugins() -> list["ChartTypePlugin"]:
+    """Return every registered plugin, enabled or not, in insertion order."""
+    _ensure_plugins_loaded()
+    return list(_REGISTRY.values())
 
 
 def all_types() -> list[str]:
@@ -270,8 +299,11 @@ def _reset_for_testing() -> None:
 class _RegistryProxy:
     """Thin proxy exposing registry functions as instance methods."""
 
-    def get(self, chart_type: str) -> "ChartTypePlugin | None":
-        return get(chart_type)
+    def get(
+        self, chart_type: str, *, include_disabled: bool = False
+    ) -> "ChartTypePlugin | None":
+        """Look up a chart type; saved-chart updates may include disabled plugins."""
+        return get(chart_type, include_disabled=include_disabled)
 
     def all_types(self) -> list[str]:
         return all_types()
@@ -284,6 +316,13 @@ class _RegistryProxy:
 
     def display_name_for_viz_type(self, viz_type: str) -> str | None:
         return display_name_for_viz_type(viz_type)
+
+    def plugin_for_viz_type(self, viz_type: str | None) -> "ChartTypePlugin | None":
+        return plugin_for_viz_type(viz_type)
+
+    def all_plugins(self) -> list["ChartTypePlugin"]:
+        """Return every registered plugin, enabled or not, in insertion order."""
+        return all_plugins()
 
 
 _PROXY = _RegistryProxy()

@@ -37,6 +37,7 @@ import {
   Loading,
   Modal,
   TableView,
+  type InputRef,
 } from '@superset-ui/core/components';
 import {
   ServerPagination,
@@ -51,7 +52,6 @@ import {
   SORT_BY as DATASET_SORT_BY,
 } from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { InputRef } from 'antd';
 import type { Datasource, ChangeDatasourceModalProps } from '../types';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 

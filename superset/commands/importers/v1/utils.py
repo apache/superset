@@ -192,6 +192,10 @@ def load_configs(
         if not content:
             continue
 
+        # Bound up front so the ``except ValidationError`` diagnostic below
+        # stays valid even when ``load_yaml`` raises before the assignment
+        # completes (unparseable YAML).
+        config: dict[str, Any] | None = None
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")
         if schema:
@@ -324,7 +328,8 @@ def load_configs(
                         file_name,
                         type(config).__name__,
                     )
-                exc.messages = {file_name: exc.messages}
+                if file_name not in exc.messages:
+                    exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
             except json.JSONDecodeError as exc:
                 # masked_encrypted_extra comes straight from the imported YAML

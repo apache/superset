@@ -18,6 +18,7 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 from datetime import datetime
+from itertools import islice
 from typing import Any, Optional
 from unittest import mock
 
@@ -29,7 +30,7 @@ from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
 from superset.sql.parse import Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -793,6 +794,42 @@ def test_fetch_data_truncated_by_memory_limit(mocker: MockerFixture) -> None:
     assert flask_g.bq_memory_limited_row_count == len(first_batch)
 
 
+@pytest.mark.parametrize("row_count", [3, 4, 5])
+@pytest.mark.parametrize("limit", [None, 4, 8])
+def test_fetch_data_eof_probe_preserves_budgeted_rows(
+    mocker: MockerFixture, row_count: int, limit: int | None
+) -> None:
+    """Only an explicitly truncated result omits the out-of-budget probe row."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    flask_g, app = _patch_bq_fetch_deps(mocker, max_mb=1)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 4)
+    # Each one-cell row is estimated at 256 KiB: four rows exactly fill 1 MiB.
+    mocker.patch("superset.db_engine_specs.bigquery.sys.getsizeof", return_value=131072)
+    rows = [(i,) for i in range(row_count)]
+    remaining = iter(rows)
+    cursor = mock.MagicMock()
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=limit)
+
+    assert result == rows[:4]
+    assert isinstance(result, FetchedRows)
+    assert result.truncated is (row_count > 4)
+    assert flask_g.bq_memory_limited is (row_count > 4)
+    assert flask_g.bq_memory_limited_row_count == len(result)
+    if not result.truncated:
+        assert result == rows
+    expected_calls = [mock.call(4)]
+    if row_count >= 4:
+        expected_calls.append(mock.call(1))
+    assert cursor.fetchmany.call_args_list == expected_calls
+    assert list(remaining) == []
+    cursor.fetchall.assert_not_called()
+
+
 def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
     """
     Test that fetch_data handles an empty result set gracefully.
@@ -830,6 +867,54 @@ def test_fetch_data_fallback_on_exception(mocker: MockerFixture) -> None:
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
     assert flask_g.bq_memory_limited_row_count == 2
+
+
+@pytest.mark.parametrize("bounded", [False, True])
+@pytest.mark.parametrize("failure_stage", ["probe", "second_batch", "estimate"])
+def test_fetch_data_does_not_discard_sample_after_error(
+    mocker: MockerFixture, bounded: bool, failure_stage: str
+) -> None:
+    """A failure after consuming rows must not return only the cursor remainder."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.sql.execution.executor import _LimitedCursor
+
+    _, app = _patch_bq_fetch_deps(mocker)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_dbapi_exception_mapping",
+        return_value={OSError: SupersetDBAPIConnectionError},
+    )
+    # Two ~600 KB rows exceed 1 MiB (EOF probe); ~300 KB rows leave room
+    # for a second batch after the two-row sample.
+    probe_cell_bytes = 600_000
+    second_batch_cell_bytes = 300_000
+    cell_bytes = (
+        probe_cell_bytes if failure_stage == "probe" else second_batch_cell_bytes
+    )
+    row = ("x" * cell_bytes,)
+    cursor = mock.MagicMock()
+    cursor.description = [("n", "STRING", None, None, None, None, None)]
+    cursor.fetchmany.side_effect = (
+        [[row, row]]
+        if failure_stage == "estimate"
+        else [[row, row], OSError("read failed")]
+    )
+    cursor.fetchall.return_value = [row]
+    if failure_stage == "estimate":
+        mocker.patch(
+            "superset.db_engine_specs.bigquery.sys.getsizeof",
+            side_effect=OSError("read failed"),
+        )
+
+    with pytest.raises(SupersetDBAPIConnectionError, match="read failed"):
+        BigQueryEngineSpec.fetch_data(_LimitedCursor(cursor, 5) if bounded else cursor)
+
+    assert cursor.fetchmany.call_count == (1 if failure_stage == "estimate" else 2)
+    cursor.fetchall.assert_not_called()
 
 
 def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None:
