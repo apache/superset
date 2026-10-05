@@ -5234,6 +5234,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        # Set False by callers that want the SQL's *shape* rather than the SQL
+        # a chart would run -- `get_extra_cache_keys`, which reaches this before
+        # the chart cache is even consulted. The mirrors cost a synchronous
+        # warehouse probe, and they contribute nothing to `extra_cache_keys`.
+        # Not in `SQLA_QUERY_KEYS`, so no request payload can set it.
+        mirror_partition_filters: bool = True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -6303,7 +6309,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # identity.
         where_clause_and_without_mirrors = list(where_clause_and)
         inner_partition_mirror_predicates: list[Any] = []
-        if partition_mapping is not None:
+        if partition_mapping is not None and mirror_partition_filters:
             partition_mirror_predicates = self._build_partition_mirror_predicates(
                 partition_mapping,
                 partition_mirror,

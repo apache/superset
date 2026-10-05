@@ -2769,7 +2769,19 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
+            # Without the mirrors. This runs *before* the chart cache lookup,
+            # unconditionally, so probing here means a warehouse round trip on
+            # a cache hit -- and on a relative range like "Last 24 hours" the
+            # chart key is deliberately stable while the probe key moves every
+            # second, so the probe misses every time. Skipping it cannot change
+            # the key: the mirrors contribute nothing to `extra_cache_keys`,
+            # which the Jinja template processor collects, and the mapping's own
+            # identity is appended below. A miss falls through to SQL
+            # generation, which probes.
+            sqla_query = self.get_sqla_query(
+                **cast(Any, filtered_query_obj),
+                mirror_partition_filters=False,
+            )
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key
