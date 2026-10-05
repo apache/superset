@@ -168,12 +168,9 @@ test.describe('Mobile Dashboard Interaction', () => {
       .locator('[data-test="chart-container"]')
       .or(page.locator('.dashboard-chart'));
 
-    // Wait for at least one chart to be visible (with timeout). The first
-    // chart assertion absorbs the whole uncached query round-trip, so this
-    // uses TIMEOUT.CHART_RENDER like every other "wait for chart to paint"
-    // assertion in the suite, rather than a page-load budget.
+    // Wait for at least one chart to be visible (with timeout)
     await expect(chartContainers.first()).toBeVisible({
-      timeout: TIMEOUT.CHART_RENDER,
+      timeout: TIMEOUT.PAGE_LOAD * 2,
     });
   });
 
