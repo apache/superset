@@ -1363,7 +1363,7 @@ def validate_query_result_envelope(  # noqa: C901
                 return _invalid_metadata(f"Chart query {index}")
             if reason := _charge_text(key, budget, key=True, metadata=True):
                 return _invalid_result(reason)
-            if key == "data":
+            if key in {"data", "indexnames"}:
                 continue
             if reason := _normalize_metadata_value(query, key, budget):
                 return _invalid_metadata(f"Chart query {index}")
@@ -1454,6 +1454,48 @@ def validate_query_result_envelope(  # noqa: C901
                 if normalized is not value:
                     dict.__setitem__(row, column, normalized)
 
+        if error := _normalize_index_names(query, index, budget):
+            return error
+
+    return None
+
+
+def _normalize_index_names(
+    query: dict[str, Any], index: int, budget: _ResultBudget
+) -> ChartError | None:
+    """Normalize FULL-payload ``indexnames`` against the row budget.
+
+    The producer emits one index label per data row, so the list is bounded by
+    the per-query row limit rather than the metadata item limit. Each label is
+    charged to the shared aggregate value/byte budget like a data cell.
+    MultiIndex labels arrive as tuples and are normalized as arrays.
+    """
+    if not dict.__contains__(query, "indexnames"):
+        return None
+    names = dict.__getitem__(query, "indexnames")
+    if type(names) is not list:
+        return _invalid_metadata(f"Chart query {index}")
+    width = list.__len__(names)
+    if width > MAX_QUERY_RESULT_ROWS_PER_QUERY:
+        return _invalid_result(f"too many index labels for query {index}")
+    if reason := _charge_value(budget):
+        return _invalid_result(reason)
+    if reason := _charge_json_bytes(
+        budget, _container_json_syntax_size(width, mapping=False)
+    ):
+        return _invalid_result(reason)
+    for offset in range(width):
+        label = list.__getitem__(names, offset)
+        source_label = label
+        if type(label) is tuple:
+            label = list(label)
+        normalized, reason = _normalize_value(label, budget)
+        if reason is not None:
+            return _invalid_result(
+                f"hostile or oversized index metadata for query {index}: {reason}"
+            )
+        if normalized is not source_label:
+            list.__setitem__(names, offset, normalized)
     return None
 
 

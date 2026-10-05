@@ -115,3 +115,53 @@ def chart_data_command_result(
         "rejected_filters": [],
     }
     return ChartDataCommand(FakeQueryContext(query)).run()  # type: ignore[arg-type]
+
+
+def full_producer_command_result(frame: pd.DataFrame) -> dict[str, Any]:
+    """Run ``frame`` through the real FULL payload materializer and command.
+
+    Unlike :func:`chart_data_command_result`, this keeps every producer-owned
+    metadata key (including one ``indexnames`` entry per row) exactly as
+    ``query_actions._materialize_full_payload`` emits it.
+    """
+    from unittest.mock import patch
+
+    from superset.common import query_actions
+
+    datasource = SimpleNamespace(columns=[], columns_types={})
+    processor_context = SimpleNamespace(
+        datasource=datasource, result_format=ChartDataResultFormat.JSON
+    )
+    query_context = SimpleNamespace(
+        datasource=datasource,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        get_data=QueryContextProcessor(
+            cast(QueryContext, processor_context)
+        ).get_data,
+    )
+    query_obj = SimpleNamespace(
+        datasource=None, result_type=None, applied_time_extras={}
+    )
+    payload = {
+        "cache_key": None,
+        "cached_dttm": None,
+        "cache_timeout": 300,
+        "df": frame,
+        "applied_template_filters": [],
+        "applied_filter_columns": [],
+        "rejected_filter_columns": [],
+        "annotation_data": {},
+        "error": None,
+        "is_cached": False,
+        "query": "SELECT 1",
+        "status": QueryStatus.SUCCESS,
+        "stacktrace": None,
+        "rowcount": len(frame),
+        "sql_rowcount": len(frame),
+    }
+    with patch.object(query_actions, "_detect_currency", return_value=None):
+        query = query_actions._materialize_full_payload(
+            cast(QueryContext, query_context), cast(Any, query_obj), payload
+        )
+    return ChartDataCommand(FakeQueryContext(query)).run()  # type: ignore[arg-type]

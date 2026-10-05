@@ -42,6 +42,7 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_VALUE_BYTES,
     MAX_QUERY_RESULTS,
     MAX_RESULT_STRING_LENGTH,
+    MAX_RESULT_VALUE_ITEMS,
     query_result_failure,
     response_json_failure,
     validate_query_result_envelope,
@@ -53,6 +54,9 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    full_producer_command_result,
+)
 
 
 class UppercaseStatus(Enum):
@@ -1738,3 +1742,31 @@ def test_pytz_timestamp_preserves_ambiguous_instant_and_nanoseconds(
     data, error = first_query_data(_producer_result({"data": [{"value": source}]}))
     assert error is None
     assert data == [{"value": source.isoformat()}]
+
+
+def test_full_payload_index_metadata_uses_the_row_budget() -> None:
+    """A real FULL payload carries one ``indexnames`` entry per row."""
+    rows = MAX_RESULT_VALUE_ITEMS + 1
+    result = full_producer_command_result(pd.DataFrame({"value": range(rows)}))
+    query = result["queries"][0]
+    assert len(query["indexnames"]) == rows
+
+    assert validate_query_result_envelope(result) is None
+    assert query["indexnames"] == list(range(rows))
+    assert len(query["data"]) == rows
+
+
+def test_full_payload_index_metadata_stays_bounded_per_query() -> None:
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [],
+                    "indexnames": [0] * (MAX_QUERY_RESULT_ROWS_PER_QUERY + 1),
+                }
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
