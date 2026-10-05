@@ -159,6 +159,11 @@ row), and when a dependency it would have to execute cannot be:
   deletes run in declaration order and an enforced constraint would refuse one
   of the two orders.
 
+Every one of these is decided when the policy is admitted, not when a row is
+purged: a refused policy is logged with its reason and its root reported as
+unsupported, exactly like a root with no policy at all. The provider itself is
+invoked once per process, however many roots a run purges.
+
 A host that wants to confirm this hook exists before relying on it can check
 for `HOST_POLICIES_CONFIG_KEY` in
 `superset.commands.deletion_retention.purge_policy`; installing the key on a

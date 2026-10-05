@@ -19,12 +19,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Hashable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any, cast, NamedTuple
+from typing import Any, NamedTuple
 
 import sqlalchemy as sa
 from flask import current_app, has_app_context
@@ -897,7 +897,9 @@ def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
     return tuple(registry.values())
 
 
-def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+def _host_purge_policies(
+    provider: Callable[[], Any] | None,
+) -> tuple[PurgeEntityPolicy, ...]:
     """Return the purge policies a host installed for its own roots.
 
     A host distribution can carry ``SoftDeleteMixin`` entities this package
@@ -906,17 +908,15 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
     unsupported model. The host therefore declares their purge behavior and
     installs it under ``PURGE_POLICIES_FUNC``.
 
-    Host boundary: an unavailable provider, a malformed payload, a policy that
-    collides with a root declared here, and two policies for one host root are
-    each logged and dropped. A broken host declaration must not take the
-    scheduled purge down with it, and must never redefine how a chart,
-    dashboard or dataset is purged.
+    Host boundary: everything about a host policy is settled here, where it is
+    admitted -- an unavailable provider, a malformed payload, a collision with
+    a root declared in this package, two declarations for one root, and a
+    declaration the shared cleanup could not execute. Each is logged and
+    dropped, so that root is reported as unsupported instead of failing row by
+    row in a scheduled run. A broken host declaration must not take the purge
+    down with it, and must never redefine how a chart, dashboard or dataset is
+    purged.
     """
-    if not has_app_context():
-        return ()
-    provider: Callable[[], Any] | None = current_app.config.get(
-        HOST_POLICIES_CONFIG_KEY
-    )
     if provider is None:
         return ()
     try:
@@ -967,6 +967,19 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
             continue
         if policy.model in duplicated:
             continue
+        try:
+            _validated_policy(policy)
+        except Exception as ex:  # pylint: disable=broad-except
+            # Validated at admission rather than when a row is purged: a
+            # declaration the cleanup cannot execute would otherwise fail once
+            # per eligible row, counted as a cascade failure, and stay
+            # invisible until something aged past the window.
+            logger.error(
+                "purge_policy: host policy for %s rejected: %s",
+                policy.model.__name__,
+                ex,
+            )
+            continue
         accepted.append(policy)
     return tuple(accepted)
 
@@ -974,25 +987,38 @@ def _host_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
 def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     """Index the built-in purge roots plus any the host installed.
 
-    Uncached on purpose, unlike its two inputs: the built-in declarations are
-    built once per process, while a host policy is resolved per call, so a
-    provider installed after the first purge is honored for any root not yet
-    resolved. ``get_purge_policy`` memoizes per model, so replacing the policy
-    of a root it has already resolved needs a restart -- and that memoization
-    is why rebuilding this small index is off the hot path.
+    The index is cached per installed provider, not once per process. Freezing
+    it at first use would pin whatever happened to be installed at that
+    moment -- including nothing at all, for a call made before startup
+    finished -- until a restart. Keying the cache on the provider means it is
+    invoked once however many roots are purged, a host that installs or
+    replaces one is honored, and the ordinary case (no provider) resolves to a
+    single cached index.
     """
+    provider: Callable[[], Any] | None = (
+        current_app.config.get(HOST_POLICIES_CONFIG_KEY) if has_app_context() else None
+    )
+    return _registry_for(provider)
+
+
+@lru_cache(maxsize=8)
+def _registry_for(
+    provider: Callable[[], Any] | None,
+) -> Mapping[type[Any], PurgeEntityPolicy]:
+    """Build one index per provider, so a provider runs once per process."""
     return validate_unique_root_policies(
-        (*_builtin_purge_policies(), *_host_purge_policies())
+        (*_builtin_purge_policies(), *_host_purge_policies(provider))
     )
 
 
 @lru_cache(maxsize=None)
-def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
-    """Validate and return one root policy without blocking unrelated roots."""
-    try:
-        policy: PurgeEntityPolicy = purge_policy_registry()[model]
-    except KeyError as ex:
-        raise ValueError(f"Unsupported purge model: {model.__name__}") from ex
+def _validated_policy(policy: PurgeEntityPolicy) -> PurgeEntityPolicy:
+    """Validate one declaration, memoized on the declaration itself.
+
+    Keyed on the policy rather than its model, so a host that replaces a
+    root's declaration has the new one validated instead of being served the
+    old one for the life of the process.
+    """
     recursive_tables: frozenset[str] = frozenset(
         dependency.key.related_table
         for dependency in policy.dependencies
@@ -1003,9 +1029,11 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
         }
     )
     coverage: PolicyCoverage = compare_policy(
-        discover_dependencies(sa.inspect(model), recursive_tables=recursive_tables),
+        discover_dependencies(
+            sa.inspect(policy.model), recursive_tables=recursive_tables
+        ),
         policy.dependencies,
-        discovered_listeners=listener_responsibilities(model),
+        discovered_listeners=listener_responsibilities(policy.model),
         declared_listeners=policy.listener_responsibilities,
         optional_declared_listeners=policy.optional_listener_responsibilities,
     )
@@ -1028,7 +1056,9 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
             details = (
                 f"{details}; " if details else ""
             ) + f"stale_listeners=[{', '.join(coverage.stale_listeners)}]"
-        raise RuntimeError(f"Incomplete purge policy for {model.__name__}: {details}")
+        raise RuntimeError(
+            f"Incomplete purge policy for {policy.model.__name__}: {details}"
+        )
     return policy
 
 
@@ -1241,7 +1271,11 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     """Resolve a complete policy or reject an unsupported purge model."""
-    return _validated_purge_policy(cast(Hashable, model))
+    try:
+        policy: PurgeEntityPolicy = purge_policy_registry()[model]
+    except KeyError as ex:
+        raise ValueError(f"Unsupported purge model: {model.__name__}") from ex
+    return _validated_policy(policy)
 
 
 def listener_responsibilities(model: type[Any]) -> frozenset[str]:

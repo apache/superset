@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
@@ -643,6 +644,25 @@ def _installed(provider: Callable[[], Any]) -> Iterator[None]:
         current_app.config[HOST_POLICIES_CONFIG_KEY] = previous
 
 
+def _assert_rejected(
+    model: type[Any],
+    policy: PurgeEntityPolicy,
+    reason: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A rejected declaration costs the host its root, with the reason logged.
+
+    Rejection happens where the policy is admitted, so the root simply reads
+    as unsupported -- the shape the retention task already reports -- rather
+    than raising once per eligible row.
+    """
+    with _installed(lambda: [policy]), caplog.at_level(logging.ERROR):
+        assert model not in purge_policy_registry()
+        with pytest.raises(ValueError, match="Unsupported purge model"):
+            get_purge_policy(model)
+    assert reason in caplog.text
+
+
 def test_host_policy_extends_the_registry() -> None:
     """A complete host declaration resolves like a built-in root."""
     model: type[Any] = _host_root("extend")
@@ -653,13 +673,13 @@ def test_host_policy_extends_the_registry() -> None:
         assert {Slice, Dashboard, SqlaTable} <= set(purge_policy_registry())
 
 
-def test_host_policy_is_held_to_the_discovered_graph() -> None:
+def test_host_policy_is_held_to_the_discovered_graph(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """An incomplete host declaration is rejected, not silently honored."""
     model: type[Any] = _host_root("incomplete")
 
-    with _installed(lambda: [_host_policy(model, ())]):
-        with pytest.raises(RuntimeError, match="Incomplete purge policy"):
-            get_purge_policy(model)
+    _assert_rejected(model, _host_policy(model, ()), "Incomplete purge policy", caplog)
 
 
 @pytest.mark.parametrize(
@@ -789,16 +809,16 @@ def _host_chain_edges(
     )
 
 
-def test_owned_table_behind_an_association_is_rejected() -> None:
+def test_owned_table_behind_an_association_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Associations are emptied first, so owning through one cannot execute."""
     model: type[Any] = _host_chain("behind")
     policy: PurgeEntityPolicy = _host_policy(
         model, _host_chain_edges("behind", DependencyClassification.ASSOCIATION)
     )
 
-    with _installed(lambda: [policy]):
-        with pytest.raises(RuntimeError, match="associations are deleted first"):
-            get_purge_policy(model)
+    _assert_rejected(model, policy, "associations are deleted first", caplog)
 
 
 def test_owned_table_behind_an_owned_link_is_accepted() -> None:
@@ -977,23 +997,23 @@ def _host_sibling_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
     )
 
 
-def test_root_without_an_id_column_is_rejected() -> None:
+def test_root_without_an_id_column_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """The scheduled scan pages by id, so a root must have one."""
     model: type[Any] = _host_bare_root("uuidonly", "uuid")
 
-    with _installed(lambda: [_host_policy(model, ())]):
-        with pytest.raises(RuntimeError, match="has no 'id' column"):
-            get_purge_policy(model)
+    _assert_rejected(model, _host_policy(model, ()), "has no 'id' column", caplog)
 
 
-def test_self_referencing_owned_table_rejects_stock_cleanup() -> None:
+def test_self_referencing_owned_table_rejects_stock_cleanup(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Stock cleanup prunes one level, which would orphan a deeper tree."""
     model: type[Any] = _host_tree("stocktree")
     policy: PurgeEntityPolicy = _host_policy(model, _host_tree_edges("stocktree"))
 
-    with _installed(lambda: [policy]):
-        with pytest.raises(RuntimeError, match="must supply its own"):
-            get_purge_policy(model)
+    _assert_rejected(model, policy, "must supply its own", caplog)
 
 
 def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
@@ -1008,14 +1028,14 @@ def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
         assert get_purge_policy(model) is policy
 
 
-def test_cross_linked_owned_siblings_are_rejected() -> None:
+def test_cross_linked_owned_siblings_are_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Same-depth owned deletes run in declaration order, so this is a trap."""
     model: type[Any] = _host_siblings("siblings")
     policy: PurgeEntityPolicy = _host_policy(model, _host_sibling_edges("siblings"))
 
-    with _installed(lambda: [policy]):
-        with pytest.raises(RuntimeError, match="reference each other"):
-            get_purge_policy(model)
+    _assert_rejected(model, policy, "reference each other", caplog)
 
 
 def test_discovery_walks_each_recursive_table_once(
@@ -1061,16 +1081,18 @@ def test_discovery_walks_each_recursive_table_once(
     assert sorted(walked) == sorted(link_names)
 
 
-def test_root_without_a_deleted_at_column_is_rejected() -> None:
+def test_root_without_a_deleted_at_column_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Every purge path requires the row to be archived first."""
     model: type[Any] = _host_bare_root("noflag", "id")
 
-    with _installed(lambda: [_host_policy(model, ())]):
-        with pytest.raises(RuntimeError, match="no 'deleted_at' column"):
-            get_purge_policy(model)
+    _assert_rejected(model, _host_policy(model, ()), "no 'deleted_at' column", caplog)
 
 
-def test_executable_classification_on_an_outbound_key_is_rejected() -> None:
+def test_executable_classification_on_an_outbound_key_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Cleanup reads inbound foreign keys; an outbound one has nothing to delete."""
     model: type[Any] = _host_root("outbound")
     declared: tuple[DependencyPolicy, ...] = (
@@ -1081,12 +1103,14 @@ def test_executable_classification_on_an_outbound_key_is_rejected() -> None:
         ),
     )
 
-    with _installed(lambda: [_host_policy(model, declared)]):
-        with pytest.raises(RuntimeError, match="not an inbound foreign key"):
-            get_purge_policy(model)
+    _assert_rejected(
+        model, _host_policy(model, declared), "not an inbound foreign key", caplog
+    )
 
 
-def test_executable_dependency_outside_the_metadata_is_rejected() -> None:
+def test_executable_dependency_outside_the_metadata_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """A table cleanup cannot resolve is refused before it is executed."""
     model: type[Any] = _host_root("elsewhere")
     declared: tuple[DependencyPolicy, ...] = (
@@ -1105,12 +1129,12 @@ def test_executable_dependency_outside_the_metadata_is_rejected() -> None:
         ),
     )
 
-    with _installed(lambda: [_host_policy(model, declared)]):
-        with pytest.raises(RuntimeError, match="outside the root's metadata"):
-            get_purge_policy(model)
+    _assert_rejected(
+        model, _host_policy(model, declared), "outside the root's metadata", caplog
+    )
 
 
-def test_blocker_without_a_reason_is_rejected() -> None:
+def test_blocker_without_a_reason_is_rejected(caplog: pytest.LogCaptureFixture) -> None:
     """A block with no audit code could not report why it refused."""
     model: type[Any] = _host_referenced("noreason")
     declared: tuple[DependencyPolicy, ...] = (
@@ -1121,12 +1145,14 @@ def test_blocker_without_a_reason_is_rejected() -> None:
         ),
     )
 
-    with _installed(lambda: [_host_policy(model, declared)]):
-        with pytest.raises(RuntimeError, match="Missing blocker reason"):
-            get_purge_policy(model)
+    _assert_rejected(
+        model, _host_policy(model, declared), "Missing blocker reason", caplog
+    )
 
 
-def test_listener_effect_without_a_phase_is_rejected() -> None:
+def test_listener_effect_without_a_phase_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Listener effects are dispatched by phase, so one without it never runs."""
     model: type[Any] = _host_root("nophase")
     declared: tuple[DependencyPolicy, ...] = (
@@ -1138,6 +1164,60 @@ def test_listener_effect_without_a_phase_is_rejected() -> None:
         ),
     )
 
-    with _installed(lambda: [_host_policy(model, declared)]):
-        with pytest.raises(RuntimeError, match="Missing execution phase"):
-            get_purge_policy(model)
+    _assert_rejected(
+        model, _host_policy(model, declared), "Missing execution phase", caplog
+    )
+
+
+def test_discovery_keeps_a_child_version_shadow_reached_through_its_mapper() -> None:
+    """A table walked plainly sees fewer edges than one walked as a mapper.
+
+    ``sql_metrics`` is reachable both ways from the dataset root. Tracking the
+    two kinds of walk together, rather than separately, dropped its version
+    shadow -- which then reads as a stale declaration on the dataset policy.
+    This pins the edge the split exists to preserve.
+    """
+    configure_mappers()
+    policy: PurgeEntityPolicy = get_purge_policy(SqlaTable)
+    recursive_tables: frozenset[str] = frozenset(
+        dependency.key.related_table
+        for dependency in policy.dependencies
+        if dependency.classification
+        in {
+            DependencyClassification.OWNED,
+            DependencyClassification.ASSOCIATION,
+        }
+    )
+
+    discovered: frozenset[DependencyKey] = discover_dependencies(
+        sa.inspect(SqlaTable), recursive_tables=recursive_tables
+    )
+
+    assert (
+        DependencyKey(
+            kind="relationship",
+            owner_table="sql_metrics",
+            related_table="sql_metrics_version",
+            direction="onetomany",
+            relationship="versions",
+        )
+        in discovered
+    )
+
+
+def test_provider_is_invoked_once_however_many_roots_resolve() -> None:
+    """The index is cached per provider, so a slow provider runs once."""
+    model: type[Any] = _host_root("once")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("once"),))
+    invocations: list[int] = []
+
+    def provider() -> list[PurgeEntityPolicy]:
+        invocations.append(1)
+        return [policy]
+
+    with _installed(provider):
+        for _ in range(5):
+            assert get_purge_policy(model) is policy
+            assert get_purge_policy(Slice) is not None
+
+    assert len(invocations) == 1
