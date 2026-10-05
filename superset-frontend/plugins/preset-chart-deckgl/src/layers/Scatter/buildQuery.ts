@@ -48,6 +48,7 @@ export interface DeckScatterFormData
   max_radius?: number;
   color_picker?: { r: number; g: number; b: number; a: number };
   dimension?: string;
+  mcp_geographic?: boolean;
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
