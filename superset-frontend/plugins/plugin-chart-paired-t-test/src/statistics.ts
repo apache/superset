@@ -36,7 +36,7 @@ function logGamma(z: number): number {
     return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
   }
   const zz = z - 1;
-  let x = c[0];
+  let [x] = c;
   for (let i = 1; i < g + 2; i += 1) {
     x += c[i] / (zz + i);
   }

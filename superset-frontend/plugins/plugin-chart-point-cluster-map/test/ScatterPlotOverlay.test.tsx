@@ -581,9 +581,9 @@ test('cluster radii preserve proportional ordering', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const r10 = arcCalls[0][2];
-  const r50 = arcCalls[1][2];
-  const r100 = arcCalls[2][2];
+  const [[, , r10]] = arcCalls;
+  const [, [, , r50]] = arcCalls;
+  const [, , [, , r100]] = arcCalls;
 
   expect(r10).toBeLessThan(r50);
   expect(r50).toBeLessThan(r100);
@@ -608,7 +608,7 @@ test('negative cluster label produces valid finite radius', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const radiusValue = arcCalls[0][2];
+  const [[, , radiusValue]] = arcCalls;
   expect(Number.isFinite(radiusValue)).toBe(true);
   expect(radiusValue).toBeGreaterThanOrEqual(MIN_VISIBLE_POINT_RADIUS);
 });
@@ -694,9 +694,9 @@ test('all-negative cluster labels produce differentiated radii by magnitude', ()
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const rNeg100 = arcCalls[0][2];
-  const rNeg10 = arcCalls[1][2];
-  const rNeg1 = arcCalls[2][2];
+  const [[, , rNeg100]] = arcCalls;
+  const [, [, , rNeg10]] = arcCalls;
+  const [, , [, , rNeg1]] = arcCalls;
 
   expect(rNeg1).toBeLessThan(rNeg10);
   expect(rNeg10).toBeLessThan(rNeg100);
@@ -736,9 +736,9 @@ test('mixed positive-and-negative cluster labels size by magnitude', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const rNeg50 = arcCalls[0][2];
-  const rZero = arcCalls[1][2];
-  const r100 = arcCalls[2][2];
+  const [[, , rNeg50]] = arcCalls;
+  const [, [, , rZero]] = arcCalls;
+  const [, , [, , r100]] = arcCalls;
 
   expect(rZero).toBeLessThan(rNeg50);
   expect(rNeg50).toBeLessThan(r100);
@@ -775,9 +775,9 @@ test('all-identical negative labels get equal full radii', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const r1 = arcCalls[0][2];
-  const r2 = arcCalls[1][2];
-  const r3 = arcCalls[2][2];
+  const [[, , r1]] = arcCalls;
+  const [, [, , r2]] = arcCalls;
+  const [, , [, , r3]] = arcCalls;
 
   expect(r1).toBe(r2);
   expect(r2).toBe(r3);
@@ -825,7 +825,7 @@ test('large negative cluster labels are abbreviated', () => {
   const redrawParams = triggerRedraw();
 
   const fillTextCalls = redrawParams.ctx.fillText.mock.calls;
-  const labelArg = fillTextCalls[0][0];
+  const [[labelArg]] = fillTextCalls;
   expect(labelArg).toBe('-50k');
 });
 
@@ -865,9 +865,9 @@ test.each([
     const redrawParams = triggerRedraw();
 
     const arcCalls = redrawParams.ctx.arc.mock.calls;
-    const largestRadius = arcCalls[0][2];
-    const middleRadius = arcCalls[1][2];
-    const smallestRadius = arcCalls[2][2];
+    const [[, , largestRadius]] = arcCalls;
+    const [, [, , middleRadius]] = arcCalls;
+    const [, , [, , smallestRadius]] = arcCalls;
 
     expect(smallestRadius).toBeLessThan(middleRadius);
     expect(middleRadius).toBeLessThan(largestRadius);
@@ -900,7 +900,7 @@ test('zero-value cluster is visible with minimum radius', () => {
   const redrawParams = triggerRedraw();
 
   const arcCalls = redrawParams.ctx.arc.mock.calls;
-  const zeroClusterRadius = arcCalls[0][2];
+  const [[, , zeroClusterRadius]] = arcCalls;
 
   expect(Number.isFinite(zeroClusterRadius)).toBe(true);
   expect(zeroClusterRadius).toBeGreaterThanOrEqual(MAX_VISIBLE_POINT_RADIUS);

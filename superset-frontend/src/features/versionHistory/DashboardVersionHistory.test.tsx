@@ -243,7 +243,7 @@ test('preview is blocked while the dashboard has unsaved edit-mode changes', () 
   });
   renderAdapter(store);
 
-  const { onPreview } = mockPanelProps.mock.lastCall[0];
+  const [{ onPreview }] = mockPanelProps.mock.lastCall;
   act(() => {
     onPreview({
       type: 'group',

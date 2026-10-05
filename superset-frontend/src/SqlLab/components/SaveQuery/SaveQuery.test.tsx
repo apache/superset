@@ -218,8 +218,7 @@ describe('SavedQuery', () => {
     const nameLabel = screen.getByText(/name/i);
     const descriptionLabel = screen.getByText(/description/i);
     const textBoxes = screen.getAllByRole('textbox');
-    const nameTextbox = textBoxes[0];
-    const descriptionTextbox = textBoxes[1];
+    const [nameTextbox, descriptionTextbox] = textBoxes;
     // There are now two save buttons, the initial save button and the modal save button
     const saveBtns = screen.getAllByRole('button', { name: /save/i });
     const cancelBtn = screen.getByRole('button', { name: /cancel/i });
@@ -400,7 +399,7 @@ describe('SavedQuery', () => {
     ).toBeInTheDocument();
 
     // Click save button in the modal
-    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    const [, modalSaveBtn] = screen.getAllByRole('button', { name: /save/i });
     await userEvent.click(modalSaveBtn);
 
     // Modal should still be open while save is in progress
@@ -462,7 +461,7 @@ describe('SavedQuery', () => {
     expect(nameInput).toHaveValue('Undefined');
 
     // Click save button
-    const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
+    const [, modalSaveBtn] = screen.getAllByRole('button', { name: /save/i });
     await userEvent.click(modalSaveBtn);
 
     // Wait for save to complete and modal to close

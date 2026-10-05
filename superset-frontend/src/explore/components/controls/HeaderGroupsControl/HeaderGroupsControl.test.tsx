@@ -286,7 +286,7 @@ test('collapses group settings with an icon when a subgroup exists', async () =>
 
   await userEvent.click(screen.getByText('Group 1'));
 
-  const collapseParent = screen.getAllByLabelText('Collapse settings')[0];
+  const [collapseParent] = screen.getAllByLabelText('Collapse settings');
   expect(collapseParent).toBeInTheDocument();
   expect(screen.queryByText('Hide settings')).not.toBeInTheDocument();
   expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();

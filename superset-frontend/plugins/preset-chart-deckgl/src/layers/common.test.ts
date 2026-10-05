@@ -231,7 +231,7 @@ describe('commonLayerProps', () => {
 
       expect(mockSetDataMask).toHaveBeenCalledTimes(1);
       expect(mockOnContextMenu).not.toHaveBeenCalled();
-      const arg = mockSetDataMask.mock.calls[0][0];
+      const [[arg]] = mockSetDataMask.mock.calls;
       expect(arg.extraFormData.filters[0]).toEqual({
         col: 'sa3_name',
         op: '==',

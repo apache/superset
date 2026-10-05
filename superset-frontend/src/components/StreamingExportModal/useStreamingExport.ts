@@ -249,7 +249,7 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           const filenameMatch =
             contentDisposition.match(/filename="?([^"]+)"?/);
           if (filenameMatch && filenameMatch[1]) {
-            serverFilename = filenameMatch[1];
+            [, serverFilename] = filenameMatch;
           }
         }
 

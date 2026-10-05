@@ -162,7 +162,7 @@ test('saveDataset handles success', async () => {
 
   expect(fetchMock.callHistory.calls(saveDatasetEndpoint)).toHaveLength(1);
   expect(dispatch.mock.calls.length).toBe(1);
-  const thunk = dispatch.mock.calls[0][0];
+  const [[thunk]] = dispatch.mock.calls;
   thunk(dispatch, getState);
   expect(dispatch.mock.calls[1][0].type).toEqual('SET_DATASOURCE');
 

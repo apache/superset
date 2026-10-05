@@ -84,7 +84,7 @@ export function createBaseTransformResult(
   } = chartProps;
 
   const hooks = extractHooks(chartProps.hooks);
-  const queryData = queriesData[0];
+  const [queryData] = queriesData;
 
   return {
     datasource,

@@ -43,7 +43,7 @@ export function InvalidSQLErrorMessage({
   let errorLine;
   if (line !== null && Number.isInteger(line)) errorLine = lines[line - 1];
   else if (lines?.length > 0) {
-    errorLine = lines[0];
+    [errorLine] = lines;
   }
   const body = errorLine ? (
     <>

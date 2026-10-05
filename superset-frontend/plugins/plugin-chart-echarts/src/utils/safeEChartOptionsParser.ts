@@ -432,7 +432,7 @@ export function parseEChartOptions(input: string | undefined): ParseResult {
     );
   }
 
-  const { expression } = ast.body[0];
+  const [{ expression }] = ast.body;
 
   if (expression.type !== 'ObjectExpression') {
     throw new EChartOptionsParseError(

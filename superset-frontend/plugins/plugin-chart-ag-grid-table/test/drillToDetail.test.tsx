@@ -124,7 +124,7 @@ test('right-clicking a dimension cell emits drillToDetail, crossFilter and drill
   expect(stopPropagation).toHaveBeenCalled();
   expect(onContextMenu).toHaveBeenCalledTimes(1);
 
-  const [clientX, clientY, filters] = onContextMenu.mock.calls[0];
+  const [[clientX, clientY, filters]] = onContextMenu.mock.calls;
   expect(clientX).toBe(10);
   expect(clientY).toBe(20);
 
@@ -166,7 +166,7 @@ test('right-clicking a null cell emits an IS NULL drillBy filter with a null val
     },
   });
 
-  const [, , filters] = onContextMenu.mock.calls[0];
+  const [[, , filters]] = onContextMenu.mock.calls;
   // op and val must agree: IS NULL must carry a null val, not the clicked
   // cell's (possibly wrapped) value.
   expect(filters.drillBy).toEqual({
@@ -198,7 +198,7 @@ test('right-clicking a blank (empty-string) date cell emits IS NULL, not an equa
     },
   });
 
-  const [, , filters] = onContextMenu.mock.calls[0];
+  const [[, , filters]] = onContextMenu.mock.calls;
   expect(filters.drillToDetail).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ col: '__timestamp', op: 'IS NULL' }),
@@ -227,7 +227,7 @@ test('right-clicking a metric cell omits crossFilter and drillBy', async () => {
     },
   });
 
-  const [, , filters] = onContextMenu.mock.calls[0];
+  const [[, , filters]] = onContextMenu.mock.calls;
   expect(filters.crossFilter).toBeUndefined();
   expect(filters.drillBy).toBeUndefined();
   // drillToDetail is still populated from the row's dimension columns.
@@ -255,7 +255,7 @@ test('right-clicking a temporal cell with a time grain emits a TEMPORAL_RANGE fi
     },
   });
 
-  const [, , filters] = onContextMenu.mock.calls[0];
+  const [[, , filters]] = onContextMenu.mock.calls;
   const timestampFilter = filters.drillToDetail.find(
     (f: { col: string }) => f.col === '__timestamp',
   );

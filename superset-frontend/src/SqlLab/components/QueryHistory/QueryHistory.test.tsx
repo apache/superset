@@ -241,8 +241,7 @@ test('displays multiple queries with newest query first', async () => {
 
   // Verify ordering: newer query (1 row) should appear before older query (443 rows)
   // Find the actual row elements to check their order
-  const firstDataRow = tableRows[0];
-  const secondDataRow = tableRows[1];
+  const [firstDataRow, secondDataRow] = tableRows;
 
   // The newer query should be in the first row (has 1 result row)
   expect(firstDataRow).toHaveTextContent('1');

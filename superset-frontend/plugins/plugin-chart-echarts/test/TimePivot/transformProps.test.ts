@@ -59,11 +59,11 @@ test('pivots periods into one line series each, current on top', () => {
   // drawn prior-first so "current" paints on top
   expect(series.map((s: any) => s.name)).toEqual(['-1', 'current']);
 
-  const current = series[1];
+  const [, current] = series;
   expect(current.type).toBe('line');
   expect(current.lineStyle.color).toBe('rgba(0, 122, 135, 1)');
   // prior period shifted onto the current period's axis, faded
-  const prior = series[0];
+  const [prior] = series;
   expect(prior.data[0][0]).toBe(MONDAY_2);
   expect(prior.lineStyle.color).toMatch(/rgba\(0, 122, 135, 0\.2/);
 });

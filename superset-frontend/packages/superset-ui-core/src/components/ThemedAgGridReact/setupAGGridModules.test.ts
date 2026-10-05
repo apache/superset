@@ -88,8 +88,8 @@ test('setupAGGridModules registers default + additional modules when provided', 
 
   expect(ModuleRegistry.registerModules).toHaveBeenCalledTimes(1);
 
-  const registeredModules = (ModuleRegistry.registerModules as jest.Mock).mock
-    .calls[0][0];
+  const [[registeredModules]] = (ModuleRegistry.registerModules as jest.Mock)
+    .mock.calls;
 
   // Should contain all default modules
   defaultModules.forEach((module: any) => {

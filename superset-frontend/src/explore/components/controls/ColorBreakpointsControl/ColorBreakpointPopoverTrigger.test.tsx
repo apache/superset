@@ -136,8 +136,8 @@ describe('ColorBreakpointPopoverTrigger', () => {
     const triggerButton = screen.getByText('Click to add new breakpoint');
     await userEvent.click(triggerButton);
 
-    const minInput = screen.getAllByRole('spinbutton')[0];
-    const maxInput = screen.getAllByRole('spinbutton')[1];
+    const [minInput] = screen.getAllByRole('spinbutton');
+    const [, maxInput] = screen.getAllByRole('spinbutton');
 
     await userEvent.type(minInput, '10');
     await userEvent.type(maxInput, '90');

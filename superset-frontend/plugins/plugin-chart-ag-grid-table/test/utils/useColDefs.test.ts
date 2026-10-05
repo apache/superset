@@ -163,7 +163,7 @@ test('boolean columns use agCheckboxCellRenderer', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.cellRenderer).toBe('agCheckboxCellRenderer');
   expect(colDef.cellRendererParams).toEqual({ disabled: true });
   expect(colDef.cellDataType).toBe('boolean');
@@ -226,7 +226,7 @@ test('string columns use custom TextCellRenderer', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.cellRenderer).toBeInstanceOf(Function);
   expect(colDef.cellDataType).toBe('text');
 });
@@ -250,7 +250,7 @@ test('numeric columns use custom NumericCellRenderer', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.cellRenderer).toBeInstanceOf(Function);
   expect(colDef.cellDataType).toBe('number');
 });
@@ -272,7 +272,7 @@ test('temporal columns use custom TextCellRenderer', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.cellRenderer).toBeInstanceOf(Function);
   expect(colDef.cellDataType).toBe('date');
 });
@@ -304,7 +304,7 @@ test('cellStyle derives readable text color from dark background formatting', ()
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   const cellStyle = getCellStyleFunction(colDef.cellStyle);
   expect(
     cellStyle({
@@ -354,7 +354,7 @@ test('cellStyle keeps explicit text color over adaptive contrast', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   const cellStyle = getCellStyleFunction(colDef.cellStyle);
   expect(
     cellStyle({
@@ -404,7 +404,7 @@ test('cellStyle treats legacy toTextColor formatters as text color', () => {
     { wrapper: defaultThemeWrapper },
   );
 
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   const cellStyle = getCellStyleFunction(colDef.cellStyle);
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     backgroundColor: '#111111',
@@ -1077,7 +1077,7 @@ test('valueGetter returns row numbers without server pagination', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   const { valueGetter } = colDef;
   expect(valueGetter).toBeDefined();
   expect(typeof valueGetter).toBe('function');
@@ -1108,7 +1108,7 @@ test('valueGetter respects server pagination', () => {
     () => useColDefs({ ...serverProps, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const { valueGetter } = result.current[0];
+  const [{ valueGetter }] = result.current;
   expect(typeof valueGetter).toBe('function');
 
   const getter = valueGetter as (params: {
@@ -1125,7 +1125,7 @@ test('has correct static column properties', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.sortable).toBe(false);
   expect(colDef.filter).toBe(false);
   expect(colDef.pinned).toBe('left');
@@ -1202,7 +1202,7 @@ test('row number column uses theme variables for styling', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  const colDef = result.current[0];
+  const [colDef] = result.current;
   expect(colDef.cellStyle).toMatchObject({
     backgroundColor: expect.any(String),
     padding: '0',

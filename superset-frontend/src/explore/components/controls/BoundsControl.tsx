@@ -64,8 +64,7 @@ export default function BoundsControl({
     parseNumber(value[0]),
     parseNumber(value[1]),
   ]);
-  const min = value[0];
-  const max = value[1];
+  const [min, max] = value;
   const debouncedOnChange = useRef(debounce(onChange, 300)).current;
 
   const update = (mm: ValueType) => {

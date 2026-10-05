@@ -39,7 +39,7 @@ export default function renderFilterFieldTreeNodes({
     return [];
   }
 
-  const root = nodes[0];
+  const [root] = nodes;
   const allFilterNodes = root.children || [];
   const children = allFilterNodes.map(node => ({
     ...node,

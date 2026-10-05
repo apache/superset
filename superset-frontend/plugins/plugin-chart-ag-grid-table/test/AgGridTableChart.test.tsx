@@ -1279,8 +1279,8 @@ test('AgGridTableChart emits column state with aggFunc through the debounced sav
     timeout: 5000,
   });
 
-  const savedState =
-    onChartStateChange.mock.calls[onChartStateChange.mock.calls.length - 1][0];
+  const [savedState] =
+    onChartStateChange.mock.calls[onChartStateChange.mock.calls.length - 1];
   const savedColumn = (savedState.columnState as ColumnState[]).find(
     col => col.colId === 'sum__num',
   );

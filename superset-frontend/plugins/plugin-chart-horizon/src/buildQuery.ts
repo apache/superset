@@ -31,7 +31,7 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const { order_desc } = formData;
   return buildQueryContext(formData, baseQueryObject => {
-    const firstMetric = ensureIsArray(baseQueryObject.metrics)[0];
+    const [firstMetric] = ensureIsArray(baseQueryObject.metrics);
     return [
       {
         ...baseQueryObject,

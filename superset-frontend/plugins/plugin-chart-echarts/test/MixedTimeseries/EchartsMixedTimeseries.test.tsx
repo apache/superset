@@ -133,7 +133,7 @@ test('EchartsMixedTimeseries click emits cross-filter with tail-anchored dimensi
   eventHandlers.click({ seriesName: 'sum__num, boy', seriesIndex: 0 });
 
   expect(setDataMask).toHaveBeenCalledTimes(1);
-  const dataMask = setDataMask.mock.calls[0][0];
+  const [[dataMask]] = setDataMask.mock.calls;
   // label_map values are ['sum__num', 'boy'] — the metric label must be
   // skipped and the dimension value emitted.
   expect(dataMask.extraFormData.filters).toEqual([
@@ -148,7 +148,7 @@ test('EchartsMixedTimeseries click clears filters when the series misses the lab
   eventHandlers.click({ seriesName: 'not a series', seriesIndex: 0 });
 
   expect(setDataMask).toHaveBeenCalledTimes(1);
-  const dataMask = setDataMask.mock.calls[0][0];
+  const [[dataMask]] = setDataMask.mock.calls;
   // An unresolvable series must not emit bogus IS NULL filters (#41622).
   expect(dataMask.extraFormData.filters).toEqual([]);
   expect(dataMask.filterState.value).toBeNull();
@@ -166,7 +166,7 @@ test('EchartsMixedTimeseries context menu drills with tail-anchored dimension va
   });
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const [x, y, payload] = onContextMenu.mock.calls[0];
+  const [[x, y, payload]] = onContextMenu.mock.calls;
   expect(x).toBe(11);
   expect(y).toBe(22);
   expect(payload.drillToDetail).toEqual([
@@ -200,7 +200,7 @@ test('EchartsMixedTimeseries context menu emits the category x-axis filter', asy
     event: { stop: jest.fn(), event: { clientX: 0, clientY: 0 } },
   });
 
-  const payload = onContextMenu.mock.calls[0][2];
+  const [[, , payload]] = onContextMenu.mock.calls;
   expect(payload.drillToDetail).toEqual([
     expect.objectContaining({
       col: 'ds',

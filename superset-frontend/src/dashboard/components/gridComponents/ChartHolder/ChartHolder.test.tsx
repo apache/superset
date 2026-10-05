@@ -227,9 +227,9 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-component-chart-holder'),
     ).toBeVisible();
 
-    const resizeContainer = screen
+    const [resizeContainer] = screen
       .getByTestId('dragdroppable-object')
-      .getElementsByClassName('resizable-container')[0];
+      .getElementsByClassName('resizable-container');
 
     const { width: computedWidth } = getComputedStyle(resizeContainer);
     const expectedWidth =
@@ -253,9 +253,9 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-component-chart-holder'),
     ).toBeVisible();
 
-    const resizeContainer = screen
+    const [resizeContainer] = screen
       .getByTestId('dragdroppable-object')
-      .getElementsByClassName('resizable-container')[0];
+      .getElementsByClassName('resizable-container');
 
     const { width: computedWidth } = getComputedStyle(resizeContainer);
 
@@ -284,9 +284,9 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-component-chart-holder'),
     ).toBeVisible();
 
-    const resizeContainer = screen
+    const [resizeContainer] = screen
       .getByTestId('dragdroppable-object')
-      .getElementsByClassName('resizable-container')[0];
+      .getElementsByClassName('resizable-container');
 
     const { width: computedWidth } = getComputedStyle(resizeContainer);
     const expectedWidth =

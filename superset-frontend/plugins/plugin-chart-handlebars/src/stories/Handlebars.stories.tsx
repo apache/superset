@@ -35,7 +35,7 @@ getChartTransformPropsRegistry().registerValue(
     queriesData: { data: unknown[] }[];
   }) => {
     const { width, height, formData, queriesData } = chartProps;
-    const { data } = queriesData[0];
+    const [{ data }] = queriesData;
     return { width, height, data, formData };
   },
 );

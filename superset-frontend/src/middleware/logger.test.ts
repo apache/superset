@@ -189,7 +189,7 @@ describe('logger middleware', () => {
     jest.advanceTimersByTime(2000);
 
     expect(beaconMock.mock.calls.length).toBe(1);
-    const endpoint = beaconMock.mock.calls[0][0];
+    const [[endpoint]] = beaconMock.mock.calls;
     expect(endpoint).toMatch('/log/');
   });
 
@@ -206,7 +206,7 @@ describe('logger middleware', () => {
     jest.advanceTimersByTime(2000);
     expect(beaconMock.mock.calls.length).toBe(1);
 
-    const formData = beaconMock.mock.calls[0][1];
+    const [[, formData]] = beaconMock.mock.calls;
     expect(formData.getAll('guest_token')[0]).toMatch('token');
   });
 });

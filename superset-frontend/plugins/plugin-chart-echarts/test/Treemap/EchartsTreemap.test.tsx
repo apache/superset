@@ -86,7 +86,7 @@ test('right-clicking a treemap node drills to detail for its groupby path', () =
 
   expect(stop).toHaveBeenCalledTimes(1);
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const [x, y, payload] = onContextMenu.mock.calls[0];
+  const [[x, y, payload]] = onContextMenu.mock.calls;
   expect(x).toBe(50);
   expect(y).toBe(80);
   expect(payload.drillToDetail).toEqual([

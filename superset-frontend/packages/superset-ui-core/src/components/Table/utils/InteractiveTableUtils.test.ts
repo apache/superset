@@ -78,7 +78,7 @@ test('getColumnIndex returns -1 when columnRef has no parent', () => {
 test('getColumnIndex returns correct index when columnRef is in a row', () => {
   const table = createMockTable(3);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const row = table.rows[0];
+  const [row] = table.rows;
   utils.columnRef = row.cells[1] as unknown as typeof utils.columnRef;
   expect(utils.getColumnIndex()).toBe(1);
 });
@@ -164,7 +164,7 @@ test('handleMouseDown sets draggable when outside resize range and reorderable',
 test('initializeResizableColumns adds event listeners when resizable is true', () => {
   const table = createMockTable(2);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const cell = table.rows[0].cells[0];
+  const [cell] = table.rows[0].cells;
   const addEventSpy = jest.spyOn(cell, 'addEventListener');
 
   utils.initializeResizableColumns(true, table);
@@ -181,7 +181,7 @@ test('initializeResizableColumns adds event listeners when resizable is true', (
 test('initializeResizableColumns removes event listeners when resizable is false', () => {
   const table = createMockTable(2);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const cell = table.rows[0].cells[0];
+  const [cell] = table.rows[0].cells;
   const removeEventSpy = jest.spyOn(cell, 'removeEventListener');
 
   utils.initializeResizableColumns(false, table);
@@ -201,7 +201,7 @@ test('initializeResizableColumns removes event listeners when resizable is false
 test('initializeDragDropColumns adds event listeners when reorderable is true', () => {
   const table = createMockTable(2);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const cell = table.rows[0].cells[0];
+  const [cell] = table.rows[0].cells;
   const addEventSpy = jest.spyOn(cell, 'addEventListener');
 
   utils.initializeDragDropColumns(true, table);
@@ -217,7 +217,7 @@ test('initializeDragDropColumns adds event listeners when reorderable is true', 
 test('initializeDragDropColumns removes event listeners when reorderable is false', () => {
   const table = createMockTable(2);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
-  const cell = table.rows[0].cells[0];
+  const [cell] = table.rows[0].cells;
   const removeEventSpy = jest.spyOn(cell, 'removeEventListener');
 
   utils.initializeDragDropColumns(false, table);
@@ -234,7 +234,7 @@ test('handleColumnDragStart sets isDragging and calls setData', () => {
   const table = createMockTable(2);
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   const target = row.cells[0] as any;
   const setDataMock = jest.fn();
   const event = {
@@ -260,12 +260,12 @@ test('handleDragDrop reorders columns when valid drag data exists', () => {
     setDerivedColumns,
   );
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   // Set columnRef to first column (drag source)
   utils.columnRef = row.cells[0] as unknown as typeof utils.columnRef;
 
   const dragData = JSON.stringify({ index: 0, columnData: mockColumns[0] });
-  const dropTarget = row.cells[1];
+  const [, dropTarget] = row.cells;
   const event = {
     currentTarget: dropTarget,
     dataTransfer: { getData: jest.fn().mockReturnValue(dragData) },
@@ -287,7 +287,7 @@ test('handleDragDrop does nothing when no drag data', () => {
     setDerivedColumns,
   );
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   const event = {
     currentTarget: row.cells[0],
     dataTransfer: { getData: jest.fn().mockReturnValue('') },
@@ -356,7 +356,7 @@ test('handleMouseMove resizes column when mouseDown and within bounds', () => {
   );
   utils.resizable = true;
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   const col = row.cells[0] as any;
   col.mouseDown = true;
   col.oldWidth = 100;
@@ -414,7 +414,7 @@ test('handleMouseMove handles negative diff by keeping original width', () => {
   );
   utils.resizable = true;
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   const col = row.cells[0] as any;
   col.mouseDown = true;
   col.oldWidth = 50;
@@ -502,7 +502,7 @@ test('handleMouseMove skips column update when getColumnIndex returns NaN (line 
   );
   utils.resizable = true;
 
-  const row = table.rows[0];
+  const [row] = table.rows;
   const col = row.cells[0] as any;
   col.mouseDown = true;
   col.oldWidth = 100;

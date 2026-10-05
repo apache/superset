@@ -66,7 +66,7 @@ describe('loadTags', () => {
     const calls = fetchMock.callHistory.calls();
     expect(calls).toHaveLength(1);
 
-    const { url } = calls[0];
+    const [{ url }] = calls;
     expect(url).toContain('/api/v1/tag/?q=');
 
     // Extract and decode the query parameter
@@ -119,7 +119,7 @@ describe('loadTags', () => {
     await loadTags('financial-data', 0, 25);
 
     const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
+    const [{ url }] = calls;
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();
@@ -142,7 +142,7 @@ describe('loadTags', () => {
     await loadTags('', 2, 10);
 
     const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
+    const [{ url }] = calls;
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();
@@ -191,7 +191,7 @@ describe('loadTags', () => {
     await loadTags('test', 0, 25);
 
     const calls = fetchMock.callHistory.calls();
-    const { url } = calls[0];
+    const [{ url }] = calls;
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();

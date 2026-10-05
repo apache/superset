@@ -53,11 +53,7 @@ export default function transformProps(chartProps: ChartProps) {
 
   // The legacy explore_json endpoint computed the per-metric value maps
   // and domain range server-side; v1 responses arrive as flat records.
-  const {
-    data: rawData,
-    from_dttm: fromDttm,
-    to_dttm: toDttm,
-  } = queriesData[0];
+  const [{ data: rawData, from_dttm: fromDttm, to_dttm: toDttm }] = queriesData;
   const data = Array.isArray(rawData)
     ? transformData(
         rawData,

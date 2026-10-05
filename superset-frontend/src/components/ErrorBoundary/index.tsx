@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<
     const { error, info } = this.state;
     const { showMessage, className } = this.props;
     if (error) {
-      const firstLine = error.toString().split('\n')[0];
+      const [firstLine] = error.toString().split('\n');
       if (showMessage) {
         return (
           <ErrorAlert

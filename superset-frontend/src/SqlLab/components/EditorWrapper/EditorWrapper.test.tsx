@@ -154,8 +154,8 @@ describe('EditorWrapper', () => {
     await waitFor(() => expect(MockEditorHost).toHaveBeenCalled());
 
     // Get the onSelectionChange and onReady callbacks from the mock
-    const lastCall =
-      MockEditorHost.mock.calls[MockEditorHost.mock.calls.length - 1][0];
+    const [lastCall] =
+      MockEditorHost.mock.calls[MockEditorHost.mock.calls.length - 1];
     const { onSelectionChange, onReady } = lastCall;
 
     // Simulate editor ready with a mock handle that returns empty selection

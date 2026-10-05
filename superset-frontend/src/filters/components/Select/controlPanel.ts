@@ -56,7 +56,7 @@ export const isStringOperatorColumn = (
   selectedColumn: unknown,
   columns?: FilterSelectColumn[],
 ) => {
-  const columnName = ensureIsArray(selectedColumn)[0];
+  const [columnName] = ensureIsArray(selectedColumn);
   if (!columnName || !columns) {
     return true;
   }

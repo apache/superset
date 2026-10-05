@@ -1012,7 +1012,7 @@ export function setActiveSouthPaneTab(tabId: string): SqlLabAction {
 export function toggleLeftBar(shouldHide: boolean): SqlLabThunkAction {
   return (dispatch: AppDispatch, getState: GetState) => {
     const { sqlLab } = getState();
-    const id = sqlLab.tabHistory.slice(-1)[0];
+    const [id] = sqlLab.tabHistory.slice(-1);
     if (!id) return;
     const qe = sqlLab.queryEditors.find(e => e.id === id);
     const merged =

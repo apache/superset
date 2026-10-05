@@ -30,12 +30,12 @@ import {
  */
 export default function buildQuery(formData: QueryFormData) {
   const { groupby, columns, metric, sort_by_metric } = formData;
-  const source = ensureIsArray(
+  const [source] = ensureIsArray(
     groupby as QueryFormColumn | QueryFormColumn[],
-  )[0];
-  const target = ensureIsArray(
+  );
+  const [target] = ensureIsArray(
     columns as QueryFormColumn | QueryFormColumn[],
-  )[0];
+  );
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
