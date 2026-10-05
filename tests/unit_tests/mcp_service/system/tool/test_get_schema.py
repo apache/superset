@@ -227,6 +227,16 @@ class TestGetSchemaToolViaClient:
             }
             assert required_columns.issubset(set(info["default_select"]))
 
+    @pytest.mark.asyncio
+    async def test_get_schema_chart_datasource_id(self, mcp_server: Any) -> None:
+        """Chart discovery advertises the supported dataset ID operators."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+        info = json.loads(result.content[0].text)["schema_info"]
+        assert info["filter_columns"]["datasource_id"] == ["eq", "ne", "in", "nin"]
+
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
     async def test_get_schema_dataset(self, mock_filters, mcp_server):
@@ -644,17 +654,3 @@ class TestGetSchemaPermissionMap:
 
         can_access.assert_not_called()
         scope_allows.assert_called_once_with("read", "Chart")
-
-
-@pytest.mark.asyncio
-async def test_get_schema_chart_datasource_id(mcp_server: Any) -> None:
-    """Chart discovery advertises the supported dataset ID operators."""
-    with patch.object(
-        get_schema_module, "user_can_view_data_model_metadata", return_value=True
-    ):
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "get_schema", {"request": {"model_type": "chart"}}
-            )
-    info = json.loads(result.content[0].text)["schema_info"]
-    assert info["filter_columns"]["datasource_id"] == ["eq", "ne", "in", "nin"]
