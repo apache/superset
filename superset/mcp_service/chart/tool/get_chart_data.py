@@ -19,12 +19,14 @@
 MCP tool: get_chart_data
 """
 
+import datetime as dt
 import logging
 import math
 import time
 from typing import Any, Dict, List, NamedTuple
 from uuid import UUID
 
+import pandas as pd
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -1035,6 +1037,7 @@ async def _get_chart_data(  # noqa: C901
                         raw_columns,
                         cache_status,
                         performance,
+                        _temporal_result_columns(query_result),
                     )
 
             await ctx.report_progress(4, 4, "Building response")
@@ -1280,7 +1283,12 @@ async def _query_from_form_data(  # noqa: C901
             )
         if request.format == "excel":
             return _export_data_as_excel(
-                unsaved_chart, limited_data, raw_columns, cache_status, performance
+                unsaved_chart,
+                limited_data,
+                raw_columns,
+                cache_status,
+                performance,
+                _temporal_result_columns(query_result),
             )
 
         await ctx.report_progress(4, 4, "Building response")
@@ -1379,19 +1387,29 @@ def _export_data_as_excel(
     columns: List[str],
     cache_status: Any,
     performance: Any,
+    temporal_columns: frozenset[str] = frozenset(),
 ) -> "ChartData | ChartError":
-    """Export chart data as Excel format."""
+    """Export chart data as Excel format.
+
+    ``temporal_columns`` names result columns whose canonical ISO text is
+    written back as typed Excel date/time cells.
+    """
     try:
-        excel_b64 = _create_excel_with_openpyxl(chart, data, columns)
+        excel_b64 = _create_excel_with_openpyxl(chart, data, columns, temporal_columns)
         return _create_excel_chart_data(
             chart, data, excel_b64, performance, cache_status
         )
     except ImportError:
-        return _try_xlsxwriter_fallback(chart, data, columns, cache_status, performance)
+        return _try_xlsxwriter_fallback(
+            chart, data, columns, cache_status, performance, temporal_columns
+        )
 
 
 def _create_excel_with_openpyxl(
-    chart: "_ChartFacts", data: List[Dict[str, Any]], columns: List[str]
+    chart: "_ChartFacts",
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    temporal_columns: frozenset[str] = frozenset(),
 ) -> str:
     """Create Excel file using openpyxl."""
     import base64
@@ -1405,7 +1423,7 @@ def _create_excel_with_openpyxl(
 
     if data and columns:
         _write_excel_headers(ws, columns)
-        _write_excel_data(ws, data, columns)
+        _write_excel_data(ws, data, columns, temporal_columns)
 
     output = io.BytesIO()
     wb.save(output)
@@ -1430,14 +1448,62 @@ def _export_scalar(value: Any) -> Any:
     return value
 
 
-def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -> None:
+def _temporal_result_columns(query_result: Any) -> frozenset[str]:
+    """Return the validated result columns whose generic type is temporal."""
+    colnames = query_result.get("colnames") or []
+    coltypes = query_result.get("coltypes") or []
+    return frozenset(
+        name
+        for name, coltype in zip(colnames, coltypes, strict=False)
+        if coltype == GenericDataType.TEMPORAL
+    )
+
+
+def _excel_temporal_value(value: Any) -> Any:
+    """Project a canonical ISO temporal string back to an Excel-native value.
+
+    Result validation canonicalizes temporal cells to ISO text for the JSON
+    projection. Excel stores dates as typed serial values, so temporal columns
+    are restored here. Excel cannot store offsets; like the Superset Excel
+    export, aware values keep their wall-clock time and drop the offset.
+    Unparseable text is written unchanged.
+    """
+    if type(value) is not str:
+        return value
+    try:
+        if len(value) == 10:
+            return dt.date.fromisoformat(value)
+        if "T" not in value and " " not in value and ":" in value:
+            return dt.time.fromisoformat(value).replace(tzinfo=None)
+        timestamp = pd.Timestamp(value)
+    except (OverflowError, TypeError, ValueError):
+        return value
+    if timestamp is pd.NaT:
+        return value
+    if timestamp.tzinfo is not None:
+        timestamp = timestamp.tz_localize(None)
+    return timestamp.to_pydatetime(warn=False)
+
+
+def _excel_scalar(value: Any, temporal: bool) -> Any:
+    """Project one validated cell for an Excel writer."""
+    projected = _export_scalar(value)
+    return _excel_temporal_value(projected) if temporal else projected
+
+
+def _write_excel_data(
+    ws: Any,
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    temporal_columns: frozenset[str] = frozenset(),
+) -> None:
     """Write data to Excel worksheet."""
     for row_idx, row in enumerate(data, 2):
         for col_idx, col in enumerate(columns, 1):
             ws.cell(
                 row=row_idx,
                 column=col_idx,
-                value=_export_scalar(row.get(col, "")),
+                value=_excel_scalar(row.get(col, ""), col in temporal_columns),
             )
 
 
@@ -1447,10 +1513,13 @@ def _try_xlsxwriter_fallback(
     columns: List[str],
     cache_status: Any,
     performance: Any,
+    temporal_columns: frozenset[str] = frozenset(),
 ) -> "ChartData | ChartError":
     """Try xlsxwriter as fallback for Excel export."""
     try:
-        excel_b64 = _create_excel_with_xlsxwriter(chart, data, columns)
+        excel_b64 = _create_excel_with_xlsxwriter(
+            chart, data, columns, temporal_columns
+        )
         return _create_excel_chart_data_xlsxwriter(
             chart, data, excel_b64, performance, cache_status
         )
@@ -1469,7 +1538,10 @@ def _try_xlsxwriter_fallback(
 
 
 def _create_excel_with_xlsxwriter(
-    chart: "_ChartFacts", data: List[Dict[str, Any]], columns: List[str]
+    chart: "_ChartFacts",
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    temporal_columns: frozenset[str] = frozenset(),
 ) -> str:
     """Create Excel file using xlsxwriter."""
     import base64
@@ -1483,7 +1555,16 @@ def _create_excel_with_xlsxwriter(
     worksheet = workbook.add_worksheet(sheet_name)
 
     if data and columns:
-        _write_xlsxwriter_data(worksheet, data, columns)
+        # xlsxwriter writes unformatted serial numbers for temporal values, so
+        # give each Python temporal type the date format openpyxl applies.
+        temporal_formats = {
+            dt.datetime: workbook.add_format({"num_format": "yyyy-mm-dd h:mm:ss"}),
+            dt.date: workbook.add_format({"num_format": "yyyy-mm-dd"}),
+            dt.time: workbook.add_format({"num_format": "h:mm:ss"}),
+        }
+        _write_xlsxwriter_data(
+            worksheet, data, columns, temporal_columns, temporal_formats
+        )
 
     workbook.close()
     output.seek(0)
@@ -1491,7 +1572,11 @@ def _create_excel_with_xlsxwriter(
 
 
 def _write_xlsxwriter_data(
-    worksheet: Any, data: List[Dict[str, Any]], columns: List[str]
+    worksheet: Any,
+    data: List[Dict[str, Any]],
+    columns: List[str],
+    temporal_columns: frozenset[str] = frozenset(),
+    temporal_formats: Dict[type, Any] | None = None,
 ) -> None:
     """Write data to xlsxwriter worksheet."""
     # Write headers
@@ -1501,7 +1586,12 @@ def _write_xlsxwriter_data(
     # Write data
     for row_idx, row in enumerate(data):
         for col_idx, col in enumerate(columns):
-            worksheet.write(row_idx + 1, col_idx, _export_scalar(row.get(col, "")))
+            value = _excel_scalar(row.get(col, ""), col in temporal_columns)
+            cell_format = (temporal_formats or {}).get(type(value))
+            if cell_format is not None:
+                worksheet.write_datetime(row_idx + 1, col_idx, value, cell_format)
+            else:
+                worksheet.write(row_idx + 1, col_idx, value)
 
 
 def _create_excel_chart_data(

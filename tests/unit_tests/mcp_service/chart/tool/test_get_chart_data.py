@@ -587,6 +587,73 @@ class TestChartDataValuePreservation:
 
         assert workbook.active["A2"].value == str(identifier)
 
+    @pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+    def test_excel_export_writes_validated_temporal_cells_as_dates(
+        self, engine: str
+    ) -> None:
+        """Canonical ISO temporal text is projected back to Excel date cells."""
+        import base64
+        import io
+        from datetime import date, datetime, time as dt_time
+
+        from openpyxl import load_workbook
+
+        from superset.mcp_service.chart.query_result import (
+            validate_query_result_envelope,
+        )
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _create_excel_with_openpyxl,
+            _create_excel_with_xlsxwriter,
+            _temporal_result_columns,
+        )
+
+        result = chart_data_command_result(
+            frame=pd.DataFrame(
+                {
+                    "day": [date(2025, 1, 2)],
+                    "ts": [pd.Timestamp("2025-01-02 03:04:05", tz="UTC")],
+                    "at": [dt_time(3, 4, 5)],
+                    "label": ["2025-01-02"],
+                }
+            ),
+            coltypes=[
+                GenericDataType.TEMPORAL,
+                GenericDataType.TEMPORAL,
+                GenericDataType.TEMPORAL,
+                GenericDataType.STRING,
+            ],
+        )
+        assert validate_query_result_envelope(result) is None
+        query = result["queries"][0]
+        assert isinstance(query["data"][0]["day"], str)
+        chart = cast(
+            Any,
+            SimpleNamespace(id=9, slice_name="Temporal export", viz_type="table"),
+        )
+        exporter = (
+            _create_excel_with_openpyxl
+            if engine == "openpyxl"
+            else _create_excel_with_xlsxwriter
+        )
+
+        encoded = exporter(
+            chart,
+            query["data"],
+            query["colnames"],
+            _temporal_result_columns(query),
+        )
+        sheet = load_workbook(io.BytesIO(base64.b64decode(encoded))).active
+
+        assert sheet["A2"].is_date
+        assert sheet["A2"].value == datetime(2025, 1, 2)
+        assert sheet["A2"].number_format != "General"
+        assert sheet["B2"].is_date
+        assert sheet["B2"].value == datetime(2025, 1, 2, 3, 4, 5)
+        assert sheet["C2"].is_date
+        assert sheet["C2"].value == dt_time(3, 4, 5)
+        assert sheet["D2"].value == "2025-01-02"
+        assert sheet["D2"].data_type == "s"
+
     def test_csv_export_uses_shared_uuid_projection(self) -> None:
         identifier = UUID("12345678-1234-5678-1234-567812345678")
         chart = cast(
@@ -2981,6 +3048,8 @@ class TestSavedChartExtraFormDataFilters:
         extra_form_data: dict[str, Any],
         mcp_server: Any,
         rejected_filter_columns: list[str] | None = None,
+        command_result: dict[str, Any] | None = None,
+        request_overrides: dict[str, Any] | None = None,
     ) -> tuple[Any, Any]:
         from unittest.mock import patch
 
@@ -3013,6 +3082,8 @@ class TestSavedChartExtraFormDataFilters:
                 # Mirror the payload ChartDataCommand actually returns:
                 # _materialize_full_payload has already converted
                 # rejected_filter_columns into rejected_filters entries.
+                if command_result is not None:
+                    return command_result
                 result = chart_data_command_result(
                     [{"country": "USA"}],
                     columns=["country"],
@@ -3052,6 +3123,7 @@ class TestSavedChartExtraFormDataFilters:
                         "request": {
                             "identifier": "9",
                             "extra_form_data": extra_form_data,
+                            **(request_overrides or {}),
                         }
                     },
                 )
@@ -3140,6 +3212,38 @@ class TestSavedChartExtraFormDataFilters:
         assert data["error_type"] == "ValidationError"
         assert "does_not_exist" in data["error"]
         assert "USA" not in result.content[0].text
+
+    @pytest.mark.asyncio
+    async def test_excel_export_keeps_sql_dates_as_excel_dates(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """A SQL DATE is an Excel date cell, not General-formatted text."""
+        import base64
+        from datetime import date, datetime
+        from io import BytesIO
+
+        from openpyxl import load_workbook
+
+        command_result = chart_data_command_result(
+            frame=pd.DataFrame(
+                {"order_date": [date(2025, 1, 2)], "country": ["USA"]}
+            ),
+            coltypes=[GenericDataType.TEMPORAL, GenericDataType.STRING],
+        )
+
+        _, result = await self._run(
+            {},
+            mcp_server,
+            command_result=command_result,
+            request_overrides={"format": "excel"},
+        )
+        data = json.loads(result.content[0].text)
+        sheet = load_workbook(BytesIO(base64.b64decode(data["excel_data"]))).active
+
+        assert sheet["A2"].is_date
+        assert sheet["A2"].value == datetime(2025, 1, 2)
+        assert sheet["A2"].number_format != "General"
+        assert sheet["B2"].value == "USA"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("null_key", ["filters", "adhoc_filters"])
