@@ -165,11 +165,13 @@ The MCP process and websocket transport must use the same
 Framework feature flag.
 
 The response's `live_update_pushed` field reports publication success, not
-browser receipt or application. Without a backend, an identifiable principal,
-or a successful publish, it is `false`; the created `dashboard_url` remains
-the fallback. An open dashboard resolves matching notifications through the
-existing dashboard permalink API and applies the returned filters without a
-reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+browser receipt or application. When `WEBSOCKET_ENABLE` is disabled or unset,
+no notification is published and this field is `false`. Without a backend,
+`can_read` on `Realtime` for the calling principal, an identifiable principal,
+or a successful publish, it is also `false`; the created
+`dashboard_url` remains the fallback. An open dashboard resolves matching
+notifications through the existing dashboard permalink API and applies the
+returned filters without a reload. A “Filters applied from chat” toast offers **Undo**, restoring the
 affected filters' previous selections. The toast carries an action, so it has
 no auto-dismiss timer and stays up until Undo or its close button is used,
 which keeps the action reachable for keyboard and assistive-technology users.
@@ -916,7 +918,27 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose and request-wrapper instructions (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+
+The no-query catalog uses the same bounded serializer as targeted search.
+Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
+behavior, required URL display, and workflow guidance in request metadata rather
+than relying on truncated introductory prose. Paragraph truncation never leaves a
+partial IMPORTANT block or numbered workflow in the catalog.
+
+Calling constraints are authored as a `Field(description=...)` on the tool's
+`request` parameter and served as the `request` property's schema description, so
+schema-first clients can identify the wrapper without remembering previous calls.
+Summary mode preserves these instructions in `parameters_hint`. Instructions are
+never truncated: their length is deducted from the prose budget first. A request
+model's own docstring is not a calling instruction and is never deducted. If a
+configured limit is smaller than the instructions, prose is omitted rather than
+cutting the instructions. Built-in calling instructions are capped at 300
+characters by regression tests, and the complete tool entries retain per-tool
+size budgets. Field-level descriptions in the default full input schema also
+preserve tool-specific search semantics, sortable columns, chart pagination, and
+layout guidance. These details are not included in schema-free summary mode.
+This setting does not change result-size limits or schema validation.
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
@@ -967,6 +989,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
 | `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
+| `list_metrics`, `get_table`, `get_compatible_dimensions`, `get_compatible_metrics`                        | `can_read` on `Dataset`, plus a data-model metadata permission (`can_get_drill_info`, `can_get_or_create_dataset`, or `can_write` on `Dataset`); external semantic views also enforce their own datasource access check |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
 | `get_catalog`                                                                                            | `can_read` on the requested asset class (`Database`, `Dataset`, `Chart`, or `Dashboard`); databases and datasets also require data-model metadata access, otherwise the page is marked `restricted` |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
