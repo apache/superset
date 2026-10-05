@@ -375,7 +375,7 @@ test.each([
       disabledReason: 'This semantic view does not support server pagination.',
     });
     expect(
-      length.mapStateToProps?.(state, state.controls.server_pagination),
+      length.mapStateToProps?.(state, state.controls.server_page_length),
     ).toMatchObject({ disabled });
     expect(state.controls.server_pagination.value).toBe(true);
   },

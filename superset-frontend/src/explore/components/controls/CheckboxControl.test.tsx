@@ -63,4 +63,23 @@ describe('CheckboxControl', () => {
     expect(checkbox).toHaveAccessibleDescription('Unavailable');
     expect(screen.getByText('Unavailable')).toBeInTheDocument();
   });
+
+  test('retains the control header and description when disabled', () => {
+    const { container } = render(
+      setup({
+        disabled: true,
+        description: 'Why this control is disabled',
+        hovered: true,
+        renderTrigger: true,
+      }),
+    );
+
+    expect(
+      container.querySelector('[data-test="show_legend-header"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-test="show_legend-description-icon"]'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+  });
 });

@@ -26,6 +26,14 @@ import ControlHeader from './ControlHeader';
 
 const description = 'This control filters the whole chart.';
 
+test('noninteractive labels do not add a dead keyboard stop', () => {
+  render(<ControlHeader name="time_range" label="Date Range" />);
+
+  const label = screen.getByText('Date Range');
+  expect(label).toHaveAttribute('aria-disabled', 'true');
+  expect(label).toHaveAttribute('tabindex', '-1');
+});
+
 test('does not render the description icon until the control is hovered', () => {
   const { rerender } = render(
     <ControlHeader

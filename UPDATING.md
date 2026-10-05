@@ -24,16 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-### Table and AG Grid server pagination for semantic views
-
-Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
-capability to enable Server pagination. Missing capability metadata disables
-the control with an explanation; SQL datasets are unchanged. Saved pagination
-settings are not rewritten. Users can explicitly turn off an unsupported
-saved setting; provider errors remain authoritative until that edit.
-Extension providers must use a compatible core version before declaring the
-new capability.
-
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
@@ -53,6 +43,16 @@ new capability.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
 
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 

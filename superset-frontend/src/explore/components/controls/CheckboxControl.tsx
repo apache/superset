@@ -72,9 +72,7 @@ export default function CheckboxControl({
       checked={!!value}
       disabled={disabled}
       aria-describedby={disabled && disabledReason ? explanationId : undefined}
-    >
-      {disabled ? label : undefined}
-    </Checkbox>
+    />
   );
   const explanation = disabled && disabledReason && (
     <p id={explanationId}>{disabledReason}</p>
@@ -83,16 +81,12 @@ export default function CheckboxControl({
   if (label) {
     return (
       <CheckBoxControlWrapper>
-        {disabled ? (
-          checkbox
-        ) : (
-          <ControlHeader
-            {...restProps}
-            label={label}
-            leftNode={checkbox}
-            onClick={handleChange}
-          />
-        )}
+        <ControlHeader
+          {...restProps}
+          label={label}
+          leftNode={checkbox}
+          onClick={disabled ? undefined : handleChange}
+        />
         {explanation}
         {disabled && value && resetLabel && (
           <Button buttonSize="small" onClick={() => onChange(false)}>

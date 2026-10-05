@@ -519,10 +519,10 @@ test('recomputes pagination controls when datasource metadata changes', () => {
 test.each([
   ['server_pagination', pagination],
   ['server_page_length', pageLength],
-])('%s remaps when datasource capabilities change', (_, control) => {
+])('%s remaps when datasource capabilities change', (name, control) => {
   const before = panelState(['ROW_OFFSET']);
   const after = panelState([]);
-  const controlState = after.controls.server_pagination;
+  const controlState = after.controls[name];
 
   expect(control.shouldMapStateToProps?.(before, after, controlState)).toBe(
     true,

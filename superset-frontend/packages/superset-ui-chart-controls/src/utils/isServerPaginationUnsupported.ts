@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DatasourceType } from '@superset-ui/core';
 import type { ControlPanelState } from '../types';
+
+/** SemanticViewFeature value for providers that support row offsets. */
+export const ROW_OFFSET = 'ROW_OFFSET';
 
 /** Keep semantic pagination disabled until the view declares offset support. */
 export function isServerPaginationUnsupported({
@@ -24,11 +28,12 @@ export function isServerPaginationUnsupported({
   form_data,
 }: ControlPanelState): boolean {
   const isSemanticView =
-    datasource?.type === 'semantic_view' ||
-    (!datasource && form_data.datasource?.endsWith('__semantic_view'));
+    datasource?.type === DatasourceType.SemanticView ||
+    (!datasource &&
+      form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`));
   const features =
     datasource && 'semantic_view_features' in datasource
       ? datasource.semantic_view_features
       : undefined;
-  return Boolean(isSemanticView && !features?.includes('ROW_OFFSET'));
+  return Boolean(isSemanticView && !features?.includes(ROW_OFFSET));
 }

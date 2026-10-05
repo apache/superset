@@ -172,7 +172,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           <span
             // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
-            tabIndex={0}
+            aria-disabled={onClick ? undefined : true}
+            tabIndex={onClick ? 0 : -1}
             onClick={onClick}
             onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
             style={{ cursor: onClick ? 'pointer' : '' }}
