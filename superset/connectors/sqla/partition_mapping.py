@@ -83,6 +83,35 @@ What the gate cannot see is a column declaring its own collation
 SQLAlchemy's reflection or the engine specs exposes that, so there it remains
 the owner's assumption, like ``p = T(mapped_col)`` itself.
 
+Resolution of the value the engine compares
+-------------------------------------------
+Every row of the table above assumes the engine compares the value the mirror
+was built from. It does not always. A ``DATE`` column compared against
+``'2026-07-06 10:08:11'`` is compared on the date part alone -- whether the
+engine writes the literal itself (``TO_DATE('2026-07-06', 'YYYY-MM-DD')`` on
+Postgres, ``DATE '2026-07-06'`` on Presto, Trino, BigQuery and some two dozen
+others) or applies an implicit cast to a bound string. The filter therefore
+keeps the whole of that day while ``p = T(2026-07-06 10:08:11)`` keeps one
+instant of it: narrower than the predicate it stands in for, which is the one
+thing a mirror may never be.
+
+What an engine throws away is detected from the column's type rather than
+enumerated per engine -- `ExploreMixin._engine_literal_resolution` -- and what
+to do about it is a property of the *operator*, not of the value:
+
+* a bound rounds outward, backward for a lower one and forward for an upper one,
+  through `ExploreMixin._round_bounds_outward`. The mirror then reads one extra
+  bucket at the edge, and the original predicate is still in the query to
+  exclude the rows that bucket adds.
+* an equality, or one member of an ``IN`` list, has nowhere to widen to: these
+  predicates are ``AND``-ed onto the query, so "or the day either side" is not
+  something the mirror can express. They decline, which costs the query its
+  pruning and nothing else.
+
+So a ``DATE``-typed mapped column mirrors a range at day granularity, and does
+not mirror an equality whose value carries a time of day at all. Map a
+``TIMESTAMP`` column instead and every operator is available again.
+
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
 which wrongly excludes rows whose ``country`` is already lowercase ``'us'`` --
@@ -1917,11 +1946,18 @@ def build_mirrored_predicates(
     return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
 
 
-_LOWER_BOUND_OPS = {
+#: Operators whose value is the lower end of a range, and whose upper-end twins.
+#:
+#: Shared with `ExploreMixin._mirror_probe_input`, which rounds a bound *outward*
+#: where the engine resolves it more coarsely than the filter carries -- backward
+#: for a lower bound, forward for an upper one. Which end an operator names is
+#: the only thing separating the two directions in either caller, so the two have
+#: to agree on it rather than each classify for itself.
+LOWER_BOUND_OPERATORS = {
     FilterOperator.GREATER_THAN,
     FilterOperator.GREATER_THAN_OR_EQUALS,
 }
-_UPPER_BOUND_OPS = {
+UPPER_BOUND_OPERATORS = {
     FilterOperator.LESS_THAN,
     FilterOperator.LESS_THAN_OR_EQUALS,
 }
@@ -1941,10 +1977,14 @@ def _bounds_are_ordered(
     dataset owner can actually make -- not a replacement for the declaration.
     """
     lowers = [
-        evaluated[start] for operator, start, _ in spans if operator in _LOWER_BOUND_OPS
+        evaluated[start]
+        for operator, start, _ in spans
+        if operator in LOWER_BOUND_OPERATORS
     ]
     uppers = [
-        evaluated[start] for operator, start, _ in spans if operator in _UPPER_BOUND_OPS
+        evaluated[start]
+        for operator, start, _ in spans
+        if operator in UPPER_BOUND_OPERATORS
     ]
     if not lowers or not uppers:
         return True
