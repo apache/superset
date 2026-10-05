@@ -1382,6 +1382,7 @@ def _mapping_command(
     transform: str | None,
     *,
     partition_mapped_column: str | None = None,
+    main_dttm_col: str = "event_time",
 ) -> UpdateDatasetCommand:
     """A command whose stored dataset maps `event_time` onto `dt_epoch`."""
     mapped_column = mocker.MagicMock()
@@ -1397,7 +1398,7 @@ def _mapping_command(
     mock_dataset.catalog = None
     mock_dataset.schema = "main"
     mock_dataset.columns = [mapped_column, partition_column]
-    mock_dataset.main_dttm_col = "event_time"
+    mock_dataset.main_dttm_col = main_dttm_col
     mock_dataset.partition_column = "dt_epoch"
     mock_dataset.partition_mapped_column = partition_mapped_column
 
@@ -1504,8 +1505,9 @@ def test_a_description_only_put_survives_an_implicit_self_mapping(
     rather than blocking.
     """
     mocker.patch("superset.commands.dataset.update.validate_stored_expression")
-    command = _mapping_command(mocker, "unix_timestamp(:value)")
-    command._model.main_dttm_col = "dt_epoch"
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", main_dttm_col="dt_epoch"
+    )
     command._properties["description"] = "a new description"
 
     exceptions: list[ValidationError] = []

@@ -29,6 +29,7 @@ from flask import Flask
 
 from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import MAX_TRANSFORM_LENGTH
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
@@ -817,6 +818,41 @@ def test_save_refuses_a_value_transform_that_is_not_a_storable_expression(
     and runs it, so this deprecated endpoint would otherwise hand arbitrary
     SQL execution to anyone who can edit a dataset.
     """
+    mock_orm = _save_with_transform(
+        app, mock_get_datasource, mock_security_manager, transform
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_value_transform_past_the_length_bound(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    `MAX_TRANSFORM_LENGTH` reaches the other entry points through a marshmallow
+    `Length` validator, and this endpoint loads no schema -- it reads
+    `request.form["data"]` and writes straight through `update_from_object`.
+
+    So a transform like `lower(` + 1,100 spaces + `:value)` saved here is one
+    an export carries and the matching import then refuses on length, leaving a
+    dataset that cannot round-trip through its own export. It is also exactly
+    the cost the bound exists to prevent: `is_transform_active` parses the
+    stored value on every Explore load.
+    """
+    transform = "lower(" + " " * 1100 + ":value)"
+    assert len(transform) > MAX_TRANSFORM_LENGTH
+
     mock_orm = _save_with_transform(
         app, mock_get_datasource, mock_security_manager, transform
     )

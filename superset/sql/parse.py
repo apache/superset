@@ -815,6 +815,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        :return: one entry per select expression, ``None`` where unaliased
+        """
+        raise NotImplementedError()
+
     def parse_predicate(self, predicate: str) -> InternalRepresentation:
         """
         Parse a predicate string into an AST.
@@ -1228,6 +1236,51 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return False
         return not any(
             value for key, value in self._parsed.args.items() if key != "expressions"
+        )
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        ``None`` where an expression carries no alias. A caller that builds a
+        projection per input and reads the results back positionally needs the
+        aliases it asked for to have survived -- a comment inside a spliced
+        fragment swallows the rest of its line, alias included, and the query
+        still returns the right number of columns.
+
+        Returns an empty list for anything that is not a ``SELECT``.
+
+        :return: one entry per select expression, in order
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return []
+        return [
+            expression.alias if isinstance(expression, exp.Alias) else None
+            for expression in self._parsed.expressions
+        ]
+
+    def count_bare_column_references(self, name: str) -> int:
+        """
+        How many times ``name`` appears as a column reference in this statement.
+
+        A caller that stands a placeholder in for a value -- replacing it in the
+        *text* before parsing -- cannot otherwise tell whether the placeholder
+        landed somewhere the engine will evaluate. Substituting an identifier
+        and counting the column references it produced answers that: a
+        substitution that fell inside a string literal or a comment yields no
+        column reference at all, because neither holds parseable nodes.
+
+        Compared case-insensitively, since a dialect may normalize the case of
+        an unquoted identifier.
+
+        :param name: the identifier to count references to
+        :return: the number of column references to ``name``
+        """
+        target = name.lower()
+        return sum(
+            1
+            for column in self._parsed.find_all(exp.Column)
+            if column.name.lower() == target
         )
 
     def get_niladic_functions(self) -> set[str]:

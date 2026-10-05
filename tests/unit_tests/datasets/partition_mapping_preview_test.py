@@ -601,6 +601,56 @@ def test_preview_rejects_a_smuggled_from_clause_without_touching_the_engine(
     assert "emitted_predicate" not in response.json["result"]
 
 
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "':value'",
+        "concat(':value', 'x')",
+        "1 -- :value",
+        "1 /* :value */",
+    ],
+    ids=["quoted", "quoted-in-call", "line-comment", "block-comment"],
+)
+def test_preview_rejects_a_placeholder_the_engine_will_not_evaluate(
+    client: Any, full_api_access: None, dataset: Any, transform: str
+) -> None:
+    """
+    The two siblings above cover a transform that reads another table in the
+    clear. This covers the same read assembled out of pieces that each look
+    harmless.
+
+    Every write-side gate reads the transform with `:value` replaced by the
+    `NULL` keyword, so `':value'` arrives as the literal `SELECT 'NULL'` -- a
+    constant, and nothing a shape check objects to. The escape completes later:
+    SQLAlchemy's `text()` scan is no more literal-aware than the regex, so the
+    placeholder inside the quotes is bound anyway and the dialect renders the
+    bind *including its own quotes* in the middle of the owner's. A sample of
+    `" || (SELECT secret FROM vault LIMIT 1) || "` then closes the literal and
+    the probe runs the sub-query.
+
+    The comment forms are the other half: the probe joins its selections on one
+    line, so a comment eats its own `AS v0` alias and everything after it. The
+    engine still answers with one column, the constant in front of the comment
+    is accepted as the transform's result, and the mirror emits
+    `partition_col = <constant>` for every filter value -- wrong rows, not lost
+    pruning.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": transform,
+                "sample_values": [" || (SELECT 1) || "],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "emitted_predicate" not in response.json["result"]
+
+
 def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
     client: Any, full_api_access: None, dataset: Any, app: Flask
 ) -> None:
@@ -714,3 +764,75 @@ def test_preview_is_authorized_as_a_write() -> None:
     assert DatasetRestApi.method_permission_name["partition_mapping_preview"] == (
         "write"
     )
+
+
+def test_preview_coerces_a_sample_the_way_a_chart_filter_is_coerced(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Samples arrive as strings and the probe is keyed on exactly what it is
+    handed, so a numeric column's sample has to be cast the way
+    `filter_values_handler` casts a chart filter's value. Under the reviewer's
+    `typeof(:value)` on SQLite the raw string previewed a partition key of
+    `'text'` where the equivalent chart filter emitted `'integer'`.
+
+    It also makes the shared probe cache actually shared: `_probe_cache_key`
+    keys on each value's `repr`, so `'2025'` and `2025` were separate entries.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(TableColumn(column_name="year", type="BIGINT"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["integer"]
+
+    with patch(PROBE, side_effect=record):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "year",
+                "value_transform": "typeof(:value)",
+                "sample_values": ["2025"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is True
+    assert probed == [[2025]]
+
+
+def test_preview_leaves_a_string_column_s_sample_alone(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The counterweight to the test above: the coercion is the column's, not a
+    blanket cast, so a digit-only sample on a VARCHAR column stays a string --
+    exactly as it would reaching a chart filter on that column.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(TableColumn(column_name="zip", type="VARCHAR"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["text"]
+
+    with patch(PROBE, side_effect=record):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "zip",
+                "value_transform": "typeof(:value)",
+                "sample_values": ["02134"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert probed == [["02134"]]
