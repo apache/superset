@@ -1241,6 +1241,7 @@ def test_semantic_layer_loads_all_semantic_views(session: Session) -> None:
     session.flush()
     session.expire(layer, ["semantic_views"])
 
+    assert isinstance(layer.semantic_views, list)
     assert {view.name for view in layer.semantic_views} == {"Daily", "Monthly"}
 
 
