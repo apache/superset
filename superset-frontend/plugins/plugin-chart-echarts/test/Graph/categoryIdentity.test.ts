@@ -25,10 +25,13 @@ import {
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { init, use } from 'echarts/core';
-import { GraphChart, GraphSeriesOption } from 'echarts/charts';
+import { GraphChart, GraphSeriesOption, PieSeriesOption } from 'echarts/charts';
 import { LegendComponent, TooltipComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import transformProps from '../../src/Graph/transformProps';
+import transformPie from '../../src/Pie/transformProps';
+import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
+import { NULL_STRING } from '../../src/constants';
 import { EChartGraphNode, EchartsGraphChartProps } from '../../src/Graph/types';
 
 const colorMap = getLabelsColorMap();
@@ -89,200 +92,211 @@ function transform(
   );
 }
 
+/** Assert that nodes and outgoing edges use their category's legend color. */
+function expectConsistentColors(series: GraphSeriesOption) {
+  const nodes = series.data as EChartGraphNode[];
+  const colors = new Map(
+    series.categories!.map(category => [
+      category.name,
+      category.itemStyle?.color,
+    ]),
+  );
+  nodes.forEach(node =>
+    expect(node.itemStyle?.color).toBe(colors.get(node.category as string)),
+  );
+  series.links!.forEach(link => {
+    expect(link.lineStyle?.color).toBe(
+      nodes[Number(link.source)].itemStyle?.color,
+    );
+  });
+}
+
 test.each([null, undefined])(
   'keeps %s, literal N/A and literal <NULL> distinct',
   value => {
-    const { echartOptions } = transform([value, 'N/A', '<NULL>']);
+    const { echartOptions } = transform([value, 'N/A', NULL_STRING]);
     const [series] = echartOptions.series as GraphSeriesOption[];
     const nodes = series.data as EChartGraphNode[];
-    expect(series.categories).toHaveLength(3);
+    expect(series.categories!.map(category => category.name)).toEqual([
+      NULL_STRING,
+      'N/A',
+      '"<NULL>"',
+    ]);
+    expect((echartOptions.legend as { data: string[] }).data).toEqual([
+      NULL_STRING,
+      'N/A',
+      '"<NULL>"',
+    ]);
     expect(new Set(nodes.map(node => node.category)).size).toBe(3);
     expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
-    expect(nodes[0].category).toBe(nodes[1].category);
-    expect(nodes[2].category).toBe(nodes[3].category);
-    expect(nodes[4].category).toBe(nodes[5].category);
+    expectConsistentColors(series);
   },
 );
 
-test('keeps literal internal identifiers separate from null, including normalized color keys', () => {
-  const [initial] = transform([null]).echartOptions
-    .series as GraphSeriesOption[];
-  const nullKey = initial.categories![0].name as string;
-  const values = [null, nullKey, `${nullKey}${nullKey}`, ` ${nullKey} `];
-  const [series] = transform(values).echartOptions
-    .series as GraphSeriesOption[];
-  const nodes = series.data as EChartGraphNode[];
-  expect(series.categories).toHaveLength(values.length);
-  expect(new Set(nodes.map(node => node.category)).size).toBe(values.length);
-  expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
-  // Literal values share the color lookup's existing whitespace normalization.
-  expect(nodes[2].itemStyle?.color).toBe(nodes[6].itemStyle?.color);
-  expect(nodes[0].itemStyle?.color).not.toBe(nodes[6].itemStyle?.color);
-});
-
-test('displays readable labels without exposing category identifiers', () => {
-  const { echartOptions } = transform([null, 'N/A', '<NULL>']);
-  const legend = echartOptions.legend as {
-    data: string[];
-    formatter: (name: string) => string;
-  };
-  expect(legend.data.map(legend.formatter)).toEqual([
-    '<NULL>',
-    'N/A',
-    '"<NULL>"',
-  ]);
-});
-
 test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
-  'preserves explicit colors for literal categories in context %s',
+  'honors custom colors for null and distinct literal categories in context %s',
   source => {
     colorMap.source = source;
-    CategoricalColorNamespace.getNamespace().setColor('N/A', '#123456');
-    CategoricalColorNamespace.getNamespace().setColor('<NULL>', '#abcdef');
-    const [series] = transform([null, 'N/A', '<NULL>']).echartOptions
-      .series as GraphSeriesOption[];
+    const colors: Record<string, string> = {
+      [NULL_STRING]: '#e53935',
+      'N/A': '#123456',
+      '"<NULL>"': '#abcdef',
+      __superset_null__: '#654321',
+    };
+    Object.entries(colors).forEach(([label, color]) =>
+      CategoricalColorNamespace.getNamespace().setColor(label, color),
+    );
+    const [series] = transform([null, 'N/A', NULL_STRING, '__superset_null__'])
+      .echartOptions.series as GraphSeriesOption[];
     const nodes = series.data as EChartGraphNode[];
-    expect(nodes[2].itemStyle?.color).toBe('#123456');
-    expect(nodes[4].itemStyle?.color).toBe('#abcdef');
-    expect(nodes[0].itemStyle?.color).not.toBe('#abcdef');
+    expect(
+      nodes
+        .filter((_, index) => index % 2 === 0)
+        .map(node => node.itemStyle?.color),
+    ).toEqual(Object.values(colors));
+    expectConsistentColors(series);
+  },
+);
+
+test.each(['pie-first', 'graph-first'])(
+  'shares saved null colors with Pie in either render order (%s)',
+  order => {
+    colorMap.source = LabelsColorMapSource.Dashboard;
+    const savedColor = CategoricalColorNamespace.getScale().range()[3];
+    colorMap.addSlice(NULL_STRING, savedColor, 40);
+    const renderPie = () => {
+      const formData: SqlaFormData = {
+        datasource: '1__table',
+        viz_type: 'pie',
+        groupby: ['category'],
+        metric: 'weight',
+        sliceId: 41,
+      };
+      const result = transformPie(
+        new ChartProps({
+          width: 800,
+          height: 600,
+          theme: supersetTheme,
+          formData,
+          queriesData: [
+            {
+              data: [
+                { category: null, weight: 1 },
+                { category: 'N/A', weight: 1 },
+              ],
+            },
+          ],
+        }) as EchartsPieChartProps,
+      );
+      return (
+        (result.echartOptions.series as PieSeriesOption[])[0]
+          .data as PieChartDataItem[]
+      )[0].itemStyle?.color;
+    };
+    const renderGraph = () => {
+      const [series] = transform([null, 'N/A'], { sliceId: 42 }).echartOptions
+        .series as GraphSeriesOption[];
+      expectConsistentColors(series);
+      return (series.data as EChartGraphNode[])[0].itemStyle?.color;
+    };
+    const colors =
+      order === 'pie-first'
+        ? [renderPie(), renderGraph()]
+        : [renderGraph(), renderPie()];
+    expect(colors).toEqual([savedColor, savedColor]);
+    expect(colorMap.getColorMap().get(NULL_STRING)).toBe(savedColor);
   },
 );
 
 test.each(
-  [LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard].flatMap(
-    source => [false, true].map(withNull => ({ source, withNull })),
+  [false, true].flatMap(nullFirst =>
+    [undefined, 42].map(sliceId => ({ nullFirst, sliceId })),
   ),
 )(
-  'preserves reserved literal custom colors (context $source, null $withNull)',
-  ({ source, withNull }) => {
-    colorMap.source = source;
-    const reserved = '__superset_null__';
-    const literalColors: Record<string, string> = {
-      [reserved]: '#123456',
-      [`${reserved}${reserved}`]: '#abcdef',
-    };
-    Object.entries(literalColors).forEach(([label, color]) => {
-      CategoricalColorNamespace.getNamespace().setColor(label, color);
-    });
-    const values: (string | null)[] = [
-      reserved,
-      `${reserved}${reserved}`,
-      ` ${reserved} `,
-    ];
-    if (withNull) values.unshift(null);
-    const [series] = transform(values, { sliceId: 42 }).echartOptions
-      .series as GraphSeriesOption[];
-    const nodes = series.data as EChartGraphNode[];
-    values.forEach((value, index) => {
-      const pair = nodes.slice(index * 2, index * 2 + 2);
-      pair.forEach(node => {
-        if (value === null) {
-          expect(Object.values(literalColors)).not.toContain(
-            node.itemStyle?.color,
-          );
-        } else {
-          expect(node.itemStyle?.color).toBe(literalColors[value.trim()]);
-        }
-        const category = series.categories!.find(c => c.name === node.category);
-        expect(node.itemStyle?.color).toBe(category?.itemStyle?.color);
-      });
-    });
-    expect(CategoricalColorNamespace.getNamespace().forcedItems).toEqual(
-      literalColors,
-    );
-  },
-);
-
-test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
-  'does not apply a filtered-out literal custom color to null in context %s',
-  source => {
-    colorMap.source = source;
-    CategoricalColorNamespace.getNamespace().setColor(
-      '__superset_null__',
-      '#123456',
-    );
-    const [series] = transform([null], { sliceId: 42 }).echartOptions
-      .series as GraphSeriesOption[];
-    (series.data as EChartGraphNode[]).forEach(node => {
-      expect(node.itemStyle?.color).not.toBe('#123456');
-    });
-  },
-);
-
-test('preserves saved reserved literal colors across Dashboard rerenders', () => {
-  colorMap.source = LabelsColorMapSource.Dashboard;
-  const reserved = '__superset_null__';
-  const [reservedColor, naColor] = CategoricalColorNamespace.getScale().range();
-  colorMap.addSlice(reserved, reservedColor, 41);
-  colorMap.addSlice('N/A', naColor, 41);
-  const render = () => {
-    const [series] = transform([null, reserved, 'N/A'], {
-      sliceId: 42,
-    }).echartOptions.series as GraphSeriesOption[];
-    const nodes = series.data as EChartGraphNode[];
-    expect(nodes[2].itemStyle?.color).toBe(reservedColor);
-    expect(nodes[4].itemStyle?.color).toBe(naColor);
-    expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
-    nodes.forEach(node => {
-      const category = series.categories!.find(c => c.name === node.category);
-      expect(node.itemStyle?.color).toBe(category?.itemStyle?.color);
-    });
-    return nodes.map(node => node.itemStyle?.color);
-  };
-  const first = render();
-  const saved = new Map(colorMap.getColorMap());
-  expect(render()).toEqual(first);
-  expect(colorMap.getColorMap()).toEqual(saved);
-  expect(colorMap.getColorMap().get(reserved)).toBe(reservedColor);
-});
-
-test('distinguishes null and literal labels containing quotes or escapes', () => {
-  const values = [null, '<NULL>', '"<NULL>"', '"\\"<NULL>\\""', '"quoted"'];
-  const { legend } = transform(values).echartOptions as {
-    legend: { data: string[]; formatter: (key: string) => string };
-  };
-  const labels = legend.data.map(legend.formatter);
-  expect(labels.slice(0, 3)).toEqual(['<NULL>', '"<NULL>"', '"\\"<NULL>\\""']);
-  expect(new Set(labels).size).toBe(values.length);
-  expect(labels.slice(1).map(label => JSON.parse(label))).toEqual(
-    values.slice(1),
-  );
-});
-
-test.each([{ values: [null, 'N/A'] }, { values: [null, 'N/A', '<NULL>'] }])(
-  'keeps node, edge and legend colors consistent with saved Dashboard colors ($values)',
-  ({ values }) => {
+  'keeps node, edge and legend colors aligned after a saved color displaces an automatic color (null first $nullFirst, slice $sliceId)',
+  ({ nullFirst, sliceId }) => {
     colorMap.source = LabelsColorMapSource.Dashboard;
-    const [nullLabelColor, naColor] =
-      CategoricalColorNamespace.getScale().range();
-    colorMap.addSlice('<NULL>', nullLabelColor, 41);
-    colorMap.addSlice('N/A', naColor, 41);
-    const [series] = transform(values, { sliceId: 42 }).echartOptions
+    const savedColor = CategoricalColorNamespace.getScale().range()[0];
+    colorMap.addSlice(NULL_STRING, savedColor, 41);
+    const values = nullFirst
+      ? [null, 'N/A', NULL_STRING]
+      : ['N/A', NULL_STRING, null];
+    const [series] = transform(values, { sliceId }).echartOptions
       .series as GraphSeriesOption[];
-    const nodes = series.data as EChartGraphNode[];
-    const categoryColors = new Map(
-      series.categories!.map(category => [
-        category.name,
-        category.itemStyle?.color,
-      ]),
-    );
-    expect(new Set(categoryColors.values()).size).toBe(values.length);
-    nodes.forEach(node => {
-      expect(node.itemStyle?.color).toBe(
-        categoryColors.get(node.category as string),
-      );
-    });
-    series.links!.forEach(link => {
-      expect(link.lineStyle?.color).toBe(
-        nodes[Number(link.source)].itemStyle?.color,
-      );
-    });
-    expect(categoryColors.get('N/A')).toBe(naColor);
-    if (values.includes('<NULL>')) {
-      expect(categoryColors.get('<NULL>')).toBe(nullLabelColor);
-    }
+    const categories = series.categories!;
+    expect(
+      categories.find(category => category.name === NULL_STRING)?.itemStyle
+        ?.color,
+    ).toBe(savedColor);
+    expect(
+      new Set(categories.map(category => category.itemStyle?.color)).size,
+    ).toBe(3);
+    expectConsistentColors(series);
   },
 );
+
+test('preserves shared null colors across filters and rerenders', () => {
+  colorMap.source = LabelsColorMapSource.Dashboard;
+  const [initial] = transform([null, 'N/A', NULL_STRING], { sliceId: 42 })
+    .echartOptions.series as GraphSeriesOption[];
+  const expected = initial.categories!.find(
+    category => category.name === NULL_STRING,
+  )?.itemStyle?.color;
+  expect(colorMap.getColorMap().get(NULL_STRING)).toBe(expected);
+  for (const values of [[null], ['N/A', null], [null, 'N/A', NULL_STRING]]) {
+    const [series] = transform(values, { sliceId: 42 }).echartOptions
+      .series as GraphSeriesOption[];
+    expect(
+      series.categories!.find(category => category.name === NULL_STRING)
+        ?.itemStyle?.color,
+    ).toBe(expected);
+    expectConsistentColors(series);
+  }
+});
+
+test.each([undefined, 42])(
+  'keeps custom null color separate when null is filtered out (slice %s)',
+  sliceId => {
+    CategoricalColorNamespace.getNamespace().setColor(NULL_STRING, '#e53935');
+    const [series] = transform(['N/A', NULL_STRING], { sliceId }).echartOptions
+      .series as GraphSeriesOption[];
+    expect(series.categories!.map(category => category.name)).toEqual([
+      'N/A',
+      '"<NULL>"',
+    ]);
+    expect(
+      series.categories!.every(
+        category => category.itemStyle?.color !== '#e53935',
+      ),
+    ).toBe(true);
+    expectConsistentColors(series);
+  },
+);
+
+test('escapes literal null labels and leading quotes without color-key collisions', () => {
+  const values = [
+    null,
+    NULL_STRING,
+    '"<NULL>"',
+    '"\\"<NULL>\\""',
+    ' <NULL> ',
+    ' "<NULL>" ',
+    '__superset_null__',
+  ];
+  const { echartOptions } = transform(values);
+  const labels = (echartOptions.legend as { data: string[] }).data;
+  expect(labels).toEqual([
+    NULL_STRING,
+    ...values.slice(1, -1).map(value => JSON.stringify(value)),
+    '__superset_null__',
+  ]);
+  expect(new Set(labels.map(label => label.trim())).size).toBe(values.length);
+  const [series] = echartOptions.series as GraphSeriesOption[];
+  expect(
+    new Set(series.categories!.map(category => category.itemStyle?.color)).size,
+  ).toBe(values.length);
+  expectConsistentColors(series);
+});
 
 test.each(['N/A', '"<NULL>"', '"\\"<NULL>\\""'])(
   'ECharts legend selection keeps null and <NULL> independent of %s',
@@ -376,9 +390,8 @@ test.each(['asc', 'desc'])(
     });
     const legend = echartOptions.legend as {
       data: string[];
-      formatter: (name: string) => string;
     };
-    const labels = legend.data.map(legend.formatter);
+    const labels = legend.data;
     const sortedLabels = ['<NULL>', 'N/A', '"<NULL>"'].sort((a, b) =>
       a.localeCompare(b),
     );

@@ -96,10 +96,10 @@ test.each([null, undefined])(
       const nullKey = nodes[0].category;
       const legend = echartOptions.legend as {
         data: string[];
-        formatter: (key: string) => string;
       };
 
-      expect(legend.data.map(legend.formatter)).toEqual([NULL_STRING, 'N/A']);
+      expect(legend.data).toEqual([NULL_STRING, 'N/A']);
+      expect(nullKey).toBe(NULL_STRING);
       expect(series.categories).toEqual([
         expect.objectContaining({ name: nullKey }),
         expect.objectContaining({ name: 'N/A' }),

@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  getLabelsColorMap,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
@@ -144,41 +143,15 @@ function getKeyByValue(
   return Object.keys(object).find(key => object[key] === value) as string;
 }
 
-const NULL_CATEGORY_KEY = '__superset_null__';
-
-/** Keep the null identity separate from literal labels, escaping reserved keys. */
-function getCategoryKey(columnName: string, name?: DataRecordValue) {
+/** Use the shared null label and quote literals that would collide with it. */
+function getCategoryName(columnName: string, name?: DataRecordValue) {
   if (name == null) {
-    return NULL_CATEGORY_KEY;
-  }
-  let label: string;
-  if (name === false) {
-    label = `${columnName}: false`;
-  } else if (name === true) {
-    label = `${columnName}: true`;
-  } else {
-    label = String(name);
-  }
-  // The color scale trims labels before lookup, so guard leading whitespace too.
-  return label.trimStart().startsWith(NULL_CATEGORY_KEY)
-    ? `${NULL_CATEGORY_KEY}${label}`
-    : label;
-}
-
-/** Recover the original literal value for color lookup and display. */
-function getCategoryValue(key: string) {
-  return key.startsWith(NULL_CATEGORY_KEY)
-    ? key.slice(NULL_CATEGORY_KEY.length)
-    : key;
-}
-
-/** Format category identities for display without changing legend selection keys. */
-function getCategoryLabel(key: string) {
-  if (key === NULL_CATEGORY_KEY) {
     return NULL_STRING;
   }
-  const label = getCategoryValue(key);
-  return label === NULL_STRING || label.startsWith('"')
+  const label =
+    typeof name === 'boolean' ? `${columnName}: ${name}` : String(name);
+  // The color scale trims keys, so escape whitespace-wrapped literals as well.
+  return label.trim() === NULL_STRING || label.trimStart().startsWith('"')
     ? JSON.stringify(label)
     : label;
 }
@@ -278,44 +251,20 @@ export default function transformProps(
     if (link[metricLabel]) {
       [sourceCategory, targetCategory].forEach(column => {
         if (column) {
-          const category = getCategoryKey(column, link[column]);
+          const category = getCategoryName(column, link[column]);
           if (category) categories.add(category);
         }
       });
     }
   });
 
-  const hasNullCategory = categories.has(NULL_CATEGORY_KEY);
-  // Resolve literal colors under their original keys before assigning null a color.
-  if (sliceId || hasNullCategory) {
-    categories.forEach(category => {
-      if (category !== NULL_CATEGORY_KEY) {
-        colorFn(getCategoryValue(category), sliceId);
-      }
-    });
-  }
+  // Resolve saved/custom colors before copying colors into nodes and edges:
+  // the scale can reassign an earlier automatic color when a later label uses it.
+  categories.forEach(category => colorFn(category, sliceId));
 
-  let nullColor = firstColor;
-  if (hasNullCategory) {
-    const reservedColorKeys = new Set([
-      ...colorFn.chartLabelsColorMap.keys(),
-      ...Object.keys(colorFn.forcedColors),
-      ...getLabelsColorMap().getColorMap().keys(),
-    ]);
-    let nullColorKey = NULL_CATEGORY_KEY;
-    while (reservedColorKeys.has(nullColorKey)) {
-      nullColorKey += NULL_CATEGORY_KEY;
-    }
-    // Keep this lookup local: shared color settings belong to literal values.
-    nullColor = colorFn(nullColorKey);
-  }
-
-  function getCategoryColor(category: string) {
-    if (category === NULL_CATEGORY_KEY) return nullColor;
-    const value = getCategoryValue(category);
-    return hasNullCategory
-      ? (colorFn.chartLabelsColorMap.get(value.trim()) ?? firstColor)
-      : colorFn(value, sliceId);
+  /** Read resolved colors without reallocating them for unsaved charts. */
+  function getCategoryColor(category: string): string {
+    return colorFn.chartLabelsColorMap.get(category.trim()) ?? firstColor;
   }
 
   data.forEach(link => {
@@ -326,10 +275,10 @@ export default function transformProps(
     const sourceName = link[source] as string;
     const targetName = link[target] as string;
     const sourceCategoryName = sourceCategory
-      ? getCategoryKey(sourceCategory, link[sourceCategory])
+      ? getCategoryName(sourceCategory, link[sourceCategory])
       : undefined;
     const targetCategoryName = targetCategory
-      ? getCategoryKey(targetCategory, link[targetCategory])
+      ? getCategoryName(targetCategory, link[targetCategory])
       : undefined;
     const sourceNodeColor = sourceCategoryName
       ? getCategoryColor(sourceCategoryName)
@@ -375,13 +324,13 @@ export default function transformProps(
   const categoryList = [...categories];
   const legendData = categoryList.sort((a: string, b: string) => {
     if (!legendSort) return 0;
-    const comparison = getCategoryLabel(a).localeCompare(getCategoryLabel(b));
+    const comparison = a.localeCompare(b);
     return legendSort === 'asc' ? comparison : -comparison;
   });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
-    legendItems: legendData.map(getCategoryLabel),
+    legendItems: legendData,
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
@@ -453,7 +402,6 @@ export default function transformProps(
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
-      formatter: getCategoryLabel,
     },
     series,
   };
