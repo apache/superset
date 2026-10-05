@@ -273,6 +273,26 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
     return params if isinstance(params, dict) else {}
 
 
+def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> None:
+    """
+    Materialize `partition_transform_is_monotonic` wherever a transform is set.
+
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False so a
+    bundle predating the field cannot claim its transform preserves ordering.
+    That default never reaches storage: the import pipeline validates the
+    payload and then applies the *raw* config, so on an overwrite an omitted key
+    keeps whatever is stored -- including a True left behind by the transform
+    this bundle is replacing. A non-monotonic transform declared monotonic
+    enables range mirrors that exclude rows the filter keeps.
+
+    Only columns that supply a transform are touched, so a re-import that says
+    nothing about a column stays idempotent.
+    """
+    for column in columns:
+        if column.get("partition_value_transform"):
+            column.setdefault("partition_transform_is_monotonic", False)
+
+
 def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     """
     Drop a partition value transform the save path would have rejected.
@@ -305,18 +325,7 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     if not any(column.get("partition_value_transform") for column in columns):
         return
 
-    # `ImportV1ColumnSchema` gives the monotonic declaration a `load_default`
-    # of False so a bundle predating the field cannot claim its transform
-    # preserves ordering. That default never reaches storage: the import
-    # pipeline validates the payload and then applies the *raw* config, so on
-    # an overwrite an omitted key keeps whatever is stored -- including a True
-    # left behind by the transform this bundle is replacing. A non-monotonic
-    # transform declared monotonic enables range mirrors that exclude rows the
-    # filter keeps, so the default is materialized here, where the importer
-    # already normalizes these two fields together.
-    for column in columns:
-        if column.get("partition_value_transform"):
-            column.setdefault("partition_transform_is_monotonic", False)
+    _default_omitted_monotonic_declarations(columns)
 
     database = db.session.query(Database).filter_by(id=config["database_id"]).first()
     if database is None:
@@ -616,6 +625,16 @@ def import_dataset(  # noqa: C901
     # should we also load data into the dataset?
     data_uri = config.get("data")
 
+    # Disarm transforms parked on the *old* mapping before the new references
+    # land, the way `DatasetDAO.update` does. Omitted column fields keep their
+    # stored values, so a bundle that clears the mapped-column override -- or
+    # re-points `main_dttm_col` -- makes a column that was previously unmapped
+    # the effective one. Run only afterwards, the cleanup below would resolve
+    # the new mapping, find that column effective and skip it, and a transform
+    # nobody in this bundle authored would go live.
+    if existing is not None:
+        DatasetDAO.clear_unmapped_partition_transforms(existing)
+
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
@@ -686,6 +705,21 @@ def import_dataset(  # noqa: C901
     # transform on an unmirrored column is invisible and still stored, ready to
     # go live the moment the mapped column resolves back to it.
     DatasetDAO.clear_unmapped_partition_transforms(dataset)
+
+    # And repair a reference the import itself broke: a `sync` deletion can
+    # remove the column `partition_column` names, which otherwise leaves the
+    # dataset failing `UpdateDatasetCommand`'s validation on every later edit --
+    # including a description-only PUT, which carries no columns payload and so
+    # cannot reach the forgiveness branch that tolerates a stored-only dangle.
+    #
+    # Flushed and expired first: the `sync` deletion is still pending here, and
+    # reading the relationship without flushing loads the removed rows back and
+    # un-deletes them.
+    db.session.flush()
+    db.session.expire(dataset, ["columns"])
+    DatasetDAO.clear_dangling_partition_mapping(
+        dataset, {column.column_name for column in dataset.columns}
+    )
 
     if not ignore_permissions:
         try:

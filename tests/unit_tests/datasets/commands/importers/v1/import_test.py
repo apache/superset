@@ -2808,6 +2808,139 @@ def test_load_data_bounds_gzip_download_before_decompression(
     # ...and the decompressed output is bounded again before parsing.
 
 
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_overwrite_import_disarms_a_transform_parked_on_the_old_mapping(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Omitted column fields keep their stored values, so a bundle that clears the
+    mapped-column override makes whatever `main_dttm_col` names the effective
+    column. A cleanup that only runs *after* the new references land resolves
+    the new mapping, finds that column effective and skips it -- so a transform
+    parked on it, invisible until now, goes live under a mapping nobody in the
+    bundle authored.
+
+    `DatasetDAO.update` is immune because it clears under the old resolution
+    too, before applying the request.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_parked_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    base: dict[str, Any] = {
+        "table_name": "pfm_parked",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    # Park a transform on the default datetime column, which the override
+    # currently hides. This is the state the editor can produce and the state
+    # the post-import cleanup is meant to leave unreachable.
+    for column in dataset.columns:
+        if column.column_name == "event_time":
+            column.partition_value_transform = "unix_timestamp(:value)"
+            column.partition_transform_is_monotonic = True
+    db.session.flush()
+
+    # Now clear the override, so `main_dttm_col` -- and the parked transform --
+    # becomes the effective mapping. The bundle says nothing about either
+    # column's transform.
+    overwrite = copy.deepcopy(base)
+    overwrite["partition_mapped_column"] = None
+    for column in overwrite["columns"]:
+        column.pop("partition_value_transform", None)
+        column.pop("partition_transform_is_monotonic", None)
+
+    dataset = import_dataset(overwrite, overwrite=True)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms["event_time"] is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_clears_a_mapping_whose_column_the_sync_removed(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An overwrite import syncs columns, so it can delete the column
+    `partition_column` names. Left dangling, the reference fails
+    `UpdateDatasetCommand`'s validation on every later edit -- including a
+    description-only PUT, which carries no columns payload and so cannot reach
+    the branch that forgives a stored-only dangle.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_dangle_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    base: dict[str, Any] = {
+        "table_name": "pfm_dangle",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    without_partition_column = copy.deepcopy(base)
+    without_partition_column["columns"] = [
+        column
+        for column in without_partition_column["columns"]
+        if column["column_name"] != "dt_epoch"
+    ]
+
+    dataset = import_dataset(without_partition_column, overwrite=True)
+    db.session.flush()
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
 def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
     return {
         "table_name": "web_events",
