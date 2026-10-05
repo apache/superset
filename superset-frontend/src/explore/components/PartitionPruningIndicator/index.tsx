@@ -48,6 +48,21 @@ export interface MirrorCandidateFilter {
 }
 
 /**
+ * Whether this mapping mirrors anything at all.
+ *
+ * `active` is the save path's verdict -- a parse, which a misspelled function
+ * clears happily -- so on its own it promised a speed-up for a transform the
+ * database rejects: the probe fails at query time, the mirror is dropped, and
+ * nothing said so. `evaluable` is the weaker claim the engine answers, and
+ * `null` means nothing has probed yet, which is not a reason to go quiet.
+ */
+function mirrorsAnything(
+  mapping: PartitionFilterMapping | null | undefined,
+): boolean {
+  return Boolean(mapping?.active) && mapping?.evaluable !== false;
+}
+
+/**
  * The glyph on a filter whose column is mirrored onto a partition column
  * (wireframe 1d).
  *
@@ -60,7 +75,7 @@ export default function PartitionPruningIndicator({
 }: PartitionPruningIndicatorProps) {
   const theme = useTheme();
 
-  if (!mapping?.active) {
+  if (!mirrorsAnything(mapping)) {
     return null;
   }
 
@@ -128,7 +143,9 @@ export function isMirroredColumn(
   columnName: string | null | undefined,
 ): boolean {
   return Boolean(
-    mapping?.active && columnName && mapping.mapped_column === columnName,
+    mirrorsAnything(mapping) &&
+    columnName &&
+    mapping?.mapped_column === columnName,
   );
 }
 
@@ -236,7 +253,7 @@ export function isMirroredFilter(
   mapping: PartitionFilterMapping | null | undefined,
   filter: MirrorCandidateFilter | null | undefined,
 ): boolean {
-  if (!mapping?.active || !filter) {
+  if (!mirrorsAnything(mapping) || !filter) {
     return false;
   }
   // Free-form SQL filters are appended verbatim as `extras.where`; the backend

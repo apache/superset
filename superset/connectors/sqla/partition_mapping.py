@@ -1114,6 +1114,33 @@ def _run_probe(
     *,
     errors: list[str] | None = None,
 ) -> list[Any] | None:
+    """
+    `_probe` plus the advisory record of how it went.
+
+    One place rather than one per `return`, because every way out of `_probe`
+    is a verdict and the next reader of `known_mirror_verdict` cannot tell the
+    difference between "declined" and "never asked".
+    """
+    values = _probe(database, catalog, schema, transform, distinct, errors=errors)
+    record_mirror_verdict(
+        database,
+        catalog,
+        schema,
+        transform,
+        mirrors=values is not None and not any(value is None for value in values),
+    )
+    return values
+
+
+def _probe(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    distinct: list[Any],
+    *,
+    errors: list[str] | None = None,
+) -> list[Any] | None:
     # The last gate before the transform becomes SQL the engine runs, and the
     # only one that covers a transform already in storage. The write-side
     # checks can only speak for rows written after they existed; this speaks
@@ -1272,6 +1299,100 @@ def _cache_set(key: str, value: list[Any]) -> None:
         cache_manager.cache.set(key, value, timeout=timeout)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not cache partition transform probe", exc_info=True)
+
+
+def _mirror_verdict_cache_key(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+) -> str:
+    """
+    `_probe_cache_key` without the values.
+
+    Whether a transform can be evaluated at all is a property of the transform
+    and the connection, not of the filter that happened to be probing it, so
+    one chart's answer settles the question for the next one.
+    """
+    payload = json.dumps(
+        [
+            database.id,
+            database.backend,
+            database.sqlalchemy_uri,
+            database.extra,
+            str(database.changed_on),
+            catalog,
+            schema,
+            transform,
+        ],
+        default=repr,
+    )
+    digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
+    return f"partition_transform_verdict:{digest}"
+
+
+def record_mirror_verdict(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    *,
+    mirrors: bool,
+) -> None:
+    """
+    Remember whether this transform produced a mirror, for the UI to read.
+
+    Advisory only. Nothing in the query path consults it: a probe that failed
+    once is retried on the next chart exactly as it is today, because declining
+    to prune for a whole cache timeout over one transient engine blip is the
+    trade `evaluate_transform` deliberately refuses -- see the comment where it
+    declines to cache a failure.
+
+    What this is for is the *claim*. `is_transform_active` parses the transform
+    and no more, so a transform the database rejects -- a misspelled function
+    is the common case -- is "active", and the editor's banner and Explore's
+    pruning glyph promise a speed-up that never happens. A promise is exactly
+    the thing that may be withheld on one bad answer and restored on a good
+    one, which is why this is a separate entry from the probe's own results
+    rather than a relaxation of that rule.
+
+    Written by `_run_probe`, so the preview endpoint -- which shares the
+    evaluator -- settles the question before the owner has even saved.
+    """
+    timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
+    try:
+        cache_manager.cache.set(
+            _mirror_verdict_cache_key(database, catalog, schema, transform),
+            mirrors,
+            timeout=timeout,
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Could not cache partition transform verdict", exc_info=True)
+
+
+def known_mirror_verdict(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+) -> bool | None:
+    """
+    The last verdict `record_mirror_verdict` stored, or `None` if there is none.
+
+    `None` is the honest answer on a cold cache and is deliberately not `False`:
+    reporting a working mapping as broken until something probes it would
+    trade one wrong claim for another. The alternative -- probing from the
+    read side -- would put a warehouse round trip on every Explore and
+    dashboard load, and a failing transform is not cached at all, so it would
+    be a round trip every single time.
+    """
+    try:
+        verdict = cache_manager.cache.get(
+            _mirror_verdict_cache_key(database, catalog, schema, transform)
+        )
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return None
+    return verdict if isinstance(verdict, bool) else None
 
 
 def _compile_literal(element: Any, dialect: Dialect | None) -> str:

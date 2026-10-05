@@ -76,6 +76,7 @@ from superset.connectors.sqla.partition_mapping import (
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
+    known_mirror_verdict,
     mirrorable_operators,
     resolve_partition_mapping,
 )
@@ -2053,6 +2054,20 @@ class SqlaTable(
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            # Whether the last probe of this transform produced a mirror.
+            # `active` is the save path's own verdict and deliberately stays
+            # that -- a parse, which a misspelled function clears happily -- so
+            # a second, weaker claim carries what only the engine can answer.
+            # `None` means nothing has probed yet, which is honest on a cold
+            # cache and is not `False`: reporting a working mapping as broken
+            # until a chart runs trades one wrong claim for another.
+            "evaluable": (
+                known_mirror_verdict(
+                    self.database, self.catalog, self.schema, transform
+                )
+                if active and transform
+                else None
+            ),
             "is_monotonic": is_monotonic,
             # How much of a value this engine compares on the mapped column, so
             # the Explore indicator can replay the one gate it otherwise cannot

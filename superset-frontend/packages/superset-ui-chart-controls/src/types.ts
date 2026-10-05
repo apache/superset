@@ -116,6 +116,13 @@ export interface PartitionFilterMapping {
   partition_column: string;
   mapped_column: string | null;
   active: boolean;
+  /**
+   * Whether the last probe of this transform produced a mirror. `active` is a
+   * parse, which a misspelled function clears happily, so this is the weaker
+   * claim that only the engine can answer. `null`/absent means nothing has
+   * probed yet -- honest on a cold cache, and deliberately not `false`.
+   */
+  evaluable?: boolean | null;
   /** Whether the owner declared the value transform order-preserving. */
   is_monotonic: boolean;
   /**

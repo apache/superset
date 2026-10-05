@@ -329,3 +329,28 @@ test('a summary with no resolution, or full resolution, is unaffected', () => {
     ),
   ).toBe(true);
 });
+
+test('a transform the database rejects shows nothing', () => {
+  // `active` is a parse, and `no_such_fn(:value)` parses happily, so it was
+  // active while the probe failed at query time and the mirror was dropped.
+  // Promising a speed-up that never happens is the thing this glyph must not
+  // do.
+  const REFUSED = { ...ACTIVE, evaluable: false };
+
+  const { container } = render(<PartitionPruningIndicator mapping={REFUSED} />);
+
+  expect(container).toBeEmptyDOMElement();
+  expect(isMirroredColumn(REFUSED, 'event_time')).toBe(false);
+  expect(isMirroredFilter(REFUSED, equalsFilter)).toBe(false);
+});
+
+test('a mapping nothing has probed yet keeps the glyph', () => {
+  // A cold cache is not a failure. Going quiet until some chart happens to run
+  // would trade one wrong claim for another.
+  const UNPROBED = { ...ACTIVE, evaluable: null };
+
+  render(<PartitionPruningIndicator mapping={UNPROBED} />);
+
+  expect(screen.getByTestId('partition-pruning-indicator')).toBeInTheDocument();
+  expect(isMirroredFilter(UNPROBED, equalsFilter)).toBe(true);
+});

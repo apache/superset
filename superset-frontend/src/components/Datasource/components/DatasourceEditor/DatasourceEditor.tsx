@@ -373,6 +373,8 @@ interface ColumnCollectionTableProps {
   onMoveMappingHere?: (columnName: string) => void;
   onRemoveMapping?: () => void;
   onMonotonicChange?: (columnName: string, isMonotonic: boolean) => void;
+  /** Relayed from the mapped column's preview; see `PartitionColumnFields`. */
+  onPreviewVerdict?: (mirrors: boolean | null) => void;
   expandedColumnName?: string | null;
   /** Bumped per reveal request, so the same column can be asked for twice. */
   expandedColumnNonce?: number;
@@ -646,6 +648,7 @@ function ColumnCollectionTable({
   onMoveMappingHere,
   onRemoveMapping,
   onMonotonicChange,
+  onPreviewVerdict,
   expandedColumnName,
   expandedColumnNonce,
 }: ColumnCollectionTableProps): JSX.Element {
@@ -887,6 +890,7 @@ function ColumnCollectionTable({
                       onMoveMappingHere={onMoveMappingHere ?? (() => {})}
                       onRemoveMapping={onRemoveMapping ?? (() => {})}
                       onMonotonicChange={onMonotonicChange ?? (() => {})}
+                      onPreviewVerdict={onPreviewVerdict}
                     />
                   }
                 />
@@ -1381,6 +1385,12 @@ function DatasourceEditor({
     name: string;
     nonce: number;
   } | null>(null);
+
+  // What the mapped column's own preview said, relayed up from its row expand
+  // so the dataset-level banner cannot claim a mirror that panel has already
+  // refused. Reported rather than lifted: the transform the preview judges is
+  // the debounced local one that panel owns. `null` means no verdict yet.
+  const [previewMirrors, setPreviewMirrors] = useState<boolean | null>(null);
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
@@ -2039,6 +2049,7 @@ function DatasourceEditor({
               allColumns={[...databaseColumns, ...calculatedColumns]}
               onPartitionColumnChange={handlePartitionColumnChange}
               onNavigateToColumn={handleNavigateToColumn}
+              previewMirrors={previewMirrors}
             />
           )}
         </Flex>
@@ -2050,6 +2061,7 @@ function DatasourceEditor({
     handlePartitionColumnChange,
     handleNavigateToColumn,
     handleMainDttmColChange,
+    previewMirrors,
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,
@@ -2931,6 +2943,7 @@ function DatasourceEditor({
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
               onMonotonicChange={handleMonotonicChange}
+              onPreviewVerdict={setPreviewMirrors}
               expandedColumnName={columnToReveal?.name ?? null}
               expandedColumnNonce={columnToReveal?.nonce}
             />
