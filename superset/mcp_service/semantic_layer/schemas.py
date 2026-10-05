@@ -86,6 +86,7 @@ class MetricInfo(BaseModel):
     dataset_name: str | None = None
     view_id: int | None = None
     view_name: str | None = None
+    semantic_selection_version: str | None = None
     compatible_dimensions: list[DimensionInfo] = Field(default_factory=list)
 
 
@@ -201,6 +202,14 @@ class GetTableFilter(BaseModel):
 
 class GetTableRequest(BaseModel):
     """Request schema for get_table."""
+
+    semantic_selection_version: str | None = Field(
+        default=None,
+        description=(
+            "Identity version returned by list_metrics for this view. Supply only "
+            "after explicitly selecting its current member IDs; never infer legacy IDs."
+        ),
+    )
 
     dataset_id: int | None = Field(
         default=None,

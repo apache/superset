@@ -43,6 +43,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
@@ -55,6 +56,7 @@ from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -459,7 +461,10 @@ class QueryContextProcessor:
         """
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
-            if layer.get("sourceType") not in ("line", "table"):
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 continue
             layer_value = layer.get("value")
             chart = (
@@ -588,7 +593,11 @@ class QueryContextProcessor:
                 )
             return result or ""
 
-        return df.to_dict(orient="records")
+        # QueryObject post-processing has completed before this materialization
+        # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
+        # while downstream envelope validation still rejects injected infinity.
+        # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
+        return df_to_records(df)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
@@ -822,7 +831,7 @@ class QueryContextProcessor:
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
-            if layer["sourceType"] in ("line", "table")
+            if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
@@ -907,6 +916,12 @@ class QueryContextProcessor:
                         layer_name=annotation_layer["name"],
                     )
                 )
+
+            # Only the source chart's rows are used. Dropping its own annotation
+            # layers also stops charts that annotate each other (A -> B -> A)
+            # from recursing.
+            for query_object in query_context.queries:
+                query_object.annotation_layers = []
 
             if overrides := annotation_layer.get("overrides"):
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
