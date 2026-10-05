@@ -1374,6 +1374,8 @@ concatenated in form-data key order, including when `orderby` is empty.
 Explicit `filters: []` and `order_by: []` clear those inherited controls.
 
 Range, marker, and marker-line label lists may be shorter than their value lists.
+Labels that become empty after sanitization retain their slots so later labels
+remain aligned with their corresponding values.
 As in Explore, missing or empty range labels are not displayed, and missing or
 empty marker labels use the formatted numeric value. Extra labels have no value
 to annotate and are ignored. These rules also apply to saved-chart previews and

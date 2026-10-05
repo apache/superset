@@ -579,6 +579,32 @@ def test_bullet_accepts_short_labels_and_rejects_bad_order_target() -> None:
         )
 
 
+@pytest.mark.parametrize("empty_label", ["", " ", "\u200b", "<b></b>"])
+@pytest.mark.parametrize(
+    ("value_control", "label_control"),
+    [
+        ("ranges", "range_labels"),
+        ("markers", "marker_labels"),
+        ("marker_lines", "marker_line_labels"),
+    ],
+)
+def test_bullet_sanitized_empty_labels_preserve_slots(
+    empty_label: str, value_control: str, label_control: str
+) -> None:
+    """Empty annotations must not shift later labels to earlier values."""
+    config = BulletChartConfig.model_validate(
+        {
+            "metric": _simple_metric(),
+            value_control: [10, 20],
+            label_control: [empty_label, "goal"],
+        }
+    )
+    assert getattr(config, label_control) == ["", "goal"]
+    mapped = map_bullet_config(config)
+    assert mapped[value_control] == "10,20"
+    assert mapped[label_control] == ",goal"
+
+
 def test_bullet_dimension_labels_are_input_aliases_not_result_aliases() -> None:
     config = BulletChartConfig(
         metric={"name": "Revenue", "aggregate": "SUM", "label": "Total"},

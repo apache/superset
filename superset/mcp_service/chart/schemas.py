@@ -3223,8 +3223,7 @@ class BulletChartConfig(BaseChartConfig):
             sanitized = sanitize_user_input(
                 label, "Bullet label", max_length=200, allow_empty=True
             )
-            if sanitized is not None:
-                result.append(sanitized)
+            result.append(sanitized or "")
         return result
 
     @field_validator("time_range")
