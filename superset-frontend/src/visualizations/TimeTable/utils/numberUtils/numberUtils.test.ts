@@ -34,12 +34,12 @@ test('should handle string values', () => {
 });
 
 test('should handle null and undefined values', () => {
-  expect(parseToNumber(null)).toBe(0);
-  expect(parseToNumber(undefined)).toBe(0);
+  expect(parseToNumber(null)).toBe(null);
+  expect(parseToNumber(undefined)).toBe(null);
 });
 
 test('should handle invalid string values', () => {
-  expect(parseToNumber('not a number')).toBe(0);
-  expect(parseToNumber('abc123')).toBe(0);
-  expect(parseToNumber('')).toBe(0);
+  expect(parseToNumber('not a number')).toBe(null);
+  expect(parseToNumber('abc123')).toBe(null);
+  expect(parseToNumber('')).toBe(null);
 });
