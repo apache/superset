@@ -46,19 +46,29 @@ from __future__ import annotations
 import logging
 
 import pytest
+from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
 from superset.commands.dataset.refresh import RefreshDatasetCommand
+from superset.commands.dataset.update import UpdateDatasetCommand
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.daos.dataset import DatasetDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetSecurityException,
     SupersetVirtualTableParseException,
 )
+from superset.extensions import db
+from superset.models.core import Database
+from superset.utils.core import override_user
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_refresh_swallows_virtual_table_parse_exception(
@@ -209,3 +219,162 @@ def test_refresh_forbidden(mocker: MockerFixture) -> None:
 
     with pytest.raises(DatasetForbiddenError):
         RefreshDatasetCommand(model_id=1).run()
+
+
+def _admin() -> User:
+    return User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+
+def _mapped_dataset() -> SqlaTable:
+    """
+    A persisted dataset mapping `event_time` onto the `dt_epoch` partition.
+
+    Written under `override_user` because `AuditMixinNullable` reads `g.user`
+    on insert and these tests have no request context.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_refresh_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset = SqlaTable(
+        table_name="pfm_refresh",
+        database=database,
+        schema="main",
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="dt_epoch", type="BIGINT"),
+        ],
+    )
+    dataset.partition_column = "dt_epoch"
+    dataset.partition_mapped_column = "event_time"
+    dataset.columns[0].partition_value_transform = "unix_timestamp(:value)"
+    dataset.columns[0].partition_transform_is_monotonic = True
+    with override_user(_admin()):
+        db.session.add(dataset)
+        db.session.flush()
+    return dataset
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_refresh_clears_a_mapping_whose_partition_column_went_away(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    `fetch_metadata` writes the columns itself rather than going through
+    `DatasetDAO.update`, so neither of the mapping's repairs ran and a dropped
+    partition column left `partition_column` naming a column that is gone.
+    """
+    dataset = _mapped_dataset()
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    # Only the lookup is stubbed -- `find_by_id` applies an ownership filter
+    # these tests have no real logged-in user for. The DAO's two repair helpers
+    # stay real, because they are what is under test.
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(
+            self,
+            "columns",
+            [c for c in self.columns if c.column_name != "dt_epoch"],
+        ),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_description_only_put_survives_a_refresh_that_dropped_the_column(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The repair is what keeps the dataset editable. A later PUT that carries no
+    `columns` payload cannot reach the branch that forgives a stored-only
+    dangling reference, so an unrepaired mapping made every ordinary edit 422
+    until the client happened to send `partition_column: null`.
+    """
+    dataset = _mapped_dataset()
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    # Only the lookup is stubbed -- `find_by_id` applies an ownership filter
+    # these tests have no real logged-in user for. The DAO's two repair helpers
+    # stay real, because they are what is under test.
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(
+            self,
+            "columns",
+            [c for c in self.columns if c.column_name != "dt_epoch"],
+        ),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    command = UpdateDatasetCommand(dataset.id, {"description": "just a note"})
+    command._model = dataset
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_refresh_disarms_a_transform_the_new_default_datetime_column_holds(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    `fetch_metadata` can also *set* `main_dttm_col`, which moves the effective
+    mapped column when no override is stored -- bringing a transform parked on
+    the newly-default column live under a mapping nobody authored.
+    """
+    dataset = _mapped_dataset()
+    dataset.partition_mapped_column = None
+    parked = TableColumn(column_name="other_time", is_dttm=True, type="TIMESTAMP")
+    parked.partition_value_transform = "to_unixtime(:value)"
+    parked.partition_transform_is_monotonic = True
+    dataset.columns.append(parked)
+    with override_user(_admin()):
+        db.session.flush()
+
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    mocker.patch.object(
+        SqlaTable,
+        "fetch_metadata",
+        lambda self, commit=True: setattr(self, "main_dttm_col", "other_time"),
+    )
+
+    with override_user(_admin()):
+        RefreshDatasetCommand(model_id=dataset.id).run()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    # `other_time` is now the effective mapped column, so the transform it was
+    # holding is the one that survives -- and `event_time`'s, which the mapping
+    # no longer mirrors, is the one that must go.
+    assert transforms["event_time"] is None
+    assert transforms["other_time"] == "to_unixtime(:value)"
