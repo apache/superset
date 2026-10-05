@@ -1516,7 +1516,7 @@ async def test_get_table_guest_rls_denies_before_semantic_provider(
     mock_auth: MagicMock,
     scope: str | None,
 ) -> None:
-    """An authenticated MCP guest cannot drop applicable semantic row restrictions."""
+    """get_table refuses a guest with applicable RLS before calling the provider."""
     token: GuestToken = {
         "user": {},
         "resources": [],

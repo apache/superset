@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Guest RLS must never be silently dropped by semantic execution or caches."""
+"""Semantic views refuse requests that carry applicable guest RLS (MVP)."""
 
 from collections.abc import Callable
 from unittest.mock import MagicMock, PropertyMock
@@ -61,7 +61,7 @@ def set_guest(rules: list[GuestTokenRlsRule]) -> None:
 
 @pytest.fixture
 def provider(mocker: MockerFixture) -> MagicMock:
-    """A provider returns both tenants unless the application denies the call."""
+    """The provider returns rows unless the request is refused."""
     implementation: MagicMock = MagicMock()
     implementation.features = frozenset()
     # An unversioned view, so value suggestions are served normally.
@@ -126,7 +126,7 @@ def test_semantic_execution_without_guest_rls_is_unchanged(
 
 
 @pytest.mark.parametrize("entrypoint", ["model", "manager", "context"])
-def test_semantic_access_grants_do_not_bypass_guest_rls(
+def test_semantic_access_grants_still_refuse_guest_rls(
     mocker: MockerFixture,
     entrypoint: str,
 ) -> None:
