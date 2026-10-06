@@ -1082,6 +1082,31 @@ class TestGenerateExploreLink:
             assert error["error_type"] == "dataset_not_found"
             assert "Dataset not found" in error["message"]
 
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_non_decimal_digit_dataset_id(
+        self, mock_find_dataset, mcp_server
+    ):
+        """A Unicode "digit" (isdigit() True, isdecimal() False) dataset_id
+        must fall through to the uuid lookup branch instead of raising out
+        of int()."""
+        mock_find_dataset.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="test_col")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "dataset_not_found"
+        mock_find_dataset.assert_called_once_with("²", id_column="uuid")
+
 
 class TestGenerateExploreLinkColumnNormalization:
     """Tests that generate_explore_link normalizes column names.

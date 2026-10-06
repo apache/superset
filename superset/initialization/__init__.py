@@ -570,7 +570,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=_("Manage"),
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
-        appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,
@@ -1280,7 +1279,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_password_change_enforcement,
         )
 
-        # Redirect users with a pending forced password change to the reset
+        # Redirect users with a pending forced password change to the profile
         # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
         register_password_change_enforcement(self.superset_app)
 
