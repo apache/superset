@@ -1162,6 +1162,67 @@ describe('ControlPanelsContainer', () => {
     }
   });
 
+  test.each([true, false])(
+    'a skipped change preserves the previous notification (controls retained=%s)',
+    async retained => {
+      // jsdom has no scrollTo; the alert scrolls the panel up to itself.
+      Element.prototype.scrollTo = jest.fn();
+      const store = createStoreBackedExplore();
+      render(<StoreBackedControlPanelsContainer />, { store });
+      await screen.findByRole('button', { name: /group by/i });
+
+      act(() => {
+        store.dispatch(setControlValue('groupby', ['name']));
+      });
+      const firstDataset = createDataset(2);
+      if (!retained) {
+        firstDataset.columns = [];
+      }
+      dispatchDatasetChange(store, firstDataset);
+      const title = retained
+        ? 'Keep control settings?'
+        : 'No form settings were maintained';
+      expect(await screen.findByText(title)).toBeInTheDocument();
+      if (retained) {
+        expect(screen.getByText('Clear form')).toBeInTheDocument();
+      }
+      const scrollCalls = (Element.prototype.scrollTo as jest.Mock).mock.calls
+        .length;
+
+      // Make the latest transfer result differ from the notification's snapshot.
+      act(() => {
+        store.dispatch(setControlValue('groupby', ['name']));
+      });
+      const nextDataset = createDataset(3);
+      if (retained) {
+        nextDataset.columns = [];
+      }
+      dispatchDatasetChange(store, nextDataset, {
+        skipDatasetChangeAlert: true,
+      });
+      expect(
+        (store.getState() as ExplorePageState).explore.controlsTransferred
+          .length > 0,
+      ).toBe(!retained);
+      expect(screen.getByText(title)).toBeInTheDocument();
+      expect(
+        screen.getByText(/during a previous dataset change/i),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Clear form')).not.toBeInTheDocument();
+      expect(Element.prototype.scrollTo).toHaveBeenCalledTimes(scrollCalls);
+      const formData = (store.getState() as ExplorePageState).explore.form_data;
+
+      await userEvent.click(screen.getByText('Continue'));
+      expect(screen.queryByText(datasetChangeAlert)).not.toBeInTheDocument();
+      expect((store.getState() as ExplorePageState).explore.form_data).toEqual(
+        formData,
+      );
+
+      dispatchDatasetChange(store, createDataset(4));
+      expect(await screen.findByText(datasetChangeAlert)).toBeInTheDocument();
+    },
+  );
+
   test('alerts on a normal dataset change after a skipped alert', async () => {
     // jsdom has no scrollTo; the alert scrolls the panel up to itself.
     Element.prototype.scrollTo = jest.fn();

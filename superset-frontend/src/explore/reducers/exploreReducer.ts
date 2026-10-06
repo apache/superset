@@ -60,7 +60,7 @@ export interface ExploreState {
   slice?: Slice | null;
   sliceName?: string;
   controlsTransferred?: string[];
-  // Whether the most recent dataset change suppresses the settings alert.
+  // Whether the most recent dataset change skips opening a settings alert.
   skipDatasetChangeAlert?: boolean;
   standalone?: number | null;
   force?: boolean;

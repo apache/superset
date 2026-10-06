@@ -41,7 +41,8 @@ export function resetSemanticSelections(sliceId?: number) {
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export interface DatasourceChangeOptions {
   /**
-   * Suppress the dataset-change settings alert for this call.
+   * Do not open a dataset-change settings alert for this call.
+   * An unacknowledged alert from an earlier change remains visible.
    * Use when the caller handles form-data preservation itself.
    * Dataset switching and control reconciliation are unchanged.
    */
