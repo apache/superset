@@ -98,6 +98,9 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     extra_form_data,
   } = formData;
   const queryMode = getQueryMode(formData);
+  const isSemanticView = formData.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  );
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
@@ -176,6 +179,8 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         // default to ordering by first metric in descending order
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
+      } else if (isSemanticView) {
+        orderby = [];
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
@@ -228,11 +233,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
-            ...(formData.datasource?.endsWith(
-              `__${DatasourceType.SemanticView}`,
-            )
-              ? { isColumnReference: true }
-              : {}),
+            ...(isSemanticView ? { isColumnReference: true } : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -301,14 +302,34 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+    const requestedOrderby =
+      formData.server_pagination && sortByFromOwnState
+        ? sortByFromOwnState
+        : orderby;
+    const selectedColumns = new Set(
+      (baseQueryObject.columns || []).filter(isPhysicalColumn),
+    );
+    const sortableSemanticFields = new Set([
+      ...selectedColumns,
+      ...(queryMode === QueryMode.Aggregate
+        ? (metrics || []).map(getMetricLabel)
+        : []),
+    ]);
+    const effectiveOrderby =
+      isSemanticView &&
+      (queryMode === QueryMode.Raw ||
+        (formData.server_pagination && sortByFromOwnState))
+        ? requestedOrderby.filter(
+            ([column]) =>
+              isPhysicalColumn(column) && sortableSemanticFields.has(column),
+          )
+        : requestedOrderby;
+
     let queryObject = {
       ...baseQueryObject,
       columns,
       extras,
-      orderby:
-        formData.server_pagination && sortByFromOwnState
-          ? sortByFromOwnState
-          : orderby,
+      orderby: effectiveOrderby,
       metrics,
       post_processing: postProcessing,
       time_offsets: timeOffsets,
