@@ -37,7 +37,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, Session, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 from superset_core.common.models import Dashboard as CoreDashboard
@@ -80,38 +80,67 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         get_user_subject,
     )
 
-    session = sqla.inspect(target).session  # pylint: disable=disallowed-name
-    new_user = session.query(User).filter_by(id=target.id).first()
+    target_session = getattr(sqla.inspect(target, raiseerr=False), "session", None)
+    if target_session is not None and not isinstance(_connection, Connection):
+        new_user = target_session.query(User).filter_by(id=target.id).first()
+        template = target_session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+        if not template:
+            return
+        editors = []
+        if new_user:
+            subj = get_user_subject(new_user.id)
+            if subj:
+                editors.append(subj)
+        dashboard = Dashboard(
+            dashboard_title=template.dashboard_title,
+            position_json=template.position_json,
+            description=template.description,
+            css=template.css,
+            json_metadata=template.json_metadata,
+            slices=template.slices,
+            editors=editors,
+            viewers=get_default_viewers_for_groups(
+                list(getattr(new_user, "groups", []) or [])
+            ),
+        )
+        target_session.add(dashboard)
+        target_session.flush()
+        extra_attributes = UserAttribute(
+            user_id=target.id, welcome_dashboard_id=dashboard.id
+        )
+        target_session.add(extra_attributes)
+        target_session.commit()
+        return
 
-    # copy template dashboard to user
-    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-    editors = []
-    if new_user:
-        subj = get_user_subject(new_user.id)
-        if subj:
-            editors.append(subj)
-    dashboard = Dashboard(
-        dashboard_title=template.dashboard_title,
-        position_json=template.position_json,
-        description=template.description,
-        css=template.css,
-        json_metadata=template.json_metadata,
-        slices=template.slices,
-        editors=editors,
-        # Resolved from the in-memory collection: this runs in ``after_insert``
-        # for the user, before their ``ab_user_group`` rows are written.
-        viewers=get_default_viewers_for_groups(
-            list(getattr(new_user, "groups", []) or [])
-        ),
-    )
-    session.add(dashboard)
-
-    # set dashboard as the welcome dashboard
-    extra_attributes = UserAttribute(
-        user_id=target.id, welcome_dashboard_id=dashboard.id
-    )
-    session.add(extra_attributes)
-    session.commit()  # pylint: disable=consider-using-transaction
+    with Session(bind=_connection) as session:  # pylint: disable=disallowed-name
+        new_user = session.query(User).filter_by(id=target.id).first()
+        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+        if not template:
+            return
+        editors = []
+        if new_user:
+            subj = get_user_subject(new_user.id)
+            if subj:
+                editors.append(subj)
+        dashboard = Dashboard(
+            dashboard_title=template.dashboard_title,
+            position_json=template.position_json,
+            description=template.description,
+            css=template.css,
+            json_metadata=template.json_metadata,
+            slices=template.slices,
+            editors=editors,
+            viewers=get_default_viewers_for_groups(
+                list(getattr(new_user, "groups", []) or [])
+            ),
+        )
+        session.add(dashboard)
+        session.flush()
+        extra_attributes = UserAttribute(
+            user_id=target.id, welcome_dashboard_id=dashboard.id
+        )
+        session.add(extra_attributes)
+        session.commit()  # pylint: disable=consider-using-transaction
 
 
 def register_dashboard_copy_events(user_model: Any) -> None:
