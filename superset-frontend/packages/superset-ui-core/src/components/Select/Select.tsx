@@ -33,6 +33,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
+import { Space } from '../Space';
 import {
   BaseOptionType,
   DefaultOptionType,
