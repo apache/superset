@@ -25,6 +25,7 @@ import {
 import {
   getRefreshWarningMessage,
   RefreshFrequencySelect,
+  RefreshFrequencySelectProps,
   validateRefreshFrequency,
 } from './RefreshFrequencySelect';
 
@@ -69,13 +70,13 @@ const createInitialState = (
   },
 });
 
-const defaultTestProps = {
+const defaultTestProps: RefreshFrequencySelectProps = {
   value: 0,
   onChange: jest.fn(),
 };
 
 const setup = (
-  props: Partial<typeof defaultTestProps> = {},
+  props: Partial<RefreshFrequencySelectProps> = {},
   initialState?: object,
 ) =>
   render(<RefreshFrequencySelect {...defaultTestProps} {...props} />, {
