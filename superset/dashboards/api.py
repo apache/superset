@@ -2539,7 +2539,11 @@ class DashboardRestApi(
                     # generation's last-good image onto this in-progress payload so
                     # the read path keeps serving it while the refresh renders, and
                     # a failed render retains it (ERROR keeps the image) instead of
-                    # leaving image_url at 404 for the error backoff. The successor
+                    # leaving image_url at 404 for the error backoff. Any valid,
+                    # scope-matching retained image qualifies -- not only UPDATED --
+                    # so the image also survives a retry that rotates to a fresh
+                    # generation after a prior render failed (whose predecessor is
+                    # ERROR, still carrying the last-good bytes). The successor
                     # stays PENDING, so concurrent producers still coalesce and the
                     # worker still recomputes it. Skipped for an explicit force (the
                     # caller asked to discard the capture) and for a scope mismatch
@@ -2547,7 +2551,6 @@ class DashboardRestApi(
                     if (
                         not force
                         and cached_payload is not None
-                        and cached_payload.is_updated()
                         and cached_payload.get_scope() == cache_scope
                         and cached_payload.get_invalid_image_reason() is None
                     ):

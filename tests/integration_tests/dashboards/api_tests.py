@@ -6562,6 +6562,68 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             check_updated_staleness=True,
         ), "successor must remain triggerable so the worker re-renders"
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_retry_rotation_retains_last_good_image(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """After a staleness refresh fails, the last-good image must survive the
+        retry that rotates to a fresh generation. The predecessor is now ERROR
+        (not UPDATED) but still carries valid, scope-matching bytes past the
+        error-cache TTL, so the force-less retry both re-triggers and carries the
+        image onto the new successor -- image_url keeps serving it instead of
+        404ing. Gating the carry on ``is_updated()`` would drop it here."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        # A retained, valid, correctly-scoped image whose generation is in ERROR
+        # backoff and 2 days old -- past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
+        # force-less request re-triggers via the expired-ERROR branch.
+        stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
+        errored = ScreenshotCachePayload(
+            retained_image,
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+        errored.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = errored
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        assert mock_store_cache_payload.called
+        successor = mock_store_cache_payload.call_args[0][1]
+        # Load-bearing: an is_updated()-gated carry would leave this imageless and
+        # get_image() would raise.
+        assert successor.get_image().read() == retained_image
+        assert successor.is_in_progress()
+
     @with_feature_flags(THUMBNAILS=True)
     @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
     @pytest.mark.usefixtures("create_dashboard_with_tag")

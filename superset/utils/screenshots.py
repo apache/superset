@@ -601,8 +601,18 @@ class BaseScreenshot:
                 if cache_payload and cache_payload.is_updated():
                     return
                 cache_payload = cache_payload or ScreenshotCachePayload(scope=scope)
+                # Keep a valid last-good image rendered for this same object so
+                # image_url keeps serving it through the error backoff (e.g. when
+                # broker publication failed after a staleness refresh carried the
+                # prior capture forward). Only drop bytes that fail validation or
+                # were rendered for a different scope -- those must never surface
+                # under this object's authorized URL.
+                discard_image = (
+                    cache_payload.get_scope() != scope
+                    or cache_payload.get_invalid_image_reason() is not None
+                )
                 cache_payload.set_scope(scope)
-                cache_payload.error(discard_image=True)
+                cache_payload.error(discard_image=discard_image)
                 cls.store_cache_payload(cache_key, cache_payload)
         except LockAlreadyHeldException:
             # A worker owns the generation and will persist its terminal state.
@@ -669,6 +679,18 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
+                if (
+                    self.cache_scope is not None
+                    and cache_payload.get_scope() != self.cache_scope
+                ):
+                    # Rebinding a cache entry to a different object (the
+                    # scope-mismatch clause of should_trigger_task fired): never
+                    # carry the previous scope's image into the new one. The read
+                    # paths serve any valid retained image regardless of status, so
+                    # bytes left on a rescoped COMPUTING/ERROR entry would be
+                    # servable under the new object's authorized URL. Start the
+                    # rebind from a clean, imageless payload.
+                    cache_payload = ScreenshotCachePayload()
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
                 if self.require_complete_capture:
