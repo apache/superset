@@ -2531,6 +2531,7 @@ def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None
 
     assert delete_pvm.call_count == 30
     assert len(selects) <= 3
+    assert all("configuration" not in statement.lower() for statement in selects)
     assert all(" IN (" not in statement.upper() for statement in selects)
     assert all("NOT IN" not in statement.upper() for statement in selects)
 
