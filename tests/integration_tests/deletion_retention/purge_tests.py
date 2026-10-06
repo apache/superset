@@ -24,6 +24,7 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -32,6 +33,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
@@ -60,6 +62,7 @@ from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.tags.models import ObjectType, Tag, TaggedObject
 from superset.tasks import deletion_retention as deletion_retention_task
 from superset.tasks.deletion_retention import _purge_impl
@@ -208,6 +211,89 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         assert not security_manager.find_permission_view_menu(
             "datasource_access", vm_name
         )
+
+    def test_purging_dataset_keeps_shared_semantic_view_permission(self) -> None:
+        """Purging one datasource cannot revoke another datasource's grant."""
+        dataset: SqlaTable = self.make_dataset("shared_perm")
+        dataset_id: int = dataset.id
+        permission_name: str | None = security_manager.get_dataset_perm(
+            dataset.id, dataset.table_name, dataset.database.database_name
+        )
+        assert permission_name is not None
+        assert self.dataset.perm is not None
+        shared_pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            "datasource_access", permission_name
+        )
+        other_pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            "datasource_access", self.dataset.perm
+        )
+        assert shared_pvm is not None
+        assert other_pvm is not None
+        layer: SemanticLayer = SemanticLayer(
+            uuid=uuid.uuid4(),
+            name="retention_it_shared_layer",
+            type="test",
+            configuration="{}",
+        )
+        layer_uuid: uuid.UUID = layer.uuid
+        view_id: int | None = None
+        role_id: int | None = None
+
+        try:
+            db.session.add(layer)
+            db.session.flush()
+            db.session.execute(
+                sa.insert(SemanticView.__table__).values(
+                    uuid=uuid.uuid4(),
+                    name="retention_it_shared_view",
+                    semantic_layer_uuid=layer.uuid,
+                    configuration="{}",
+                    perm=permission_name,
+                )
+            )
+            view_id = db.session.execute(
+                sa.select(SemanticView.id).where(SemanticView.perm == permission_name)
+            ).scalar_one()
+            role: Role = Role(
+                name="retention_it_shared_reader", permissions=[shared_pvm, other_pvm]
+            )
+            db.session.add(role)
+            db.session.commit()
+            role_id = role.id
+
+            self.soft_delete(dataset, days_ago=90)
+            result: dict[str, Any] = _purge(window=30)
+            db.session.expire_all()
+
+            assert result["purged"].get("tables") == 1, result
+            assert not self.exists(SqlaTable, dataset_id)
+            assert db.session.get(SemanticView, view_id) is not None
+            assert security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+            saved_role_after_purge: Role | None = db.session.get(Role, role_id)
+            assert saved_role_after_purge is not None
+            assert {
+                pvm.view_menu.name for pvm in saved_role_after_purge.permissions
+            } == {permission_name, self.dataset.perm}
+        finally:
+            db.session.rollback()
+            saved_role: Role | None = (
+                db.session.get(Role, role_id) if role_id is not None else None
+            )
+            saved_view: SemanticView | None = (
+                db.session.get(SemanticView, view_id) if view_id is not None else None
+            )
+            saved_layer: SemanticLayer | None = db.session.get(
+                SemanticLayer, layer_uuid
+            )
+            if saved_role is not None:
+                db.session.delete(saved_role)
+            if saved_view is not None:
+                db.session.delete(saved_view)
+            if saved_layer is not None:
+                db.session.delete(saved_layer)
+            db.session.commit()
 
     def test_restore_race_does_not_remove_dataset_permission(self) -> None:
         """A zero-row conditional parent delete leaves its permission intact."""

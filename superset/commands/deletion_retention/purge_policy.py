@@ -27,6 +27,7 @@ from types import MappingProxyType
 from typing import Any, cast, NamedTuple
 
 import sqlalchemy as sa
+from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Mapper, Session
 
 from superset.utils.sqlalchemy_events import (
@@ -1269,7 +1270,16 @@ def _delete_dataset_permission(
         raise RuntimeError("Dataset permission cleanup requires a captured name")
     from superset import security_manager
 
+    connection: Connection = session.connection()
+    if security_manager._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+        connection, permission_name, None
+    ):
+        logger.debug(
+            "deletion_retention: retained shared dataset permission for id=%s",
+            entity_id,
+        )
+        return
     security_manager._delete_pvm_on_sqla_event(  # pylint: disable=protected-access
-        None, session.connection(), "datasource_access", permission_name
+        None, connection, "datasource_access", permission_name
     )
     logger.debug("deletion_retention: removed dataset permission for id=%s", entity_id)

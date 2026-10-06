@@ -76,6 +76,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
@@ -4443,18 +4444,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 mapper, connection, "datasource_access", view_perm
             )
 
-    def _semantic_view_perm_owned_elsewhere(
+    def _datasource_perm_owned_elsewhere(
         self,
         connection: Connection,
         perm: str,
-        deleted_view_id: int,
+        deleted_view_id: int | None,
     ) -> bool:
         """
-        Whether a live resource other than the deleted view owns *perm*.
+        Whether a remaining dataset or semantic view owns *perm*.
 
-        A deleted view's permission is removed only when no dataset and no
-        other semantic view still uses the same permission name; removing it
-        would otherwise revoke that resource's grants.
+        Pass the deleted view's ID when checking its delete event. Pass None
+        after a dataset purge, when every remaining view is a possible owner.
+        The dataset query includes soft-deleted rows by using the Core table.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4469,12 +4470,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ).first():
             return True
         sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_predicate: ColumnElement[bool] = sv_table.c.perm == perm
+        if deleted_view_id is not None:
+            view_predicate = and_(view_predicate, sv_table.c.id != deleted_view_id)
         return (
-            connection.execute(
-                sv_table.select()
-                .where(sv_table.c.perm == perm, sv_table.c.id != deleted_view_id)
-                .limit(1)
-            ).first()
+            connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
             is not None
         )
 
@@ -4608,7 +4608,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Removes the datasource_access PVM unless another live resource still
         owns the same permission name.
         """
-        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+        if target.perm and not self._datasource_perm_owned_elsewhere(
             connection, target.perm, target.id
         ):
             self._delete_pvm_on_sqla_event(
