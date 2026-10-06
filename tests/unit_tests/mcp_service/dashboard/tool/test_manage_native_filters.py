@@ -701,6 +701,37 @@ async def test_update_time_field_on_select_filter_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
+async def test_update_filter_time_default_time_range(mcp_server):
+    captured: dict = {"current_config": [EXISTING_TIME_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIME_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing2",
+                        "default_time_range": "Last week",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_time"
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": "Last week"},
+        "extraFormData": {"time_range": "Last week"},
+    }
+
+
+@pytest.mark.asyncio
 async def test_update_range_filter_target_and_empty_filter(mcp_server):
     captured: dict = {"current_config": [EXISTING_RANGE_FILTER]}
     dashboard = _mock_dashboard(filters=[EXISTING_RANGE_FILTER])
