@@ -25,6 +25,8 @@ export type DatabaseValue = {
   database_name: string;
   backend?: string;
   supports_schemas?: boolean;
+  supports_partition_filter_mapping?: boolean;
+  partition_value_transform_default?: string | null;
 };
 
 export type DatabaseObject = {
@@ -33,6 +35,8 @@ export type DatabaseObject = {
   backend?: string;
   allow_multi_catalog?: boolean;
   supports_schemas?: boolean;
+  supports_partition_filter_mapping?: boolean;
+  partition_value_transform_default?: string | null;
 };
 
 export interface DatabaseSelectorProps {
