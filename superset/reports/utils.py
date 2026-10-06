@@ -59,27 +59,24 @@ def get_dynamic_executor(
     """
     Return the user explicitly configured to execute ``report_schedule``.
 
-    When ``alert_query`` is set, the alert query executor is preferred and the
-    content executor is used as a fallback. Returns ``None`` when the feature
-    flag is disabled or the schedule has no executor configured, in which case
-    callers must fall back to the ``ALERT_REPORTS_EXECUTORS`` resolution.
+    When ``alert_query`` is set, a typed query executor is preferred; an unset
+    query type inherits the content selection. An unset content type returns
+    ``None`` so callers use ``ALERT_REPORTS_EXECUTORS``. The type marker is
+    authoritative even if a stale user relationship is present.
 
     The returned user may be inactive; callers decide how to surface that.
     """
     if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
         return None
     field = "run_as"
-    if alert_query and (
-        report_schedule.run_alert_query_as is not None
-        or report_schedule.run_alert_query_as_type is not None
-    ):
+    if alert_query and report_schedule.run_alert_query_as_type is not None:
         field = "run_alert_query_as"
-    user = getattr(report_schedule, field)
     executor_type = getattr(report_schedule, f"{field}_type")
     if executor_type is None:
-        return user
+        return None
     if executor_type != ExecutorType.FIXED_USER:
         raise ReportScheduleExecutorNotFoundError(str(executor_type))
+    user = getattr(report_schedule, field)
     if user is None:
         raise ReportScheduleExecutorNotFoundError("deleted user")
     return user

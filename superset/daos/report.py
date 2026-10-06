@@ -19,7 +19,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any
-from uuid import UUID, uuid4
 
 from flask import current_app
 from sqlalchemy import func, or_, select
@@ -401,42 +400,6 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
-    def invalidate_pending_executions(schedule_ids: list[int] | None = None) -> None:
-        """Fence queued retries and running attempts after a configuration save.
-
-        The caller's transaction holds row locks only while saving metadata.
-        Preserve execution windows so old cron messages cannot replay the work.
-        """
-        query = db.session.query(ReportSchedule).filter(
-            ReportSchedule.last_state.in_([ReportState.WORKING, ReportState.RETRYING])
-        )
-        if schedule_ids is not None:
-            query = query.filter(ReportSchedule.id.in_(schedule_ids))
-        for schedule in query.populate_existing().with_for_update().all():
-            if schedule.execution_owner:
-                db.session.query(ReportExecutionLog).filter(
-                    ReportExecutionLog.report_schedule_id == schedule.id,
-                    ReportExecutionLog.uuid == UUID(schedule.execution_owner),
-                    ReportExecutionLog.state.in_(
-                        [ReportState.WORKING, ReportState.RETRYING]
-                    ),
-                ).update(
-                    {
-                        ReportExecutionLog.state: ReportState.ERROR,
-                        ReportExecutionLog.end_dttm: datetime.utcnow(),
-                        ReportExecutionLog.error_message: (
-                            "Execution cancelled: configuration changed"
-                        ),
-                    },
-                    synchronize_session=False,
-                )
-            schedule.execution_owner = str(uuid4())
-            schedule.last_state = ReportState.ERROR
-            schedule.last_eval_dttm = datetime.utcnow()
-            schedule.retry_attempt = 0
-            schedule.retry_scheduled_dttm = None
-
-    @staticmethod
     def find_with_email_recipients() -> list[ReportSchedule]:
         """
         Find every schedule (active or not) with at least one e-mail recipient.
@@ -471,14 +434,14 @@ class ReportConfigDAO:
 
     Values are stored as JSON-encoded key-value rows. A key without a row is
     "not configured" and resolves to the legacy application config or feature
-    flag through :meth:`get_effective_value`, which keeps deployments that never
+    flag through ``get_effective_value``, which keeps deployments that never
     open the configuration UI behaving exactly as before.
     """
 
     @staticmethod
     def get_stored_values() -> dict[str, Any]:
         """
-        Return the raw stored configuration, keyed by :class:`ReportConfigKey`.
+        Return the raw stored configuration, keyed by ``ReportConfigKey``.
 
         Read and decoding failures propagate: unavailable policy is not an
         unrestricted policy. A stored null remains distinct from a missing row.
@@ -504,6 +467,7 @@ class ReportConfigDAO:
         ):
             value = current_app.config.get(key.upper(), 0)
             return value() if callable(value) else value
+        # These are new configs, no legacy fallback
         if key == ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS:
             return False
         if key == ReportConfigKey.ALLOWED_EMAIL_DOMAINS:
@@ -522,7 +486,7 @@ class ReportConfigDAO:
 
     @staticmethod
     def get_effective_config() -> dict[str, Any]:
-        """Return the value in effect for every :class:`ReportConfigKey`."""
+        """Return the value in effect for every ``ReportConfigKey``."""
         stored = ReportConfigDAO.get_stored_values()
         return {
             key.value: (

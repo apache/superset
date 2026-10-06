@@ -135,9 +135,9 @@ run_as_description = (
     "Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS."
 )
 run_alert_query_as_description = (
-    "Alerts only. ID of the user whose credentials are used when running the alert "
-    "condition SQL query, useful when the audience of the alert does not have "
-    "access to the database. Null inherits the content executor at execution time."
+    "ID of the user whose credentials are used when running the alert condition "
+    "SQL query, useful when the audience of the alert does not have access to the "
+    "database. Null inherits the content executor at execution time."
 )
 
 
@@ -760,7 +760,7 @@ class ReportConfigurationSchema(Schema):
         metadata={
             "description": "Whether alerts deliver their attachment (screenshot, "
             "PDF, CSV or XLSX). When disabled, alerts only send the message and "
-            "link. Uses the feature flag only until a row has first been saved."
+            "link. Falls back to the FF until a row has first been saved."
         },
         required=False,
         allow_none=True,
@@ -768,7 +768,7 @@ class ReportConfigurationSchema(Schema):
     date_format_in_email_subject = fields.Boolean(
         metadata={
             "description": "Render strftime date placeholders in email subjects. "
-            "Uses the DATE_FORMAT_IN_EMAIL_SUBJECT feature flag until first saved."
+            "Falls back to the DATE_FORMAT_IN_EMAIL_SUBJECT FF until first saved."
         },
         required=False,
         allow_none=True,
@@ -808,7 +808,7 @@ class ReportConfigurationSchema(Schema):
         metadata={
             "description": "E-mail domains accepted as recipients. An empty list "
             "allows any domain.",
-            "example": ["example.com", "partner.org"],
+            "example": ["example.com", "superset.com"],
         },
         required=False,
         allow_none=True,

@@ -68,19 +68,16 @@ assists people when migrating to a new version.
   (`ALERT_REPORTS_EXECUTORS`). An unset content executor remains on the application
   default when edited, and admins can clear an explicit choice back to it. A blank
   alert-query executor inherits the content executor dynamically.
-- Non-admins must select **Run as me** before changing content or recipients on a
-  schedule using another user, a typed executor, or a legacy content executor. For
-  alerts, this action switches both executors to the current user on Save. Metadata-only
-  edits preserve existing executor settings. Other users are Admin-only.
+- Non-admins must select **Execute using my permissions** before changing content or
+  recipients on a schedule using another user, a typed executor, or a legacy content
+  executor. For alerts, this action switches both executors to the current user on Save.
+  Metadata-only edits preserve existing executor settings.
 - Saved `null` configuration values clear a setting without restoring application-config
-  defaults. Only keys never saved inherit those defaults. Configuration read failures
+  defaults (only keys never saved inherit defaults/fallbacks). Configuration read failures
   propagate instead of treating delivery as unrestricted. The UI updates only changed keys.
 - Recipient restrictions also cover retry/final-failure notices to configured recipients;
   operational notices to owners/editors remain exempt.
 - Missing executors and recipient-policy violations terminate an execution without retry.
-  Saving a schedule cancels its queued retries and fences running attempts; changing a
-  global report setting does this for all pending schedules. Already-started sends cannot
-  be recalled. New cron windows use the saved configuration.
 - Domain allow-lists accept wildcards. Matching is case-insensitive.
 - The SIP migration follows the execution-ownership migration. Run `superset db upgrade`
   before starting this code, with scheduling paused and active work/queued retries drained

@@ -703,7 +703,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     !isAdmin &&
     isEditMode &&
     !runAsSelf &&
-    (!currentAlert?.run_as ||
+    (currentAlert?.run_as_type !== 'fixed_user' ||
+      !currentAlert?.run_as ||
       currentAlert.run_as.value !== currentUser.userId ||
       (currentAlert.run_as_type != null &&
         currentAlert.run_as_type !== 'fixed_user') ||
@@ -2228,11 +2229,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         editors: mapSubjectsToPickerValues(
           (resource.editors || []) as Subject[],
         ),
-        run_as_type:
-          resource.run_as_type ?? (resource.run_as ? 'fixed_user' : null),
-        run_alert_query_as_type:
-          resource.run_alert_query_as_type ??
-          (resource.run_alert_query_as ? 'fixed_user' : null),
+        run_as_type: resource.run_as_type,
+        run_alert_query_as_type: resource.run_alert_query_as_type,
         run_as: userToOption(resource.run_as),
         run_alert_query_as: userToOption(resource.run_alert_query_as),
         validator_config_json:
@@ -2623,7 +2621,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           <>
                             <p>
                               {t(
-                                'You can edit the name and schedule, but changing content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                isReport
+                                  ? 'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.'
+                                  : 'You can edit the alert condition, name, and schedule, but changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
                               )}
                             </p>
                             <Button
@@ -2709,6 +2709,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {!isReport && attachmentsEnabledForAlerts && (
                     <StyledSwitchContainer>
                       <Switch
+                        aria-label={t('Include attachment')}
                         checked={reportFormat !== 'NONE'}
                         onChange={checked => {
                           if (checked) {

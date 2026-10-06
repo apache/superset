@@ -235,7 +235,6 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
-  // The global Alerts & Reports configuration is admin-only (SIP-209).
   const canConfigure = canEdit && isUserAdmin(user);
 
   useEffect(() => {

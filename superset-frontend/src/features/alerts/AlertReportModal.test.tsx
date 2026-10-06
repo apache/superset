@@ -3280,19 +3280,23 @@ test('non-admins are warned and can take over both alert executors', async () =>
     initialState: { user: gammaUser },
   });
   expect(
-    screen.queryByText(/changing content or recipients requires/),
+    screen.queryByText(
+      /changing the attachment content or recipients requires/,
+    ),
   ).not.toBeInTheDocument();
   await userEvent.click(screen.getByTestId('contents-panel'));
   expect(
     await screen.findByText(
-      /changing content or recipients requires updating it to execute with your permissions/,
+      /changing the attachment content or recipients requires updating it to execute with your permissions/,
     ),
   ).toBeInTheDocument();
   await userEvent.click(
     screen.getByRole('button', { name: 'Execute using my permissions' }),
   );
   expect(
-    screen.queryByText(/changing content or recipients requires/),
+    screen.queryByText(
+      /changing the attachment content or recipients requires/,
+    ),
   ).not.toBeInTheDocument();
   expect(
     screen.getByText(/Changes take effect when you save/),

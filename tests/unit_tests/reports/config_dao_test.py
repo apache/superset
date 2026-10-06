@@ -122,13 +122,13 @@ def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None
     # Explicitly clearing a value retains the row and does not restore fallback.
     ReportConfigDAO.upsert(
         {
-            ReportConfigKey.ALLOWED_EMAIL_DOMAINS: ["example.com", "partner.org"],
+            ReportConfigKey.ALLOWED_EMAIL_DOMAINS: ["example.com", "superset.com"],
             ReportConfigKey.ALERT_MINIMUM_INTERVAL: None,
         }
     )
     session_with_tables.flush()
     assert ReportConfigDAO.get_stored_values() == {
-        "allowed_email_domains": ["example.com", "partner.org"],
+        "allowed_email_domains": ["example.com", "superset.com"],
         "alert_minimum_interval": None,
     }
     session_with_tables.expire_all()
@@ -142,7 +142,7 @@ def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None
 
     config = ReportConfigDAO.get_effective_config()
     assert set(config) == {key.value for key in ReportConfigKey}
-    assert config["allowed_email_domains"] == ["example.com", "partner.org"]
+    assert config["allowed_email_domains"] == ["example.com", "superset.com"]
 
 
 def test_missing_table_propagates_read_failure(session: Session) -> None:
@@ -181,7 +181,7 @@ def test_find_disallowed_addresses_uses_policy_and_users(
     )
     session_with_tables.flush()
 
-    addresses = ["alice@example.com", "bob@example.com", "carol@partner.org"]
+    addresses = ["alice@example.com", "bob@example.com", "carol@superset.com"]
 
     # No policy configured: everything is allowed.
     assert ReportConfigDAO.find_disallowed_addresses(addresses) == []
@@ -191,13 +191,13 @@ def test_find_disallowed_addresses_uses_policy_and_users(
     # Inactive users and unknown addresses are rejected.
     assert ReportConfigDAO.find_disallowed_addresses(addresses) == [
         "bob@example.com",
-        "carol@partner.org",
+        "carol@superset.com",
     ]
 
     # Explicit overrides win over the stored policy.
     assert ReportConfigDAO.find_disallowed_addresses(
         addresses, allowed_domains=["example.com"], limit_to_users=False
-    ) == ["carol@partner.org"]
+    ) == ["carol@superset.com"]
 
 
 @pytest.mark.parametrize("value", [False, 0, [], None])
@@ -227,55 +227,6 @@ def test_invalid_stored_json_propagates(session_with_tables: Session) -> None:
     session_with_tables.flush()
     with pytest.raises(json.JSONDecodeError):
         ReportConfigDAO.get_effective_config()
-
-
-@pytest.mark.parametrize("state", ["Working", "Retrying"])
-def test_configuration_save_fences_pending_execution(
-    session_with_tables: Session, state: str
-) -> None:
-    from datetime import datetime
-    from uuid import uuid4
-
-    from superset.daos.report import ReportScheduleDAO
-    from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
-
-    owner = str(uuid4())
-    window = datetime(2026, 9, 1)
-    schedule = ReportSchedule(
-        name="pending",
-        type=ReportScheduleType.ALERT,
-        crontab="* * * * *",
-        last_state=state,
-        execution_owner=owner,
-        execution_window=window,
-        retry_attempt=2,
-        retry_scheduled_dttm=window,
-    )
-    session_with_tables.add(schedule)
-    session_with_tables.flush()
-    ReportScheduleDAO.invalidate_pending_executions([schedule.id])
-    session_with_tables.flush()
-    assert schedule.last_state == ReportState.ERROR
-    assert schedule.execution_owner != owner
-    assert schedule.execution_window == window
-    assert schedule.retry_attempt == 0
-    assert schedule.retry_scheduled_dttm is None
-
-    from superset.commands.report.execution_claim import claim_execution
-
-    assert (
-        claim_execution(
-            session_with_tables,
-            schedule.id,
-            str(uuid4()),
-            window,
-            is_retry=True,
-            expected_owner=owner,
-            retries_enabled=True,
-            stale_retry_seconds=3600,
-        )
-        is None
-    )
 
 
 def test_known_users_are_looked_up_in_bounded_batches(

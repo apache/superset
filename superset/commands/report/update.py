@@ -62,23 +62,15 @@ from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
-# Payload fields that change *what* is executed or *who* receives the result.
-# When a schedule executes as another user, only admins may change these
-# (see ``UpdateReportScheduleCommand._validate_executors``).
+# Payload fields that change the delivered asset, its rendering, or its recipients.
+# When a schedule executes as another user, only admins may change these.
 CONTENT_FIELDS: frozenset[str] = frozenset(
     {
         "chart",
-        "creation_method",
-        "custom_width",
         "dashboard",
-        "database",
         "extra",
         "recipients",
         "report_format",
-        "sql",
-        "type",
-        "validator_config_json",
-        "validator_type",
     }
 )
 
@@ -120,7 +112,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
     @transaction(on_error=partial(on_error, reraise=ReportScheduleUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        ReportScheduleDAO.invalidate_pending_executions([self._model_id])
         return ReportScheduleDAO.update(self._model, self._properties)
 
     def _changed_content_fields(self) -> set[str]:
@@ -132,23 +123,14 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         model = self._model
         current: dict[str, Any] = {
             "chart": model.chart_id,
-            "creation_method": model.creation_method,
-            "custom_width": model.custom_width,
             "dashboard": model.dashboard_id,
-            "database": model.database_id,
             "extra": _normalize_json(model.extra_json),
             "recipients": _normalize_recipients(model.recipients),
             "report_format": model.report_format,
-            "sql": model.sql,
-            "type": model.type,
-            "validator_config_json": _normalize_json(model.validator_config_json),
-            "validator_type": model.validator_type,
         }
         normalizers: dict[str, Callable[[Any], Any]] = {
             "extra": _normalize_json,
             "recipients": _normalize_recipients,
-            "validator_config_json": _normalize_json,
-            "creation_method": lambda value: str(value) if value else value,
         }
         changed: set[str] = set()
         for field in CONTENT_FIELDS & set(self._properties):
@@ -230,13 +212,18 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             not in (None, ExecutorType.FIXED_USER)
             for field in ("run_as_type", "run_alert_query_as_type")
         )
-        unresolved_executor = run_as is None or (
-            report_type == ReportScheduleType.ALERT
-            and query_as is None
-            and self._properties.get(
-                "run_alert_query_as_type", self._model.run_alert_query_as_type
+        content_type = self._properties.get("run_as_type", self._model.run_as_type)
+        unresolved_executor = (
+            content_type is None
+            or (content_type == ExecutorType.FIXED_USER and run_as is None)
+            or (
+                report_type == ReportScheduleType.ALERT
+                and query_as is None
+                and self._properties.get(
+                    "run_alert_query_as_type", self._model.run_alert_query_as_type
+                )
+                == ExecutorType.FIXED_USER
             )
-            == ExecutorType.FIXED_USER
         )
         if (
             executes_as_other_user or typed_executor or unresolved_executor
@@ -256,7 +243,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         executor_type = self._properties.get("run_as_type", self._model.run_as_type)
         if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
             user, executor_type = None, None
-        if user is None and executor_type != ExecutorType.FIXED_USER:
+        if executor_type != ExecutorType.FIXED_USER:
             try:
                 _, username = get_executor(
                     [ExecutorType(executor_type)]

@@ -39,10 +39,6 @@ from superset.commands.report.exceptions import (
 from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.reports.models import ReportDataFormat, ReportScheduleType
 
-CREATE = "superset.commands.report.create"
-UPDATE = "superset.commands.report.update"
-BASE = "superset.commands.report.base"
-
 
 def _user(user_id: int, active: bool = True) -> Mock:
     user = Mock()
@@ -61,8 +57,8 @@ def _stub_security(mocker: MockerFixture, *, is_admin: bool) -> Mock:
     security_manager = Mock()
     security_manager.is_admin.return_value = is_admin
     security_manager.get_user_by_id.side_effect = lambda pk: USERS.get(pk)
-    mocker.patch(f"{BASE}.security_manager", security_manager)
-    mocker.patch(f"{BASE}.get_user", return_value=CURRENT_USER)
+    mocker.patch("superset.commands.report.base.security_manager", security_manager)
+    mocker.patch("superset.commands.report.base.get_user", return_value=CURRENT_USER)
     return security_manager
 
 
@@ -80,10 +76,11 @@ def _stub_create_deps(
 ) -> None:
     mocker.patch.object(CreateReportScheduleCommand, "_populate_recipients")
     mocker.patch(
-        f"{CREATE}.ReportScheduleDAO.validate_update_uniqueness", return_value=True
+        "superset.commands.report.create.ReportScheduleDAO.validate_update_uniqueness",
+        return_value=True,
     )
     mocker.patch(
-        f"{CREATE}.ReportScheduleDAO.validate_unique_creation_method",
+        "superset.commands.report.create.ReportScheduleDAO.validate_unique_creation_method",
         return_value=True,
     )
     mocker.patch.object(CreateReportScheduleCommand, "validate_report_frequency")
@@ -91,8 +88,11 @@ def _stub_create_deps(
     mocker.patch.object(CreateReportScheduleCommand, "_validate_report_extra")
     if stub_policy:
         mocker.patch.object(CreateReportScheduleCommand, "validate_recipients_policy")
-    mocker.patch(f"{CREATE}.populate_subjects")
-    mocker.patch(f"{CREATE}.is_feature_enabled", return_value=feature_enabled)
+    mocker.patch("superset.commands.report.create.populate_subjects")
+    mocker.patch(
+        "superset.commands.report.create.is_feature_enabled",
+        return_value=feature_enabled,
+    )
 
 
 def _create_command(**overrides: Any) -> CreateReportScheduleCommand:
@@ -149,7 +149,10 @@ def test_create_alert_defaults_query_executor_to_run_as(
 ) -> None:
     _stub_create_deps(mocker, feature_enabled=True)
     _stub_security(mocker, is_admin=True)
-    mocker.patch(f"{CREATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id",
+        return_value=Mock(),
+    )
     mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
 
     command = _create_command(type=ReportScheduleType.ALERT, database=1, run_as=2)
@@ -162,7 +165,9 @@ def test_create_alert_defaults_query_executor_to_run_as(
 def test_create_alert_with_distinct_query_executor(mocker: MockerFixture) -> None:
     _stub_create_deps(mocker, feature_enabled=True)
     _stub_security(mocker, is_admin=True)
-    mocker.patch(f"{CREATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id", return_value=Mock()
+    )
     mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
 
     command = _create_command(
@@ -233,7 +238,9 @@ def test_create_report_rejects_no_attachment_format(mocker: MockerFixture) -> No
 def test_create_alert_allows_no_attachment_format(mocker: MockerFixture) -> None:
     _stub_create_deps(mocker, feature_enabled=False)
     _stub_security(mocker, is_admin=True)
-    mocker.patch(f"{CREATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id", return_value=Mock()
+    )
     mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
 
     command = _create_command(
@@ -246,7 +253,7 @@ def test_create_enforces_recipient_policy(mocker: MockerFixture) -> None:
     _stub_create_deps(mocker, feature_enabled=False, stub_policy=False)
     _stub_security(mocker, is_admin=True)
     mocker.patch(
-        f"{BASE}.ReportConfigDAO.find_disallowed_addresses",
+        "superset.commands.report.base.ReportConfigDAO.find_disallowed_addresses",
         return_value=["x@other.org"],
     )
 
@@ -306,22 +313,35 @@ def _make_model(
 def _stub_update_deps(
     mocker: MockerFixture, model: Mock, *, is_admin: bool, feature_enabled: bool = True
 ) -> None:
-    mocker.patch(f"{UPDATE}.ReportScheduleDAO.find_by_id", return_value=model)
     mocker.patch(
-        f"{UPDATE}.ReportScheduleDAO.validate_update_uniqueness", return_value=True
+        "superset.commands.report.update.ReportScheduleDAO.find_by_id",
+        return_value=model,
     )
-    mocker.patch(f"{UPDATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.update.ReportScheduleDAO.validate_update_uniqueness",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.update.DatabaseDAO.find_by_id", return_value=Mock()
+    )
     mocker.patch.object(UpdateReportScheduleCommand, "validate_chart_dashboard")
     mocker.patch.object(UpdateReportScheduleCommand, "validate_report_frequency")
     mocker.patch.object(UpdateReportScheduleCommand, "validate_alert_query")
     mocker.patch.object(UpdateReportScheduleCommand, "_validate_report_extra")
     mocker.patch.object(UpdateReportScheduleCommand, "validate_recipients_policy")
-    mocker.patch(f"{UPDATE}.compute_subjects")
-    mocker.patch(f"{UPDATE}.is_feature_enabled", return_value=feature_enabled)
-    mocker.patch(f"{UPDATE}.get_user_id", return_value=CURRENT_USER.id)
+    mocker.patch("superset.commands.report.update.compute_subjects")
+    mocker.patch(
+        "superset.commands.report.update.is_feature_enabled",
+        return_value=feature_enabled,
+    )
+    mocker.patch(
+        "superset.commands.report.update.get_user_id", return_value=CURRENT_USER.id
+    )
     update_security_manager = Mock()
     update_security_manager.is_admin.return_value = is_admin
-    mocker.patch(f"{UPDATE}.security_manager", update_security_manager)
+    mocker.patch(
+        "superset.commands.report.update.security_manager", update_security_manager
+    )
     _stub_security(mocker, is_admin=is_admin)
 
 
@@ -407,6 +427,56 @@ def test_update_non_admin_cannot_change_content_of_schedule_run_by_other(
         command.validate()
 
     assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("creation_method", "dashboards"), ("custom_width", 900)],
+)
+def test_update_non_admin_can_change_display_settings_run_by_other(
+    field: str, value: Any, mocker: MockerFixture
+) -> None:
+    model = _make_model(run_as=OTHER_USER)
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    UpdateReportScheduleCommand(1, {field: value}).validate()
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("database", 7),
+        ("sql", "SELECT 2"),
+        ("validator_type", "op"),
+        ("validator_config_json", {"op": ">"}),
+        ("type", ReportScheduleType.ALERT),
+    ],
+)
+def test_condition_fields_do_not_count_as_delivered_content(
+    field: str, value: Any
+) -> None:
+    command = UpdateReportScheduleCommand(1, {field: value})
+    command._model = _make_model(run_as=OTHER_USER)
+
+    assert command._changed_content_fields() == set()
+
+
+def test_non_admin_can_change_alert_sql_run_by_other(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=OTHER_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+    validate_query = mocker.patch.object(
+        UpdateReportScheduleCommand, "validate_alert_query"
+    )
+
+    UpdateReportScheduleCommand(1, {"sql": "SELECT 2"}).validate()
+
+    validate_query.assert_called_once()
 
 
 def test_update_non_admin_can_change_content_after_taking_over(
@@ -538,7 +608,9 @@ def test_enabling_attachment_validates_existing_content_user(
 ) -> None:
     from superset.reports.models import ReportSchedule
 
-    mocker.patch(f"{UPDATE}.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.commands.report.update.is_feature_enabled", return_value=True
+    )
     command = UpdateReportScheduleCommand(1, {"report_format": ReportDataFormat.PNG})
     command._model = ReportSchedule(
         report_format=ReportDataFormat.NONE, run_as_type="fixed_user"
@@ -556,7 +628,9 @@ def test_enabling_attachment_rejects_deleted_content_user(
 ) -> None:
     from superset.reports.models import ReportSchedule
 
-    mocker.patch(f"{UPDATE}.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.commands.report.update.is_feature_enabled", return_value=True
+    )
     command = UpdateReportScheduleCommand(1, {"report_format": ReportDataFormat.PNG})
     command._model = ReportSchedule(
         report_format=ReportDataFormat.NONE, run_as_type="fixed_user"
@@ -564,6 +638,35 @@ def test_enabling_attachment_rejects_deleted_content_user(
     errors: list[ValidationError] = []
     command._validate_attachment_executor(errors)
     assert isinstance(errors[0], ReportScheduleRunAsNotFoundError)
+
+
+def test_enabling_attachment_uses_default_when_type_is_unset(
+    mocker: MockerFixture,
+) -> None:
+    from superset.reports.models import ReportSchedule
+
+    mocker.patch(
+        "superset.commands.report.update.is_feature_enabled", return_value=True
+    )
+    mocker.patch(
+        "superset.commands.report.update.get_executor",
+        return_value=("creator", CURRENT_USER.username),
+    )
+    mocker.patch(
+        "superset.commands.report.update.security_manager.find_user",
+        return_value=CURRENT_USER,
+    )
+    command = UpdateReportScheduleCommand(1, {"report_format": ReportDataFormat.PNG})
+    command._model = ReportSchedule(report_format=ReportDataFormat.NONE)
+    command._model.run_as = OTHER_USER
+    command._model.run_as_type = None
+
+    errors: list[ValidationError] = []
+    command._validate_attachment_executor(errors)
+
+    assert errors == []
+    assert command._model.run_as is OTHER_USER
+    assert command._model.run_as_type is None
 
 
 @pytest.mark.parametrize("field", ["run_as", "run_alert_query_as"])
@@ -639,6 +742,19 @@ def test_non_admin_legacy_content_edits_require_explicit_self(
     assert own._properties["run_as"] is CURRENT_USER
 
 
+def test_non_admin_stale_user_with_unset_type_cannot_edit_content(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(run_as=CURRENT_USER)
+    model.run_as_type = None
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        UpdateReportScheduleCommand(1, {"dashboard": 11}).validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+
+
 @pytest.mark.parametrize(
     ("report_type", "report_format", "global_enabled", "requires_asset"),
     [
@@ -668,9 +784,12 @@ def test_create_attachment_asset_requirement(
         BaseReportScheduleCommand.validate_chart_dashboard,
     )
     mocker.patch(
-        f"{BASE}.ReportConfigDAO.get_effective_value", return_value=global_enabled
+        "superset.commands.report.base.ReportConfigDAO.get_effective_value",
+        return_value=global_enabled,
     )
-    mocker.patch(f"{CREATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id", return_value=Mock()
+    )
     mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
     command = _create_command(type=report_type, report_format=report_format, database=1)
     if requires_asset:
@@ -699,7 +818,10 @@ def test_enabling_attachment_requires_asset_on_update(
         "validate_chart_dashboard",
         BaseReportScheduleCommand.validate_chart_dashboard,
     )
-    mocker.patch(f"{BASE}.ReportConfigDAO.get_effective_value", return_value=True)
+    mocker.patch(
+        "superset.commands.report.base.ReportConfigDAO.get_effective_value",
+        return_value=True,
+    )
     command = UpdateReportScheduleCommand(1, {"report_format": ReportDataFormat.PNG})
     if include_asset:
         command.validate()
@@ -707,6 +829,36 @@ def test_enabling_attachment_requires_asset_on_update(
         with pytest.raises(ReportScheduleInvalidError) as exc:
             command.validate()
         assert ReportScheduleEitherChartOrDashboardError in _errors(exc)
+
+
+def test_enabling_attachment_rejects_explicitly_cleared_asset(
+    mocker: MockerFixture,
+) -> None:
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        ReportScheduleEitherChartOrDashboardError,
+    )
+
+    model = _make_model(model_type=ReportScheduleType.ALERT, run_as=CURRENT_USER)
+    model.report_format = ReportDataFormat.NONE
+    model.dashboard_id = 10
+    _stub_update_deps(mocker, model, is_admin=True)
+    mocker.patch.object(
+        UpdateReportScheduleCommand,
+        "validate_chart_dashboard",
+        BaseReportScheduleCommand.validate_chart_dashboard,
+    )
+    mocker.patch(
+        "superset.commands.report.base.ReportConfigDAO.get_effective_value",
+        return_value=True,
+    )
+
+    command = UpdateReportScheduleCommand(
+        1, {"report_format": ReportDataFormat.PNG, "dashboard": None}
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+    assert ReportScheduleEitherChartOrDashboardError in _errors(exc)
 
 
 def test_attachment_free_alert_keeps_supplied_asset_and_validates_access(
@@ -724,8 +876,12 @@ def test_attachment_free_alert_keeps_supplied_asset_and_validates_access(
         BaseReportScheduleCommand.validate_chart_dashboard,
     )
     dashboard = Mock()
-    mocker.patch(f"{BASE}.DashboardDAO.find_by_id", return_value=dashboard)
-    mocker.patch(f"{CREATE}.DatabaseDAO.find_by_id", return_value=Mock())
+    mocker.patch(
+        "superset.commands.report.base.DashboardDAO.find_by_id", return_value=dashboard
+    )
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id", return_value=Mock()
+    )
     mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
     command = _create_command(
         type=ReportScheduleType.ALERT,

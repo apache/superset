@@ -166,7 +166,7 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     """
     Resolve the executor user for a report schedule.
 
-    Determines the executor via :func:`get_executor_user`. A deleted/disabled
+    Determines the executor via ``get_executor_user``. A deleted/disabled
     user or a misconfigured ``ALERT_REPORTS_EXECUTORS`` yields ``None``; rather
     than passing ``None`` into the webdriver/auth flow (which fails with an
     opaque NoneType error), raise a dedicated, actionable error.
@@ -199,17 +199,11 @@ def _should_build_execution_context(model: ReportSchedule) -> bool:
     return model.type in (ReportScheduleType.REPORT, ReportScheduleType.ALERT)
 
 
-def _uses_report_capture_contract(
-    model: ReportSchedule, attachments_enabled: bool | None = None
-) -> bool:
+def _uses_report_capture_contract(model: ReportSchedule) -> bool:
     """Keep ownership separate from the existing rendered-alert capture policy."""
     return model.type == ReportScheduleType.REPORT or (
         model.report_format in (ReportDataFormat.PNG, ReportDataFormat.PDF)
-        and (
-            alerts_attach_reports_enabled()
-            if attachments_enabled is None
-            else attachments_enabled
-        )
+        and alerts_attach_reports_enabled()
     )
 
 
@@ -227,12 +221,10 @@ def _execution_budget_seconds(model: ReportSchedule) -> float:
 
 
 def _capture_execution_context(
-    model: ReportSchedule,
-    context: ReportExecutionContext | None,
-    attachments_enabled: bool | None = None,
+    model: ReportSchedule, context: ReportExecutionContext | None
 ) -> ReportExecutionContext | None:
     """Keep data-only alerts lenient and bound rendered alerts' browser phase."""
-    if not _uses_report_capture_contract(model, attachments_enabled):
+    if not _uses_report_capture_contract(model):
         return None
     if context and model.type == ReportScheduleType.ALERT:
         # An unlimited alert must never pass infinity to Playwright. Browser
@@ -480,7 +472,6 @@ class BaseReportState:
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
-        self._attachments_enabled: bool | None = None
         self._delivery_started = False
         self._execution_warnings: list[str] = []
         self._slack_v1_upgrade = SlackV1UpgradeCoordinator(
@@ -489,14 +480,12 @@ class BaseReportState:
             self._execution_warnings,
         )
 
-    def _attachments_enabled_for_attempt(self) -> bool:
-        """Use one attachment policy for content generation and capture setup."""
-        if self._attachments_enabled is None:
-            self._attachments_enabled = (
-                self._report_schedule.type == ReportScheduleType.REPORT
-                or alerts_attach_reports_enabled()
-            )
-        return self._attachments_enabled
+    def _attachments_enabled(self) -> bool:
+        """Return whether this schedule should generate attachment content."""
+        return self._report_schedule.type == ReportScheduleType.REPORT or (
+            self._report_schedule.report_format != ReportDataFormat.NONE
+            and alerts_attach_reports_enabled()
+        )
 
     def _get_slack_retry_deadline(self) -> float:
         """Return the monotonic deadline for Slack delivery in this execution."""
@@ -728,10 +717,7 @@ class BaseReportState:
             if (
                 user_friendly
                 and self._report_schedule.type == ReportScheduleType.ALERT
-                and (
-                    self._report_schedule.report_format == ReportDataFormat.NONE
-                    or not self._attachments_enabled_for_attempt()
-                )
+                and not self._attachments_enabled()
             ):
                 return ""
             if self._report_schedule.chart_id is not None:
@@ -1008,9 +994,7 @@ class BaseReportState:
         user, _ = resolve_executor_user(self._report_schedule)
 
         capture_context = _capture_execution_context(
-            self._report_schedule,
-            self._report_execution_context,
-            self._attachments_enabled_for_attempt(),
+            self._report_schedule, self._report_execution_context
         )
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
@@ -1555,7 +1539,7 @@ class BaseReportState:
         # NULL (rows predating the include_cta column) is treated as True
         include_cta = self._report_schedule.include_cta is not False and bool(url)
 
-        if self._attachments_enabled_for_attempt():
+        if self._attachments_enabled():
             if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
@@ -1591,7 +1575,7 @@ class BaseReportState:
                 )
 
         if (
-            self._attachments_enabled_for_attempt()
+            self._attachments_enabled()
             and self._report_schedule.chart
             and self._report_schedule.report_format == ReportDataFormat.TEXT
         ):
@@ -2185,7 +2169,6 @@ class ReportNotTriggeredErrorState(BaseReportState):
 
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
-            self._attachments_enabled_for_attempt()
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
                 triggered, message = AlertCommand(
@@ -2393,7 +2376,6 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                self._attachments_enabled_for_attempt()
                 triggered, message = AlertCommand(
                     self._report_schedule, self._execution_id
                 ).run()
@@ -2552,13 +2534,12 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
             if (initial_state is None and state_cls.initial) or (
                 initial_state in state_cls.current_states
             ):
-                state = state_cls(
+                state_cls(
                     self._report_schedule,
                     self._scheduled_dttm,
                     self._execution_id,
                     self._report_execution_context,
-                )
-                state.next()
+                ).next()
                 break
         else:
             raise ReportScheduleStateNotFoundError()

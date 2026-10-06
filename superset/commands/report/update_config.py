@@ -55,9 +55,6 @@ class UpdateReportConfigCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=ReportConfigUpdateFailedError))
     def run(self) -> dict[str, Any]:
         self.validate()
-        effective = ReportConfigDAO.get_effective_config()
-        if any(effective.get(key) != value for key, value in self._properties.items()):
-            ReportScheduleDAO.invalidate_pending_executions()
         ReportConfigDAO.upsert(self._properties)
         return ReportConfigDAO.get_effective_config()
 

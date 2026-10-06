@@ -61,10 +61,15 @@ RUN_ALERT_QUERY_AS_FK_NAME = "fk_report_schedule_run_alert_query_as_fk_ab_user"
 def upgrade() -> None:
     add_columns(
         REPORT_SCHEDULE_TABLE,
-        Column("run_as_type", String(50), nullable=True),
-        Column("run_alert_query_as_type", String(50), nullable=True),
         Column("run_as_fk", Integer, nullable=True),
         Column("run_alert_query_as_fk", Integer, nullable=True),
+        # When an account is deleted, ``run_as_fk`` gets cleared. Without
+        # ``run_alert_query_as_fk``, this would automatically change the
+        # schedule to fallback to ``ALERT_REPORTS_EXECUTORS``.
+        Column("run_as_type", String(50), nullable=True),
+        # Similarly, ``run_alert_query_as_type`` is used to replicate
+        # ``run_as_fk`` into ``run_alert_query_as_fk``.
+        Column("run_alert_query_as_type", String(50), nullable=True),
     )
     create_fks_for_table(
         foreign_key_name=RUN_AS_FK_NAME,
@@ -88,7 +93,6 @@ def upgrade() -> None:
         Column("id", UUIDType(binary=True), primary_key=True),
         Column("key", String(255), nullable=False, unique=True),
         Column("value", Text, nullable=True),
-        # AuditMixinNullable columns
         Column("created_on", DateTime, nullable=True),
         Column("changed_on", DateTime, nullable=True),
         Column("created_by_fk", Integer, nullable=True),

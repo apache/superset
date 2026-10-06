@@ -164,25 +164,6 @@ def test_explicit_null_reverts_to_fallback_and_skips_frequency_check(
     find_by_type.assert_not_called()
 
 
-@pytest.mark.parametrize("changed", [False, True])
-def test_global_setting_changes_cancel_pending_attempts(
-    changed: bool,
-    mocker: MockerFixture,
-) -> None:
-    _stub_daos(mocker)
-    mocker.patch(
-        f"{MODULE}.ReportConfigDAO.get_effective_config",
-        return_value={ReportConfigKey.ALERTS_ATTACH_REPORTS: True},
-    )
-    invalidate = mocker.patch(
-        f"{MODULE}.ReportScheduleDAO.invalidate_pending_executions"
-    )
-    UpdateReportConfigCommand(
-        {ReportConfigKey.ALERTS_ATTACH_REPORTS: not changed}
-    ).run()
-    assert invalidate.call_count == int(changed)
-
-
 def test_recipient_checks_reuse_known_users_across_schedules(
     mocker: MockerFixture,
 ) -> None:

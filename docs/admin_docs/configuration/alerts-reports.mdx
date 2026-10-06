@@ -446,13 +446,13 @@ When the flag is enabled:
   Non-admins can only select themselves. They see no user search and the API rejects
   selecting another user. Reports scheduled from a dashboard or chart always execute
   as the subscribing user.
-- When a non-admin edits an alert/report that an admin configured to run as someone else,
-  they can change its metadata (name, schedule, active state, retries) but not its
-  content or recipients. To change those, they must first set **Run as** to their own
-  account using **Execute using my permissions** (or ask an admin). For alerts, this
-  action selects the current user for both content and condition execution. Legacy
-  schedules without an explicit content user also require this switch before a non-admin
-  changes content or recipients; metadata-only edits preserve their settings.
+- When a non-admin edits an alert/report configured to run as someone else, they can
+  change its metadata, type, and condition (database, SQL, and validator), but not its
+  selected chart/dashboard, filters, attachment format, or recipients. To change those,
+  they must first set **Run as** to their own account via the **Execute using my permissions**
+  button (or ask an admin). For alerts, this action selects the current user for both content
+  and SQL condition execution. Legacy schedules without an explicit ``run_as`` user also
+  require this switch before a non-admin changes the delivered asset or recipients.
 - Untouched legacy schedules continue using `ALERT_REPORTS_EXECUTORS`. **Application
   default** preserves this behavior in the Run as selector, including when an admin
   clears an explicit executor.
@@ -506,10 +506,11 @@ an alert saved without attachments, choose a format when re-enabling attachments
 Missing/inactive executors and recipient-policy violations are terminal failures and
 never schedule a retry. Retries are intended to recover execution failures such as
 transient data-source or browser errors; alert retries re-evaluate the condition.
-Saving any schedule edit cancels its queued retries and fences running attempts.
-Changing a global report setting does the same for all pending schedules. Cancellation
-is recorded as an error in execution history; subsequent cron windows use the saved
-configuration. Authorization and recipient checks still apply when an attempt runs.
+Schedule edits and global setting changes do not cancel queued retries. A retry reads
+the latest schedule and effective configuration when it starts, so it may use updated
+executors, content, or recipients. Authorization and recipient checks still apply when
+an attempt runs. An attempt already running during an edit may finish using the schedule
+values it loaded before the edit.
 
 `ALERTS_ATTACH_REPORTS`, `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are
 deprecated in favor of this configuration.

@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.commands.report.exceptions import ReportScheduleExecutorNotFoundError
 from superset.reports.models import ReportRecipientType
 from superset.reports.utils import (
     cron_meets_minimum_interval,
@@ -31,10 +32,10 @@ from superset.reports.utils import (
 
 
 def test_split_email_addresses_handles_separators_and_blanks() -> None:
-    assert split_email_addresses("a@x.com, b@y.org;c@z.net ,, ") == [
-        "a@x.com",
-        "b@y.org",
-        "c@z.net",
+    assert split_email_addresses("a@foo.com, b@bar.org;c@baz.net ,, ") == [
+        "a@foo.com",
+        "b@bar.org",
+        "c@baz.net",
     ]
     assert split_email_addresses(None) == []
     assert split_email_addresses("") == []
@@ -45,24 +46,24 @@ def test_get_email_addresses_from_dict_payload_includes_cc_and_bcc() -> None:
         {
             "type": ReportRecipientType.EMAIL,
             "recipient_config_json": {
-                "target": "to@x.com",
-                "ccTarget": "cc@x.com",
-                "bccTarget": "bcc@x.com",
+                "target": "a@foo.com",
+                "ccTarget": "b@bar.org",
+                "bccTarget": "c@baz.net",
             },
         },
         {"type": ReportRecipientType.SLACK, "recipient_config_json": {"target": "#c"}},
     ]
-    assert get_email_addresses(recipients) == ["to@x.com", "cc@x.com", "bcc@x.com"]
+    assert get_email_addresses(recipients) == ["a@foo.com", "b@bar.org", "c@baz.net"]
 
 
 def test_get_email_addresses_from_model_with_json_string() -> None:
     recipient = Mock()
     recipient.type = ReportRecipientType.EMAIL
-    recipient.recipient_config_json = '{"target": "a@x.com;b@x.com"}'
+    recipient.recipient_config_json = '{"target": "a@foo.com;b@bar.org"}'
     broken = Mock()
     broken.type = ReportRecipientType.EMAIL
     broken.recipient_config_json = "not json"
-    assert get_email_addresses([recipient, broken]) == ["a@x.com", "b@x.com"]
+    assert get_email_addresses([recipient, broken]) == ["a@foo.com", "b@bar.org"]
     assert get_email_addresses(None) == []
 
 
@@ -138,17 +139,31 @@ def test_get_dynamic_executor_prefers_alert_query_user(
     schedule = Mock(
         run_as=run_as,
         run_alert_query_as=query_as,
-        run_as_type=None,
-        run_alert_query_as_type=None,
+        run_as_type="fixed_user",
+        run_alert_query_as_type="fixed_user",
     )
     assert get_dynamic_executor(schedule) is run_as
     assert get_dynamic_executor(schedule, alert_query=True) is query_as
 
     schedule.run_alert_query_as = None
+    with pytest.raises(ReportScheduleExecutorNotFoundError):
+        get_dynamic_executor(schedule, alert_query=True)
+
+    schedule.run_alert_query_as_type = None
+    assert get_dynamic_executor(schedule, alert_query=True) is run_as
+
+    # A stale relationship does not override the unset type marker.
+    schedule.run_alert_query_as = query_as
     assert get_dynamic_executor(schedule, alert_query=True) is run_as
 
     schedule.run_as = None
+    with pytest.raises(ReportScheduleExecutorNotFoundError):
+        get_dynamic_executor(schedule)
+
+    schedule.run_as_type = None
+    schedule.run_as = run_as
     assert get_dynamic_executor(schedule) is None
+    assert get_dynamic_executor(schedule, alert_query=True) is None
 
 
 def test_wildcard_domains_match_only_subdomains() -> None:
@@ -166,7 +181,7 @@ def test_wildcard_domains_match_only_subdomains() -> None:
 
 
 @pytest.mark.parametrize(
-    "pattern", ["preset.*", "PRESET.*", "*.preset.io", "preset.io"]
+    "pattern", ["superset.*", "SUPERSET.*", "*.superset.com", "superset.io"]
 )
 def test_valid_domain_wildcard_patterns(pattern: str) -> None:
     from superset.reports.utils import EMAIL_DOMAIN_REGEX
@@ -185,17 +200,17 @@ def test_invalid_domain_wildcard_patterns(pattern: str) -> None:
 
 def test_trailing_wildcard_allows_only_one_tld_segment() -> None:
     rejected = [
-        "a@preset.co.uk",
-        "a@sub.preset.io",
-        "a@notpreset.io",
-        "a@preset.",
-        "a@preset.io.evil",
-        "a@preset.123",
+        "a@superset.co.uk",
+        "a@sub.superset.io",
+        "a@notsuperset.io",
+        "a@superset.",
+        "a@superset.io.evil",
+        "a@superset.123",
     ]
     assert (
         find_disallowed_addresses(
-            ["a@preset.io", "a@PRESET.AI", *rejected],
-            allowed_domains=["PRESET.*"],
+            ["a@superset.co.uk", "a@SUPERSET.AI", *rejected],
+            allowed_domains=["SUPERSET.*"],
             known_emails=None,
         )
         == rejected

@@ -119,14 +119,6 @@ export type Extra = {
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
-export type ReportExecutorType =
-  | 'fixed_user'
-  | 'creator'
-  | 'creator_editor'
-  | 'modifier'
-  | 'modifier_editor'
-  | 'editor';
-
 export type AlertObject = {
   active?: boolean;
   creation_method?: string;
@@ -164,8 +156,8 @@ export type AlertObject = {
   timezone?: string;
   recipients?: Array<Recipient>;
   report_format?: NotificationFormats | 'NONE';
-  run_as_type?: ReportExecutorType | null;
-  run_alert_query_as_type?: ReportExecutorType | null;
+  run_as_type?: 'fixed_user' | null;
+  run_alert_query_as_type?: 'fixed_user' | null;
   run_as?: RunAsUser | MetaObject | null;
   run_alert_query_as?: RunAsUser | MetaObject | null;
   type?: string;

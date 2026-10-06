@@ -169,11 +169,12 @@ class BaseReportScheduleCommand(BaseCommand):
     def validate_chart_dashboard(
         self, exceptions: list[ValidationError], update: bool = False
     ) -> None:
-        """Validate chart or dashboard relation"""
+        """Validate supplied assets and require one when producing an attachment."""
+        requires_attachment = self.requires_attachment()
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")
-        if not (requires_attachment := self.requires_attachment()):
+        if not requires_attachment and not (chart_id or dashboard_id):
             return
 
         if creation_method == ReportCreationMethod.CHARTS and not chart_id:
@@ -204,22 +205,21 @@ class BaseReportScheduleCommand(BaseCommand):
                 not_found_exc=DashboardNotFoundValidationError,
                 exceptions=exceptions,
             )
-        elif requires_attachment:
+        elif not update:
+            exceptions.append(ReportScheduleEitherChartOrDashboardError())
+
+        # Update schedule without chart_id / dashboard_id in properties
+        else:
+            # Allow an explicit null to clear the field
             model = getattr(self, "_model", None)
-            effective_chart = (
-                self._properties.get("chart", getattr(model, "chart_id", None))
-                if update
-                else None
+            effective_chart = self._properties.get(
+                "chart", getattr(model, "chart_id", None)
             )
-            effective_dashboard = (
-                self._properties.get("dashboard", getattr(model, "dashboard_id", None))
-                if update
-                else None
+            effective_dashboard = self._properties.get(
+                "dashboard", getattr(model, "dashboard_id", None)
             )
             if not effective_chart and not effective_dashboard:
                 exceptions.append(ReportScheduleEitherChartOrDashboardError())
-        elif not update:
-            exceptions.append(ReportScheduleEitherChartOrDashboardError())
 
     def _validate_report_extra(  # noqa: C901
         self, exceptions: list[ValidationError]

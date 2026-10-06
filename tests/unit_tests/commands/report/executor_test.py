@@ -40,10 +40,6 @@ from superset.commands.report.execute import (
 )
 from superset.reports.models import ReportConfigKey, ReportSchedule
 
-EXECUTE = "superset.commands.report.execute"
-ALERT = "superset.commands.report.alert"
-UTILS = "superset.reports.utils"
-
 
 def _user(username: str, active: bool = True) -> Mock:
     user = Mock()
@@ -53,11 +49,12 @@ def _user(username: str, active: bool = True) -> Mock:
 
 
 def test_get_executor_user_prefers_run_as_when_enabled(mocker: MockerFixture) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
-    get_executor = mocker.patch(f"{EXECUTE}.get_executor")
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    get_executor = mocker.patch("superset.commands.report.execute.get_executor")
     run_as = _user("explicit")
     model = ReportSchedule()
     model.run_as = run_as
+    model.run_as_type = "fixed_user"
     model.run_alert_query_as = None
 
     assert get_executor_user(model) == (run_as, "explicit")
@@ -66,9 +63,10 @@ def test_get_executor_user_prefers_run_as_when_enabled(mocker: MockerFixture) ->
 
 
 def test_get_executor_user_inactive_run_as_is_reported(mocker: MockerFixture) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
     model = ReportSchedule()
     model.run_as = _user("gone", active=False)
+    model.run_as_type = "fixed_user"
     model.run_alert_query_as = None
 
     assert get_executor_user(model) == (None, "gone")
@@ -79,12 +77,19 @@ def test_get_executor_user_inactive_run_as_is_reported(mocker: MockerFixture) ->
 def test_get_executor_user_falls_back_to_legacy_resolution(
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
-    mocker.patch(f"{EXECUTE}.get_executor", return_value=("editor", "legacy"))
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=("editor", "legacy"),
+    )
     legacy = _user("legacy")
-    mocker.patch(f"{EXECUTE}.security_manager.find_user", return_value=legacy)
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=legacy,
+    )
     model = ReportSchedule()
-    model.run_as = None
+    model.run_as = _user("stale")
+    model.run_as_type = None
     model.run_alert_query_as = None
 
     assert get_executor_user(model) == (legacy, "legacy")
@@ -93,10 +98,16 @@ def test_get_executor_user_falls_back_to_legacy_resolution(
 def test_get_executor_user_ignores_run_as_when_feature_disabled(
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=False)
-    mocker.patch(f"{EXECUTE}.get_executor", return_value=("editor", "legacy"))
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=False)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=("editor", "legacy"),
+    )
     legacy = _user("legacy")
-    mocker.patch(f"{EXECUTE}.security_manager.find_user", return_value=legacy)
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=legacy,
+    )
     model = ReportSchedule()
     model.run_as = _user("explicit")
 
@@ -104,14 +115,14 @@ def test_get_executor_user_ignores_run_as_when_feature_disabled(
 
 
 def test_alert_query_uses_alert_query_executor(mocker: MockerFixture) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
-    get_executor = mocker.patch(f"{ALERT}.get_executor")
-    mocker.patch(f"{ALERT}.security_manager.raise_for_access")
-    override_user = mocker.patch(f"{ALERT}.override_user")
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    get_executor = mocker.patch("superset.commands.report.alert.get_executor")
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
+    override_user = mocker.patch("superset.commands.report.alert.override_user")
     template_processor = Mock()
     template_processor.process_template.return_value = "SELECT 1"
     mocker.patch(
-        f"{ALERT}.jinja_context.get_template_processor",
+        "superset.commands.report.alert.jinja_context.get_template_processor",
         return_value=template_processor,
     )
     mocker.patch.object(AlertCommand, "_validate_rendered_sql")
@@ -120,7 +131,7 @@ def test_alert_query_uses_alert_query_executor(mocker: MockerFixture) -> None:
     )
 
     query_user = _user("query_user")
-    schedule = Mock(run_as_type=None, run_alert_query_as_type=None)
+    schedule = Mock(run_as_type="fixed_user", run_alert_query_as_type="fixed_user")
     schedule.id = 1
     schedule.sql = "SELECT 1"
     schedule.run_as = _user("content_user")
@@ -134,18 +145,18 @@ def test_alert_query_uses_alert_query_executor(mocker: MockerFixture) -> None:
 
 
 def test_alert_query_inactive_executor_raises(mocker: MockerFixture) -> None:
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
     template_processor = Mock()
     template_processor.process_template.return_value = "SELECT 1"
     mocker.patch(
-        f"{ALERT}.jinja_context.get_template_processor",
+        "superset.commands.report.alert.jinja_context.get_template_processor",
         return_value=template_processor,
     )
     mocker.patch.object(AlertCommand, "_validate_rendered_sql")
     mocker.patch.dict(
         "flask.current_app.config", {"MUTATE_ALERT_QUERY": False}, clear=False
     )
-    schedule = Mock(run_as_type=None, run_alert_query_as_type=None)
+    schedule = Mock(run_as_type="fixed_user", run_alert_query_as_type=None)
     schedule.id = 1
     schedule.sql = "SELECT 1"
     schedule.run_as = _user("gone", active=False)
@@ -168,10 +179,12 @@ def test_alerts_attach_reports_enabled(
     mocker: MockerFixture, stored: bool | None, flag: bool, expected: bool
 ) -> None:
     mocker.patch(
-        f"{EXECUTE}.ReportConfigDAO.get_effective_value",
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
         return_value=stored if stored is not None else flag,
     )
-    feature_flag_manager = mocker.patch(f"{EXECUTE}.feature_flag_manager")
+    feature_flag_manager = mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager"
+    )
     feature_flag_manager.is_feature_enabled.return_value = flag
 
     assert alerts_attach_reports_enabled() is expected
@@ -190,11 +203,11 @@ def _policy(allowed_domains: list[str], limit_to_users: bool):
 
 def test_send_refuses_disallowed_recipients(mocker: MockerFixture) -> None:
     mocker.patch(
-        f"{EXECUTE}.ReportConfigDAO.get_effective_value",
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
         side_effect=_policy(["example.com"], False),
     )
     mocker.patch(
-        f"{EXECUTE}.ReportConfigDAO.find_disallowed_addresses",
+        "superset.commands.report.execute.ReportConfigDAO.find_disallowed_addresses",
         return_value=["x@other.org"],
     )
     schedule = Mock(spec=ReportSchedule)
@@ -213,11 +226,11 @@ def test_send_refuses_disallowed_recipients(mocker: MockerFixture) -> None:
 
 def test_send_skips_policy_when_unrestricted(mocker: MockerFixture) -> None:
     mocker.patch(
-        f"{EXECUTE}.ReportConfigDAO.get_effective_value",
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
         side_effect=_policy([], False),
     )
     find_disallowed = mocker.patch(
-        f"{EXECUTE}.ReportConfigDAO.find_disallowed_addresses"
+        "superset.commands.report.execute.ReportConfigDAO.find_disallowed_addresses"
     )
     schedule = Mock(spec=ReportSchedule)
     schedule.recipients = ["recipient"]
@@ -239,8 +252,8 @@ def test_deleted_specific_user_never_falls_back(
 ) -> None:
     from superset.reports.utils import get_dynamic_executor
 
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
-    legacy = mocker.patch(f"{EXECUTE}.get_executor")
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    legacy = mocker.patch("superset.commands.report.execute.get_executor")
     schedule = ReportSchedule(run_as_type="fixed_user")
     with pytest.raises(ReportScheduleExecutorNotFoundError):
         get_dynamic_executor(schedule, alert_query=alert_query)
@@ -258,8 +271,8 @@ def test_alert_template_and_database_share_query_identity(
     content_user = _user("content")
     query_user = _user("query")
     mocker.patch.object(g, "user", content_user, create=True)
-    mocker.patch(f"{UTILS}.is_feature_enabled", return_value=True)
-    mocker.patch(f"{ALERT}.security_manager.raise_for_access")
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=True)
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     mocker.patch.object(AlertCommand, "_validate_rendered_sql")
     mocker.patch.dict("flask.current_app.config", {"MUTATE_ALERT_QUERY": True})
     schedule = Mock(
@@ -286,7 +299,10 @@ def test_alert_template_and_database_share_query_identity(
         assert get_user() is query_user
         return Mock()
 
-    mocker.patch(f"{ALERT}.jinja_context.get_template_processor", side_effect=processor)
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+        side_effect=processor,
+    )
     schedule.database.apply_limit_to_sql.side_effect = lambda sql, limit: sql
     schedule.database.mutate_sql_based_on_config.side_effect = mutate
     schedule.database.get_df.side_effect = query
@@ -331,7 +347,10 @@ def test_retry_notices_skip_disallowed_recipients_but_notify_editors(
 def test_cleared_attachment_setting_does_not_restore_feature_flag(
     mocker: MockerFixture,
 ) -> None:
-    mocker.patch(f"{EXECUTE}.ReportConfigDAO.get_effective_value", return_value=None)
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=None,
+    )
     assert alerts_attach_reports_enabled() is False
 
 
@@ -352,18 +371,40 @@ def test_configuration_errors_never_retry(
     reset.assert_called_once()
 
 
-def test_attachment_policy_is_captured_once_per_attempt(mocker: MockerFixture) -> None:
+def test_attachment_policy_is_read_for_each_check(mocker: MockerFixture) -> None:
     from superset.reports.models import ReportScheduleType
 
     policy = mocker.patch(
-        f"{EXECUTE}.alerts_attach_reports_enabled", side_effect=[True, False]
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        side_effect=[True, False],
     )
     state = BaseReportState(
         ReportSchedule(type=ReportScheduleType.ALERT), datetime.now(), str(uuid4())
     )
-    assert state._attachments_enabled_for_attempt() is True
-    assert state._attachments_enabled_for_attempt() is True
-    policy.assert_called_once()
+    assert state._attachments_enabled() is True
+    assert state._attachments_enabled() is False
+    assert policy.call_count == 2
+
+
+def test_no_attachment_alert_skips_global_attachment_policy(
+    mocker: MockerFixture,
+) -> None:
+    from superset.reports.models import ReportDataFormat, ReportScheduleType
+
+    policy = mocker.patch(
+        "superset.commands.report.execute.alerts_attach_reports_enabled"
+    )
+    state = BaseReportState(
+        ReportSchedule(
+            type=ReportScheduleType.ALERT,
+            report_format=ReportDataFormat.NONE,
+        ),
+        datetime.now(),
+        str(uuid4()),
+    )
+
+    assert state._attachments_enabled() is False
+    policy.assert_not_called()
 
 
 @pytest.mark.parametrize("attachments_enabled", [False, True])
@@ -382,10 +423,11 @@ def test_no_attachment_content_does_not_resolve_unused_executor(
     )
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     mocker.patch(
-        f"{EXECUTE}.alerts_attach_reports_enabled", return_value=attachments_enabled
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        return_value=attachments_enabled,
     )
     resolve = mocker.patch(
-        f"{EXECUTE}.resolve_executor_user",
+        "superset.commands.report.execute.resolve_executor_user",
         side_effect=AssertionError("unused executor"),
     )
     mocker.patch.object(state, "_get_log_data", return_value={})
@@ -398,7 +440,7 @@ def test_no_attachment_content_does_not_resolve_unused_executor(
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_condition_query_cannot_change_attempt_attachment_policy(
+def test_condition_query_uses_latest_attachment_policy(
     enabled: bool,
     mocker: MockerFixture,
 ) -> None:
@@ -413,7 +455,8 @@ def test_condition_query_cannot_change_attempt_attachment_policy(
     )
     state = ReportNotTriggeredErrorState(schedule, datetime.utcnow(), uuid4())
     policy = mocker.patch(
-        f"{EXECUTE}.alerts_attach_reports_enabled", return_value=enabled
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        return_value=enabled,
     )
     mocker.patch.object(state, "update_report_schedule_and_log")
     mocker.patch.object(state, "_get_log_data", return_value={})
@@ -426,11 +469,11 @@ def test_condition_query_cannot_change_attempt_attachment_policy(
         policy.return_value = not enabled
         return True, None
 
-    mocker.patch(f"{EXECUTE}.AlertCommand.run", side_effect=query)
+    mocker.patch("superset.commands.report.execute.AlertCommand.run", side_effect=query)
     mocker.patch.object(state, "send", side_effect=state._get_notification_content)
     state.next()
-    assert screenshots.call_count == int(enabled)
-    policy.assert_called_once()
+    assert screenshots.call_count == int(not enabled)
+    assert policy.call_count == 2
 
 
 @pytest.mark.parametrize(
@@ -450,7 +493,8 @@ def test_attachment_free_alert_without_asset_builds_message(
     )
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     mocker.patch(
-        f"{EXECUTE}.alerts_attach_reports_enabled", return_value=global_enabled
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        return_value=global_enabled,
     )
     content = state._get_notification_content()
     assert content.name == "Condition met"

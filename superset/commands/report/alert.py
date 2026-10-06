@@ -217,9 +217,8 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
         try:
-            if (
-                user := get_dynamic_executor(self._report_schedule, alert_query=True)
-            ) is not None:
+            user = get_dynamic_executor(self._report_schedule, alert_query=True)
+            if user is not None:
                 username = user.username
             else:
                 executor, username = get_executor(  # pylint: disable=unused-variable

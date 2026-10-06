@@ -105,8 +105,10 @@ class ReportConfigKey(StrEnum):
     config or feature flag (see ``ReportConfigDAO.get_effective_config``).
     """
 
-    # Migrated from the ``ALERTS_ATTACH_REPORTS`` feature flag.
+    # Migrated from the ``ALERTS_ATTACH_REPORTS`` FF.
     ALERTS_ATTACH_REPORTS = "alerts_attach_reports"
+    # Migrated from the ``DATE_FORMAT_IN_EMAIL_SUBJECT`` FF.
+    DATE_FORMAT_IN_EMAIL_SUBJECT = "date_format_in_email_subject"
     # Migrated from ``ALERT_MINIMUM_INTERVAL`` (seconds).
     ALERT_MINIMUM_INTERVAL = "alert_minimum_interval"
     # Migrated from ``REPORT_MINIMUM_INTERVAL`` (seconds).
@@ -115,8 +117,6 @@ class ReportConfigKey(StrEnum):
     LIMIT_RECIPIENTS_TO_USERS = "limit_recipients_to_users"
     # Allow-list of e-mail domains accepted as recipients (empty = any domain).
     ALLOWED_EMAIL_DOMAINS = "allowed_email_domains"
-    # Render strftime placeholders in email subjects.
-    DATE_FORMAT_IN_EMAIL_SUBJECT = "date_format_in_email_subject"
 
 
 class ReportCreationMethod(StrEnum):
@@ -173,7 +173,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # the legacy ``ALERT_REPORTS_EXECUTORS`` resolution is used. Only honored when the
     # ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled.
     # The type survives user deletion, so a deleted fixed user cannot become
-    # an unset legacy executor. NULL values preserve legacy schedules.
+    # an unset legacy executor.
     run_as_type = Column(String(50), nullable=True)
     run_as_fk = Column(
         Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
@@ -507,7 +507,7 @@ class ReportConfig(AuditMixinNullable, Model):  # pylint: disable=too-few-public
     Global Alerts & Reports configuration, stored as key-value rows so admins
     can manage it at runtime through the UI without redeploying.
 
-    ``key`` is one of :class:`ReportConfigKey`; ``value`` is JSON-encoded.
+    ``key`` is one of ``ReportConfigKey``; ``value`` is JSON-encoded.
     """
 
     __tablename__ = "report_config"
