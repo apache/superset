@@ -1379,3 +1379,44 @@ def test_host_policy_declaring_core_only_dependencies_is_dropped(
     _assert_rejected(
         model, _host_policy(model, declared), "cannot be carried out", caplog
     )
+
+
+def test_owned_table_behind_an_association_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Associations are emptied first, so owning through one cannot execute.
+
+    Kept where the other ordering rules were dropped because this one can be
+    silent: without enforced foreign keys the root purges and its descendants
+    are orphaned with nothing reported.
+    """
+    model: type[Any] = _host_chain("behind")
+    policy: PurgeEntityPolicy = _host_policy(
+        model, _host_chain_edges("behind", DependencyClassification.ASSOCIATION)
+    )
+
+    _assert_rejected(model, policy, "associations are deleted first", caplog)
+
+
+def test_a_provider_failure_is_retried_rather_than_published() -> None:
+    """A provider that fails once must not lose its roots for the process.
+
+    The failure is served with the built-in roots but not published, so the
+    next resolution calls the provider again instead of treating one bad
+    moment as the answer for the life of the process.
+    """
+    model: type[Any] = _host_root("transient")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("transient"),))
+    calls: list[int] = []
+
+    def provider() -> list[PurgeEntityPolicy]:
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("manager unreachable")
+        return [policy]
+
+    with _installed(provider):
+        assert model not in purge_policy_registry()
+        assert get_purge_policy(model) is policy
+
+    assert len(calls) == 2

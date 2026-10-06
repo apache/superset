@@ -172,9 +172,11 @@ rows or silently skip cleanup, since neither announces itself:
   instead.
 
 Anything else is left to fail where it fails. A predicate the cleanup cannot
-build, or an ordering a foreign key refuses, raises per row: counted as a
-cascade failure, isolated to its own root, and recorded against the audit
-attempt rather than quietly skipped.
+build raises per row and is counted in `cascade_failures`; an ordering a
+foreign key refuses surfaces as an integrity error, which the cascade reports
+as a blocked purge carrying the `cascade_integrity_failure` reason code and
+counts in `blocked_by_reference`. Either way the attempt is recorded against
+the audit row and isolated to its own root, rather than quietly skipped.
 
 A host that wants to confirm this hook exists before relying on it can check
 for `HOST_POLICIES_CONFIG_KEY` in
