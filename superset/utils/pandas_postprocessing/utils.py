@@ -233,17 +233,28 @@ def _transfer_column(
     Transfer a single column mapping from append_df to base_df.
 
     Separates overwrite logic from append logic:
-    if target exists in base_df, overwrites existing target values;
-    if target does not exist, appends the new column.
-    Ensures unmapped columns are discarded.
+    - If target already exists in base_df, overwrites existing target values
+      without duplicating the column label.
+    - If target does not exist in base_df, appends the new column.
+    - Unmapped columns in append_df are ignored and discarded.
+    - Safely handles MultiIndex column hierarchies for level 0 or tuple keys.
+
+    :param base_df: Destination DataFrame to receive the transferred column.
+    :param append_df: Source DataFrame containing the column to copy.
+    :param source: Name of the column in append_df.
+    :param target: Name of the target column in base_df.
+    :return: DataFrame with the single mapped column updated or appended.
     """
     if source not in append_df and source not in append_df.columns:
         return base_df
 
     if _is_multi_index(base_df):
+        # Case 1: Target exists in MultiIndex, overwrite existing level 0 or tuple
         if target in base_df.columns or target in base_df:
             base_df[target] = append_df[source].copy()
             return base_df
+
+        # Case 2: Append new level 0 column from MultiIndex append_df
         if _is_multi_index(append_df) and source in append_df.columns.levels[0]:
             src_slice = append_df[[source]].copy()
             new_cols = [(target, *col[1:]) for col in src_slice.columns]
@@ -251,9 +262,13 @@ def _transfer_column(
                 new_cols, names=base_df.columns.names
             )
             return pd.concat([base_df, src_slice], axis="columns")
+
+        # Case 3: Target is an exact tuple matching MultiIndex level depth
         if isinstance(target, tuple) and len(target) == base_df.columns.nlevels:
             base_df[target] = append_df[source].copy()
             return base_df
+
+        # Case 4: Target is a flat string appended to a MultiIndex DataFrame
         new_cols = [(target, *([""] * (base_df.columns.nlevels - 1)))]
         src_slice = append_df[[source]].copy()
         src_slice.columns = pd.MultiIndex.from_tuples(
@@ -261,6 +276,7 @@ def _transfer_column(
         )
         return pd.concat([base_df, src_slice], axis="columns")
 
+    # Standard single-level index: overwrite in place or append new column label
     base_df[target] = append_df[source].copy()
     return base_df
 
@@ -269,21 +285,23 @@ def _append_columns(
     base_df: DataFrame, append_df: DataFrame, columns: dict[str, str]
 ) -> DataFrame:
     """
-    Function for adding columns from one DataFrame to another DataFrame. Calls the
-    assign method, which overwrites the original column in `base_df` if the column
-    already exists, and appends the column if the name is not defined.
+    Function for adding mapped columns from append_df to base_df.
 
-    Note that! this is a memory-intensive operation.
+    Overwrites the original column in base_df if the target column label
+    already exists, and appends the column if the target name is not defined.
+    Only mapped columns defined in the columns dictionary are transferred;
+    unmapped columns in append_df are discarded to prevent column leakage.
+    Preserves base_df immutability by creating an isolated working copy.
 
-    :param base_df: DataFrame which to use as the base
+    :param base_df: DataFrame which to use as the base.
     :param append_df: DataFrame from which to select data.
-    :param columns: columns on which to append, mapping source column to
-           target column. For instance, `{'y': 'y'}` will replace the values in
-           column `y` in `base_df` with the values in `y` in `append_df`,
-           while `{'y': 'y2'}` will add a column `y2` to `base_df` based
-           on values in column `y` in `append_df`, leaving the original column `y`
-           in `base_df` unchanged.
-    :return: new DataFrame with combined data from `base_df` and `append_df`
+    :param columns: Columns mapping dictionary where key is the source
+           column in append_df and value is the target column in base_df.
+           For instance, {'y': 'y'} replaces values in column y in base_df
+           with values in y in append_df, while {'y': 'y2'} adds a new
+           column y2 to base_df based on y in append_df, leaving the
+           original column y in base_df unchanged.
+    :return: New DataFrame with selective column transfer applied.
     """
     if not columns:
         return base_df.copy()
