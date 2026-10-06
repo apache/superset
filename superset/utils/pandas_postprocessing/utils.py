@@ -281,13 +281,10 @@ def _append_columns(
            in `base_df` unchanged.
     :return: new DataFrame with combined data from `base_df` and `append_df`
     """
-    if all(key == value for key, value in columns.items()):
-        # make sure to return a new DataFrame instead of changing the `base_df`.
-        _base_df = base_df.copy()
-        _base_df.loc[:, columns.keys()] = append_df
-        return _base_df
-    append_df = append_df.rename(columns=columns)
-    return pd.concat([base_df, append_df], axis="columns")
+    _base_df = base_df.copy()
+    for source, target in columns.items():
+        _base_df = _transfer_column(_base_df, append_df, source, target)
+    return _base_df
 
 
 def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
