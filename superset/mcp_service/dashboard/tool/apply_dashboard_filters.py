@@ -113,6 +113,7 @@ def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
 
 def _describe_filters(configs: list[dict[str, Any]]) -> str:
     """Render the dashboard's filters as a name/ID list for error messages."""
+    configs = [conf for conf in configs if conf.get("type") != "DIVIDER"]
     if not configs:
         return "This dashboard has no native filters."
     described = ", ".join(

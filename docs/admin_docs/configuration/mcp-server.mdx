@@ -1757,6 +1757,11 @@ latency.
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
+Dividers are visual separators and are always in scope. When updating a
+`divider` with `manage_native_filters`, use `name` to change its title and
+`description` to change its description; `scope_chart_ids` is rejected.
+`apply_dashboard_filters` excludes dividers from its available-filter error lists.
+
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
 one datasource-supported duration (for example, `["P1D"]`). Custom engine
 durations are accepted when exposed in the datasource's time-grain options,

@@ -935,6 +935,60 @@ async def test_update_divider_title_and_description(mcp_server):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("scope_chart_ids", [[10], []])
+async def test_update_divider_rejects_scope_without_writing(
+    mcp_server: object, scope_chart_ids: list[int]
+) -> None:
+    """Divider scope updates fail validation before the write command runs."""
+    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
+    original_metadata = dashboard.json_metadata
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": EXISTING_DIVIDER["id"], "scope_chart_ids": scope_chart_ids}
+                ],
+            },
+        )
+
+    assert "does not support scope_chart_ids" in data["error"]
+    assert "dividers are always in scope" in data["error"]
+    command.assert_not_called()
+    assert dashboard.json_metadata == original_metadata
+
+
+@pytest.mark.asyncio
+async def test_update_filter_scope(mcp_server: object) -> None:
+    """Regular filters retain support for chart-specific scope updates."""
+    captured: dict[str, Any] = {"current_config": [EXISTING_SELECT_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER], chart_ids=[10, 11])
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": EXISTING_SELECT_FILTER["id"], "scope_chart_ids": [10]}
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["scope"] == {
+        "rootPath": ["ROOT_ID"],
+        "excluded": [11],
+    }
+
+
+@pytest.mark.asyncio
 async def test_update_divider_rejects_dataset_field(mcp_server):
     dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
 

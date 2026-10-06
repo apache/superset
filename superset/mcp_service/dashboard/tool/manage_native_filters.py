@@ -254,6 +254,11 @@ def _validate_update_type_compat(
     (dataset_id, column, multi_select, ...) is rejected for them, same as
     for any other filter type that does not declare it as allowed.
     """
+    if is_divider and spec.scope_chart_ids is not None:
+        raise _FilterValidationError(
+            f"Divider '{spec.id}' does not support scope_chart_ids; "
+            "dividers are always in scope."
+        )
     allowed = (
         _TYPE_SPECIFIC_UPDATE_FIELDS.get(filter_type, frozenset())
         if filter_type is not None
