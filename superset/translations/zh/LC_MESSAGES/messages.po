@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -1054,6 +1054,14 @@ msgstr "应作为日期解析的列的逗号分隔列表。"
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "允许上传文件的模式（schema）列表，以逗号分隔。"
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "A database port is required when connecting via SSH Tunnel."
@@ -1503,6 +1511,9 @@ msgstr "新增指标"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "在\"编辑数据源\"模态框中向数据集添加指标"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "添加新的颜色格式化器"
@@ -3821,6 +3832,12 @@ msgstr "选择要解析为日期的列"
 msgid "Choose columns to read"
 msgstr "要读取的列"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4168,6 +4185,10 @@ msgstr "按涨跌着色"
 # sr_Latn]
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "颜色字段必须是十六进制颜色(#rrggbb)或'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -7066,6 +7087,9 @@ msgstr "输入用户的用户名"
 msgid "Enter theme name"
 msgstr "输入主题名称"
 
+msgid "Enter values"
+msgstr ""
+
 msgid "Enter your current password"
 msgstr ""
 
@@ -7252,6 +7276,9 @@ msgstr "精确匹配（IN）"
 
 msgid "Example"
 msgstr "例子"
+
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
 
 msgid "Examples"
 msgstr "示例"
@@ -8656,6 +8683,9 @@ msgstr "导入 %s"
 msgid "Import Error"
 msgstr "导入错误"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "导入图表失败，原因未知"
 
@@ -8888,6 +8918,11 @@ msgstr "无效的JSON配置"
 
 msgid "Invalid JSON metadata"
 msgstr "无效的 JSON 元数据"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -9197,6 +9232,9 @@ msgstr "千米"
 
 msgid "Label"
 msgstr "标签"
+
+msgid "Label Colors"
+msgstr ""
 
 #, fuzzy
 msgid "Label Contents"
@@ -9859,6 +9897,9 @@ msgstr "地图渲染器"
 
 msgid "Map Style"
 msgstr "地图样式"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10690,6 +10731,9 @@ msgstr "没有可用的筛选器。"
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 #, fuzzy
@@ -12550,6 +12594,9 @@ msgstr "移除系统深色主题"
 msgid "Remove System Default Theme"
 msgstr "移除系统默认主题"
 
+msgid "Remove color mapping"
+msgstr ""
+
 #, fuzzy
 msgid "Remove cross-filter"
 msgstr "删除交叉筛选"
@@ -12835,6 +12882,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 #, fuzzy
 msgid "Reset"
 msgstr "重置"
@@ -12846,6 +12896,9 @@ msgstr "重置列"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Reset all folders to default"
 msgstr "将所有文件夹重置为默认设置"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "重置列"
@@ -13424,6 +13477,14 @@ msgstr "保存的查询未找到"
 msgid "Saved query parameters are invalid."
 msgstr "保存的查询参数无效"
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "保存中..."
 
@@ -13946,6 +14007,9 @@ msgstr "选择或输入抄送收件人"
 
 msgid "Select or type a custom value..."
 msgstr "选择或输入自定义值..."
+
+msgid "Select or type a label"
+msgstr ""
 
 #, fuzzy
 msgid "Select or type currency symbol"
@@ -15104,6 +15168,21 @@ msgstr "开始日期"
 msgid "Start date included in time range"
 msgstr "开始日期包含在时间范围内"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Y轴从0开始"
 
@@ -15295,6 +15374,12 @@ msgstr "后缀"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "百分比显示后要应用的后缀"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -17520,6 +17605,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18848,6 +18938,11 @@ msgstr "值"
 
 msgid "Values are dependent on other filters"
 msgstr "这些值依赖于 other 筛选器"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 #, fuzzy
 msgid "Values dependent on"
