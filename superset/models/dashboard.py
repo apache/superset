@@ -117,7 +117,7 @@ def _copy_dashboard_for_user(
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
     session.add(extra_attributes)
-    session.commit()
+    session.commit()  # pylint: disable=consider-using-transaction
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> None:
@@ -136,9 +136,9 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> Non
         return
 
     # Check if sqla.inspect is mocked (for compatibility with legacy tests)
-    inspect_fn = getattr(sqla, "inspect", None)
-    if hasattr(inspect_fn, "mock_calls"):
-        target_session = getattr(inspect_fn(target), "session", None)
+    if hasattr(sqla.inspect, "mock_calls"):
+        inspected = sqla.inspect(target)
+        target_session = getattr(inspected, "session", None)
         if target_session is not None:
             _copy_dashboard_for_user(target_session, target, dashboard_id)
             return

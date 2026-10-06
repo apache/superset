@@ -496,9 +496,8 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return False
         from unittest.mock import Mock, NonCallableMock
 
-        if (
-            isinstance(obj, (Mock, NonCallableMock))
-            or hasattr(obj, "_mock_return_value")
+        if isinstance(obj, (Mock, NonCallableMock)) or hasattr(
+            obj, "_mock_return_value"
         ):
             return True
         if isinstance(obj, type) and issubclass(obj, (Mock, NonCallableMock)):
