@@ -19,6 +19,12 @@ the **superset init** command (often done between Superset versions).
 
 A table with the permissions for these roles can be found at [/RESOURCES/STANDARD_ROLES.md](https://github.com/apache/superset/blob/master/RESOURCES/STANDARD_ROLES.md).
 
+### Importing and exporting roles
+
+Admins can export selected roles from **Security → List Roles** and import the resulting JSON file on another Superset instance. The file uses Flask-AppBuilder's role JSON format and contains role names and permission/view pairs only; user and group assignments are not included.
+
+Import is additive and idempotent: missing custom roles are created, and permissions absent from an existing custom role are added without removing its other permissions. Superset's built-in roles are skipped. Every permission/view pair must already be registered on the destination instance; if any are missing, the entire import is rejected without changes. Duplicate role names or permission entries in a file are invalid.
+
 ### Admin
 
 Admins have all possible rights, including granting or revoking rights from other

@@ -36,9 +36,24 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import abort, current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
-from flask_appbuilder.api import expose, permission_name, protect, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
@@ -378,6 +393,103 @@ class SupersetRoleApi(RoleApi):
     Since datamodel.add/edit commits before hooks fire, we flush the sync
     changes via an explicit commit.
     """
+
+    @expose("/export/", methods=["GET"])
+    @protect()
+    @safe
+    @parse_rison({"type": "array", "items": {"type": "integer"}, "example": [1, 2, 3]})
+    def export_roles(self, **kwargs: Any) -> Response:
+        """Export selected roles in Flask-AppBuilder JSON format.
+        ---
+        get:
+          parameters:
+            - in: query
+              name: q
+              required: true
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: integer
+              description: Rison encoded array of role IDs.
+          responses:
+            200:
+              description: Selected role definitions as JSON.
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: object
+            400:
+              description: Invalid or empty role selection.
+            403:
+              description: Admin access required.
+        """
+        if not self.appbuilder.sm.is_admin():
+            return self.response_403()
+        role_ids = kwargs["rison"]
+        if not role_ids or len(set(role_ids)) != len(role_ids):
+            return self.response_400(
+                message="A nonempty Rison array of role IDs is required"
+            )
+        from superset.security.role_transfer import export_roles
+
+        try:
+            output = export_roles(role_ids)
+        except LookupError:
+            return self.response_404(message="One or more roles were not found")
+        _log_audit_event(
+            "RolesExported", {"role_names": [item["name"] for item in output]}
+        )
+        response = current_app.response_class(
+            json.dumps(output), mimetype="application/json"
+        )
+        response.cache_control.no_store = True
+        response.cache_control.no_cache = True
+        response.cache_control.must_revalidate = True
+        return response
+
+    @expose("/import/", methods=["POST"])
+    @protect()
+    @safe
+    def import_roles(self) -> Response:
+        """Import roles additively from a FAB-compatible JSON payload.
+        ---
+        post:
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                description: FAB-compatible JSON role array.
+          responses:
+            200:
+              description: Names of created, updated, unchanged, and skipped roles.
+            400:
+              description: Invalid payload or permissions unavailable on this instance.
+            403:
+              description: Admin access required.
+        """
+        from superset.security.role_transfer import import_roles
+
+        if not self.appbuilder.sm.is_admin():
+            return self.response_403()
+        if not request.is_json:
+            return self.response_400(
+                message="Request MIME type must be application/json"
+            )
+        try:
+            result = import_roles(request.get_json(silent=True), self.appbuilder.sm)
+        except (ValueError, TypeError) as ex:
+            return self.response_400(message=str(ex))
+
+        _log_audit_event("RolesImported", dict(result))
+        return self.response(200, **result)
 
     def post_add(self, item: Model) -> None:
         from superset.daos.role import RoleDAO

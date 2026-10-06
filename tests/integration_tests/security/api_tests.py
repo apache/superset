@@ -18,12 +18,14 @@
 """Tests for security api methods"""
 
 from unittest.mock import patch
+from uuid import uuid4
 
 import jwt
 import pytest
 
 from flask.ctx import AppContext
 from flask_wtf.csrf import generate_csrf
+from werkzeug.security import generate_password_hash
 from superset import db, security_manager
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardAccessDeniedError,
@@ -456,8 +458,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -472,8 +475,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):
@@ -488,6 +492,159 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 class TestSecurityRolesApi(SupersetTestCase):
     uri = "api/v1/security/roles/"  # noqa: F541
     show_uri = "api/v1/security/roles/search/"
+    export_uri = "api/v1/security/roles/export/"
+    import_uri = "api/v1/security/roles/import/"
+
+    def _import_roles(self, definitions):
+        return self.client.post(
+            self.import_uri,
+            data=json.dumps(definitions),
+            content_type="application/json",
+        )
+
+    def test_export_selected_roles_uses_fab_json(self):
+        self.login(ADMIN_USERNAME)
+        pvm = security_manager.add_permission_view_menu("can_read", "Dashboard")
+        role = security_manager.add_role(f"export_role_{uuid4().hex}", [pvm])
+        security_manager.add_role(f"unselected_role_{uuid4().hex}", [pvm])
+
+        response = self.client.get(f"{self.export_uri}?q=!(%s)" % role.id)
+
+        self.assert200(response)
+        assert response.json == [
+            {
+                "name": role.name,
+                "permissions": [
+                    {
+                        "permission": {"name": "can_read"},
+                        "view_menu": {"name": "Dashboard"},
+                    }
+                ],
+            }
+        ]
+        assert response.mimetype == "application/json"
+        assert "Content-Disposition" not in response.headers
+
+    def test_import_roles_creates_adds_permissions_and_is_idempotent(self):
+        self.login(ADMIN_USERNAME)
+        permission = security_manager.add_permission_view_menu("can_read", "Dashboard")
+        added_permission = security_manager.add_permission_view_menu(
+            "can_write", "Dashboard"
+        )
+        role_name = f"imported_custom_role_{uuid4().hex}"
+        definition = [
+            {
+                "name": role_name,
+                "permissions": [
+                    {
+                        "permission": {"name": "can_read"},
+                        "view_menu": {"name": "Dashboard"},
+                    }
+                ],
+            }
+        ]
+
+        created = self._import_roles(definition)
+        self.assert200(created)
+        assert created.json["created"] == [role_name]
+        role = security_manager.find_role(role_name)
+        assert role is not None
+        assert [pvm.id for pvm in role.permissions] == [permission.id]
+        from superset.subjects.models import Subject
+
+        assert db.session.query(Subject).filter_by(role_id=role.id).one_or_none()
+
+        definition[0]["permissions"].append(
+            {
+                "permission": {"name": "can_write"},
+                "view_menu": {"name": "Dashboard"},
+            }
+        )
+        updated = self._import_roles(definition)
+        self.assert200(updated)
+        assert updated.json["updated"] == [role_name]
+        assert {pvm.id for pvm in role.permissions} == {
+            permission.id,
+            added_permission.id,
+        }
+
+        repeated = self._import_roles(definition)
+        self.assert200(repeated)
+        assert repeated.json["unchanged"] == [role_name]
+
+    def test_import_missing_permissions_and_duplicate_entries_are_rejected(self):
+        self.login(ADMIN_USERNAME)
+        self.assert400(
+            self.client.post(
+                self.import_uri,
+                data="[]",
+                content_type="text/plain",
+            )
+        )
+        missing_permission_file = [
+            {
+                "name": "should_not_be_created",
+                "permissions": [
+                    {
+                        "permission": {"name": "unknown_permission"},
+                        "view_menu": {"name": "Unknown view"},
+                    }
+                ],
+            }
+        ]
+        response = self._import_roles(missing_permission_file)
+        self.assert400(response)
+        assert security_manager.find_role("should_not_be_created") is None
+
+        duplicate_file = [
+            {
+                "name": "duplicate_role",
+                "permissions": [
+                    {
+                        "permission": {"name": "can_read"},
+                        "view_menu": {"name": "Dashboard"},
+                    },
+                    {
+                        "permission": {"name": "can_read"},
+                        "view_menu": {"name": "Dashboard"},
+                    },
+                ],
+            }
+        ]
+        self.assert400(self._import_roles(duplicate_file))
+        self.assert400(
+            self.client.post(
+                self.import_uri,
+                data=b"not json",
+                content_type="application/json",
+            )
+        )
+
+    def test_import_builtin_roles_are_skipped_and_gamma_is_forbidden(self):
+        self.login(ADMIN_USERNAME)
+        response = self._import_roles([{"name": "Admin", "permissions": []}])
+        self.assert200(response)
+        assert response.json["skipped"] == ["Admin"]
+
+        gamma_user = security_manager.find_user(GAMMA_USERNAME)
+        if not gamma_user:
+            gamma_role = security_manager.find_role("Gamma")
+            gamma_user = security_manager.add_user(
+                username=GAMMA_USERNAME,
+                first_name="Gamma",
+                last_name="User",
+                email="gamma@example.com",
+                role=[gamma_role],
+                password="general",  # noqa: S106
+            )
+        else:
+            gamma_user.password = generate_password_hash("general")
+            gamma_user.roles = [security_manager.find_role("Gamma")]
+            db.session.commit()
+        self.client.get("/logout/")
+        self.login(GAMMA_USERNAME)
+        response = self._import_roles([{"name": "custom_role", "permissions": []}])
+        self.assert403(response)
 
     @with_config({"FAB_ADD_SECURITY_API": True})
     def test_get_security_roles_admin(self):
