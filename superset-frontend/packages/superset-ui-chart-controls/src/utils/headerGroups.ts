@@ -393,6 +393,12 @@ export function normalizeColumnConfigKeys<T>(
   });
   const next: Record<string, T> = {};
   Object.entries(value).forEach(([key, config]) => {
+    if (colnamesSet.has(key)) {
+      if (!(key in next)) {
+        next[key] = config;
+      }
+      return;
+    }
     const stored = toStoredTimeComparisonColumnKey(key, colnames);
     let target = colnamesSet.has(stored) ? stored : key;
     if (!colnamesSet.has(target) && aliasToKey.has(key)) {

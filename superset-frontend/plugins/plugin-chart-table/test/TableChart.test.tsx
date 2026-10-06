@@ -391,6 +391,43 @@ describe('plugin-chart-table', () => {
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
 
+    test('does not remap a real Previous revenue column onto Main revenue', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Main revenue', 'Previous revenue', '# revenue'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+            ],
+            data: [
+              {
+                'Main revenue': 10,
+                'Previous revenue': 8,
+                '# revenue': 2,
+              },
+            ],
+          },
+        ],
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            'Previous revenue': { customColumnName: 'Prior' },
+          },
+        },
+      });
+
+      expect(
+        columns.find(col => col.key === 'Previous revenue')?.config,
+      ).toEqual(expect.objectContaining({ customColumnName: 'Prior' }));
+      expect(columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+        {},
+      );
+    });
+
     test('applies legacy Time column_config to the __timestamp column', () => {
       const { columns } = transformProps({
         ...testData.basic,

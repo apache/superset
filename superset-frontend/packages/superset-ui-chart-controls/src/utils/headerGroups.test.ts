@@ -379,6 +379,17 @@ test('toStoredTimeComparisonColumnKey leaves unmatched comparison-like keys unch
   ).toBe('# profit');
 });
 
+test('normalizeColumnConfigKeys leaves real result columns alone when a sibling looks like a comparison slot', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { 'Previous revenue': { customColumnName: 'Prior' } },
+      ['Main revenue', 'Previous revenue', '# revenue'],
+    ),
+  ).toEqual({
+    'Previous revenue': { customColumnName: 'Prior' },
+  });
+});
+
 test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames', () => {
   expect(
     normalizeColumnConfigKeys(

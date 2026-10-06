@@ -754,6 +754,51 @@ test('drops time comparison header groups when time_compare is empty', () => {
   expect(result.headerGroups).toEqual([]);
 });
 
+test('does not remap a real Previous revenue column onto Main revenue', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Raw,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          'Previous revenue': { customColumnName: 'Prior' },
+        },
+        table_timestamp_format: '',
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              'Main revenue': 10,
+              'Previous revenue': 8,
+              '# revenue': 2,
+            },
+          ],
+          colnames: ['Main revenue', 'Previous revenue', '# revenue'],
+          coltypes: [
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(
+    result.columns.find(col => col.key === 'Previous revenue')?.config,
+  ).toEqual(expect.objectContaining({ customColumnName: 'Prior' }));
+  expect(
+    result.columns.find(col => col.key === 'Main revenue')?.config,
+  ).toEqual({});
+});
+
 test('applies legacy Time column_config to the __timestamp column', () => {
   const result = transformProps(
     createMockChartProps({
