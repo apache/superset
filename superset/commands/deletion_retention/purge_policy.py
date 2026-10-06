@@ -1223,9 +1223,9 @@ def dataset_permission_name(
 ) -> str | None:
     """Capture the dataset permission identifier under the purge row lock.
 
-    Reads the identity columns from the database rather than the in-memory
-    entity, so a rename or database move committed before the purge claimed
-    the row cannot leave the cleanup targeting a stale permission name.
+    Reads the stored permission on the claimed row rather than an in-memory
+    entity, so cleanup targets the permission actually used by that row. The
+    derived name remains a fallback for rows without a stored permission.
     """
     if policy.entity_type != "dataset":
         return None
@@ -1235,14 +1235,17 @@ def dataset_permission_name(
     tables: sa.Table = metadata.tables["tables"]
     dbs: sa.Table = metadata.tables["dbs"]
     row = session.execute(
-        sa.select(tables.c.table_name, dbs.c.database_name)
+        sa.select(tables.c.perm, tables.c.table_name, dbs.c.database_name)
         .select_from(tables.join(dbs, tables.c.database_id == dbs.c.id))
         .where(tables.c.id == entity_id)
     ).one_or_none()
     if row is None:
         return None
     return str(
-        security_manager.get_dataset_perm(entity_id, row.table_name, row.database_name)
+        row.perm
+        or security_manager.get_dataset_perm(
+            entity_id, row.table_name, row.database_name
+        )
     )
 
 

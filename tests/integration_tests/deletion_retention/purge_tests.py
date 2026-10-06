@@ -43,6 +43,7 @@ from superset import db, security_manager
 from superset.commands.deletion_retention import audit
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
+    CascadeResult,
     suppress_purge_association_versions,
 )
 from superset.commands.deletion_retention.purge_policy import (
@@ -59,6 +60,7 @@ from superset.connectors.sqla.models import (
 )
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.helpers import SoftDeleteMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
@@ -242,6 +244,8 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         try:
             db.session.add(layer)
             db.session.flush()
+            # Preserve the fixture's stored permission without the insert listener
+            # replacing it with a newly generated view permission.
             db.session.execute(
                 sa.insert(SemanticView.__table__).values(
                     uuid=uuid.uuid4(),
@@ -294,6 +298,116 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             if saved_layer is not None:
                 db.session.delete(saved_layer)
             db.session.commit()
+
+    def test_orm_dataset_delete_keeps_permission_another_dataset_owns(self) -> None:
+        """The ORM delete path keeps a permission still used by another row."""
+        first: SqlaTable = self.make_dataset("orm_shared_first")
+        second: SqlaTable = self.make_dataset("orm_shared_second")
+        assert first.perm is not None
+        permission_name: str = first.perm
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == second.id)
+            .values(perm=permission_name)
+        )
+        db.session.commit()
+
+        try:
+            db.session.delete(first)
+            db.session.commit()
+            assert self.exists(SqlaTable, second.id)
+            assert security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+        finally:
+            db.session.rollback()
+            shared_pvm: PermissionView | None = (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", permission_name
+                )
+            )
+            if shared_pvm is not None:
+                db.session.delete(shared_pvm)
+                db.session.commit()
+
+    def test_purging_dataset_without_stored_permission_uses_derived_name(self) -> None:
+        """A missing stored permission does not strand its existing grant."""
+        dataset: SqlaTable = self.make_dataset("missing_stored_perm")
+        dataset_id: int = dataset.id
+        assert dataset.perm is not None
+        permission_name: str = dataset.perm
+        self.soft_delete(dataset, days_ago=90)
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == dataset_id)
+            .values(perm=None)
+        )
+        db.session.commit()
+
+        result: dict[str, Any] = _purge(window=30)
+        assert result["purged"].get("tables") == 1, result
+        assert not self.exists(SqlaTable, dataset_id)
+        assert not security_manager.find_permission_view_menu(
+            "datasource_access", permission_name
+        )
+
+    def test_batch_purge_retires_permission_after_last_dataset_owner(self) -> None:
+        """A batch retains a shared permission until its final owner is purged."""
+        first: SqlaTable = self.make_dataset("batch_shared_first")
+        second: SqlaTable = self.make_dataset("batch_shared_second")
+        first_id: int = first.id
+        second_id: int = second.id
+        assert first.perm is not None
+        permission_name: str = first.perm
+        self.soft_delete(first, days_ago=90)
+        self.soft_delete(second, days_ago=90)
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == second_id)
+            .values(perm=permission_name)
+        )
+        db.session.commit()
+
+        original_purge_one: Callable[
+            [type[SoftDeleteMixin], int, datetime], CascadeResult | None
+        ] = deletion_retention_task._purge_one
+        retained_after_first: list[bool] = []
+
+        def observe_purge_one(
+            model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime
+        ) -> CascadeResult | None:
+            result: CascadeResult | None = original_purge_one(model, entity_id, cutoff)
+            if model is SqlaTable and entity_id == first_id:
+                retained_after_first.append(
+                    security_manager.find_permission_view_menu(
+                        "datasource_access", permission_name
+                    )
+                    is not None
+                )
+            return result
+
+        try:
+            with patch.object(
+                deletion_retention_task, "_purge_one", side_effect=observe_purge_one
+            ):
+                result: dict[str, Any] = _purge(window=30)
+            assert result["purged"].get("tables") == 2, result
+            assert retained_after_first == [True]
+            assert not self.exists(SqlaTable, first_id)
+            assert not self.exists(SqlaTable, second_id)
+            assert not security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+        finally:
+            db.session.rollback()
+            shared_pvm: PermissionView | None = (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", permission_name
+                )
+            )
+            if shared_pvm is not None:
+                db.session.delete(shared_pvm)
+                db.session.commit()
 
     def test_restore_race_does_not_remove_dataset_permission(self) -> None:
         """A zero-row conditional parent delete leaves its permission intact."""

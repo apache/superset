@@ -3999,7 +3999,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        Retain the datasource_access PVM if a semantic view still owns the
+        Retain the datasource_access PVM if another datasource still owns the
         same permission name.
 
         :param mapper: The SQLA mapper
@@ -4007,17 +4007,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        dataset_vm_name = self.get_dataset_perm(
+        dataset_vm_name: str | None = self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
-            SemanticView,
-        )
-
-        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
-        if connection.execute(
-            select(sv_table.c.id).where(sv_table.c.perm == dataset_vm_name).limit(1)
-        ).first():
+        if dataset_vm_name and self._datasource_perm_owned_elsewhere(
+            connection, dataset_vm_name, None
+        ):
             return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
@@ -4454,7 +4449,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Whether a remaining dataset or semantic view owns *perm*.
 
         Pass the deleted view's ID when checking its delete event. Pass None
-        after a dataset purge, when every remaining view is a possible owner.
+        after dataset deletion, when every remaining view is a possible owner.
         The dataset query includes soft-deleted rows by using the Core table.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
