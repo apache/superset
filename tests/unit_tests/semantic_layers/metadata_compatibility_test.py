@@ -23,6 +23,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from flask import Flask
@@ -256,3 +257,43 @@ def test_clear_during_provider_resolution_does_not_relabel_old_observation(
     assert current is not None
     assert captured.key == old.key
     assert captured.key != current.key
+
+
+@pytest.mark.parametrize("retire", ["unknown", "expired"])
+def test_compatibility_rejects_token_without_a_current_observation(
+    app: Flask, retire: str
+) -> None:
+    """A nonempty provider token cannot authorize a key without store provenance."""
+    clock: list[float] = [100.0]
+    backend: MemoryBackend = MemoryBackend(clock=lambda: clock[0])
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend,
+        "scope",
+        deadline=200.0,
+        snapshot_ttl_seconds=10,
+        clock=lambda: clock[0],
+    )
+    snapshot: CatalogSnapshot = store.read(catalog, deadline=200.0)
+    provider: ResultView = ResultView(snapshot.cache_token, 17)
+    view: SemanticView = view_for(provider)
+    if retire == "unknown":
+        provider.token = uuid4().hex
+    else:
+        clock[0] += 11.0
+        assert store.peek() is None
+    # A new operation has not captured the provider's claimed observation.
+    store = ScopedMetadataStore(
+        backend, "scope", deadline=200.0, clock=lambda: clock[0]
+    )
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_cache.connection_store",
+            return_value=store,
+        ),
+        patch.object(
+            SemanticView, "implementation", new=property(lambda self: provider)
+        ),
+        pytest.raises(MetadataRefreshError, match="configuration"),
+    ):
+        compatibility_identity(view, ["orders"], [])
