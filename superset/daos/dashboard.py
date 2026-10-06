@@ -537,9 +537,23 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def _remap_filter_scope(
-        container: Any, old_to_new_slice_ids: dict[int, int]
+        container: dict[str, Any] | Any,
+        old_to_new_slice_ids: dict[int, int],
     ) -> None:
-        """Remap scope.excluded and chartsInScope of a filter container."""
+        """Remap scope.excluded and chartsInScope of a filter container.
+
+        This method updates in-place the chart ID references stored inside
+        a filter configuration container. Both native filters and cross-filter
+        scopes store denormalized lists of chart IDs in chartsInScope and
+        scope.excluded. When duplicate_slices is requested during dashboard
+        copy, these identifiers must point to the newly cloned slice IDs.
+
+        Non-dictionary elements, visual dividers (type DIVIDER or IDs starting
+        with NATIVE_FILTER_DIVIDER), and non-list attributes are skipped safely.
+
+        :param container: Dictionary holding filter scope or cross-filter configuration.
+        :param old_to_new_slice_ids: Mapping from original chart ID to duplicated chart ID.
+        """
         if not isinstance(container, dict):
             return
 
@@ -572,9 +586,23 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @classmethod
     def _remap_filter_scopes(
-        cls, metadata: dict[str, Any], old_to_new_slice_ids: dict[int, int]
+        cls,
+        metadata: dict[str, Any],
+        old_to_new_slice_ids: dict[int, int],
     ) -> None:
-        """Remap filter scopes and chart references in dashboard metadata."""
+        """Remap filter scopes and cross-filter references in dashboard metadata.
+
+        Mutates metadata in-place to redirect slice ID references across:
+        1. native_filter_configuration: list of native filter definitions.
+        2. global_chart_configuration: dashboard-wide cross-filter scoping.
+        3. chart_configuration: per-chart cross-filter scopes, keys, and chart IDs.
+
+        This ensures that after duplicating dashboard charts, all filter
+        scopes remain bound to the new chart copies instead of the originals.
+
+        :param metadata: Deserialized dashboard json_metadata dictionary.
+        :param old_to_new_slice_ids: Mapping from original chart ID to duplicated chart ID.
+        """
         if not isinstance(metadata, dict) or not old_to_new_slice_ids:
             return
 
