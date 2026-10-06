@@ -538,6 +538,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
         """Remap scope.excluded and chartsInScope of a filter container."""
         if not isinstance(container, dict):
             return
+        scope = container.get("scope")
+        if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
+            scope["excluded"] = [
+                old_to_new_slice_ids.get(cid, cid) for cid in scope["excluded"]
+            ]
+        if isinstance(container.get("chartsInScope"), list):
+            container["chartsInScope"] = [
+                old_to_new_slice_ids.get(cid, cid) for cid in container["chartsInScope"]
+            ]
 
     @classmethod
     def _remap_filter_scopes(
@@ -546,6 +555,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
         """Remap filter scopes and chart references in dashboard metadata."""
         if not isinstance(metadata, dict) or not old_to_new_slice_ids:
             return
+
+        if isinstance(metadata.get("native_filter_configuration"), list):
+            for native_filter in metadata["native_filter_configuration"]:
+                cls._remap_filter_scope(native_filter, old_to_new_slice_ids)
 
     @classmethod
     def copy_dashboard(
@@ -595,6 +608,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     old_id = value["meta"]["chartId"]
                     new_id = old_to_new_slice_ids.get(old_id)
                     value["meta"]["chartId"] = new_id
+
+            cls._remap_filter_scopes(metadata, old_to_new_slice_ids)
         else:
             dash.slices = original_dash.slices
 
