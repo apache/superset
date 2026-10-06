@@ -23,6 +23,7 @@ and the session cookie that ``login_user`` writes, neither of which the unit
 tests can see.
 """
 
+from contextlib import contextmanager
 from typing import Any
 from unittest.mock import patch
 from uuid import UUID
@@ -31,6 +32,7 @@ from flask_appbuilder.security.sqla.manager import user_updating
 
 from superset import db
 from superset.daos.key_value import KeyValueDAO
+from superset.extensions import csrf
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.utils import json
@@ -65,6 +67,57 @@ def _verbatim_resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
     if request.headers.get("X-Test-Mint-Secret") != MINT_SECRET:
         return None
     return request.get_json(silent=True) or None
+
+
+@contextmanager
+def csrf_enabled(app: Any) -> Any:
+    """Turn real CSRF protection on for the duration of a test.
+
+    The integration config sets ``WTF_CSRF_ENABLED = False``, so
+    ``SupersetAppInitializer.configure_wtf`` never ran ``csrf.init_app`` and
+    never applied ``WTF_CSRF_EXEMPT_LIST``. Flipping the config alone does
+    nothing: there is no ``before_request`` hook to flip, and the defaults
+    ``validate_csrf`` reads (``WTF_CSRF_METHODS``, ``WTF_CSRF_FIELD_NAME`` and
+    the rest) are only set by ``init_app``.
+
+    So the real ``init_app`` runs, rather than those defaults being restated
+    here -- restating them would mean reimplementing part of what this is meant
+    to verify. It registers a ``before_request`` hook and a context processor,
+    which Flask refuses once a request has been served, so the setup guard is
+    lifted for that call and everything it appended is removed afterwards. This
+    keeps the test independent of its position in the suite.
+    """
+    got_first_request = app._got_first_request  # noqa: SLF001
+    before = list(app.before_request_funcs.get(None, []))
+    processors = list(app.template_context_processors.get(None, []))
+    extension = app.extensions.get("csrf")
+    exempt_views = set(csrf._exempt_views)  # noqa: SLF001
+    config = {
+        key: app.config[key] for key in list(app.config) if key.startswith("WTF_CSRF_")
+    }
+
+    try:
+        app._got_first_request = False  # noqa: SLF001
+        csrf.init_app(app)
+        for view in app.config["WTF_CSRF_EXEMPT_LIST"]:
+            csrf.exempt(view)
+        app._got_first_request = got_first_request  # noqa: SLF001
+        app.config["WTF_CSRF_ENABLED"] = True
+        yield
+    finally:
+        app._got_first_request = got_first_request  # noqa: SLF001
+        app.before_request_funcs[None] = before
+        app.template_context_processors[None] = processors
+        csrf._exempt_views = exempt_views  # noqa: SLF001
+        for key in [k for k in list(app.config) if k.startswith("WTF_CSRF_")]:
+            if key in config:
+                app.config[key] = config[key]
+            else:
+                del app.config[key]
+        if extension is None:
+            app.extensions.pop("csrf", None)
+        else:
+            app.extensions["csrf"] = extension
 
 
 class TestLoginTokenApi(SupersetTestCase):
@@ -307,6 +360,54 @@ class TestLoginTokenApi(SupersetTestCase):
                     headers={"X-Test-Mint-Secret": MINT_SECRET},
                 )
                 assert response.status_code == 401, response.data
+
+    # --------------------------------------------------------------------- csrf
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_mint_is_csrf_exempt_with_protection_actually_on(self):
+        """The mint POST must work with no session and no CSRF token.
+
+        It is a server-to-server call from a backend that holds neither, so the
+        entry in ``WTF_CSRF_EXEMPT_LIST`` is load-bearing: without it the flow
+        cannot be used at all. Nothing else covers it, because the integration
+        config disables CSRF outright -- so removing or misspelling that entry
+        would leave the suite green and break production.
+        """
+        with csrf_enabled(self.app):
+            # Control first. If CSRF were not genuinely active, every assertion
+            # below would pass for the wrong reason, so prove a non-exempt POST
+            # on the same blueprint is rejected before trusting the rest.
+            control = self.client.post(
+                "/api/v1/security/guest_token/",
+                data=json.dumps({}),
+                content_type="application/json",
+            )
+            assert control.status_code == 400, (
+                "CSRF protection is not actually active, so this test proves "
+                f"nothing (guest_token returned {control.status_code})"
+            )
+
+            # The exempt endpoint: no session, no CSRF token, still mints.
+            response = self.client.post(
+                ENDPOINT,
+                data=json.dumps({"username": GAMMA_USERNAME}),
+                content_type="application/json",
+                headers={"X-Test-Mint-Secret": MINT_SECRET},
+            )
+            assert response.status_code == 200, response.data
+            token = json.loads(response.data)["access_token"]
+
+            # A rejected caller must fail on the credential, not on CSRF.
+            rejected = self.client.post(
+                ENDPOINT,
+                data=json.dumps({"username": GAMMA_USERNAME}),
+                content_type="application/json",
+            )
+            assert rejected.status_code == 401, rejected.data
+
+        # The minted token is a real one, redeemable after the fact.
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 302
 
     # --------------------------------------------------------------------- next
 
