@@ -196,6 +196,7 @@ class DatasourceRestApi(BaseSupersetApi):
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
     ) -> FlaskResponse:
         """Return suggestions for an authorized datasource, gating before cache."""
+        metadata_identity: dict[str, str] = {}
         # This route cannot prove the provenance of saved dimension names.
         # Gate before cache access as well as provider execution.
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
@@ -210,6 +211,11 @@ class DatasourceRestApi(BaseSupersetApi):
                     result=[],
                     suggestions_status="unavailable_versioned_view",
                 )
+            metadata_token: str | None = cast(
+                SemanticView, datasource
+            ).metadata_cache_token
+            if metadata_token is not None:
+                metadata_identity["metadata_token"] = metadata_token
 
         row_limit: int = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
         denormalize_column: bool = not datasource.normalize_columns
@@ -256,6 +262,7 @@ class DatasourceRestApi(BaseSupersetApi):
                         "q": search,
                         "rls": security_manager.get_rls_cache_key(datasource),
                         "changed_on": str(getattr(datasource, "changed_on", "")),
+                        **metadata_identity,
                     },
                     sort_keys=True,
                 ).encode()
