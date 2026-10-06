@@ -595,6 +595,19 @@ def _dispose_host_mappers() -> Iterator[None]:
         _HOST_MAPPERS.pop().dispose()
 
 
+@pytest.fixture
+def versioned_host_root(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make any root resolve a version class.
+
+    The root-relative version rules only come into play once the cascade
+    reaches the root at all, which it does by resolving the root's own version
+    class. A throwaway root has none, so these tests stand one in.
+    """
+    import sqlalchemy_continuum
+
+    monkeypatch.setattr(sqlalchemy_continuum, "version_class", lambda model: model)
+
+
 def _map_host_root(model: type[Any], table: sa.Table) -> type[Any]:
     """Map *model* onto *table* for the duration of one test."""
     mapper_registry: registry = registry()
@@ -648,19 +661,18 @@ def _host_edge(prefix: str) -> DependencyPolicy:
 def _host_policy(
     model: type[Any], dependencies: tuple[DependencyPolicy, ...]
 ) -> PurgeEntityPolicy:
-    """Borrow the chart policy's generic actions for a host root.
+    """Borrow the chart policy's actions for a host root.
 
-    The two chart-specific snapshots are replaced, as a real host policy must
-    replace them: left in place they would report a dashboard-slice count and
-    a dangling-chart list for an unrelated entity.
+    The documented clone pattern, kept as the fixture so the tests exercise
+    what an integrator would actually write. The chart-specific snapshots it
+    carries are inert on a host root: each resolves from an entity type a
+    host cannot claim.
     """
     return replace(
         get_purge_policy(Slice),
         model=model,
         entity_type="host_root",
         dependencies=dependencies,
-        count_dashboard_slices=lambda session, policy, entity_id: 0,
-        collect_dangling_chart_uuids=lambda session, policy, entity_id: [],
     )
 
 
@@ -1147,6 +1159,7 @@ def test_root_with_a_composite_primary_key_is_rejected(
 
 def test_version_target_on_an_intermediate_owner_is_rejected(
     caplog: pytest.LogCaptureFixture,
+    versioned_host_root: None,
 ) -> None:
     """Version cleanup compares the declared column with the root's id.
 
@@ -1304,6 +1317,7 @@ def test_root_with_a_non_integer_id_is_rejected(
 
 def test_version_target_keyed_on_a_non_primary_root_column_is_rejected(
     caplog: pytest.LogCaptureFixture,
+    versioned_host_root: None,
 ) -> None:
     """Cleanup compares the target with the root's id, not another column.
 
@@ -1379,7 +1393,7 @@ def test_host_policy_declaring_core_only_dependencies_is_dropped(
     )
 
     _assert_rejected(
-        model, _host_policy(model, declared), "cannot be carried out", caplog
+        model, _host_policy(model, declared), "not available to a host root", caplog
     )
 
 
@@ -1481,6 +1495,7 @@ def test_self_referencing_owned_table_rejects_stock_cleanup(
 
 def test_self_referencing_version_target_is_rejected(
     caplog: pytest.LogCaptureFixture,
+    versioned_host_root: None,
 ) -> None:
     """A parent column on the root's own shadow is not the root's identity.
 
@@ -1509,27 +1524,6 @@ def test_self_referencing_version_target_is_rejected(
     )
 
     _assert_rejected(model, policy, "is not root-relative", caplog)
-
-
-def test_host_policy_keeping_core_specific_snapshots_is_dropped(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Cloning a built-in policy carries snapshots that read core's tables.
-
-    ``count_dashboard_slices`` and ``collect_dangling_chart_uuids`` read
-    ``dashboard_slices`` and the chart table by the root's id. On a host root
-    they write a count and a referrer list for an unrelated entity into the
-    audit record.
-    """
-    model: type[Any] = _host_root("cloned")
-    policy: PurgeEntityPolicy = replace(
-        get_purge_policy(Slice),
-        model=model,
-        entity_type="host_root",
-        dependencies=(_host_edge("cloned"),),
-    )
-
-    _assert_rejected(model, policy, "read this package's own tables", caplog)
 
 
 def test_each_app_resolves_its_own_index(app_context: None) -> None:
@@ -1562,3 +1556,61 @@ def test_each_app_resolves_its_own_index(app_context: None) -> None:
         assert get_purge_policy(model) is policy
 
     assert len(calls) == 1
+
+
+def test_a_lazy_payload_that_raises_is_retried_like_the_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Walking a generator runs host code, so it earns the provider's retry.
+
+    Reading a lazy payload can fail for the same transient reasons calling
+    the provider can; only the shape of a payload that arrived intact is
+    settled for good.
+    """
+    monkeypatch.setattr(purge_policy_module, "_PROVIDER_RETRY_SECONDS", 0.0)
+    model: type[Any] = _host_root("lazy")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("lazy"),))
+    calls: list[int] = []
+
+    def provider() -> Iterator[PurgeEntityPolicy]:
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("manager unreachable")
+            yield policy  # pragma: no cover - unreachable, keeps this a generator
+        yield policy
+
+    with _installed(provider):
+        assert model not in purge_policy_registry()
+        assert get_purge_policy(model) is policy
+
+    assert len(calls) == 2
+
+
+def test_version_target_on_an_unversioned_root_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The cascade stops before a declared target when the root has none.
+
+    It resolves the root's own version class first, so for an unversioned root
+    a target on a child's shadow is never reached: the root and its live child
+    rows are purged while the child's history survives, unreported.
+    """
+    model: type[Any] = _host_referenced("unversioned")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey(
+                "relationship",
+                "unversioned_ref",
+                "unversioned_ref_version",
+                direction="onetomany",
+                relationship="versions",
+            ),
+            DependencyClassification.VERSION_OWNED,
+            ExecutionPhase.VERSION,
+            version_column="entity_id",
+        ),
+    )
+
+    _assert_rejected(
+        model, _host_policy(model, declared), "has no version class", caplog
+    )

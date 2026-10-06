@@ -923,8 +923,8 @@ def _policy_label(policy: Any) -> str:
     return str(getattr(model, "__name__", type(model).__name__))
 
 
-def _host_policy_payload(provided: Any) -> tuple[Any, ...] | None:
-    """Materialize the provider's payload, or reject it.
+def _host_policy_payload(provided: Any) -> tuple[Any, ...]:
+    """Materialize the provider's payload, or reject its shape.
 
     Any iterable is accepted -- a list, a tuple, ``dict.values()``, a
     generator -- since the documented contract is a sequence of policies, not
@@ -932,6 +932,11 @@ def _host_policy_payload(provided: Any) -> tuple[Any, ...] | None:
     iterate into characters, which would read as a sequence of bad members
     rather than the wrong type. Materialized once: a generator cannot be
     walked twice.
+
+    An exception raised *while reading* a lazy payload is left to propagate.
+    Walking a generator runs host code just as calling the provider does, so
+    the two are the same kind of failure and earn the same retry; only the
+    shape of a payload that arrived intact is settled for good.
     """
     if isinstance(provided, (str, bytes)) or not isinstance(provided, Iterable):
         logger.error(
@@ -939,15 +944,8 @@ def _host_policy_payload(provided: Any) -> tuple[Any, ...] | None:
             HOST_POLICIES_CONFIG_KEY,
             type(provided).__name__,
         )
-        return None
-    try:
-        return tuple(provided)
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "purge_policy: %s could not be read; keeping built-in roots only",
-            HOST_POLICIES_CONFIG_KEY,
-        )
-        return None
+        return ()
+    return tuple(provided)
 
 
 def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
@@ -968,7 +966,10 @@ def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
     declared: set[str] = {root_table.name} | {
         dependency.key.related_table
         for dependency in policy.dependencies
+        # Version shadows are resolved by bare name as well, in
+        # _entity_version_targets.
         if dependency.classification in _EXECUTABLE_CLASSIFICATIONS
+        or dependency.classification is DependencyClassification.VERSION_OWNED
     }
     for name in sorted(declared):
         keys: list[str] = keys_by_name.get(name, [])
@@ -1022,27 +1023,6 @@ def _admitted_host_policy(
             return None
         # Validated first, so a table the metadata simply does not contain is
         # reported as such rather than as an ambiguous name.
-        inherited: list[str] = [
-            name
-            for name, stock in (
-                ("count_dashboard_slices", count_dashboard_slices),
-                ("collect_dangling_chart_uuids", dangling_chart_uuids),
-            )
-            if getattr(candidate, name) is stock
-        ]
-        if inherited:
-            # Cloning a built-in policy with ``replace`` is a natural way to
-            # borrow the generic cleanup, but it also carries these two, which
-            # read ``dashboard_slices`` and the chart table by the root's id.
-            # Left in place on a host root they write a count and a referrer
-            # list for an unrelated entity into the audit record -- wrong
-            # evidence, recorded as fact. The permission pair is inert here by
-            # comparison: both resolve from an entity type a host cannot
-            # claim.
-            raise RuntimeError(
-                f"{', '.join(inherited)} read this package's own tables; a "
-                "host policy supplies its own"
-            )
         unusable: set[str] = {
             dependency.classification.value
             for dependency in candidate.dependencies
@@ -1053,15 +1033,17 @@ def _admitted_host_policy(
             }
         }
         if unusable:
-            # Both resolve from core's own identities: the stock listener
-            # actions decide what to delete from a built-in entity type, and
-            # blockers are applied by the stock validator. Declared by a host,
-            # they are accepted and then never carried out -- silence rather
-            # than a failure, which is the one outcome worth refusing. A host
-            # blocks by raising PurgeBlockedError from its own validate.
+            # Two different reasons, both about identities this package owns.
+            # A stock listener action decides what to delete from a built-in
+            # entity type, so declared by a host it is accepted and then never
+            # runs. A blocker *would* be applied -- validate_deletion_allowed
+            # is generic over the declarations -- but its reason code lands in
+            # the purge audit record, whose vocabulary is a closed set pinned
+            # by test. A host refuses a purge from its own validator instead,
+            # where the code it records is plainly its own.
             raise RuntimeError(
-                f"{', '.join(sorted(unusable))} dependencies cannot be carried "
-                "out for a host root"
+                f"{', '.join(sorted(unusable))} dependencies are not available "
+                "to a host root"
             )
         _validated_policy(candidate)
         conflict: str | None = _unqualified_table_conflict(candidate)
@@ -1105,26 +1087,27 @@ def _host_purge_policies(
     down with it, and must never redefine how a chart, dashboard or dataset is
     purged.
 
-    Returns ``None`` for the one failure that may be transient -- the provider
-    itself could not be called. The caller then serves the built-in roots
-    *without* publishing, so the next resolution tries again instead of
-    freezing a bad moment in for the life of the process. A payload that is
-    merely malformed is a host bug that will not fix itself, so it is
-    published as an empty result rather than retried on every read.
+    Returns ``None`` for the failures that may be transient -- the provider
+    could not be called, or a lazy payload raised while being read. The caller
+    then publishes the built-in roots with a short deadline, so the next
+    resolution after it tries again rather than treating one bad moment as the
+    answer for the life of the process. A payload that arrived intact but is
+    the wrong shape is a host bug that will not fix itself, so it is published
+    as an empty result instead.
     """
     if provider is None:
         return ()
     try:
-        provided: Any = provider()
+        # Both the call and reading what it returns run host code, so a lazy
+        # payload that raises mid-walk is the same kind of failure as a
+        # provider that raises outright, and earns the same retry.
+        candidates: tuple[Any, ...] = _host_policy_payload(provider())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "purge_policy: %s is unavailable; keeping built-in roots only",
             HOST_POLICIES_CONFIG_KEY,
         )
         return None
-    candidates: tuple[Any, ...] | None = _host_policy_payload(provided)
-    if candidates is None:
-        return ()
 
     builtin_policies: tuple[PurgeEntityPolicy, ...] = _builtin_purge_policies()
     builtin_roots: frozenset[type[Any]] = frozenset(
@@ -1169,11 +1152,11 @@ _UNRESOLVED: Any = object()
 class _ResolvedRegistry:
     """The index built for one provider, with the roots validated so far.
 
-    Compared by provider *identity* rather than memoized with ``lru_cache``: a
-    cache keyed on the provider would hash it, and a host callable
-    implemented as a mutable dataclass instance is unhashable. That would
-    raise here -- before the host boundary could isolate the host's mistake --
-    and stop the built-in roots purging too.
+    Matched to its provider by *identity* rather than keyed in an
+    ``lru_cache``: a cache key would have to be hashed, and a host callable
+    implemented as a mutable dataclass instance is unhashable. That raises
+    before the host boundary can isolate the host's mistake, which would
+    stop the built-in roots purging too.
     """
 
     provider: Any = _UNRESOLVED
@@ -1285,8 +1268,12 @@ def _resolved_registry() -> _ResolvedRegistry:
 def _builtin_registry() -> _ResolvedRegistry:
     """A snapshot of only the roots this package declares.
 
-    Served to a nested resolution and to a caller whose provider could not be
-    reached, neither of which should see an index that is empty or stale.
+    Served where there is no app to resolve against, and to a nested
+    resolution -- a provider building its policy from a built-in one, which
+    needs these roots rather than an index that is not finished. A provider
+    that could not be called is handled separately: those get these same
+    roots, but published with a deadline so the call is retried.
+
     Cached so the roots it validates stay validated.
     """
     return _ResolvedRegistry(
@@ -1298,11 +1285,12 @@ def _builtin_registry() -> _ResolvedRegistry:
 def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     """Index the built-in purge roots plus any the host installed.
 
-    Rebuilt only when the installed provider changes. Freezing at first use
-    would pin whatever happened to be installed at that moment -- including
-    nothing at all, for a call made before startup finished -- until a
-    restart, while resolving on every call would invoke the provider once per
-    root and could hand back different objects each time.
+    Rebuilt when the installed provider changes, and once more after a
+    failed provider's retry deadline passes. Freezing at first use would pin
+    whatever happened to be installed at that moment -- including nothing at
+    all, for a call made before startup finished -- until a restart, while
+    resolving on every call would invoke the provider once per root and could
+    hand back different objects each time.
     """
     return _resolved_registry().registry
 
@@ -1485,6 +1473,35 @@ _EXECUTABLE_CLASSIFICATIONS: frozenset[DependencyClassification] = frozenset(
 )
 
 
+def _validate_versioned_root(policy: PurgeEntityPolicy) -> None:
+    """Reject version targets on a root that has no version class.
+
+    ``_delete_version_history`` resolves the *root's* version class first and
+    returns as soon as that raises, so a target declared on a child's shadow
+    is never reached for an unversioned root: the root and its live child rows
+    are purged while the child's history survives, with nothing reported.
+
+    Skipped where nothing is versioned at all. The version cascade is then
+    inert for every root, including this package's own, and refusing would
+    only take those down with it.
+    """
+    try:
+        from sqlalchemy_continuum import version_class, versioning_manager
+        from sqlalchemy_continuum.exc import ClassNotVersioned
+    except ImportError:  # pragma: no cover - versioning not installed
+        return
+    if not getattr(versioning_manager, "version_class_map", None):
+        return
+    try:
+        version_class(policy.model)
+    except ClassNotVersioned:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no version class, so the "
+            "version cascade returns before reaching a declared target; such "
+            "a policy declares none"
+        ) from None
+
+
 def _validate_version_target(
     policy: PurgeEntityPolicy, dependency: DependencyPolicy, metadata: sa.MetaData
 ) -> None:
@@ -1550,8 +1567,10 @@ def _validate_dependency_declaration(
     if dependency.classification is DependencyClassification.VERSION_OWNED:
         if dependency.version_column is None:
             raise RuntimeError(f"Missing version target column for {key.describe()}")
-        # A version target that is not root-relative deletes another root's
-        # history and leaves this root's behind -- silently, either way.
+        # Both silent either way: a target the version cascade never
+        # reaches, and one that is not root-relative and so deletes another
+        # root's history while leaving this root's behind.
+        _validate_versioned_root(policy)
         _validate_version_target(policy, dependency, metadata)
 
 

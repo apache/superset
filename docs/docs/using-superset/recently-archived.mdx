@@ -125,7 +125,8 @@ run. Unsupported models are excluded from `would_purge` and do not count as
 An empty `unsupported_models` map means no registered models were skipped for
 this reason. A root whose eligible-row scan raises — an unreadable column, a
 transient database error — is counted in `scan_failures`, increments
-`deletion_retention.scan_failures.<table>` for that root and gauges
+`deletion_retention.scan_failures.<root>` for that root -- its table name, or
+its class name where reading the table name is what failed and gauges
 `deletion_retention.scan_failures` for the run, leaving the remaining roots to
 purge normally. Rows that root had already purged before the failure stay in
 its reported counts, since those deletions are committed.
@@ -165,11 +166,14 @@ rows or silently skip cleanup, since neither announces itself:
 - a table it names cannot be resolved unambiguously without a schema, so
   cleanup would resolve it to a different table;
 - a version target is not root-relative, so cleanup would delete another
-  root's history and leave this root's behind;
-- it declares a block or a listener effect, which resolve from Superset's own
-  validator and entity types and so are never carried out for a host root. A
-  host refuses a purge by raising `PurgeBlockedError` from its own validator
-  instead;
+  root's history and leave this root's behind -- or the root has no version
+  class at all, in which case the cascade returns before reaching the target
+  and the history it names simply survives;
+- it declares a listener effect, whose action decides what to delete from an
+  entity type a host cannot claim and so never runs, or a block, which would
+  run but records a reason code in the purge audit log, whose vocabulary is a
+  closed set. A host refuses a purge by raising `PurgeBlockedError` from its
+  own validator instead, where the code it records is plainly its own;
 - it keeps the shared owned-child cleanup while declaring a table that owns
   itself, or one reachable only through an association. The shared cleanup
   deletes one level and builds each predicate by traversing the ownership
@@ -180,13 +184,12 @@ rows or silently skip cleanup, since neither announces itself:
 A host root's references from Superset-owned tables are the host's own to
 clean up, in its own callbacks: the tag and permission cleanups Superset runs
 for its roots resolve from entity types a host cannot claim, so they never
-run for one. A host policy also supplies its own `count_dashboard_slices` and
-`collect_dangling_chart_uuids`, which otherwise read Superset's tables by the
-host root's id and record a count and a referrer list for an unrelated entity.
+run for one.
 
 Each application resolves its own index, so two in one process do not
-re-resolve each other's. A provider that cannot be called is logged, and the
-built-in roots answer reads for a short window before it is tried again --
+re-resolve each other's. A provider that cannot be called -- or whose lazy
+payload raises while being read -- is logged, and the built-in roots answer
+reads for a short window before it is tried again --
 so a passing outage is not remembered for the life of the process, and it is
 not re-attempted on every read either.
 
