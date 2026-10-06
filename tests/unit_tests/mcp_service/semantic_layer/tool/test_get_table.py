@@ -28,16 +28,20 @@ from unittest.mock import MagicMock, Mock, patch
 import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
+from flask import current_app
 from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.semantic_layer.schemas import (
     GetTableRequest,
     GetTableResponse,
     SemanticLayerError,
 )
+from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 get_table_module: ModuleType = importlib.import_module(
@@ -1502,3 +1506,47 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
     assert query["filters"] == [
         {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scope", [None, "7"])
+async def test_get_table_guest_rls_denies_before_semantic_provider(
+    mcp_server: FastMCP,
+    mock_auth: MagicMock,
+    scope: str | None,
+) -> None:
+    """get_table refuses a guest with applicable RLS before calling the provider."""
+    token: GuestToken = {
+        "user": {},
+        "resources": [],
+        "iat": 0,
+        "exp": 1,
+        "rls_rules": [GuestTokenRlsRule(dataset=scope, clause="category = 'a'")],
+    }
+    mock_auth.return_value = GuestUser(token=token, roles=[])
+    view: SemanticView = SemanticView(id=7, name="rows")
+    provider: MagicMock = MagicMock()
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(security_manager, "can_access_all_datasources", return_value=True),
+        patch.object(SemanticView, "implementation", property(lambda self: provider)),
+        patch.dict(current_app.config, {"MCP_GUEST_ALLOWED_TOOLS": {"get_table"}}),
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {"request": {"view_id": 7, "metrics": ["total"]}},
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is False
+    assert data["error_type"] == "AccessDenied"
+    assert "cannot enforce guest row-level" in data["message"]
+    provider.get_dimensions.assert_not_called()
+    provider.get_table.assert_not_called()
