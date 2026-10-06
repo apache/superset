@@ -3278,6 +3278,19 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 # through AUTH_ROLES_MAPPING, so a caller can only request roles the operator has
 # already mapped -- it cannot invent or escalate roles.
 #
+# Redemption provisions through the same path as an OAuth login, so the usual
+# AUTH_* settings decide what happens to the identity the resolver returns:
+#
+#   - AUTH_USER_REGISTRATION (default False): with it off, only users who
+#     already exist in Superset can log in this way; anyone else is minted a
+#     token that redeems to a 401. Turn it on, with AUTH_USER_REGISTRATION_ROLE,
+#     to create users on first login.
+#   - AUTH_ROLES_MAPPING (default {}): with it empty, `role_keys` is ignored
+#     entirely. Map each key to the Superset role names it should grant.
+#   - AUTH_ROLES_SYNC_AT_LOGIN (default False): with it off, `role_keys` only
+#     takes effect when a user is first created; an existing user keeps their
+#     current roles. Turn it on to replace them from `role_keys` at every login.
+#
 #   from flask import Request
 #   from superset.security.login_token import LoginTokenUserInfo
 #

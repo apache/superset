@@ -32,7 +32,7 @@ from flask_appbuilder.security.sqla.manager import user_updating
 
 from superset import db, security_manager
 from superset.daos.key_value import KeyValueDAO
-from superset.extensions import csrf
+from superset.extensions import _event_logger, csrf
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.utils import json
@@ -470,6 +470,69 @@ class TestLoginTokenApi(SupersetTestCase):
             assert me["username"] == username
         finally:
             delete_user()
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_401s_when_login_user_refuses(self):
+        """A session that was not established is reported as a failure.
+
+        ``login_user`` returns ``False`` and sets no session for an inactive
+        user. ``auth_user_oauth`` checks ``is_active`` first, but an account
+        disabled between that check and ``login_user`` would otherwise receive a
+        302 into an anonymous frame -- the token burned, and nothing for the
+        parent application to act on. The race is forced by patching
+        ``login_user`` rather than timed.
+        """
+        token = self._mint()
+
+        with patch("superset.security.api.login_user", return_value=False) as login:
+            response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/1/")
+
+        # Control: the refusal must have come from login_user, not from an
+        # earlier branch that would make this test pass for the wrong reason.
+        assert login.call_count == 1
+        assert response.status_code == 401, response.headers.get("Location")
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("is_anonymous") is True, me
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_mint_does_not_record_the_request_body(self):
+        """No part of the mint request reaches the event log.
+
+        A resolver may read the caller's proof of identity -- an OIDC id token,
+        a service credential -- from the body or query string, and
+        ``collect_request_payload`` would otherwise copy it verbatim into
+        ``logs.json``, on rejection as well as success. Both paths are covered:
+        the 401 path is where an attacker's guesses at a credential would land.
+        """
+        secret = "id-token-that-must-not-be-logged"  # noqa: S105
+        real_logger = _event_logger["event_logger"]
+
+        cases = (
+            # Accepted: the verbatim resolver returns the body as userinfo.
+            ({"username": GAMMA_USERNAME, "id_token": secret}, MINT_SECRET, 200),
+            # Rejected by the resolver: wrong shared secret.
+            ({"username": GAMMA_USERNAME, "id_token": secret}, "wrong", 401),
+        )
+        for body, header, expected in cases:
+            with self.subTest(expected=expected):
+                with patch.object(real_logger, "log") as log:
+                    response = self.client.post(
+                        f"{ENDPOINT}?credential={secret}",
+                        data=json.dumps(body),
+                        content_type="application/json",
+                        headers={"X-Test-Mint-Secret": header},
+                    )
+                assert response.status_code == expected, response.data
+
+                # Control: the mint endpoint's own event was recorded. Without
+                # this, a logger that never fired would pass trivially.
+                actions = [call.args[1] for call in log.call_args_list]
+                assert "SecurityRestApi.login_token" in actions, actions
+
+                recorded = repr(log.call_args_list)
+                assert secret not in recorded, recorded
 
     # --------------------------------------------------------------------- csrf
 

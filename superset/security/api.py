@@ -425,7 +425,18 @@ class SecurityRestApi(BaseSupersetApi):
             )
             return self.response_401()
 
-        login_user(user)
+        # ``login_user`` refuses an inactive user by returning ``False`` and
+        # setting no session. ``auth_user_oauth`` checks ``is_active`` first, but
+        # an account disabled between that check and this call would otherwise
+        # get a 302 into an anonymous frame, with the token already burned and
+        # nothing for the parent application to act on.
+        if not login_user(user):
+            logger.warning(
+                "One-time login token resolved to '%s', but the session could not "
+                "be established",
+                user,
+            )
+            return self.response_401()
         logger.info("Session established from a one-time login token for '%s'", user)
 
         # Only ever redirect to a value that has passed the relative-path check.
