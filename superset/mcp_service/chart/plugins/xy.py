@@ -29,7 +29,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    VegaLitePreview,
+    XYChartConfig,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
     CardinalityValidator,
@@ -54,6 +59,16 @@ class XYChartPlugin(BaseChartPlugin):
         "echarts_timeseries_scatter": "Scatter Plot",
     }
     query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Adapt flattened timeseries series into the XY preview encoding."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_vega_lite_preview,
+        )
+
+        return generate_xy_vega_lite_preview(data, form_data)
 
     def pre_validate(
         self,

@@ -78,6 +78,7 @@ EXAMPLE_IDS = [
 ]
 
 HOOKS = (
+    "prepare_query_form_data",
     "secondary_query_form_data",
     "table_preview",
     "unsupported_preview",

@@ -333,6 +333,10 @@ class ChartTypePlugin(Protocol):
         """Return QueryContext query dicts, or None to use the shared builder."""
         ...
 
+    def prepare_query_form_data(self, form_data: dict[str, Any]) -> None:
+        """Resolve chart-specific state before extra_form_data is consumed."""
+        ...
+
     def secondary_query_form_data(
         self, form_data: Mapping[str, Any]
     ) -> dict[str, Any] | None:
@@ -574,6 +578,9 @@ class BaseChartPlugin:
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
         return None
+
+    def prepare_query_form_data(self, form_data: dict[str, Any]) -> None:
+        """Leave form data unchanged unless a chart needs pre-merge normalization."""
 
     def secondary_query_form_data(
         self, form_data: Mapping[str, Any]

@@ -250,6 +250,7 @@ def prepare_form_data_for_query(
     datasource_type: str,
     extra_form_data: dict[str, Any] | None = None,
     datasource_engine: str | None = None,
+    viz_type: str | None = None,
 ) -> None:
     """Normalize form_data filters before building a QueryObject payload.
 
@@ -294,6 +295,10 @@ def prepare_form_data_for_query(
             form_data.get("extra_form_data"),
             extra_form_data,
         )
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    if plugin := plugin_for_viz_type(viz_type or form_data.get("viz_type")):
+        plugin.prepare_query_form_data(form_data)
     convert_legacy_filters_into_adhoc(form_data)
     merge_extra_filters(form_data)
     split_adhoc_filters_into_base_filters(
@@ -1192,6 +1197,7 @@ def build_query_dicts_from_form_data(
         datasource_type,
         extra_form_data,
         datasource_engine=engine,
+        viz_type=viz_type,
     )
     if secondary_form_data is not None:
         prepare_form_data_for_query(

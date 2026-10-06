@@ -1644,12 +1644,13 @@ def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | N
 
 
 def _generate_vega_lite_preview_from_data(  # noqa: C901
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: List[Dict[str, Any]], form_data: Dict[str, Any], *, use_plugin: bool = True
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
-    if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
-        return plugin_preview
+    if use_plugin:
+        if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
+            return plugin_preview
     if (fallback := fallback_vega_lite_preview(data, form_data)) is not None:
         return fallback
 
@@ -1671,19 +1672,20 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Basic Vega-Lite spec
     preview_data = _bounded_vega_data(data)
-    spec = {
+    spec: dict[str, Any] = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "data": {"values": preview_data},
         "mark": mark,
     }
 
     # Get x_axis and metrics from form_data
-    x_axis = form_data.get("x_axis")
+    axis = form_data.get("x_axis")
+    x_axis = get_column_name(axis) if axis else "__timestamp"
     metrics = form_data.get("metrics", [])
     groupby = form_data.get("groupby", [])
 
     # Build encoding based on available fields
-    encoding = {}
+    encoding: dict[str, Any] = {}
 
     # Handle X-axis
     if x_axis and x_axis in (data[0] if data else {}):
@@ -1718,11 +1720,11 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
             }
 
     # Handle color encoding for groupby
-    if groupby and len(groupby) > 0 and groupby[0] in (data[0] if data else {}):
+    if groupby and get_column_name(groupby[0]) in (data[0] if data else {}):
         encoding["color"] = {
-            "field": groupby[0],
+            "field": get_column_name(groupby[0]),
             "type": "nominal",
-            "title": groupby[0],
+            "title": get_column_name(groupby[0]),
         }
 
     # Special handling for pie charts
@@ -1745,7 +1747,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Add responsive sizing - Vega-Lite supports "container" as a special width value
     spec["width"] = "container"
-    spec["height"] = 400  # type: ignore
+    spec["height"] = 400
 
     # Add interactivity
     if mark in ["line", "point", "bar", "area"]:
@@ -1762,3 +1764,52 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         data_url=None,
         supports_streaming=False,
     )
+
+
+def generate_xy_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render both long-form and post-processed wide XY chart results."""
+    preview = _generate_vega_lite_preview_from_data(data, form_data, use_plugin=False)
+    if isinstance(preview, ChartError):
+        return preview
+    spec = preview.specification
+    preview_data = spec["data"]["values"]
+    encoding = spec.setdefault("encoding", {})
+    x_axis = encoding.get("x", {}).get("field")
+    groupby = form_data.get("groupby", [])
+    # Timeseries post-processing pivots group-bys into flattened wide columns.
+    # Fold the complete column labels rather than splitting on commas: labels
+    # can contain escaped separators, multiple dimensions, or time offsets.
+    if (
+        groupby
+        and preview_data
+        and x_axis in preview_data[0]
+        and not any(get_column_name(column) in preview_data[0] for column in groupby)
+    ):
+        series_columns = [
+            column
+            for column in preview_data[0]
+            if column != x_axis
+            and all(
+                row.get(column) is None
+                or (
+                    isinstance(row.get(column), (Real, Decimal))
+                    and not isinstance(row.get(column), bool)
+                )
+                for row in data[: len(preview_data)]
+            )
+        ]
+        if series_columns:
+            series_field, value_field = "series", "value"
+            while series_field in preview_data[0]:
+                series_field += "_"
+            while value_field in preview_data[0]:
+                value_field += "_"
+            spec["transform"] = [
+                {"fold": series_columns, "as": [series_field, value_field]}
+            ]
+            encoding["y"] = {"field": value_field, "type": "quantitative"}
+            encoding["color"] = {"field": series_field, "type": "nominal"}
+
+    return preview

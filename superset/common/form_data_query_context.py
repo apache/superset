@@ -688,6 +688,7 @@ def _table_temporalized_columns(
                 "sqlExpression": column,
                 "label": column,
                 "expressionType": "SQL",
+                "isColumnReference": True,
             }
         else:
             remaining.append(column)
@@ -1147,6 +1148,11 @@ def _timeseries_post_processing(  # noqa: C901
                     "method": "asfreq" if zero_fill else form_data["resample_method"],
                     "rule": form_data["resample_rule"],
                     "fill_value": 0 if zero_fill else None,
+                    **(
+                        {"fill_time_range": True}
+                        if form_data.get("resample_fill_time_range")
+                        else {}
+                    ),
                 },
             }
         )
@@ -1224,11 +1230,19 @@ def _timeseries_post_processing(  # noqa: C901
 
     post_processing.append({"operation": "flatten"})
     if not mixed and form_data.get("forecastEnabled") and x_axis_label:
+        x_axis = _x_axis_column(form_data)
+        axis_grain = x_axis.get("timeGrain") if isinstance(x_axis, Mapping) else None
+        time_grain = (
+            axis_grain
+            or (query.get("extras") or {}).get("time_grain_sqla")
+            or form_data.get("time_grain_sqla")
+            or "P1D"
+        )
         post_processing.append(
             {
                 "operation": "prophet",
                 "options": {
-                    "time_grain": form_data.get("time_grain_sqla"),
+                    "time_grain": time_grain,
                     "periods": int(form_data.get("forecastPeriods") or 0),
                     "confidence_interval": float(
                         form_data.get("forecastInterval") or 0
@@ -1334,6 +1348,11 @@ def _big_number_queries(
                     "method": "asfreq" if zero_fill else form_data["resample_method"],
                     "rule": form_data["resample_rule"],
                     "fill_value": 0 if zero_fill else None,
+                    **(
+                        {"fill_time_range": True}
+                        if form_data.get("resample_fill_time_range")
+                        else {}
+                    ),
                 },
             }
         )

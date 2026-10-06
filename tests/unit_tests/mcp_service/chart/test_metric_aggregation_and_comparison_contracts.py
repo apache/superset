@@ -184,6 +184,7 @@ def test_aggregate_table_promotes_only_first_lookup_temporal_groupby() -> None:
             "sqlExpression": "event_time",
             "label": "event_time",
             "expressionType": "SQL",
+            "isColumnReference": True,
         },
         "region",
         "created_at",
