@@ -615,6 +615,12 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     domain = "explore" if entry == "generate_explore_link" else "chart"
     module = importlib.import_module(f"superset.mcp_service.{domain}.tool.{entry}")
     with ExitStack() as stack:
+        dataset_access = stack.enter_context(
+            patch(
+                "superset.mcp_service.auth.security_manager.can_access_datasource",
+                return_value=True,
+            )
+        )
         if rebind:
             stack.enter_context(
                 patch(
@@ -741,6 +747,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
             response = await client.call_tool(entry, {"request": request})
         payload = response.structured_content
         assert payload["success"] is valid, json.dumps(payload)
+        if rebind:
+            dataset_access.assert_called_once_with(datasource=dataset)
         assert command.return_value.run.called
         if valid:
             assert payload["form_data"]["viz_type"] == kind
