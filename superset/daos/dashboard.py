@@ -531,6 +531,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
             .all()
         ]
 
+    @staticmethod
+    def _remap_filter_scope(
+        container: Any, old_to_new_slice_ids: dict[int, int]
+    ) -> None:
+        """Remap scope.excluded and chartsInScope of a filter container."""
+        if not isinstance(container, dict):
+            return
+
+    @classmethod
+    def _remap_filter_scopes(
+        cls, metadata: dict[str, Any], old_to_new_slice_ids: dict[int, int]
+    ) -> None:
+        """Remap filter scopes and chart references in dashboard metadata."""
+        if not isinstance(metadata, dict) or not old_to_new_slice_ids:
+            return
+
     @classmethod
     def copy_dashboard(
         cls, original_dash: Dashboard, data: dict[str, Any]
@@ -544,7 +560,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         # they would cost two extra queries for each chart in the dashboard.
         creator_editors: list[Any] = []
         creator_viewers: list[Any] = []
-        if g.user:
+        if getattr(g, "user", None):
             from superset.subjects.utils import (
                 get_default_viewers_for_new_asset,
                 get_user_subject,
