@@ -333,20 +333,21 @@ test("a delayed fieldset commit does not revert another row's edit", async () =>
   expect(byId.b).toBe('from B');
 });
 
-test('a fieldset commit preserves the collection order', () => {
-  // The previous implementation rebuilt the array in two passes to keep order;
-  // the functional updater maps in place, which has to do the same.
+test('a fieldset commit reaches the keyed collection a cleared sort reads', async () => {
+  // `onSortChange` restores the pre-sort order from `collection[id]`, so a
+  // fieldset commit that updated only the array would resurface as a stale row
+  // the moment the sort is cleared. Both structures have to move together.
   const onChange = jest.fn();
   const collection = [
-    { id: 'z', column_name: 'z', description: '' },
-    { id: 'a', column_name: 'a', description: '' },
+    { id: 1, column_name: 'b_col', description: '' },
+    { id: 2, column_name: 'a_col', description: '' },
   ];
 
   const { container } = render(
     <CollectionTable
       collection={collection}
       tableColumns={['column_name']}
-      sortColumns={[]}
+      sortColumns={['column_name']}
       expandFieldset={
         <Fieldset compact>
           <Field
@@ -360,8 +361,23 @@ test('a fieldset commit preserves the collection order', () => {
     />,
   );
 
-  const rows = container.querySelectorAll('.ant-table-tbody tr');
-  expect(rows).toHaveLength(2);
+  await userEvent.click(
+    screen.getAllByRole('button', { name: /expand row/i })[0],
+  );
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'edited' },
+  });
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+
+  // Sort, then clear the sort.
+  const header = container.querySelector('th.ant-table-column-has-sorters');
+  await userEvent.click(header!);
+  await userEvent.click(header!);
+  await userEvent.click(header!);
+
+  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  const edited = final.find((item: { id: number }) => item.id === 1);
+  expect(edited?.description).toBe('edited');
 });
 
 test('applies rowClassName to each row', () => {
@@ -426,6 +442,47 @@ test('re-opens a revealed row the user collapsed, on a second request', () => {
   fireEvent.click(screen.getByRole('button', { name: 'reveal again' }));
 
   expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
+});
+
+test('a collection change does not reopen a revealed row the user collapsed', () => {
+  // The reveal is keyed on the nonce alone, and the collection is replaced
+  // wholesale on every cell edit, delete, add and props sync. An effect that
+  // depended on it re-asserted the expansion afterwards, so the row reopened
+  // on the user's next change to any row -- the opposite of the additive
+  // behaviour the prop documents.
+  const Harness = () => {
+    const [collection, setCollection] = useState(props.collection);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            setCollection(items =>
+              items.map(item => ({ ...item, verbose_name: 'edited' })),
+            )
+          }
+        >
+          edit a row
+        </button>
+        <CollectionTable
+          {...props}
+          collection={collection}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={1}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getByLabelText('Collapse row'));
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'edit a row' }));
+
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
 });
 
 test('a reveal request leaves rows the user opened open', () => {
