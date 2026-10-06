@@ -209,6 +209,14 @@ constantly; second-granularity relative ranges like "Last 24 hours" essentially 
 If the evaluation fails for any reason, no predicate is added: the query still runs and is
 still correct, it just scans more partitions.
 
+The same goes for a transform that evaluates but answers with something the partition column
+cannot hold — a number against a text key, or text against a numeric one. Not every engine
+accepts a comparison across those types: Postgres, Trino and BigQuery refuse it outright, and
+SQLite compares it as never equal rather than erroring, which would drop every row the filter
+keeps. So Superset declines the mirror instead. The preview panel names the column and the
+value it got, and the fix is to cast the result to the key's own type —
+`cast(unix_timestamp(:value) as string)` for a text partition key.
+
 Because the evaluation happens in a **different session** from the chart query, transforms
 that call non-deterministic functions are rejected when you save. That includes `now()`,
 `current_date`, `current_timestamp`, `rand()` and the zero-argument `unix_timestamp()`, which

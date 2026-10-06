@@ -1603,9 +1603,15 @@ def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
         # not a number to any engine that cares about the difference.
         ("BIGINT", True, True),
         ("VARCHAR", "20260101", False),
-        # Every engine takes a number in a text comparison, and refusing one
-        # would break a working mapping for the sake of tidiness.
-        ("VARCHAR", 20260101, False),
+        # Not every engine takes a number in a text comparison: Postgres,
+        # Trino and BigQuery all refuse it outright, and SQLite silently
+        # compares it as never equal, which drops every row the filter keeps.
+        ("VARCHAR", 20260101, True),
+        # And a `Decimal`, which is what Postgres answers `extract(epoch
+        # from ...)` with -- a gate written against `(int, float)` has slipped
+        # through here once already.
+        ("VARCHAR", Decimal("20260101"), True),
+        ("VARCHAR", 20260101.0, True),
         ("BOOLEAN", True, False),
         ("BOOLEAN", 1, True),
         ("TIMESTAMP", datetime(2026, 1, 1), False),
