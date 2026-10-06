@@ -101,3 +101,19 @@ def test_validate_is_a_thin_wrapper_over_the_widget_s_own_validator(
 
     assert resp.status_code == 200
     assert resp.get_json()["result"]["errors"] == direct_errors
+
+
+def test_control_schema_is_json_in_model_field_order(client, full_api_access) -> None:
+    from superset.widgets.registry import registry
+
+    resp = client.post(
+        "/api/v1/widgets/type/metric-tile/control-schema",
+        data=json.dumps({"control_values": {"label": "<script>x</script>"}}),
+        content_type="application/json",
+    )
+
+    assert resp.status_code == 200
+    assert resp.mimetype == "application/json"
+    controls = registry["metric-tile"].controls_class
+    expected = [field.alias or name for name, field in controls.model_fields.items()]
+    assert list(resp.get_json()["result"]["properties"]) == expected

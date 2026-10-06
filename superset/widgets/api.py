@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask import make_response, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.hooks import before_request
 from flask_babel import gettext as _
@@ -230,9 +230,13 @@ class WidgetControlsRestApi(BaseSupersetApi):
         payload: dict[str, Any] = {"result": result}
         if warning:
             payload["warning"] = warning
-        resp = make_response(json.dumps(payload, sort_keys=False), 200)
-        resp.headers["Content-Type"] = "application/json; charset=utf-8"
-        return resp
+        # Built directly (not via ``self.response``) to keep the schema's
+        # property order, with the JSON type declared up front.
+        return Response(
+            json.dumps(payload, sort_keys=False),
+            status=200,
+            mimetype="application/json",
+        )
 
     @expose("/type/<widget_type>/validate", methods=("POST",))
     @protect()
