@@ -16,9 +16,10 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import Any, TYPE_CHECKING
 
-from sqlalchemy import event
+from sqlalchemy import event, types
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -58,6 +59,21 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
             "Google Sheets requires OAuth credentials configured."
         ),
     }
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Write a bare date for DATE columns.
+
+        Shillelagh reads a date filter with ``date.fromisoformat``, which rejects a
+        time part and drops the filter without an error, so every row would come
+        back. A time other than midnight is cut to its date.
+        """
+        if isinstance(cls.get_sqla_column_type(target_type), types.Date):
+            return f"'{dttm.date().isoformat()}'"
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def get_function_names(
