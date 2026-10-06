@@ -271,6 +271,20 @@ MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
 
 
+#: Returned by `ExploreMixin.mirror_probe_request` for a filter no mirror can
+#: stand in for: one the engine compares more coarsely than the value carries, a
+#: value it cannot render as a literal, or an ``IN`` list with a member of
+#: either kind. A sentinel rather than `None`, because `None` is a filter value
+#: in its own right.
+#:
+#: Lives here rather than beside that method so the preview can read it too:
+#: `superset.models.helpers` imports this module, so the sentinel can only cross
+#: the boundary in this direction. Both callers have to recognise the same
+#: object -- a preview that answered "valid" for a request the chart path
+#: declines is the drift this is here to prevent.
+UNMIRRORABLE = object()
+
+
 #: A transform that preserves ordering need not be *strictly* increasing: a day
 #: key such as ``to_char(ts, 'YYYYMMDD')`` maps a whole day of timestamps onto
 #: one value. For such a ``T``, ``col < v`` only implies ``T(col) <= T(v)`` and
@@ -1907,9 +1921,55 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             ),
         }
 
-    value = _probe_input(
-        datasource, columns_by_name[mapped_column], operator, sample_values
+    return _preview_probe(
+        datasource,
+        mapping,
+        columns_by_name[mapped_column],
+        operator,
+        sample_values,
+        sample_input,
     )
+
+
+def _preview_probe(
+    datasource: SqlaTable,
+    mapping: PartitionMapping,
+    mapped_col: "TableColumn",
+    operator: FilterOperator,
+    sample_values: list[str],
+    sample_input: str,
+) -> dict[str, Any]:
+    """
+    The half of a preview that needs the warehouse.
+
+    Split out from `preview_partition_mapping` so that the gates which answer
+    from the stored mapping alone stay readable as the single run of guard
+    clauses they are. Everything here has either run a query or decided not to.
+    """
+    value = datasource.mirror_probe_request(
+        operator,
+        _probe_input(datasource, mapped_col, operator, sample_values),
+        mapped_col,
+    )
+    if value is UNMIRRORABLE:
+        # The same step the chart path applies, so the preview cannot promise a
+        # mirror the query declines. Its own reason: the transform is fine and
+        # the engine evaluates it, the filter just carries more of the value
+        # than the engine compares on this column -- which is the column's type
+        # talking, not a broken expression.
+        return {
+            "valid": False,
+            "reason": "resolution",
+            "sample_input": sample_input,
+            "error": _(
+                "This engine compares less of a %(operator)s value on "
+                "%(column)s than the filter carries, so there is no mirror a "
+                "predicate on the partition column could stand in for. Map a "
+                "column the engine compares in full to mirror this operator.",
+                operator=operator.value,
+                column=mapped_col.column_name,
+            ),
+        }
     errors: list[str] = []
     type_errors: list[str] = []
     predicates = build_mirrored_predicates(
@@ -1973,11 +2033,17 @@ def _probe_input(
     `preview_partition_mapping`'s docstring did not actually hold.
 
     Coerced by `filter_values_handler`, the same function the query path uses,
-    rather than by a second implementation of the same rules.
+    rather than by a second implementation of the same rules. Everything the
+    query path then does to the coerced value -- rendering an expression as a
+    literal, widening a bound, declining a comparison the engine resolves too
+    coarsely -- is `ExploreMixin.mirror_probe_request`'s, and the caller hands
+    this result straight to it.
 
     Ranges are not previewable (see `PREVIEWABLE_OPERATORS`), so the bound
     conversion `_collect_partition_mirror_range` applies -- a ``datetime`` into
     the column's stored representation -- has no counterpart here.
+
+    :returns: `UNMIRRORABLE` where the samples cannot be coerced at all
     """
     is_list = operator == FilterOperator.IN
     column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)
@@ -1994,19 +2060,10 @@ def _probe_input(
         db_engine_spec=datasource.db_engine_spec,
         db_extra=datasource.db_extra,
     )
-
-    def bindable(value: Any) -> Any:
-        # An epoch-milliseconds sample on a temporal column comes back as
-        # engine SQL rather than a value, and SQL cannot be the value of a bind
-        # parameter -- carried as text so the probe substitutes it, the same way
-        # an array literal is.
-        if isinstance(value, ColumnElement):
-            return raw_probe_value(datasource.database, value)
-        return value
-
-    if is_list and isinstance(handled, (list, tuple)):
-        return [bindable(entry) for entry in handled]
-    return bindable(handled)
+    # No `ColumnElement` conversion here: an epoch-milliseconds sample comes back
+    # as engine SQL rather than a value, and `mirror_probe_request` renders it --
+    # the same step, on the same values, as for a chart filter.
+    return handled
 
 
 def _render_sample_input(

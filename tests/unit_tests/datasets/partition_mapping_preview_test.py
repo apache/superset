@@ -98,6 +98,11 @@ def dataset(session: Session) -> Any:
             # else in a text comparison and one of them compares it as never
             # equal rather than refusing it.
             TableColumn(column_name="part_ts", type="TIMESTAMP"),
+            # A text *mapped* column. A temporal one will not stand in for it:
+            # a sample that is not an ISO instant declines on a column the
+            # engine compares more coarsely than the value carries, which is
+            # the right answer there and noise in a test about anything else.
+            TableColumn(column_name="country", type="VARCHAR"),
         ],
     )
     table.partition_column = "dt_epoch"
@@ -219,7 +224,7 @@ def test_preview_mirrors_in_element_wise(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["US", "CA"],
@@ -229,7 +234,7 @@ def test_preview_mirrors_in_element_wise(
 
     assert response.json["result"] == {
         "valid": True,
-        "sample_input": "event_time IN ('US', 'CA')",
+        "sample_input": "country IN ('US', 'CA')",
         "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
     }
 
@@ -617,7 +622,7 @@ def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "value_transform": "unix_timestamp(:value)",
                 "sample_values": ["not a date"],
             },
@@ -639,7 +644,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["O'Hara"],
@@ -651,7 +656,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
     assert result["emitted_predicate"] == "region_key = 'o''hara' OR region_key IS NULL"
     # The sample input is display-only but still reads as SQL, so the value it
     # echoes back is quoted and escaped the same way.
-    assert result["sample_input"] == "event_time == 'O''Hara'"
+    assert result["sample_input"] == "country == 'O''Hara'"
 
 
 def test_an_over_long_transform_is_rejected_before_the_engine(
@@ -969,3 +974,100 @@ def test_preview_leaves_a_string_column_s_sample_alone(
 
     assert response.status_code == 200
     assert probed == [["02134"]]
+
+
+def test_preview_declines_an_equality_the_chart_path_declines(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The preview used to hand its coerced sample straight to
+    `build_mirrored_predicates`, while a chart filter first goes through
+    `mirror_probe_request`. So where the engine compares less of a value than
+    the filter carries, previewing `==` reported a valid predicate while the
+    chart emitted no mirror at all -- the owner was shown pruning they would
+    never get.
+
+    SQLite renders a temporal literal to the second, so a sample carrying
+    microseconds is the shape that declines here; the bare-day case that
+    Presto, Trino and BigQuery produce for a `DATE` column is the same gate and
+    is covered against those renderings in `partition_mirroring_test.py`.
+
+    An equality has nowhere to widen to, so declining is the answer -- with its
+    own reason, because the transform is fine and the engine evaluates it.
+    """
+    with patch(PROBE, return_value=["20260706100811"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "to_char(:value, 'YYYYMMDDHH24MISS')",
+                "sample_values": ["2026-07-06 10:08:11.123456"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "resolution"
+    assert "emitted_predicate" not in result
+    # Declined before the engine, as the chart path declines before the engine.
+    probe.assert_not_called()
+
+
+def test_preview_and_the_chart_path_agree_about_a_coarse_column(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The invariant behind the fix, asserted in both directions: for the same
+    filter, the preview's verdict and the query's emitted SQL say the same
+    thing. Pinned because the two paths drifted twice -- once over coercion,
+    once over resolution -- and each time the symptom was a preview promising a
+    mirror the chart does not emit.
+    """
+    # Two previews, and the rate-limit tests above leave a budget of one behind
+    # on the shared `app.config`.
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 30
+
+    transform = "to_char(:value, 'YYYYMMDDHH24MISS')"
+    for column in dataset.columns:
+        if column.column_name == "event_time":
+            column.partition_value_transform = transform
+    dataset.partition_column = "region_key"
+    db.session.flush()
+
+    def preview_and_query(sample: str) -> tuple[Any, str]:
+        with patch(PROBE, return_value=["20260706100811"]):
+            previewed = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "event_time",
+                    "partition_column": "region_key",
+                    "value_transform": transform,
+                    "sample_values": [sample],
+                },
+            ).json["result"]
+            sql = str(
+                dataset.get_sqla_query(
+                    columns=["country"],
+                    metrics=[],
+                    orderby=[],
+                    extras={},
+                    granularity=None,
+                    is_timeseries=False,
+                    filter=[{"col": "event_time", "op": "==", "val": sample}],
+                ).sqla_query.compile(compile_kwargs={"literal_binds": True})
+            )
+        return previewed, sql
+
+    # More of the value than SQLite compares: neither mirrors.
+    coarse, coarse_sql = preview_and_query("2026-07-06 10:08:11.123456")
+    assert coarse["valid"] is False
+    assert coarse["reason"] == "resolution"
+    assert "region_key" not in coarse_sql
+
+    # Exactly what it compares: both do.
+    exact, exact_sql = preview_and_query("2026-07-06 10:08:11")
+    assert exact["valid"] is True
+    assert "region_key = '20260706100811'" in exact["emitted_predicate"]
+    assert "region_key = '20260706100811'" in exact_sql
