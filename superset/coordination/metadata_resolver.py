@@ -25,6 +25,7 @@ import socket
 from _thread import LockType
 from importlib import import_module
 from typing import Any, TypeAlias
+from weakref import WeakValueDictionary
 
 # System DNS cannot be cancelled. Timed-out requests must not replenish capacity.
 _RESOLVER_LIMIT: int = 4
@@ -82,6 +83,30 @@ if hasattr(os, "register_at_fork"):
 
 class MetadataEventLoop(asyncio.SelectorEventLoop):
     """Keep command cancellation separate from bounded native DNS lifetimes."""
+
+    # SelectorEventLoop initializes this registry; typeshed omits it.
+    _transports: WeakValueDictionary[int, asyncio.Transport]
+
+    def close(self) -> None:
+        """Release private sockets even when graceful TLS shutdown was cancelled."""
+        if self.is_closed() or self.is_running():
+            # Preserve the base loop's idempotence and running-loop error.
+            super().close()
+            return
+        try:
+            pending: asyncio.Task[Any]
+            for pending in asyncio.all_tasks(self):
+                pending.cancel()
+            # SelectorEventLoop owns the raw transports beneath TLS, including
+            # those whose Redis writer reference was cleared by cancellation.
+            transport: asyncio.Transport
+            for transport in list(self._transports.values()):
+                transport.abort()
+            # abort() schedules connection_lost(), which closes the descriptor.
+            # Drain ready callbacks without awaiting a peer or a cancelled task.
+            self.run_until_complete(asyncio.sleep(0))
+        finally:
+            super().close()
 
     async def getaddrinfo(
         self,
