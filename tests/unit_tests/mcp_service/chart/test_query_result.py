@@ -778,8 +778,10 @@ def test_object_dataframe_canonicalizes_python_temporals_and_tzlocal_timestamp()
     assert data[0][0]["local_timestamp"] == tzlocal_timestamp.isoformat()
 
 
+@pytest.mark.parametrize("preserve_csv", [False, True])
 def test_python_and_timestamp_timezone_canonicalization_avoids_source_hooks(
     monkeypatch: pytest.MonkeyPatch,
+    preserve_csv: bool,
 ) -> None:
     dateutil_named = dateutil_tz.gettz("US/Pacific")
     assert dateutil_named is not None
@@ -798,7 +800,7 @@ def test_python_and_timestamp_timezone_canonicalization_avoids_source_hooks(
         datetime_time(3, 4, 5, tzinfo=local),
         pd.Timestamp(datetime(2024, 1, 2, 3, 4, 5, tzinfo=local)),
     ]
-    expected = [value.isoformat() for value in values]
+    expected = [str(value) if preserve_csv else value.isoformat() for value in values]
     for timezone_type in {type(value.tzinfo) for value in values}:
         for method_name in ("utcoffset", "dst", "tzname"):
             monkeypatch.setattr(timezone_type, method_name, _hostile_call)
@@ -812,7 +814,8 @@ def test_python_and_timestamp_timezone_canonicalization_avoids_source_hooks(
                     ]
                 }
             ]
-        }
+        },
+        preserve_csv_temporals=preserve_csv,
     )
 
     assert failure is None
@@ -2213,7 +2216,10 @@ def test_query_result_rejects_custom_metaclass_scalars_without_type_hooks() -> N
     assert failure.error_type == "MalformedQueryResult"
 
 
-def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
+@pytest.mark.parametrize("preserve_csv", [False, True])
+def test_query_result_rejects_custom_timezone_without_invoking_it(
+    preserve_csv: bool,
+) -> None:
     class _HostileTimezone(tzinfo):
         def utcoffset(self, _value: datetime | None) -> timedelta | None:
             raise AssertionError("custom timezone hook must not run")
@@ -2228,7 +2234,10 @@ def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
         datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
         datetime_time(12, tzinfo=_HostileTimezone()),
     ):
-        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
+        data, failure = query_result_data(
+            {"queries": [{"data": [{"value": value}]}]},
+            preserve_csv_temporals=preserve_csv,
+        )
 
         assert data is None
         assert failure is not None

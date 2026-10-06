@@ -861,6 +861,7 @@ async def execute_chart_data(  # noqa: C901
                     data_plugin and data_plugin.preserve_nonfinite_floats
                 ),
                 preserve_excel_temporals=request.format == "excel",
+                preserve_csv_temporals=request.format == "csv",
             )
             if query_failure is not None:
                 return query_failure
@@ -1213,6 +1214,7 @@ async def _query_from_form_data(  # noqa: C901
                 data_plugin and data_plugin.preserve_nonfinite_floats
             ),
             preserve_excel_temporals=request.format == "excel",
+            preserve_csv_temporals=request.format == "csv",
         )
         if query_failure is not None:
             return query_failure

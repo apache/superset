@@ -3304,3 +3304,98 @@ def test_table_time_comparison_retains_percentage_only_metric_columns(
     ]
     assert result["profit"].tolist() == [10.0, 30.0]
     assert result["difference__sales__sales__1 year ago"].tolist() == [20.0, 50.0]
+
+
+@pytest.mark.parametrize("secondary_desc", [False, True, None])
+def test_mixed_secondary_ranking_ignores_explicit_primary_direction(
+    monkeypatch: pytest.MonkeyPatch, secondary_desc: bool | None
+) -> None:
+    """Preview callers pass primary direction without replacing layer B's rank."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "event_date",
+        "metrics": ["sales"],
+        "metrics_b": ["costs"],
+        "groupby": ["region"],
+        "order_desc": False,
+        "limit_b": 1,
+        "timeseries_limit_metric_b": "costs",
+    }
+    if secondary_desc is not None:
+        form_data["order_desc_b"] = secondary_desc
+    primary, secondary = build_query_dicts_from_form_data(
+        form_data, 1, "table", order_desc=False
+    )
+    assert primary["order_desc"] is False
+    assert secondary["order_desc"] is (secondary_desc is True)
+    assert secondary["series_limit"] == 1
+    assert secondary["series_limit_metric"] == "costs"
+
+
+@pytest.mark.parametrize("saved", [False, True])
+@pytest.mark.parametrize(
+    "viz_type", ["echarts_timeseries_line", "echarts_timeseries_bar"]
+)
+def test_xy_preview_renders_all_post_processed_series(
+    monkeypatch: pytest.MonkeyPatch, saved: bool, viz_type: str
+) -> None:
+    """Real pivot output renders every series through saved and unsaved dispatch."""
+    from types import SimpleNamespace
+
+    from superset.mcp_service.chart.preview_utils import (
+        _generate_vega_lite_preview_from_data,
+    )
+    from superset.mcp_service.chart.schemas import (
+        GetChartPreviewRequest,
+        VegaLitePreview,
+    )
+    from superset.mcp_service.chart.tool.get_chart_preview import (
+        VegaLitePreviewStrategy,
+    )
+    from superset.utils import json
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": viz_type,
+        "x_axis": "event_date",
+        "metrics": ["SUM(revenue)"],
+        "groupby": ["region"],
+    }
+    query = _query_objects(form_data)[0]
+    rows = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "event_date": ["2026-10-01", "2026-10-01", "2026-10-02", "2026-10-02"],
+                "region": ["EU", "US", "EU", "US"],
+                "SUM(revenue)": [10, 20, 30, 40],
+            }
+        )
+    ).to_dict(orient="records")
+    assert set(rows[0]) == {"event_date", "SUM(revenue), EU", "SUM(revenue), US"}
+    if saved:
+        strategy = VegaLitePreviewStrategy(
+            SimpleNamespace(params=json.dumps(form_data), viz_type=viz_type),
+            GetChartPreviewRequest(identifier=1),
+        )
+        preview = strategy._create_plugin_preview(rows, form_data)
+    else:
+        preview = _generate_vega_lite_preview_from_data(rows, form_data)
+    assert isinstance(preview, VegaLitePreview)
+    spec = preview.specification
+    assert spec["data"]["values"] == rows
+    assert spec["transform"] == [
+        {
+            "fold": ["SUM(revenue), EU", "SUM(revenue), US"],
+            "as": ["__mcp_xy_series", "__mcp_xy_value"],
+        }
+    ]
+    assert spec["encoding"]["color"]["field"] == "__mcp_xy_series"
+    assert spec["encoding"]["y"]["field"] == "__mcp_xy_value"
+    assert spec["encoding"]["x"]["field"] == "event_date"

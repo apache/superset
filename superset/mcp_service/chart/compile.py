@@ -244,28 +244,23 @@ def _adhoc_filter_column_valid(
     metric_names = [metric["name"] for metric in dataset_context.available_metrics]
     if column in column_names or (clause == "HAVING" and column in metric_names):
         return True
+    metric_matches = [
+        name for name in metric_names if name.casefold() == column.casefold()
+    ]
     try:
         if resolve_dataset_column(column, dataset_context) is not None:
             return True
+    except AmbiguousDatasetReferenceError:
+        # HAVING can still resolve an unambiguous saved metric of the same name.
+        if clause == "HAVING" and len(metric_matches) == 1:
+            return True
+        raise
     except ValueError:
         if clause != "HAVING":
             return False
     if clause != "HAVING":
         return False
-    metric_matches = [
-        name for name in metric_names if name.casefold() == column.casefold()
-    ]
-    return len(metric_matches) == 1
-    if clause == "HAVING":
-        return DatasetValidator._column_exists(column, dataset_context)
-    return (
-        resolve_dataset_reference(
-            column,
-            (col["name"] for col in dataset_context.available_columns),
-            "physical column",
-        )
-        is not None
-    )
+    return resolve_dataset_reference(column, metric_names, "saved metric") is not None
 
 
 def _validate_adhoc_filter_columns(

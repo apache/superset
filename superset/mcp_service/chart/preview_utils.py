@@ -2445,6 +2445,92 @@ def fallback_vega_lite_preview(
     return None
 
 
+def generate_xy_pivot_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any], *, mark: str
+) -> VegaLitePreview | None:
+    """Render flattened timeseries pivot columns without dropping grouped series.
+
+    Folding exact output keys avoids splitting category values that contain
+    escaped commas. The legend retains each complete metric/category label.
+    Long-form results continue through the generic renderer.
+    """
+    from superset.mcp_service.chart.chart_helpers import _as_list
+    from superset.utils.pandas_postprocessing.utils import (
+        escape_separator,
+        FLAT_COLUMN_SEPARATOR,
+    )
+
+    if not data:
+        return None
+    dimensions = [
+        label
+        for column in _as_list(form_data.get("groupby"))
+        if (label := _form_column_label(column))
+    ]
+    if not dimensions or any(label in data[0] for label in dimensions):
+        return None
+    x_axis = _form_column_label(form_data.get("x_axis")) or "__timestamp"
+    if x_axis not in data[0]:
+        return None
+    metric_labels = [
+        escape_separator(label)
+        for metric in _as_list(form_data.get("metrics"))
+        if (label := metric_result_label(metric))
+    ]
+    fields = [
+        field
+        for field in data[0]
+        if field != x_axis
+        and any(
+            field.startswith(label + FLAT_COLUMN_SEPARATOR)
+            or field.startswith(label + "__")
+            for label in metric_labels
+        )
+    ]
+    if not fields:
+        return None
+    sample = data[0][x_axis]
+    x_type = (
+        "temporal"
+        if isinstance(sample, str) and any(char in sample for char in "-/: ")
+        else "quantitative"
+        if isinstance(sample, (int, float))
+        else "nominal"
+    )
+    return VegaLitePreview(
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": data},
+            "transform": [
+                {"fold": fields, "as": ["__mcp_xy_series", "__mcp_xy_value"]}
+            ],
+            "mark": mark,
+            "encoding": {
+                "x": {"field": x_axis, "type": x_type, "title": x_axis},
+                "y": {
+                    "field": "__mcp_xy_value",
+                    "type": "quantitative",
+                    "title": ", ".join(metric_labels),
+                },
+                "color": {
+                    "field": "__mcp_xy_series",
+                    "type": "nominal",
+                    "title": ", ".join(dimensions),
+                },
+                "tooltip": [
+                    {"field": x_axis, "type": x_type},
+                    {"field": "__mcp_xy_series", "type": "nominal"},
+                    {"field": "__mcp_xy_value", "type": "quantitative"},
+                ],
+            },
+            "width": "container",
+            "height": 400,
+        },
+        data_url=None,
+        supports_streaming=False,
+    )
+
+
 def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | None:
     """Pick the y-axis column for a Vega-Lite preview.
 

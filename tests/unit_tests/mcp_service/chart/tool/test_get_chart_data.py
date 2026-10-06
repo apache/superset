@@ -6598,3 +6598,75 @@ def test_excel_export_keeps_representable_boundary_temporals_native(
             datetime.combine(value, datetime_time()) if type(value) is date else value
         )
         assert cell.value == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cached", [False, True])
+async def test_csv_export_keeps_existing_temporal_spelling(
+    mcp_server: Any, mock_auth: Any, cached: bool
+) -> None:
+    """Saved and cached Table downloads retain csv.DictWriter temporal text."""
+    import csv
+    import io
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    form_data = {"viz_type": "table", "groupby": ["at"], "metrics": ["count"]}
+    chart = SimpleNamespace(
+        id=31,
+        slice_name="Temporal table",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    rows = [
+        {
+            "at": datetime(2026, 10, 5, 12),
+            "duration": timedelta(minutes=90),
+            "timestamp": pd.Timestamp("2026-10-05 12:00:00.123456789"),
+            "delta": pd.Timedelta(minutes=90),
+            "aware": datetime(2026, 10, 5, 12, tzinfo=timezone.utc),
+            "date": date(2026, 10, 5),
+            "time": datetime_time(12, 30),
+            "np_at": np.datetime64("2026-10-05T12:00:00"),
+            "np_delta": np.timedelta64(90, "m"),
+            "nested": [datetime(2026, 10, 5, 12)],
+        }
+    ]
+    expected = {key: str(value) for key, value in rows[0].items()}
+    # Nested values still use the bounded JSON-facing projection.
+    expected["nested"] = "['2026-10-05T12:00:00']"
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {
+            "queries": [{"data": rows, "colnames": list(rows[0]), "rowcount": 1}]
+        }
+        request: dict[str, Any] = {"identifier": 31, "format": "csv"}
+        if cached:
+            request["form_data_key"] = "temporal-table"
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_chart_data", {"request": request})
+    payload = json.loads(result.content[0].text)
+    assert "csv_data" in payload, payload
+    assert list(csv.DictReader(io.StringIO(payload["csv_data"]))) == [expected]

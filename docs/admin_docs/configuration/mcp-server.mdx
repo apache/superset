@@ -1332,6 +1332,9 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 
 Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Shared Mixed controls remain on the secondary query unless a suffixed control overrides them. Timeseries resampling preserves the saved fill-time-range flag, including leading and trailing zero-filled buckets. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
 
+Grouped XY Vega-Lite previews fold native pivot output into separate metric/category
+series, retaining every returned series in both saved and unsaved previews.
+
 Saved aggregate Table charts normalize empty-string `groupby` values to no
 grouping columns, matching Explore's native query extraction.
 Table comparison overrides in `extra_form_data.time_compare` apply even when
@@ -1414,8 +1417,9 @@ generated dashboard-time binding. `temporal_column: null` clears only that
 generated binding, preserving user filters. Omitting those controls preserves
 the saved binding. Bullet Vega previews keep separate indexed rows even when
 dimension display labels are identical, and support both `SMART_NUMBER` and
-`SMART_NUMBER_SIGNED` number formats. Bullet numeric format precision is limited
-to 20 digits before formatting, including on data reads.
+`SMART_NUMBER_SIGNED` number formats. Bullet preview numeric format
+precision is limited to 20 digits before formatting; raw data reads do not
+validate presentation formats.
 
 Native Bullet temporal filters retain the active filter's subject and range as a
 pair; `No filter` placeholders do not supply the subject of another active range.
@@ -1434,12 +1438,13 @@ containers within an index entry retain the standard container limits.
 
 The shared query-result validator also enforces **non-configurable hard limits**:
 
-- **64 KiB (65,536 UTF-8 bytes) per text cell/string value**. A single
+- **64 KiB (65,536 UTF-8 bytes) per row-cell string value**. A single
   65,537-byte cell fails even in a one-row result. Binary cells must also fit
   the cell limit before and after conversion to UTF-8 or a `base64:` string.
 - **16 MiB (16,777,216 bytes) of aggregate JSON-encoded result data and
   metadata** across all queries, including escaped strings, keys, and container
-  syntax. Metadata additionally has its own 1 MiB allowance.
+  syntax. Metadata strings (including SQL text) are not subject to the row-cell
+  string cap; all metadata shares a separate 1 MiB aggregate allowance.
 
 These limits apply before rendering or exporting in `get_chart_data`,
 `get_chart_preview`, chart generation/update compile checks, `query_dataset`,
@@ -1458,6 +1463,11 @@ silently narrowed to binary64. Rendering may still use binary64 values.
 Exact NumPy array cells, including Arrow list columns materialized by pandas,
 are normalized to JSON lists under the same nesting, item, work, and byte limits.
 Array subclasses and unsupported element types remain rejected.
+
+CSV exports retain established row-cell temporal text (for example,
+`2026-10-05 12:00:00` and `1:30:00`); JSON responses use ISO text. Plugins with
+Chart Data temporal wire semantics, including Bullet, retain that projection
+in every export format.
 
 Excel exports store timezone-naive dates, datetimes, times, and nonnegative
 durations as native cells when they fit Excel's 1900 date system. Dates before

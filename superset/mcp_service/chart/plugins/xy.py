@@ -29,7 +29,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    VegaLitePreview,
+    XYChartConfig,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
     CardinalityValidator,
@@ -220,3 +225,19 @@ class XYChartPlugin(BaseChartPlugin):
             row_limit=row_limit,
             order_desc=order_desc,
         )
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Fold native pivot columns so grouped previews render every series."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_pivot_vega_lite_preview,
+        )
+
+        mark = {
+            "echarts_timeseries_line": "line",
+            "echarts_timeseries_bar": "bar",
+            "echarts_area": "area",
+            "echarts_timeseries_scatter": "point",
+        }.get(form_data.get("viz_type") or "", "line")
+        return generate_xy_pivot_vega_lite_preview(data, form_data, mark=mark)

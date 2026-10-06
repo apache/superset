@@ -2233,7 +2233,11 @@ def build_mixed_timeseries_query_dicts(  # noqa: C901
             _dedupe_query_fields(columns, _column_label),
             layer_metrics,
             row_limit=row_limit,
-            order_desc=order_desc,
+            order_desc=(
+                layer["order_desc"]
+                if secondary and form_data.get("order_desc_b") is not None
+                else order_desc
+            ),
             orderby=layer.get("orderby"),
         )
         query["series_columns"] = layer_groupby

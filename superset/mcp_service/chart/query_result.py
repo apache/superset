@@ -1513,6 +1513,24 @@ def _excel_temporal_cell(value: Any) -> Any | None:
     return None
 
 
+def _csv_temporal_cell(value: Any, normalized: str) -> str:
+    """Keep DictWriter's temporal spelling after exact scalar validation.
+
+    Datetime text comes from the hook-free canonical projection, not another
+    call into the source timezone. Duration and NumPy types have no timezone
+    hooks and are converted only when their concrete type is trusted.
+    """
+    value_type = type(value)
+    if value_type is datetime or value_type is pd.Timestamp:
+        return normalized.replace("T", " ", 1)
+    if any(
+        value_type is trusted
+        for trusted in (timedelta, pd.Timedelta, np.datetime64, np.timedelta64)
+    ):
+        return str(value)
+    return normalized
+
+
 def _normalize_row_value(  # noqa: C901
     value: Any,
     budget: _ResultBudget,
@@ -1520,6 +1538,7 @@ def _normalize_row_value(  # noqa: C901
     temporal_json_numbers: bool = False,
     preserve_nonfinite_floats: bool = False,
     preserve_excel_temporals: bool = False,
+    preserve_csv_temporals: bool = False,
 ) -> str | None:
     """Normalize trusted scalars and return a bounded serialization failure.
 
@@ -1530,6 +1549,7 @@ def _normalize_row_value(  # noqa: C901
     subclasses and scalar hooks remain rejected. ``preserve_excel_temporals``
     keeps naive row-level date, time, datetime, and duration cells as builtin
     temporal objects for XLSX exports; size budgets still use their JSON text.
+    ``preserve_csv_temporals`` retains established row-cell CSV spellings.
     """
     stack: list[
         tuple[
@@ -1657,6 +1677,13 @@ def _normalize_row_value(  # noqa: C901
             generic_scalar = True
         if reason is not None:
             return reason
+        if (
+            preserve_csv_temporals
+            and generic_scalar
+            and depth == 1
+            and type(normalized) is str
+        ):
+            normalized = _csv_temporal_cell(item, normalized)
         if reason := _add_result_value_to_budget(normalized, budget):
             return reason
         replacement = normalized
@@ -1688,6 +1715,7 @@ def query_result_data(  # noqa: C901
     temporal_json_numbers: bool = False,
     preserve_nonfinite_floats: bool = False,
     preserve_excel_temporals: bool = False,
+    preserve_csv_temporals: bool = False,
 ) -> tuple[list[list[dict[str, Any]]] | None, ChartError | None]:
     """Validate a chart-data envelope and return each query's data array.
 
@@ -1696,7 +1724,8 @@ def query_result_data(  # noqa: C901
     Gauge data inspection can preserve exact builtin non-finite floats for raw
     CSV/XLSX exports; its response schemas sanitize those values to JSON null.
     XLSX exports can keep naive temporal cells as builtin date/time objects so
-    the workbook stores date cells rather than text.
+    the workbook stores date cells rather than text. CSV exports can preserve
+    established row-cell temporal spellings instead of JSON's ISO text.
     All container, scalar-type, and size checks still apply in those modes.
     """
     if type(result) is not dict:
@@ -1842,6 +1871,7 @@ def query_result_data(  # noqa: C901
                 temporal_json_numbers=temporal_json_numbers,
                 preserve_nonfinite_floats=preserve_nonfinite_floats,
                 preserve_excel_temporals=preserve_excel_temporals,
+                preserve_csv_temporals=preserve_csv_temporals,
             ):
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} {reason}"

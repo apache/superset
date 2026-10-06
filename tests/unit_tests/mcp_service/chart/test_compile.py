@@ -1649,3 +1649,31 @@ def test_table_rebind_rejects_stale_adhoc_ordering_metric_column(
     )
     assert not result.success
     mock_compile.assert_not_called()
+
+
+@pytest.mark.parametrize("clause", ["WHERE", "HAVING"])
+def test_preserved_filter_ambiguity_is_actionable(clause: str) -> None:
+    """Preserved ambiguous subjects expose candidates instead of missing columns."""
+    dataset = _orm_dataset(column_names=["Score", "SCORE", "gender"])
+    config = TableChartConfig(columns=[ColumnRef(name="gender")])
+    result = validate_and_compile(
+        config,
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "score",
+                    "operator": ">",
+                    "comparator": 0,
+                }
+            ]
+        },
+        dataset,
+        run_compile_check=False,
+    )
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "AMBIGUOUS_DATASET_REFERENCE"
+    assert "Score" in result.error_obj.details
+    assert "SCORE" in result.error_obj.details

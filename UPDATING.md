@@ -25,9 +25,11 @@ assists people when migrating to a new version.
 ## Next
 
 - MCP query results enforce non-configurable hard limits of **64 KiB**
-  (65,536 UTF-8 bytes) per text cell/string value and **16 MiB**
-  (16,777,216 JSON-encoded bytes) across all query data and metadata. Oversized
-  results fail with `MalformedQueryResult` (or a chart compile error for
+  (65,536 UTF-8 bytes) per row-cell string value and **16 MiB**
+  (16,777,216 JSON-encoded bytes) across all query data and metadata. All
+  metadata additionally shares a separate 1 MiB aggregate allowance; metadata
+  strings (including SQL text) are not subject to the row-cell string cap.
+  Oversized results fail with `MalformedQueryResult` (or a chart compile error for
   generation/update checks), including one-row results and MCP CSV/Excel/Parquet
   exports. The caps apply to chart data/previews and
   generation/update compile checks, `query_dataset`, and semantic-layer
@@ -36,6 +38,8 @@ assists people when migrating to a new version.
   Binary cells must fit the cell cap both before and after text/base64 conversion.
   NumPy extended-precision floats retain precision as decimal strings in MCP
   responses and exports instead of being narrowed to binary64.
+  Bullet preview numeric format precision is limited to 20 digits; raw data
+  reads do not validate presentation formats.
 
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
