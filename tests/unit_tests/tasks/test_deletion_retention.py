@@ -669,6 +669,39 @@ def test_purge_budget_spans_models_and_runs(app_context: None) -> None:
     ]
 
 
+def test_purge_budget_remaining_after_first_model(app_context: None) -> None:
+    """A partially used cap limits the next model's eligible roots."""
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    cutoff: datetime = datetime(2026, 10, 1)
+    scan: task._PurgeScan
+    purge_one: MagicMock
+    with (
+        patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
+        patch.object(
+            task, "_iter_eligible_ids", side_effect=[iter([[1]]), iter([[2, 3]])]
+        ),
+        patch.object(
+            task,
+            "_purge_one",
+            return_value=CascadeResult(
+                purged=True, entity_type="chart", entity_uuid="x"
+            ),
+        ) as purge_one,
+    ):
+        scan = task._scan_purge_models(cutoff, dry_run=False, max_per_run=2)
+
+    assert scan.purged == {"slices": 1, "dashboards": 1}
+    assert scan.remaining_budget == 0
+    assert [entry.args[:2] for entry in purge_one.call_args_list] == [
+        (Slice, 1),
+        (Dashboard, 2),
+    ]
+
+
 def test_purge_model_priority_rotates_across_days() -> None:
     """A cap smaller than the model count still gives each model first turn."""
     from superset.connectors.sqla.models import SqlaTable

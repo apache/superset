@@ -521,6 +521,48 @@ def test_remainder_reads_use_default_isolation(helper_name: str) -> None:
     engine.connect.return_value.execution_options.assert_not_called()
 
 
+def test_dry_run_count_closes_read_transaction_between_windows() -> None:
+    """A full backlog scan releases each read snapshot before the next window."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    engine: MagicMock = MagicMock()
+    full_window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[],
+            candidate_count=version_history_retention._MAX_PRUNE_BATCH,
+            max_candidate_id=1000,
+        )
+    )
+    final_window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[], candidate_count=0, max_candidate_id=1000
+        )
+    )
+    mock_db: MagicMock
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention,
+            "_resolve_prune_window",
+            side_effect=[full_window, final_window],
+        ),
+    ):
+        mock_db.engine = engine
+        count: int = version_history_retention._count_prunable(
+            datetime(2026, 1, 1), tables
+        )
+
+    assert count == 0
+    assert engine.connect.call_count == 2
+    assert engine.connect.return_value.__exit__.call_count == 2
+    first_exit: int = engine.mock_calls.index(call.connect().__exit__(None, None, None))
+    second_connect: int = engine.mock_calls.index(call.connect(), first_exit + 1)
+    assert first_exit < second_connect
+
+
 @pytest.mark.parametrize("invalid", [-1, True, "3", 2.5])
 def test_prune_rejects_invalid_cap_before_work(invalid: object) -> None:
     """Malformed budgets fail closed before resolving any shadow table."""

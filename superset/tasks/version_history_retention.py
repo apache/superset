@@ -366,15 +366,15 @@ def _count_prunable(cutoff: datetime, tables: ShadowTables) -> int:
     after_id: int = 0
     live_bearing_tables: list[sa.Table] = _live_bearing_tables(tables)
     conn: sa.engine.Connection
-    with db.engine.connect() as conn:
-        while True:
+    while True:
+        with db.engine.connect() as conn:
             window: _PruneWindow = _resolve_prune_window(
                 conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
             )
-            total += len(window.prunable)
-            if window.candidate_count < _MAX_PRUNE_BATCH:
-                return total
-            after_id = window.max_candidate_id
+        total += len(window.prunable)
+        if window.candidate_count < _MAX_PRUNE_BATCH:
+            return total
+        after_id = window.max_candidate_id
 
 
 def _probe_prunable(cutoff: datetime, tables: ShadowTables) -> tuple[int, bool]:
