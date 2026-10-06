@@ -39,6 +39,7 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask_babel import gettext as _
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -146,10 +147,20 @@ class MissingDatasourceError(Exception):
     """
 
     def __init__(self, datasource_label: str) -> None:
-        super().__init__(
-            f"This chart version cannot be restored: the {datasource_label} it "
-            "uses no longer exists. The chart was left unchanged."
+        message: str = (
+            _(
+                "This chart version can't be restored because the semantic view "
+                "it used has been permanently deleted. Restore a version that "
+                "uses an existing semantic view or dataset, or recreate the chart."
+            )
+            if datasource_label == "semantic view"
+            else _(
+                "This chart version can't be restored because the dataset it "
+                "used has been permanently deleted. Restore a version that uses "
+                "an existing dataset, or recreate the chart."
+            )
         )
+        super().__init__(message)
 
 
 def _lock_chart_datasource(model_cls: type, target_version: Any) -> Any | None:

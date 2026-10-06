@@ -450,14 +450,33 @@ def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     assert "left unchanged" in str(error)
 
 
-def test_restore_endpoint_maps_missing_datasource_to_422(app_context: None) -> None:
-    """sc-123446: a chart snapshot whose datasource was deleted surfaces as a
-    user-facing 422, not a 500, and the chart is left unchanged."""
+@pytest.mark.parametrize(
+    ("datasource_label", "expected_message"),
+    [
+        (
+            "dataset",
+            "This chart version can't be restored because the dataset it used "
+            "has been permanently deleted. Restore a version that uses an "
+            "existing dataset, or recreate the chart.",
+        ),
+        (
+            "semantic view",
+            "This chart version can't be restored because the semantic view it "
+            "used has been permanently deleted. Restore a version that uses an "
+            "existing semantic view or dataset, or recreate the chart.",
+        ),
+    ],
+)
+def test_restore_endpoint_maps_missing_datasource_to_422(
+    app_context: None, datasource_label: str, expected_message: str
+) -> None:
+    """sc-123446: a chart snapshot whose datasource was permanently deleted
+    surfaces as a 422 whose message says so and what to do instead."""
     from superset.models.slice import Slice
     from superset.versioning.api_helpers import restore_version_endpoint
     from superset.versioning.restore import MissingDatasourceError
 
-    error: MissingDatasourceError = MissingDatasourceError("semantic view")
+    error: MissingDatasourceError = MissingDatasourceError(datasource_label)
 
     class _Command:
         not_found_exc: type[Exception] = KeyError
@@ -482,5 +501,4 @@ def test_restore_endpoint_maps_missing_datasource_to_422(app_context: None) -> N
     )
 
     assert response == "resp-422"
-    api.response_422.assert_called_once_with(message=str(error))
-    assert "semantic view it uses no longer exists" in str(error)
+    api.response_422.assert_called_once_with(message=expected_message)

@@ -116,11 +116,12 @@ def test_restore_refuses_snapshot_of_deleted_semantic_view(
 
     with (
         patch.object(security_manager, "raise_for_editorship"),
-        pytest.raises(MissingDatasourceError, match="semantic view") as excinfo,
+        pytest.raises(MissingDatasourceError) as excinfo,
     ):
         RestoreChartVersionCommand(chart_uuid, semantic_version).run()
 
-    assert "left unchanged" in str(excinfo.value)
+    assert "semantic view it used has been permanently deleted" in str(excinfo.value)
+    assert "recreate the chart" in str(excinfo.value)
     capture_session.expire_all()
     restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
     assert (restored.datasource_type, restored.datasource_id) == ("table", working_id)
