@@ -20,7 +20,11 @@
 from __future__ import annotations
 
 import asyncio
+import socket
+import ssl
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager, ExitStack
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -96,7 +100,10 @@ def test_sentinel_disconnects_its_external_master_pool(
         else:
             with pytest.raises(RedisError):
                 backend.get("owned")
-        if external:
+        if outcome == "timeout":
+            # No graceful wait remains; the private loop aborts owned transports.
+            disconnect.assert_not_awaited()
+        elif external:
             disconnect.assert_awaited_once()
         else:
             disconnect.assert_awaited()
@@ -666,23 +673,15 @@ def test_timed_out_system_dns_retains_bounded_admission(patched: bool) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-@pytest.mark.parametrize("sentinel", [False, True])
-def test_stalled_tls_shutdown_releases_socket_before_loop_close(
-    tmp_path: Path, sentinel: bool
-) -> None:
-    """Deadline cleanup closes real TLS sockets without relying on collection."""
-    import socket
-    import ssl
+@pytest.fixture
+def tls_contexts(tmp_path: Path) -> tuple[ssl.SSLContext, ssl.SSLContext]:
+    """Create a private certificate and TLS contexts for socket-pair regressions."""
     from datetime import datetime, timedelta, timezone
-    from threading import Event, Thread
 
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec
     from cryptography.x509.oid import NameOID
-    from redis.asyncio import Redis
-    from redis.asyncio.connection import SSLConnection
-    from redis.asyncio.sentinel import Sentinel
 
     key: ec.EllipticCurvePrivateKey = ec.generate_private_key(ec.SECP256R1())
     name: x509.Name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
@@ -712,14 +711,23 @@ def test_stalled_tls_shutdown_releases_socket_before_loop_close(
     client_context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     client_context.check_hostname = False
     client_context.verify_mode = ssl.CERT_NONE
+    return server_context, client_context
+
+
+@contextmanager
+def _stalled_tls_socket(server_context: ssl.SSLContext) -> Iterator[socket.socket]:
+    """Handshake with a peer that withholds its TLS close_notify response."""
+    from threading import Event, Thread
+
     local_socket: socket.socket
     peer_socket: socket.socket
     local_socket, peer_socket = socket.socketpair()
+    peer_socket.settimeout(2)
     release: Event = Event()
     errors: list[Exception] = []
 
     def peer() -> None:
-        """Handshake, then deliberately withhold the TLS close_notify response."""
+        """Leave graceful shutdown waiting until the test releases the peer."""
         try:
             with server_context.wrap_socket(peer_socket, server_side=True):
                 release.wait(5)
@@ -728,6 +736,29 @@ def test_stalled_tls_shutdown_releases_socket_before_loop_close(
 
     worker: Thread = Thread(target=peer)
     worker.start()
+    try:
+        yield local_socket
+    finally:
+        local_socket.close()
+        release.set()
+        worker.join(3)
+        peer_socket.close()
+        assert not worker.is_alive()
+        assert not errors
+
+
+@pytest.mark.parametrize("sentinel", [False, True])
+def test_stalled_tls_shutdown_releases_socket_before_loop_close(
+    tls_contexts: tuple[ssl.SSLContext, ssl.SSLContext], sentinel: bool
+) -> None:
+    """Deadline cleanup closes real TLS sockets without relying on collection."""
+    from redis.asyncio import Redis
+    from redis.asyncio.connection import SSLConnection
+    from redis.asyncio.sentinel import Sentinel
+
+    server_context: ssl.SSLContext
+    client_context: ssl.SSLContext
+    server_context, client_context = tls_contexts
     client: Redis = Sentinel([]).master_for("owned") if sentinel else Redis()
     writers: list[asyncio.StreamWriter] = []
     connections: list[SSLConnection] = []
@@ -751,12 +782,13 @@ def test_stalled_tls_shutdown_releases_socket_before_loop_close(
         return b"observed"
 
     manager: Mock = Mock(sentinels=[], master_for=Mock(return_value=client))
-    backend: DeadlineRedisBackend = DeadlineRedisBackend(
-        {"CACHE_TYPE": "RedisSentinelCache" if sentinel else "RedisCache"},
-        deadline=time.monotonic() + 0.15,
-    )
-    started: float = time.monotonic()
-    try:
+    local_socket: socket.socket
+    with _stalled_tls_socket(server_context) as local_socket:
+        started: float = time.monotonic()
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisSentinelCache" if sentinel else "RedisCache"},
+            deadline=started + 0.15,
+        )
         with (
             patch("superset.coordination.deadline_backend.Redis", return_value=client),
             patch(
@@ -772,10 +804,82 @@ def test_stalled_tls_shutdown_releases_socket_before_loop_close(
         # Keep the writer alive: GC must not be what releases the descriptor.
         assert local_socket.fileno() == -1
         assert connections[0]._writer is None
-        assert not errors
-    finally:
-        local_socket.close()
-        release.set()
-        worker.join(2)
-        peer_socket.close()
-        assert not worker.is_alive()
+
+
+@pytest.mark.parametrize("stalled_master", [False, True])
+@pytest.mark.parametrize("command_timeout", [False, True])
+def test_late_sentinel_cleanup_stays_within_absolute_deadline(
+    tls_contexts: tuple[ssl.SSLContext, ssl.SSLContext],
+    stalled_master: bool,
+    command_timeout: bool,
+) -> None:
+    """Multiple stalled peers cannot each restart the command's cleanup budget."""
+    from redis.asyncio import Redis
+    from redis.asyncio.connection import SSLConnection
+    from redis.asyncio.sentinel import Sentinel
+
+    server_context: ssl.SSLContext
+    client_context: ssl.SSLContext
+    server_context, client_context = tls_contexts
+    client: Redis = Sentinel([]).master_for("owned")
+    discovery_clients: list[Redis] = [Redis(), Redis()]
+    clients: list[Redis] = [*discovery_clients, *([client] if stalled_master else [])]
+    writers: list[asyncio.StreamWriter] = []
+    sockets: list[socket.socket] = []
+    budget: float = 0.6
+    completed: list[float] = []
+    peers: ExitStack
+
+    with ExitStack() as peers:
+        _redis_client: Redis
+        for _redis_client in clients:
+            sockets.append(peers.enter_context(_stalled_tls_socket(server_context)))
+
+        async def execute(*args: object, **kwargs: object) -> bytes:
+            """Spend most of the budget before real Redis/TLS cleanup begins."""
+            target: Redis
+            local_socket: socket.socket
+            for target, local_socket in zip(clients, sockets, strict=True):
+                reader: asyncio.StreamReader
+                writer: asyncio.StreamWriter
+                reader, writer = await asyncio.open_connection(
+                    sock=local_socket,
+                    ssl=client_context,
+                    server_hostname="localhost",
+                    ssl_shutdown_timeout=30,
+                )
+                writers.append(writer)
+                connection: SSLConnection = SSLConnection(socket_connect_timeout=budget)
+                connection._reader = reader
+                connection._writer = writer
+                target.connection_pool._available_connections.append(connection)
+            await asyncio.sleep(1.2 if command_timeout else 0.4)
+            completed.append(time.monotonic())
+            return b"observed"
+
+        manager: Mock = Mock(
+            sentinels=discovery_clients, master_for=Mock(return_value=client)
+        )
+        started: float = time.monotonic()
+        backend: DeadlineRedisBackend = DeadlineRedisBackend(
+            {"CACHE_TYPE": "RedisSentinelCache"}, deadline=started + budget
+        )
+        with (
+            patch(
+                "superset.coordination.deadline_backend.Sentinel", return_value=manager
+            ),
+            patch.object(client, "execute_command", execute),
+            pytest.raises(RedisTimeoutError),
+        ):
+            backend.get("owned")
+        if command_timeout:
+            assert not completed
+        else:
+            assert len(completed) == 1
+            assert 0.4 <= completed[0] - started < budget
+        # Scheduling headroom is smaller than a single restarted connect timeout.
+        assert time.monotonic() - started < budget + 0.25
+        assert len(writers) == len(clients)
+        local_socket: socket.socket
+        for local_socket in sockets:
+            assert local_socket.fileno() == -1
