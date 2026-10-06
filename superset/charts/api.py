@@ -97,6 +97,7 @@ from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
@@ -1432,6 +1433,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         bundle, f"{root}/{file_name}", file_content().encode()
                     )
             except ChartNotFoundError:
+                return self.response_404()
+            except DatasetNotFoundError:
+                # The dataset DAO hides datasets the caller cannot access, so
+                # mirror the dataset export's bare 404 without naming it.
                 return self.response_404()
             except SemanticReferenceError as ex:
                 return self.response(ex.status, message=ex.message)

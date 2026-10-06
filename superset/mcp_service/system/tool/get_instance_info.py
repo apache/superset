@@ -35,12 +35,9 @@ from superset.mcp_service.system.schemas import (
     serialize_user_object,
 )
 from superset.mcp_service.system.system_utils import (
-    calculate_dashboard_breakdown,
-    calculate_database_breakdown,
-    calculate_feature_availability,
-    calculate_instance_summary,
-    calculate_popular_content,
-    calculate_recent_activity,
+    INSTANCE_INFO_METRIC_CALCULATORS,
+    INSTANCE_INFO_TIME_WINDOWS,
+    redact_data_model_metadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,36 +54,13 @@ _instance_info_core = InstanceInfoCore(
         "tags": None,  # type: ignore[dict-item]
     },
     output_schema=InstanceInfo,
-    metric_calculators={
-        "instance_summary": calculate_instance_summary,
-        "recent_activity": calculate_recent_activity,
-        "dashboard_breakdown": calculate_dashboard_breakdown,
-        "database_breakdown": calculate_database_breakdown,
-        "popular_content": calculate_popular_content,
-        "feature_availability": calculate_feature_availability,
-    },
-    time_windows={
-        "recent": 7,
-        "monthly": 30,
-        "quarterly": 90,
-    },
+    metric_calculators=INSTANCE_INFO_METRIC_CALCULATORS,
+    time_windows=INSTANCE_INFO_TIME_WINDOWS,
     logger=logger,
 )
 
 
 _DEFAULT_INSTANCE_INFO_REQUEST = GetSupersetInstanceInfoRequest()
-
-
-def _redact_data_model_metadata(result: InstanceInfo) -> InstanceInfo:
-    """Remove dataset/database counts and activity from instance overview."""
-    data = result.model_copy(deep=True)
-    data.instance_summary.total_datasets = 0
-    data.instance_summary.total_databases = 0
-    data.recent_activity.datasets_created_last_30_days = 0
-    data.recent_activity.datasets_modified_last_7_days = 0
-    data.database_breakdown.by_type = {}
-    data.data_model_metadata_redacted = True
-    return data
 
 
 @tool(
@@ -176,7 +150,7 @@ def _run_instance_info() -> InstanceInfo:
         result = _instance_info_core.run_tool()
 
     if not user_can_view_data_model_metadata():
-        result = _redact_data_model_metadata(result)
+        result = redact_data_model_metadata(result)
 
     if (user := getattr(g, "user", None)) is not None:
         result.current_user = serialize_user_object(user)

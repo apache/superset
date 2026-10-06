@@ -451,6 +451,8 @@ class QueryContextProcessor:
     ) -> tuple[str | None, bool]:
         """Keep annotation cacheability alongside the opaque hashed result key."""
         datasource: Explorable = self._qc_datasource
+        # Reject unenforceable restrictions before provider identity or cache reads.
+        rls: list[str] = security_manager.get_rls_cache_key(datasource)
         extra_cache_keys: list[Any] = datasource.get_extra_cache_keys(
             query_obj.to_dict()
         )
@@ -474,7 +476,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_cache_key(datasource),
+                rls=rls,
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
