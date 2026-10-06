@@ -72,6 +72,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.superset_typing import (
     ExplorableData,
     FlaskResponse,
@@ -556,22 +557,25 @@ class Superset(BaseSupersetView):
                 .all()
             )
 
-        return json_success(
-            json.dumps(
-                [
-                    {
-                        "slice_id" if key == "chart_id" else key: value
-                        for key, value in ChartWarmUpCacheCommand(
-                            slc, dashboard_id, extra_filters
-                        )
-                        .run()
-                        .items()
-                    }
-                    for slc in slices
-                ],
-                default=json.base_json_conv,
-            ),
-        )
+        try:
+            return json_success(
+                json.dumps(
+                    [
+                        {
+                            "slice_id" if key == "chart_id" else key: value
+                            for key, value in ChartWarmUpCacheCommand(
+                                slc, dashboard_id, extra_filters
+                            )
+                            .run()
+                            .items()
+                        }
+                        for slc in slices
+                    ],
+                    default=json.base_json_conv,
+                ),
+            )
+        except SemanticLayersDisabledError as ex:
+            return json_error_response(ex.message, status=ex.status)
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")

@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
+  The flag is evaluated at runtime for API requests and background queries.
+  Disabling it refuses semantic-view data, chart saves and cached chart/dashboard
+  images containing semantic charts, while retaining stored assets. Existing
+  permissions remain required when enabled. Run `superset init` during upgrade
+  to register the existing semantic permissions even when the feature is off.
+  Runtime flag hooks can enable the feature without another restart or permission
+  sync; provider extensions must already be loaded. Do not target runtime
+  enablement until all web and worker processes run this version.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

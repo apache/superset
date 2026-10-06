@@ -39,6 +39,8 @@ from superset.exceptions import SupersetSecurityException, SupersetTemplateExcep
 from superset.extensions import appbuilder
 from superset.utils.core import DatasourceType, override_user
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 @pytest.mark.parametrize("outcome", ["allowed", "denied", "missing"])
 def test_explore_semantic_view_access(mocker: MockerFixture, outcome: str) -> None:

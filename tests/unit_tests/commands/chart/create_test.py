@@ -38,6 +38,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 def _base_mocks(mocker: MockerFixture) -> None:
     mocker.patch(

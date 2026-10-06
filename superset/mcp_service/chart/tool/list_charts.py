@@ -139,6 +139,8 @@ class _ChartListCore(ModelListCore[ChartList]):
         columns_to_load: list[str],
         custom_filters: dict[str, Any] | None = None,
     ) -> tuple[list[Any], int]:
+        if "datasource_type" not in columns_to_load:
+            columns_to_load = [*columns_to_load, "datasource_type"]
         name_filters = [
             item for item in (filters or []) if item.col == "datasource_name"
         ]

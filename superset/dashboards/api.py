@@ -183,6 +183,10 @@ from superset.security.manager import (
     attach_extra_editors,
     attach_extra_editors_to_rows,
 )
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
@@ -2366,6 +2370,10 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if not is_semantic_layers_enabled() and any(
+            chart.datasource_type == "semantic_view" for chart in dashboard.slices
+        ):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         window_size = (
             kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
@@ -2737,6 +2745,10 @@ class DashboardRestApi(
         # Making sure the dashboard still exists
         if not dashboard:
             return self.response_404()
+        if not is_semantic_layers_enabled() and any(
+            chart.datasource_type == "semantic_view" for chart in dashboard.slices
+        ):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         download_format = request.args.get("download_format", "png")
 
@@ -2842,6 +2854,10 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if not is_semantic_layers_enabled() and any(
+            chart.datasource_type == "semantic_view" for chart in dashboard.slices
+        ):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         dashboard_url = get_url_path(

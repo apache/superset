@@ -53,6 +53,31 @@ FEATURE_FLAGS = {
 }
 ```
 
+## Runtime semantic-layer availability
+
+`SEMANTIC_LAYERS` defaults to `False`. Both semantic-layer APIs are registered
+at startup, and each request evaluates the active flag decision. Hosts can use
+`IS_FEATURE_ENABLED_FUNC` and `GET_FEATURE_FLAGS_FUNC` to supply runtime decisions;
+changing static configuration still requires a restart. Initialize permissions
+with the normal `superset init` upgrade step. Enabling the runtime flag does not
+grant permissions or require another permission sync.
+
+When disabled, semantic API routes return 404. Semantic-view queries and metadata
+return “Semantic layers are not enabled.” Saved charts remain listed, but their
+data and cached images are unavailable; dashboards omit semantic-view dataset
+metadata. Chart saves using semantic views are refused. The semantic MCP tools
+are unavailable, while chart listings mark affected charts with an
+`unavailable_reason`. Ordinary dataset queries remain available, and semantic
+import/export retains its existing feature-off rejection.
+
+Background queries evaluate availability when the worker executes them. Browser
+controls reflect the bootstrap flag on the next full page load; stale pages
+still encounter server-side refusal. Providers must already be loaded through
+`ENABLE_EXTENSIONS`, which remains a startup setting. During a rolling upgrade,
+wait until every web and worker process has the runtime guards before enabling
+the feature through a host hook. Disable the flag to roll back availability
+without deleting stored semantic layers, views or charts.
+
 ## Lifecycle
 
 Feature flags progress through lifecycle stages:

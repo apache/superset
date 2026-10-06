@@ -29,6 +29,10 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
 from superset.models.slice import Slice
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
 from superset.views.utils import get_dashboard_extra_filters
@@ -107,6 +111,11 @@ class ChartWarmUpCacheCommand(BaseCommand):
             if not chart:
                 raise WarmUpCacheChartNotFoundError()
             self._chart_or_id = chart
+        if (
+            chart.datasource_type == "semantic_view"
+            and not is_semantic_layers_enabled()
+        ):
+            raise SemanticLayersDisabledError()
         try:
             security_manager.raise_for_access(chart=chart)
         except SupersetSecurityException as ex:

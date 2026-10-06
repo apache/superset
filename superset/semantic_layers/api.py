@@ -19,7 +19,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask import make_response, request, Response
+from flask import Blueprint, make_response, request, Response
+from flask_appbuilder import AppBuilder
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -62,6 +63,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -82,6 +84,13 @@ from superset.views.base_api import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _refuse_disabled_semantic_layers() -> FlaskResponse | None:
+    """Refuse semantic API dispatch before authentication or handler side effects."""
+    if not is_semantic_layers_enabled():
+        return BaseSupersetApi.response(404, message="Not found")
+    return None
 
 
 def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
@@ -205,6 +214,19 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     base_permissions = ["can_read", "can_write"]
 
     edit_model_schema = SemanticViewPutSchema()
+
+    def create_blueprint(
+        self,
+        appbuilder: AppBuilder,
+        endpoint: str | None = None,
+        static_folder: str | None = None,
+    ) -> Blueprint:
+        """Register all routes behind a runtime feature-availability guard."""
+        blueprint: Blueprint = super().create_blueprint(
+            appbuilder, endpoint, static_folder
+        )
+        blueprint.before_request(_refuse_disabled_semantic_layers)
+        return blueprint
 
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
@@ -590,6 +612,19 @@ class SemanticLayerRestApi(BaseSupersetApi):
     openapi_spec_tag = "Semantic Layers"
     add_model_schema = SemanticLayerPostSchema()
     edit_model_schema = SemanticLayerPutSchema()
+
+    def create_blueprint(
+        self,
+        appbuilder: AppBuilder,
+        endpoint: str | None = None,
+        static_folder: str | None = None,
+    ) -> Blueprint:
+        """Register all routes behind a runtime feature-availability guard."""
+        blueprint: Blueprint = super().create_blueprint(
+            appbuilder, endpoint, static_folder
+        )
+        blueprint.before_request(_refuse_disabled_semantic_layers)
+        return blueprint
 
     @expose("/types", methods=("GET",))
     @protect()

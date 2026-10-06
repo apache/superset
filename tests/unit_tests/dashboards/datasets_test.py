@@ -33,6 +33,8 @@ from superset.models.slice import Slice
 from superset.security.guest_token import GuestToken, GuestUser
 from superset.semantic_layers.models import SemanticView
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 # Reuse the semantic model fixtures without shadowing imported fixture functions.
 pytest_plugins: list[str] = ["tests.unit_tests.semantic_layers.models_test"]
 

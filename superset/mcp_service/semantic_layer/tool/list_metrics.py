@@ -43,6 +43,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricList,
     SemanticLayerError,
 )
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -275,6 +279,12 @@ async def list_metrics(
         "Listing metrics: search=%s, dataset_id=%s, view_id=%s, page=%s"
         % (request.search, request.dataset_id, request.view_id, request.page)
     )
+
+    if not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
 
     if not user_can_view_data_model_metadata():
         await ctx.warning("Metric listing blocked by data-model privacy controls")
