@@ -162,7 +162,12 @@ def _metric_label(form_data: Mapping[str, Any]) -> str | None:
 
 
 def _x_axis_labels(form_data: Mapping[str, Any]) -> list[str]:
-    """Candidate time-column labels: the configured x-axis, then `__timestamp`."""
+    """Candidate time-column labels: the configured x-axis, then `__timestamp`.
+
+    Without an x-axis, the legacy ``granularity_sqla`` column is a candidate
+    too: the MCP query (``resolve_big_number_columns``) selects it by name,
+    while a frontend-built query aliases it as `__timestamp`.
+    """
     labels: list[str] = []
     x_axis = form_data.get("x_axis")
     if isinstance(x_axis, str) and x_axis:
@@ -171,6 +176,10 @@ def _x_axis_labels(form_data: Mapping[str, Any]) -> list[str]:
         label = x_axis.get("label") or x_axis.get("column_name")
         if isinstance(label, str) and label:
             labels.append(label)
+    if not labels:
+        granularity = form_data.get("granularity_sqla")
+        if isinstance(granularity, str) and granularity:
+            labels.append(granularity)
     labels.append(DTTM_ALIAS)
     return labels
 

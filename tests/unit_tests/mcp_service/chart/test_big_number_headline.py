@@ -160,6 +160,33 @@ def test_last_value_orders_datetime_x_axis_values() -> None:
     assert headline.value == 3
 
 
+def test_last_value_orders_rows_keyed_by_granularity_column() -> None:
+    """Without an x-axis, the MCP query selects `granularity_sqla` by name."""
+    rows = [
+        {"ds": 3000, METRIC: 30},
+        {"ds": 1000, METRIC: 10},
+        {"ds": 2000, METRIC: 20},
+    ]
+
+    headline = _headline(rows, granularity_sqla="ds")
+
+    assert headline is not None
+    assert headline.value == 30
+    assert headline.reason is None
+
+
+def test_x_axis_takes_precedence_over_granularity_column() -> None:
+    rows = [
+        {"order_date": 2000, "ds": 1000, METRIC: 20},
+        {"order_date": 1000, "ds": 2000, METRIC: 10},
+    ]
+
+    headline = _headline(rows, x_axis="order_date", granularity_sqla="ds")
+
+    assert headline is not None
+    assert headline.value == 20
+
+
 def test_last_value_skips_a_null_latest_value() -> None:
     headline = _headline(_trend_rows([10, 20, None]), aggregation="LAST_VALUE")
 
