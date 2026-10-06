@@ -25,7 +25,6 @@ import sqlalchemy as sqla
 from flask import current_app as app, has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import User
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -70,77 +69,60 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
-    if dashboard_id is None:
-        return
-
+def _copy_dashboard_for_user(
+    session: Any,
+    target: Any,
+    dashboard_id: int | str,
+) -> None:
     from superset.subjects.utils import (
         get_default_viewers_for_groups,
         get_user_subject,
     )
 
+    user_model = security_manager.user_model
+    new_user = session.query(user_model).filter_by(id=target.id).first()
+    template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    if not template:
+        return
+    editors = []
+    if new_user:
+        subj = get_user_subject(new_user.id)
+        if subj:
+            editors.append(subj)
+    dashboard = Dashboard(
+        dashboard_title=template.dashboard_title,
+        position_json=template.position_json,
+        description=template.description,
+        css=template.css,
+        json_metadata=template.json_metadata,
+        slices=template.slices,
+        editors=editors,
+        viewers=get_default_viewers_for_groups(
+            list(getattr(new_user, "groups", []) or [])
+        ),
+    )
+    session.add(dashboard)
+    session.flush()
+    extra_attributes = UserAttribute(
+        user_id=target.id, welcome_dashboard_id=dashboard.id
+    )
+    session.add(extra_attributes)
+    session.commit()
+
+
+def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> None:
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
+    if dashboard_id is None:
+        return
+
     target_session = getattr(sqla.inspect(target, raiseerr=False), "session", None)
     if target_session is not None and not isinstance(_connection, Connection):
-        new_user = target_session.query(User).filter_by(id=target.id).first()
-        template = target_session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-        if not template:
-            return
-        editors = []
-        if new_user:
-            subj = get_user_subject(new_user.id)
-            if subj:
-                editors.append(subj)
-        dashboard = Dashboard(
-            dashboard_title=template.dashboard_title,
-            position_json=template.position_json,
-            description=template.description,
-            css=template.css,
-            json_metadata=template.json_metadata,
-            slices=template.slices,
-            editors=editors,
-            viewers=get_default_viewers_for_groups(
-                list(getattr(new_user, "groups", []) or [])
-            ),
-        )
-        target_session.add(dashboard)
-        target_session.flush()
-        extra_attributes = UserAttribute(
-            user_id=target.id, welcome_dashboard_id=dashboard.id
-        )
-        target_session.add(extra_attributes)
-        target_session.commit()
+        _copy_dashboard_for_user(target_session, target, dashboard_id)
         return
 
     with Session(bind=_connection) as session:  # pylint: disable=disallowed-name
-        new_user = session.query(User).filter_by(id=target.id).first()
-        template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-        if not template:
-            return
-        editors = []
-        if new_user:
-            subj = get_user_subject(new_user.id)
-            if subj:
-                editors.append(subj)
-        dashboard = Dashboard(
-            dashboard_title=template.dashboard_title,
-            position_json=template.position_json,
-            description=template.description,
-            css=template.css,
-            json_metadata=template.json_metadata,
-            slices=template.slices,
-            editors=editors,
-            viewers=get_default_viewers_for_groups(
-                list(getattr(new_user, "groups", []) or [])
-            ),
-        )
-        session.add(dashboard)
-        session.flush()
-        extra_attributes = UserAttribute(
-            user_id=target.id, welcome_dashboard_id=dashboard.id
-        )
-        session.add(extra_attributes)
-        session.commit()  # pylint: disable=consider-using-transaction
+        _copy_dashboard_for_user(session, target, dashboard_id)
+
 
 
 def register_dashboard_copy_events(user_model: Any) -> None:
