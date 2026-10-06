@@ -1128,6 +1128,11 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
         key: [f"stale_{key}"] if key in list_roles else f"stale_{key}"
         for key in role_keys
     }
+    if isinstance(config, MixedTimeseriesChartConfig):
+        # Valid secondary controls survive omissions. Use malformed values to
+        # test rejection instead of valid strings representing native settings.
+        for key in role_keys & MixedTimeseriesChartConfig.model_fields.keys():
+            stale_roles[key] = {"malformed": ["stale"]}
     # Gantt's typed schema rejects unmodeled native controls, so its mapper owns
     # the complete control surface instead of inheriting unknown saved keys.
     preserves_native_controls = not isinstance(config, GanttChartConfig)

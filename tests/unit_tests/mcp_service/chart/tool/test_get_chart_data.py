@@ -925,8 +925,8 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(  # noqa: C901
     if response_format == "csv":
         assert "12.50,0.10000000000000000001" in wire_response["csv_data"]
     else:
-        assert wire_response["data"][0]["Sales"] == "12.50"
-        assert wire_response["data"][0]["Profit"] == "0.10000000000000000001"
+        assert wire_response["data"][0]["Sales"] == 12.5
+        assert wire_response["data"][0]["Profit"] == 0.1
         columns = {column["name"]: column for column in wire_response["columns"]}
         assert columns["Sales"]["unique_count"] == 2
         assert columns["Profit"]["unique_count"] == 2
@@ -1050,7 +1050,7 @@ async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
         None,
         None,
         None,
-        "0.10000000000000000001",
+        0.1,
     ]
 
 
@@ -5203,3 +5203,107 @@ async def test_malformed_gantt_query_returns_validation_error(
     assert isinstance(result, ChartError)
     assert result.error_type == "ValidationError"
     assert message in result.error
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["unsaved", "cached-update", "saved-fallback"])
+@pytest.mark.parametrize(
+    "response_format,limit,page_size",
+    [
+        ("csv", 100, 10),
+        ("excel", 100, 10),
+        ("json", 1, 1000),
+    ],
+)
+async def test_rebuilt_table_data_does_not_use_saved_server_pagination(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    response_format: str,
+    limit: int,
+    page_size: int,
+) -> None:
+    """MCP exports and explicit limits are not Explore page requests."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    from superset.common.query_context_factory import QueryContextFactory
+
+    captured: list[dict[str, Any]] = []
+    form_data = {
+        **_UNSAVED_TABLE_FORM_DATA,
+        "query_mode": "aggregate",
+        "all_columns": [],
+        "groupby": [],
+        "metrics": ["value"],
+        "server_pagination": True,
+        "server_page_length": page_size,
+        "row_limit": 100,
+    }
+
+    def create_context(_self: Any, **kwargs: Any) -> Any:
+        captured.append(kwargs)
+        return SimpleNamespace(queries=[], form_data=kwargs["form_data"])
+
+    class Command:
+        def __init__(self, _context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            size = captured[-1]["queries"][0]["row_limit"]
+            return chart_data_command_result(
+                [{"value": index} for index in range(min(size, 100))],
+                columns=["value"],
+                coltypes=[GenericDataType.NUMERIC],
+            )
+
+    real_builder = module.build_query_context_from_form_data
+    _patch_unsaved_get_data(monkeypatch, Command, form_data)
+    monkeypatch.setattr(module, "build_query_context_from_form_data", real_builder)
+    monkeypatch.setattr(QueryContextFactory, "create", create_context)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    request: dict[str, Any] = {"format": response_format, "limit": limit}
+    if path != "unsaved":
+        chart = SimpleNamespace(
+            id=9,
+            slice_name="Paginated table",
+            viz_type="table",
+            datasource_id=7,
+            datasource_type="table",
+            params=json.dumps(form_data),
+            query_context=None,
+        )
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *_a, **_k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *_a, **_k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(module.guest_scope, "guest_dashboard_id", lambda _c: None)
+        request["identifier"] = 9
+    if path != "saved-fallback":
+        request["form_data_key"] = "paginated-table"
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_chart_data", {"request": request})
+    wire = result.structured_content.get("result", result.structured_content)
+    assert wire.get("error_type") is None
+    (query,) = captured[-1]["queries"]
+    assert query["row_limit"] == limit
+    assert not query.get("is_rowcount")
+    assert query["row_offset"] == 0
+    if response_format == "csv":
+        assert len(wire["csv_data"].splitlines()) == 101
+    elif response_format == "json":
+        assert len(wire["data"]) == 1
+    else:
+        import base64
+        import io
+
+        import openpyxl
+
+        workbook = openpyxl.load_workbook(
+            io.BytesIO(base64.b64decode(wire["excel_data"])), read_only=True
+        )
+        assert workbook.active.max_row == 101

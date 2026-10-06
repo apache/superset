@@ -1667,7 +1667,9 @@ def build_query_objects_from_form_data(  # noqa: C901
             form_data, _as_list(form_data.get("groupby"))
         )
 
-    if not effective_viz and not query.get("orderby"):
+    elif not query.get("orderby"):
+        # Unadapted visualizations retain the legacy top-N ordering fallback.
+        # Handled adapters may deliberately leave ordering empty.
         query["orderby"] = orderby_from_form_data(
             form_data, list(query.get("metrics") or []), effective_viz
         )

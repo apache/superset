@@ -1524,6 +1524,17 @@ Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
 base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
+Finite SQL Decimal values retain their precision during chart validation and
+CSV export, but use the existing JSON number format in rows, query results,
+column samples, and statistics. As with other floating-point JSON numbers,
+clients should not rely on exact decimal precision in that projection.
+
+Rebuilt `get_chart_data` queries retrieve the requested row limit rather than
+a saved Table's server-pagination page size. CSV and Excel exports are not
+restricted to the first Explore page, and explicit limits apply before execution.
+Same-visualization Mixed Timeseries updates preserve omitted secondary-query
+controls, including time range, row limits, time grain, and rolling/resample
+settings. Explicit secondary controls and clears replace the saved values.
 
 ## Chart data column counts
 

@@ -28,7 +28,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
@@ -2332,8 +2332,8 @@ def retain_mixed_timeseries_secondary_update_state(
     Query B inherits unsuffixed controls only when the suffixed key is absent.
     Preserve explicit native clears for controls the typed mapper did not
     replace, so []/None never turns into accidental inheritance from query A.
-    Valid comparison state is also retained; malformed/stale dataset roles
-    remain fail-closed and are dropped.
+    Valid modeled secondary controls and comparison state are also retained;
+    malformed controls and stale replacement roles remain fail-closed.
     """
     from superset.common.form_data_query_context import (
         MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
@@ -2356,7 +2356,19 @@ def retain_mixed_timeseries_secondary_update_state(
             "annotation_layers_b",
             "time_compare_b",
         } and isinstance(value, list)
-        if is_explicit_clear or is_valid_comparison or is_valid_list_state:
+        is_valid_modeled_control = False
+        if field := MixedTimeseriesChartConfig.model_fields.get(key):
+            try:
+                TypeAdapter(field.rebuild_annotation()).validate_python(value)
+                is_valid_modeled_control = True
+            except ValidationError:
+                pass
+        if (
+            is_explicit_clear
+            or is_valid_comparison
+            or is_valid_list_state
+            or is_valid_modeled_control
+        ):
             retained[key] = value
     return retained
 

@@ -774,3 +774,133 @@ def test_replacement_filters_drop_legacy_predicates_on_cross_viz_update() -> Non
         (query,) = build_query_dicts_from_form_data(merged, 10, "table")
     assert "EMEA" not in str(query)
     assert "APAC" in str(query)
+
+
+def test_replacement_filters_drop_legacy_predicates_on_same_viz_update() -> None:
+    """A same-dataset Table replacement removes every legacy SQL source."""
+    saved = {
+        "viz_type": "table",
+        "datasource": "10__table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "filters": [{"col": "region", "op": "==", "val": "EMEA"}],
+        "extra_filters": [{"col": "region", "op": "in", "val": ["EMEA"]}],
+        "where": "region = 'EMEA'",
+        "having": "COUNT(*) > 5",
+    }
+    config = TableChartConfig(
+        columns=[{"name": "region"}, {"name": "sales", "aggregate": "SUM"}],
+        filters=[{"column": "region", "op": "=", "value": "APAC"}],
+    )
+    mapped = map_config_to_form_data(config, dataset_id=10)
+    merged = merge_form_data_for_update(saved, mapped, config)
+
+    assert merged["viz_type"] == saved["viz_type"]
+    assert merged["datasource"] == saved["datasource"]
+    assert {"filters", "extra_filters", "where", "having"}.isdisjoint(merged)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        (query,) = build_query_dicts_from_form_data(merged, 10, "table")
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "APAC"}]
+    assert not query.get("where")
+    assert not query.get("having")
+    assert not query.get("extras", {}).get("where")
+    assert not query.get("extras", {}).get("having")
+    assert "EMEA" not in str(query)
+
+
+@pytest.mark.parametrize("viz_type", ["funnel", "unregistered_chart", ""])
+def test_unadapted_viz_keeps_metric_ordering(viz_type: str) -> None:
+    """Unadapted saved charts keep their top-N fallback ordering."""
+    from superset.common.form_data_query_context import (
+        build_query_context_from_form_data as build_common_context,
+    )
+
+    form_data = {
+        "viz_type": viz_type,
+        "groupby": ["stage"],
+        "metric": "revenue",
+        "sort_by_metric": True,
+        "row_limit": 2,
+    }
+    (common_query,) = build_common_context(
+        deepcopy(form_data), {"id": 10, "type": "table"}
+    )["queries"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        (mcp_query,) = build_query_dicts_from_form_data(
+            deepcopy(form_data), 10, "table"
+        )
+    for query in (common_query, mcp_query):
+        assert query["columns"] == ["stage"]
+        assert query["metrics"] == ["revenue"]
+        assert query["row_limit"] == 2
+        assert query["orderby"] == [["revenue", False]]
+
+
+@pytest.mark.parametrize("replace_controls", [False, True])
+def test_mixed_update_retains_omitted_secondary_query_controls(
+    replace_controls: bool,
+) -> None:
+    """Presentation updates preserve query B without changing its semantics."""
+    from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
+
+    secondary_controls = {
+        "time_range_b": "2025-01-01 : 2025-02-01",
+        "time_grain_sqla_b": "P1D",
+        "row_limit_b": 27,
+        "row_offset_b": 3,
+        "series_limit_b": 4,
+        "order_desc_b": False,
+        "rolling_type_b": "sum",
+        "rolling_periods_b": 3,
+        "min_periods_b": 1,
+        "resample_rule_b": "1D",
+        "resample_method_b": "sum",
+    }
+    config_data = {
+        "x": {"name": "event_time"},
+        "y": [{"name": "revenue", "saved_metric": True}],
+        "y_secondary": [{"name": "profit", "saved_metric": True}],
+        "show_legend": False,
+    }
+    if replace_controls:
+        config_data.update(time_range_b="Last year", row_limit_b=1)
+    config = MixedTimeseriesChartConfig.model_validate(config_data)
+    saved = {
+        "viz_type": "mixed_timeseries",
+        "datasource": "10__table",
+        "x_axis": "event_time",
+        "metrics": ["revenue"],
+        "metrics_b": ["profit"],
+        "granularity_sqla": "event_time",
+        "time_range": "No filter",
+        **secondary_controls,
+    }
+    merged = merge_form_data_for_update(
+        saved, map_config_to_form_data(config, dataset_id=10), config
+    )
+    expected = {
+        **secondary_controls,
+        **({"time_range_b": "Last year", "row_limit_b": 1} if replace_controls else {}),
+    }
+    for key, value in expected.items():
+        assert merged[key] == value
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        before = build_query_dicts_from_form_data(deepcopy(saved), 10, "table")[1]
+        after = build_query_dicts_from_form_data(deepcopy(merged), 10, "table")[1]
+    if replace_controls:
+        assert after["time_range"] == "Last year"
+        assert after["row_limit"] == 1
+    else:
+        assert after == before
+        assert after["time_range"] == secondary_controls["time_range_b"]
+        assert after["row_limit"] == 27

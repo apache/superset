@@ -183,6 +183,18 @@ def _compute_effective_force(request: GetChartDataRequest) -> bool:
     return request.force_refresh or not request.use_cache
 
 
+def _non_paginated_request_form_data(
+    form_data: dict[str, Any], request: GetChartDataRequest, row_limit: int
+) -> dict[str, Any]:
+    """Mark MCP data retrieval as a download rather than an Explore page."""
+    return {
+        **form_data,
+        "result_format": "xlsx" if request.format == "excel" else request.format,
+        "result_type": "results",
+        "row_limit": row_limit,
+    }
+
+
 def _coerce_row_limit(value: Any, default: int) -> int:
     """Coerce a row_limit (which may arrive as a str from chart.params) to int,
     falling back to ``default`` when it is missing, non-numeric, or non-positive.
@@ -659,6 +671,10 @@ async def _get_chart_data(  # noqa: C901
                     current_app.config["ROW_LIMIT"],
                 )
 
+                cached_form_data_dict = _non_paginated_request_form_data(
+                    cached_form_data_dict, request, row_limit
+                )
+                effective_form_data = cached_form_data_dict
                 query_context = build_query_context_from_form_data(
                     cached_form_data_dict,
                     chart=chart_facts,
@@ -730,6 +746,9 @@ async def _get_chart_data(  # noqa: C901
                 # column configs (lat/lon, geohash, etc.) instead.
                 viz_type = chart_viz_type or ""
 
+                effective_form_data = _non_paginated_request_form_data(
+                    effective_form_data, request, row_limit
+                )
                 fallback_queries = build_query_dicts_from_form_data(
                     effective_form_data,
                     chart_datasource_id,
@@ -1188,6 +1207,7 @@ async def _query_from_form_data(  # noqa: C901
         request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"],
         current_app.config["ROW_LIMIT"],
     )
+    form_data = _non_paginated_request_form_data(form_data, request, row_limit)
     viz_type = form_data.get("viz_type", "unknown")
     effective_force = _compute_effective_force(request)
 

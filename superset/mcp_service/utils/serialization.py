@@ -58,7 +58,7 @@ from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, PlainSerializer
 
 from superset.utils.json import base_json_conv
 
@@ -239,14 +239,18 @@ RowCount = Annotated[int, BeforeValidator(coerce_int)]
 #: A nullable row count reported by the query engine.
 OptionalRowCount = Annotated[int | None, BeforeValidator(coerce_optional_int)]
 
-# Chart query validation retains exact finite Decimals. Keep that precision
-# through schema construction; Pydantic renders them as lossless JSON strings.
+# Keep exact finite Decimals for chart validation and exports, but retain the
+# established numeric JSON wire format at the format-specific projection.
 ExactJsonSafeMapping = Annotated[
-    dict[str, Any], BeforeValidator(partial(sanitize_mapping, preserve_decimals=True))
+    dict[str, Any],
+    BeforeValidator(partial(sanitize_mapping, preserve_decimals=True)),
+    PlainSerializer(sanitize_mapping, when_used="json"),
 ]
 ExactJsonSafeRows = list[ExactJsonSafeMapping]
 ExactJsonSafeValues = list[
     Annotated[
-        Any, BeforeValidator(partial(sanitize_json_value, preserve_decimals=True))
+        Any,
+        BeforeValidator(partial(sanitize_json_value, preserve_decimals=True)),
+        PlainSerializer(sanitize_json_value, when_used="json"),
     ]
 ]
