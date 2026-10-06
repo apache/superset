@@ -137,6 +137,18 @@ widen to and do **not** mirror at all. A `=` or `IN` whose value carries no time
 such as `'2026-07-06'` or a date picked in the filter popover, mirrors normally. The same
 applies one grain finer on engines that compare timestamps only to the second.
 
+Reading the value is what makes all of that possible, and Superset reads **ISO 8601 only** —
+`2026-07-06`, `2026-07-06 10:08:11`, `2026-07-06T10:08:11`. It is the one format whose
+meaning is not a guess: `06/07/2026` is July 6 to a US reader and June 7 to most of the
+world, and a mirror built from the wrong one drops rows silently. So on a column the engine
+compares coarsely, a datetime typed in any other format — `07/06/2026 10:08:11`,
+`2026/07/06 10:08:11`, `July 6 2026 10:08:11` — does not mirror, for any operator, and no
+pruning indicator appears. The filter itself is unaffected; the query is correct and simply
+reads the whole table. Write the bound in ISO 8601, or pick it from the filter popover, and
+the mirror comes back. None of this applies where the engine compares the whole value: on a
+`TIMESTAMP` column any format your database accepts mirrors, because there is nothing left
+for Superset to resolve.
+
 If `=` and `IN` on a date column matter to you, map a `TIMESTAMP` column instead: the engine
 then compares the whole value and every operator mirrors.
 
