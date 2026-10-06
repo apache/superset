@@ -20,6 +20,7 @@ from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource
 from superset.models.dashboard import Dashboard
@@ -744,4 +745,32 @@ def test_custom_user_model_dashboard_copy_listener(app_context: None) -> None:
     from superset.models.dashboard import register_dashboard_copy_events
 
     assert callable(register_dashboard_copy_events)
+
+
+class CustomUserModel(User):
+    """Custom user model subclass for testing dynamic security manager models."""
+
+    __tablename__ = "ab_user"
+    custom_field = "custom_value"
+
+
+@pytest.fixture
+def custom_user_model() -> type[CustomUserModel]:
+    """Fixture providing a mock CustomUserModel class."""
+    return CustomUserModel
+
+
+@pytest.fixture
+def mock_dashboard_template() -> Dashboard:
+    """Fixture providing a mock template Dashboard instance."""
+    dash = Dashboard()
+    dash.id = 100
+    dash.dashboard_title = "Template Dashboard"
+    dash.position_json = "{}"
+    dash.description = "Template description"
+    dash.css = ""
+    dash.json_metadata = "{}"
+    dash.slices = []
+    return dash
+
 
