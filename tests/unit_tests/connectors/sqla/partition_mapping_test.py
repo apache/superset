@@ -1160,6 +1160,43 @@ def test_a_denied_read_capable_function_is_refused_despite_having_no_from(
     assert "schema_to_xml" in reason
 
 
+@pytest.mark.parametrize("function", ["ts_rewrite", "ts_stat"])
+def test_the_postgres_full_text_query_functions_are_denied_by_default(
+    function: str,
+) -> None:
+    """
+    `ts_stat('select ...')` and `ts_rewrite(q, 'select ...')` run their *text*
+    argument as a query. The query is a string, so these have the same blind
+    spot the XML family above does: no FROM clause and no sub-query for a
+    table-reference gate to reason about, which leaves the denylist as the only
+    thing that can refuse them.
+    """
+    assert function in DISALLOWED_SQL_FUNCTIONS["postgresql"]
+
+
+def test_a_denied_query_running_text_function_is_refused(app: Flask) -> None:
+    """
+    The wiring half, and the only thing that proves the *name* matching works
+    for these two: neither is a function sqlglot models, so each reaches
+    `get_disallowed_functions` through its ANONYMOUS branch rather than as a
+    typed node. A denylist entry that only matched modelled functions would
+    pass the enumeration test above and still let these through.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+    transform = "ts_stat('select 1') || :value"
+
+    with app.app_context():
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"postgresql": {"ts_stat"}}
+        try:
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+    assert reason is not None
+    assert "ts_stat" in reason
+
+
 def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> None:
     """
     Every other denylist gate in the codebase keys on the engine spec's own
