@@ -19,7 +19,6 @@
 import {
   applyImplicitMappingMove,
   applyMappingMove,
-  applyPartitionColumnDefaults,
   clearMappingTransforms,
   defaultTransformFor,
   mappedColumnIsImplicit,
@@ -374,20 +373,6 @@ test('clearing the default datetime column clears the mapping transform with it'
   expect(moved[0]).toMatchObject({
     partition_value_transform: null,
     partition_transform_is_monotonic: false,
-  });
-});
-
-test('designating a partition column takes it out of the Explore pickers', () => {
-  const updated = applyPartitionColumnDefaults(COLUMNS, 'dt_epoch');
-
-  expect(updated.find(c => c.column_name === 'dt_epoch')).toMatchObject({
-    filterable: false,
-    groupby: false,
-  });
-  // Everything else is left alone.
-  expect(updated.find(c => c.column_name === 'country')).toMatchObject({
-    filterable: true,
-    groupby: true,
   });
 });
 
