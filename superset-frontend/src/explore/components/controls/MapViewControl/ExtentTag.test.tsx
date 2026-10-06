@@ -55,12 +55,12 @@ test('renders 0 values instead of "unset"', () => {
 });
 
 test('renders "unset" for missing values', () => {
-  const value = {
+  const value: MapViewConfigs = {
     ...baseValue,
     fixedZoom: undefined,
     fixedLatitude: undefined,
     fixedLongitude: undefined,
-  } as unknown as MapViewConfigs;
+  };
   render(<ExtentTag value={value} onClick={jest.fn()} />);
   expect(
     screen.getByText('Zoom: unset | Lat: unset | Lon: unset'),
