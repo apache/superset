@@ -69,7 +69,6 @@ from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
 
-
 pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
 
