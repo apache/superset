@@ -4494,9 +4494,7 @@ msgstr ""
 msgid "Column type"
 msgstr "Momo tīwae"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -13230,6 +13228,9 @@ msgstr ""
 msgid "Reset state"
 msgstr "Tautuhi anō i te tūnga"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Whakahou i ngā uara taunoa"
@@ -16796,6 +16797,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Te tepe raro o te awhe paepae o te Isoband"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

@@ -223,6 +223,23 @@ def dummy_query_object(request, app_context):
     ).create(parent_result_type=result_type, **query_object)
 
 
+@pytest.fixture
+def sqlite_supports_partition_filter_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Let SQLite-backed fixtures exercise partition filter mapping.
+
+    The query path and the Explore summary only resolve a mapping on an engine
+    that advertises `supports_partition_filter_mapping`, which SQLite does not.
+    Tests that build their datasets on SQLite and assert a mapping resolves opt
+    into this to keep testing the mapping itself rather than the engine gate.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", True)
+
+
 def with_feature_flags(**mock_feature_flags):
     """
     Use this decorator to mock feature flags in tests.integration_tests.

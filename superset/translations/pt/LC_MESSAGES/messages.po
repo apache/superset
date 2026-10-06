@@ -5526,9 +5526,7 @@ msgstr ""
 msgid "Column type"
 msgstr "Tipo de coluna"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -16492,6 +16490,9 @@ msgstr "Repor palavra-passe"
 msgid "Reset state"
 msgstr "Repor Estado"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, lv, ru,
 # sr, sr_Latn, tr, uk]
 msgid "Reset to default folders?"
@@ -20791,6 +20792,10 @@ msgstr ""
 # uk]
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "O limite inferior do intervalo de limiar da Isoband"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

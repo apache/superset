@@ -96,6 +96,9 @@ test('removing the mapping does not leave the default datetime column mirroring'
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  // The editor offers partition mapping only on an engine that advertises it,
+  // so the fixture has to say the engine does.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -117,7 +120,10 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'state',
   );
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
-  await userEvent.click(await screen.findByText('Remove mapping'));
+  // By its test id, not its label: the mapping here is an explicit override on
+  // a dataset that has a default datetime column, so the action reads "Reset to
+  // default datetime column". Same handler either way.
+  await userEvent.click(await screen.findByTestId('remove-partition-mapping'));
 
   // Nothing mirrors any more, and the panel says so rather than quietly
   // re-pointing at `ds`.
@@ -139,15 +145,14 @@ test('removing the mapping does not leave the default datetime column mirroring'
   });
 });
 
-test('re-pointing the default datetime column leaves the value transform behind', async () => {
+test('re-pointing the default datetime column takes the mapping with it', async () => {
   // With no override the mapped column *is* `main_dttm_col`, so the mapping
-  // moves either way. The transform does not travel with it: it was written
-  // about the old column, and asserting it on a new one mirrors an expression
-  // nobody checked there. It must not stay behind on the old column either --
-  // invisible but saved, and ready to go live again.
+  // moves either way. What must not happen is the transform staying behind on
+  // the old column, invisible but saved and ready to go live again.
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -173,21 +178,20 @@ test('re-pointing the default datetime column leaves the value transform behind'
 
   await waitFor(() => {
     const columns = lastSavedColumns(props);
-    // The new default never held a mapping, so it is handed back untouched --
-    // which is the same thing as holding no transform.
-    const arrived = columnNamed(columns, 'ingest_time');
-    expect(arrived?.partition_value_transform ?? null).toBeNull();
-    expect(arrived?.partition_transform_is_monotonic ?? false).toBe(false);
+    expect(columnNamed(columns, 'ingest_time')).toMatchObject({
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    });
     expect(columnNamed(columns, 'ds')).toMatchObject({
       partition_value_transform: null,
       partition_transform_is_monotonic: false,
     });
   });
 
-  // The mapping is designated but inert, and the editor says so rather than
-  // promising a mirror it is not performing.
   expect(
-    await screen.findByText(/No value transform is set on ingest_time/),
+    await screen.findByText(
+      /Filters on ingest_time will automatically apply an equivalent filter to num/,
+    ),
   ).toBeInTheDocument();
 });
 
@@ -199,6 +203,7 @@ test('the mapping will not follow the default datetime column onto a calculated 
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -243,6 +248,7 @@ test('a mapping onto a bare non-temporal column blocks the save', async () => {
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = 'state';
+  props.datasource.supports_partition_filter_mapping = true;
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -266,6 +272,7 @@ test('a mapping onto the default datetime column does not block the save', async
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = null;
+  props.datasource.supports_partition_filter_mapping = true;
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -372,6 +379,7 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
@@ -399,6 +407,7 @@ test("the mapped column's row is muted in the columns table", async () => {
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
 
   const { container } = fastRender(props);
@@ -413,4 +422,89 @@ test("the mapped column's row is muted in the columns table", async () => {
   expect(container.querySelector('tr.partition-column-row')).toHaveTextContent(
     'num',
   );
+});
+
+const DATABASES = [
+  {
+    id: 1,
+    database_name: 'warehouse_hive',
+    backend: 'hive',
+    engine_information: {
+      supports_partition_filter_mapping: true,
+      partition_value_transform_default: 'unix_timestamp(:value)',
+    },
+  },
+  {
+    id: 2,
+    database_name: 'app_postgres',
+    backend: 'postgresql',
+    engine_information: {
+      supports_partition_filter_mapping: false,
+      partition_value_transform_default: null,
+    },
+  },
+];
+
+/** Render in edit mode with a database list the selector can switch between. */
+const renderWithDatabases = async (supportsPartitionMapping: boolean) => {
+  // Ahead of the catch-all `/api/v1/database/` mock, so the selector lists
+  // real options.
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
+  fetchMock.get('glob:*/api/v1/database/?q=*', {
+    result: DATABASES,
+    count: DATABASES.length,
+  });
+  setupDatasourceEditorMocks();
+
+  const props = createProps();
+  const current = DATABASES[supportsPartitionMapping ? 0 : 1];
+  // `database` and the transform default are on the editor's datasource but
+  // not on `DatasetObject`, hence the cast.
+  props.datasource = {
+    ...props.datasource,
+    database: {
+      id: current.id,
+      database_name: current.database_name,
+      backend: current.backend,
+    },
+    supports_partition_filter_mapping: supportsPartitionMapping,
+    partition_value_transform_default:
+      current.engine_information.partition_value_transform_default,
+  } as DatasourceEditorProps['datasource'];
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByRole('img', { name: /lock/i }));
+  return props;
+};
+
+const showsPartitionSection = async () => {
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByPlaceholderText('Search columns by name');
+  return screen.queryByTestId('partition-column-fields') !== null;
+};
+
+test('switching to a database whose engine lacks support hides partition mapping', async () => {
+  // The capability arrives on the dataset payload for the database it was
+  // loaded with; switching databases in the editor has to re-derive it.
+  await renderWithDatabases(true);
+
+  await selectOption(
+    'app_postgres',
+    'Select database or type to search databases',
+  );
+
+  expect(await showsPartitionSection()).toBe(false);
+});
+
+test('switching to a database whose engine supports it offers partition mapping', async () => {
+  await renderWithDatabases(false);
+
+  await selectOption(
+    'warehouse_hive',
+    'Select database or type to search databases',
+  );
+
+  expect(await showsPartitionSection()).toBe(true);
 });

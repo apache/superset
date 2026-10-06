@@ -42,6 +42,9 @@ from superset.superset_typing import QueryObjectDict
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
 
 
@@ -2467,7 +2470,7 @@ def test_an_epoch_millisecond_in_filter_is_probed_element_wise(app: Flask) -> No
 
 
 def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     An array column's predicate is not built from the handled filter values at
@@ -2479,6 +2482,9 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     ClickHouse is the only spec implementing `array_literal`, so it is the only
     engine this branch is reachable on.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table(
         transform="lower(:value)",
         monotonic=False,
@@ -2528,7 +2534,7 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
 
 
 def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     The ranking subquery's time predicate is skipped on a
@@ -2542,6 +2548,9 @@ def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
     The window-independent filter mirrors are a different matter and stay: they
     correspond to `where_clause_and`, which the subquery does receive.
     """
+    # ClickHouse stands in for its SQL dialect; it does not advertise partition
+    # mapping support, which the query path otherwise requires.
+    monkeypatch.setattr(ClickHouseEngineSpec, "supports_partition_filter_mapping", True)
     table = _table()
     epochs = {
         datetime(2025, 1, 1): 1735689600,

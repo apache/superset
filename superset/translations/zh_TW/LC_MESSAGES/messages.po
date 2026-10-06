@@ -4634,9 +4634,7 @@ msgstr "欄位作為數據文件的行標籤使用。如果没有索引欄位，
 msgid "Column type"
 msgstr "列數據類型"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 #, fuzzy
@@ -13936,6 +13934,9 @@ msgstr ""
 msgid "Reset state"
 msgstr "狀態重置"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "刷新預設值"
@@ -17624,6 +17625,10 @@ msgstr ""
 #, fuzzy
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等值帶閾值範圍的下限"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

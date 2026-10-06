@@ -4333,9 +4333,7 @@ msgstr ""
 msgid "Column type"
 msgstr "Kolonnas tips"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -12642,6 +12640,9 @@ msgstr "Atjaunot paroli"
 msgid "Reset state"
 msgstr "Atiestatīt stāvokli"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Atjaunot noklusējuma mapes?"
 
@@ -16020,6 +16021,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Izojoslas sliekšņa diapazona apakšējā robeža"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

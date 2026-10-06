@@ -4473,9 +4473,7 @@ msgstr ""
 msgid "Column type"
 msgstr "Tipo de columna"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -13199,6 +13197,9 @@ msgstr "Restablecer contraseña"
 msgid "Reset state"
 msgstr "Restablecer estado"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Actualizar los valores predeterminados"
@@ -16763,6 +16764,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "El límite inferior del intervalo del umbral de la isobanda"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

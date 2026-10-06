@@ -35,6 +35,7 @@ export interface PartitionMappingDatasource {
   partition_column?: string | null;
   partition_mapped_column?: string | null;
   partition_value_transform_default?: string | null;
+  supports_partition_filter_mapping?: boolean;
   /**
    * The backend's own read of the stored mapping. Only `evaluable` is read
    * here, and only to stop the banner claiming a mirror the last probe of the

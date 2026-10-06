@@ -699,6 +699,62 @@ def _find_niladic_calls(statement: SQLStatement) -> set[str]:
     return NON_DETERMINISTIC_WHEN_NILADIC & statement.get_niladic_functions()
 
 
+def partition_mapping_supported(datasource: SqlaTable) -> bool:
+    """
+    Whether partition filter mapping applies to this dataset at all.
+
+    Both halves of the gate the dataset editor applies before it shows any
+    partition mapping control: the feature flag, and an engine that advertises
+    `supports_partition_filter_mapping`. The query path and the Explore
+    indicator read this too, so a mapping stored on an engine the editor hides
+    it for -- configured before the gate existed, carried in by import, or left
+    behind when the dataset moved to another database -- stays inert rather
+    than mirroring filters nobody can see, inspect or remove.
+    """
+    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        return False
+    database = getattr(datasource, "database", None)
+    if database is None:
+        return False
+    db_engine_spec = database.db_engine_spec
+    if db_engine_spec.supports_partition_filter_mapping:
+        return True
+    if partition_column := getattr(datasource, "partition_column", None):
+        _warn_mapping_suppressed(
+            getattr(datasource, "id", None),
+            str(getattr(datasource, "table_name", "")),
+            str(partition_column),
+            db_engine_spec.engine,
+        )
+    return False
+
+
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def _warn_mapping_suppressed(
+    dataset_id: int | None,
+    table_name: str,
+    partition_column: str,
+    engine: str,
+) -> None:
+    """
+    Log that a stored mapping is ignored because the engine lacks support.
+
+    Nothing on screen says so -- the editor hides the section and the Explore
+    indicator reports no mapping -- so without this an owner whose queries stop
+    pruning partitions has nothing to trace it to. Memoized so it is one line
+    per dataset, mapping and engine in each process rather than one per query.
+    """
+    logger.warning(
+        "Ignoring partition filter mapping on dataset %s (%s): partition column "
+        "%r is configured, but engine %r does not support partition filter "
+        "mapping, so no partition filter is mirrored",
+        dataset_id,
+        table_name,
+        partition_column,
+        engine,
+    )
+
+
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     """
     Resolve the dataset's mapping, or ``None`` when nothing may be mirrored.
@@ -717,7 +773,7 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     function, freezing a snapshot of probe time into the predicate with nothing
     on screen to say so.
     """
-    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+    if not partition_mapping_supported(datasource):
         return None
 
     partition_column = getattr(datasource, "partition_column", None)

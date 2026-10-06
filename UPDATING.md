@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [44431](https://github.com/apache/superset/pull/44431): Partition filter
+  mapping (`PARTITION_FILTER_MAPPING`) only applies on engines whose spec sets
+  `supports_partition_filter_mapping = True`, which is Hive and Impala. On every
+  other engine -- Databricks, Spark, Trino, Presto, PostgreSQL and the rest --
+  an existing mapping **silently stops applying** after upgrade: no filter is
+  mirrored onto the partition column, so queries that used to prune partitions
+  scan the whole table. The dataset editor hides the mapping settings and
+  Explore shows no pruning indicator. The stored mapping is kept, not deleted,
+  and applies again if the dataset is pointed at a Hive or Impala database.
+  Superset logs a warning (`Ignoring partition filter mapping on dataset ...`)
+  the first time each worker resolves such a mapping; search for it after
+  upgrading to find affected datasets. A deployment that depends on mirroring
+  on another engine has to add a predicate on the partition column to the
+  affected charts, or opt that engine spec in.
+
 - Refreshing a dataset's columns from its source -- the "Sync columns from
   source" button, and a `PUT /api/v1/dataset/<id>?override_columns=true` --
   no longer resets **Is dimension** and **Is filterable** on columns that

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from decimal import Decimal
 from importlib import import_module
@@ -68,6 +69,8 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
+
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
 
 @pytest.fixture(autouse=True)
@@ -441,6 +444,67 @@ def test_resolve_returns_the_mapping_when_everything_lines_up(app: Flask) -> Non
     assert mapping.mapped_column == "event_time"
     assert mapping.value_transform == "unix_timestamp(:value)"
     assert mapping.is_monotonic is True
+
+
+def test_resolve_declines_an_engine_without_partition_mapping_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The editor hides partition mapping on an engine that does not advertise
+    support, so a mapping stored there -- configured before the gate, imported,
+    or left behind by a database change -- must not mirror anything either.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert resolve_partition_mapping(_mapped_table()) is None
+
+
+def test_a_mapping_suppressed_by_the_engine_gate_is_logged_once(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    A stored mapping the engine gate ignores is invisible in the UI, so it is
+    logged -- once, not on every query that resolves it.
+    """
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        resolve_partition_mapping(table)
+        resolve_partition_mapping(table)
+
+    messages = [
+        record.getMessage()
+        for record in caplog.records
+        if "Ignoring partition filter mapping" in record.getMessage()
+    ]
+    assert len(messages) == 1
+    assert "dt_epoch" in messages[0]
+    assert "sqlite" in messages[0]
+
+
+def test_the_engine_gate_does_not_log_without_a_stored_mapping(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from superset.connectors.sqla import partition_mapping
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    partition_mapping._warn_mapping_suppressed.cache_clear()
+    table = _mapped_table()
+    table.partition_column = None
+
+    with app.app_context(), caplog.at_level(logging.WARNING):
+        assert partition_mapping.partition_mapping_supported(table) is False
+
+    assert "Ignoring partition filter mapping" not in caplog.text
 
 
 def test_effective_mapped_column_follows_main_dttm_col(app: Flask) -> None:

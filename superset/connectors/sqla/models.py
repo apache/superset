@@ -73,11 +73,11 @@ from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
     equality_mirrors_safely,
-    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    partition_mapping_supported,
     resolve_partition_mapping,
 )
 from superset.connectors.sqla.utils import (
@@ -1981,6 +1981,19 @@ class SqlaTable(
         return self.db_engine_spec.partition_value_transform_default
 
     @property
+    def supports_partition_filter_mapping(self) -> bool:
+        """
+        Whether the editor should offer partition filter mapping for this dataset.
+
+        A structural property of the engine, not of the dataset: mirroring a
+        filter onto a partition column only prunes work on engines whose tables
+        are laid out as partition directories (Hive-family). The editor reads it
+        off the dataset payload so the dropdown never appears on an engine where
+        the concept does not exist.
+        """
+        return self.db_engine_spec.supports_partition_filter_mapping
+
+    @property
     def partition_filter_mapping(self) -> dict[str, Any] | None:
         """
         `partition_filter_mapping_summary` under the name its payload uses.
@@ -2019,14 +2032,13 @@ class SqlaTable(
         type bail-out is not part of that verdict, so it is checked here as
         `resolve_partition_mapping` checks it.
 
-        Gated on the feature flag for the same reason `resolve_partition_mapping`
-        is: with the flag off nothing is mirrored, so reporting an active mapping
-        would have the Explore indicator promise a predicate the query never
-        carries.
+        Gated by `partition_mapping_supported`, the same check
+        `resolve_partition_mapping` makes: with the flag off, or on an engine
+        that does not support partition filter mapping, nothing is mirrored, so
+        reporting an active mapping would have the Explore indicator promise a
+        predicate the query never carries.
         """
-        if not self.partition_column or not is_feature_enabled(
-            PARTITION_FILTER_MAPPING_FLAG
-        ):
+        if not self.partition_column or not partition_mapping_supported(self):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}
