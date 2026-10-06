@@ -20,9 +20,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 from flask import Flask
+from flask.testing import FlaskClient
 from flask_appbuilder.api import BaseApi
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.semantic_layers.metadata import MetadataRefreshError
@@ -123,3 +125,79 @@ def test_metadata_database_boundary_only_maps_when_enabled(
             with pytest.raises(SQLAlchemyError) as caught:
                 endpoint(api)
             assert caught.value is error
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+            "SEMANTIC_LAYER_METADATA_NAMESPACE": "test",
+            "DISTRIBUTED_COORDINATION_CONFIG": None,
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize("route", ["runtime", "compatible"])
+@pytest.mark.parametrize("category,status", [("unavailable", 503), ("deadline", 504)])
+def test_discovery_http_preserves_typed_storage_and_budget_failures(
+    client: FlaskClient[Any],
+    full_api_access: None,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str,
+    category: str,
+    status: int,
+) -> None:
+    """Authorized discovery reaches the real binding and retains its safe category."""
+    from unittest.mock import Mock
+    from uuid import uuid4
+
+    from werkzeug.test import TestResponse
+
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+    from superset.semantic_layers.registry import registry
+    from tests.unit_tests.semantic_layers.metadata_contract_test import OptedInLayer
+    from tests.unit_tests.semantic_layers.metadata_store_test import Clock
+
+    monkeypatch.setitem(
+        client.application.before_request_funcs,
+        None,
+        [
+            request_metadata_budget,
+            *client.application.before_request_funcs.get(None, []),
+        ],
+    )
+    clock: Clock = Clock()
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.time.monotonic", clock
+    )
+    monkeypatch.setitem(registry, "http-test", OptedInLayer)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="http-test", configuration="{}"
+    )
+    view: SemanticView = SemanticView(
+        id=17, uuid=uuid4(), name="orders", configuration="{}", semantic_layer=layer
+    )
+    access: Mock = Mock(
+        side_effect=lambda: clock.advance(31) if category == "deadline" else None
+    )
+    monkeypatch.setattr(SemanticLayer, "raise_for_access", access)
+    monkeypatch.setattr(SemanticView, "raise_for_access", access)
+    monkeypatch.setattr(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", lambda uuid: layer
+    )
+    monkeypatch.setattr(
+        "superset.datasource.api.DatasourceDAO.get_datasource", lambda *args: view
+    )
+    path: str = (
+        f"/api/v1/semantic_layer/{layer.uuid}/schema/runtime"
+        if route == "runtime"
+        else "/api/v1/datasource/semantic_view/17/compatible"
+    )
+    response: TestResponse = client.post(path, json={})
+    assert response.status_code == status
+    assert response.json["error"] == category
+    assert response.json["message"] != category
+    access.assert_called_once()
