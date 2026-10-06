@@ -83,7 +83,10 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
-from superset.commands.dashboard.export_example import ExportExampleCommand
+from superset.commands.dashboard.export_example import (
+    ExportExampleCommand,
+    ExportExampleSemanticViewError,
+)
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
@@ -177,9 +180,10 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestToken, GuestUser
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
@@ -547,11 +551,7 @@ class DashboardRestApi(
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Dashboard)
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
@@ -798,8 +798,7 @@ class DashboardRestApi(
                 for slc in dash.slices
                 if security_manager.can_access_chart(slc)
             ]
-        if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-            result["extra_editors"] = get_extra_editor_subject_ids(dash)
+        attach_extra_editors(result, dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -1730,6 +1729,8 @@ class DashboardRestApi(
                     )
             except DashboardNotFoundError:
                 return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
         return send_export_zip(buf, filename)
@@ -1754,6 +1755,7 @@ class DashboardRestApi(
             Exports a dashboard with its charts and datasets in the example
             format used by the Superset example loading system. The export
             includes Parquet data files and YAML configuration files.
+            Charts and native-filter targets that use semantic views are not supported.
           parameters:
           - in: path
             schema:
@@ -1785,6 +1787,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              description: The dashboard contains unsupported semantic-view assets
             500:
               $ref: '#/components/responses/500'
         """
@@ -1806,6 +1810,8 @@ class DashboardRestApi(
                     bundle.writestr(filename, content_fn())
         except DashboardNotFoundError:
             return self.response_404()
+        except ExportExampleSemanticViewError as ex:
+            return self.response_422(message=str(ex))
 
         buf.seek(0)
 

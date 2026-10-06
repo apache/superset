@@ -53,10 +53,10 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 2_900,
+    "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,
-    "create_theme": 1_100,
+    "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
@@ -92,7 +92,9 @@ TOOL_BUDGETS = {
     "get_role_info": 900,
     "get_saved_query_info": 1_200,
     "get_schema": 1_100,
-    "get_table": 3_900,
+    # Includes semantic_selection_version and its explicit-reselection guidance:
+    # 3,957 bytes, rounded up plus the standard 100-byte headroom.
+    "get_table": 4_100,
     "get_tag_info": 1_000,
     "get_task_info": 1_100,
     "get_theme_info": 1_000,
@@ -119,9 +121,10 @@ TOOL_BUDGETS = {
     "list_themes": 3_000,
     "list_users": 2_900,
     "manage_dashboard_certification": 1_900,
+    "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    "manage_native_filters": 6_700,
+    "manage_native_filters": 9_600,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,

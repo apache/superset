@@ -1242,9 +1242,10 @@ def mcp_auth_hook(  # noqa: C901
     FAB permission before the tool function runs.
 
     tool_name is the registered tool identity, including any extension prefix.
-    When supplied, dataset routing scope is checked before execution. None
-    skips only that routing check for resources and prompts, not authentication
-    or RBAC. Tools must register through @tool, which supplies this identity.
+    When supplied, dataset routing scope is checked and the request's dashboard
+    filter scope (see dashboard_scope.py) is applied before execution. None
+    skips only those checks for resources and prompts, not authentication or
+    RBAC. Tools must register through @tool, which supplies this identity.
 
     Supports both sync and async tool functions.
     """
@@ -1252,8 +1253,9 @@ def mcp_auth_hook(  # noqa: C901
     import inspect
     import types
 
-    # Defer the scope module's FastMCP dependency until a handler is wrapped,
+    # Defer the scope modules' FastMCP dependency until a handler is wrapped,
     # alongside the Context import below.
+    from superset.mcp_service.dashboard_scope import apply_call_dashboard_scope
     from superset.mcp_service.dataset_scope import enforce_call_dataset_scope
 
     is_async = inspect.iscoroutinefunction(tool_func)
@@ -1306,6 +1308,12 @@ def mcp_auth_hook(  # noqa: C901
                 try:
                     if tool_name is not None:
                         enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
+                        # Rewrites the request before the tool builds any
+                        # query, so the dashboard's filters reach every
+                        # internal path and cache key (or the call is refused).
+                        args, kwargs = apply_call_dashboard_scope(
+                            tool_name, _tool_sig, args, kwargs
+                        )
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1348,6 +1356,12 @@ def mcp_auth_hook(  # noqa: C901
                 try:
                     if tool_name is not None:
                         enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
+                        # Rewrites the request before the tool builds any
+                        # query, so the dashboard's filters reach every
+                        # internal path and cache key (or the call is refused).
+                        args, kwargs = apply_call_dashboard_scope(
+                            tool_name, _tool_sig, args, kwargs
+                        )
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
