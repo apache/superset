@@ -52,9 +52,16 @@ PATTERNS = {
         r"^requirements/.+\.txt",
         r"^pyproject\.toml",
         r"^.pylintrc",
+        # See the note in "frontend": setup-backend/change-detector are this
+        # group's own setup.
+        r"^\.github/actions/",
     ],
     "frontend": [
         r"^\.github/workflows/.*(bashlib|frontend|e2e)",
+        # Composite actions are shared setup, matched by nothing else. Listed
+        # under "python" too -- setup-backend is a backend action, so gating it
+        # on "frontend" alone would skip the Python jobs whose setup changed.
+        r"^\.github/actions/",
         r"^superset-frontend/",
     ],
     "docker": [
