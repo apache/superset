@@ -50,6 +50,7 @@ from superset.mcp_service.dashboard.layout_placement import (
     remove_component_and_prune,
 )
 from superset.mcp_service.dashboard.layout_validation import (
+    normalize_chart_id,
     rebuild_parent_chains,
     validate_dashboard_layout,
 )
@@ -69,6 +70,21 @@ from superset.mcp_service.dashboard.tool.governance_utils import (
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _layout_chart_ids(layout: Dict[str, Any]) -> set[int]:
+    """Return the chart IDs referenced by CHART nodes in ``layout``."""
+    chart_ids: set[int] = set()
+    for component in layout.values():
+        if isinstance(component, dict) and component.get("type") == "CHART":
+            meta = component.get("meta")
+            if (
+                isinstance(meta, dict)
+                and (chart_id := normalize_chart_id(meta.get("chartId"))) is not None
+            ):
+                chart_ids.add(chart_id)
+    return chart_ids
+
 
 # Maps the tool-facing discriminator to the position_json component type.
 _LAYOUT_TYPE_BY_COMPONENT_TYPE: dict[str, str] = {
@@ -332,6 +348,18 @@ def manage_dashboard_markdown(  # noqa: C901
         return auth_error
     assert dashboard is not None  # narrows for mypy
 
+    # Writing position_json directly bypasses UpdateDashboardCommand, so
+    # mirror its raise_if_managed_externally guard explicitly.
+    if dashboard.is_managed_externally:
+        return ManageDashboardMarkdownResponse(
+            dashboard_id=request.dashboard_id,
+            error=(
+                f"Dashboard {request.dashboard_id} is managed externally; its "
+                "layout is owned by the external system and cannot be "
+                "changed here."
+            ),
+        )
+
     try:
         with event_logger.log_context(
             action="mcp.manage_dashboard_markdown.validation"
@@ -354,15 +382,18 @@ def manage_dashboard_markdown(  # noqa: C901
                 )
             # Validate before traversing or pruning; do not repair corrupt trees
             # by silently dropping nodes. Empty dashboards can be scaffolded.
-            chart_ids = [slc.id for slc in dashboard.slices]
+            # Chart coverage is not enforced: this tool never touches CHART
+            # nodes, and associated charts missing from the layout (attached
+            # from Explore) are a normal state the frontend hydrates.
             if current_layout:
-                if error := validate_dashboard_layout(current_layout, chart_ids):
+                if error := validate_dashboard_layout(current_layout, None):
                     return ManageDashboardMarkdownResponse(
                         dashboard_id=request.dashboard_id,
                         error=f"Dashboard has a malformed layout: {error}",
                     )
 
             existing_components = _manageable_components(current_layout)
+            original_chart_ids = _layout_chart_ids(current_layout)
 
             if unknown_removals := [
                 cid for cid in request.remove if cid not in existing_components
@@ -420,7 +451,8 @@ def manage_dashboard_markdown(  # noqa: C901
             # superset.dashboards.filter_scope.get_chart_ids_in_scope.
             current_layout = rebuild_parent_chains(current_layout)
 
-            if error := validate_dashboard_layout(current_layout, chart_ids):
+            # Chart nodes present before the edit must survive it unchanged.
+            if error := validate_dashboard_layout(current_layout, original_chart_ids):
                 return ManageDashboardMarkdownResponse(
                     dashboard_id=request.dashboard_id,
                     error=f"Resulting dashboard layout is invalid: {error}",

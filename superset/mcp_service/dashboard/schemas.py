@@ -110,6 +110,7 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
     GRID_MAX_ROW_UNITS,
+    GRID_MIN_ROW_UNITS,
 )
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
@@ -126,6 +127,7 @@ from superset.mcp_service.utils.response_utils import (
     OmittedFieldsBuilder,
 )
 from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
@@ -2590,23 +2592,36 @@ class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
     )
     height: int = Field(
         50,
-        ge=1,
+        ge=GRID_MIN_ROW_UNITS,
         le=GRID_MAX_ROW_UNITS,
         description=(
-            f"Tile height in grid units (1-{GRID_MAX_ROW_UNITS}; one unit is "
+            f"Tile height in grid units ({GRID_MIN_ROW_UNITS}-"
+            f"{GRID_MAX_ROW_UNITS}; one unit is "
             "8 pixels; default 50)"
         ),
     )
 
 
+_HEADER_TEXT_MAX_LENGTH = 500
+
+
 def _sanitize_header_text(value: str) -> str:
-    """Sanitize header text; it renders as plain title text."""
-    sanitized: str | None = sanitize_user_input(
-        value, "text", max_length=500, allow_empty=True
-    )
-    if not sanitized:
-        raise ValueError("text has no content left after sanitization.")
-    return sanitized
+    """Normalize header text, which the frontend renders as plain React text.
+
+    React escapes the value on render, so HTML stripping or entity escaping
+    here would only corrupt legitimate text such as ``Revenue < 1M`` (the
+    dashboard builder stores whatever the user types). Only length and
+    invisible/control characters are enforced.
+    """
+    text = _remove_dangerous_unicode(value).strip()
+    if not text:
+        raise ValueError("text cannot be empty.")
+    if len(text) > _HEADER_TEXT_MAX_LENGTH:
+        raise ValueError(
+            f"text too long ({len(text)} characters). Maximum allowed length "
+            f"is {_HEADER_TEXT_MAX_LENGTH} characters."
+        )
+    return text
 
 
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
@@ -2631,7 +2646,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
     @field_validator("text")
     @classmethod
     def sanitize_text(cls, v: str) -> str:
-        """Sanitize header text to prevent XSS; it renders as plain title text."""
+        """Normalize header text; it renders as plain React text."""
         return _sanitize_header_text(v)
 
 
@@ -2677,10 +2692,11 @@ class DashboardComponentUpdateSpec(BaseModel):
     )
     height: int | None = Field(
         None,
-        ge=1,
+        ge=GRID_MIN_ROW_UNITS,
         le=GRID_MAX_ROW_UNITS,
         description=(
-            f"New tile height in 8-pixel grid units (1-{GRID_MAX_ROW_UNITS}; "
+            f"New tile height in 8-pixel grid units ({GRID_MIN_ROW_UNITS}-"
+            f"{GRID_MAX_ROW_UNITS}; "
             "markdown only)"
         ),
     )
@@ -2695,7 +2711,7 @@ class DashboardComponentUpdateSpec(BaseModel):
     @field_validator("text")
     @classmethod
     def sanitize_text(cls, v: str | None) -> str | None:
-        """Sanitize header text to prevent XSS; it renders as plain title text."""
+        """Normalize header text; it renders as plain React text."""
         return None if v is None else _sanitize_header_text(v)
 
     @model_validator(mode="after")

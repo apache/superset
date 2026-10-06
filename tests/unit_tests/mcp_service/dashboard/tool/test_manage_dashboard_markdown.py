@@ -31,7 +31,8 @@ Covers:
   leaves behind)
 - Validation errors: unknown removal ID, update+remove conflict, duplicate
   update IDs, malformed position_json, missing target tab
-- Header text sanitization
+- Header text normalization (stored verbatim; invisible characters stripped)
+- Associated charts missing from the layout, externally managed dashboards
 - Dashboard not found / permission denied
 - "at least one operation" request validation (ToolError at the call boundary)
 """
@@ -149,6 +150,7 @@ def _mock_dashboard(
     dashboard.id = id
     dashboard.dashboard_title = "Test Dashboard"
     dashboard.slug = None
+    dashboard.is_managed_externally = False
     dashboard.position_json = json.dumps(
         layout if layout is not None else _empty_grid_layout()
     )
@@ -695,8 +697,58 @@ async def test_at_least_one_operation_required(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.asyncio
-async def test_header_text_html_is_sanitized(mcp_server: FastMCP) -> None:
-    """HTML in header text is stripped before it is persisted."""
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Revenue < 1M & Clients > 500",
+        "Month = March",
+        "<b>Sales</b>",
+    ],
+)
+async def test_header_text_stored_verbatim(mcp_server: FastMCP, text: str) -> None:
+    """Header text renders as plain React text, so it is stored as typed."""
+    dashboard = _mock_dashboard()
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session"),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "add": [{"component_type": "header", "text": text}]},
+        )
+
+    assert data["error"] is None
+    header_id = data["added_component_ids"][0]
+    saved_layout = json.loads(dashboard.position_json)
+    assert saved_layout[header_id]["meta"]["text"] == text
+
+
+@pytest.mark.asyncio
+async def test_header_text_update_stored_verbatim(mcp_server: FastMCP) -> None:
+    """Updated header text is not HTML-escaped or pattern-rejected."""
+    dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session"),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "HEADER-existing1", "text": "Month = March < Q2"}],
+            },
+        )
+
+    assert data["error"] is None
+    saved_layout = json.loads(dashboard.position_json)
+    assert saved_layout["HEADER-existing1"]["meta"]["text"] == "Month = March < Q2"
+
+
+@pytest.mark.asyncio
+async def test_header_text_strips_invisible_characters(mcp_server: FastMCP) -> None:
+    """Zero-width and control characters are removed from header text."""
     dashboard = _mock_dashboard()
 
     with (
@@ -707,36 +759,35 @@ async def test_header_text_html_is_sanitized(mcp_server: FastMCP) -> None:
             mcp_server,
             {
                 "dashboard_id": 1,
-                "add": [
-                    {
-                        "component_type": "header",
-                        "text": "<script>alert(1)</script>Sales",
-                    }
-                ],
+                "add": [{"component_type": "header", "text": " Sa\u200bles\u0007 "}],
             },
         )
 
     assert data["error"] is None
     header_id = data["added_component_ids"][0]
     saved_layout = json.loads(dashboard.position_json)
-    assert "<script>" not in saved_layout[header_id]["meta"]["text"]
-    assert "Sales" in saved_layout[header_id]["meta"]["text"]
+    assert saved_layout[header_id]["meta"]["text"] == "Sales"
 
 
 @pytest.mark.asyncio
-async def test_header_text_all_html_rejected(mcp_server: FastMCP) -> None:
-    """Header text that is only HTML is rejected as empty after sanitization."""
-    dashboard = _mock_dashboard()
-
-    with patch(DAO_GET, return_value=dashboard):
-        with pytest.raises(ToolError, match="no content left after sanitization"):
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [("\u200b \u200b", "cannot be empty"), ("x" * 501, "too long")],
+)
+async def test_header_text_rejected(
+    mcp_server: FastMCP, text: str, message: str
+) -> None:
+    """Header text that is empty after normalization or too long is rejected."""
+    with patch(DAO_GET) as lookup:
+        with pytest.raises(ToolError, match=message):
             await _call(
                 mcp_server,
                 {
                     "dashboard_id": 1,
-                    "add": [{"component_type": "header", "text": "<script></script>"}],
+                    "add": [{"component_type": "header", "text": text}],
                 },
             )
+    lookup.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -745,6 +796,8 @@ async def test_header_text_all_html_rejected(mcp_server: FastMCP) -> None:
     [
         {"add": [{"component_type": "markdown", "code": "x", "width": 13}]},
         {"add": [{"component_type": "markdown", "code": "x", "height": 0}]},
+        {"add": [{"component_type": "markdown", "code": "x", "height": 4}]},
+        {"update": [{"id": "MARKDOWN-existing1", "height": 4}]},
         {"add": [{"component_type": "markdown", "code": "x", "height": 101}]},
         {"update": [{"id": "MARKDOWN-existing1", "height": 101}]},
         {"add": [{"component_type": "chart"}]},
@@ -1142,4 +1195,83 @@ async def test_update_requires_non_null_field(
                 },
             )
     lookup.assert_not_called()
+    session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_header_to_dashboard_with_chart_attached_from_explore(
+    mcp_server: FastMCP,
+) -> None:
+    """Associated charts not yet laid out (added from Explore) do not block edits."""
+    layout = _empty_grid_layout()
+    layout["GRID_ID"]["children"] = ["ROW-1"]
+    layout["ROW-1"] = {
+        "type": "ROW",
+        "id": "ROW-1",
+        "children": ["CHART-1"],
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "parents": ["ROOT_ID", "GRID_ID"],
+    }
+    chart_node = {
+        "type": "CHART",
+        "id": "CHART-1",
+        "children": [],
+        "meta": {"chartId": 7, "width": 4, "height": 50},
+        "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+    }
+    layout["CHART-1"] = chart_node
+    # Chart 8 is associated with the dashboard but not in position_json.
+    dashboard = _mock_dashboard(layout=layout, chart_ids=[7, 8])
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "add": [{"component_type": "header", "text": "Hi"}]},
+        )
+
+    assert data["error"] is None
+    session.commit.assert_called_once()
+    saved_layout = json.loads(dashboard.position_json)
+    assert saved_layout["CHART-1"] == chart_node
+    assert saved_layout["ROW-1"]["children"] == ["CHART-1"]
+
+
+@pytest.mark.asyncio
+async def test_add_to_empty_layout_with_attached_chart(mcp_server: FastMCP) -> None:
+    """An empty layout with associated charts is scaffolded, not refused."""
+    dashboard = _mock_dashboard(chart_ids=[7])
+    dashboard.position_json = ""
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
+        )
+
+    assert data["error"] is None
+    session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_externally_managed_dashboard_is_refused(mcp_server: FastMCP) -> None:
+    """Externally managed dashboards are refused, matching UpdateDashboardCommand."""
+    dashboard = _mock_dashboard()
+    dashboard.is_managed_externally = True
+    before = dashboard.position_json
+
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
+        )
+
+    assert "managed externally" in data["error"]
+    assert dashboard.position_json == before
     session.commit.assert_not_called()
