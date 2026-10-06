@@ -538,15 +538,33 @@ class DashboardDAO(BaseDAO[Dashboard]):
         """Remap scope.excluded and chartsInScope of a filter container."""
         if not isinstance(container, dict):
             return
+
+        # Skip divider entities which represent visual section dividers in filter bar
+        if container.get("type") == "DIVIDER" or str(
+            container.get("id", "")
+        ).startswith(("NATIVE_FILTER_DIVIDER", "DIVIDER")):
+            return
+
         scope = container.get("scope")
         if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
-            scope["excluded"] = [
-                old_to_new_slice_ids.get(cid, cid) for cid in scope["excluded"]
-            ]
+            remapped_excluded: list[int] = []
+            for cid in scope["excluded"]:
+                try:
+                    int_id = int(cid)
+                    remapped_excluded.append(old_to_new_slice_ids.get(int_id, int_id))
+                except (ValueError, TypeError):
+                    remapped_excluded.append(cid)
+            scope["excluded"] = remapped_excluded
+
         if isinstance(container.get("chartsInScope"), list):
-            container["chartsInScope"] = [
-                old_to_new_slice_ids.get(cid, cid) for cid in container["chartsInScope"]
-            ]
+            remapped_in_scope: list[int] = []
+            for cid in container["chartsInScope"]:
+                try:
+                    int_id = int(cid)
+                    remapped_in_scope.append(old_to_new_slice_ids.get(int_id, int_id))
+                except (ValueError, TypeError):
+                    remapped_in_scope.append(cid)
+            container["chartsInScope"] = remapped_in_scope
 
     @classmethod
     def _remap_filter_scopes(
