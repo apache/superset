@@ -29,7 +29,7 @@ restrictions). It starts empty: every setting falls back to the corresponding
 application config or feature flag until an admin saves a value.
 
 Revision ID: e4a7c2b9d1f3
-Revises: 884a2115ebd3
+Revises: 00fab727cd0a
 Create Date: 2026-10-05 12:00:00.000000
 
 """
@@ -49,7 +49,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "e4a7c2b9d1f3"
-down_revision = "884a2115ebd3"
+down_revision = "00fab727cd0a"
 
 REPORT_SCHEDULE_TABLE = "report_schedule"
 REPORT_CONFIG_TABLE = "report_config"
