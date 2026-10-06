@@ -60,6 +60,12 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 from superset.sql.parse import has_aggregate
 from superset.utils import json
 
@@ -82,10 +88,9 @@ class DatasetFilter(ColumnOperator):
         "changed_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns. To filter by a person, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        description="Filter column; see get_schema(model_type='dataset'). "
+        "For people, resolve names to IDs with find_users; filter by "
+        "created_by_fk or changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -196,6 +201,13 @@ class DatasetInfo(BaseModel):
     )
     database_id: int | None = Field(None, description="Database ID")
     uuid: str | None = Field(None, description="Dataset UUID")
+    deleted_at: str | datetime | None = Field(
+        None,
+        description=(
+            "When the dataset was moved to trash (soft-deleted); null for live "
+            "datasets. Only populated when listing with deleted_state."
+        ),
+    )
     schema_perm: str | None = Field(None, description="Schema permission string")
     url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
@@ -271,15 +283,52 @@ class ListDatasetsRequest(
     test_list_datasets_with_string_filters.
     """
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, table_name, schema, changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Case-insensitive substring search of schema, SQL, table name, "
+                "and description. A complete UUID is an exact UUID lookup; "
+                "or use a uuid filter. Compare candidate descriptions "
+                "and metadata. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
+
     certified: Annotated[
         StrictBool | None,
         Field(
             default=None,
             description=(
-                "Filter by governance certification status. Use true to return "
-                "only certified datasets (preferred when selecting governed "
-                "semantic-layer assets), false to return only uncertified "
-                "datasets, or omit to return both (default)."
+                "Use true to return only certified datasets (preferred for governed "
+                "semantic-layer assets), false to return only uncertified datasets; "
+                "omit to return both (default)."
+            ),
+        ),
+    ]
+    deleted_state: Annotated[
+        Literal["include", "only"] | None,
+        Field(
+            default=None,
+            description=(
+                "Surface soft-deleted (trashed) datasets: 'only' returns just "
+                "trashed datasets, 'include' returns live and trashed datasets "
+                "together. Omit for live datasets only (default). Trashed rows "
+                "carry a non-null deleted_at and are limited to datasets the "
+                "caller owns (admins see all); requires the SOFT_DELETE "
+                "feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -609,7 +658,7 @@ UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class MetricCurrency(BaseModel):
+class MetricCurrency(OmittedMeansUnchanged):
     """Currency formatting configuration for a metric."""
 
     symbol: str | None = Field(
@@ -622,8 +671,8 @@ class MetricCurrency(BaseModel):
     )
 
 
-class UpdateDatasetMetricRequest(BaseModel):
-    """Request schema for update_dataset_metric."""
+class DatasetMetricProperties(OmittedMeansUnchanged):
+    """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -631,12 +680,6 @@ class UpdateDatasetMetricRequest(BaseModel):
         ...,
         description="Dataset identifier — numeric ID or UUID string. "
         "Use list_datasets to find valid IDs.",
-    )
-    metric: int | str = Field(
-        ...,
-        description="Metric to update — numeric metric ID, metric UUID, or "
-        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
-        "Use get_dataset_info to discover a dataset's saved metrics.",
     )
     metric_name: str | None = Field(
         None,
@@ -686,7 +729,7 @@ class UpdateDatasetMetricRequest(BaseModel):
         )
 
     @model_validator(mode="after")
-    def validate_updates(self) -> "UpdateDatasetMetricRequest":
+    def validate_updates(self) -> "DatasetMetricProperties":
         """Require at least one updatable property and reject empty/invalid values.
 
         Guards against no-op requests, empty ``metric_name``/``expression``, and
@@ -708,6 +751,39 @@ class UpdateDatasetMetricRequest(BaseModel):
             except (ValueError, TypeError) as ex:
                 raise ValueError("extra must be a valid JSON-encoded string") from ex
         return self
+
+
+class UpdateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for update_dataset_metric."""
+
+    metric: int | str = Field(
+        ...,
+        description="Metric to update — numeric metric ID, metric UUID, or "
+        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
+        "Use get_dataset_info to discover a dataset's saved metrics.",
+    )
+
+
+class CreateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for create_dataset_metric."""
+
+    metric_name: str = Field(
+        ..., max_length=255, description="Metric name, unique within the dataset."
+    )
+    expression: str = Field(
+        ..., description="SQL aggregation expression (e.g. 'SUM(revenue)')."
+    )
+
+
+class DeleteDatasetMetricRequest(BaseModel):
+    """Request schema for delete_dataset_metric."""
+
+    dataset_id: int | str = Field(
+        ..., description="Dataset identifier — numeric ID or UUID string."
+    )
+    metric: int | str = Field(
+        ..., description="Metric ID, UUID, or metric_name. Numeric strings are IDs."
+    )
 
 
 class DatasetMetricDetail(SqlMetricInfo):
@@ -742,6 +818,283 @@ class UpdateDatasetMetricResponse(BaseModel):
     )
     error: str | None = Field(
         None, description="Error message if the update failed, otherwise null."
+    )
+
+
+class CreateDatasetMetricResponse(BaseModel):
+    """Response schema for create_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Created metric, or null if creation failed."
+    )
+    url: str | None = Field(None, description="Explore URL for the dataset")
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
+class MetricChartReference(BaseModel):
+    """An accessible chart referencing a saved metric by name."""
+
+    id: int = Field(..., description="Chart ID")
+    uuid: str | None = Field(None, description="Chart UUID")
+    slice_name: str = Field(..., description="Chart name")
+
+
+class DeleteDatasetMetricResponse(BaseModel):
+    """Response schema for delete_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Deleted metric, or null if deletion failed."
+    )
+    affected_charts: list[MetricChartReference] = Field(
+        default_factory=list,
+        description="Accessible charts referencing the deleted metric by name. "
+        "Their definitions are not modified and may need repair.",
+    )
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
+class DeleteDatasetRequest(BaseModel):
+    """Request schema for delete_dataset."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dataset identifier - numeric ID or UUID string (NOT the table name)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dataset ID 1 and delete the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DeleteDatasetResponse(BaseModel):
+    """Result of a delete_dataset operation."""
+
+    success: bool = Field(description="Whether the dataset was deleted")
+    deleted_id: int | None = Field(None, description="ID of the deleted dataset")
+    deleted_name: str | None = Field(
+        None, description="Table name of the deleted dataset"
+    )
+    soft_deleted: bool = Field(
+        False,
+        description=(
+            "True when the dataset was soft-deleted (moved to trash, because the "
+            "SOFT_DELETE feature flag is enabled) and can be restored by an "
+            "owner or Admin. False means the delete was permanent."
+        ),
+    )
+    affected_chart_count: int = Field(
+        0,
+        description=(
+            "Number of charts (visible to the caller) built on this dataset. "
+            "They stop working while the dataset is deleted."
+        ),
+    )
+    affected_dashboard_count: int = Field(
+        0,
+        description=(
+            "Number of dashboards (visible to the caller) containing those charts."
+        ),
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the delete failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to delete the dataset (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
+class RestoreDatasetRequest(BaseModel):
+    """Request schema for restore_dataset."""
+
+    identifier: int | str = Field(
+        ...,
+        description=(
+            "Dataset identifier - numeric ID or UUID string (NOT the table name)."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dataset ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class RestoreDatasetResponse(BaseModel):
+    """Result of a restore_dataset operation."""
+
+    success: bool = Field(description="Whether the dataset was restored from trash")
+    restored_id: int | None = Field(None, description="ID of the restored dataset")
+    restored_name: str | None = Field(
+        None, description="Table name of the restored dataset"
+    )
+    message: str | None = Field(None, description="Human-readable outcome message")
+    error: str | None = Field(None, description="Error message if the restore failed")
+    error_type: str | None = Field(None, description="Type of error if failed")
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to restore the dataset (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
+UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
+    {
+        "table_name",
+        "sql",
+        "description",
+        "main_dttm_col",
+        "cache_timeout",
+    }
+)
+
+
+class UpdateDatasetRequest(OmittedMeansUnchanged):
+    """Request schema for update_dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string. "
+        "Use list_datasets to find valid IDs.",
+        validation_alias=AliasChoices("dataset_id", "identifier"),
+    )
+    table_name: str | None = Field(
+        None,
+        max_length=250,
+        description="New dataset name. For a virtual dataset this is just its "
+        "label; for a physical dataset it must match an existing table.",
+    )
+    sql: str | None = Field(
+        None,
+        description="New SQL for a virtual dataset. Rejected for physical "
+        "datasets. Columns are re-synced from the new query unless "
+        "sync_columns is false.",
+    )
+    description: str | None = Field(None, description="Dataset description.")
+    main_dttm_col: str | None = Field(
+        None,
+        description="Default datetime column; must be one of the dataset's "
+        "columns (after re-sync, when columns are re-synced).",
+    )
+    cache_timeout: int | None = Field(
+        None,
+        ge=-1,
+        description="Cache timeout in seconds. 0 means the cache never expires, "
+        "-1 bypasses the cache, null falls back to the database default.",
+    )
+    sync_columns: bool | None = Field(
+        None,
+        description="Re-sync the column list from the data source. Defaults "
+        "to true when sql changes and false otherwise. Pass true alone to "
+        "pick up schema changes in the underlying table or query.",
+    )
+
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so dataset_id=true would coerce to
+        dataset ID 1 and update the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("dataset_id must be an integer ID or UUID string")
+        return value
+
+    @field_validator("cache_timeout", mode="before")
+    @classmethod
+    def reject_bool_cache_timeout(cls, value: object) -> object:
+        """bool is a subclass of int, so cache_timeout=true would set a
+        one-second timeout; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("cache_timeout must be an integer or null")
+        return value
+
+    def updates(self) -> Dict[str, Any]:
+        """Return only the dataset properties explicitly provided by the caller.
+
+        ``exclude_unset`` distinguishes "not provided" (leave the stored value
+        alone) from an explicit ``null`` (clear the stored value).
+        """
+        return self.model_dump(
+            exclude_unset=True,
+            include=set(UPDATABLE_DATASET_FIELDS),
+        )
+
+    @model_validator(mode="after")
+    def validate_updates(self) -> "UpdateDatasetRequest":
+        """Require at least one change and reject values that would corrupt
+        the dataset (an empty name, or clearing sql, which silently turns a
+        virtual dataset into a physical one)."""
+        provided = self.model_fields_set & UPDATABLE_DATASET_FIELDS
+        if not provided and self.sync_columns is not True:
+            raise ValueError(
+                "At least one dataset property must be provided to update, or "
+                "sync_columns must be true. Updatable properties: "
+                f"{sorted(UPDATABLE_DATASET_FIELDS)}."
+            )
+        if "table_name" in provided and not (self.table_name or "").strip():
+            raise ValueError("table_name cannot be empty or null")
+        if "sql" in provided and not (self.sql or "").strip():
+            raise ValueError("sql cannot be empty or null")
+        return self
+
+
+class UpdateDatasetResponse(BaseModel):
+    """Response schema for update_dataset."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name after update")
+    updated_properties: List[str] = Field(
+        default_factory=list,
+        description="Names of the dataset properties that were updated.",
+    )
+    columns_synced: bool = Field(
+        False, description="Whether columns were re-synced from the data source."
+    )
+    added_columns: List[str] = Field(
+        default_factory=list, description="Columns added by the re-sync."
+    )
+    removed_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns removed by the re-sync. Charts that use them "
+        "will fail until they are updated.",
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Problems that did not undo the update but need attention.",
+    )
+    url: str | None = Field(
+        None, description="Explore URL for the dataset. None if the update failed."
+    )
+    error: str | None = Field(
+        None, description="Error message if the update failed, otherwise null."
+    )
+    permission_denied: bool = Field(
+        False,
+        description=(
+            "True when the caller lacks permission to update the dataset (do not "
+            "retry; ask the user)."
+        ),
     )
 
 
@@ -886,11 +1239,9 @@ class QueryDatasetResponse(BaseModel):
     columns: List[DataColumn] = Field(
         default_factory=list, description="Column metadata for returned data"
     )
-    data: List[Dict[str, Any]] = Field(
-        default_factory=list, description="Query result rows"
-    )
-    row_count: int = Field(0, description="Number of rows returned")
-    total_rows: int | None = Field(
+    data: JsonSafeRows = Field(default_factory=list, description="Query result rows")
+    row_count: RowCount = Field(0, description="Number of rows returned")
+    total_rows: OptionalRowCount = Field(
         None, description="Total row count from the query engine"
     )
     from_dttm: datetime | None = Field(
@@ -1009,6 +1360,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         uuid=str(getattr(dataset, "uuid", ""))
         if getattr(dataset, "uuid", None)
         else None,
+        deleted_at=getattr(dataset, "deleted_at", None),
         schema_perm=getattr(dataset, "schema_perm", None),
         url=(
             f"{get_superset_base_url()}/explore/"

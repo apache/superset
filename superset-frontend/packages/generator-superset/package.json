@@ -31,15 +31,14 @@
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "dependencies": {
-    "chalk": "^6.0.0",
+    "chalk": "^6.0.1",
     "lodash-es": "^4.18.1",
-    "yeoman-generator": "^9.1.0",
+    "yeoman-generator": "^9.2.0",
     "yosay": "^3.0.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "fs-extra": "^11.4.0",
-    "jest": "^30.5.1",
+    "jest": "^30.5.2",
     "yeoman-test": "^11.8.2"
   },
   "engines": {

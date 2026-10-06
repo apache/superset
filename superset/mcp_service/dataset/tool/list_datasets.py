@@ -23,10 +23,11 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated, TYPE_CHECKING
 from uuid import UUID
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -83,10 +84,21 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 )
 @requires_data_model_metadata_access
 async def list_datasets(
-    request: ListDatasetsRequest | None = None,
+    request: Annotated[
+        ListDatasetsRequest | None,
+        Field(
+            description=(
+                'Wrap {"request": {...}}; Do NOT pass search/page/filters top-level. '
+                "Candidates, not a ranking: several fit? explain alternatives, "
+                "clarify before querying; empty result doesn't prove absence. "
+                "Never substitute out-of-scope data. "
+                "Users: find_users ID filter, not search."
+            )
+        ),
+    ] = None,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
-    """List datasets with filtering and search.
+    """List/search/filter datasets.
 
     Returns dataset metadata including table name, schema, and last modified
     time. Set ``request.certified`` to true to return only governed,
@@ -168,7 +180,10 @@ async def list_datasets(
 
     try:
         from superset.daos.dataset import DatasetDAO
-        from superset.datasets.filters import DatasetCertifiedFilter
+        from superset.datasets.filters import (
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+        )
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SEARCH_COLUMNS,
             DATASET_SORTABLE_COLUMNS,
@@ -198,6 +213,7 @@ async def list_datasets(
             all_columns=all_columns,
             sortable_columns=DATASET_SORTABLE_COLUMNS,
             logger=logger,
+            deleted_state_filter=DatasetDeletedStateFilter,
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
@@ -238,6 +254,7 @@ async def list_datasets(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
+                deleted_state=request.deleted_state,
                 custom_filters=custom_filters or None,
             )
 

@@ -53,8 +53,8 @@ from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.models.core import Theme
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.themes.filters import ThemeAllTextFilter
@@ -65,7 +65,7 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -189,21 +189,15 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
     def pre_get(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors``, matching the dashboard/chart GET response."""
-        if app.config.get("EXTRA_EDITORS_RESOLVER"):
-            theme = ThemeDAO.find_by_id(data["id"])
-            if theme:
-                data[API_RESULT_RES_KEY]["extra_editors"] = (
-                    get_extra_editor_subject_ids(theme)
-                )
+        if not app.config.get("EXTRA_EDITORS_RESOLVER"):
+            return
+        if theme := ThemeDAO.find_by_id(data["id"]):
+            attach_extra_editors(data[API_RESULT_RES_KEY], theme)
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Theme, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Theme)
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()
@@ -529,8 +523,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         with ZipFile(buf, "w") as bundle:
             try:
                 for file_name, file_content in ExportThemesCommand(requested_ids).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except ThemeNotFoundError:
                 return self.response_404()
         buf.seek(0)

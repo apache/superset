@@ -670,9 +670,13 @@ def test_list_filter_shows_semantic_dashboard_to_entitled_user(
     see the semantic-view-only dashboard in the list (the inner SqlaTable
     join used to drop it). Uses the NON-colliding view (id 2, no table with
     that id) so the assertion discriminates: under the old unconstrained
-    join this dashboard had no SqlaTable row to survive through at all."""
+    join this dashboard had no SqlaTable row to survive through at all.
+
+    The chart-less "empty" dashboard is always included in the fallback
+    (sc-120032): it has no dataset to check access against, so it survives
+    regardless of which grants the user holds."""
     titles = _apply_list_filter(datasource_perms={VIEW2_PERM}, accessible_databases=[])
-    assert titles == {"semantic nocollide"}
+    assert titles == {"semantic nocollide", "empty"}
 
 
 def test_list_filter_entitled_visibility_survives_id_collision(
@@ -681,7 +685,7 @@ def test_list_filter_entitled_visibility_survives_id_collision(
     """The colliding view (shares id 1 with a table) is also listed for its
     grant holder — the type constraint must not lose entitled visibility."""
     titles = _apply_list_filter(datasource_perms={VIEW_PERM}, accessible_databases=[])
-    assert titles == {"semantic only"}
+    assert titles == {"semantic only", "empty"}
 
 
 def test_list_filter_layer_grant_lists_all_layer_dashboards(
@@ -692,23 +696,26 @@ def test_list_filter_layer_grant_lists_all_layer_dashboards(
     titles = _apply_list_filter(
         datasource_perms={access_fixtures.layer_perm}, accessible_databases=[]
     )
-    assert titles == {"semantic only", "semantic nocollide"}
+    assert titles == {"semantic only", "semantic nocollide", "empty"}
 
 
 def test_list_filter_hides_everything_without_grants(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """No grants: no dashboards from the dataset-access fallback."""
+    """No grants: no dashboards from the dataset-access fallback, except the
+    chart-less "empty" dashboard (sc-120032), which has no dataset to check
+    access against and so is unaffected by the grant set."""
     titles = _apply_list_filter(datasource_perms=set(), accessible_databases=[])
-    assert titles == set()
+    assert titles == {"empty"}
 
 
 def test_list_filter_table_grant_matches_only_regular_dashboard(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """A table grant lists the regular dashboard and not the semantic one."""
+    """A table grant lists the regular dashboard and not the semantic one,
+    plus the always-visible chart-less "empty" dashboard (sc-120032)."""
     titles = _apply_list_filter(datasource_perms={TABLE_PERM}, accessible_databases=[])
-    assert titles == {"regular"}
+    assert titles == {"regular", "empty"}
 
 
 def test_list_filter_database_grant_does_not_leak_colliding_semantic_dashboard(
@@ -717,9 +724,50 @@ def test_list_filter_database_grant_does_not_leak_colliding_semantic_dashboard(
     """Id-collision control: the semantic view and an unrelated table share
     numeric id 1. Database-level access to that table's database must list
     only the regular dashboard — the type-less join used to bind the
-    semantic-view chart to the colliding table and leak its dashboard."""
+    semantic-view chart to the colliding table and leak its dashboard. The
+    chart-less "empty" dashboard is always included (sc-120032)."""
     titles = _apply_list_filter(datasource_perms=set(), accessible_databases=[10])
-    assert titles == {"regular"}
+    assert titles == {"regular", "empty"}
+
+
+def test_list_filter_hides_dashboard_with_only_soft_deleted_charts(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120032 regression (soft-delete edge case flagged in review): a
+    dashboard whose only chart has been soft-deleted must be treated the
+    same as a genuinely chart-less one -- listed via the fallback's
+    ``Slice.id.is_(None)`` arm, matching the outer join's own exclusion of
+    soft-deleted slices, rather than via an ``EXISTS`` that would still see
+    the row."""
+    # pylint: disable=import-outside-toplevel
+    from datetime import datetime
+
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    session = access_fixtures.session
+    deleted_slice = Slice(
+        slice_name="soft-deleted chart",
+        datasource_id=access_fixtures.table.id,
+        datasource_type="table",
+        datasource_name="birth_names",
+        viz_type="table",
+        deleted_at=datetime.now(),
+    )
+    session.add(deleted_slice)
+    session.flush()
+
+    dashboard = Dashboard(
+        dashboard_title="all charts soft-deleted",
+        slug="all-charts-soft-deleted",
+        published=True,
+        slices=[deleted_slice],
+    )
+    session.add(dashboard)
+    session.flush()
+
+    titles = _apply_list_filter(datasource_perms=set(), accessible_databases=[])
+    assert "all charts soft-deleted" in titles
 
 
 # ---------------------------------------------------------------------------

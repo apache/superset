@@ -40,14 +40,15 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
-    _generate_gantt_vega_lite_preview,
-    generate_gauge_ascii_preview,
-    generate_gauge_vega_lite_preview,
+    fallback_vega_lite_preview,
+    plugin_ascii_preview,
+    plugin_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
-    normalize_gauge_query_result,
+    normalize_chart_query_result,
     query_result_failure,
 )
+from superset.mcp_service.chart.registry import plugin_for_viz_type
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -183,11 +184,11 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep Gauge preview cardinality aligned with its frontend row limit."""
-    if form_data.get("viz_type") != "gauge_chart":
+    """Keep plugin previews aligned with their frontend row limits."""
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
         return fallback
-    value = form_data.get("row_limit", 10)
-    return value if isinstance(value, int) and 1 <= value <= 10 else 10
+    return plugin.preview_row_limit(form_data, fallback)
 
 
 def _build_chart_description(chart: ChartLike) -> str:
@@ -196,11 +197,9 @@ def _build_chart_description(chart: ChartLike) -> str:
         f"Preview of {chart.viz_type or 'chart'}: "
         f"{chart.slice_name or f'Chart {chart.id}'}"
     )
-    if chart.viz_type == "handlebars":
-        base += (
-            ". Note: Handlebars charts use browser-side template rendering; "
-            "this preview shows the raw underlying data, not the rendered template"
-        )
+    plugin = plugin_for_viz_type(chart.viz_type)
+    if plugin is not None and plugin.preview_note:
+        base += f". Note: {plugin.preview_note}"
     return base
 
 
@@ -268,7 +267,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 50),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
@@ -282,7 +281,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -290,13 +289,10 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
-            if form_data.get("viz_type") == "gauge_chart":
-                ascii_chart = generate_gauge_ascii_preview(
-                    data, form_data, self.request.ascii_width or 80
-                )
-                if isinstance(ascii_chart, ChartError):
-                    return ascii_chart
-            else:
+            ascii_chart = plugin_ascii_preview(
+                data, form_data, self.request.ascii_width or 80
+            )
+            if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
                     data,
                     self.chart.viz_type or "table",
@@ -304,6 +300,8 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     self.request.ascii_height or 20,
                 )
 
+            if isinstance(ascii_chart, ChartError):
+                return ascii_chart
             return ASCIIPreview(
                 ascii_content=ascii_chart,
                 width=self.request.ascii_width or 80,
@@ -348,7 +346,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 20),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=False,
             )
 
@@ -362,7 +360,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -406,23 +404,25 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def _create_gantt_preview(
+    def _create_plugin_preview(
         self, data: Any, form_data: Dict[str, Any]
-    ) -> VegaLitePreview | ChartError:
-        """Build the saved-chart wrapper around the shared Gantt preview."""
-        preview = _generate_gantt_vega_lite_preview(data, form_data)
-        if isinstance(preview, ChartError):
+    ) -> VegaLitePreview | ChartError | None:
+        """Return the owning plugin's preview framed for this saved chart."""
+        preview = plugin_vega_lite_preview(data, form_data)
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        if not isinstance(preview, VegaLitePreview) or plugin is None:
             return preview
-        preview.specification.update(
-            {
-                "description": (
-                    "Chart preview for "
-                    f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
-                ),
-                "width": self.request.width or 400,
-                "height": self.request.height or 300,
-            }
-        )
+        if plugin.resizes_saved_preview:
+            preview.specification.update(
+                {
+                    "description": (
+                        "Chart preview for "
+                        f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
+                    ),
+                    "width": self.request.width or 400,
+                    "height": self.request.height or 300,
+                }
+            )
         return preview
 
     def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
@@ -469,7 +469,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 chart=self.chart,
                 extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 1000),
-                order_desc=True,
+                order_desc=form_data.get("order_desc", True),
                 force=self.request.force_refresh,
             )
 
@@ -481,7 +481,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -490,26 +490,27 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            if form_data.get("viz_type") == "gauge_chart":
-                return generate_gauge_vega_lite_preview(chart_data, form_data)
-            viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
-                "viz_type"
-            )
-            if viz_type == "gantt_chart":
-                return self._create_gantt_preview(chart_data, form_data)
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            if not chart_data and not (plugin and plugin.allows_empty_result):
+                return ChartError(
+                    error="No data available for Vega-Lite visualization",
+                    error_type="NoDataError",
+                )
+            # Plugin-owned previews share the unsaved-chart renderer, subject
+            # to the plugin's explicit empty-result contract.
+            if (
+                plugin_preview := self._create_plugin_preview(chart_data, form_data)
+            ) is not None:
+                return plugin_preview
             if not isinstance(chart_data, list):
                 return ChartError(
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
                 )
-            # An empty Gantt query is still a valid interval chart and has a
-            # useful, typed Vega-Lite spec. Other chart types retain the existing
-            # explicit no-data response.
-            if not chart_data and viz_type != "gantt_chart":
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
-                )
+            if (
+                fallback := fallback_vega_lite_preview(chart_data, form_data)
+            ) is not None:
+                return fallback
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
@@ -544,11 +545,13 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             or form_data.get("viz_type")
             or "table"
         )
-        if viz_type == "gantt_chart":
-            preview = self._create_gantt_preview(data, form_data)
-            if isinstance(preview, ChartError):
-                raise ValueError(preview.error)
-            return preview.specification
+        plugin_preview = self._create_plugin_preview(
+            data, {**form_data, "viz_type": viz_type}
+        )
+        if isinstance(plugin_preview, ChartError):
+            raise ValueError(plugin_preview.error)
+        if plugin_preview is not None:
+            return plugin_preview.specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}

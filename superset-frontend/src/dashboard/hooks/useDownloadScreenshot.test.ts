@@ -62,9 +62,15 @@ const RETRY_INTERVAL = 3000;
 const DASHBOARD_ID = 123;
 const CACHE_KEY = 'test-cache-key';
 
-const mockPostSuccess = () =>
+let createObjectURLDescriptor: PropertyDescriptor | undefined;
+let revokeObjectURLDescriptor: PropertyDescriptor | undefined;
+
+const mockPostSuccess = (taskTimeoutSeconds?: number) =>
   (SupersetClient.post as jest.Mock).mockResolvedValue({
-    json: { cache_key: CACHE_KEY },
+    json: {
+      cache_key: CACHE_KEY,
+      task_timeout_seconds: taskTimeoutSeconds,
+    },
   });
 
 const createResponse = (): Response =>
@@ -74,6 +80,17 @@ const createResponse = (): Response =>
   }) as unknown as Response;
 
 const notReadyError = () => ({ status: 404 });
+
+const terminalError = () => ({
+  status: 404,
+  clone: () => ({
+    json: () =>
+      Promise.resolve({
+        message: 'Not found',
+        extra: { task_status: 'Error' },
+      }),
+  }),
+});
 
 // Chain several Promise.resolves to drain nested microtasks (.then/.catch/.finally
 // in the hook). setImmediate-based flush would stall under fake timers.
@@ -94,10 +111,39 @@ const triggerDownload = async () => {
 };
 
 beforeEach(() => {
+  createObjectURLDescriptor = Object.getOwnPropertyDescriptor(
+    window.URL,
+    'createObjectURL',
+  );
+  revokeObjectURLDescriptor = Object.getOwnPropertyDescriptor(
+    window.URL,
+    'revokeObjectURL',
+  );
   jest.clearAllMocks();
   // Default: GET hangs so microtask chains don't throw on undefined in tests
   // that only care about POST behavior.
   (SupersetClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
+});
+
+afterEach(() => {
+  if (createObjectURLDescriptor) {
+    Object.defineProperty(
+      window.URL,
+      'createObjectURL',
+      createObjectURLDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(window.URL, 'createObjectURL');
+  }
+  if (revokeObjectURLDescriptor) {
+    Object.defineProperty(
+      window.URL,
+      'revokeObjectURL',
+      revokeObjectURLDescriptor,
+    );
+  } else {
+    Reflect.deleteProperty(window.URL, 'revokeObjectURL');
+  }
 });
 
 test('downloadScreenshot calls API with force=true to ensure fresh screenshots', async () => {
@@ -181,14 +227,14 @@ test('triggers only one download when multiple successful responses race', async
 
 test('logs cacheKey, dashboardId, and format when retries are exhausted', async () => {
   jest.useFakeTimers();
-  mockPostSuccess();
+  mockPostSuccess(6);
   (SupersetClient.get as jest.Mock).mockRejectedValue(notReadyError());
 
   await triggerDownload();
 
   // Drive one retry interval at a time so each failed GET has a chance to
   // resolve and increment the retry counter before the next interval fires.
-  for (let i = 0; i < 31; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     await act(async () => {
       jest.advanceTimersByTime(RETRY_INTERVAL);
@@ -202,6 +248,70 @@ test('logs cacheKey, dashboardId, and format when retries are exhausted', async 
     format: DownloadScreenshotFormat.PNG,
   });
 
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('stops polling immediately when screenshot generation reaches Error', async () => {
+  jest.useFakeTimers();
+  mockPostSuccess(720);
+  (SupersetClient.get as jest.Mock).mockRejectedValue(terminalError());
+
+  await triggerDownload();
+
+  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+  expect(logging.error).toHaveBeenCalledWith('Screenshot generation failed', {
+    cacheKey: CACHE_KEY,
+    dashboardId: DASHBOARD_ID,
+    format: DownloadScreenshotFormat.PNG,
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(RETRY_INTERVAL * 5);
+    await flushPromises();
+  });
+
+  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('uses the server task budget beyond the previous 90-second limit', async () => {
+  jest.useFakeTimers();
+  mockPostSuccess(120);
+  let getCalls = 0;
+  (SupersetClient.get as jest.Mock).mockImplementation(() => {
+    getCalls += 1;
+    return getCalls > 31
+      ? Promise.resolve(createResponse())
+      : Promise.reject(notReadyError());
+  });
+  Object.assign(window.URL, {
+    createObjectURL: jest.fn(() => 'blob:mock'),
+    revokeObjectURL: jest.fn(),
+  });
+  const clickSpy = jest
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(() => {});
+
+  await triggerDownload();
+
+  for (let i = 0; i < 31; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      jest.advanceTimersByTime(RETRY_INTERVAL);
+      await flushPromises();
+    });
+  }
+
+  expect(clickSpy).toHaveBeenCalledTimes(1);
+  expect(logging.error).not.toHaveBeenCalledWith(
+    'Max retries reached',
+    expect.anything(),
+  );
+
+  clickSpy.mockRestore();
   jest.clearAllTimers();
   jest.useRealTimers();
 });

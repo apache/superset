@@ -26,13 +26,6 @@ export default defineConfig({
   // Test directory
   testDir: './playwright/tests',
 
-  // Conditionally ignore experimental tests based on env var
-  // When INCLUDE_EXPERIMENTAL=true, experimental tests are included
-  // Otherwise, they are excluded (default for required tests)
-  testIgnore: process.env.INCLUDE_EXPERIMENTAL
-    ? undefined
-    : '**/experimental/**',
-
   // Global setup - authenticate once before all tests
   globalSetup: './playwright/global-setup.ts',
 
@@ -94,14 +87,17 @@ export default defineConfig({
       // Default project - uses global authentication for speed
       // E2E tests login once via global-setup.ts and reuse auth state
       // Explicitly ignore auth tests (they run in chromium-unauth project)
-      // Also respect the global experimental testIgnore setting
       name: 'chromium',
       testIgnore: [
         '**/tests/auth/**/*.spec.ts',
         '**/tests/sqllab/**/*.spec.ts',
         '**/tests/embedded/**/*.spec.ts',
         '**/tests/mobile/**/*.spec.ts',
-        ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
+        // Global Async Queries needs the GLOBAL_ASYNC_QUERIES flag, Redis and a
+        // Celery worker, which the required run does not provide. They live in
+        // the chromium-gaq project below, which only exists when the workflow's
+        // GAQ step opts in.
+        '**/global-async-query*.spec.ts',
       ],
       use: {
         browserName: 'chromium',
@@ -119,6 +115,8 @@ export default defineConfig({
       // via API with unique names — no shared mutable state between tests.
       name: 'chromium-sqllab',
       testMatch: '**/tests/sqllab/**/*.spec.ts',
+      // See the chromium-gaq project below.
+      testIgnore: '**/global-async-query*.spec.ts',
       fullyParallel: false,
       use: {
         browserName: 'chromium',
@@ -156,6 +154,36 @@ export default defineConfig({
               browserName: 'chromium' as const,
               testIdAttribute: 'data-test',
               // Uses admin auth for API calls to configure embedding and get guest tokens
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Global Async Queries tests need the GLOBAL_ASYNC_QUERIES feature flag
+    // enabled in the Flask backend, plus Redis and a running Celery worker --
+    // without a worker, submissions return 202 and no job ever executes. The
+    // workflow's GAQ step provisions all three and sets INCLUDE_GAQ, so these
+    // specs never load in the required run, where the pipeline is inert. Same
+    // strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_GAQ?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-gaq',
+            testMatch: '**/global-async-query*.spec.ts',
+            // Every dashboard fixture here creates charts as the same admin
+            // user, and Superset's tag listener (superset/tags/models.py,
+            // get_tag) resolves the shared `editor:<id>` tag with an
+            // unguarded SELECT-then-INSERT against tag.name's unique index.
+            // Concurrent fixtures lose that race and the chart POST comes
+            // back 422 "Chart could not be created" (tag_name_key), which
+            // retries then paper over. Serializing the suite keeps that
+            // upstream bug out of this suite's signal; note this only orders
+            // tests *within* a file -- `--workers=1` in playwright-run-gaq
+            // is what also stops the three GAQ spec files racing each other.
+            fullyParallel: false,
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
               storageState: 'playwright/.auth/user.json',
             },
           },

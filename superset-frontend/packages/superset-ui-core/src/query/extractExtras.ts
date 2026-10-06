@@ -18,6 +18,7 @@
  */
 
 /* eslint-disable camelcase */
+import { getSemanticSelectionSources } from './semanticSelection';
 import { TimeGranularity, QueryFormData } from '@superset-ui/core';
 import {
   AppliedTimeExtras,
@@ -71,6 +72,27 @@ export default function extractExtras(formData: QueryFormData): ExtractedExtra {
       filters.push(filter);
     }
   });
+
+  const selectionSources = [
+    ...getSemanticSelectionSources(formData.extra_form_data),
+    ...(formData.semantic_selection_sources ?? []),
+  ];
+  const hasUnversionedExtras = (formData.extra_filters ?? []).some(
+    filter =>
+      !['__time_range', '__time_grain', '__time_compare'].includes(filter.col),
+  );
+  if (typeof formData.semantic_selection_version === 'string') {
+    const validSources =
+      !hasUnversionedExtras &&
+      selectionSources.every(
+        source =>
+          source.datasource === formData.datasource &&
+          source.version === formData.semantic_selection_version,
+      );
+    extras.semantic_selection_version = validSources
+      ? formData.semantic_selection_version
+      : 'unverified-external-selections';
+  }
 
   // SQL
   extras.time_grain_sqla = extract.time_grain_sqla || formData.time_grain_sqla;

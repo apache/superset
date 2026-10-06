@@ -2714,7 +2714,7 @@ class TestUpdateChartDatasetIdIntegration:
             if viz_type == "gauge_chart" and target_id != 10:
                 assert result.structured_content["success"] is False
                 assert (
-                    "complete Gauge config"
+                    "complete Gauge Chart config"
                     in result.structured_content["error"]["message"]
                 )
                 mock_update_cmd_cls.assert_not_called()
@@ -2891,3 +2891,103 @@ def test_gauge_update_compile_keeps_finite_groups(
         assert result.error.error_type == "NonNumericGaugeMetric"
     assert build.call_args.kwargs["row_limit"] == 10
     command.return_value.validate.assert_called_once()
+
+
+def test_append_metrics_retains_disabled_table_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Appending to a saved aggregate table does not enable chart creation."""
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(registry, "_is_plugin_enabled", lambda chart_type: False)
+    request = UpdateChartRequest(
+        identifier=1, add_columns=[ColumnRef(name="amount", aggregate="SUM")]
+    )
+    chart = Mock(
+        slice_name="Aggregate table",
+        params=json.dumps(
+            {"viz_type": "table", "query_mode": "aggregate", "groupby": ["region"]}
+        ),
+    )
+    result = _build_update_payload(request, chart)
+    assert isinstance(result, dict)
+    form_data = json.loads(result["params"])
+    assert form_data["groupby"] == ["region"]
+    assert form_data["metrics"][0]["column"]["column_name"] == "amount"
+    assert registry.get("table") is None
+
+
+def test_plugin_value_error_returns_validation_response() -> None:
+    """Non-Gantt plugins share the documented ValueError validation contract."""
+    plugin = Mock()
+    plugin.validate_merged_form_data.side_effect = ValueError("Invalid role")
+    chart = Mock(datasource=Mock(id=1))
+    with patch.object(update_chart_module, "plugin_for_viz_type", return_value=plugin):
+        response = update_chart_module._validate_update_against_dataset(
+            TableChartConfig(columns=[ColumnRef(name="region")]),
+            {"viz_type": "table"},
+            chart,
+        )
+    assert response is not None
+    assert response.error is not None
+    assert response.error.error_type == "ValidationError"
+    assert response.error.details == "Invalid role"
+
+
+@pytest.mark.parametrize(
+    ("access", "accessible"),
+    [
+        pytest.param({"return_value": True}, True, id="granted"),
+        pytest.param({"return_value": False}, False, id="denied"),
+        pytest.param({"side_effect": RuntimeError("boom")}, False, id="raises"),
+    ],
+)
+def test_rebind_target_dataset_requires_data_level_access(
+    access: dict[str, Any], accessible: bool
+) -> None:
+    """A rebind enforces the same access check as the sibling chart tools.
+
+    Patching ``find_by_id`` to return the dataset regardless of the acting user
+    simulates a dataset the DAO's ``DatasourceFilter`` admits while the security
+    manager's access check denies it. Without the tool-level check a column
+    error would carry the target's table, schema, database and column names.
+    """
+    dataset = Mock(
+        id=77,
+        table_name="rebind_target",
+        schema=None,
+        database=Mock(database_name="fixture", db_engine_spec=None),
+        columns=[Mock(column_name="region", type="VARCHAR", is_temporal=False)],
+        metrics=[],
+    )
+    chart = Mock(datasource=Mock(id=1), datasource_id=1)
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.mcp_service.auth.g", Mock(user=Mock(id=1))),
+        patch(
+            "superset.mcp_service.auth.security_manager.can_access_datasource",
+            **access,
+        ) as checked,
+        patch.object(update_chart_module, "plugin_for_viz_type", return_value=None),
+        patch(
+            "superset.mcp_service.chart.compile.DatasetValidator"
+            ".validate_against_dataset",
+            return_value=(True, None),
+        ),
+    ):
+        response = update_chart_module._validate_update_against_dataset(
+            TableChartConfig(columns=[ColumnRef(name="region")]),
+            {"viz_type": "table"},
+            chart,
+            dataset_id=77,
+            run_compile_check=False,
+        )
+
+    checked.assert_called_with(datasource=dataset)
+    if accessible:
+        assert response is None
+    else:
+        assert response is not None
+        assert response.error is not None
+        assert response.error.error_type == "DatasetNotAccessible"
+        assert "rebind_target" not in response.model_dump_json()

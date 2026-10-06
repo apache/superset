@@ -24,6 +24,25 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Semantic Table time grains
+
+For a Table chart backed by a semantic view, Time Grain applies when grouping by
+a temporal dimension. Removing the last temporal dimension leaves the saved
+choice intact, but the frontend omits a recognized dormant grain from aggregate
+requests whose selected columns are known to be non-temporal (including no
+grouping columns). Adding the temporal dimension again reuses the saved choice.
+Unknown columns or grain values are not silently normalized. Ordinary dataset
+charts and raw-record queries are unchanged.
+
+This applies to requests rebuilt by the updated frontend in Explore and
+dashboards; it does not rewrite saved charts. Direct API requests and saved
+chart-data GET paths that bypass rebuilding remain subject to strict validation,
+so old stored query contexts can still fail. Updated frontend assets are required.
+Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
+recomputing it. A grouped chart saved before this change may lack the
+non-temporal column metadata needed to omit a dormant grain, so its dashboard
+requests can keep sending that grain until the chart is re-saved in Explore.
+
 ### Enabling Data Upload Functionality
 
 You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
@@ -168,6 +187,20 @@ function" control for totals in the Pivot Table: a total always reflects the met
 definition. The Table chart's **Show summary** row is different: its **Summary aggregation**
 control can override a simple metric's own aggregation (to Sum or Average) for the summary row
 only — metrics built from custom SQL keep their own aggregation regardless.
+:::
+
+In the **Options** panel, the **Show values as** control displays each cell as a percentage of its
+row total, column total, or grand total instead of its actual value:
+
+:::note
+Totals and subtotals are still computed correctly first, as described above; **Show values as**
+only changes how the already-correct cell, row-total, column-total, and grand-total values are
+displayed, not how they're calculated. Switching it requires rerunning the query, though: for
+non-additive metrics, a percentage option can pull in an additional rollup level for its
+denominator even when the matching Total row/column isn't shown, so select **Run Query** after
+changing this control to see the correct percentages. Because the result is always a percentage, a
+per-metric custom formatter (currency, decimal precision, etc.) doesn't apply while a fraction
+option is selected.
 :::
 
 ### Line Chart
@@ -370,6 +403,8 @@ tutorial dashboard to see the four charts side by side and compare the different
 
 **Resizable panels**: The dividers between the SQL editor, schema browser, and results pane are draggable. Adjust them to match your workflow and screen size.
 
+**Code folding**: In the built-in Ace editor, use the arrows beside the line numbers to collapse or expand multiline parenthesized queries and block comments. Folding hides those lines without changing the SQL.
+
 **Dialect-aware Format SQL**: The **Format SQL** button applies the SQL dialect of the currently selected database — Trino, Presto, MySQL, PostgreSQL, etc. — rather than a generic formatter. Switch to a different database in the toolbar and re-format to get dialect-specific output. Jinja template syntax (`{{ }}`, `{% %}`) is preserved during formatting and will not cause format errors.
 
 ### Time Range Natural Language Expressions
@@ -399,3 +434,11 @@ the export isn't limited to the page currently visible in the table.
 - [Blog: From Drill Down to Drill By](https://preset.io/blog/drill-down-and-drill-by/)
 - [Blog: Cross-Filtering in Apache Superset](https://preset.io/blog/cross-filtering-in-Superset-and-Preset/)
   :::
+
+### DynamoDB time filters
+
+DynamoDB timestamp strings used in time filters must use the ISO 8601 `T`
+separator, for example `2019-01-02T04:15:00`. Superset renders bounds in this
+format and preserves fractional seconds. Normalize space-separated timestamps
+before applying time ranges; mixing separators can shift even whole-day results.
+Use consistent timezone and precision conventions for stored timestamps and bounds.

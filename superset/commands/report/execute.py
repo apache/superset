@@ -111,11 +111,13 @@ from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
     get_report_task_timeout_options,
+    ReportArtifactKind,
     ReportExecutionBudgetExceededError,
     ReportExecutionContext,
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
+from superset.utils.screenshot_utils import validate_report_screenshot
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -638,6 +640,14 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
+    def _get_force_param(self) -> str:
+        """
+        Serialize ``force_screenshot`` for use as a ``force`` URL query
+        parameter, so cache-bypass intent survives every URL this report
+        can render (chart, dashboard, and dashboard-tab permalink).
+        """
+        return "true" if self._report_schedule.force_screenshot else "false"
+
     def _get_url(
         self,
         user_friendly: bool = False,
@@ -682,7 +692,7 @@ class BaseReportState:
                 "the report has neither a chart nor a dashboard."
             )
 
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
         if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -735,7 +745,7 @@ class BaseReportState:
             and self._report_schedule.dashboard is None
         ):
             raise ReportScheduleTargetDashboardDeletedError()
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
 
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
@@ -827,6 +837,17 @@ class BaseReportState:
         """
         Get one tab url
         """
+        force = self._get_force_param()
+        # ``Superset.dashboard_permalink`` redirects by appending this
+        # state's ``urlParams`` *before* its own query string (which is
+        # where the ``force`` we pass below lands). A stale ``force`` entry
+        # already stored in ``urlParams`` would therefore be read first by
+        # ``request.args.get("force")`` and shadow the one below, so strip
+        # it here to keep ``force_screenshot`` authoritative.
+        if url_params := dashboard_state.get("urlParams"):
+            filtered_params = [p for p in url_params if p[0] != "force"]
+            if len(filtered_params) != len(url_params):
+                dashboard_state = {**dashboard_state, "urlParams": filtered_params}
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
@@ -847,6 +868,7 @@ class BaseReportState:
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
+            force=force,
             user_friendly=user_friendly,
         )
 
@@ -926,7 +948,7 @@ class BaseReportState:
         # including any pending state changes protected by this ownership check.
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-    def _get_screenshots(self) -> list[bytes]:
+    def _get_screenshots(self, *, for_delivery: bool = True) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -979,12 +1001,21 @@ class BaseReportState:
                 imge = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
-                    report_execution_context=capture_context,
+                    report_execution_context=(
+                        capture_context
+                        if for_delivery or capture_context is None
+                        else replace(
+                            capture_context,
+                            validate_for_delivery=False,
+                        )
+                    ),
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
                         "Screenshot failed; aborting to avoid sending a partial report"
                     )
+                if for_delivery:
+                    self._validate_screenshot(imge)
                 imges.append(imge)
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -1002,6 +1033,7 @@ class BaseReportState:
                 len(imges),
             )
         except SoftTimeLimitExceeded as ex:
+            self._reject_capture("capture_interrupted")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -1023,8 +1055,10 @@ class BaseReportState:
             # executions propagate the Celery signal to terminal cleanup.
             raise ReportScheduleScreenshotTimeout() from ex
         except ReportExecutionBudgetExceededError:
+            self._reject_capture("capture_budget_exceeded")
             raise
         except Exception as ex:
+            self._reject_capture("capture_failed")
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
@@ -1047,6 +1081,22 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return imges
 
+    def _reject_capture(self, reason: str) -> None:
+        """Keep capture failures sticky even if an intermediate caller catches them."""
+        if self._report_execution_context is not None:
+            self._report_execution_context.reject_capture(reason)
+
+    def _validate_screenshot(self, screenshot: bytes | None) -> None:
+        """Require a valid screenshot from any selected driver."""
+        if self._report_execution_context is None:
+            raise ReportScheduleScreenshotFailedError("Missing capture context")
+        if screenshot is None:
+            self._reject_capture("missing_image")
+            raise ReportScheduleScreenshotFailedError(
+                "Screenshot failed; aborting to avoid sending a partial report"
+            )
+        validate_report_screenshot(screenshot, self._report_execution_context)
+
     def _get_pdf(self) -> bytes:
         """
         Get chart or dashboard pdf
@@ -1062,7 +1112,14 @@ class BaseReportState:
             "pdf_generation",
             reserve_seconds=reserve_seconds,
         )
+        for screenshot in screenshots:
+            self._validate_screenshot(screenshot)
         pdf = build_pdf_from_screenshots(screenshots)
+        if self._report_execution_context is not None:
+            self._report_execution_context.approve_artifact(
+                pdf,
+                ReportArtifactKind.PDF,
+            )
         self._phase_timeout(
             "pdf_generation",
             reserve_seconds=reserve_seconds,
@@ -1380,7 +1437,9 @@ class BaseReportState:
         failure (e.g. Excel vs CSV) when the screenshot fallback fails.
         """
         try:
-            self._get_screenshots()
+            # These bytes only trigger query-context persistence, not delivery.
+            # Keep the existing browser contract without the final-image gate.
+            self._get_screenshots(for_delivery=False)
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
@@ -1563,7 +1622,25 @@ class BaseReportState:
             else ("missing_capture_context",)
         )
         if report_context is not None and not report_context.capture_was_rejected:
-            return
+            try:
+                for screenshot in notification_content.screenshots or []:
+                    validate_report_screenshot(screenshot, report_context)
+                if (
+                    notification_content.pdf
+                    and not report_context.artifact_was_validated(
+                        notification_content.pdf,
+                        ReportArtifactKind.PDF,
+                    )
+                ):
+                    report_context.reject_capture("unvalidated_pdf")
+                if not report_context.capture_was_rejected:
+                    return
+            except (SoftTimeLimitExceeded, ReportExecutionBudgetExceededError):
+                raise
+            except Exception as ex:
+                report_context.reject_capture("delivery_validation_failed")
+                raise ReportScheduleScreenshotFailedError(str(ex)) from ex
+            rejection_reasons = report_context.capture_rejection_reasons
 
         logger.error(
             "report_delivery_blocked %s terminal_reason=capture_rejected "

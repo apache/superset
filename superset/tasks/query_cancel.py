@@ -117,7 +117,12 @@ def notify_cursor(cursor: Any) -> None:
 
 
 def cancel_chart_query(
-    database: "Database", cancel_query_id: str, app: "Flask | None" = None
+    database: "Database",
+    cancel_query_id: str,
+    app: "Flask | None" = None,
+    *,
+    catalog: str | None = None,
+    schema: str | None = None,
 ) -> bool:
     """Cancel a running chart-data warehouse query over a fresh connection.
 
@@ -140,7 +145,7 @@ def cancel_chart_query(
     spec = database.db_engine_spec
     stub = cast("Query", _CancellationQuery(database))
     try:
-        with database.get_sqla_engine() as engine:
+        with database.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             with closing(engine.raw_connection()) as conn:
                 with closing(conn.cursor()) as cursor:
                     cancelled = spec.cancel_query(cursor, stub, cancel_query_id)

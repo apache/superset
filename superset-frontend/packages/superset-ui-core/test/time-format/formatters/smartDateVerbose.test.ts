@@ -39,9 +39,42 @@ describe('smartDateVerboseFormatter', () => {
       expect(formatter(new Date('2020-03-01'))).toBe('Mar 2020');
     });
 
-    test('shows weekday when any day of the month', () => {
-      expect(formatter(new Date('2020-03-03'))).toBe('Tue Mar 3');
-      expect(formatter(new Date('2020-03-15'))).toBe('Sun Mar 15');
+    test('shows weekday with year when any day of the month', () => {
+      expect(formatter(new Date('2020-03-03'))).toBe('Tue Mar 3 2020');
+      expect(formatter(new Date('2020-03-15'))).toBe('Sun Mar 15 2020');
+    });
+
+    // Regression test for #44149: tooltips on charts spanning multiple years
+    // (e.g. a 2014-2026 scatter) must include the year, otherwise points in
+    // different years are indistinguishable without looking at the axis.
+    test('shows the year for daily-granularity dates', () => {
+      expect(formatter(new Date('2014-03-20'))).toBe('Thu Mar 20 2014');
+    });
+
+    test('distinguishes the same day of the year across years', () => {
+      expect(formatter(new Date('2014-03-20'))).not.toBe(
+        formatter(new Date('2026-03-20')),
+      );
+    });
+
+    // Review feedback on #44212: the sub-day tiers had the same ambiguity, so
+    // hourly-or-finer tooltips spanning multiple years also need the year.
+    test('shows the year for hourly-granularity dates', () => {
+      expect(formatter(new Date('2014-03-20T15:00:00Z'))).toBe(
+        'Thu Mar 20 2014, 03 PM',
+      );
+    });
+
+    test('shows the year for minute-granularity dates', () => {
+      expect(formatter(new Date('2014-03-20T15:45:00Z'))).toBe(
+        'Thu Mar 20 2014, 03:45 PM',
+      );
+    });
+
+    test('shows the year for second-granularity dates', () => {
+      expect(formatter(new Date('2014-03-20T15:45:12Z'))).toBe(
+        'Thu Mar 20 2014, 03:45:12 PM',
+      );
     });
   });
   describe('when locale is not default', () => {
@@ -103,9 +136,21 @@ describe('smartDateVerboseFormatter', () => {
       expect(formatter(new Date('2020-04-01'))).toBe('Abr 2020');
     });
 
-    test('shows weekday when any day of the month', () => {
-      expect(formatter(new Date('2020-03-03'))).toBe('Ter Mar 3');
-      expect(formatter(new Date('2020-03-15'))).toBe('Dom Mar 15');
+    test('shows weekday with year when any day of the month', () => {
+      expect(formatter(new Date('2020-03-03'))).toBe('Ter Mar 3 2020');
+      expect(formatter(new Date('2020-03-15'))).toBe('Dom Mar 15 2020');
+    });
+
+    test('shows the year for sub-day granularity dates', () => {
+      expect(formatter(new Date('2020-03-03T15:00:00Z'))).toBe(
+        'Ter Mar 03 2020, 03 PM',
+      );
+      expect(formatter(new Date('2020-03-03T15:45:00Z'))).toBe(
+        'Ter Mar 03 2020, 03:45 PM',
+      );
+      expect(formatter(new Date('2020-03-03T15:45:12Z'))).toBe(
+        'Ter Mar 03 2020, 03:45:12 PM',
+      );
     });
   });
 });

@@ -22,10 +22,23 @@ from unittest.mock import patch
 
 import pytest
 import sshtunnel
-from flask import Flask, Response
+from flask import abort, Flask, Response, session
 from flask_babel import Babel
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
-from werkzeug.exceptions import GatewayTimeout
+from werkzeug.exceptions import (
+    BadGateway,
+    BadRequest,
+    Forbidden,
+    GatewayTimeout,
+    HTTPException,
+    InternalServerError,
+    NotFound,
+    ServiceUnavailable,
+    Unauthorized,
+)
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -66,6 +79,27 @@ class TestHandleApiExceptionSSHTunnelError:
         assert any(
             record.levelno == logging.WARNING
             and "BaseSSHTunnelForwarderError" in record.message
+            for record in caplog.records
+        )
+
+
+class TestHandleApiExceptionNoAuthorizationError:
+    def test_returns_401_and_logs_at_warning_not_error(
+        self, app, caplog: pytest.LogCaptureFixture
+    ):
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise NoAuthorizationError("Missing JWT in cookies or headers")
+
+        with app.test_request_context():
+            with caplog.at_level(logging.WARNING):
+                response = cast(Response, view(self=object()))
+
+        assert response.status_code == 401
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+        assert any(
+            record.levelno == logging.WARNING
+            and "Api failed- no authorization" in record.message
             for record in caplog.records
         )
 
@@ -269,6 +303,195 @@ class TestShowSupersetException:
         mock_send_file.assert_called_once()
 
 
+class TestShowHttpException:
+    """
+    Client-side HTTP errors are not server faults and must not log tracebacks.
+    """
+
+    def _build_app_with_handlers(self, error: HTTPException) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/http-error")
+        def http_error_view() -> FlaskResponse:
+            raise error
+
+        return test_app
+
+    @staticmethod
+    def _handler_records(
+        caplog: pytest.LogCaptureFixture,
+    ) -> list[logging.LogRecord]:
+        return [
+            record
+            for record in caplog.records
+            if record.name == "superset.views.error_handling"
+        ]
+
+    @pytest.mark.parametrize("path", ["/no-matching-route", "/missing%0D%0Aforged"])
+    def test_routing_404_logs_no_warning_and_no_traceback(
+        self, path: str, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Routing 404 logs one DEBUG line without a traceback."""
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get(path)
+
+        assert response.status_code == 404
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+        assert records[0].exc_info is None
+        assert repr(response.request.path) in records[0].getMessage()
+        assert "\n" not in records[0].getMessage()
+        assert "\r" not in records[0].getMessage()
+
+    def test_in_view_404_logs_a_warning_with_path_and_no_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A 404 raised inside a matched view stays at WARNING with the path."""
+        test_app = self._build_app_with_handlers(NotFound())
+
+        @test_app.route("/view-not-found")
+        def not_found_view() -> FlaskResponse:
+            """Abort with a 404 from inside a matched route."""
+            return abort(404)
+
+        client = test_app.test_client()
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get("/view-not-found")
+
+        assert response.status_code == 404
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno == logging.WARNING
+        assert records[0].exc_info is None
+        assert repr("/view-not-found") in records[0].getMessage()
+
+    @pytest.mark.parametrize(
+        "error",
+        [BadRequest(), Unauthorized(), Forbidden(), BadRequest("invalid\r\nforged")],
+    )
+    def test_other_4xx_log_a_warning_without_traceback(
+        self, error: HTTPException, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Other client errors log one escaped WARNING line without a traceback."""
+        client = self._build_app_with_handlers(error).test_client()
+
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == error.code
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno == logging.WARNING
+        assert records[0].exc_info is None
+        assert repr(str(error)) in records[0].getMessage()
+        assert repr("/http-error") in records[0].getMessage()
+        assert "\n" not in records[0].getMessage()
+        assert "\r" not in records[0].getMessage()
+
+    @pytest.mark.parametrize(
+        "error", [BadGateway(), ServiceUnavailable(), GatewayTimeout()]
+    )
+    def test_5xx_still_logs_a_warning_with_traceback(
+        self, error: HTTPException, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Server HTTP errors retain WARNING logging with a traceback."""
+        client = self._build_app_with_handlers(error).test_client()
+
+        with caplog.at_level(logging.WARNING, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == error.code
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno >= logging.WARNING
+        assert records[0].exc_info is not None
+        assert records[0].exc_info[1] is error
+
+    def test_internal_server_error_still_logs_with_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """The dedicated 500 handler retains traceback logging."""
+        # InternalServerError is routed to the 500 handler, which must keep
+        # logging the traceback.
+        client = self._build_app_with_handlers(InternalServerError()).test_client()
+
+        with caplog.at_level(logging.WARNING, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == 500
+        assert any(
+            record.levelno >= logging.WARNING and record.exc_info is not None
+            for record in self._handler_records(caplog)
+        )
+
+    def test_404_html_request_still_serves_the_branded_page(self) -> None:
+        """HTML requests for missing routes receive the branded 404 page."""
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            return_value=Response("<html>404</html>", mimetype="text/html"),
+        ) as mock_send_file:
+            response = client.get("/no-matching-route", headers={"Accept": "text/html"})
+
+        assert response.status_code == 404
+        assert response.get_data(as_text=True) == "<html>404</html>"
+        mock_send_file.assert_called_once()
+        assert str(mock_send_file.call_args.args[0]).endswith("static/assets/404.html")
+
+    def test_404_html_request_falls_back_to_json_when_page_is_missing(
+        self,
+    ) -> None:
+        """Missing branded pages fall back to a JSON 404 response."""
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            side_effect=FileNotFoundError,
+        ):
+            response = client.get("/no-matching-route", headers={"Accept": "text/html"})
+
+        assert response.status_code == 404
+        assert response.get_json()["errors"][0]["error_type"] == (
+            SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        )
+
+    @pytest.mark.parametrize(
+        "error, path",
+        [
+            (NotFound(), "/no-matching-route"),
+            (Forbidden(), "/http-error"),
+            (GatewayTimeout(), "/http-error"),
+        ],
+    )
+    def test_json_response_body_is_unchanged(
+        self, error: HTTPException, path: str
+    ) -> None:
+        """HTTP errors preserve their JSON response body and status."""
+        client = self._build_app_with_handlers(error).test_client()
+
+        with patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=False,
+        ):
+            response = client.get(path, headers={"Accept": "application/json"})
+
+        assert response.status_code == error.code
+        errors = response.get_json()["errors"]
+        assert len(errors) == 1
+        assert errors[0]["message"] == str(error)
+        assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        assert errors[0]["level"] == ErrorLevel.ERROR.value
+        # The request path is logged for 404s but must never reach the body.
+        assert path not in response.get_data(as_text=True)
+
+
 class TestGuestErrorSanitization:
     def _response_payload(
         self,
@@ -384,3 +607,113 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
 
         assert response.status_code == 504
         assert json.loads(response.data)["error"] == "upstream took too long"
+
+
+class TestRefreshCsrfToken:
+    """
+    An expired CSRF token has to be recoverable by the client.
+    """
+
+    RAW_TOKEN = "a" * 40
+
+    def _build_app_with_handlers(self) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        test_app.config["SECRET_KEY"] = "not-a-secret"  # noqa: S105
+        test_app.config["WTF_CSRF_TIME_LIMIT"] = 5
+        Babel(test_app)
+        CSRFProtect(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/api/v1/dataset/1", methods=["PUT"])
+        def save_dataset() -> FlaskResponse:
+            return {"result": "saved"}
+
+        return test_app
+
+    def _put_with_expired_token(self, test_app: Flask, **kwargs: Any) -> Response:
+        client = test_app.test_client()
+        with freeze_time("2026-01-01 00:00:00"):
+            with test_app.test_request_context():
+                session["csrf_token"] = self.RAW_TOKEN
+                token = generate_csrf()
+            with client.session_transaction() as sess:
+                sess["csrf_token"] = self.RAW_TOKEN
+
+        with freeze_time("2026-01-01 00:01:00"):
+            return cast(
+                Response,
+                client.put(
+                    "/api/v1/dataset/1", headers={"X-CSRFToken": token}, **kwargs
+                ),
+            )
+
+    def test_expired_token_on_json_request_reports_a_csrf_error_type(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        test_app = self._build_app_with_handlers()
+
+        with caplog.at_level(logging.WARNING):
+            response = self._put_with_expired_token(
+                test_app, json={"description": "edited"}
+            )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        error = payload["errors"][0]
+        assert error["error_type"] == SupersetErrorType.CSRF_ERROR.value
+        assert "expired" in error["message"]
+        # Issue 1011 ("unexpected error") would be actively misleading here.
+        assert not (error.get("extra") or {}).get("issue_codes")
+
+    def test_expired_token_on_html_request_still_redirects_to_login(self) -> None:
+        """
+        The redirect added in #14675 is what a browser navigation needs; only
+        the JSON branch changed.
+
+        `redirect_to_login` is patched rather than followed: it resolves the
+        Flask-AppBuilder login endpoint, which the minimal app in
+        `_build_app_with_handlers` does not register.
+        """
+        test_app = self._build_app_with_handlers()
+
+        with patch(
+            "superset.views.error_handling.redirect_to_login",
+            return_value=("redirected", 302),
+        ) as redirect_mock:
+            response = self._put_with_expired_token(
+                test_app, data={"description": "edited"}
+            )
+
+        redirect_mock.assert_called_once()
+        assert response.status_code == 302
+
+    def test_csrf_error_type_survives_guest_sanitization(self, app: Flask) -> None:
+        """
+        Embedded dashboards are the likeliest pages to outlive their token, so
+        redacting the type would leave the guest client unable to recover.
+        """
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                return_value=True,
+            ),
+        ):
+            response = cast(
+                Response,
+                json_error_response(
+                    [
+                        SupersetError(
+                            message="400 Bad Request: The CSRF token has expired.",
+                            error_type=SupersetErrorType.CSRF_ERROR,
+                            level=ErrorLevel.WARNING,
+                        )
+                    ],
+                    status=400,
+                ),
+            )
+
+        payload = json.loads(response.data)
+        assert payload["errors"][0]["error_type"] == SupersetErrorType.CSRF_ERROR.value
+        assert "expired" in payload["errors"][0]["message"]
