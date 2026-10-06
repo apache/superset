@@ -3091,7 +3091,9 @@ PREVENT_UNSAFE_DB_CONNECTIONS = True
 # users who can create or edit database connections are already trusted with
 # that level of access (eg a deployment that relies on duckdb/MotherDuck).
 # Adding a dialect here re-enables just that dialect; the rest of the blocklist
-# still applies. Has no effect when PREVENT_UNSAFE_DB_CONNECTIONS is False
+# still applies. Entries are matched on the base dialect, case-insensitively and
+# ignoring any "+driver" suffix, so "duckdb", "DuckDB" and "duckdb+duckdb_engine"
+# are equivalent. Has no effect when PREVENT_UNSAFE_DB_CONNECTIONS is False
 # (the check is skipped entirely in that case).
 ALLOWED_UNSAFE_DB_DIALECTS: set[str] = set()
 
