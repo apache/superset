@@ -379,6 +379,7 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
@@ -406,6 +407,7 @@ test("the mapped column's row is muted in the columns table", async () => {
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
 
   const { container } = fastRender(props);
