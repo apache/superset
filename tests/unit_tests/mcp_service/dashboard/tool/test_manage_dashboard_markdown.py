@@ -1273,5 +1273,7 @@ async def test_externally_managed_dashboard_is_refused(mcp_server: FastMCP) -> N
         )
 
     assert "managed externally" in data["error"]
+    assert data["managed_externally"] is True
+    assert data["permission_denied"] is False
     assert dashboard.position_json == before
     session.commit.assert_not_called()

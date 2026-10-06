@@ -353,6 +353,7 @@ def manage_dashboard_markdown(  # noqa: C901
     if dashboard.is_managed_externally:
         return ManageDashboardMarkdownResponse(
             dashboard_id=request.dashboard_id,
+            managed_externally=True,
             error=(
                 f"Dashboard {request.dashboard_id} is managed externally; its "
                 "layout is owned by the external system and cannot be "
