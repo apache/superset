@@ -1234,9 +1234,58 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return False
         if len(self._parsed.expressions) != 1:
             return False
-        return not any(
-            value for key, value in self._parsed.args.items() if key != "expressions"
-        )
+        return not self.get_clause_names()
+
+    def get_clause_names(self) -> set[str]:
+        """
+        Which clauses other than the projection this ``SELECT`` populates.
+
+        `is_bare_select_expression` answers "none of them", which is too strong
+        for a caller that assembles a statement with a FROM clause of its own
+        and needs to know that nothing *else* came along with it.
+
+        Reported as the set that is present rather than as a denylist of clause
+        names, for the same reason: a sqlglot release or a dialect introducing a
+        clause this does not know about shows up in the answer instead of being
+        silently permitted.
+
+        Returns an empty set for anything that is not a ``SELECT``, which such a
+        caller has to reject on other grounds anyway.
+
+        Trailing underscores are stripped, because sqlglot appends one to the
+        names that collide with a Python keyword -- its FROM clause is
+        ``from_``. Callers should not have to know that, nor track it across
+        sqlglot releases.
+
+        :return: clause names, e.g. ``{"from", "where"}``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return set()
+        return {
+            key.rstrip("_")
+            for key, value in self._parsed.args.items()
+            if value and key != "expressions"
+        }
+
+    def get_from_clause_sql(self) -> str | None:
+        """
+        This statement's ``FROM`` clause, rendered back to SQL.
+
+        For comparing an assembled statement's FROM against the one its builder
+        intended. Both sides are rendered rather than compared as raw text, so
+        the comparison does not depend on the whitespace the builder happened to
+        use. Identifier case is preserved, as it has to be for an engine that
+        treats it as significant.
+
+        :return: the rendered clause, or ``None`` where there is no FROM
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        # ``from_`` is sqlglot's own name for it, the trailing underscore being
+        # how it avoids the Python keyword; both are read so that the lookup
+        # does not depend on which one a given release uses.
+        from_clause = self._parsed.args.get("from_") or self._parsed.args.get("from")
+        return from_clause.sql(dialect=self._dialect) if from_clause else None
 
     def get_select_aliases(self) -> list[str | None]:
         """

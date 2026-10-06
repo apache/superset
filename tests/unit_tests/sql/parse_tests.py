@@ -7238,53 +7238,6 @@ def test_rls_returns_whether_applied(
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
-        ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
-        (
-            "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
-            "postgresql",
-            {"query_to_xml"},
-        ),
-        ("SELECT a FROM t WHERE my_udf(a) > 1", "postgresql", {"my_udf"}),
-        (
-            "SELECT * FROM EXTERNAL_QUERY('c', 'SELECT 1')",
-            "bigquery",
-            {"EXTERNAL_QUERY"},
-        ),
-        # A qualified call keeps its qualifier, so it never reads as a builtin.
-        ("SELECT NOW(), s.now() FROM t", "mysql", {"NOW", "s.now"}),
-    ],
-)
-def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:
-    """
-    Functions SQLGlot does not model are reported, since they may read tables
-    that table extraction cannot see.
-    """
-    assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
-
-
-@pytest.mark.parametrize(
-    "sql, engine, expected",
-    [
-        ("SELECT * FROM t JOIN s.u ON t.id = u.id", "postgresql", False),
-        ('SELECT * FROM "Quoted Table"', "postgresql", False),
-        ("WITH c AS (SELECT 1 AS a) SELECT * FROM c", "postgresql", False),
-        ("SELECT * FROM generate_series(1, 3)", "postgresql", True),
-        ("SELECT * FROM read_csv('x.csv')", "duckdb", True),
-        ("SELECT * FROM IDENTIFIER('t')", "snowflake", True),
-        ("SELECT * FROM TABLE('t')", "snowflake", True),
-    ],
-)
-def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None:
-    """
-    Table functions and dynamically named tables are sources without a table
-    name, so ``tables`` cannot report them.
-    """
-    assert SQLStatement(sql, engine).has_dynamic_table_source() == expected
-
-
-@pytest.mark.parametrize(
-    "sql, engine, expected",
-    [
         # Hive's parser resolves the zero-argument form to CURRENT_TIMESTAMP,
         # which is what it actually means, so that is the name reported.
         ("SELECT unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
@@ -7315,6 +7268,53 @@ def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> Non
     determinism need to distinguish the two by arity, not by name.
     """
     assert SQLStatement(sql, engine).get_niladic_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
+        (
+            "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
+            "postgresql",
+            {"query_to_xml"},
+        ),
+        ("SELECT a FROM t WHERE my_udf(a) > 1", "postgresql", {"my_udf"}),
+        (
+            "SELECT * FROM EXTERNAL_QUERY('c', 'SELECT 1')",
+            "bigquery",
+            {"EXTERNAL_QUERY"},
+        ),
+        # A qualified call keeps its qualifier, so it never reads as a builtin.
+        ("SELECT NOW(), s.now() FROM t", "mysql", {"NOW", "s.now"}),
+    ],
+)
+def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Functions SQLGlot does not model are reported, since they may read tables
+    that table extraction cannot see.
+    """
+    assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country)", "hive", 1),
+        ("SELECT unix_timestamp(ds)", "hive", 1),
+        # The case this exists for: a caller wrapping a user-supplied fragment
+        # in `SELECT <fragment>` parses the same whether the fragment is one
+        # expression or a list, and the two return a different column count.
+        ("SELECT lower(country), 'x'", "hive", 2),
+        ("SELECT a, b, c", "hive", 3),
+        ("SELECT * FROM some_table", "hive", 1),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", 0),
+    ],
+)
+def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
+    """Check the `count_select_expressions` method."""
+    assert SQLStatement(sql, engine).count_select_expressions() == expected
 
 
 @pytest.mark.parametrize(
@@ -7405,21 +7405,70 @@ def test_is_bare_select_expression(sql: str, engine: str, expected: bool) -> Non
     assert SQLStatement(sql, engine).is_bare_select_expression() is expected
 
 
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", set()),
+        ("SELECT a, b", set()),
+        # Reported without sqlglot's keyword-avoiding underscore, which its FROM
+        # clause carries as `from_`. A caller comparing against {"from"} should
+        # not have to know that, nor track it across releases.
+        ("SELECT 1 FROM t", {"from"}),
+        ("SELECT 1 FROM t WHERE x = 1", {"from", "where"}),
+        ("SELECT 1 GROUP BY 1", {"group"}),
+        ("SELECT 1 LIMIT 1", {"limit"}),
+        ("INSERT INTO t VALUES (1)", set()),
+    ],
+)
+def test_get_clause_names(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_clause_names` method.
+
+    Parametrized by engine for the same reason `is_bare_select_expression` is:
+    the answer is read off the parsed node's own arguments, so a dialect that
+    names one differently has to show up in the answer rather than vanish from
+    it.
+    """
+    assert SQLStatement(sql, engine).get_clause_names() == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", None),
+        ("SELECT 1 FROM DUAL", "FROM DUAL"),
+        ("SELECT 1 FROM SYSIBM.SYSDUMMY1", "FROM SYSIBM.SYSDUMMY1"),
+        # Rendered, so the caller's own spacing does not have to match...
+        ("SELECT 1   FROM    DUAL", "FROM DUAL"),
+        # ...while identifier case, which an engine may treat as significant,
+        # survives.
+        ("SELECT 1 FROM dual", "FROM dual"),
+        ("SELECT 1 FROM a.b AS c", "FROM a.b AS c"),
+        ("INSERT INTO t VALUES (1)", None),
+    ],
+)
+def test_get_from_clause_sql(sql: str, engine: str, expected: str | None) -> None:
+    """Check the `get_from_clause_sql` method."""
+    assert SQLStatement(sql, engine).get_from_clause_sql() == expected
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
-        ("SELECT lower(country)", "hive", 1),
-        ("SELECT unix_timestamp(ds)", "hive", 1),
-        # The case this exists for: a caller wrapping a user-supplied fragment
-        # in `SELECT <fragment>` parses the same whether the fragment is one
-        # expression or a list, and the two return a different column count.
-        ("SELECT lower(country), 'x'", "hive", 2),
-        ("SELECT a, b, c", "hive", 3),
-        ("SELECT * FROM some_table", "hive", 1),
-        # Not a SELECT at all.
-        ("INSERT INTO t VALUES (1)", "hive", 0),
+        ("SELECT * FROM t JOIN s.u ON t.id = u.id", "postgresql", False),
+        ('SELECT * FROM "Quoted Table"', "postgresql", False),
+        ("WITH c AS (SELECT 1 AS a) SELECT * FROM c", "postgresql", False),
+        ("SELECT * FROM generate_series(1, 3)", "postgresql", True),
+        ("SELECT * FROM read_csv('x.csv')", "duckdb", True),
+        ("SELECT * FROM IDENTIFIER('t')", "snowflake", True),
+        ("SELECT * FROM TABLE('t')", "snowflake", True),
     ],
 )
-def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
-    """Check the `count_select_expressions` method."""
-    assert SQLStatement(sql, engine).count_select_expressions() == expected
+def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None:
+    """
+    Table functions and dynamically named tables are sources without a table
+    name, so ``tables`` cannot report them.
+    """
+    assert SQLStatement(sql, engine).has_dynamic_table_source() == expected

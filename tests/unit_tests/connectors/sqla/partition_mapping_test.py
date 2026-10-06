@@ -1804,6 +1804,14 @@ def test_activity_is_exactly_the_absence_of_issues(transform: str | None) -> Non
         ("1 /* :value */", False),
         ("lower(x)", False),
         (None, False),
+        # The stand-in written by hand. It supplies the bare column reference a
+        # placeholder inside a literal failed to produce, so the counts cancel
+        # and the gate used to pass a `:value` the engine never evaluates.
+        ("concat(superset_pfm_value_standin, ':value')", False),
+        ("SUPERSET_PFM_VALUE_STANDIN || ':value'", False),
+        # Refused even alongside a placeholder that *is* executable: there is no
+        # legitimate transform naming this identifier at all.
+        ("concat(superset_pfm_value_standin, :value)", False),
     ],
 )
 def test_a_placeholder_is_executable_only_where_the_engine_reads_it(
@@ -1882,23 +1890,73 @@ def test_a_commented_placeholder_loses_the_alias_the_probe_reads_by() -> None:
     assert probe_sql_is_evaluable(sql, "sqlite", 1) is False
 
 
+def test_a_hand_written_standin_cannot_cancel_the_placeholder_count() -> None:
+    """
+    The count gate is two-sided, and a transform that writes the stand-in itself
+    pays the difference. `concat(superset_pfm_value_standin, ':value')` has one
+    `:value`, inside a literal that yields no column reference, and one bare
+    reference the owner wrote -- so the counts matched and the gate passed a
+    placeholder the engine never evaluates.
+
+    Which mattered because the probe then renders the bound value inside the
+    owner's quotes: a value closing that literal aliases a column of any table
+    the connection can read into the stand-in's own name, and the probe hands it
+    back through the preview's emitted predicate. A dataset-write principal
+    without SQL Lab could read the warehouse that way.
+
+    Both halves are pinned here because each is independently sufficient, and
+    the compiled probe used to satisfy every check it had: one statement, no
+    sub-query, and `v0` as its only alias.
+    """
+    transform = "concat(superset_pfm_value_standin, ':value')"
+
+    # The write-side gate, which is what keeps the transform from ever activating.
+    assert placeholder_is_executable(transform, "postgresql") is False
+    assert validate_transform(transform, "postgresql") != []
+
+    # And the probe-side backstop, for a transform stored before that gate
+    # existed: the smuggled FROM is not the one the engine asked for.
+    sql = build_probe_sql(
+        transform,
+        [") AS v0 FROM private.secrets AS p(superset_pfm_value_standin) -- "],
+    )
+    assert "FROM private.secrets" in sql
+    assert probe_sql_is_evaluable(sql, "postgresql", 1, "") is False
+
+
 @pytest.mark.parametrize(
-    "sql, expected, evaluable",
+    "sql, expected, suffix, evaluable",
     [
-        ("SELECT lower('a') AS v0", 1, True),
-        ("SELECT lower('a') AS v0, lower('b') AS v1", 2, True),
-        # `select_without_from_suffix`, for an engine that cannot select bare.
-        ("SELECT lower('a') AS v0 FROM DUAL", 1, True),
-        ("SELECT '' || (SELECT secret FROM vault) || '' AS v0", 1, False),
-        ("SELECT 1 -- 'x' AS v0", 1, False),
-        ("SELECT 1 AS v0; DROP TABLE t", 1, False),
-        ("SELECT lower('a') AS v0", 2, False),
-        ("SELECT lower('a')", 1, False),
-        ("not sql at all (", 1, False),
+        ("SELECT lower('a') AS v0", 1, "", True),
+        ("SELECT lower('a') AS v0, lower('b') AS v1", 2, "", True),
+        # `select_without_from_suffix`, for an engine that cannot select bare:
+        # accepted where the engine asked for that FROM...
+        ("SELECT lower('a') AS v0 FROM DUAL", 1, " FROM DUAL", True),
+        (
+            "SELECT lower('a') AS v0 FROM SYSIBM.SYSDUMMY1",
+            1,
+            " FROM SYSIBM.SYSDUMMY1",
+            True,
+        ),
+        # Spacing need not match; sqlglot renders both sides.
+        ("SELECT lower('a') AS v0 FROM DUAL", 1, "   from DUAL", True),
+        # ...and refused where it did not, or where the table is not the one it
+        # named. A rendered value can close the projection and append a FROM of
+        # its own without disturbing the aliases that follow.
+        ("SELECT lower('a') AS v0 FROM DUAL", 1, "", False),
+        ("SELECT lower('a') AS v0 FROM private.secrets", 1, " FROM DUAL", False),
+        # A WHERE is not a clause this gate's caller ever builds either.
+        ("SELECT lower('a') AS v0 WHERE 1 = 1", 1, "", False),
+        ("SELECT '' || (SELECT secret FROM vault) || '' AS v0", 1, "", False),
+        ("SELECT 1 -- 'x' AS v0", 1, "", False),
+        ("SELECT 1 AS v0; DROP TABLE t", 1, "", False),
+        ("SELECT lower('a') AS v0", 2, "", False),
+        ("SELECT lower('a')", 1, "", False),
+        ("not sql at all (", 1, "", False),
     ],
 )
 def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
-    sql: str, expected: int, evaluable: bool
+    sql: str, expected: int, suffix: str, evaluable: bool
 ) -> None:
     """
     The write-side gates all read the transform with a stand-in where the value
@@ -1907,7 +1965,11 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     the owner who wrote the transform. This is the gate that sees the finished
     query.
 
-    A FROM clause is allowed, because `select_without_from_suffix` adds one on
-    Oracle and Db2.
+    A FROM clause is allowed only where `select_without_from_suffix` asked for
+    one, and only the one it named: Oracle and Db2 cannot select bare, which is
+    not a reason to let a value smuggle in a table of its own. Compared as
+    sqlglot renders both sides, so the suffix's own spacing does not have to
+    match what the probe emitted. Identifier case does: sqlglot preserves it,
+    and `_probe` hands the same constant to the builder and to this gate.
     """
-    assert probe_sql_is_evaluable(sql, "sqlite", expected) is evaluable
+    assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
