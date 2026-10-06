@@ -132,12 +132,40 @@ def test_append_columns_mixed_mapping_duplication():
     result = _append_columns(base_df, append_df, mapping)
 
     assert list(result.columns) == ["x", "y", "z", "z2"]
+    assert not result.columns.has_duplicates
     assert isinstance(result["y"], pd.Series)
     assert result["y"].tolist() == [11, 22, 33]
     assert result["z2"].tolist() == [101, 202, 303]
     assert result["z"].tolist() == [100, 200, 300]
     assert "extra" not in result.columns
     assert base_df["y"].tolist() == [10, 20, 30]
+
+
+def test_append_columns_zero_duplicate_labels_evidence_gate(
+    base_sample_df: pd.DataFrame,
+    append_sample_df: pd.DataFrame,
+):
+    """
+    Evidence gate consolidating verification of zero duplicate labels,
+    correct Series lookup types, full base immutability, and complete
+    unmapped column isolation across mixed column mappings.
+    """
+    mapping = {"y": "y", "z": "z2"}
+    result = _append_columns(base_sample_df, append_sample_df, mapping)
+
+    # 1. Zero duplicate labels
+    assert not result.columns.has_duplicates
+    assert len(result.columns) == len(set(result.columns))
+
+    # 2. Series type preservation for lookups
+    assert isinstance(result["y"], pd.Series)
+    assert isinstance(result["z2"], pd.Series)
+
+    # 3. Discard unmapped columns
+    assert "unmapped_extra" not in result.columns
+
+    # 4. Base DataFrame immutability
+    assert base_sample_df["y"].tolist() == [10, 20, 30]
 
 
 def test_append_columns_using_fixtures(
