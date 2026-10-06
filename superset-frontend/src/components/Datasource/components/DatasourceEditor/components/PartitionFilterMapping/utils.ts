@@ -473,25 +473,6 @@ export function nextMappedColumnOverride(
 }
 
 /**
- * Columns updated for a newly designated partition column.
- *
- * The partition key is technical, so it defaults out of Explore's dimension and
- * filter pickers. Only the defaults are set -- an owner who wants the raw
- * column exposed can toggle it back, and clearing the partition column later
- * does not undo their choice.
- */
-export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
-  columns: T[],
-  partitionColumnName: string,
-): T[] {
-  return columns.map(column =>
-    column.column_name === partitionColumnName
-      ? { ...column, filterable: false, groupby: false }
-      : column,
-  );
-}
-
-/**
  * Where "Map a column →" should take an owner with nothing mapped yet.
  *
  * Prefers a temporal column: this feature exists for time ranges, and the

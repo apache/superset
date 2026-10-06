@@ -107,7 +107,6 @@ import {
 import {
   applyImplicitMappingMove,
   applyMappingMove,
-  applyPartitionColumnDefaults,
   clearMappingTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
@@ -1402,11 +1401,11 @@ function DatasourceEditor({
           columnName,
         ),
       }));
-      if (columnName) {
-        setDatabaseColumns(prev =>
-          applyPartitionColumnDefaults(prev, columnName),
-        );
-      }
+      // Deliberately nothing else. Designating a partition column must not
+      // touch that column's own `filterable`/`groupby` flags: hiding it from
+      // Explore is a per-column decision the owner makes, not a side effect of
+      // the mapping, and forcing it here silently changed behaviour for a
+      // dataset that already exposes its partition column.
     },
     [],
   );
@@ -1609,10 +1608,9 @@ function DatasourceEditor({
   // `setDatasource` call writes `columns`, and the props-sync effect only
   // re-seeds the two column states. Merging a sync against it restored
   // whatever the dataset held when the modal opened -- a transform and
-  // monotonicity flag just cleared, the `filterable`/`groupby` flags
-  // `applyPartitionColumnDefaults` just turned off, a description edited this
-  // session -- because `updateColumns` passes an unchanged column through
-  // verbatim.
+  // monotonicity flag just cleared, a `filterable`/`groupby` flag just toggled,
+  // a description edited this session -- because `updateColumns` passes an
+  // unchanged column through verbatim.
   const currentColumns = useMemo(
     () => [...databaseColumns, ...calculatedColumns],
     [databaseColumns, calculatedColumns],
