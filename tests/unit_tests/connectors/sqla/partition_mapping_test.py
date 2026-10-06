@@ -70,6 +70,9 @@ from superset.models.core import Database
 from superset.utils.core import FilterOperator
 
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 @pytest.fixture(autouse=True)
 def real_probe_cache(app: Flask) -> Any:
     """
@@ -441,6 +444,22 @@ def test_resolve_returns_the_mapping_when_everything_lines_up(app: Flask) -> Non
     assert mapping.mapped_column == "event_time"
     assert mapping.value_transform == "unix_timestamp(:value)"
     assert mapping.is_monotonic is True
+
+
+def test_resolve_declines_an_engine_without_partition_mapping_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The editor hides partition mapping on an engine that does not advertise
+    support, so a mapping stored there -- configured before the gate, imported,
+    or left behind by a database change -- must not mirror anything either.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert resolve_partition_mapping(_mapped_table()) is None
 
 
 def test_effective_mapped_column_follows_main_dttm_col(app: Flask) -> None:

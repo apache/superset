@@ -43,6 +43,9 @@ from superset.datasets.schemas import (
 )
 from superset.models.core import Database
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 DATASET_FIELDS = ["partition_column", "partition_mapped_column"]
 COLUMN_FIELDS = ["partition_value_transform", "partition_transform_is_monotonic"]
 
@@ -624,6 +627,23 @@ def test_the_summary_alias_and_the_property_agree(app: Flask) -> None:
     with app.app_context():
         assert table.partition_filter_mapping == table.partition_filter_mapping_summary
         assert table.partition_filter_mapping is not None
+
+
+def test_the_mapping_summary_is_gated_on_engine_support(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    The summary follows `resolve_partition_mapping`: on an engine that does not
+    support partition filter mapping nothing is mirrored, so the Explore
+    indicator must not be told otherwise.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    table = _table()
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+
+    with app.app_context():
+        assert table.partition_filter_mapping_summary is None
 
 
 def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
