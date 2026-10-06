@@ -30,12 +30,14 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
     DividerSpec,
     FilterRangeSpec,
     FilterSelectSpec,
+    FilterSelectValue,
     FilterTimeGrainSpec,
     FilterTimeSpec,
     ManageNativeFiltersRequest,
@@ -67,6 +69,7 @@ _TYPE_SPECIFIC_UPDATE_FIELDS: dict[str, frozenset[str]] = {
             "column",
             "multi_select",
             "default_to_first_item",
+            "default_value",
             "enable_empty_filter",
             "sort_ascending",
             "search_all_options",
@@ -81,6 +84,12 @@ _ALL_TYPE_SPECIFIC_UPDATE_FIELDS: frozenset[str] = frozenset().union(
 )
 
 
+# Display strings the frontend uses when labelling a selected value; mirrored
+# here so a stored default's label reads the same as an applied one.
+_TRUE_LABEL = "TRUE"
+_FALSE_LABEL = "FALSE"
+
+
 class _FilterValidationError(Exception):
     """Raised internally when a filter operation fails validation."""
 
@@ -88,6 +97,111 @@ class _FilterValidationError(Exception):
 def _empty_data_mask() -> dict[str, Any]:
     """Return the default data mask for a filter with no applied value."""
     return {"filterState": {"value": None}, "extraFormData": {}}
+
+
+def _value_label(value: FilterSelectValue) -> str:
+    """Format one selected value the way the dashboard UI labels it."""
+    if value is None:
+        return NULL_STRING
+    if isinstance(value, bool):
+        return _TRUE_LABEL if value else _FALSE_LABEL
+    return str(value)
+
+
+def _select_data_mask(
+    conf: dict[str, Any], values: list[FilterSelectValue]
+) -> dict[str, Any]:
+    """Build the data mask a filter_select filter produces for ``values``.
+
+    Mirrors the frontend's ``getSelectExtraFormData``: a non-empty selection
+    becomes an ``IN`` predicate on the filter's target column, and an empty
+    selection on a filter marked ``enableEmptyFilter`` becomes an impossible
+    predicate (the "required filter, nothing chosen" state) rather than no
+    filtering at all. Shared by ``apply_dashboard_filters`` (applied values)
+    and this module (default values on create/update) so both paths agree.
+    """
+    targets = [target for target in (conf.get("targets") or []) if target]
+    column = (
+        _target_key(targets[0])[1] if targets and isinstance(targets[0], dict) else None
+    )
+    if not isinstance(column, str) or not column:
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' has no target "
+            "column, so a value cannot be applied to it."
+        )
+
+    control_values = conf.get("controlValues") or {}
+    if control_values.get("inverseSelection"):
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' enables inverse "
+            "selection, which this tool does not support."
+        )
+    if (operator := control_values.get("operatorType", "exact")) != "exact":
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' uses matching "
+            f"operator '{operator}', which this tool does not support. "
+            "Only exact-match select filters are supported."
+        )
+    # A single-select filter renders one value; storing several would disagree
+    # with the control the moment a viewer touches it. multiSelect defaults to
+    # true, so only an explicit false restricts the selection.
+    if control_values.get("multiSelect") is False and len(values) > 1:
+        raise _FilterValidationError(
+            f"Filter '{conf.get('name') or conf.get('id')}' is single-select "
+            f"and accepts at most one value, but {len(values)} were given."
+        )
+
+    if values:
+        extra_form_data: dict[str, Any] = {
+            "filters": [{"col": column, "op": "IN", "val": list(values)}]
+        }
+        filter_state: dict[str, Any] = {
+            "value": list(values),
+            "label": ", ".join(_value_label(value) for value in values),
+        }
+    else:
+        return _empty_select_data_mask(conf)
+
+    return {"extraFormData": extra_form_data, "filterState": filter_state}
+
+
+def _empty_select_data_mask(conf: dict[str, Any]) -> dict[str, Any]:
+    """Mirror the frontend's empty selection, including required-filter semantics."""
+    controls = conf.get("controlValues") or {}
+    if not controls.get("enableEmptyFilter") or controls.get("inverseSelection"):
+        return _empty_data_mask()
+    return {
+        "extraFormData": {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SQL",
+                    "clause": "WHERE",
+                    "sqlExpression": EMPTY_FILTER_SQL_EXPRESSION,
+                }
+            ]
+        },
+        # An explicit empty selection is a static default to server-side
+        # dashboard context; None would cause its predicate to be skipped.
+        "filterState": {"value": []},
+    }
+
+
+def _default_data_mask(
+    conf: dict[str, Any], values: list[FilterSelectValue]
+) -> dict[str, Any]:
+    """Build a stored select default, allowing empty unsupported UI selections.
+
+    First-item defaults leave the value unset so the UI can select it after
+    loading options. Explicit empty selections do not depend on the matching
+    operator. Required filters still contribute an impossible predicate unless
+    inverse selection is on, matching SelectFilterPlugin.updateDataMask.
+    """
+    if (conf.get("controlValues") or {}).get("defaultToFirstItem"):
+        # A defined value, including None or [], blocks the UI's first-item default.
+        return {"filterState": {}, "extraFormData": {}}
+    if not values:
+        return _empty_select_data_mask(conf)
+    return _select_data_mask(conf, values)
 
 
 def _time_data_mask(default_time_range: str | None) -> dict[str, Any]:
@@ -203,7 +317,7 @@ def _build_new_filter_config(
         }
         if spec.sort_ascending is not None:
             control_values["sortAscending"] = spec.sort_ascending
-        return {
+        config: dict[str, Any] = {
             **base,
             "filterType": "filter_select",
             "targets": [
@@ -212,6 +326,16 @@ def _build_new_filter_config(
             "controlValues": control_values,
             "defaultDataMask": _empty_data_mask(),
         }
+
+        if (
+            spec.default_value is not None
+            or spec.default_to_first_item
+            or spec.enable_empty_filter
+        ):
+            config["defaultDataMask"] = _default_data_mask(
+                config, spec.default_value or []
+            )
+        return config
 
     if isinstance(spec, FilterRangeSpec):
         _validate_dataset_column(spec.dataset_id, spec.column, require_numeric=True)
@@ -306,11 +430,7 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
         merged["targets"] = [target]
         return
 
-    column = (
-        spec.column
-        if spec.column is not None
-        else (target.get("column") or {}).get("name")
-    )
+    column = spec.column if spec.column is not None else _target_key(target)[1]
     if dataset_id is None or not column:
         raise _FilterValidationError(
             f"Filter '{spec.id}' is missing a dataset or column target; "
@@ -322,6 +442,76 @@ def _merge_target(spec: NativeFilterUpdateSpec, merged: dict[str, Any]) -> None:
     target["datasetId"] = dataset_id
     target["column"] = {"name": column}
     merged["targets"] = [target]
+
+
+def _target_key(target: dict[str, Any]) -> tuple[Any, Any]:
+    """Identify a filter target by its dataset and column name."""
+    column = target.get("column")
+    return target.get("datasetId"), (
+        column.get("name") if isinstance(column, dict) else column
+    )
+
+
+def _stored_default_is_stale(
+    spec: NativeFilterUpdateSpec, existing: dict[str, Any], target_changed: bool
+) -> bool:
+    """Whether an update without ``default_value`` invalidates the stored one.
+
+    A stored default goes stale when the filter is retargeted to another
+    column or dataset, when it becomes single-select while the default holds
+    several values, or when ``default_to_first_item`` is switched on (the
+    explicit default would otherwise win and the first item never applies).
+    """
+    if existing.get("filterType") != "filter_select":
+        return False
+    if spec.default_to_first_item is True:
+        return True
+    stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
+        "value"
+    )
+    if stored is None:
+        return False
+    stored_count = len(stored) if isinstance(stored, list) else 1
+    return target_changed or (spec.multi_select is False and stored_count > 1)
+
+
+def _merge_select_default(
+    spec: NativeFilterUpdateSpec,
+    existing: dict[str, Any],
+    merged: dict[str, Any],
+    target_changed: bool,
+) -> None:
+    """Apply an explicit default_value, or drop a stored default gone stale."""
+    if spec.default_value is not None:
+        if (merged.get("controlValues") or {}).get("defaultToFirstItem"):
+            raise _FilterValidationError(
+                f"Filter '{spec.id}' has default_to_first_item enabled; "
+                "pass default_to_first_item=False in this same update "
+                "before setting an explicit default_value."
+            )
+        merged["defaultDataMask"] = _default_data_mask(merged, spec.default_value)
+    elif (
+        existing.get("filterType") == "filter_select"
+        and (merged.get("controlValues") or {}).get("defaultToFirstItem")
+        and "value"
+        in ((existing.get("defaultDataMask") or {}).get("filterState") or {})
+    ):
+        # Heal defined legacy selections that block the UI's first-item default.
+        merged["defaultDataMask"] = _default_data_mask(merged, [])
+    elif (
+        existing.get("filterType") == "filter_select"
+        and spec.enable_empty_filter is not None
+        and not ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
+            "value"
+        )
+    ):
+        # Rebuild empty masks when the required control changes, including
+        # older masks that stored value=None alongside an impossible predicate.
+        merged["defaultDataMask"] = _default_data_mask(merged, [])
+    elif _stored_default_is_stale(spec, existing, target_changed):
+        # Reset rather than re-apply the old value against a different column,
+        # a single-select control, or a "first item" default.
+        merged["defaultDataMask"] = _default_data_mask(merged, [])
 
 
 def _merge_filter_update(
@@ -350,8 +540,13 @@ def _merge_filter_update(
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
         merged["scope"] = _build_scope(spec.scope_chart_ids, dashboard_chart_ids)
+    target_changed = False
     if spec.dataset_id is not None or spec.column is not None:
+        previous_target = dict((existing.get("targets") or [{}])[0] or {})
         _merge_target(spec, merged)
+        target_changed = _target_key(merged["targets"][0]) != _target_key(
+            previous_target
+        )
 
     if not is_divider:
         # Dividers have no controlValues/defaultDataMask; type-specific
@@ -364,6 +559,8 @@ def _merge_filter_update(
             if value is not None:
                 control_values[control_key] = value
         merged["controlValues"] = control_values
+
+        _merge_select_default(spec, existing, merged, target_changed)
 
         if spec.default_time_range is not None:
             merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)

@@ -121,12 +121,12 @@ TOOL_BUDGETS = {
     "list_themes": 3_000,
     "list_users": 2_900,
     "manage_dashboard_certification": 1_900,
+    "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    # Includes the divider filter type (title/description-only visual
-    # separator) added alongside filter_select/time/range/timegrain:
-    # 9,649 bytes, rounded up plus the standard 100-byte headroom.
-    "manage_native_filters": 9_800,
+    # Includes filter-bar dividers and select-filter default values:
+    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
+    "manage_native_filters": 10_500,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,

@@ -33,7 +33,7 @@ from fastmcp import Context
 from flask import current_app
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
     build_dashboard_permalink_url,
@@ -45,9 +45,10 @@ from superset.mcp_service.dashboard.schemas import (
     ApplyDashboardFiltersRequest,
     ApplyDashboardFiltersResponse,
     ApplyFilterValueSpec,
-    FilterSelectValue,
 )
 from superset.mcp_service.dashboard.tool.manage_native_filters import (
+    _FilterValidationError as _FilterApplyError,
+    _select_data_mask,
     current_native_filter_config,
 )
 from superset.utils.number_format import format_smart_number
@@ -67,16 +68,6 @@ SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
 _SINGLE_VALUE_MINIMUM = 0
 _SINGLE_VALUE_EXACT = 1
 _SINGLE_VALUE_MAXIMUM = 2
-
-# Display strings the frontend uses when labelling a selected value; mirrored
-# here so a permalink's label reads the same as a UI-applied one.
-_NULL_LABEL = "<NULL>"
-_TRUE_LABEL = "TRUE"
-_FALSE_LABEL = "FALSE"
-
-
-class _FilterApplyError(Exception):
-    """Raised internally when a requested filter value cannot be applied."""
 
 
 def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
@@ -155,15 +146,6 @@ def _resolve_filter(reference: str, configs: list[dict[str, Any]]) -> dict[str, 
     )
 
 
-def _value_label(value: FilterSelectValue) -> str:
-    """Format one selected value the way the dashboard UI labels it."""
-    if value is None:
-        return _NULL_LABEL
-    if isinstance(value, bool):
-        return _TRUE_LABEL if value else _FALSE_LABEL
-    return str(value)
-
-
 def _filter_target_column(conf: dict[str, Any]) -> str:
     """Return the first target's column name, or raise when there is none."""
     targets = [target for target in (conf.get("targets") or []) if target]
@@ -174,67 +156,6 @@ def _filter_target_column(conf: dict[str, Any]) -> str:
             "column, so a value cannot be applied to it."
         )
     return column
-
-
-def _select_data_mask(
-    conf: dict[str, Any], values: list[FilterSelectValue]
-) -> dict[str, Any]:
-    """Build the data mask a filter_select filter produces for ``values``.
-
-    Mirrors the frontend's ``getSelectExtraFormData``: a non-empty selection
-    becomes an ``IN`` predicate on the filter's target column, and an empty
-    selection on a filter marked ``enableEmptyFilter`` becomes an impossible
-    predicate (the "required filter, nothing chosen" state) rather than no
-    filtering at all.
-    """
-    column = _filter_target_column(conf)
-
-    control_values = conf.get("controlValues") or {}
-    if control_values.get("inverseSelection"):
-        raise _FilterApplyError(
-            f"Filter '{conf.get('name') or conf.get('id')}' enables inverse "
-            "selection, which this tool does not support."
-        )
-    if (operator := control_values.get("operatorType", "exact")) != "exact":
-        raise _FilterApplyError(
-            f"Filter '{conf.get('name') or conf.get('id')}' uses matching "
-            f"operator '{operator}', which this tool does not support. "
-            "Only exact-match select filters are supported."
-        )
-    # A single-select filter renders one value; storing several would disagree
-    # with the control the moment a viewer touches it. multiSelect defaults to
-    # true, so only an explicit false restricts the selection.
-    if control_values.get("multiSelect") is False and len(values) > 1:
-        raise _FilterApplyError(
-            f"Filter '{conf.get('name') or conf.get('id')}' is single-select "
-            f"and accepts at most one value, but {len(values)} were given."
-        )
-
-    if values:
-        extra_form_data: dict[str, Any] = {
-            "filters": [{"col": column, "op": "IN", "val": list(values)}]
-        }
-        filter_state: dict[str, Any] = {
-            "value": list(values),
-            "label": ", ".join(_value_label(value) for value in values),
-        }
-    else:
-        extra_form_data = (
-            {
-                "adhoc_filters": [
-                    {
-                        "expressionType": "SQL",
-                        "clause": "WHERE",
-                        "sqlExpression": EMPTY_FILTER_SQL_EXPRESSION,
-                    }
-                ]
-            }
-            if control_values.get("enableEmptyFilter")
-            else {}
-        )
-        filter_state = {"value": None}
-
-    return {"extraFormData": extra_form_data, "filterState": filter_state}
 
 
 def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
