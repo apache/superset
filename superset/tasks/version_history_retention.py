@@ -377,12 +377,14 @@ def _count_prunable(cutoff: datetime, tables: ShadowTables) -> int:
         after_id = window.max_candidate_id
 
 
-def _probe_prunable(cutoff: datetime, tables: ShadowTables) -> tuple[int, bool]:
-    """Count one candidate window and say whether it covers the backlog."""
+def _probe_prunable(
+    cutoff: datetime, tables: ShadowTables, after_id: int = 0
+) -> tuple[int, bool]:
+    """Count one candidate window after the live run's scan cursor."""
     conn: sa.engine.Connection
     with db.engine.connect() as conn:
         window: _PruneWindow = _resolve_prune_window(
-            conn, cutoff, _live_bearing_tables(tables), 0, _MAX_PRUNE_BATCH
+            conn, cutoff, _live_bearing_tables(tables), after_id, _MAX_PRUNE_BATCH
         )
     return len(window.prunable), window.candidate_count < _MAX_PRUNE_BATCH
 
@@ -524,6 +526,7 @@ def _add_prune_cap_stats(
     cutoff: datetime,
     tables: ShadowTables,
     max_per_run: int | None,
+    after_id: int,
 ) -> None:
     """Probe bounded live-run backlog without masking committed deletions."""
     if max_per_run is None:
@@ -533,7 +536,9 @@ def _add_prune_cap_stats(
     count_complete: bool = True
     if cap_reached:
         try:
-            remaining_eligible, count_complete = _probe_prunable(cutoff, tables)
+            remaining_eligible, count_complete = _probe_prunable(
+                cutoff, tables, after_id
+            )
         except Exception:  # pylint: disable=broad-except
             logger.warning(
                 "version_history_retention: remainder probe failed after prune",
@@ -653,7 +658,7 @@ def _prune_old_versions_impl(
     stats: dict[str, Any] = {"cutoff": cutoff.isoformat(), **totals}
     if total_retried:
         stats["retried"] = total_retried
-    _add_prune_cap_stats(stats, cutoff, tables, max_per_run)
+    _add_prune_cap_stats(stats, cutoff, tables, max_per_run, after_id)
     stats_logger_manager.instance.gauge(
         f"{_METRIC_PREFIX}.pruned_transactions", stats["pruned_transactions"]
     )
@@ -694,9 +699,13 @@ def prune_old_versions() -> dict[str, Any]:
             logger.warning("version_history_retention: invalid prune cap; skipping")
             stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped_invalid_cap")
             return {"skipped_invalid_cap": 1}
-        dry_run: bool = current_app.config.get("VERSION_HISTORY_PRUNE_DRY_RUN", False)
-        if type(dry_run) is not bool:
-            raise ValueError("VERSION_HISTORY_PRUNE_DRY_RUN must be a bool")
+        dry_run: object = current_app.config.get("VERSION_HISTORY_PRUNE_DRY_RUN", False)
+        if not isinstance(dry_run, bool):
+            logger.warning("version_history_retention: invalid prune dry-run; skipping")
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.skipped_invalid_dry_run"
+            )
+            return {"skipped_invalid_dry_run": 1}
         return _prune_old_versions_impl(
             retention_days, max_per_run=max_per_run, dry_run=dry_run
         )

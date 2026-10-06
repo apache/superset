@@ -34,6 +34,7 @@ from typing import Any, cast
 from unittest.mock import call, MagicMock, patch
 
 import pytest
+import sqlalchemy as sa
 from flask import Flask
 from sqlalchemy.exc import OperationalError
 from sqlalchemy_continuum.exc import ClassNotVersioned
@@ -464,6 +465,71 @@ def test_prune_cap_accounts_only_for_committed_passes(stats: MagicMock) -> None:
     assert run_pass.call_args_list[1].kwargs["max_prune"] == 1
 
 
+def test_prune_cap_probes_after_preserved_candidate_windows(
+    stats: MagicMock,
+) -> None:
+    """The remainder probe skips windows already scanned before the cap."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    batch_size: int = version_history_retention._MAX_PRUNE_BATCH
+    windows: dict[int, version_history_retention._PruneWindow] = {
+        0: version_history_retention._PruneWindow([], batch_size, 1000),
+        1000: version_history_retention._PruneWindow([1500], batch_size, 2000),
+    }
+
+    def resolve_window(
+        _conn: sa.engine.Connection,
+        _cutoff: datetime,
+        _shadow_tables: list[sa.Table],
+        after_id: int,
+        _limit: int,
+    ) -> version_history_retention._PruneWindow:
+        """Return the candidate window at the requested scan cursor."""
+        return windows[after_id]
+
+    resolve: MagicMock
+    with (
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=tables
+        ),
+        patch.object(
+            version_history_retention,
+            "_run_pass_with_retry",
+            side_effect=[
+                ({"candidate_count": batch_size, "max_candidate_id": 1000}, 0),
+                (
+                    {
+                        "candidate_count": batch_size,
+                        "max_candidate_id": 2000,
+                        "pruned_transactions": 1,
+                    },
+                    0,
+                ),
+            ],
+        ),
+        patch.object(version_history_retention, "db"),
+        patch.object(
+            version_history_retention,
+            "_resolve_prune_window",
+            side_effect=resolve_window,
+        ) as resolve,
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            retention_days=30, max_per_run=1
+        )
+
+    assert result["pruned_transactions"] == 1
+    assert result["remaining_eligible"] == 1
+    assert result["remaining_count_complete"] is False
+    assert resolve.call_args.args[3] == 1000
+    stats.gauge.assert_any_call(
+        "superset.versioning.retention.remaining_eligible_at_least", 1
+    )
+
+
 @pytest.mark.parametrize("cap", [None, 0, 3])
 def test_prune_dry_run_counts_all_eligible_without_writes(
     stats: MagicMock, cap: int | None
@@ -629,6 +695,31 @@ def test_scheduled_prune_rejects_invalid_cap_before_work(stats: MagicMock) -> No
     stats.incr.assert_called_once_with(
         "superset.versioning.retention.skipped_invalid_cap"
     )
+
+
+@pytest.mark.parametrize("invalid", [None, 0, 1, "false", [], {}])
+def test_scheduled_prune_skips_invalid_dry_run_before_work(
+    stats: MagicMock, caplog: pytest.LogCaptureFixture, invalid: object
+) -> None:
+    """Malformed dry-run configuration skips without marking the task failed."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        VERSION_HISTORY_PRUNE_DRY_RUN=invalid,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(version_history_retention, "_prune_old_versions_impl") as prune,
+    ):
+        result: dict[str, Any] = version_history_retention.prune_old_versions()
+
+    assert result == {"skipped_invalid_dry_run": 1}
+    prune.assert_not_called()
+    stats.incr.assert_called_once_with(
+        "superset.versioning.retention.skipped_invalid_dry_run"
+    )
+    assert "invalid prune dry-run" in caplog.text
 
 
 def test_remainder_probe_failure_does_not_mask_committed_prune(

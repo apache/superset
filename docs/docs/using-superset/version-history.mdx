@@ -104,9 +104,10 @@ boolean, string, and fractional caps are invalid and stop the task without
 deleting history. A capped run reports `cap_reached`, `remaining_eligible`, and
 `remaining_count_complete`. The remainder is exact when the bounded probe
 covers the backlog; otherwise it is a lower bound from its first 1,000 aged
-transaction candidates. If that probe fails after a successful prune, the
-remainder is `None` without hiding the committed deletion totals. Large
-backlogs drain over successive scheduled runs. If a database commit succeeds
+transaction candidates after the live scan's stopping point. If that probe
+fails after a successful prune, the remainder is `None` without hiding the
+committed deletion totals. Large backlogs drain over successive scheduled runs.
+If a database commit succeeds
 but its acknowledgement is lost, retries may prune additional windows beyond
 the cap (up to two extra windows per retried pass with the three-attempt policy);
 every pruned transaction still satisfies the retention policy. Monitor the
@@ -141,7 +142,8 @@ and restores; version history is not a substitute for backups.
 Set `VERSION_HISTORY_PRUNE_DRY_RUN = True` in `superset_config.py` to scan the
 entire eligible backlog without deleting anything. The result includes
 `eligible_backlog` and `estimated_capped_runs`; a live-anchor transaction is
-excluded from both. Neither `VERSION_HISTORY` nor
+excluded from both. The dry-run setting must be a boolean; an invalid value
+skips the scheduled task without deleting history. Neither `VERSION_HISTORY` nor
 `ENABLE_VERSIONING_CAPTURE` disables pruning of existing history. To preserve
 history while the feature is off, set the retention value to `0` and leave the
 task's beat schedule entry in place: removing the entry logs a missing-schedule
