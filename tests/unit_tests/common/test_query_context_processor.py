@@ -2857,3 +2857,36 @@ def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> N
         "'My layer') was not found. Please ensure the chart is properly "
         "configured and has a valid query context."
     )
+
+
+def test_get_viz_annotation_data_ignores_source_chart_annotations(
+    app_context,
+) -> None:
+    """
+    The source chart's own annotation layers are dropped, so charts that use
+    each other as annotation sources don't recurse.
+    """
+    query_object = MagicMock(
+        annotation_layers=[{"sourceType": "line", "value": 1, "name": "Back"}],
+    )
+    query_context = MagicMock(queries=[query_object])
+    chart = MagicMock(id=42)
+    chart.get_query_context.return_value = query_context
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": [{"x": 1}]}]}
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, force=False
+        )
+
+    assert result == {"records": [{"x": 1}]}
+    assert query_object.annotation_layers == []
