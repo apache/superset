@@ -225,4 +225,3 @@ def test_extract_verbose_empty_diagnostic(diagnostic: str, wrapped: bool) -> Non
     assert errors[0].message == prefix + envelope.strip()
     assert "code         =>  42000" in errors[0].message
     assert sql not in errors[0].message
->>>>>>> upstream/master
