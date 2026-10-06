@@ -261,7 +261,7 @@
     "@superset-ui/eslint-plugin-icons": "file:eslint-rules/eslint-plugin-icons",
     "@superset-ui/eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
     "@svgr/webpack": "^8.1.0",
-    "@swc/core": "^1.16.2",
+    "@swc/core": "^1.16.12",
     "@swc/plugin-emotion": "^17.0.0",
     "@swc/plugin-transform-imports": "^15.0.0",
     "@testing-library/dom": "^10.4.2",
