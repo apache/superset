@@ -52,6 +52,15 @@ def _make_model(
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
     model.editors = []
+    model.recipients = []
+    model.chart_id = None
+    model.dashboard_id = None
+    model.extra_json = None
+    model.report_format = "PNG"
+    model.run_as = None
+    model.run_as_type = None
+    model.run_alert_query_as = None
+    model.run_alert_query_as_type = None
     model.retry_on_failure = False
     model.send_failed_reports = False
     return model
@@ -87,6 +96,7 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_alert_query",
     )
+    mocker.patch.object(UpdateReportScheduleCommand, "_validate_executors")
     mocker.patch(
         "superset.commands.report.update.compute_subjects",
     )

@@ -528,6 +528,8 @@ def test_execute_query_raises_when_executor_user_missing(
 
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
     report_schedule_mock.sql = "SELECT value FROM metrics"
     report_schedule_mock.database.backend = "sqlite"
     report_schedule_mock.database.allow_dml = False
@@ -560,6 +562,8 @@ def test_execute_query_wraps_template_rendering_error(
 
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
     report_schedule_mock.sql = "SELECT {{ foo }} FROM metrics"
 
     command = AlertCommand(
