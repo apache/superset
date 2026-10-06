@@ -30,7 +30,7 @@ from uuid import UUID
 
 from flask_appbuilder.security.sqla.manager import user_updating
 
-from superset import db
+from superset import db, security_manager
 from superset.daos.key_value import KeyValueDAO
 from superset.extensions import csrf
 from superset.key_value.models import KeyValueEntry
@@ -404,6 +404,72 @@ class TestLoginTokenApi(SupersetTestCase):
         me = json.loads(self.client.get("/api/v1/me/").data)["result"]
         assert me.get("is_anonymous") is True, me
         assert me.get("username") != GAMMA_USERNAME, me
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config(
+        {
+            "LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver,
+            "AUTH_USER_REGISTRATION": True,
+            # Set explicitly: role lookup is case-sensitive, and the integration
+            # config's value would not resolve to a role at all.
+            "AUTH_USER_REGISTRATION_ROLE": "Gamma",
+            "AUTH_ROLES_MAPPING": {"superset_alpha": ["Alpha"]},
+        }
+    )
+    def test_consume_provisions_a_new_user_with_mapped_roles_only(self):
+        """The full userinfo reaches ``auth_user_oauth``, and roles stay bounded.
+
+        Every other success-path test redeems for an existing Gamma user, so
+        nothing else exercises registration or ``role_keys`` through the real
+        FAB code path: a handoff that forwarded only the username would leave
+        them green while mapped roles and profile fields were silently lost.
+
+        ``role_keys`` carries one mapped key and the literal ``"Admin"``, which
+        is unmapped. The persisted roles must be exactly the registration role
+        plus the mapped one -- the resolver can only select roles the operator
+        has already mapped, never name one directly.
+        """
+        username = "login_token_new_user"
+        user_model = security_manager.user_model
+
+        def delete_user() -> None:
+            query = db.session.query(user_model).filter_by(username=username)
+            if user := query.first():
+                db.session.delete(user)
+                db.session.commit()
+
+        delete_user()
+        try:
+            response = self.client.post(
+                ENDPOINT,
+                data=json.dumps(
+                    {
+                        "username": username,
+                        "email": "login_token_new_user@example.org",
+                        "first_name": "New",
+                        "last_name": "User",
+                        "role_keys": ["superset_alpha", "Admin"],
+                    }
+                ),
+                content_type="application/json",
+                headers={"X-Test-Mint-Secret": MINT_SECRET},
+            )
+            assert response.status_code == 200, response.data
+            token = json.loads(response.data)["access_token"]
+
+            redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+            assert redeemed.status_code == 302, redeemed.data
+
+            db.session.expire_all()
+            user = db.session.query(user_model).filter_by(username=username).one()
+            assert sorted(role.name for role in user.roles) == ["Alpha", "Gamma"]
+            assert user.email == "login_token_new_user@example.org"
+            assert (user.first_name, user.last_name) == ("New", "User")
+
+            me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+            assert me["username"] == username
+        finally:
+            delete_user()
 
     # --------------------------------------------------------------------- csrf
 
