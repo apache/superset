@@ -16,6 +16,7 @@
 # under the License.
 import inspect
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -137,3 +138,103 @@ def test_append_columns_mixed_mapping_duplication():
     assert result["z"].tolist() == [100, 200, 300]
     assert "extra" not in result.columns
     assert base_df["y"].tolist() == [10, 20, 30]
+
+
+def test_append_columns_using_fixtures(
+    base_sample_df: pd.DataFrame,
+    append_sample_df: pd.DataFrame,
+):
+    """Verify append_columns using standard fixtures with mixed mapping."""
+    result = _append_columns(
+        base_sample_df,
+        append_sample_df,
+        {"y": "y", "z": "z_new"},
+    )
+    assert list(result.columns) == ["x", "y", "z", "z_new"]
+    assert isinstance(result["y"], pd.Series)
+    assert result["y"].tolist() == [11, 22, 33]
+    assert result["z_new"].tolist() == [101, 202, 303]
+    assert result["z"].tolist() == [100, 200, 300]
+    assert "unmapped_extra" not in result.columns
+
+
+def test_append_columns_multiindex_mixed_mapping(
+    multiindex_base_df: pd.DataFrame,
+    multiindex_append_df: pd.DataFrame,
+):
+    """Verify append_columns correctly handles MultiIndex columns and avoids leaks."""
+    result = _append_columns(
+        multiindex_base_df,
+        multiindex_append_df,
+        {"m1": "m1", "m3": "m3_new"},
+    )
+    assert isinstance(result.columns, pd.MultiIndex)
+    assert "m1" in result.columns.levels[0]
+    assert "m2" in result.columns.levels[0]
+    assert "m3_new" in result.columns.levels[0]
+    assert "unmapped" not in result.columns.levels[0]
+
+    assert result[("m1", "A")].tolist() == [15.5, 35.5]
+    assert result[("m3_new", "A")].tolist() == [300.0, 400.0]
+    assert multiindex_base_df[("m1", "A")].tolist() == [1, 3]
+
+
+def test_append_columns_type_coercion_int_to_float_with_nan():
+    """
+    Verify overwriting int64 column with float values containing NaN
+    does not raise LossySetitemError.
+    """
+    base_df = pd.DataFrame({"val": [1, 2, 3]})
+    append_df = pd.DataFrame({"val": [np.nan, 2.5, 3.5]})
+
+    result = _append_columns(base_df, append_df, {"val": "val"})
+
+    assert isinstance(result["val"], pd.Series)
+    assert result["val"].isna().sum() == 1
+    assert result["val"].iloc[1] == 2.5
+    assert result["val"].iloc[2] == 3.5
+    assert base_df["val"].tolist() == [1, 2, 3]
+
+
+def test_append_columns_empty_mapping(base_sample_df: pd.DataFrame):
+    """Verify passing empty columns mapping returns an isolated copy of base_df."""
+    append_df = pd.DataFrame({"y": [99, 99, 99]})
+    result = _append_columns(base_sample_df, append_df, {})
+
+    assert list(result.columns) == ["x", "y", "z"]
+    assert result.equals(base_sample_df)
+
+    result["x"] = [9, 9, 9]
+    assert base_sample_df["x"].tolist() == [1, 2, 3]
+
+
+def test_append_columns_unmapped_columns_strictly_discarded():
+    """Verify only mapped columns are copied and multiple extra columns are ignored."""
+    base_df = pd.DataFrame({"a": [1, 2]})
+    append_df = pd.DataFrame(
+        {
+            "target_src": [10, 20],
+            "leak1": [100, 200],
+            "leak2": [300, 400],
+            "leak3": [500, 600],
+        }
+    )
+    result = _append_columns(base_df, append_df, {"target_src": "a"})
+
+    assert list(result.columns) == ["a"]
+    assert result["a"].tolist() == [10, 20]
+    for leak in ["leak1", "leak2", "leak3"]:
+        assert leak not in result.columns
+
+
+def test_append_columns_missing_source_column_safely_ignored(
+    base_sample_df: pd.DataFrame,
+):
+    """Verify mapping referencing non-existent source column does not raise KeyError."""
+    append_df = pd.DataFrame({"y": [1, 2, 3]})
+    result = _append_columns(
+        base_sample_df,
+        append_df,
+        {"non_existent": "new_target"},
+    )
+    assert list(result.columns) == ["x", "y", "z"]
