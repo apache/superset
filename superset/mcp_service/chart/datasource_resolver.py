@@ -178,6 +178,25 @@ def validate_semantic_view_form_data(
     form_data: dict[str, Any], target: ChartDatasource
 ) -> ChartGenerationError | None:
     """Validate retained query roles before a semantic rebind or preview."""
+    # Avoid plugin-loading cycles: plugins import schemas and their validators.
+    from superset.mcp_service.chart.chart_helpers import (
+        _SORT_METRIC_VIZ_TYPES,
+        resolve_sort_metric,
+    )
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    viz_type: object = form_data.get("viz_type")
+    if not isinstance(viz_type, str) or plugin_for_viz_type(viz_type) is None:
+        return ChartGenerationError(
+            error_type="unsupported_chart_type",
+            message="The chart type is not supported for semantic-view validation.",
+            details=(
+                "Retained query roles cannot be validated for an unknown chart type."
+            ),
+            suggestions=[
+                "Provide a complete configuration using a supported chart type"
+            ],
+        )
     context: DatasetContext = build_context_from_explorable(target)
     metrics: set[str] = {metric["name"] for metric in context.available_metrics}
     columns: set[str] = {column["name"] for column in context.available_columns}
@@ -187,6 +206,8 @@ def validate_semantic_view_form_data(
     metric_values: list[object] = [
         *(form_data.get("metrics") or []),
         *(form_data.get("metrics_b") or []),
+        *(form_data.get("tooltip_metrics") or []),
+        *(form_data.get("percent_metrics") or []),
     ] + [
         form_data[key]
         for key in (
@@ -201,6 +222,9 @@ def validate_semantic_view_form_data(
         )
         if form_data.get(key) is not None
     ]
+    sort_metric: object = resolve_sort_metric(form_data)
+    if sort_metric is not None:
+        metric_values.append(sort_metric)
     if any(
         not isinstance(value, str) or value not in metrics for value in metric_values
     ):
@@ -222,6 +246,11 @@ def validate_semantic_view_form_data(
             "series",
             "groupbyRows",
             "groupbyColumns",
+            "start_time",
+            "end_time",
+            "y_axis",
+            "tooltip_columns",
+            "column",
         )
         for dimension in (
             [form_data[key]]
@@ -236,8 +265,14 @@ def validate_semantic_view_form_data(
             details="A retained dimension is absent from the selected view.",
             suggestions=["Provide a complete configuration valid for the target view"],
         )
+    # Bubble's orderby was validated as a single saved metric above, not tuples.
+    ordering_data: dict[str, Any] = (
+        {**form_data, "orderby": []}
+        if viz_type in _SORT_METRIC_VIZ_TYPES
+        else form_data
+    )
     ordering_error: ChartGenerationError | None = _validate_semantic_ordering(
-        form_data, columns | metrics
+        ordering_data, columns | metrics
     )
     if ordering_error is not None:
         return ordering_error

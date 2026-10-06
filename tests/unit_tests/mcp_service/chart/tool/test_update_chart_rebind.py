@@ -594,6 +594,17 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
 @pytest.mark.parametrize(
     "retained",
     [
+        {"viz_type": "gantt_chart", "start_time": "missing"},
+        {"viz_type": "gantt_chart", "end_time": "missing"},
+        {"viz_type": "gantt_chart", "y_axis": "missing"},
+        {"viz_type": "gantt_chart", "tooltip_columns": ["missing"]},
+        {
+            "viz_type": "gantt_chart",
+            "tooltip_metrics": [{"expressionType": "SQL", "sqlExpression": "1"}],
+        },
+        {"viz_type": "histogram_v2", "column": "missing"},
+        {"viz_type": "table", "percent_metrics": ["missing"]},
+        {"viz_type": "unregistered_viz", "custom_metric": "missing"},
         {"viz_type": "bubble_v2", "x": {"expressionType": "SQL", "sqlExpression": "1"}},
         {"viz_type": "bubble_v2", "y": "missing"},
         {
@@ -677,6 +688,7 @@ async def test_retained_rebind_validation_precedes_effects(
         "semantic_view_adhoc_not_supported",
         "invalid_column",
         "column_not_found",
+        "unsupported_chart_type",
     }
     preview.assert_not_called()
     write.assert_not_called()

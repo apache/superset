@@ -265,7 +265,10 @@ def test_retained_invalid_query_roles_are_rejected(form_data: dict[str, Any]) ->
         id=7,
         name="Jaffle Shop",
     )
-    assert validate_semantic_view_form_data(form_data, target) is not None
+    assert (
+        validate_semantic_view_form_data({"viz_type": "table", **form_data}, target)
+        is not None
+    )
 
 
 def test_retained_saved_sort_is_accepted() -> None:
@@ -279,6 +282,7 @@ def test_retained_saved_sort_is_accepted() -> None:
     assert (
         validate_semantic_view_form_data(
             {
+                "viz_type": "table",
                 "order_by_cols": ['["revenue", false]'],
                 "orderby": [["customer__region", True]],
             },
@@ -294,7 +298,12 @@ def test_scalar_dimension_roles_keep_complete_names(key: str) -> None:
     target: ChartDatasource = ChartDatasource(
         _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
     )
-    assert validate_semantic_view_form_data({key: "customer__region"}, target) is None
+    assert (
+        validate_semantic_view_form_data(
+            {"viz_type": "table", key: "customer__region"}, target
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -324,7 +333,12 @@ def test_secondary_roles_reject_invalid_saved_state(form_data: dict[str, Any]) -
     target: ChartDatasource = ChartDatasource(
         _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
     )
-    assert validate_semantic_view_form_data(form_data, target) is not None
+    assert (
+        validate_semantic_view_form_data(
+            {"viz_type": "mixed_timeseries", **form_data}, target
+        )
+        is not None
+    )
 
 
 def test_valid_secondary_roles_are_preserved() -> None:
@@ -333,6 +347,7 @@ def test_valid_secondary_roles_are_preserved() -> None:
         _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
     )
     form_data: dict[str, Any] = {
+        "viz_type": "mixed_timeseries",
         "timeseries_limit_metric_b": "revenue",
         "metrics_b": ["revenue"],
         "groupby_b": ["customer__region"],
@@ -381,13 +396,108 @@ def test_retained_specialized_dimensions_are_validated(key: str, scalar: bool) -
     )
     assert (
         validate_semantic_view_form_data(
-            {key: "missing" if scalar else ["missing"]}, target
+            {"viz_type": "bubble_v2", key: "missing" if scalar else ["missing"]}, target
         )
         is not None
     )
     assert (
         validate_semantic_view_form_data(
-            {key: "customer__region" if scalar else ["customer__region"]}, target
+            {
+                "viz_type": "bubble_v2",
+                key: "customer__region" if scalar else ["customer__region"],
+            },
+            target,
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "viz_type,key,invalid,valid",
+    [
+        ("gantt_chart", "start_time", "missing", "metric_time"),
+        ("gantt_chart", "end_time", "missing", "metric_time"),
+        ("gantt_chart", "y_axis", "missing", "customer__region"),
+        ("gantt_chart", "tooltip_columns", ["missing"], ["customer__region"]),
+        (
+            "gantt_chart",
+            "tooltip_metrics",
+            [{"expressionType": "SQL", "sqlExpression": "1"}],
+            ["revenue"],
+        ),
+        ("histogram_v2", "column", "missing", "customer__region"),
+        ("table", "percent_metrics", ["missing"], ["revenue"]),
+    ],
+)
+def test_retained_gantt_histogram_and_percent_roles(
+    viz_type: str, key: str, invalid: object, valid: object
+) -> None:
+    """Every retained role must name a published member, without ad-hoc SQL."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {"viz_type": viz_type, key: invalid}, target
+    )
+    assert error is not None
+    assert error.error_type in {"column_not_found", SEMANTIC_VIEW_ADHOC_ERROR}
+    assert (
+        validate_semantic_view_form_data({"viz_type": viz_type, key: valid}, target)
+        is None
+    )
+
+
+@pytest.mark.parametrize("viz_type", [None, "", "unregistered_viz", 123])
+def test_retained_unknown_viz_fails_closed(viz_type: object) -> None:
+    """Unrecognized query roles cannot be accepted via a generic fallback."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {"viz_type": viz_type, "custom_metric": "missing"}, target
+    )
+    assert error is not None
+    assert error.error_type == "unsupported_chart_type"
+
+
+@pytest.mark.parametrize("viz_type", ["bubble", "bubble_v2"])
+@pytest.mark.parametrize("orderby", ["revenue", ["revenue"]])
+def test_retained_bubble_saved_sort_is_accepted(viz_type: str, orderby: object) -> None:
+    """Bubble's native single-metric sort retains its saved metric identity."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    assert (
+        validate_semantic_view_form_data(
+            {"viz_type": viz_type, "orderby": orderby, "order_desc": True}, target
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "orderby",
+    [
+        "missing",
+        ["missing"],
+        "customer__region",
+        {"expressionType": "SQL", "sqlExpression": "1"},
+        [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "revenue"},
+            }
+        ],
+    ],
+)
+def test_retained_bubble_invalid_sort_is_rejected(orderby: object) -> None:
+    """Bubble sorting requires a saved metric, not a dimension or expression."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {"viz_type": "bubble_v2", "orderby": orderby}, target
+    )
+    assert error is not None
+    assert error.error_type == SEMANTIC_VIEW_ADHOC_ERROR
