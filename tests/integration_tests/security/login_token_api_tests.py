@@ -140,7 +140,7 @@ class TestLoginTokenApi(SupersetTestCase):
         response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/list/")
 
         assert response.status_code == 302
-        assert response.headers["Location"].endswith("/dashboard/list/")
+        assert response.headers["Location"] == "/dashboard/list/"
 
         # The session belongs to the resolved user, not to whoever called mint.
         me = self.client.get("/api/v1/me/")
@@ -331,7 +331,12 @@ class TestLoginTokenApi(SupersetTestCase):
                     f"{ENDPOINT}?token={token}&next={requested_next}"
                 )
 
+                # Exactly `/`, not merely "ends with a slash": the rejected
+                # input `https://superset.example.com/dashboard/1/` itself ends
+                # with one, so a looser assertion would pass even if the route
+                # stopped rejecting absolute URLs and redirected there verbatim.
                 assert response.status_code == 302
-                location = response.headers["Location"]
-                assert location.endswith("/"), location
-                assert "evil.example.com" not in location
+                assert response.headers["Location"] == "/", (
+                    f"`next={requested_next}` was not rejected; redirected to "
+                    f"{response.headers['Location']}"
+                )
