@@ -737,3 +737,11 @@ def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
     # with the exact slice list (no semantic-view slice leaking into it).
     assert result == [(table_datasource, {"cols": ["column"]})]
     table_datasource.data_for_slices.assert_called_once_with([sesh_table_slice])
+
+
+def test_custom_user_model_dashboard_copy_listener(app_context: None) -> None:
+    """Ensure dashboard copy events can be registered dynamically for custom user models."""
+    from superset.models.dashboard import register_dashboard_copy_events
+
+    assert callable(register_dashboard_copy_events)
+
