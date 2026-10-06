@@ -62,6 +62,15 @@ assists people when migrating to a new version.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Semantic-view Table charts without a temporal axis
+
+Semantic-view Table charts omit recognized dormant time grains from
+frontend-generated aggregate queries when no temporal axis is present. The saved
+grain and Time Grain control visibility are unchanged. Direct API payloads and
+saved chart-data GET requests that bypass frontend rebuilding retain strict
+validation; some old stored query contexts can therefore still fail. Deploy
+updated frontend assets with this change.
+
 ### SQLite time filters on `DATE` columns
 
 On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`
@@ -473,6 +482,18 @@ own from the "Reset my password" modal on their profile page (`PUT
 change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
 instead of the removed form. Deployments that link to either legacy route should
 point at `/user_info/` or the Users list instead.
+
+### Unused `INCLUDE_FIREFOX` build arg and dead config removed
+
+Screenshots use only Playwright with Chromium, so the `INCLUDE_FIREFOX` Docker build
+arg, which installed a Firefox browser that nothing used, has been removed from the
+`Dockerfile` and the `docker-compose` files. Builds that still pass `INCLUDE_FIREFOX`
+keep working, though Docker may warn that the build argument is unused. Use
+`INCLUDE_CHROMIUM=true` to add the browser that screenshots need.
+
+The `EMAIL_PAGE_RENDER_WAIT` config key and the `ENABLE_PLAYWRIGHT` variable in
+`docker/.env` are also removed. Nothing in Superset read either of them, so setting
+them had no effect and they can be deleted from custom configs.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 

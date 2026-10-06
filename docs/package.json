@@ -58,7 +58,7 @@
     "@fontsource/inter": "^5.3.0",
     "@storybook/addon-docs": "^10.6.0",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.16.2",
+    "@swc/core": "^1.16.12",
     "antd": "^6.6.5",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
