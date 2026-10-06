@@ -210,15 +210,26 @@ def resolve_identity(  # pylint: disable=too-many-return-statements
         )
         return None
 
-    # Normalize before validating, because ``auth_user_oauth`` selects on key
-    # *presence* rather than truthiness: ``if "username" in userinfo`` wins even
-    # when the value is empty, and the empty username is then rejected outright.
-    # A resolver returning {"username": "", "email": "jdoe@example.com"} would
-    # otherwise mint a perfectly good token that always fails redemption with a
-    # 401, instead of falling back to the email. Stripping and dropping empty
-    # string values keeps this check and FAB's in agreement.
+    # Drop keys whose value is empty or whitespace-only, because
+    # ``auth_user_oauth`` selects on key *presence* rather than truthiness:
+    # ``if "username" in userinfo`` wins even when the value is empty, and the
+    # empty username is then rejected outright. A resolver returning
+    # {"username": "", "email": "jdoe@example.com"} would otherwise mint a
+    # perfectly good token that always fails redemption with a 401, instead of
+    # falling back to the email.
+    #
+    # Values that survive are passed through **byte for byte**. Trimming them
+    # would be an identity change, not a cleanup: usernames are unique but
+    # nothing forbids surrounding whitespace, so if both " admin " and "admin"
+    # exist, trimming a resolver's correctly-returned " admin " would
+    # authenticate the caller as the other account -- ``find_user`` matches the
+    # username exactly, and with role sync off the roles are whatever that other
+    # account already has. Rejecting values that change under ``strip()`` would
+    # be wrong for the same reason, in reverse: it would refuse a padded
+    # username that genuinely exists. Only the resolver knows which account it
+    # meant, so its answer is preserved and ``auth_user_oauth`` decides.
     userinfo = {
-        key: value.strip() if isinstance(value, str) else value
+        key: value
         for key, value in userinfo.items()
         if not (isinstance(value, str) and not value.strip())
     }

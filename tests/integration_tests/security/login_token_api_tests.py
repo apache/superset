@@ -315,15 +315,18 @@ class TestLoginTokenApi(SupersetTestCase):
         username is then rejected outright. So a resolver returning
         ``{"username": "", "email": ...}`` used to mint a perfectly good token
         that could only ever 401 on redemption, instead of falling back to the
-        email. Surrounding whitespace failed the same way, via ``find_user``.
+        email.
 
-        Both now normalize before minting, so each of these redeems. Note FAB
+        Only empty and whitespace-only values are dropped -- a padded but
+        non-empty identifier is preserved verbatim, which
+        :meth:`test_a_padded_username_does_not_authenticate_the_unpadded_account`
+        pins. Note FAB
         uses whichever value it selected as the ``find_user`` lookup key, which
         is why the email slot here holds a username rather than an address.
         """
         for userinfo in (
             {"username": "", "email": GAMMA_USERNAME},
-            {"username": f"  {GAMMA_USERNAME}  "},
+            {"username": "   ", "email": GAMMA_USERNAME},
             {"username": "", "first_name": "", "email": GAMMA_USERNAME},
         ):
             with self.subTest(userinfo=userinfo):
@@ -360,6 +363,46 @@ class TestLoginTokenApi(SupersetTestCase):
                     headers={"X-Test-Mint-Secret": MINT_SECRET},
                 )
                 assert response.status_code == 401, response.data
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_a_padded_username_does_not_authenticate_the_unpadded_account(self):
+        """A resolver's identifier is never trimmed into a different account.
+
+        ``ab_user.username`` is unique but nothing forbids surrounding
+        whitespace, so " gamma " and "gamma" can both exist. Trimming the
+        resolver's value would silently authenticate the caller as the other
+        account: ``find_user`` matches the username exactly, and with
+        ``AUTH_ROLES_SYNC_AT_LOGIN`` off the session inherits whatever roles
+        that account already has.
+
+        Here no " gamma " exists, so the correct outcome is a 401 -- the token
+        mints, because a padded username is a plausible identity, and
+        redemption fails because that account does not exist. What must not
+        happen is a 302 establishing a session as "gamma".
+        """
+        padded = f"  {GAMMA_USERNAME}  "
+        response = self.client.post(
+            ENDPOINT,
+            data=json.dumps({"username": padded}),
+            content_type="application/json",
+            headers={"X-Test-Mint-Secret": MINT_SECRET},
+        )
+        assert response.status_code == 200, response.data
+        token = json.loads(response.data)["access_token"]
+
+        redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+        assert redeemed.status_code == 401, (
+            f"{padded!r} was aliased onto an existing account instead of being "
+            f"passed through verbatim (got {redeemed.status_code})"
+        )
+
+        # And no session was established for anyone. `/api/v1/me/` answers 200
+        # with `is_anonymous` for a caller with no session, so assert on that
+        # rather than on the status code.
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("is_anonymous") is True, me
+        assert me.get("username") != GAMMA_USERNAME, me
 
     # --------------------------------------------------------------------- csrf
 

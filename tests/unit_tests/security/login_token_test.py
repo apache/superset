@@ -175,8 +175,13 @@ def test_resolve_identity_accepts_email_only(app_context: None) -> None:
             {"username": "   ", "email": "jdoe@example.com"},
             {"email": "jdoe@example.com"},
         ),
-        # Surrounding whitespace would make find_user miss an existing account.
-        ({"username": "  jdoe  "}, {"username": "jdoe"}),
+        # Padding is PRESERVED, never trimmed. Usernames are unique but may
+        # legally contain surrounding whitespace, so trimming " admin " to
+        # "admin" would authenticate a different account if both exist --
+        # find_user matches exactly. Only the resolver knows which it meant.
+        ({"username": "  jdoe  "}, {"username": "  jdoe  "}),
+        ({"username": " admin "}, {"username": " admin "}),
+        ({"email": "  jdoe@example.com  "}, {"email": "  jdoe@example.com  "}),
         # Empty optional fields are dropped too, rather than stored and later
         # written onto the user record as blanks.
         (
