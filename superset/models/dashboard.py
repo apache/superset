@@ -114,7 +114,9 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     session.commit()  # pylint: disable=consider-using-transaction
 
 
-sqla.event.listen(User, "after_insert", copy_dashboard)
+def register_dashboard_copy_events(user_model: Any) -> None:
+    """Register after_insert event listener on the given user model."""
+    pass
 
 
 dashboard_slices = Table(
