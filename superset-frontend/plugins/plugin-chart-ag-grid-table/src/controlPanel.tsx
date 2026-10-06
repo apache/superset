@@ -729,7 +729,7 @@ const config: ControlPanelConfig = {
                     childColumnMap,
                     timeComparisonColumnMap,
                     knownKeys: getKnownColumnConfigKeys(
-                      colnames,
+                      _colnames || [],
                       explore.datasource,
                     ),
                   },
