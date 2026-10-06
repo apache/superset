@@ -1298,6 +1298,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "list_themes",
         "list_users",
         "manage_dashboard_certification",
+        "manage_dashboard_markdown",
         "manage_dashboard_owners",
         "manage_dashboard_roles",
         "manage_native_filters",
