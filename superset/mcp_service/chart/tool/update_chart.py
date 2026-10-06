@@ -1132,8 +1132,7 @@ async def update_chart(  # noqa: C901
                 config_plugin.resolve_update_config(
                     request.config,
                     _get_existing_form_data(chart),
-                    dataset_rebind=request.dataset_id is not None
-                    and request.dataset_id != chart.datasource_id,
+                    dataset_rebind=is_rebind,
                 )
                 if config_plugin is not None
                 else request.config

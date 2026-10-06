@@ -194,6 +194,10 @@ def validate_semantic_view_form_data(
             "secondary_metric",
             "timeseries_limit_metric",
             "timeseries_limit_metric_b",
+            "series_limit_metric",
+            "x",
+            "y",
+            "size",
         )
         if form_data.get(key) is not None
     ]
@@ -209,7 +213,16 @@ def validate_semantic_view_form_data(
         )
     dimensions: list[object] = [
         dimension
-        for key in ("groupby", "groupby_b", "columns", "all_columns")
+        for key in (
+            "groupby",
+            "groupby_b",
+            "columns",
+            "all_columns",
+            "entity",
+            "series",
+            "groupbyRows",
+            "groupbyColumns",
+        )
         for dimension in (
             [form_data[key]]
             if isinstance(form_data.get(key), str)

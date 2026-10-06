@@ -349,3 +349,45 @@ def test_valid_secondary_roles_are_preserved() -> None:
     }
     assert validate_semantic_view_form_data(form_data, target) is None
     assert form_data["adhoc_filters_b"][0]["comparator"] == "west"
+
+
+@pytest.mark.parametrize("key", ["x", "y", "size", "series_limit_metric"])
+@pytest.mark.parametrize(
+    "value", ["missing", {"expressionType": "SQL", "sqlExpression": "1"}]
+)
+def test_retained_specialized_metrics_are_validated(key: str, value: object) -> None:
+    """Retained bubble and pivot metrics must be published saved metrics."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    assert (
+        validate_semantic_view_form_data({"viz_type": "bubble_v2", key: value}, target)
+        is not None
+    )
+    assert (
+        validate_semantic_view_form_data(
+            {"viz_type": "bubble_v2", key: "revenue"}, target
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("key", ["entity", "series", "groupbyRows", "groupbyColumns"])
+@pytest.mark.parametrize("scalar", [False, True])
+def test_retained_specialized_dimensions_are_validated(key: str, scalar: bool) -> None:
+    """Bubble and pivot dimensions retain their identity, in either saved shape."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    assert (
+        validate_semantic_view_form_data(
+            {key: "missing" if scalar else ["missing"]}, target
+        )
+        is not None
+    )
+    assert (
+        validate_semantic_view_form_data(
+            {key: "customer__region" if scalar else ["customer__region"]}, target
+        )
+        is None
+    )

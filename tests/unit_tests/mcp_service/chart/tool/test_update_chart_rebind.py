@@ -34,6 +34,7 @@ from superset.mcp_service.chart.datasource_resolver import ChartDatasource
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GenerateChartResponse,
+    TreemapChartUpdateConfig,
     UpdateChartRequest,
     XYChartConfig,
 )
@@ -393,6 +394,7 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
     ]
     chart.params = json.dumps(form_data)
     target: SqlaTable = SqlaTable(id=9, table_name="replacement")
+    mocker.patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
     mocker.patch.object(
         update_chart_module, "find_chart_by_identifier", return_value=chart
     )
@@ -592,6 +594,21 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
 @pytest.mark.parametrize(
     "retained",
     [
+        {"viz_type": "bubble_v2", "x": {"expressionType": "SQL", "sqlExpression": "1"}},
+        {"viz_type": "bubble_v2", "y": "missing"},
+        {
+            "viz_type": "bubble_v2",
+            "size": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"column_name": "revenue"},
+            },
+        },
+        {"viz_type": "bubble_v2", "entity": "missing"},
+        {"viz_type": "bubble_v2", "series": "missing"},
+        {"viz_type": "pivot_table_v2", "groupbyRows": ["missing"]},
+        {"viz_type": "pivot_table_v2", "groupbyColumns": ["missing"]},
+        {"viz_type": "ag-grid-table", "series_limit_metric": "missing"},
         {"timeseries_limit_metric_b": "missing"},
         {"metrics_b": ["missing"]},
         {"orderby_b": [["missing", True]]},
@@ -608,13 +625,14 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
         },
     ],
 )
-async def test_secondary_rebind_validation_precedes_effects(
+async def test_retained_rebind_validation_precedes_effects(
     mocker: MockerFixture, preview_mode: bool, retained: dict[str, Any]
 ) -> None:
-    """Source-only semantic rebinding validates query B before either effect."""
+    """Source-only semantic rebinding validates retained roles before effects."""
     chart: Mock = _chart()
     chart.uuid = None
     chart.params = json.dumps({**json.loads(chart.params), **retained})
+    chart.viz_type = retained.get("viz_type", chart.viz_type)
     view: Mock = Mock(
         id=7,
         columns=[],
@@ -658,6 +676,86 @@ async def test_secondary_rebind_validation_precedes_effects(
     assert response.error.error_type in {
         "semantic_view_adhoc_not_supported",
         "invalid_column",
+        "column_not_found",
     }
+    preview.assert_not_called()
+    write.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("view_id", [3, 7])
+@pytest.mark.parametrize("preview_mode", [False, True])
+async def test_partial_treemap_rebind_does_not_inherit_same_named_roles(
+    mocker: MockerFixture, view_id: int, preview_mode: bool
+) -> None:
+    """A new source requires explicit roles even when its names match."""
+    chart: Mock = _chart(3)
+    chart.uuid = None
+    chart.viz_type = "treemap_v2"
+    chart.params = json.dumps(
+        {
+            "viz_type": "treemap_v2",
+            "datasource": "3__table",
+            "groupby": ["region"],
+            "metric": "revenue",
+        }
+    )
+    view: Mock = Mock(
+        columns=[Mock(column_name="region", type="STRING", is_dttm=False)],
+        metrics=[Mock(metric_name="revenue", expression="revenue", description=None)],
+    )
+    target: ChartDatasource = ChartDatasource(
+        view, DatasourceType.SEMANTIC_VIEW, view_id, "Semantic revenue"
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        return_value=DatasetValidationResult(True, 3, "Original", []),
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    compile_query: MagicMock = mocker.patch.object(
+        update_chart_module, "_compile_chart", return_value=CompileResult(success=True)
+    )
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            view_id=view_id,
+            generate_preview=preview_mode,
+            preview_formats=[],
+            config=TreemapChartUpdateConfig(
+                chart_type="treemap_v2",
+                metric=ColumnRef(name="revenue", saved_metric=True),
+            ),
+        ),
+        ctx=ctx,
+    )
+    assert not response.success
+    assert response.error is not None
+    assert response.error.error_type == "ValidationError"
+    assert "groupby" in response.error.details
+    compile_query.assert_not_called()
     preview.assert_not_called()
     write.assert_not_called()
