@@ -4868,6 +4868,39 @@ class ChartQueryResult(BaseModel):
     total_rows: OptionalRowCount = Field(None, description="Total available rows")
 
 
+class BigNumberHeadline(BaseModel):
+    """The single headline number a Big Number chart displays.
+
+    The data rows are a time series for the trendline variant, so the displayed
+    number is not any one row: it is derived from the series by the chart's
+    aggregation (for example, the sum over all weekly rows). `value` is null,
+    with `reason` set, when it cannot be computed exactly.
+    """
+
+    value: int | float | str | None = Field(
+        None,
+        description=(
+            "The headline number as the chart displays it; null when it could "
+            "not be computed exactly (see reason)"
+        ),
+    )
+    aggregation: str | None = Field(
+        None,
+        description=(
+            "How the value was derived: 'total' for a Big Number chart, "
+            "otherwise the chart's aggregation applied to the trend series "
+            "(LAST_VALUE, sum, mean, min, max, median, or raw)"
+        ),
+    )
+    rows_used: int | None = Field(
+        None,
+        description="Count of non-null values aggregated; null if not applicable",
+    )
+    reason: str | None = Field(
+        None, description="Why value is null; null when a value is present"
+    )
+
+
 class ChartData(BaseModel):
     """Rich chart data response with statistical insights."""
 
@@ -4884,6 +4917,16 @@ class ChartData(BaseModel):
         description=(
             "All query results for multi-query charts. The top-level columns and data "
             "fields remain aliases for the first query for backward compatibility."
+        ),
+    )
+
+    headline: BigNumberHeadline | None = Field(
+        None,
+        description=(
+            "Big Number charts only (big_number, big_number_total): the headline "
+            "number the chart displays, computed from the full result rather than "
+            "the sample rows. Report this as the chart's value; do not derive it "
+            "from the rows. Null for other chart types."
         ),
     )
 
