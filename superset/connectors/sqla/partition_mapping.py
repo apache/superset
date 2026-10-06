@@ -716,7 +716,43 @@ def partition_mapping_supported(datasource: SqlaTable) -> bool:
     database = getattr(datasource, "database", None)
     if database is None:
         return False
-    return bool(database.db_engine_spec.supports_partition_filter_mapping)
+    db_engine_spec = database.db_engine_spec
+    if db_engine_spec.supports_partition_filter_mapping:
+        return True
+    if partition_column := getattr(datasource, "partition_column", None):
+        _warn_mapping_suppressed(
+            getattr(datasource, "id", None),
+            str(getattr(datasource, "table_name", "")),
+            str(partition_column),
+            db_engine_spec.engine,
+        )
+    return False
+
+
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def _warn_mapping_suppressed(
+    dataset_id: int | None,
+    table_name: str,
+    partition_column: str,
+    engine: str,
+) -> None:
+    """
+    Log that a stored mapping is ignored because the engine lacks support.
+
+    Nothing on screen says so -- the editor hides the section and the Explore
+    indicator reports no mapping -- so without this an owner whose queries stop
+    pruning partitions has nothing to trace it to. Memoized so it is one line
+    per dataset, mapping and engine in each process rather than one per query.
+    """
+    logger.warning(
+        "Ignoring partition filter mapping on dataset %s (%s): partition column "
+        "%r is configured, but engine %r does not support partition filter "
+        "mapping, so no partition filter is mirrored",
+        dataset_id,
+        table_name,
+        partition_column,
+        engine,
+    )
 
 
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:

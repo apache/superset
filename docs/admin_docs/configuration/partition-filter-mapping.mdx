@@ -51,6 +51,30 @@ Configure it as a **static boolean**. `FEATURE_FLAGS` also accepts per-request c
 but a flag that resolves differently per user or tenant would let a user with the feature
 off read a cached chart result that was produced from pruned SQL by a user with it on.
 
+### Supported engines
+
+The flag is necessary but not sufficient: the dataset's database engine must also support
+partition filter mapping. Only **Hive** and **Impala** do. Their tables are laid out as
+partition directories, so a predicate on the partition column is what lets the engine skip
+work. Elsewhere the concept either does not exist or the engine prunes on its own, and a
+mapping would map to nothing.
+
+On any other engine — Trino, Presto, Spark, Databricks, PostgreSQL, MySQL, Snowflake,
+BigQuery and the rest — partition filter mapping is inert, even with the flag on:
+
+- The dataset editor does not show the partition mapping settings.
+- No filter is mirrored. Queries run exactly as they would without a mapping.
+- Explore shows no partition pruning indicator.
+
+This includes a mapping that was stored on such a dataset before engine support was
+required, carried in by an import, or left behind when the dataset was pointed at another
+database. Such a mapping stays in the metadata database but is ignored. Superset logs a
+warning the first time each worker resolves it (`Ignoring partition filter mapping on
+dataset ...`), naming the dataset, the partition column and the engine. Point the dataset
+back at a Hive or Impala database and the mapping applies again.
+
+An engine spec opts in by setting `supports_partition_filter_mapping = True`.
+
 ## Configuring a mapping
 
 In the dataset editor's **Columns** tab, under *Default Column Settings*, pick a
@@ -114,10 +138,10 @@ is already lowercase `'us'` — rows the original filter *keeps*.
 compares `col` the way the transform was written against. Under a case-insensitive collation
 it does not: a stored `country` of `'us'` satisfies a filter for `'US'`, while the mirror is
 derived from `'US'` and excludes the row. So `=` and `IN` on a **text** mapped column only
-mirror on engines whose default text comparison is exact — Hive, Impala, Trino, Presto,
-Spark, Databricks, PostgreSQL, Snowflake, BigQuery and SQLite. On MySQL and SQL Server, whose
-default collations are case-insensitive, a text mapping is stored and shown but no `=` or
-`IN` filter mirrors through it; map a numeric or temporal column instead. Numeric and
+mirror on engines whose default text comparison is exact. Hive and Impala, the two engines
+that support partition filter mapping, both compare text exactly, so text mappings mirror
+normally on them. An engine spec that opts in to partition filter mapping but compares text
+case-insensitively would mirror no `=` or `IN` filter through a text mapping. Numeric and
 temporal comparison is exact everywhere, and ranges are unaffected either way — checking
 **Transform preserves ordering** is already a statement about the column's own ordering.
 
