@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Input } from '@superset-ui/core/components';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import { RootState } from 'src/dashboard/types';
 
 // Minimum custom refresh interval in seconds
 export const MINIMUM_REFRESH_INTERVAL = 1;
@@ -105,7 +107,23 @@ export interface RefreshFrequencySelectProps {
 export const RefreshFrequencySelect = ({
   value,
   onChange,
+  options: optionsProp,
 }: RefreshFrequencySelectProps) => {
+  const configuredIntervals = useSelector(
+    (state: RootState) =>
+      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+  );
+
+  const activeOptions = useMemo(() => {
+    const rawOptions = optionsProp ?? configuredIntervals;
+    if (Array.isArray(rawOptions) && rawOptions.length > 0) {
+      return rawOptions.map(([interval, label]) => ({
+        value: interval,
+        label: t(label),
+      }));
+    }
+    return REFRESH_FREQUENCY_OPTIONS.slice(0, -1);
+  }, [optionsProp, configuredIntervals]);
 
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>
@@ -148,7 +166,7 @@ export const RefreshFrequencySelect = ({
 
   return (
     <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
-      {REFRESH_FREQUENCY_OPTIONS.slice(0, -1).map(option => (
+      {activeOptions.map(option => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
