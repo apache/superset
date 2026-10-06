@@ -200,3 +200,55 @@ test('switching between custom and preset options updates radio selection proper
   const input = screen.getByPlaceholderText('1+');
   expect(input).toBeDisabled();
 });
+
+test('issue 44981 consolidated evidence gate: reactive auto refresh intervals, custom intervals, and fallback', async () => {
+  const customConf: [number, string][] = [
+    [0, "Don't refresh"],
+    [20, '20 seconds'],
+    [600, '10 minutes'],
+  ];
+
+  const onChange = jest.fn();
+  const { unmount } = setup(
+    { value: 20, onChange },
+    createInitialState(customConf),
+  );
+
+  // 1. Configured options from Redux are rendered
+  const opt20 = screen.getByRole('radio', { name: '20 seconds' });
+  const opt600 = screen.getByRole('radio', { name: '10 minutes' });
+  const optDont = screen.getByRole('radio', { name: "Don't refresh" });
+  const optCustom = screen.getByRole('radio', { name: /Custom/i });
+
+  expect(opt20).toBeInTheDocument();
+  expect(opt20).toBeChecked();
+  expect(opt600).toBeInTheDocument();
+  expect(optDont).toBeInTheDocument();
+  expect(optCustom).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '10 seconds' }),
+  ).not.toBeInTheDocument();
+
+  // 2. Selecting another configured interval triggers onChange
+  await userEvent.click(opt600);
+  expect(onChange).toHaveBeenCalledWith(600);
+
+  // 3. Selecting Custom radio triggers custom mode
+  await userEvent.click(optCustom);
+  expect(onChange).toHaveBeenCalledWith(1);
+  const input = screen.getByPlaceholderText('1+');
+  expect(input).not.toBeDisabled();
+
+  // 4. Typing a valid custom interval triggers onChange
+  onChange.mockClear();
+  fireEvent.change(input, { target: { value: '45' } });
+  expect(onChange).toHaveBeenLastCalledWith(45);
+
+  unmount();
+
+  // 5. Fallback behavior when Redux store has no configuration
+  setup({}, createInitialState(undefined));
+  expect(screen.getByRole('radio', { name: '10 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '30 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeInTheDocument();
+});
