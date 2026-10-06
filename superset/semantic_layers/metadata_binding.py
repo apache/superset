@@ -215,7 +215,13 @@ def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
             raise MetadataRefreshError("unavailable") from None
 
     store: ScopedMetadataStore = ScopedMetadataStore(
-        backend, scope, deadline=state.deadline, before_publish=revalidate
+        backend,
+        scope,
+        deadline=state.deadline,
+        snapshot_ttl_seconds=current_app.config[
+            "SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS"
+        ],
+        before_publish=revalidate,
     )
     state.stores[scope] = store
     return store

@@ -601,3 +601,39 @@ def test_provider_numbers_survive_publication_and_cached_read(number: str) -> No
     assert store.read(fetch, deadline=deadline) == first
     fetch.assert_called_once()
     assert store.refresh(fetch, deadline=deadline).status == "unchanged"
+
+
+def test_snapshot_lifetime_includes_acquisition_time() -> None:
+    """A short lifetime cannot publish a snapshot whose freshness already expired."""
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=130, snapshot_ttl_seconds=5, clock=clock
+    )
+    first: CatalogSnapshot = store.read(catalog, deadline=130)
+
+    def slow(deadline: float) -> str:
+        clock.advance(5)
+        return "[]"
+
+    with pytest.raises(MetadataRefreshError, match="deadline"):
+        store.refresh(slow, deadline=130)
+    assert store.peek() is None
+    second: CatalogSnapshot = store.read(catalog, deadline=130)
+    assert second.cache_token != first.cache_token
+
+
+def test_custom_snapshot_lifetime_subtracts_acquisition_elapsed_time() -> None:
+    """Discovery does not add its duration to the configured freshness window."""
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=130, snapshot_ttl_seconds=10, clock=clock
+    )
+
+    def fetch(deadline: float) -> str:
+        clock.advance(3)
+        return "[]"
+
+    store.read(fetch, deadline=130)
+    assert backend.get_with_ttl("semantic-metadata:{scope}:snapshot")[1] == 7000

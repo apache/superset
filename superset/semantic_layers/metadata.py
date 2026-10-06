@@ -43,6 +43,7 @@ from superset.semantic_layers.cache_inspection import CacheEntryInfo, describe_e
 from superset.utils import json
 
 CATALOG_TTL_SECONDS: int = 300
+MAX_SNAPSHOT_TTL_SECONDS: int = 2**31 - 1
 REFRESH_LEASE_SECONDS: int = 60
 FETCH_DEADLINE_SECONDS: int = 30
 MAX_CATALOG_BYTES: int = 10 * 1024 * 1024
@@ -117,12 +118,20 @@ class ScopedMetadataStore:
         scope: str,
         *,
         deadline: float,
+        snapshot_ttl_seconds: int = CATALOG_TTL_SECONDS,
         before_publish: Callable[[], None] | None = None,
         clock: Callable[[], float] = time.monotonic,
         wait: Callable[[float], None] = time.sleep,
     ) -> None:
         if not math.isfinite(deadline) or not scope or "{" in scope or "}" in scope:
             raise MetadataRefreshError("configuration")
+        if (
+            isinstance(snapshot_ttl_seconds, bool)
+            or not isinstance(snapshot_ttl_seconds, int)
+            or not 1 <= snapshot_ttl_seconds <= MAX_SNAPSHOT_TTL_SECONDS
+        ):
+            raise MetadataRefreshError("configuration")
+        self._snapshot_ttl_seconds: int = snapshot_ttl_seconds
         self._backend: PublicationBackend = backend
         self._scope: str = scope
         self._deadline: float = deadline
@@ -222,6 +231,7 @@ class ScopedMetadataStore:
             self._backend.with_deadline(deadline),
             self._scope,
             deadline=deadline,
+            snapshot_ttl_seconds=self._snapshot_ttl_seconds,
             before_publish=self._before_publish,
             clock=self._clock,
             wait=self._wait,
@@ -345,9 +355,11 @@ class ScopedMetadataStore:
         if len(envelope.encode()) > MAX_CATALOG_BYTES:
             raise MetadataRefreshError("invalid_payload")
         ttl_ms: int = math.floor(
-            (CATALOG_TTL_SECONDS - (self._clock() - started)) * 1000
+            (self._snapshot_ttl_seconds - (self._clock() - started)) * 1000
         )
         self._remaining()
+        if ttl_ms <= 0:
+            raise MetadataRefreshError("deadline")
         return MetadataRefreshResult(
             status, self._publish(attempt, envelope, ttl_ms, snapshot)
         )
@@ -421,7 +433,7 @@ class ScopedMetadataStore:
         self._remaining()
         try:
             return self._backend.get_or_create(
-                self._generation_key, uuid4().hex, CATALOG_TTL_SECONDS
+                self._generation_key, uuid4().hex, self._snapshot_ttl_seconds
             ).decode()
         except RedisError:
             raise MetadataRefreshError("unavailable") from None
@@ -440,7 +452,7 @@ class ScopedMetadataStore:
         self._remaining()
         try:
             if not self._backend.set(
-                self._generation_key, uuid4().hex, ex=CATALOG_TTL_SECONDS
+                self._generation_key, uuid4().hex, ex=self._snapshot_ttl_seconds
             ):
                 raise MetadataRefreshError("unavailable")
         except RedisError:

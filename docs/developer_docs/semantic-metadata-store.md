@@ -84,10 +84,36 @@ the new generation. Callers must not pre-resolve the view before this capture.
 
 Bounds are a 30-second metadata I/O budget, a non-renewing lease capped by the
 owner’s remaining budget (and at most 60 seconds), a
-300-second catalog lifetime measured from acquisition start, and a 10-MiB
+configurable catalog lifetime measured from acquisition start (300 seconds by
+default), and a 10-MiB
 serialized envelope limit. Cold readers wait and re-read within the same budget.
 A busy explicit refresh returns `in_progress`; an unknown write outcome returns
 `indeterminate`, not success or a blind retry.
+
+## Snapshot lifetime and chart-cache reuse
+
+`SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS` sets the catalog lifetime and the
+independent compatibility-generation lifetime. It defaults to `300` seconds and
+accepts integer values from `1` through `2147483647`; booleans, strings, zero,
+negative and out-of-range values fail with a configuration error. Catalog
+acquisition time counts against this lifetime. A discovery that consumes the
+entire lifetime fails with `deadline` and does not publish an expired snapshot.
+The setting does not extend the 30-second discovery budget or the writer lease.
+
+Natural expiry still rotates the token, even when discovery returns identical
+fields: those fields need not contain the full metric definition. A longer
+lifetime lets chart results remain reachable longer but delays rediscovery of
+metadata changes; a shorter lifetime favors freshness and increases discovery
+and chart re-query work. This bounds reuse even when a chart has a longer
+`cache_timeout`. Explicit refresh still rotates immediately after successful
+publication. Hits and failures never renew snapshot expiry.
+
+Configure the same value on all participating workers. Changes affect newly
+published snapshots and newly created or invalidated compatibility generations;
+existing entries retain their original TTL. Use the scoped invalidation controls
+when existing entries must expire earlier. Provider-supplied definition revisions
+may enable safe same-definition reuse in a future change; they are not supported
+by this setting.
 
 ## Operation lifetime and transport
 

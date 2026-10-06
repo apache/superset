@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Optional shared semantic metadata supports
+  `SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS` (default `300` seconds), a positive
+  integer up to `2147483647`. It governs catalog and compatibility-generation
+  lifetime. Longer values trade slower metadata rediscovery for longer chart-cache
+  reuse; shorter values increase discovery and chart re-query work. Natural expiry
+  still rotates cache tokens even for identical discovery, since selected fields
+  cannot prove unchanged metric definitions. Configure the same value across all
+  workers; changes apply to new entries, while existing entries retain their TTL.
+  The discovery deadline and lease are unchanged. Invalid settings fail closed.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

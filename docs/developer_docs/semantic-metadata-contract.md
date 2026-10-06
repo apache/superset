@@ -87,6 +87,13 @@ Every successful publication gets a new nonempty opaque `cache_token`, including
 unchanged discovery. Cache hits retain the captured token. Equal discovery data
 cannot prove equal metric definitions if the upstream selector omits complete
 query semantics. `changed` includes installation without a prior observation.
+The Superset host controls snapshot lifetime through
+`SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS` (default `300` seconds); the same
+setting governs compatibility-generation lifetime. Increasing it trades slower
+metadata rediscovery for longer chart-cache reuse. Natural expiry and successful
+explicit refresh still rotate tokens, including for identical discovered fields.
+See [host lifetime configuration](semantic-metadata-store.md#snapshot-lifetime-and-chart-cache-reuse)
+for validation, rollout and existing-entry behavior.
 
 `SemanticView.metadata_cache_token` defaults to `None` for legacy views. A bound
 opted-in view returns the token captured with its parsed members. Hosts reject
