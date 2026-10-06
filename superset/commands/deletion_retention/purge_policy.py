@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1021,6 +1022,27 @@ def _admitted_host_policy(
             return None
         # Validated first, so a table the metadata simply does not contain is
         # reported as such rather than as an ambiguous name.
+        inherited: list[str] = [
+            name
+            for name, stock in (
+                ("count_dashboard_slices", count_dashboard_slices),
+                ("collect_dangling_chart_uuids", dangling_chart_uuids),
+            )
+            if getattr(candidate, name) is stock
+        ]
+        if inherited:
+            # Cloning a built-in policy with ``replace`` is a natural way to
+            # borrow the generic cleanup, but it also carries these two, which
+            # read ``dashboard_slices`` and the chart table by the root's id.
+            # Left in place on a host root they write a count and a referrer
+            # list for an unrelated entity into the audit record -- wrong
+            # evidence, recorded as fact. The permission pair is inert here by
+            # comparison: both resolve from an entity type a host cannot
+            # claim.
+            raise RuntimeError(
+                f"{', '.join(inherited)} read this package's own tables; a "
+                "host policy supplies its own"
+            )
         unusable: set[str] = {
             dependency.classification.value
             for dependency in candidate.dependencies
@@ -1159,9 +1181,24 @@ class _ResolvedRegistry:
         default_factory=lambda: MappingProxyType({})
     )
     validated: set[type[Any]] = field(default_factory=set)
+    #: Set only on a snapshot published because the provider could not be
+    #: called. Until this deadline the snapshot answers reads; after it, the
+    #: provider is tried again.
+    retry_after: float | None = None
 
 
-_RESOLVED: _ResolvedRegistry = _ResolvedRegistry()
+#: Key the resolved index lives under on the Flask app. Per app rather than
+#: per process: two apps in one process have different configs, and a single
+#: global snapshot would thrash between them -- re-resolving, and re-invoking
+#: the provider, on every read.
+_REGISTRY_EXTENSION_KEY: str = "deletion_retention_purge_registry"
+
+#: How long a snapshot published after a provider failure answers reads
+#: before the provider is tried again. Bounds both extremes: a failure is
+#: neither remembered for the life of the process nor retried on every read --
+#: at roughly three reads per purged entity, retrying per read meant tens of
+#: thousands of provider calls and tracebacks in a single pass.
+_PROVIDER_RETRY_SECONDS: float = 60.0
 
 #: Per-thread marker for "this thread is already resolving". A host provider
 #: may build its policy from a built-in one -- ``replace(get_purge_policy(
@@ -1184,17 +1221,22 @@ def _resolved_registry() -> _ResolvedRegistry:
     here deadlocks the moment a provider resolves a built-in policy of its
     own, and a hung purge is worse than a repeated call.
     """
-    provider: Callable[[], Any] | None = (
-        current_app.config.get(HOST_POLICIES_CONFIG_KEY) if has_app_context() else None
+    if not has_app_context():
+        return _builtin_registry()
+    provider: Callable[[], Any] | None = current_app.config.get(
+        HOST_POLICIES_CONFIG_KEY
     )
-    resolved: _ResolvedRegistry = _RESOLVED
-    if resolved.provider is provider:
-        return resolved
+    published: _ResolvedRegistry = current_app.extensions.setdefault(
+        _REGISTRY_EXTENSION_KEY, _builtin_registry()
+    )
+    if published.provider is provider and (
+        published.retry_after is None or time.monotonic() < published.retry_after
+    ):
+        return published
     if getattr(_RESOLVING, "active", False):
         # A nested resolution: the provider is building its policy from a
-        # built-in one. It needs the roots this package declares -- not
-        # whatever happens to be published, which on a first resolution is
-        # still the empty initial snapshot.
+        # built-in one, so hand it the roots this package declares rather than
+        # re-entering a resolution that has not finished.
         return _builtin_registry()
     _RESOLVING.active = True
     try:
@@ -1204,10 +1246,28 @@ def _resolved_registry() -> _ResolvedRegistry:
     finally:
         _RESOLVING.active = False
     if host_policies is None:
-        # The provider could not be called. Serve the built-in roots without
-        # publishing, so a failure that turns out to be transient is retried
-        # on the next resolution rather than fixed in place.
-        return _builtin_registry()
+        current: _ResolvedRegistry | None = current_app.extensions.get(
+            _REGISTRY_EXTENSION_KEY
+        )
+        if (
+            current is not None
+            and current.provider is provider
+            and current.retry_after is None
+        ):
+            # Another caller resolved this provider successfully while we were
+            # failing. Publishing now would replace a good index with ours.
+            return current
+        # Otherwise publish the built-in roots with a deadline, rather than
+        # either extreme: reads in the meantime do not call the provider
+        # again, and once the deadline passes a transient failure resolves
+        # itself.
+        failed = _ResolvedRegistry(
+            provider=provider,
+            registry=validate_unique_root_policies(_builtin_purge_policies()),
+            retry_after=time.monotonic() + _PROVIDER_RETRY_SECONDS,
+        )
+        current_app.extensions[_REGISTRY_EXTENSION_KEY] = failed
+        return failed
     rebuilt = _ResolvedRegistry(
         provider=provider,
         registry=validate_unique_root_policies(
@@ -1217,7 +1277,7 @@ def _resolved_registry() -> _ResolvedRegistry:
         # lazy, so one unusable built-in cannot block the others.
         validated={policy.model for policy in host_policies},
     )
-    globals()["_RESOLVED"] = rebuilt
+    current_app.extensions[_REGISTRY_EXTENSION_KEY] = rebuilt
     return rebuilt
 
 
@@ -1352,6 +1412,29 @@ def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
             table_name = hop.key.owner_table
 
 
+def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
+    """Reject a self-referencing owned table under the stock cleanup.
+
+    ``delete_owned_children`` issues one statement per declared edge, so a
+    table that owns itself is pruned one level deep. Where foreign keys are
+    enforced the root's own delete then fails and rolls back; where they are
+    not -- SQLite -- the root is purged and its grandchildren are left behind
+    with a dangling parent id and nothing reported. A host declaring a tree
+    supplies cleanup that walks it.
+    """
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        key: DependencyKey = dependency.key
+        if key.owner_table != key.related_table:
+            continue
+        raise RuntimeError(
+            f"Owned dependency {key.describe()} is self-referencing; the stock "
+            "owned-child cleanup deletes one level, so this policy must supply "
+            "its own delete_owned_children"
+        )
+
+
 def _validate_scanner_requirements(policy: PurgeEntityPolicy) -> None:
     """Reject a root the scheduled scan cannot page through.
 
@@ -1429,15 +1512,17 @@ def _validate_version_target(
     if live_table is not None and column in live_table.c:
         live_column: sa.Column[Any] = live_table.c[column]
         primary_key: tuple[sa.Column[Any], ...] = tuple(root_table.primary_key.columns)
-        if (
-            live_table is root_table
-            and len(primary_key) == 1
-            and live_column.name == primary_key[0].name
-        ):
-            return
-        # The comparison is against the root's id, so a foreign key to any
-        # other root column matches rows belonging to a different root.
-        if len(primary_key) == 1 and any(
+        if live_table is root_table:
+            # On the root's own shadow only its key identifies it. A
+            # self-referencing column such as ``parent_id`` points at *other*
+            # rows of the same root, so cleanup would delete the children's
+            # history and leave the purged row's own behind.
+            if len(primary_key) == 1 and live_column.name == primary_key[0].name:
+                return
+        # Elsewhere the comparison is still against the root's id, so a
+        # foreign key to any other root column matches rows belonging to a
+        # different root.
+        elif len(primary_key) == 1 and any(
             foreign_key.column.table is root_table
             and foreign_key.column.name == primary_key[0].name
             for foreign_key in live_column.foreign_keys
@@ -1495,14 +1580,14 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     for dependency in policy.dependencies:
         _validate_dependency_declaration(policy, dependency, metadata)
     _validate_scanner_requirements(policy)
-    if (
-        policy.delete_owned_children is delete_owned_children
-        and policy.delete_associations is delete_associations
-    ):
-        # Both halves of the hazard are the stock cleanup's: it empties
-        # associations first, and builds the owned predicate by traversing the
-        # ownership path. A policy replacing either one is not exposed to it.
+    if policy.delete_owned_children is delete_owned_children:
+        # The hazard is the stock owned cleanup's: it builds each predicate by
+        # traversing the ownership path, which is empty by then whoever
+        # deleted the association rows. A policy that walks its own tree is
+        # not exposed to it; one that merely replaces the association delete
+        # still is.
         _validate_owned_traversal(policy)
+        _validate_recursive_ownership(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:

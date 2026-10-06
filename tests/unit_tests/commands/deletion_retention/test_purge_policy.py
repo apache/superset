@@ -648,12 +648,19 @@ def _host_edge(prefix: str) -> DependencyPolicy:
 def _host_policy(
     model: type[Any], dependencies: tuple[DependencyPolicy, ...]
 ) -> PurgeEntityPolicy:
-    """Borrow the chart policy's executable actions for a host root."""
+    """Borrow the chart policy's generic actions for a host root.
+
+    The two chart-specific snapshots are replaced, as a real host policy must
+    replace them: left in place they would report a dashboard-slice count and
+    a dangling-chart list for an unrelated entity.
+    """
     return replace(
         get_purge_policy(Slice),
         model=model,
         entity_type="host_root",
         dependencies=dependencies,
+        count_dashboard_slices=lambda session, policy, entity_id: 0,
+        collect_dangling_chart_uuids=lambda session, policy, entity_id: [],
     )
 
 
@@ -1215,14 +1222,9 @@ def test_provider_may_build_on_a_built_in_policy() -> None:
     model: type[Any] = _host_root("reentrant")
 
     def provider() -> list[PurgeEntityPolicy]:
-        return [
-            replace(
-                get_purge_policy(Slice),
-                model=model,
-                entity_type="host_root",
-                dependencies=(_host_edge("reentrant"),),
-            )
-        ]
+        # _host_policy itself resolves the chart policy, which is the
+        # re-entrant call under test.
+        return [_host_policy(model, (_host_edge("reentrant"),))]
 
     resolved: list[PurgeEntityPolicy] = []
 
@@ -1398,13 +1400,35 @@ def test_owned_table_behind_an_association_is_rejected(
     _assert_rejected(model, policy, "associations are deleted first", caplog)
 
 
-def test_a_provider_failure_is_retried_rather_than_published() -> None:
-    """A provider that fails once must not lose its roots for the process.
+def test_a_failing_provider_is_not_called_again_on_every_read() -> None:
+    """A failure answers reads for a while instead of re-running the provider.
 
-    The failure is served with the built-in roots but not published, so the
-    next resolution calls the provider again instead of treating one bad
-    moment as the answer for the life of the process.
+    The registry is read roughly three times per purged entity, so retrying
+    per read meant tens of thousands of provider calls -- and tracebacks --
+    in a single pass.
     """
+    calls: list[int] = []
+
+    def provider() -> list[PurgeEntityPolicy]:
+        calls.append(1)
+        raise RuntimeError("manager unreachable")
+
+    with _installed(provider):
+        for _ in range(4):
+            assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+    assert len(calls) == 1
+
+
+def test_a_failing_provider_is_tried_again_once_its_window_passes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """And not remembered for the life of the process either.
+
+    The window is set to zero here so the published failure is already stale,
+    which is what a later purge sees after a transient outage.
+    """
+    monkeypatch.setattr(purge_policy_module, "_PROVIDER_RETRY_SECONDS", 0.0)
     model: type[Any] = _host_root("transient")
     policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("transient"),))
     calls: list[int] = []
@@ -1420,3 +1444,121 @@ def test_a_provider_failure_is_retried_rather_than_published() -> None:
         assert get_purge_policy(model) is policy
 
     assert len(calls) == 2
+
+
+def test_replacing_only_the_association_delete_still_refuses_the_shape(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The orphaning hazard belongs to the stock owned cleanup alone.
+
+    Whoever empties the association rows, the stock owned delete still
+    traverses an ownership path that is empty by the time it runs.
+    """
+    model: type[Any] = _host_chain("assoconly")
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(
+            model, _host_chain_edges("assoconly", DependencyClassification.ASSOCIATION)
+        ),
+        delete_associations=lambda session, policy, entity_id: None,
+    )
+
+    _assert_rejected(model, policy, "associations are deleted first", caplog)
+
+
+def test_self_referencing_owned_table_rejects_stock_cleanup(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Stock cleanup prunes one level, which orphans a deeper tree.
+
+    Loud where foreign keys are enforced, silent on SQLite: the root is
+    purged and its grandchildren keep a dangling parent id.
+    """
+    model: type[Any] = _host_tree("stocktree")
+    policy: PurgeEntityPolicy = _host_policy(model, _host_tree_edges("stocktree"))
+
+    _assert_rejected(model, policy, "must supply its own", caplog)
+
+
+def test_self_referencing_version_target_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A parent column on the root's own shadow is not the root's identity.
+
+    Cleanup compares it with the purged row's id, so it deletes that row's
+    children's history and leaves its own behind.
+    """
+    model: type[Any] = _host_tree("selfversion")
+    declared: tuple[DependencyPolicy, ...] = (
+        *_host_tree_edges("selfversion"),
+        DependencyPolicy(
+            DependencyKey(
+                "relationship",
+                "selfversion_node",
+                "selfversion_node_version",
+                direction="onetomany",
+                relationship="versions",
+            ),
+            DependencyClassification.VERSION_OWNED,
+            ExecutionPhase.VERSION,
+            version_column="parent_id",
+        ),
+    )
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, declared),
+        delete_owned_children=lambda session, policy, entity_id: None,
+    )
+
+    _assert_rejected(model, policy, "is not root-relative", caplog)
+
+
+def test_host_policy_keeping_core_specific_snapshots_is_dropped(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Cloning a built-in policy carries snapshots that read core's tables.
+
+    ``count_dashboard_slices`` and ``collect_dangling_chart_uuids`` read
+    ``dashboard_slices`` and the chart table by the root's id. On a host root
+    they write a count and a referrer list for an unrelated entity into the
+    audit record.
+    """
+    model: type[Any] = _host_root("cloned")
+    policy: PurgeEntityPolicy = replace(
+        get_purge_policy(Slice),
+        model=model,
+        entity_type="host_root",
+        dependencies=(_host_edge("cloned"),),
+    )
+
+    _assert_rejected(model, policy, "read this package's own tables", caplog)
+
+
+def test_each_app_resolves_its_own_index(app_context: None) -> None:
+    """Two apps in one process do not thrash a single global snapshot.
+
+    Without per-app state each read from either app would see the other's
+    provider, re-resolve, and call the provider again -- once per root.
+    """
+    from superset.app import SupersetApp
+
+    first = current_app._get_current_object()  # noqa: SLF001
+    model: type[Any] = _host_root("perapp")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("perapp"),))
+    calls: list[int] = []
+
+    def provider() -> list[PurgeEntityPolicy]:
+        calls.append(1)
+        return [policy]
+
+    second = SupersetApp(__name__)
+    second.config.update(first.config)
+    second.config[HOST_POLICIES_CONFIG_KEY] = None
+
+    with _installed(provider):
+        assert get_purge_policy(model) is policy
+        with second.app_context():
+            # The second app has no provider, so its index carries only the
+            # built-in roots -- and resolving it must not disturb the first.
+            assert model not in purge_policy_registry()
+        assert get_purge_policy(model) is policy
+
+    assert len(calls) == 1

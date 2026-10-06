@@ -169,7 +169,26 @@ rows or silently skip cleanup, since neither announces itself:
 - it declares a block or a listener effect, which resolve from Superset's own
   validator and entity types and so are never carried out for a host root. A
   host refuses a purge by raising `PurgeBlockedError` from its own validator
-  instead.
+  instead;
+- it keeps the shared owned-child cleanup while declaring a table that owns
+  itself, or one reachable only through an association. The shared cleanup
+  deletes one level and builds each predicate by traversing the ownership
+  path, so without enforced foreign keys the root is purged and the rows
+  below it are orphaned silently. A host declaring either shape supplies its
+  own `delete_owned_children`.
+
+A host root's references from Superset-owned tables are the host's own to
+clean up, in its own callbacks: the tag and permission cleanups Superset runs
+for its roots resolve from entity types a host cannot claim, so they never
+run for one. A host policy also supplies its own `count_dashboard_slices` and
+`collect_dangling_chart_uuids`, which otherwise read Superset's tables by the
+host root's id and record a count and a referrer list for an unrelated entity.
+
+Each application resolves its own index, so two in one process do not
+re-resolve each other's. A provider that cannot be called is logged, and the
+built-in roots answer reads for a short window before it is tried again -- so a passing outage is
+not remembered for the life of the process, and it is not re-attempted on
+every read either.
 
 Anything else is left to fail where it fails. A predicate the cleanup cannot
 build raises per row and is counted in `cascade_failures`; an ordering a
