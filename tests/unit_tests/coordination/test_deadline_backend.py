@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -663,3 +664,118 @@ def test_timed_out_system_dns_retains_bounded_admission(patched: bool) -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("sentinel", [False, True])
+def test_stalled_tls_shutdown_releases_socket_before_loop_close(
+    tmp_path: Path, sentinel: bool
+) -> None:
+    """Deadline cleanup closes real TLS sockets without relying on collection."""
+    import socket
+    import ssl
+    from datetime import datetime, timedelta, timezone
+    from threading import Event, Thread
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+    from redis.asyncio import Redis
+    from redis.asyncio.connection import SSLConnection
+    from redis.asyncio.sentinel import Sentinel
+
+    key: ec.EllipticCurvePrivateKey = ec.generate_private_key(ec.SECP256R1())
+    name: x509.Name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+    now: datetime = datetime.now(timezone.utc)
+    certificate: x509.Certificate = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(days=1))
+        .not_valid_after(now + timedelta(days=1))
+        .sign(key, hashes.SHA256())
+    )
+    (tmp_path / "cert.pem").write_bytes(
+        certificate.public_bytes(serialization.Encoding.PEM)
+    )
+    (tmp_path / "key.pem").write_bytes(
+        key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+    )
+    server_context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    server_context.load_cert_chain(tmp_path / "cert.pem", tmp_path / "key.pem")
+    client_context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    client_context.check_hostname = False
+    client_context.verify_mode = ssl.CERT_NONE
+    local_socket: socket.socket
+    peer_socket: socket.socket
+    local_socket, peer_socket = socket.socketpair()
+    release: Event = Event()
+    errors: list[Exception] = []
+
+    def peer() -> None:
+        """Handshake, then deliberately withhold the TLS close_notify response."""
+        try:
+            with server_context.wrap_socket(peer_socket, server_side=True):
+                release.wait(5)
+        except Exception as error:
+            errors.append(error)
+
+    worker: Thread = Thread(target=peer)
+    worker.start()
+    client: Redis = Sentinel([]).master_for("owned") if sentinel else Redis()
+    writers: list[asyncio.StreamWriter] = []
+    connections: list[SSLConnection] = []
+
+    async def execute(*args: object, **kwargs: object) -> bytes:
+        """Give the real Redis pool a real TLS stream to disconnect."""
+        reader: asyncio.StreamReader
+        writer: asyncio.StreamWriter
+        reader, writer = await asyncio.open_connection(
+            sock=local_socket,
+            ssl=client_context,
+            server_hostname="localhost",
+            ssl_shutdown_timeout=30,
+        )
+        writers.append(writer)
+        connection: SSLConnection = SSLConnection(socket_connect_timeout=0.15)
+        connection._reader = reader
+        connection._writer = writer
+        connections.append(connection)
+        client.connection_pool._available_connections.append(connection)
+        return b"observed"
+
+    manager: Mock = Mock(sentinels=[], master_for=Mock(return_value=client))
+    backend: DeadlineRedisBackend = DeadlineRedisBackend(
+        {"CACHE_TYPE": "RedisSentinelCache" if sentinel else "RedisCache"},
+        deadline=time.monotonic() + 0.15,
+    )
+    started: float = time.monotonic()
+    try:
+        with (
+            patch("superset.coordination.deadline_backend.Redis", return_value=client),
+            patch(
+                "superset.coordination.deadline_backend.Sentinel", return_value=manager
+            ),
+            patch.object(client, "execute_command", execute),
+            pytest.raises(RedisTimeoutError),
+        ):
+            backend.get("owned")
+        assert time.monotonic() - started < 0.75
+        assert len(writers) == 1
+        assert writers[0].transport.is_closing()
+        # Keep the writer alive: GC must not be what releases the descriptor.
+        assert local_socket.fileno() == -1
+        assert connections[0]._writer is None
+        assert not errors
+    finally:
+        local_socket.close()
+        release.set()
+        worker.join(2)
+        peer_socket.close()
+        assert not worker.is_alive()
