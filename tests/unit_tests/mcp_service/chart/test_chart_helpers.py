@@ -3336,12 +3336,18 @@ def test_mixed_secondary_ranking_ignores_explicit_primary_direction(
     assert secondary["series_limit_metric"] == "costs"
 
 
+@pytest.mark.parametrize(
+    "categories", [("EU", "US"), ("EU[West]", "US.East"), (r"EU\West", "US")]
+)
 @pytest.mark.parametrize("saved", [False, True])
 @pytest.mark.parametrize(
     "viz_type", ["echarts_timeseries_line", "echarts_timeseries_bar"]
 )
 def test_xy_preview_renders_all_post_processed_series(
-    monkeypatch: pytest.MonkeyPatch, saved: bool, viz_type: str
+    monkeypatch: pytest.MonkeyPatch,
+    saved: bool,
+    viz_type: str,
+    categories: tuple[str, str],
 ) -> None:
     """Real pivot output renders every series through saved and unsaved dispatch."""
     from types import SimpleNamespace
@@ -3373,12 +3379,13 @@ def test_xy_preview_renders_all_post_processed_series(
         pd.DataFrame(
             {
                 "event_date": ["2026-10-01", "2026-10-01", "2026-10-02", "2026-10-02"],
-                "region": ["EU", "US", "EU", "US"],
+                "region": [*categories, *categories],
                 "SUM(revenue)": [10, 20, 30, 40],
             }
         )
     ).to_dict(orient="records")
-    assert set(rows[0]) == {"event_date", "SUM(revenue), EU", "SUM(revenue), US"}
+    fields = [f"SUM(revenue), {category}" for category in categories]
+    assert set(rows[0]) == {"event_date", *fields}
     if saved:
         strategy = VegaLitePreviewStrategy(
             SimpleNamespace(params=json.dumps(form_data), viz_type=viz_type),
@@ -3392,7 +3399,10 @@ def test_xy_preview_renders_all_post_processed_series(
     assert spec["data"]["values"] == rows
     assert spec["transform"] == [
         {
-            "fold": ["SUM(revenue), EU", "SUM(revenue), US"],
+            "fold": [
+                "".join("\\" + char if char in ".[]\\" else char for char in field)
+                for field in fields
+            ],
             "as": ["__mcp_xy_series", "__mcp_xy_value"],
         }
     ]

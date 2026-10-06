@@ -24,11 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
-- MCP query results enforce non-configurable hard limits of **64 KiB**
+- MCP query results enforce non-configurable hard limits of **50,000 rows per
+  query**, **100,000 total rows**, **2,500,000 values/containers**, **64 KiB**
   (65,536 UTF-8 bytes) per row-cell string value and **16 MiB**
   (16,777,216 JSON-encoded bytes) across all query data and metadata. All
   metadata additionally shares a separate 1 MiB aggregate allowance; metadata
   strings (including SQL text) are not subject to the row-cell string cap.
+  The total-row budget counts returned data rows across all queries, not
+  `rowcount`/`total_rows` metadata. The shared value budget counts each row
+  object, cell scalar (including null), nested container and its elements, plus
+  row-shaped `indexnames` and their entries. Repeated occurrences count again;
+  object keys contribute bytes, not values. For example, 50,000 rows with 50
+  scalar columns exceed the value budget (2,550,000 including row objects),
+  even below the byte caps.
   Oversized results fail with `MalformedQueryResult` (or a chart compile error for
   generation/update checks), including one-row results and MCP CSV/Excel/Parquet
   exports. The caps apply to chart data/previews and

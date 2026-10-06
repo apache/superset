@@ -1535,6 +1535,7 @@ def _normalize_row_value(  # noqa: C901
     value: Any,
     budget: _ResultBudget,
     *,
+    copy_containers: bool = False,
     temporal_json_numbers: bool = False,
     preserve_nonfinite_floats: bool = False,
     preserve_excel_temporals: bool = False,
@@ -1550,6 +1551,8 @@ def _normalize_row_value(  # noqa: C901
     keeps naive row-level date, time, datetime, and duration cells as builtin
     temporal objects for XLSX exports; size budgets still use their JSON text.
     ``preserve_csv_temporals`` retains established row-cell CSV spellings.
+    ``copy_containers`` detaches nested containers after their bounds checks;
+    the caller supplies a detached root row for non-mutating validation.
     """
     stack: list[
         tuple[
@@ -1614,7 +1617,7 @@ def _normalize_row_value(  # noqa: C901
                 return "contains an oversized array"
             active_containers.add(identity)
             stack.append((item, None, None, depth, True))
-            if type(item) is tuple:
+            if type(item) is tuple or copy_containers:
                 item = list(item)
                 if type(parent) is list:
                     assert type(slot) is int
@@ -1645,6 +1648,15 @@ def _normalize_row_value(  # noqa: C901
             item_count = dict.__len__(item)
             if item_count > _MAX_ROW_CONTAINER_ITEMS:
                 return "contains an oversized object"
+            if copy_containers and parent is not None:
+                item = dict.copy(item)
+                if type(parent) is list:
+                    assert type(slot) is int
+                    list.__setitem__(parent, slot, item)
+                else:
+                    assert type(parent) is dict
+                    assert type(slot) is str
+                    dict.__setitem__(parent, slot, item)
             if reason := _charge_json_bytes(
                 budget, _container_json_syntax_size(item_count, mapping=True)
             ):
@@ -1712,6 +1724,7 @@ def _normalize_row_value(  # noqa: C901
 def query_result_data(  # noqa: C901
     result: Any,
     *,
+    normalize_in_place: bool = True,
     temporal_json_numbers: bool = False,
     preserve_nonfinite_floats: bool = False,
     preserve_excel_temporals: bool = False,
@@ -1727,6 +1740,8 @@ def query_result_data(  # noqa: C901
     the workbook stores date cells rather than text. CSV exports can preserve
     established row-cell temporal spellings instead of JSON's ISO text.
     All container, scalar-type, and size checks still apply in those modes.
+    With ``normalize_in_place=False``, return detached normalized rows while
+    preserving source cells for a later format-aware normalization pass.
     """
     if type(result) is not dict:
         return None, _malformed_result("top-level result must be an object")
@@ -1859,15 +1874,24 @@ def query_result_data(  # noqa: C901
                         return None, _malformed_result(
                             f"query {index} {count_key} is smaller than len(data)"
                         )
+        normalized_data = data if normalize_in_place else []
         for row_offset in range(data_length):
             row = list.__getitem__(data, row_offset)
             if type(row) is not dict:
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} must be an exact object"
                 )
+            if not normalize_in_place:
+                if dict.__len__(row) > _MAX_ROW_CONTAINER_ITEMS:
+                    return None, _malformed_result(
+                        f"query {index} data row {row_offset + 1} "
+                        "contains an oversized object"
+                    )
+                row = dict.copy(row)
             if reason := _normalize_row_value(
                 row,
                 budget,
+                copy_containers=not normalize_in_place,
                 temporal_json_numbers=temporal_json_numbers,
                 preserve_nonfinite_floats=preserve_nonfinite_floats,
                 preserve_excel_temporals=preserve_excel_temporals,
@@ -1876,6 +1900,8 @@ def query_result_data(  # noqa: C901
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} {reason}"
                 )
+            if not normalize_in_place:
+                normalized_data.append(row)
         for metadata_key in (
             "colnames",
             "coltypes",
@@ -1936,7 +1962,7 @@ def query_result_data(  # noqa: C901
                     return None, _malformed_result(
                         f"query {index} coltypes contains an unsupported value"
                     )
-        data_arrays.append(data)
+        data_arrays.append(normalized_data)
     return data_arrays, None
 
 
@@ -2244,7 +2270,9 @@ def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> A
 
 def normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
     """Require unique hierarchy outputs and finite numeric Treemap metrics."""
-    _data, failure = query_result_data(result, preserve_nonfinite_floats=True)
+    data, failure = query_result_data(
+        result, normalize_in_place=False, preserve_nonfinite_floats=True
+    )
     if failure is not None:
         return failure
     label = metric_result_label(form_data.get("metric"))
@@ -2262,13 +2290,8 @@ def normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) ->
             error="Treemap requires exactly one query result.",
             error_type="InvalidTreemapResult",
         )
-    query = queries[0]
-    rows = query.get("data") if isinstance(query, Mapping) else None
-    if not isinstance(rows, list):
-        return ChartError(
-            error="Treemap query data must be an array of rows.",
-            error_type="InvalidTreemapResult",
-        )
+    assert data is not None
+    rows = data[0]
     if failure := _validate_treemap_rows(rows, hierarchy, label):
         return failure
     return result

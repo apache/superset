@@ -6670,3 +6670,80 @@ async def test_csv_export_keeps_existing_temporal_spelling(
     payload = json.loads(result.content[0].text)
     assert "csv_data" in payload, payload
     assert list(csv.DictReader(io.StringIO(payload["csv_data"]))) == [expected]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+@pytest.mark.parametrize("export_format", ["csv", "excel"])
+async def test_treemap_export_preserves_temporal_hierarchy(
+    mcp_server: Any, mock_auth: Any, data_path: str, export_format: str
+) -> None:
+    """Treemap validation leaves temporal cells for format-aware normalization."""
+    import base64
+    import csv
+    from io import BytesIO, StringIO
+
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    form_data = {
+        "viz_type": "treemap_v2",
+        "datasource": "1__table",
+        "groupby": ["at"],
+        "metric": "count",
+    }
+    chart = SimpleNamespace(
+        id=31,
+        slice_name="Temporal treemap",
+        viz_type="treemap_v2",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    value = datetime(2026, 10, 5, 12)
+    rows = [{"at": value, "count": 1}]
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {
+            "queries": [{"data": rows, "colnames": list(rows[0]), "rowcount": 1}]
+        }
+        request: dict[str, Any] = {"format": export_format}
+        if data_path != "unsaved_cache":
+            request["identifier"] = 31
+        if data_path != "saved":
+            request["form_data_key"] = "temporal-treemap"
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("get_chart_data", {"request": request})
+    payload = json.loads(result.content[0].text)
+    if export_format == "csv":
+        assert "csv_data" in payload, payload
+        assert list(csv.DictReader(StringIO(payload["csv_data"]))) == [
+            {"at": "2026-10-05 12:00:00", "count": "1"}
+        ]
+    else:
+        assert "excel_data" in payload, payload
+        workbook = load_workbook(BytesIO(base64.b64decode(payload["excel_data"])))
+        cell = workbook.active["A2"]
+        assert cell.data_type == "d"
+        assert cell.value == value

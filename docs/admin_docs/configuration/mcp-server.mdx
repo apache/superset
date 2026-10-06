@@ -1429,7 +1429,10 @@ silently dropping or moving a predicate.
 
 ### Query result limits
 
-MCP chart tools accept up to 50,000 rows per query. The row-shaped `indexnames`
+MCP chart tools accept up to **50,000 rows per query** and **100,000 total rows**
+across all queries in one result. The aggregate counts each returned data row,
+including repeated rows in different queries; it does not use `rowcount` or
+`total_rows` metadata. The row-shaped `indexnames`
 array emitted by Chart Data uses the same 50,000-entry limit, rather than the
 4,096-entry limit for other metadata arrays. Index entries count toward the
 shared row-data work budget and retain the 1 MiB aggregate metadata byte limit.
@@ -1438,6 +1441,14 @@ containers within an index entry retain the standard container limits.
 
 The shared query-result validator also enforces **non-configurable hard limits**:
 
+- **2,500,000 values/containers across all queries**. Each row object, cell
+  scalar (including null), and nested list, tuple, array, or object contributes
+  to this shared work budget; nested elements count individually and repeated
+  occurrences count again. Object keys count toward byte limits, not this value
+  count. Row-shaped `indexnames` and their entries also consume this budget.
+  For example, 50,000 rows with 50 scalar columns require 2,550,000 values
+  (50,000 row objects plus 2,500,000 cells) and exceed the budget even if their
+  encoded size is below 16 MiB.
 - **64 KiB (65,536 UTF-8 bytes) per row-cell string value**. A single
   65,537-byte cell fails even in a one-row result. Binary cells must also fit
   the cell limit before and after conversion to UTF-8 or a `base64:` string.
@@ -1450,7 +1461,7 @@ These limits apply before rendering or exporting in `get_chart_data`,
 `get_chart_preview`, chart generation/update compile checks, `query_dataset`,
 and semantic-layer `get_table`. They include inline/table responses and MCP
 CSV, Excel, and Parquet export paths; exports do not bypass source validation.
-Exceeding either limit returns `MalformedQueryResult` rather than truncating a
+Exceeding any limit returns `MalformedQueryResult` rather than truncating a
 cell or partially exporting a result. Generation/update compile checks surface
 the same malformed-result reason as a chart compile error.
 Increasing the configurable response-size

@@ -446,20 +446,6 @@ def _form_column_label(column: Any) -> str | None:
     return None
 
 
-def _canonical_result_field(label: str | None, row: Dict[str, Any]) -> str | None:
-    """Resolve an exact or one unambiguous casefold result-field match."""
-    if label is None:
-        return None
-    if label in dict.keys(row):
-        return label
-    matches = [
-        field
-        for field in dict.keys(row)
-        if type(field) is str and field.casefold() == label.casefold()
-    ]
-    return matches[0] if len(matches) == 1 else None
-
-
 def _require_result_field(label: str | None, row: dict[str, Any], role: str) -> str:
     """Resolve a role without falling back to an unrelated result field."""
     if not label:
@@ -1175,25 +1161,6 @@ def _is_nan(value: Any) -> bool:
         return math.isnan(float(value))
     except (ValueError, TypeError):
         return False
-
-
-def _bullet_numeric_tokens(value: Any) -> list[float]:
-    """Parse native comma-separated Bullet threshold controls."""
-    if isinstance(value, str):
-        tokens: list[Any] = [token.strip() for token in value.split(",")]
-    elif isinstance(value, list):
-        tokens = value
-    else:
-        return []
-    result: list[float] = []
-    for token in tokens:
-        try:
-            number = float(token)
-        except (TypeError, ValueError):
-            continue
-        if not _is_nan(number) and math.isfinite(number):
-            result.append(number)
-    return result
 
 
 def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noqa: C901
@@ -2450,8 +2417,9 @@ def generate_xy_pivot_vega_lite_preview(
 ) -> VegaLitePreview | None:
     """Render flattened timeseries pivot columns without dropping grouped series.
 
-    Folding exact output keys avoids splitting category values that contain
-    escaped commas. The legend retains each complete metric/category label.
+    Folding escaped field paths resolves literal output keys without splitting
+    category values that contain escaped commas. The legend retains each
+    complete metric/category label.
     Long-form results continue through the generic renderer.
     """
     from superset.mcp_service.chart.chart_helpers import _as_list
@@ -2502,7 +2470,15 @@ def generate_xy_pivot_vega_lite_preview(
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
             "data": {"values": data},
             "transform": [
-                {"fold": fields, "as": ["__mcp_xy_series", "__mcp_xy_value"]}
+                {
+                    "fold": [
+                        "".join(
+                            "\\" + char if char in ".[]\\" else char for char in field
+                        )
+                        for field in fields
+                    ],
+                    "as": ["__mcp_xy_series", "__mcp_xy_value"],
+                }
             ],
             "mark": mark,
             "encoding": {

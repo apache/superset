@@ -2841,3 +2841,52 @@ def test_query_result_ndarray_charges_work_and_wire_bytes(
         )
         assert failure is not None
         assert "total JSON-encoded byte limit" in failure.error
+
+
+@pytest.mark.parametrize("as_array", [False, True])
+def test_query_result_detached_normalization_preserves_source_cells(
+    as_array: bool,
+) -> None:
+    """Validation copies nested containers without rewriting an export source."""
+    value = datetime(2026, 10, 5, 12)
+    nested = {"values": [value, (value,)]}
+    source = np.array([value], dtype=object) if as_array else [value]
+    row = {"at": value, "left": nested, "right": nested, "array": source}
+    result = {"queries": [{"data": [row]}]}
+    data, failure = query_result_data(result, normalize_in_place=False)
+    assert failure is None
+    assert data == [
+        [
+            {
+                "at": "2026-10-05T12:00:00",
+                "left": {"values": ["2026-10-05T12:00:00", ["2026-10-05T12:00:00"]]},
+                "right": {"values": ["2026-10-05T12:00:00", ["2026-10-05T12:00:00"]]},
+                "array": ["2026-10-05T12:00:00"],
+            }
+        ]
+    ]
+    assert result["queries"][0]["data"][0] is row
+    assert row["at"] is value
+    assert row["left"] is row["right"] is nested
+    assert nested["values"][0] is value
+    assert nested["values"][1] == (value,)
+    assert row["array"] is source
+    assert source[0] is value
+
+
+@pytest.mark.parametrize("kind", ["cycle", "width", "unsupported"])
+def test_query_result_detached_normalization_keeps_validation_bounds(kind: str) -> None:
+    """Detached inspection rejects invalid values without partial source writes."""
+    value = datetime(2026, 10, 5, 12)
+    nested: list[Any] = [value]
+    if kind == "cycle":
+        nested.append(nested)
+    elif kind == "width":
+        nested.extend([None] * 4096)
+    else:
+        nested.append(object())
+    result = {"queries": [{"data": [{"nested": nested}]}]}
+    _data, failure = query_result_data(result, normalize_in_place=False)
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+    assert nested[0] is value
