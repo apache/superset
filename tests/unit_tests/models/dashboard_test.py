@@ -741,7 +741,9 @@ def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
 
 
 def test_custom_user_model_dashboard_copy_listener(app_context: None) -> None:
-    """Ensure dashboard copy events can be registered dynamically for custom user models."""
+    """Ensure dashboard copy events can be registered dynamically
+    for custom user models.
+    """
     from superset.models.dashboard import register_dashboard_copy_events
 
     assert callable(register_dashboard_copy_events)
@@ -800,7 +802,3 @@ def test_exclude_users_filter_with_custom_user_model(
     query_mock.filter.assert_called_once()
     filter_arg = query_mock.filter.call_args[0][0]
     assert filter_arg.left == custom_user_model.username
-
-
-
-

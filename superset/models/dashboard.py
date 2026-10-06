@@ -156,8 +156,6 @@ def register_dashboard_copy_events(user_model: Any) -> None:
         sqla.event.listen(user_model, "after_insert", copy_dashboard)
 
 
-
-
 dashboard_slices = Table(
     "dashboard_slices",
     metadata,
