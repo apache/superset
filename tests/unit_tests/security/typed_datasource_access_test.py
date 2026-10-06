@@ -31,7 +31,11 @@ from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestToken, GuestUser
-from superset.security.manager import query_context_modified, SupersetSecurityManager
+from superset.security.manager import (
+    _datasource_matches,
+    query_context_modified,
+    SupersetSecurityManager,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
@@ -41,6 +45,24 @@ def datasource(kind: str) -> SqlaTable | SemanticView:
     if kind == "table":
         return SqlaTable(id=7, table_name="region", perm="table-perm")
     return SemanticView(id=7, name="region", perm="semantic-perm")
+
+
+@pytest.mark.parametrize(
+    "source_id,dataset_id",
+    [
+        pytest.param(1, True, id="bool-id"),
+        pytest.param(7, 7.0, id="float-id"),
+        pytest.param(None, 7, id="missing-datasource"),
+    ],
+)
+def test_datasource_match_rejects_invalid_inputs(
+    source_id: int | None, dataset_id: bool | float | int
+) -> None:
+    """Malformed IDs and missing datasource objects do not match."""
+    source: SqlaTable | None = (
+        SqlaTable(id=source_id, table_name="region") if source_id is not None else None
+    )
+    assert _datasource_matches(source, dataset_id, "table") is False
 
 
 @pytest.fixture
