@@ -7405,6 +7405,55 @@ def test_is_bare_select_expression(sql: str, engine: str, expected: bool) -> Non
     assert SQLStatement(sql, engine).is_bare_select_expression() is expected
 
 
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", set()),
+        ("SELECT a, b", set()),
+        # Reported without sqlglot's keyword-avoiding underscore, which its FROM
+        # clause carries as `from_`. A caller comparing against {"from"} should
+        # not have to know that, nor track it across releases.
+        ("SELECT 1 FROM t", {"from"}),
+        ("SELECT 1 FROM t WHERE x = 1", {"from", "where"}),
+        ("SELECT 1 GROUP BY 1", {"group"}),
+        ("SELECT 1 LIMIT 1", {"limit"}),
+        ("INSERT INTO t VALUES (1)", set()),
+    ],
+)
+def test_get_clause_names(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_clause_names` method.
+
+    Parametrized by engine for the same reason `is_bare_select_expression` is:
+    the answer is read off the parsed node's own arguments, so a dialect that
+    names one differently has to show up in the answer rather than vanish from
+    it.
+    """
+    assert SQLStatement(sql, engine).get_clause_names() == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", None),
+        ("SELECT 1 FROM DUAL", "FROM DUAL"),
+        ("SELECT 1 FROM SYSIBM.SYSDUMMY1", "FROM SYSIBM.SYSDUMMY1"),
+        # Rendered, so the caller's own spacing does not have to match...
+        ("SELECT 1   FROM    DUAL", "FROM DUAL"),
+        # ...while identifier case, which an engine may treat as significant,
+        # survives.
+        ("SELECT 1 FROM dual", "FROM dual"),
+        ("SELECT 1 FROM a.b AS c", "FROM a.b AS c"),
+        ("INSERT INTO t VALUES (1)", None),
+    ],
+)
+def test_get_from_clause_sql(sql: str, engine: str, expected: str | None) -> None:
+    """Check the `get_from_clause_sql` method."""
+    assert SQLStatement(sql, engine).get_from_clause_sql() == expected
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
