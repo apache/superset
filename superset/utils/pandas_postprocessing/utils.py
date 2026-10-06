@@ -235,21 +235,25 @@ def _transfer_column(
     Separates overwrite logic from append logic:
     if target exists in base_df, overwrites existing target values;
     if target does not exist, appends the new column.
+    Ensures unmapped columns are discarded.
     """
-    if source not in append_df:
+    if source not in append_df and source not in append_df.columns:
         return base_df
 
     if _is_multi_index(base_df):
-        if target in base_df:
+        if target in base_df.columns or target in base_df:
             base_df[target] = append_df[source]
             return base_df
-        if _is_multi_index(append_df):
+        if _is_multi_index(append_df) and source in append_df.columns.levels[0]:
             src_slice = append_df[[source]].copy()
             new_cols = [(target, *col[1:]) for col in src_slice.columns]
             src_slice.columns = pd.MultiIndex.from_tuples(
                 new_cols, names=base_df.columns.names
             )
             return pd.concat([base_df, src_slice], axis="columns")
+        if isinstance(target, tuple) and len(target) == base_df.columns.nlevels:
+            base_df[target] = append_df[source]
+            return base_df
         new_cols = [(target, *([""] * (base_df.columns.nlevels - 1)))]
         src_slice = append_df[[source]].copy()
         src_slice.columns = pd.MultiIndex.from_tuples(
