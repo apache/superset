@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -72,13 +72,21 @@ export const REFRESH_FREQUENCY_OPTIONS: RefreshFrequencyOption[] = [
   { value: -1, label: t('Custom') },
 ];
 
-const isPresetValue = (frequency: number) =>
-  REFRESH_FREQUENCY_OPTIONS.some(
+export const isPresetValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
+) =>
+  options.some(
     option => option.value === frequency && option.value !== -1,
   );
 
-const getCustomValue = (frequency: number) =>
-  !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
+export const getCustomValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
+) =>
+  !isPresetValue(frequency, options) && frequency > 0
+    ? frequency.toString()
+    : '';
 
 const normalizeRefreshLimitSeconds = (
   refreshLimit?: number,
@@ -136,18 +144,28 @@ export const RefreshFrequencySelect = ({
     return REFRESH_FREQUENCY_OPTIONS.slice(0, -1);
   }, [optionsProp, configuredIntervals]);
 
-  // Separate radio selection state from value state
-  const [radioSelection, setRadioSelection] = useState(() =>
-    isPresetValue(value) ? value : -1,
+  const isPreset = useCallback(
+    (frequency: number) => isPresetValue(frequency, activeOptions),
+    [activeOptions],
   );
 
-  const [customValue, setCustomValue] = useState(() => getCustomValue(value));
+  const getCustom = useCallback(
+    (frequency: number) => getCustomValue(frequency, activeOptions),
+    [activeOptions],
+  );
+
+  // Separate radio selection state from value state
+  const [radioSelection, setRadioSelection] = useState(() =>
+    isPreset(value) ? value : -1,
+  );
+
+  const [customValue, setCustomValue] = useState(() => getCustom(value));
 
   useEffect(() => {
-    const selection = isPresetValue(value) ? value : -1;
+    const selection = isPreset(value) ? value : -1;
     setRadioSelection(selection);
-    setCustomValue(selection === -1 ? getCustomValue(value) : '');
-  }, [value]);
+    setCustomValue(selection === -1 ? getCustom(value) : '');
+  }, [value, isPreset, getCustom]);
 
   const handleRadioChange = (event: RadioChangeEvent) => {
     const selectedValue = Number(event.target.value);
