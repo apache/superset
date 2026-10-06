@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from sqlalchemy.orm import Session
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -2483,7 +2484,7 @@ def test_layer_delete_removes_child_view_permissions(
 
 
 def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
-    """Checking many child permissions uses a bounded number of queries."""
+    """The unloaded layer hook batches child permission ownership checks."""
     from sqlalchemy import event, inspect
     from sqlalchemy.engine import Connection
 
@@ -2582,6 +2583,65 @@ def test_view_delete_keeps_permission_another_resource_owns(
 
     assert session.query(SemanticView).count() == 0
     assert session.get(SqlaTable, 1) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+def test_layer_delete_keeps_permission_a_view_in_another_layer_owns(
+    session: Session,
+) -> None:
+    """Deleting one layer retains a key used by a view in another layer."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text, update
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    deleted_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    retained_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Retained Layer", type="test", configuration="{}"
+    )
+    session.add_all([deleted_layer, retained_layer])
+    session.flush()
+    deleted_view: SemanticView = SemanticView(
+        name="Deleted View",
+        semantic_layer_uuid=deleted_layer.uuid,
+        configuration="{}",
+    )
+    retained_view: SemanticView = SemanticView(
+        name="Retained View",
+        semantic_layer_uuid=retained_layer.uuid,
+        configuration="{}",
+    )
+    session.add_all([deleted_view, retained_view])
+    session.flush()
+    key: str = deleted_view.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="shared view reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+    retained_view_id: int = retained_view.id
+
+    # Model a legacy shared key without invoking the view update event.
+    session.execute(
+        update(SemanticView.__table__)
+        .where(SemanticView.__table__.c.id == retained_view_id)
+        .values(perm=key)
+    )
+    session.commit()
+    session.expire(deleted_layer, ["semantic_views"])
+    session.delete(deleted_layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.get(SemanticView, retained_view_id).perm == key
     assert security_manager.find_permission_view_menu("datasource_access", key)
     assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
 
