@@ -134,7 +134,7 @@ Dashboard Management:
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
-- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, and filter_timegrain)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
@@ -156,6 +156,9 @@ Theme Management:
 - list_themes: Discover themes (antd design-token configurations) with filters (1-based pagination)
 - get_theme_info: Get a theme's tokens (json_data) by ID or UUID
 - create_theme: Create a reusable theme from antd design tokens (requires write access)
+
+Asset Catalog:
+- get_catalog: Compact, permission-filtered page of databases, datasets, charts or dashboards (id, uuid, name, description, changed_on, url; cursor pagination, max 100 items / 32 KiB)
 
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
@@ -342,6 +345,8 @@ To explore metrics across all data sources (built-in datasets + external semanti
    }}) -> returns tabular results
    - Use "dataset_id" when list_metrics returned source="builtin"
    - Use "view_id" when list_metrics returned source="external"
+   - For external views, select current member IDs and pass semantic_selection_version
+     from list_metrics when non-null. Never infer a version or upgrade saved title keys.
 
 To progressively refine a query (compatible dimensions/metrics):
 - get_compatible_dimensions(request={{
@@ -801,6 +806,9 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_layer_annotation_info,
     list_annotation_layers,
     list_layer_annotations,
+)
+from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
+    get_catalog,
 )
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,

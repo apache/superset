@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 # entries through newly upgraded processes without trying to rewrite cached data.
 MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v2:"
 
+# Tools whose responses must never be served from the response cache,
+# regardless of MCP_CACHE_CONFIG["excluded_tools"]. The catalog is a live,
+# per-user projection: a cached page could outlive a revoked grant.
+ALWAYS_EXCLUDED_TOOLS: frozenset[str] = frozenset({"get_catalog"})
+
 
 def _version_cache_prefix(
     prefix: str | Callable[[], str],
@@ -46,6 +51,41 @@ def _version_cache_prefix(
         return versioned_prefix
 
     return f"{prefix}{MCP_RESPONSE_CACHE_NAMESPACE}"
+
+
+def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
+    """Make ``middleware`` skip tool calls that carry a dashboard filter scope.
+
+    FastMCP keys cached tool results on the tool name and arguments only. A
+    dashboard filter scope arrives in a request header instead, so without
+    this a result computed without the scope could be served to a call that
+    carries one (or the reverse). Calls whose scope restricts rows, or whose
+    header cannot be decoded, are neither read from nor written to the cache.
+    A scope with no active filters changes nothing, so those calls are cached
+    as before.
+
+    FastMCP resolves ``on_call_tool`` on the instance at dispatch time, so
+    wrapping the bound method is enough.
+    """
+    from superset.mcp_service.dashboard_scope import (
+        get_request_dashboard_scope,
+        MCPDashboardScopeError,
+    )
+
+    cached_call_tool = middleware.on_call_tool
+
+    async def on_call_tool(context: Any, call_next: Any) -> Any:
+        try:
+            scope = get_request_dashboard_scope()
+        except MCPDashboardScopeError:
+            # Never serve a cached result; the tool call refuses the header.
+            return await call_next(context)
+        if scope is not None and scope.has_constraints:
+            return await call_next(context)
+        return await cached_call_tool(context, call_next)
+
+    middleware.on_call_tool = on_call_tool
+    return middleware
 
 
 def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -90,10 +130,12 @@ def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
     call_tool_settings: Dict[str, Any] = {}
     if "call_tool_ttl" in cache_config:
         call_tool_settings["ttl"] = cache_config["call_tool_ttl"]
-    if "excluded_tools" in cache_config:
-        call_tool_settings["excluded_tools"] = cache_config["excluded_tools"]
-    if call_tool_settings:
-        settings["call_tool_settings"] = call_tool_settings
+    excluded_tools = list(cache_config.get("excluded_tools") or [])
+    excluded_tools.extend(
+        name for name in sorted(ALWAYS_EXCLUDED_TOOLS) if name not in excluded_tools
+    )
+    call_tool_settings["excluded_tools"] = excluded_tools
+    settings["call_tool_settings"] = call_tool_settings
 
     return settings
 
@@ -170,13 +212,26 @@ def create_response_caching_middleware() -> Any | None:
         # Build per-operation settings from config
         settings = _build_caching_settings(cache_config)
 
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        search_config = flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
+        proxy_name = search_config.get("call_tool_name", "call_tool")
+        # The proxy forwards to FastMCP's tool execution, where the target's
+        # cache policy applies. Caching the outer proxy response would bypass
+        # that policy and could replay an always-excluded catalog response.
+        excluded_tools = settings["call_tool_settings"]["excluded_tools"]
+        if proxy_name not in excluded_tools:
+            excluded_tools.append(proxy_name)
+
         # Create middleware (store=None uses FastMCP's default in-memory store)
         middleware = ResponseCachingMiddleware(
             cache_storage=store,
             **settings,
         )
         logger.info("MCP caching middleware enabled")
-        return middleware
+        return _bypass_dashboard_scoped_calls(middleware)
 
     # Use existing app context if available, otherwise push one
     if has_app_context():

@@ -45,6 +45,8 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  resolveHeaderGroups,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
@@ -136,9 +138,16 @@ const getComparisonColConfig = (
   parentColKey: string,
   columnConfig: Record<string, TableColumnConfig>,
 ) => {
-  const comparisonKey = `${label} ${parentColKey}`;
-  const comparisonColConfig = columnConfig[comparisonKey] || {};
-  return comparisonColConfig;
+  const keys = [`${label} ${parentColKey}`];
+  if (label === 'Main' || label === t('Main')) {
+    keys.push(`Main ${parentColKey}`, `${t('Main')} ${parentColKey}`);
+  }
+  for (const key of keys) {
+    if (columnConfig[key]) {
+      return columnConfig[key];
+    }
+  }
+  return {};
 };
 
 const getComparisonColFormatter = (
@@ -596,6 +605,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     show_numbered_column: showNumberedColumn = false,
+    header_groups: headerGroups = [],
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
     zebra_striping: zebraStriping = false,
@@ -754,6 +764,14 @@ const transformProps = (
   }
 
   const [, percentMetrics, columns] = processColumns(slice_id, chartProps);
+  const comparisonMetricKeys = columns
+    .filter(col => (col.isMetric || col.isPercentMetric) && col.isNumeric)
+    .map(col => col.key);
+  const resolvedHeaderGroups = resolveHeaderGroups(headerGroups, {
+    timeCompareEnabled: isUsingTimeComparison,
+    metricKeys: comparisonMetricKeys,
+    verboseMap: chartProps.datasource?.verboseMap,
+  });
 
   const timeGrain = extractTimegrain(formData);
 
@@ -949,6 +967,7 @@ const transformProps = (
     isUsingTimeComparison,
     colorPositiveNegative,
     totals,
+    totalsAggregate: toTotalsAggregate(formData.totals_aggregate),
     showTotals,
     columnColorFormatters,
     basicColorColumnFormatters,
@@ -959,6 +978,7 @@ const transformProps = (
     chartState,
     onChartStateChange,
     showNumberedColumn,
+    headerGroups: resolvedHeaderGroups,
     zebraStriping,
     onContextMenu,
   };

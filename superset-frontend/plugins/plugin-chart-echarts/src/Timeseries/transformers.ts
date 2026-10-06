@@ -72,6 +72,7 @@ import {
   OpacityEnum,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  X_AXIS_CROSS_FILTER_SOURCE,
 } from '../constants';
 
 const AUTO_LABEL_FIT_RATIO = 0.8;
@@ -470,10 +471,11 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
-  // When cross-filtering by X-axis (no dimensions), selectedValues contains
-  // X-axis values rather than series names, so skip series-level dimming.
+  // When cross-filtering by X-axis, selectedValues contains X-axis values
+  // rather than series names, so skip series-level dimming.
   const isFiltered =
     opts.hasDimensions !== false &&
+    filterState?.crossFilterSource !== X_AXIS_CROSS_FILTER_SOURCE &&
     filterState?.selectedValues &&
     !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
@@ -606,7 +608,11 @@ export function transformSeries(
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
-    // entire chart area. Bars with many categories auto-size below this cap.
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
     ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
