@@ -16,6 +16,7 @@
 # under the License.
 import sqlite3
 from contextlib import closing
+from datetime import datetime
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -115,3 +116,15 @@ def test_non_apsw_backend_is_left_alone() -> None:
 
     with engine.connect() as connection:
         assert connection.execute(text("SELECT 1")).scalar() == 1
+
+
+@pytest.mark.parametrize("spec", [ShillelaghEngineSpec, SupersetEngineSpec])
+def test_convert_dttm_date(spec: type[ShillelaghEngineSpec]) -> None:
+    """
+    A DATE column gets a bare date, which shillelagh can read as a date.
+    """
+    assert spec.convert_dttm("DATE", datetime(2026, 9, 20)) == "'2026-09-20'"
+    assert spec.convert_dttm("DATE", datetime(2026, 9, 20, 12)) == "'2026-09-20'"
+    assert (
+        spec.convert_dttm("DATETIME", datetime(2026, 9, 20)) == "'2026-09-20 00:00:00'"
+    )

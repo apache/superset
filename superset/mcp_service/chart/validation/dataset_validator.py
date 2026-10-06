@@ -24,16 +24,23 @@ import difflib
 import logging
 import re
 from collections.abc import Iterable, Mapping
+from itertools import zip_longest
 from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
+    BubbleChartConfig,
     ChartConfig,
     ColumnRef,
+    TableChartConfig,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
     ColumnSuggestion,
     DatasetContext,
+)
+from superset.mcp_service.utils.error_builder import (
+    MAX_DID_YOU_MEAN_CANDIDATES,
+    MAX_ERROR_SUGGESTIONS,
 )
 
 _C = TypeVar("_C", bound=ChartConfig)
@@ -232,7 +239,9 @@ class DatasetValidator:
 
         # Validate columns exist (skip saved metrics — already validated above)
         column_error = DatasetValidator._validate_columns_exist(
-            column_refs, dataset_context
+            column_refs,
+            dataset_context,
+            DatasetValidator._extract_metric_references(config),
         )
         if column_error:
             return False, column_error
@@ -305,7 +314,9 @@ class DatasetValidator:
 
     @staticmethod
     def _validate_columns_exist(  # noqa: C901
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        metric_refs: Iterable[ColumnRef] = (),
     ) -> ChartGenerationError | None:
         """Validate that non-saved-metric column refs exist in the dataset.
 
@@ -377,8 +388,26 @@ class DatasetValidator:
             )
             suggestions_map[col_ref.name] = suggestions
 
+        # A ref in a metric slot that near-misses a saved metric name would
+        # otherwise dead-end on "No matching columns found.", because metrics
+        # are excluded from the column candidates above. Only reached when the
+        # physical-column pass found nothing, so the more direct column fix
+        # still wins when it exists.
+        metric_hints: Dict[str, List[str]] = {}
+        invalid_names = {ref.name for ref in invalid_columns}
+        for col_ref in metric_refs:
+            if col_ref.name is None or col_ref.name not in invalid_names:
+                continue
+            if suggestions_map.get(col_ref.name):
+                continue
+            matches = DatasetValidator._get_metric_suggestions(
+                col_ref.name, dataset_context
+            )
+            if matches:
+                metric_hints[col_ref.name] = matches
+
         return DatasetValidator._build_column_error(
-            invalid_columns, suggestions_map, dataset_context
+            invalid_columns, suggestions_map, dataset_context, metric_hints
         )
 
     @staticmethod
@@ -435,6 +464,7 @@ class DatasetValidator:
         """Fetch the ORM dataset by ID/UUID and build a :class:`DatasetContext`."""
         try:
             from superset.daos.dataset import DatasetDAO
+            from superset.mcp_service.auth import has_dataset_access
 
             if isinstance(dataset_id, int) or (
                 isinstance(dataset_id, str) and dataset_id.isdecimal()
@@ -443,11 +473,30 @@ class DatasetValidator:
             else:
                 dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
+            if dataset is None or not has_dataset_access(dataset):
+                return None
+
             return build_dataset_context_from_orm(dataset)
 
         except Exception as e:
             logger.error("Error getting dataset context for %s: %s", dataset_id, e)
             return None
+
+    @staticmethod
+    def _extract_metric_references(config: ChartConfig) -> List[ColumnRef]:
+        """Collect metric slots separately from dimension and filter references."""
+        refs: List[ColumnRef] = []
+        for field in ("y", "y_secondary", "metric", "metrics", "size"):
+            value = getattr(config, field, None)
+            if isinstance(value, ColumnRef):
+                refs.append(value)
+            elif isinstance(value, list):
+                refs.extend(ref for ref in value if isinstance(ref, ColumnRef))
+        if isinstance(config, BubbleChartConfig):
+            refs.append(config.x)
+        if isinstance(config, TableChartConfig) and config.query_mode != "raw":
+            refs.extend(ref for ref in config.columns if ref.aggregate is not None)
+        return refs
 
     @staticmethod
     def _extract_column_references(
@@ -470,7 +519,7 @@ class DatasetValidator:
         if chart_type is None:
             return []
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
@@ -617,7 +666,7 @@ class DatasetValidator:
         if chart_type is None:
             return config
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning(
                 "No plugin for chart_type=%r; skipping column normalization", chart_type
@@ -637,17 +686,27 @@ class DatasetValidator:
 
     @staticmethod
     def _get_column_suggestions(
-        column_name: str, dataset_context: DatasetContext, max_suggestions: int = 3
+        column_name: str,
+        dataset_context: DatasetContext,
+        max_suggestions: int = 3,
+        include_metrics: bool = False,
     ) -> List[ColumnSuggestion]:
-        """Get column name suggestions using fuzzy matching."""
+        """Get column name suggestions using fuzzy matching.
+
+        Saved metrics are excluded by default: a dimension or WHERE reference
+        can only be a physical column, and suggesting a metric there leads to
+        the broken ``SUM(metric)`` shape. Set ``include_metrics`` for slots
+        Superset does resolve metric names in, such as a HAVING subject.
+        """
         all_names = []
 
         # Collect all column names
         for col in dataset_context.available_columns:
             all_names.append((col["name"], "column", col.get("type", "UNKNOWN")))
 
-        for metric in dataset_context.available_metrics:
-            all_names.append((metric["name"], "metric", "METRIC"))
+        if include_metrics:
+            for metric in dataset_context.available_metrics:
+                all_names.append((metric["name"], "metric", "METRIC"))
 
         # Find close matches
         column_lower = column_name.lower()
@@ -679,45 +738,151 @@ class DatasetValidator:
         return suggestions
 
     @staticmethod
+    def _get_metric_suggestions(
+        name: str, dataset_context: DatasetContext, max_suggestions: int = 3
+    ) -> List[str]:
+        """Fuzzy-match *name* against saved metric names only."""
+        by_lowered = {
+            metric["name"].lower(): metric["name"]
+            for metric in dataset_context.available_metrics
+        }
+        return [
+            by_lowered[match]
+            for match in difflib.get_close_matches(
+                name.lower(), list(by_lowered), n=max_suggestions, cutoff=0.6
+            )
+        ]
+
+    @staticmethod
+    def _rank_candidates(
+        names: List[str],
+        suggestions_map: Dict[str, List[ColumnSuggestion]],
+    ) -> List[str]:
+        """Interleave each missing column's candidates, best match first.
+
+        The ``Did you mean`` cap is shared across every missing column, so a
+        flat in-order concatenation lets the first name consume every slot.
+        Round-robin gives each missing column a turn regardless of input order.
+        """
+        ranked: List[str] = []
+        per_name = [
+            [suggestion.name for suggestion in suggestions_map.get(name, [])]
+            for name in names
+        ]
+        for tier in zip_longest(*per_name):
+            for candidate in tier:
+                if candidate is not None and candidate not in ranked:
+                    ranked.append(candidate)
+        return ranked
+
+    @staticmethod
+    def _saved_metric_hints(metric_hints: Dict[str, List[str]]) -> List[str]:
+        """Guidance for metric-slot refs that near-miss a saved metric name.
+
+        Only the dataset's own metric names appear, never the caller's input.
+        """
+        names = list(
+            dict.fromkeys(name for matches in metric_hints.values() for name in matches)
+        )[:MAX_DID_YOU_MEAN_CANDIDATES]
+        if not names:
+            return []
+        quoted = ", ".join(f"'{name}'" for name in names)
+        return [
+            f"Did you mean the saved metric {quoted}? Reference a saved metric "
+            'as {"name": "<metric>", "saved_metric": true} rather than setting '
+            '"aggregate".'
+        ]
+
+    @staticmethod
+    def _candidates_first(all_names: List[str], candidates: List[str]) -> List[str]:
+        """Order *all_names* with the fuzzy *candidates* leading, no repeats."""
+        known = set(all_names)
+        ranked = [name for name in dict.fromkeys(candidates) if name in known]
+        leading = set(ranked)
+        return ranked + [name for name in all_names if name not in leading]
+
+    @staticmethod
+    def _bounded_error_context(
+        dataset_context: DatasetContext,
+        candidates: List[str],
+        metric_candidates: List[str] | None = None,
+    ) -> DatasetContext:
+        """Names-only dataset context for a column error.
+
+        Names are returned verbatim per the Tool Result Value Contract; only
+        the number of entries is bounded, and SQL expressions are dropped.
+        Fuzzy candidates come first so the suggested column is never cut from
+        the list by the count bound. Saved metrics get the same treatment so a
+        hinted saved metric is never missing from ``available_metrics``.
+        """
+        ranked = DatasetValidator._candidates_first(
+            [col["name"] for col in dataset_context.available_columns], candidates
+        )
+        ranked_metrics = DatasetValidator._candidates_first(
+            [metric["name"] for metric in dataset_context.available_metrics],
+            metric_candidates or [],
+        )
+        return DatasetContext(
+            id=dataset_context.id,
+            table_name=dataset_context.table_name,
+            schema=dataset_context.schema_name,
+            database_name=dataset_context.database_name,
+            available_columns=[
+                {"name": name} for name in ranked[:MAX_ERROR_SUGGESTIONS]
+            ],
+            available_metrics=[
+                {"name": name} for name in ranked_metrics[:MAX_ERROR_SUGGESTIONS]
+            ],
+        )
+
+    @staticmethod
     def _build_column_error(
         invalid_columns: List[ColumnRef],
         suggestions_map: Dict[str, List[ColumnSuggestion]],
         dataset_context: DatasetContext,
+        metric_hints: Dict[str, List[str]] | None = None,
     ) -> ChartGenerationError:
         """Build error for invalid columns."""
-        from superset.mcp_service.utils.error_builder import (
-            ChartErrorBuilder,
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+
+        # Count distinct names: one column referenced from two slots is a
+        # single missing column, not a "multiple columns" failure.
+        names = list(
+            dict.fromkeys(col.name or "<unknown column>" for col in invalid_columns)
         )
-
-        if len(invalid_columns) == 1:
-            col = invalid_columns[0]
-            col_name = col.name or "<unknown column>"
-            suggestions = suggestions_map.get(col_name, [])
-
-            if suggestions:
-                return ChartErrorBuilder.column_not_found_error(
-                    col_name, [s.name for s in suggestions]
-                )
-            else:
-                return ChartErrorBuilder.column_not_found_error(col_name)
+        candidates = DatasetValidator._rank_candidates(names, suggestions_map)
+        if len(names) == 1:
+            error = ChartErrorBuilder.column_not_found_error(names[0], candidates)
         else:
-            # Multiple invalid columns
-            invalid_names: list[str] = [col.name for col in invalid_columns if col.name]
-            return ChartErrorBuilder.build_error(
-                error_type="multiple_invalid_columns",
-                template_key="column_not_found",
-                template_vars={
-                    "column": ", ".join(invalid_names[:3])
-                    + ("..." if len(invalid_names) > 3 else ""),
-                    "suggestions": "Use get_dataset_info to see all available columns",
-                },
-                custom_suggestions=[
-                    f"Invalid columns: {', '.join(invalid_names)}",
-                    "Check spelling and case sensitivity",
-                    "Use get_dataset_info to list available columns",
-                ],
-                error_code="MULTIPLE_INVALID_COLUMNS",
+            error = ChartErrorBuilder.multiple_columns_not_found_error(
+                names, candidates
             )
+
+        extra = DatasetValidator._saved_metric_hints(metric_hints or {})
+        total_columns = len(dataset_context.available_columns)
+        if total_columns > MAX_ERROR_SUGGESTIONS:
+            extra.append(
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_columns} columns; "
+                "call get_dataset_info for the full list"
+            )
+        total_metrics = len(dataset_context.available_metrics)
+        if total_metrics > MAX_ERROR_SUGGESTIONS:
+            extra.append(
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_metrics} saved "
+                "metrics; call get_dataset_info for the full list"
+            )
+        if extra:
+            error.suggestions = (error.suggestions + extra)[:MAX_ERROR_SUGGESTIONS]
+
+        metric_candidates = list(
+            dict.fromkeys(
+                name for matches in (metric_hints or {}).values() for name in matches
+            )
+        )
+        error.dataset_context = DatasetValidator._bounded_error_context(
+            dataset_context, candidates, metric_candidates
+        )
+        return error
 
     @staticmethod
     def _validate_saved_metrics(
@@ -751,11 +916,12 @@ class DatasetValidator:
         available = [m["name"] for m in dataset_context.available_metrics]
         return ChartErrorBuilder.build_error(
             error_type="invalid_saved_metric",
-            template_key="column_not_found",
+            template_key="saved_metric_not_found",
             template_vars={
                 "column": ", ".join(invalid),
                 "suggestions": (
-                    f"Available saved metrics: {', '.join(available[:10])}"
+                    "Available saved metrics: "
+                    f"{', '.join(available[:MAX_ERROR_SUGGESTIONS])}"
                     if available
                     else "This dataset has no saved metrics"
                 ),

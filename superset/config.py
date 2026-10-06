@@ -426,8 +426,9 @@ AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
 # When enabled, users whose account is flagged with ``password_must_change``
-# (e.g. accounts provisioned by an administrator) are redirected to the
-# password-reset page until they set a new password. Off by default.
+# (e.g. accounts provisioned by an administrator) are redirected to their
+# profile page (/user_info/, "Reset my password") until they set a new
+# password. Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
 
 # Password complexity policy, enforced (via Flask-AppBuilder) across
@@ -2838,8 +2839,6 @@ WEBDRIVER_OPTION_ARGS: list[str] = []
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time selenium will wait for the page to load and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
