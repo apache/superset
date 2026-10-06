@@ -1385,13 +1385,15 @@ def _mapping_command(
     partition_mapped_column: str | None = None,
     main_dttm_col: str = "event_time",
     database: Database | None = None,
+    supports_partition_filter_mapping: bool | None = None,
 ) -> UpdateDatasetCommand:
     """
     A command whose stored dataset maps `event_time` onto `dt_epoch`.
 
     `database` takes a real one, for the gates that read more of it than
     `backend` -- the function denylist is keyed on the engine spec's own name,
-    which a mock cannot supply.
+    which a mock cannot supply. `supports_partition_filter_mapping` pins the
+    mock database's engine capability; left unset, the mock reads as truthy.
     """
     mapped_column = mocker.MagicMock()
     mapped_column.column_name = "event_time"
@@ -1406,6 +1408,10 @@ def _mapping_command(
         mock_dataset.database = database
     else:
         mock_dataset.database.backend = "sqlite"
+        if supports_partition_filter_mapping is not None:
+            mock_dataset.database.db_engine_spec.supports_partition_filter_mapping = (
+                supports_partition_filter_mapping
+            )
     mock_dataset.catalog = None
     mock_dataset.schema = "main"
     mock_dataset.columns = [mapped_column, partition_column]
@@ -1667,3 +1673,67 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_dangling_mapping_on_an_unsupported_engine_does_not_block_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    On an engine without `supports_partition_filter_mapping` the editor hides
+    the mapping controls but still sends the stored `partition_column` back.
+    A mapping kept from before the engine gate, whose partition column a sync
+    has since removed, must not 422 every save: the owner has no control left
+    to clear it, and the query path ignores the mapping anyway.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", supports_partition_filter_mapping=False
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+    command._properties["partition_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_same_dangling_mapping_is_rejected_on_a_supported_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Where the editor shows the controls, the owner can fix it, so it blocks."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", supports_partition_filter_mapping=True
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+    command._properties["partition_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_jinja_transform_is_rejected_on_an_unsupported_engine_too(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only the column references are relaxed off the engine gate. The engine
+    belongs to the database connection and can change without a dataset save,
+    so a transform let through here could become live without being vetted.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp({{ current_user_id() }})",
+        supports_partition_filter_mapping=False,
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]

@@ -1523,8 +1523,13 @@ function DatasourceEditor({
       // an explicit null inside the `columns` payload, which `update_columns`
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
+      //
+      // The engine gate applies for the same reason. On an engine without the
+      // capability the mapping is hidden and ignored but kept, so it comes
+      // back if the dataset is pointed at a supported engine; clearing it here
+      // would save the loss as explicit nulls behind a control nobody can see.
       if (
-        isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+        partitionFilterMappingEnabled(datasource) &&
         datasource.partition_column &&
         !datasource.partition_mapped_column
       ) {
@@ -1543,6 +1548,7 @@ function DatasourceEditor({
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
+      datasource.supports_partition_filter_mapping,
     ],
   );
 

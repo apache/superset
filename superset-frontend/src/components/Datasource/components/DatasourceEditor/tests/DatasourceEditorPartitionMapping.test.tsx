@@ -332,6 +332,51 @@ test('with the feature off, re-pointing the default datetime column keeps the tr
   });
 });
 
+test('on an engine without support, re-pointing the default datetime column keeps the transform', async () => {
+  // A mapping stored before the engine gate (or carried over from a supported
+  // database) is hidden and ignored on such an engine but kept, so it comes
+  // back on a supported one. The ungated "Default datetime column" select must
+  // not clear it as explicit nulls the owner never sees.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = null;
+  props.datasource.supports_partition_filter_mapping = false;
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'ds')!.partition_value_transform =
+    'unix_timestamp(:value)';
+  columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
+  seeded.push({
+    id: 99,
+    type: 'DATETIME',
+    filterable: false,
+    is_dttm: true,
+    is_active: true,
+    expression: '',
+    groupby: false,
+    column_name: 'ingest_time',
+  } as EditorColumn);
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('default-datetime-column-select');
+
+  await selectOption('ingest_time', 'Default datetime column');
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalled();
+  });
+  expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+  expect(
+    columnNamed(lastSavedColumns(props), 'ingest_time')
+      ?.partition_value_transform ?? null,
+  ).toBeNull();
+});
+
 test('DatasourceEditor source pins syncMetadata to the live column state', () => {
   // Source-pin, for the same reason the sibling pin in `DatasourceEditor.test.tsx`
   // exists: this file's own note records that the sync button cannot be
