@@ -86,7 +86,6 @@ from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
 
-
 pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
 
