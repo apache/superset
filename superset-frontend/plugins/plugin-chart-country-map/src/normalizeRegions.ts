@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import regions from './regions';
 
 export type RegionFormat = 'name' | 'abbreviation' | 'iso_3166_2';
@@ -60,13 +61,23 @@ function createRegionResolver(
   return value => {
     if (typeof value !== 'string' || !value || value.length > 500) {
       throw new Error(
-        'Geographic values must be nonempty strings of at most 500 characters',
+        t(
+          'Geographic values must be nonempty strings of at most 500 characters',
+        ),
       );
     }
     const matches = exactIndex.get(value) ?? foldedIndex.get(fold(value));
     if (matches?.size !== 1) {
       throw new Error(
-        `${matches?.size ? 'Ambiguous' : 'Unrecognized'} region ${JSON.stringify(value.slice(0, 100))}; choose the matching country/region format or explicitly filter the dataset.`,
+        matches?.size
+          ? t(
+              'Ambiguous region %s; choose the matching country/region format or explicitly filter the dataset.',
+              JSON.stringify(value.slice(0, 100)),
+            )
+          : t(
+              'Unrecognized region %s; choose the matching country/region format or explicitly filter the dataset.',
+              JSON.stringify(value.slice(0, 100)),
+            ),
       );
     }
     return [...matches][0];
@@ -94,7 +105,7 @@ export default function normalizeRegions(
     !['name', 'abbreviation', 'iso_3166_2'].includes(format)
   ) {
     throw new Error(
-      'Unsupported country or region_format for typed geographic chart',
+      t('Unsupported country or region_format for typed geographic chart'),
     );
   }
   const boundaries = regions[country].map(([ISO, NAME_1]) => ({
@@ -106,7 +117,10 @@ export default function normalizeRegions(
     const iso = resolve(record[entity]);
     if (seen.has(iso)) {
       throw new Error(
-        `Multiple result rows resolve to ${iso}; normalize source values before aggregation.`,
+        t(
+          'Multiple result rows resolve to %s; normalize source values before aggregation.',
+          iso,
+        ),
       );
     }
     seen.add(iso);

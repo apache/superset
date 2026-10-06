@@ -645,10 +645,10 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
         dataset_id: int | str | None,
         dataset_context: Any = None,
     ) -> Any | None:
-        """Reject an effective dimension that aliases a replacement coordinate.
+        """Reject effective roles that conflict with native spatial features.
 
-        Omitted dimensions survive updates, but the frontend removes coordinate
-        columns from feature properties before applying categorical filters.
+        Omitted dimensions and radius metrics survive updates. The frontend
+        strips coordinate properties and reserves computed spatial field names.
         """
         dimension = column_result_label(form_data.get("dimension"))
         spatial = form_data.get("spatial")
@@ -662,6 +662,13 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
                 f"Dimension column {dimension!r} reuses a coordinate column; "
                 "choose a separate category column"
             )
+        for metric in self.result_metrics(form_data):
+            label = metric_result_label(metric)
+            if label in {"weight", "position", "extraProps"}:
+                raise ValueError(
+                    f"Radius metric label {label!r} conflicts with a native spatial "
+                    "field; clear or replace the radius metric"
+                )
         return None
 
     def build_query_dicts(

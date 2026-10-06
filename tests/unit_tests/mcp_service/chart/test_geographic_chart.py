@@ -1837,6 +1837,63 @@ async def test_point_update_rejects_inherited_dimension_coordinate_collision(
     )
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("label", ["weight", "position", "extraProps"])
+@pytest.mark.parametrize("radius_form", ["bare", "saved", "adhoc"])
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_inherited_reserved_radius_label(
+    label: str, radius_form: str, entry: str, persist: bool
+) -> None:
+    """Native radius labels must be revalidated before typed updates query/save."""
+    metric: Any = label
+    if radius_form == "adhoc":
+        metric = {
+            "expressionType": "SIMPLE",
+            "aggregate": "SUM",
+            "column": {"columnName": "sales"},
+            "label": label,
+        }
+    radius = metric if radius_form == "bare" else {"type": "metric", "value": metric}
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0][label] = 10
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override={"mcp_geographic": False, "point_radius_fixed": radius},
+        result_override=result,
+        expected_error="conflicts with a native spatial field",
+    )
+
+
+@pytest.mark.parametrize("label", ["weight", "position", "extraProps"])
+@pytest.mark.parametrize("operation", ["clear", "fixed", "replace"])
+def test_point_update_can_replace_reserved_radius_label(
+    label: str, operation: str
+) -> None:
+    """Explicit radius controls remove an invalid inherited native metric."""
+    update = dict(_CHART_EXAMPLES["deck_scatter"][0])
+    if operation == "fixed":
+        update["radius"] = 25
+    else:
+        update["radius_metric"] = (
+            None if operation == "clear" else {"name": "sales", "aggregate": "SUM"}
+        )
+    config = CHART_CONFIG_ADAPTER.validate_python(update)
+    merged = merge_chart_form_data(
+        {**form_for("deck_scatter"), "point_radius_fixed": label},
+        map_config_to_form_data(config),
+        config,
+    )
+    plugin = DeckScatterChartPlugin()
+    assert plugin.validate_merged_form_data(merged, 3) is None
+    assert label not in [metric_result_label(m) for m in plugin.result_metrics(merged)]
+
+
 @pytest.mark.parametrize("role", ["latitude", "longitude"])
 @pytest.mark.parametrize("operation", ["preserve", "clear", "replace", "rebind"])
 def test_point_update_accepts_distinct_effective_dimension(

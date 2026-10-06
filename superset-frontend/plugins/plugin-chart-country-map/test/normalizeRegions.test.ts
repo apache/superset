@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { configure } from '@apache-superset/core/translation';
 import normalizeRegions, {
   resolveRegion,
   RegionFormat,
@@ -145,3 +146,106 @@ test.each(['Kōchi', 'Kochi', 'kōchi'])(
     ).toEqual([{ state: 'JP-39' }]);
   },
 );
+
+const frenchErrors = {
+  'Geographic values must be nonempty strings of at most 500 characters': [
+    'Les valeurs géographiques doivent être des chaînes non vides de 500 caractères au maximum',
+  ],
+  'Unrecognized region %s; choose the matching country/region format or explicitly filter the dataset.':
+    [
+      'Région inconnue %s ; choisissez le pays/format correspondant ou filtrez les données.',
+    ],
+  'Ambiguous region %s; choose the matching country/region format or explicitly filter the dataset.':
+    [
+      'Région ambiguë %s ; choisissez le pays/format correspondant ou filtrez les données.',
+    ],
+  'Unsupported country or region_format for typed geographic chart': [
+    'Pays ou format de région non pris en charge pour ce graphique géographique',
+  ],
+  'Multiple result rows resolve to %s; normalize source values before aggregation.':
+    [
+      'Plusieurs lignes correspondent à %s ; normalisez les valeurs avant agrégation.',
+    ],
+};
+
+test.each([
+  {
+    name: 'unrecognized region',
+    run: () =>
+      normalizeRegions([{ state: 'BC' }], 'state', 'usa', 'abbreviation'),
+    message:
+      'Région inconnue "BC" ; choisissez le pays/format correspondant ou filtrez les données.',
+  },
+  {
+    name: 'duplicate normalized region',
+    run: () =>
+      normalizeRegions(
+        [{ state: 'CA' }, { state: 'ca' }],
+        'state',
+        'usa',
+        'abbreviation',
+      ),
+    message:
+      'Plusieurs lignes correspondent à US-CA ; normalisez les valeurs avant agrégation.',
+  },
+  {
+    name: 'unsupported format',
+    run: () => normalizeRegions([], 'state', 'usa', 'unknown'),
+    message:
+      frenchErrors[
+        'Unsupported country or region_format for typed geographic chart'
+      ][0],
+  },
+  {
+    name: 'unsupported country',
+    run: () => normalizeRegions([], 'state', 'unknown', 'abbreviation'),
+    message:
+      frenchErrors[
+        'Unsupported country or region_format for typed geographic chart'
+      ][0],
+  },
+  {
+    name: 'invalid value',
+    run: () =>
+      normalizeRegions([{ state: null }], 'state', 'usa', 'abbreviation'),
+    message:
+      frenchErrors[
+        'Geographic values must be nonempty strings of at most 500 characters'
+      ][0],
+  },
+  {
+    name: 'ambiguous region',
+    run: () =>
+      resolveRegion(
+        'region',
+        [
+          { properties: { ISO: 'A', NAME_1: 'Region' } },
+          { properties: { ISO: 'B', NAME_1: 'REGION' } },
+        ],
+        'name',
+      ),
+    message:
+      'Région ambiguë "region" ; choisissez le pays/format correspondant ou filtrez les données.',
+  },
+])('localizes $name in a French Explore session', ({ run, message }) => {
+  configure({
+    languagePack: {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'fr',
+            plural_forms: 'nplurals=2; plural=(n != 1)',
+          },
+          ...frenchErrors,
+        },
+      },
+    },
+  });
+  try {
+    expect(run).toThrow(message);
+  } finally {
+    configure();
+  }
+});
