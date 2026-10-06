@@ -69,6 +69,18 @@ def _verbatim_resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
     return request.get_json(silent=True) or None
 
 
+def _logged_actions(log: Any) -> list[str | None]:
+    """The ``action`` of each call to a patched event logger's ``log``.
+
+    Route decorators pass it positionally; security audit events such as
+    ``UserLoggedIn`` pass it by keyword.
+    """
+    return [
+        call.kwargs["action"] if "action" in call.kwargs else call.args[1]
+        for call in log.call_args_list
+    ]
+
+
 @contextmanager
 def csrf_enabled(app: Any) -> Any:
     """Turn real CSRF protection on for the duration of a test.
@@ -528,7 +540,7 @@ class TestLoginTokenApi(SupersetTestCase):
 
                 # Control: the mint endpoint's own event was recorded. Without
                 # this, a logger that never fired would pass trivially.
-                actions = [call.args[1] for call in log.call_args_list]
+                actions = _logged_actions(log)
                 assert "SecurityRestApi.login_token" in actions, actions
 
                 recorded = repr(log.call_args_list)
@@ -577,6 +589,38 @@ class TestLoginTokenApi(SupersetTestCase):
 
         me = json.loads(self.client.get("/api/v1/me/").data)["result"]
         assert me.get("username") == GAMMA_USERNAME, me
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_does_not_record_the_token(self):
+        """The one-time token never reaches the event log.
+
+        It travels in the consume URL's query string, which
+        ``collect_request_payload`` would otherwise copy verbatim into
+        ``logs.json``. Covers a successful redemption and a rejected one, since a
+        token logged before it is burned would be a live credential at rest.
+        """
+        real_logger = _event_logger["event_logger"]
+        live = self._mint()
+        unknown = "6d2b9921-2274-43b8-94d6-e5e1f05372c4"
+
+        for token, expected in ((live, 302), (unknown, 401)):
+            with self.subTest(expected=expected):
+                with patch.object(real_logger, "log") as log:
+                    response = self.client.get(
+                        f"{ENDPOINT}?token={token}&next=/dashboard/list/"
+                    )
+                assert response.status_code == expected, response.data
+
+                # Control: the consume event was recorded, under its unchanged
+                # action name. Without this, a logger that never fired would
+                # pass trivially. A successful login also writes a
+                # `UserLoggedIn` audit event, which passes `action` by keyword.
+                actions = _logged_actions(log)
+                assert "login_with_token" in actions, actions
+
+                recorded = repr(log.call_args_list)
+                assert token not in recorded, recorded
 
     # --------------------------------------------------------------------- csrf
 

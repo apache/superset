@@ -354,7 +354,13 @@ class SecurityRestApi(BaseSupersetApi):
         )
 
     @expose("/login-token/", methods=("GET",))
-    @event_logger.log_this
+    # Request data is excluded from the event log for the same reason as on mint:
+    # the token travels in the query string, and ``collect_request_payload``
+    # would otherwise copy it into ``logs.json``. A row written while the token
+    # is still live -- for instance by a request that fails before the burn
+    # commits -- would be a redeemable credential at rest. The action name is
+    # left as the default, so existing log queries are unaffected.
+    @event_logger.log_this_with_context(include_request_data=False)
     @statsd_metrics
     @safe
     @transaction()
