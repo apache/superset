@@ -188,3 +188,25 @@ def test_empty_allowlist_matches_default_behavior(allowed_dialects):
     allowed_dialects(set())
     with pytest.raises(SupersetSecurityException):
         check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
+
+
+@pytest.mark.parametrize(
+    "allowed_entry",
+    [
+        "DuckDB",  # different case
+        "duckdb+duckdb_engine",  # an operator-supplied "+driver" suffix
+        "  duckdb  ",  # stray whitespace
+    ],
+)
+def test_allowlist_entry_is_normalized(allowed_dialects, allowed_entry: str):
+    """An operator entry opts the dialect in regardless of case, a "+driver"
+    suffix or surrounding whitespace, matching how the blocklist treats them."""
+    allowed_dialects({allowed_entry})
+    check_sqlalchemy_uri(make_url("duckdb:///md:my_db?motherduck_token=tok"))
+
+
+def test_none_allowlist_matches_default_behavior(allowed_dialects):
+    """A ``None`` value is treated as no allowlist rather than erroring."""
+    allowed_dialects(None)
+    with pytest.raises(SupersetSecurityException):
+        check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
