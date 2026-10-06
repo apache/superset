@@ -143,12 +143,16 @@ class _PassTotals:
     cascade_failures: int = 0
     blocked: int = 0
     scan_failures: int = 0
+    #: Roots this pass actually reached, so a run where every one of them
+    #: failed can be told apart from a run where one did.
+    attempted: int = 0
 
 
 def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
     """Process each registered root, isolating one root's failure from the rest."""
     totals = _PassTotals()
     for model in _soft_delete_models():
+        totals.attempted += 1
         # The table name is itself read off the model, so resolving it belongs
         # inside the guard: a root that cannot supply one would otherwise end
         # the pass here, above the isolation meant to contain it. The class
@@ -196,6 +200,23 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
     return totals
 
 
+def _report_total_outage(every_root_failed: bool) -> None:
+    """Trip the task-failure signal when no root could be scanned at all.
+
+    Isolating one root's failure from the others is the point of that
+    handling, but a pass in which *every* root failed is an outage rather
+    than isolation -- and before the isolation existed it raised and
+    incremented ``failed``. Keeping that increment preserves the alert for
+    the case that still means what it used to.
+    """
+    if not every_root_failed:
+        return
+    logger.error(
+        "deletion_retention: every root failed to scan; reporting the pass as failed"
+    )
+    stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
+
+
 def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
     if window_days == 0 or window_days < -1:
@@ -222,6 +243,11 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
     failures = totals.cascade_failures
     blocked = totals.blocked
     scan_failures = totals.scan_failures
+    # A root with no policy was never scanned, so it is not a failure and
+    # does not count toward "every root failed" -- which is what tells a
+    # metadata-database outage apart from one root misbehaving.
+    scannable: int = totals.attempted - len(unsupported_models)
+    every_root_failed: bool = scannable > 0 and scan_failures == scannable
 
     if dry_run:
         _report_model_counts("would_purge", would_purge)
@@ -230,6 +256,7 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
             stats_logger_manager.instance.gauge(
                 f"{_METRIC_PREFIX}.scan_failures", scan_failures
             )
+        _report_total_outage(every_root_failed)
         return {
             "dry_run": 1,
             "would_purge": would_purge,
@@ -248,6 +275,7 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         stats_logger_manager.instance.gauge(
             f"{_METRIC_PREFIX}.scan_failures", scan_failures
         )
+    _report_total_outage(every_root_failed)
     stats = {
         "purged": purged,
         "cascade_failures": failures,

@@ -24,6 +24,7 @@ import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
+from functools import partial
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -677,8 +678,12 @@ def _host_policy(
 
 
 @contextmanager
-def _installed(provider: Callable[[], Any]) -> Iterator[None]:
-    """Install a host policy provider for the duration of one test."""
+def _installed(provider: Any) -> Iterator[None]:
+    """Install a host policy provider for the duration of one test.
+
+    Typed loosely on purpose: some tests install a value that is not a
+    provider at all, which is what the host boundary has to cope with.
+    """
     previous: Any = current_app.config.get(HOST_POLICIES_CONFIG_KEY)
     current_app.config[HOST_POLICIES_CONFIG_KEY] = provider
     try:
@@ -958,12 +963,13 @@ def test_root_without_an_id_column_is_rejected(
     _assert_rejected(model, _host_policy(model, ()), "has no 'id' column", caplog)
 
 
-def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
-    """A host that walks the sub-tree itself may declare the shape."""
+def test_self_referencing_owned_table_accepts_declared_subtree_cleanup() -> None:
+    """A policy that says it walks the sub-tree may declare the shape."""
     model: type[Any] = _host_tree("customtree")
     policy: PurgeEntityPolicy = replace(
         _host_policy(model, _host_tree_edges("customtree")),
         delete_owned_children=lambda session, policy, entity_id: None,
+        walks_own_subtree=True,
     )
 
     with _installed(lambda: [policy]):
@@ -1614,3 +1620,83 @@ def test_version_target_on_an_unversioned_root_is_rejected(
     _assert_rejected(
         model, _host_policy(model, declared), "has no version class", caplog
     )
+
+
+def test_host_policy_mapped_onto_a_built_in_table_is_dropped(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A different class on a built-in table is still this package's rows.
+
+    It is not the built-in root by identity, so the class check alone admits
+    it -- and then host cleanup runs against ``slices``. Inheriting the mixin
+    also puts it in the soft-delete registry, so the scheduled task would
+    scan it.
+    """
+
+    class HostSliceClone(Slice):
+        """A host root mapped onto the chart table."""
+
+    policy: PurgeEntityPolicy = replace(
+        get_purge_policy(Slice),
+        model=HostSliceClone,
+        entity_type="host_root",
+        dependencies=(),
+    )
+
+    with _installed(lambda: [policy]), caplog.at_level(logging.ERROR):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+    assert "mapped onto built-in table" in caplog.text
+
+
+def test_wrapping_the_shared_cleanup_does_not_exempt_a_tree(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Keeping the shared cleanup's behavior while defeating an identity test.
+
+    A ``partial`` of it is a different object but deletes exactly one level,
+    so the shape is still wrong. The exemption is a declared field for that
+    reason: what matters is whether the policy walks the sub-tree, not which
+    object it holds.
+    """
+    model: type[Any] = _host_tree("wrapped")
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, _host_tree_edges("wrapped")),
+        delete_owned_children=partial(delete_owned_children),
+    )
+
+    _assert_rejected(model, policy, "must supply its own", caplog)
+
+
+def test_a_non_callable_config_value_is_reported_once(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A static misconfiguration, not an outage, so it is not retried.
+
+    Assigning the policies directly rather than a callable returning them is
+    an easy mistake; retrying it would log a traceback every window for the
+    life of the process.
+    """
+    model: type[Any] = _host_root("notcallable")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("notcallable"),))
+
+    with _installed([policy]), caplog.at_level(logging.ERROR):
+        for _ in range(3):
+            assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+    assert caplog.text.count("not a callable returning policies") == 1
+
+
+def test_host_policy_without_a_usable_entity_type_is_dropped(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The cascade, the audit record and the logs all read it as a string."""
+    model: type[Any] = _host_root("notype")
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, (_host_edge("notype"),)),
+        # The field is declared ``str``; a host reaching admission with None
+        # is exactly what the check exists for.
+        entity_type=None,  # type: ignore[arg-type]
+    )
+
+    _assert_rejected(model, policy, "declares entity_type", caplog)

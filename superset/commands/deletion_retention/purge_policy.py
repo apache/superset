@@ -197,6 +197,15 @@ class PurgeEntityPolicy:
     delete_owned_children: PolicyAction
     capture_permission_name: PermissionSnapshot
     cleanup_permission: PermissionCleanup
+    #: Set by a policy whose ``delete_owned_children`` walks the whole owned
+    #: sub-tree itself. The shared cleanup issues one statement per declared
+    #: edge, so it reaches one level and builds each predicate by traversing
+    #: the ownership path; the validators that refuse the shapes this breaks
+    #: are skipped only for a policy that says it does the walking. Declared
+    #: rather than inferred from which callable a policy holds: wrapping the
+    #: shared one in a ``partial`` or a logging lambda leaves its behavior in
+    #: place while defeating any identity test.
+    walks_own_subtree: bool = False
 
     @property
     def listener_responsibilities(self) -> frozenset[str]:
@@ -979,7 +988,10 @@ def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
 
 
 def _admitted_host_policy(
-    candidate: Any, builtin_roots: frozenset[type[Any]], builtin_types: frozenset[str]
+    candidate: Any,
+    builtin_roots: frozenset[type[Any]],
+    builtin_tables: frozenset[str],
+    builtin_types: frozenset[str],
 ) -> PurgeEntityPolicy | None:
     """Return *candidate* if it is a usable host policy, else ``None``.
 
@@ -1009,6 +1021,29 @@ def _admitted_host_policy(
             logger.error(
                 "purge_policy: host policy for built-in root %s ignored",
                 candidate.model.__name__,
+            )
+            return None
+        root_table: sa.Table = sa.inspect(candidate.model).local_table
+        if root_table.key in builtin_tables:
+            # A different class mapped onto a built-in table -- a subclass of
+            # Slice, say -- is not the built-in root by identity, but purging
+            # it runs host cleanup against this package's own rows. It also
+            # joins the soft-delete registry through the mixin, so the
+            # scheduled task would scan it.
+            logger.error(
+                "purge_policy: host policy root %s is mapped onto built-in "
+                "table %r; ignored",
+                candidate.model.__name__,
+                root_table.key,
+            )
+            return None
+        if not isinstance(candidate.entity_type, str) or not candidate.entity_type:
+            # Read as a string by the cascade, the audit record and every log
+            # line that names the root.
+            logger.error(
+                "purge_policy: host policy for %s declares entity_type %r",
+                candidate.model.__name__,
+                candidate.entity_type,
             )
             return None
         if candidate.entity_type in builtin_types:
@@ -1097,6 +1132,15 @@ def _host_purge_policies(
     """
     if provider is None:
         return ()
+    if not callable(provider):
+        # Static misconfiguration, not an outage: reported once rather than
+        # retried with a traceback for the life of the process.
+        logger.error(
+            "purge_policy: %s is %s, not a callable returning policies",
+            HOST_POLICIES_CONFIG_KEY,
+            type(provider).__name__,
+        )
+        return ()
     try:
         # Both the call and reading what it returns run host code, so a lazy
         # payload that raises mid-walk is the same kind of failure as a
@@ -1113,13 +1157,20 @@ def _host_purge_policies(
     builtin_roots: frozenset[type[Any]] = frozenset(
         policy.model for policy in builtin_policies
     )
+    builtin_tables: frozenset[str] = frozenset(
+        sa.inspect(policy.model).local_table.key for policy in builtin_policies
+    )
     builtin_types: frozenset[str] = frozenset(
         policy.entity_type for policy in builtin_policies
     )
     admitted: list[PurgeEntityPolicy] = [
         policy
         for candidate in candidates
-        if (policy := _admitted_host_policy(candidate, builtin_roots, builtin_types))
+        if (
+            policy := _admitted_host_policy(
+                candidate, builtin_roots, builtin_tables, builtin_types
+            )
+        )
         is not None
     ]
 
@@ -1209,9 +1260,12 @@ def _resolved_registry() -> _ResolvedRegistry:
     provider: Callable[[], Any] | None = current_app.config.get(
         HOST_POLICIES_CONFIG_KEY
     )
-    published: _ResolvedRegistry = current_app.extensions.setdefault(
-        _REGISTRY_EXTENSION_KEY, _builtin_registry()
+    published: _ResolvedRegistry | None = current_app.extensions.get(
+        _REGISTRY_EXTENSION_KEY
     )
+    if published is None:
+        published = _builtin_registry()
+        current_app.extensions[_REGISTRY_EXTENSION_KEY] = published
     if published.provider is provider and (
         published.retry_after is None or time.monotonic() < published.retry_after
     ):
@@ -1221,13 +1275,16 @@ def _resolved_registry() -> _ResolvedRegistry:
         # built-in one, so hand it the roots this package declares rather than
         # re-entering a resolution that has not finished.
         return _builtin_registry()
+    was_resolving: bool = getattr(_RESOLVING, "active", False)
     _RESOLVING.active = True
     try:
         host_policies: tuple[PurgeEntityPolicy, ...] | None = _host_purge_policies(
             provider
         )
     finally:
-        _RESOLVING.active = False
+        # Restored rather than cleared, so the invariant holds locally instead
+        # of resting on the early return above being the only nesting path.
+        _RESOLVING.active = was_resolving
     if host_policies is None:
         current: _ResolvedRegistry | None = current_app.extensions.get(
             _REGISTRY_EXTENSION_KEY
@@ -1401,14 +1458,14 @@ def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
 
 
 def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
-    """Reject a self-referencing owned table under the stock cleanup.
+    """Reject a self-referencing owned table under one-level cleanup.
 
-    ``delete_owned_children`` issues one statement per declared edge, so a
-    table that owns itself is pruned one level deep. Where foreign keys are
-    enforced the root's own delete then fails and rolls back; where they are
-    not -- SQLite -- the root is purged and its grandchildren are left behind
-    with a dangling parent id and nothing reported. A host declaring a tree
-    supplies cleanup that walks it.
+    Cleanup that issues one statement per declared edge prunes a table that
+    owns itself one level deep. Where foreign keys are enforced the root's own
+    delete then fails and rolls back; where they are not -- SQLite -- the root
+    is purged and its grandchildren are left behind with a dangling parent id
+    and nothing reported. A policy declaring a tree walks it itself and says
+    so with ``walks_own_subtree``.
     """
     for dependency in policy.dependencies:
         if dependency.classification is not DependencyClassification.OWNED:
@@ -1599,12 +1656,10 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
     for dependency in policy.dependencies:
         _validate_dependency_declaration(policy, dependency, metadata)
     _validate_scanner_requirements(policy)
-    if policy.delete_owned_children is delete_owned_children:
-        # The hazard is the stock owned cleanup's: it builds each predicate by
-        # traversing the ownership path, which is empty by then whoever
-        # deleted the association rows. A policy that walks its own tree is
-        # not exposed to it; one that merely replaces the association delete
-        # still is.
+    if not policy.walks_own_subtree:
+        # Both shapes break the same way under cleanup that reaches one level
+        # and resolves each predicate through the ownership path. Only a
+        # policy that declares it walks the sub-tree itself is exempt.
         _validate_owned_traversal(policy)
         _validate_recursive_ownership(policy)
 

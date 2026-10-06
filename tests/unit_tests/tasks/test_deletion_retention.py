@@ -362,6 +362,41 @@ def test_scan_failure_keeps_the_counts_earned_before_it(app_context: None) -> No
     assert scan_failures == 1
 
 
+def test_every_root_failing_reports_the_pass_as_failed(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Isolation is per root; an outage that takes them all is still a failure.
+
+    Before the per-root isolation this raised and incremented ``failed``, so
+    an alert on that metric covered a metadata-database outage. It still does.
+    """
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.tasks import deletion_retention as task
+
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
+
+    def every_scan_fails(*args: Any, **kwargs: Any) -> tuple[int, int, int, int, int]:
+        return (0, 0, 0, 0, 1)
+
+    counter: MagicMock
+    with (
+        patch.object(task, "_purge_model", side_effect=every_scan_fails),
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge"),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert result["purged"] == {}
+    assert result["scan_failures"] == len(task.purge_policy_registry())
+    assert call("deletion_retention.failed") in counter.call_args_list
+
+
 def test_root_without_a_table_name_does_not_abort_the_run(
     app_config: Config,
     monkeypatch: pytest.MonkeyPatch,

@@ -162,7 +162,9 @@ correctly. A policy is refused when a mistake in it would delete the wrong
 rows or silently skip cleanup, since neither announces itself:
 
 - its root is not keyed on a single `id` column, has no `deleted_at` column,
-  is not a class, or claims an `entity_type` the cascade branches on;
+  is not a class, claims an `entity_type` the cascade branches on, or is
+  mapped onto one of Superset's own root tables -- a different class on the
+  chart table is still the chart rows;
 - a table it names cannot be resolved unambiguously without a schema, so
   cleanup would resolve it to a different table;
 - a version target is not root-relative, so cleanup would delete another
@@ -174,12 +176,14 @@ rows or silently skip cleanup, since neither announces itself:
   run but records a reason code in the purge audit log, whose vocabulary is a
   closed set. A host refuses a purge by raising `PurgeBlockedError` from its
   own validator instead, where the code it records is plainly its own;
-- it keeps the shared owned-child cleanup while declaring a table that owns
-  itself, or one reachable only through an association. The shared cleanup
-  deletes one level and builds each predicate by traversing the ownership
-  path, so without enforced foreign keys the root is purged and the rows
-  below it are orphaned silently. A host declaring either shape supplies its
-  own `delete_owned_children`.
+- it declares a table that owns itself, or one reachable only through an
+  association, without setting `walks_own_subtree`. Cleanup that issues one
+  statement per declared edge reaches one level and resolves each predicate
+  through the ownership path, so without enforced foreign keys the root is
+  purged and the rows below it are orphaned silently. A policy whose
+  `delete_owned_children` walks the sub-tree itself says so with that field,
+  rather than being recognised by which callable it holds -- wrapping the
+  shared one keeps its behaviour while defeating any such check.
 
 A host root's references from Superset-owned tables are the host's own to
 clean up, in its own callbacks: the tag and permission cleanups Superset runs
@@ -192,6 +196,11 @@ payload raises while being read -- is logged, and the built-in roots answer
 reads for a short window before it is tried again --
 so a passing outage is not remembered for the life of the process, and it is
 not re-attempted on every read either.
+
+A root with no policy is skipped rather than scanned, so it is not a
+failure. A pass in which every root that *could* be scanned failed is
+reported as a task failure as well as in `scan_failures`, since that is an
+outage rather than the isolation the per-root handling is for.
 
 Anything else is left to fail where it fails. A predicate the cleanup cannot
 build raises per row and is counted in `cascade_failures`; an ordering a
