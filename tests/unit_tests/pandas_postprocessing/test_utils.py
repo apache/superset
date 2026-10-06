@@ -50,3 +50,36 @@ def test_validate_column_args_preserves_signature():
     assert pivot.__name__ == "pivot"
     assert "options" not in parameters
     assert {"index", "aggregates", "columns"} <= set(parameters)
+
+
+def test_append_columns_mixed_mapping_duplication():
+    """
+    Test that _append_columns with mixed mapping overwrites existing
+    target columns and appends new columns without duplicating labels
+    or leaking unmapped columns.
+    """
+    import pandas as pd
+    from superset.utils.pandas_postprocessing.utils import _append_columns
+
+    base_df = pd.DataFrame({
+        "x": [1, 2, 3],
+        "y": [10, 20, 30],
+        "z": [100, 200, 300],
+    })
+    append_df = pd.DataFrame({
+        "y": [11, 22, 33],
+        "z": [101, 202, 303],
+        "extra": [999, 999, 999],
+    })
+    mapping = {"y": "y", "z": "z2"}
+
+    result = _append_columns(base_df, append_df, mapping)
+
+    assert list(result.columns) == ["x", "y", "z", "z2"]
+    assert isinstance(result["y"], pd.Series)
+    assert result["y"].tolist() == [11, 22, 33]
+    assert result["z2"].tolist() == [101, 202, 303]
+    assert result["z"].tolist() == [100, 200, 300]
+    assert "extra" not in result.columns
+    assert base_df["y"].tolist() == [10, 20, 30]
+
