@@ -980,12 +980,19 @@ def _normalize_value(  # noqa: C901
         if reason := _charge_value(budget, metadata=metadata):
             return None, reason
 
-        if type(item) is list:
+        if type(item) is list or type(item) is tuple or type(item) is np.ndarray:
             identity = id(item)
             if identity in active_containers:
                 return None, "cyclic containers"
             active_containers.add(identity)
-            width = list.__len__(item)
+            if type(item) is np.ndarray:
+                if item.ndim == 0:
+                    return None, "a non-sequence array"
+                width = item.shape[0]
+            elif type(item) is tuple:
+                width = tuple.__len__(item)
+            else:
+                width = list.__len__(cast(list[Any], item))
             if width > MAX_RESULT_VALUE_ITEMS:
                 return None, "an oversized array"
             if reason := _charge_json_bytes(
@@ -994,9 +1001,38 @@ def _normalize_value(  # noqa: C901
                 metadata=metadata,
             ):
                 return None, reason
+            # Convert only exact producer sequences, after checking their size.
+            # Traverse children through the same depth/node/byte budgets, and
+            # track the original container so object-array cycles stay bounded.
+            if type(item) is tuple:
+                normalized_array = [
+                    tuple.__getitem__(item, index) for index in range(width)
+                ]
+            elif type(item) is np.ndarray:
+                normalized_array = [
+                    np.ndarray.__getitem__(item, index) for index in range(width)
+                ]
+            else:
+                normalized_array = cast(list[Any], item)
+            if normalized_array is not item:
+                if parent is None:
+                    root = normalized_array
+                elif type(parent) is list:
+                    assert type(slot) is int
+                    list.__setitem__(parent, slot, normalized_array)
+                else:
+                    assert type(parent) is dict
+                    assert type(slot) is str
+                    dict.__setitem__(parent, slot, normalized_array)
             stack.append((item, None, None, depth, True))
             stack.extend(
-                (list.__getitem__(item, index), item, index, depth + 1, False)
+                (
+                    list.__getitem__(normalized_array, index),
+                    normalized_array,
+                    index,
+                    depth + 1,
+                    False,
+                )
                 for index in range(width - 1, -1, -1)
             )
             continue

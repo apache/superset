@@ -1799,3 +1799,85 @@ def test_troubleshooting_guide_separates_mandatory_result_limits() -> None:
     ):
         assert f"{limit:,}" in section
     assert f"{MAX_QUERY_RESULT_VALUE_BYTES // (1024 * 1024)} MiB" in section
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ((1.0, 2.0), [1.0, 2.0]),
+        (np.array([1.0, 2.0]), [1.0, 2.0]),
+        ((np.array([1, 2]), {"nested": (3, 4)}), [[1, 2], {"nested": [3, 4]}]),
+        (np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]),
+    ],
+    ids=["tuple", "arrow-array", "nested", "multidimensional"],
+)
+def test_sequence_cells_are_canonical_json_arrays(value: Any, expected: Any) -> None:
+    """Tuple columns and Arrow-materialized arrays retain their JSON wire shape."""
+    result = {
+        "queries": [
+            {"data": [{"value": value}], "colnames": ["value"], "coltypes": [2]}
+        ]
+    }
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"value": expected}]
+    assert json.loads(json.dumps(result))["queries"][0]["data"] == [{"value": expected}]
+
+
+@pytest.mark.parametrize("container", [tuple, np.array])
+def test_sequence_cells_use_existing_width_and_byte_limits(
+    container: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sequence conversion must not bypass the aggregate or per-container bounds."""
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {"data": [{"value": container([0] * (MAX_RESULT_VALUE_ITEMS + 1))}]}
+            ]
+        }
+    )
+    assert error is not None
+    assert "oversized array" in error.error
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 100
+    )
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": container(["x" * 100])}]}]}
+    )
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+
+def test_cyclic_object_array_is_rejected() -> None:
+    """Track original ndarray identity, not only its newly allocated list."""
+    array = np.empty(1, dtype=object)
+    array[0] = array
+    error = validate_query_result_envelope({"queries": [{"data": [{"value": array}]}]})
+    assert error is not None
+    assert "cyclic" in error.error
+
+
+def test_sequence_subclasses_are_rejected_without_conversion_hooks() -> None:
+    class HookedTuple(tuple[Any, ...]):
+        """Tuple subclass whose conversion must not be invoked."""
+
+        def __iter__(self) -> Any:
+            """Fail if validation dispatches the producer's iteration hook."""
+            raise AssertionError("tuple hook called")
+
+    class HookedArray(np.ndarray):
+        """Array subclass whose conversion must not be invoked."""
+
+        def tolist(self) -> Any:
+            """Fail if validation dispatches the producer's conversion hook."""
+            raise AssertionError("array hook called")
+
+        def __getitem__(self, key: Any) -> Any:
+            """Fail if validation dispatches the producer's indexing hook."""
+            raise AssertionError("array indexing hook called")
+
+    for value in (HookedTuple((1, 2)), np.array([1, 2]).view(HookedArray)):
+        error = validate_query_result_envelope(
+            {"queries": [{"data": [{"value": value}]}]}
+        )
+        assert error is not None
+        assert "subclassed" in error.error

@@ -1112,17 +1112,23 @@ def _timeseries_post_processing(  # noqa: C901
     x_axis_label: str | None,
     groupby: list[Any],
     mixed: bool,
+    sort_metric: Any = None,
 ) -> tuple[list[dict[str, Any]], list[Any]]:
     """Build the Timeseries/Mixed operator pipeline in frontend order."""
     metric_labels = [_label(value, metric=True) for value in query.get("metrics") or []]
+    sort_metric_label = (
+        _label(sort_metric, metric=True) if sort_metric is not None else None
+    )
     offset_map = _metric_offset_map(form_data, metric_labels)
     time_offsets = _as_list(form_data.get("time_compare")) if offset_map else []
     post_processing: list[dict[str, Any]] = []
 
     if x_axis_label and metric_labels:
         aggregate_labels = (
-            [*offset_map.values(), *offset_map] if offset_map else metric_labels
+            [*offset_map.values(), *offset_map] if offset_map else list(metric_labels)
         )
+        if not offset_map and sort_metric_label is not None:
+            aggregate_labels.append(sort_metric_label)
         post_processing.append(
             {
                 "operation": "pivot",
@@ -1214,6 +1220,7 @@ def _timeseries_post_processing(  # noqa: C901
         sortable = {
             x_axis_label or "",
             *metric_labels,
+            sort_metric_label or "",
         }
         if (
             "x_axis_sort" in form_data
@@ -1279,7 +1286,9 @@ def _timeseries_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
         and _label(sort_metric, metric=True)
         not in {_label(metric, metric=True) for metric in query.get("metrics") or []}
     ):
-        query.setdefault("metrics", []).append(sort_metric)
+        extra_metric = sort_metric
+    else:
+        extra_metric = None
     _normalize_query_orderby(query)
     post_processing, time_offsets = _timeseries_post_processing(
         form_data,
@@ -1287,7 +1296,10 @@ def _timeseries_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
         x_axis_label=x_axis_label,
         groupby=groupby,
         mixed=form_data.get("viz_type") == "mixed_timeseries",
+        sort_metric=extra_metric,
     )
+    if extra_metric is not None:
+        query.setdefault("metrics", []).append(extra_metric)
     query["post_processing"] = post_processing
     query["time_offsets"] = time_offsets
     if form_data.get("viz_type") != "mixed_timeseries":

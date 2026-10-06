@@ -423,3 +423,43 @@ async def test_update_chart_preview_mcp_entry_preflights_dict_response(
         assert payload["error"]["error_code"] == "CHART_RESPONSE_TOO_LARGE"
     else:
         assert payload["error"] == error
+
+
+@pytest.mark.parametrize("oversized_field", ["preview", "form_data", "chart_form_data"])
+def test_committed_chart_identity_survives_response_preflight(
+    oversized_field: str,
+) -> None:
+    """A response-size failure must not imply that a committed write failed."""
+    from superset.mcp_service.chart.schemas import ChartInfo, TablePreview
+
+    response = GenerateChartResponse(chart=ChartInfo(id=42), success=True)
+    oversized = "x" * (_TEST_RESPONSE_BYTES + 1)
+    if oversized_field == "preview":
+        response.previews["table"] = TablePreview(table_data=oversized, row_count=1)
+    elif oversized_field == "form_data":
+        response.form_data = {"column_config": {oversized: {}}}
+    else:
+        assert response.chart is not None
+        response.chart.form_data = {"column_config": {oversized: {}}}
+    result = finalize_generate_chart_response(response)
+    assert result.success is True
+    assert result.chart is not None
+    assert result.chart.id == 42
+    assert result.previews == {}
+    assert result.form_data == {}
+    assert result.chart.form_data is None
+    assert result.warnings
+    assert query_result_module.response_json_failure(result) is None
+
+
+@pytest.mark.parametrize("unsaved", [True, False])
+def test_preflight_does_not_report_uncommitted_chart_as_saved(unsaved: bool) -> None:
+    from superset.mcp_service.chart.schemas import ChartInfo
+
+    response = GenerateChartResponse(
+        chart=ChartInfo(id=42 if unsaved else None, is_unsaved_state=unsaved),
+        form_data={"oversized": "x" * (_TEST_RESPONSE_BYTES + 1)},
+    )
+    result = finalize_generate_chart_response(response)
+    assert result.success is False
+    assert result.chart is None

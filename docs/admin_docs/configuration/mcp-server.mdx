@@ -1518,8 +1518,10 @@ preservation of complex SQL restrictions.
 
 ## Result serialization
 
-Data-bearing tool responses sanitize row values, column samples, and statistics
-even when Python producers supply tuples, sets, generators, or read-only mappings.
+Data-bearing tool responses sanitize row values, column samples, and statistics.
+Tuple-valued cells and NumPy arrays (including arrays materialized by Arrow) are
+returned as JSON arrays. Nested values share the same depth, item, and byte
+limits as list-valued cells; unsupported containers and subclasses are rejected.
 Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
 base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
@@ -1535,6 +1537,15 @@ restricted to the first Explore page, and explicit limits apply before execution
 Same-visualization Mixed Timeseries updates preserve omitted secondary-query
 controls, including time range, row limits, time grain, and rolling/resample
 settings. Explicit secondary controls and clears replace the saved values.
+Same-visualization Table updates preserve saved ordering when `sort_by` is
+omitted; `sort_by: []` clears it. Sort-only Timeseries metrics retain their raw
+values when displayed metrics undergo rolling or cumulative processing.
+
+If a successful `generate_chart` or `update_chart` write produces response
+content beyond serialization limits, the response retains `success: true` and
+the saved `chart.id`, with a warning and optional content omitted. Retrieve the
+chart by that ID instead of retrying the write. Unsaved responses that exceed
+these limits still return a structured failure.
 
 ## Chart data column counts
 

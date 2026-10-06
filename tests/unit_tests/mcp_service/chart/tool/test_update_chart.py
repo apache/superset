@@ -1473,6 +1473,7 @@ class TestUpdateChartSaveWithConfig:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("oversized_response", [False, True])
     async def test_save_chart_with_config_success(
         self,
         mock_db_session,
@@ -1481,6 +1482,7 @@ class TestUpdateChartSaveWithConfig:
         mock_update_cmd_cls,
         unused_validate_mock,
         mcp_server,
+        oversized_response: bool,
     ):
         """generate_preview=False with config persists and returns saved chart."""
         mock_chart = Mock()
@@ -1506,7 +1508,7 @@ class TestUpdateChartSaveWithConfig:
         updated_chart.uuid = "uuid-77"
         mock_update_cmd_cls.return_value.run.return_value = updated_chart
 
-        request = {
+        request: dict[str, Any] = {
             "identifier": 77,
             "generate_preview": False,
             "config": {
@@ -1515,6 +1517,9 @@ class TestUpdateChartSaveWithConfig:
             },
         }
 
+        if oversized_response:
+            request["config"]["column_config"] = {"x" * 4097: {}}
+
         async with Client(mcp) as client:
             result = await client.call_tool("update_chart", {"request": request})
 
@@ -1522,6 +1527,13 @@ class TestUpdateChartSaveWithConfig:
         chart = result.structured_content["chart"]
         assert chart["is_unsaved_state"] is False
         assert chart["id"] == 77
+        mock_update_cmd_cls.assert_called_once()
+        if oversized_response:
+            assert result.structured_content["warnings"]
+            assert result.structured_content["form_data"] == {}
+            payload = mock_update_cmd_cls.call_args[0][1]
+            assert "x" * 4097 in json.loads(payload["params"])["column_config"]
+            return
         assert chart["slice_name"] == "After-save"
         assert "slice_id=77" in result.structured_content["explore_url"]
         mock_update_cmd_cls.assert_called_once()

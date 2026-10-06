@@ -372,3 +372,62 @@ def test_grouped_timeseries_preview_resolves_legacy_and_sql_axes(
     ]
     assert spec["encoding"]["y"]["field"] == "value"
     assert spec["encoding"]["color"]["field"] == "series"
+
+
+@pytest.mark.parametrize("rolling_type", ["sum", "cumsum"])
+def test_timeseries_sort_only_metric_keeps_raw_values(rolling_type: str) -> None:
+    """Execute rolling/cumulative processing before sorting by the raw extra metric."""
+    query = build_query_objects_from_form_data(
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "ds",
+            "metrics": ["sales"],
+            "timeseries_limit_metric": "orders",
+            "x_axis_sort": "orders",
+            "x_axis_sort_asc": True,
+            "rolling_type": rolling_type,
+            "rolling_periods": 2,
+        }
+    )[0]
+    assert query["metrics"] == ["sales", "orders"]
+    result = QueryObject(**query).exec_post_processing(
+        pd.DataFrame(
+            {
+                "ds": pd.date_range("2026-01-01", periods=2),
+                "sales": [10, 20],
+                "orders": [100, 1],
+            }
+        )
+    )
+    assert list(result["orders"]) == [1, 100]
+    assert list(result["sales"]) == [30, 10]
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("sort_by", [None, [], [{"column": "id", "ascending": False}]])
+def test_table_update_retains_omitted_ordering(viz_type: str, sort_by: Any) -> None:
+    """Only explicit sort replacements or clears change a saved Table's ordering."""
+    from superset.mcp_service.chart.chart_utils import (
+        map_config_to_form_data,
+        merge_form_data_for_update,
+    )
+    from superset.mcp_service.chart.schemas import TableChartConfig
+
+    saved = {
+        "viz_type": viz_type,
+        "query_mode": "raw",
+        "all_columns": ["id"],
+        "order_by_cols": ['["id",true]'],
+        "row_limit": 10,
+    }
+    kwargs = {} if sort_by is None else {"sort_by": sort_by}
+    config = TableChartConfig(columns=[{"name": "id"}], row_limit=1, **kwargs)
+    new = map_config_to_form_data(config, 1)
+    new["viz_type"] = viz_type
+    merged = merge_form_data_for_update(saved, new, config)
+    query = build_query_objects_from_form_data(merged)[0]
+    expected = (
+        [["id", True]] if sort_by is None else ([] if not sort_by else [["id", False]])
+    )
+    assert query.get("orderby", []) == expected
+    assert query["row_limit"] == 1

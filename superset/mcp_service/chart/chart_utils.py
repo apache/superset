@@ -1895,6 +1895,7 @@ _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]]
         "currency_format": (("currency_format",),),
     },
     "TableChartConfig": {
+        "order_by_cols": (("sort_by",),),
         "row_limit": (("row_limit",),),
         "color_scheme": (("color_scheme",),),
         "column_config": (("column_config",),),

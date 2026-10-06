@@ -1142,3 +1142,23 @@ class TestGenerateBubbleWithSqlExpressionMetric:
         assert result.semantics is not None
         assert "GDP per capita" in result.semantics.data_story
         assert "None" not in result.semantics.data_story
+
+
+@pytest.mark.asyncio
+async def test_generate_saved_chart_retains_id_after_response_size_failure() -> None:
+    """The create command succeeds even when the returned form data is oversized."""
+    config = TableChartConfig(
+        columns=[ColumnRef(name="region")],
+        column_config={"x" * 4097: {}},
+    )
+    result, _chart, create_command = await _generate_saved_chart(
+        refetch=Mock(side_effect=SQLAlchemyError("connection invalidated")),
+        config=config,
+    )
+    create_command.assert_called_once()
+    create_command.return_value.run.assert_called_once()
+    assert result.success is True
+    assert result.chart is not None
+    assert result.chart.id == 42
+    assert result.form_data == {}
+    assert result.warnings

@@ -25,6 +25,7 @@ from superset.mcp_service.chart.query_result import response_json_failure
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
+    ChartInfo,
     GenerateChartResponse,
 )
 from superset.mcp_service.dataset.schemas import DatasetError, QueryDatasetResponse
@@ -133,6 +134,25 @@ def finalize_generate_chart_response(
     failure = response_json_failure(response)
     if failure is None:
         return response
+    chart = response.chart
+    if (
+        response.success
+        and chart is not None
+        and not chart.is_unsaved_state
+        and type(chart.id) is int
+        and 0 < chart.id <= 2**63 - 1
+    ):
+        # The write has committed. Drop optional response content, not the
+        # persisted identity or the successful mutation outcome.
+        return GenerateChartResponse(
+            chart=ChartInfo(id=chart.id),
+            success=True,
+            warnings=[
+                "Chart was saved, but its response content exceeded serialization "
+                "safety limits and was omitted. Do not retry the write; retrieve "
+                "the saved chart by its ID."
+            ],
+        )
     return GenerateChartResponse.model_validate(
         {
             "chart": None,
