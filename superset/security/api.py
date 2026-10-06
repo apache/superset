@@ -23,7 +23,7 @@ from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
-from flask_login import login_user
+from flask_login import current_user, login_user
 from flask_wtf.csrf import generate_csrf
 from marshmallow import (
     EXCLUDE,
@@ -401,6 +401,30 @@ class SecurityRestApi(BaseSupersetApi):
         # A single failure mode for unknown, malformed, expired and already-spent
         # tokens, so the response cannot be used to probe which one it was.
         if not token or (userinfo := login_token_utils.consume(token)) is None:
+            return self.response_401()
+
+        # Refuse to replace a different user's session. A token is a bearer
+        # credential that is not bound to a browser, so without this an attacker
+        # who mints for their own identity and gets a signed-in victim's frame to
+        # navigate here would silently swap the victim into the attacker's
+        # account (login CSRF). The token is already burned, so a refused one
+        # cannot be retried, and the check runs before provisioning so a refused
+        # exchange never registers or updates the attacker's account. The
+        # identifier is selected the way ``auth_user_oauth`` selects it. A user
+        # re-establishing their own session -- a reloaded frame -- is unaffected.
+        #
+        # This only narrows the residual risk: a victim with no Superset session,
+        # the usual case for an embed, still has nothing here to compare against.
+        resolved_username = userinfo.get("username") or userinfo.get("email")
+        if (
+            getattr(current_user, "is_authenticated", False)
+            and getattr(current_user, "username", None) != resolved_username
+        ):
+            logger.warning(
+                "Refused a one-time login token for '%s': the frame already holds "
+                "a session for a different user",
+                resolved_username,
+            )
             return self.response_401()
 
         # ``consume`` has already committed the burn, so nothing here can make a

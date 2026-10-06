@@ -39,7 +39,7 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.constants import GAMMA_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 ENDPOINT = "/api/v1/security/login-token/"
 MINT_SECRET = "integration-test-secret"  # noqa: S105
@@ -533,6 +533,50 @@ class TestLoginTokenApi(SupersetTestCase):
 
                 recorded = repr(log.call_args_list)
                 assert secret not in recorded, recorded
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_refuses_to_replace_a_different_users_session(self):
+        """A token cannot swap a signed-in user into another account.
+
+        This is the session-replacement half of login CSRF: an attacker mints
+        for their own identity and gets a victim's already-authenticated frame
+        to navigate to the consume URL. The exchange must be refused, the
+        victim's session must survive untouched, and the token must still be
+        burned so it cannot be tried again.
+        """
+        token = self._mint(GAMMA_USERNAME)
+        self.login(ADMIN_USERNAME)
+
+        response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/1/")
+        assert response.status_code == 401, response.headers.get("Location")
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == ADMIN_USERNAME, me
+
+        # Burned on refusal, so it is not a credential the attacker gets back.
+        assert not self._is_stored(token)
+        self.logout()
+        assert self.client.get(f"{ENDPOINT}?token={token}").status_code == 401
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_allows_the_same_user_to_sign_in_again(self):
+        """Re-establishing your own session -- a reloaded frame -- still works.
+
+        Guards the check above from being so strict that it refuses any
+        already-authenticated browser, which would break every reload of an
+        embed after its first.
+        """
+        self.login(GAMMA_USERNAME)
+        token = self._mint(GAMMA_USERNAME)
+
+        response = self.client.get(f"{ENDPOINT}?token={token}&next=/dashboard/list/")
+        assert response.status_code == 302, response.data
+        assert response.headers["Location"] == "/dashboard/list/"
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == GAMMA_USERNAME, me
 
     # --------------------------------------------------------------------- csrf
 
