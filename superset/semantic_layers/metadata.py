@@ -76,6 +76,8 @@ if TYPE_CHECKING:
             snapshot_key: str,
             value: str,
             ttl_ms: int,
+            lease_ttl_ms: int,
+            snapshot_ttl_ms: int,
         ) -> bool: ...
         def get_with_ttl(self, name: str) -> tuple[bytes | None, int]: ...
         def get_or_create(self, name: str, value: str, ttl: int) -> bytes: ...
@@ -257,14 +259,13 @@ class ScopedMetadataStore:
                 if current is not None:
                     return self._remember(current.snapshot)
                 attempt: str = uuid4().hex
-                self._remaining()
+                lease_ttl_ms: int = max(
+                    1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
+                )
                 if self._backend.set(
                     self._lease_key,
                     attempt,
-                    px=max(
-                        1,
-                        math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000),
-                    ),
+                    px=lease_ttl_ms,
                     nx=True,
                 ):
                     try:
@@ -272,7 +273,7 @@ class ScopedMetadataStore:
                         current = self._load()
                         if current is not None:
                             return self._remember(current.snapshot)
-                        return self._acquire(fetch, attempt).snapshot
+                        return self._acquire(fetch, attempt, lease_ttl_ms).snapshot
                     finally:
                         self._release(attempt)
                 self._wait(min(READER_POLL_SECONDS, self._remaining()))
@@ -284,25 +285,28 @@ class ScopedMetadataStore:
         """Publish a new observation, or report explicit contention without retry."""
         self._remaining()
         attempt: str = uuid4().hex
+        lease_ttl_ms: int = max(
+            1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
+        )
         try:
             if not self._backend.set(
                 self._lease_key,
                 attempt,
-                px=max(
-                    1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
-                ),
+                px=lease_ttl_ms,
                 nx=True,
             ):
                 raise MetadataRefreshError("in_progress")
             try:
-                return self._acquire(fetch, attempt)
+                return self._acquire(fetch, attempt, lease_ttl_ms)
             finally:
                 self._release(attempt)
         except RedisError:
             self._remaining()
             raise MetadataRefreshError("unavailable") from None
 
-    def _acquire(self, fetch: CatalogLoader, attempt: str) -> MetadataRefreshResult:
+    def _acquire(
+        self, fetch: CatalogLoader, attempt: str, lease_ttl_ms: int
+    ) -> MetadataRefreshResult:
         started: float = self._clock()
         previous: StoredCatalog | None = self._load()
         self._remaining()
@@ -361,11 +365,16 @@ class ScopedMetadataStore:
         if ttl_ms <= 0:
             raise MetadataRefreshError("deadline")
         return MetadataRefreshResult(
-            status, self._publish(attempt, envelope, ttl_ms, snapshot)
+            status, self._publish(attempt, envelope, ttl_ms, lease_ttl_ms, snapshot)
         )
 
     def _publish(
-        self, attempt: str, envelope: str, ttl_ms: int, snapshot: CatalogSnapshot
+        self,
+        attempt: str,
+        envelope: str,
+        ttl_ms: int,
+        lease_ttl_ms: int,
+        snapshot: CatalogSnapshot,
     ) -> CatalogSnapshot:
         try:
             accepted: bool = self._backend.compare_and_publish(
@@ -374,6 +383,8 @@ class ScopedMetadataStore:
                 self._snapshot_key,
                 envelope,
                 ttl_ms,
+                lease_ttl_ms,
+                self._snapshot_ttl_seconds * 1000,
             )
         except RedisError:
             try:

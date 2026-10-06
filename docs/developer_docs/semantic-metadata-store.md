@@ -99,6 +99,10 @@ negative and out-of-range values fail with a configuration error. Catalog
 acquisition time counts against this lifetime. A discovery that consumes the
 entire lifetime fails with `deadline` and does not publish an expired snapshot.
 The setting does not extend the 30-second discovery budget or the writer lease.
+Atomic publication also caps freshness using the Redis lease's age, so transport
+wait cannot add time to a snapshot. This conservative anchor begins at lease
+installation, before acquisition. An exhausted publication fence rejects the
+write and preserves any previous snapshot.
 
 Natural expiry still rotates the token, even when discovery returns identical
 fields: those fields need not contain the full metric definition. A longer

@@ -95,9 +95,15 @@ class MemoryBackend:
         snapshot_key: str,
         value: str,
         ttl_ms: int,
+        lease_ttl_ms: int,
+        snapshot_ttl_ms: int,
     ) -> bool:
         with self.lock:
             if self.get(lease_key) != expected.encode():
+                return False
+            lease_remaining: int = self.get_with_ttl(lease_key)[1]
+            ttl_ms = min(ttl_ms, snapshot_ttl_ms - (lease_ttl_ms - lease_remaining))
+            if lease_remaining <= 0 or ttl_ms <= 0:
                 return False
             self.set(snapshot_key, value, px=ttl_ms)
             self.delete(lease_key)
@@ -391,7 +397,7 @@ def test_unknown_publish_outcome_reconciles_only_its_own_attempt() -> None:
     assert store.peek() == result.snapshot
     backend.get.side_effect = RedisConnectionError("private")
     with pytest.raises(MetadataRefreshError, match="indeterminate"):
-        store._publish("unconfirmed", "[]", 500, result.snapshot)
+        store._publish("unconfirmed", "[]", 500, 30000, result.snapshot)
 
 
 def test_busy_refresh_and_expired_owner_cannot_publish() -> None:
@@ -637,3 +643,32 @@ def test_custom_snapshot_lifetime_subtracts_acquisition_elapsed_time() -> None:
 
     store.read(fetch, deadline=130)
     assert backend.get_with_ttl("semantic-metadata:{scope}:snapshot")[1] == 7000
+
+
+@pytest.mark.parametrize("publication_delay", [2, 6])
+def test_snapshot_lifetime_includes_publication_transport(
+    publication_delay: int,
+) -> None:
+    """Atomic publication cannot extend freshness while waiting for Redis."""
+    clock: Clock = Clock()
+    backend: MemoryBackend = MemoryBackend(clock)
+    previous: CatalogSnapshot = ScopedMetadataStore(
+        backend, "scope", deadline=130, clock=clock
+    ).read(catalog, deadline=130)
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=130, snapshot_ttl_seconds=5, clock=clock
+    )
+    publish: Callable[..., bool] = backend.compare_and_publish
+
+    def delayed(*args: Any) -> bool:
+        clock.advance(publication_delay)
+        return publish(*args)
+
+    with patch.object(backend, "compare_and_publish", side_effect=delayed):
+        if publication_delay >= 5:
+            with pytest.raises(MetadataRefreshError, match="configuration_changed"):
+                store.refresh(catalog, deadline=130)
+            assert store.peek() == previous
+        else:
+            store.refresh(catalog, deadline=130)
+            assert backend.get_with_ttl("semantic-metadata:{scope}:snapshot")[1] == 3000
