@@ -81,7 +81,6 @@ class ValuesLayer(OptedInLayer):
             "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
             "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
             "SEMANTIC_LAYER_METADATA_NAMESPACE": "column-values",
-            "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
         }
     ],
     indirect=True,
@@ -94,6 +93,12 @@ def test_column_values_refresh_rotates_cache_with_stable_view_identity(
     mocker: MockerFixture,
 ) -> None:
     """Warm T0, publish T1 and read new suggestions through the authorized route."""
+    # Configure only this operation's private backend after app initialization,
+    # which otherwise replaces the process-wide coordination singleton.
+    mocker.patch.dict(
+        app.config,
+        {"DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"}},
+    )
     layer: SemanticLayer = SemanticLayer(
         uuid=uuid4(), type="column-values", configuration="{}"
     )
