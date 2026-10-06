@@ -19,7 +19,7 @@ from typing import Any, Optional, Union
 
 from croniter import croniter
 from flask import current_app
-from flask_babel import gettext as _
+from flask_babel import gettext as _, lazy_gettext
 from marshmallow import (
     EXCLUDE,
     fields,
@@ -782,7 +782,7 @@ class ReportConfigurationSchema(Schema):
         },
         required=False,
         allow_none=True,
-        validate=[Range(min=0, error=_("Value must be 0 or greater"))],
+        validate=[Range(min=0, error=lazy_gettext("Value must be 0 or greater"))],
     )
     report_minimum_interval = fields.Integer(
         metadata={
@@ -793,7 +793,7 @@ class ReportConfigurationSchema(Schema):
         },
         required=False,
         allow_none=True,
-        validate=[Range(min=0, error=_("Value must be 0 or greater"))],
+        validate=[Range(min=0, error=lazy_gettext("Value must be 0 or greater"))],
     )
     limit_recipients_to_users = fields.Boolean(
         metadata={

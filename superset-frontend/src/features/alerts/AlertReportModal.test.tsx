@@ -3219,7 +3219,7 @@ test('shows the operator Run as tooltip', async () => {
     }),
   );
   expect(
-    await screen.findByText(/Uses the workspace report account\./),
+    await screen.findByText(/Uses the internal System report account\./),
   ).toBeInTheDocument();
 });
 
