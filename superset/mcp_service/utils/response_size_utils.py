@@ -112,6 +112,8 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
         # Column selection
         "select_columns",
         "columns",
+        "max_columns",
+        "max_metrics",
         # Filters
         "filters",
         # Search
@@ -122,6 +124,14 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
         "untabbed_only",
     ]
     return {k: params[k] for k in extract_keys if k in params}
+
+
+def _parse_page_size(value: Any) -> int | None:
+    """Parse a page-size hint without failing on malformed tool parameters."""
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def generate_size_reduction_suggestions(
@@ -148,15 +158,15 @@ def generate_size_reduction_suggestions(
     """
     suggestions = []
     query_params = extract_query_params(params)
+    if tool_name == "get_dashboard_datasets":
+        return _dashboard_datasets_suggestions(query_params)
+
     reduction_needed = actual_bytes - max_bytes
     reduction_pct = int((reduction_needed / actual_bytes) * 100) if actual_bytes else 0
 
     # Suggestion 1: Reduce page_size or limit
     raw_page_size = query_params.get("page_size") or query_params.get("limit")
-    try:
-        current_page_size = int(raw_page_size) if raw_page_size is not None else None
-    except (TypeError, ValueError):
-        current_page_size = None
+    current_page_size = _parse_page_size(raw_page_size)
     if current_page_size and current_page_size > 0:
         # Calculate suggested new limit based on reduction needed
         suggested_limit = max(
@@ -450,6 +460,27 @@ def _dashboard_layout_suggestions(
     )
 
 
+def _dashboard_datasets_suggestions(query_params: Dict[str, Any]) -> List[str]:
+    """Suggest the per-dataset caps that remain, or a fallback when none do."""
+    remaining: List[str] = []
+    if _parse_page_size(query_params.get("max_columns")) != 0:
+        remaining.append("'max_columns' (0-100)")
+    if _parse_page_size(query_params.get("max_metrics")) != 0:
+        remaining.append("'max_metrics' (0-50)")
+    if not remaining:
+        return [
+            "Column and metric details are already omitted. This tool cannot "
+            "reduce the remaining dataset metadata further; use "
+            "get_dashboard_info with select_columns=['charts'] to identify "
+            "chart datasources, then get_dataset_info for individual datasets."
+        ]
+    return [
+        f"Reduce {' and '.join(remaining)} to return fewer details per dataset; "
+        "a cap of 0 omits those details while retaining total counts. "
+        "Use get_dataset_info for individual dataset details."
+    ]
+
+
 def _get_tool_specific_suggestions(
     tool_name: str,
     query_params: Dict[str, Any],
@@ -621,6 +652,7 @@ COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "generate_chart": _spec("chart", "chart", reports_success=True),
     "generate_dashboard": _spec("dashboard", "dashboard"),
     "manage_dashboard_certification": _spec("dashboard"),
+    "manage_dashboard_markdown": _spec("dashboard"),
     "manage_dashboard_owners": _spec("dashboard"),
     "manage_dashboard_roles": _spec("dashboard"),
     "manage_native_filters": _spec("dashboard"),

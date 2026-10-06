@@ -31,6 +31,7 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
@@ -53,6 +54,7 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
 
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
@@ -151,6 +153,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+
+  const currentDashboardDatasets = useMemo(
+    () =>
+      status === ResourceStatus.Complete && datasets && dashboard?.id
+        ? { dashboardId: dashboard.id, datasets }
+        : null,
+    [status, datasets, dashboard?.id],
+  );
 
   const error = dashboardApiError || chartsApiError;
   // Only 404 gets a graceful not-found state; a 403 (access denied) still
@@ -424,18 +434,20 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <CrudThemeProvider
-              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
-            >
-              <AutoRefreshProvider>
-                <DashboardContainer
-                  activeFilters={activeFilters as ActiveFilters}
-                  ownDataCharts={relevantDataMask}
-                >
-                  {DashboardBuilderComponent}
-                </DashboardContainer>
-              </AutoRefreshProvider>
-            </CrudThemeProvider>
+            <DashboardDatasetsContext.Provider value={currentDashboardDatasets}>
+              <CrudThemeProvider
+                theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
+              >
+                <AutoRefreshProvider>
+                  <DashboardContainer
+                    activeFilters={activeFilters as ActiveFilters}
+                    ownDataCharts={relevantDataMask}
+                  >
+                    {DashboardBuilderComponent}
+                  </DashboardContainer>
+                </AutoRefreshProvider>
+              </CrudThemeProvider>
+            </DashboardDatasetsContext.Provider>
           </DashboardPageIdContext.Provider>
         </>
       ) : (
