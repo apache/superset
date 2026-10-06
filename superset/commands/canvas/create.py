@@ -23,7 +23,7 @@ from typing import Any
 
 from marshmallow import ValidationError
 
-from superset.canvas.definition.registry import get_instance_resolver
+from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.schemas import empty_definition
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
@@ -81,20 +81,20 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
                 )
             )
             return
-        instances = {
-            node["instance"]
+        widget_ids = {
+            node["widgetId"]
             for node in definition["nodes"].values()
-            if "instance" in node
+            if "widgetId" in node
         }
-        if hidden := instances - get_instance_resolver().placeable(instances):
+        if hidden := widget_ids - get_widget_resolver().placeable(widget_ids):
             exceptions.append(
                 ValidationError(
                     {
-                        f"/nodes/{node_id}/instance": [
-                            "unknown widget instance, or no access to it"
+                        f"/nodes/{node_id}/widgetId": [
+                            "unknown widget, or no access to it"
                         ]
                         for node_id, node in definition["nodes"].items()
-                        if node.get("instance") in hidden
+                        if node.get("widgetId") in hidden
                     },
                     field_name="definition",
                 )

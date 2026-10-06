@@ -29,28 +29,28 @@ import re
 from collections.abc import Container
 from typing import Any
 
-from superset_core.canvas import InstanceResolver
+from superset_core.canvas import WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
-from superset.canvas.definition.registry import WidgetRegistry
+from superset.canvas.definition.registry import WidgetTypes
 from superset.canvas.definition.schemas import NODE_ID_MAX_LENGTH, RESERVED_IDS
 
 
-def placement_widgets(
+def placement_types(
     nodes: dict[str, Any],
-    widgets: WidgetRegistry,
-    resolver: InstanceResolver,
+    widget_types: WidgetTypes,
+    resolver: WidgetResolver,
 ) -> dict[str, type[Widget]]:
     """``{placement id: widget}`` for every placement that resolves."""
-    instance_types = resolver.widget_types(
-        {node["instance"] for node in nodes.values() if node.get("instance")}
+    widget_type_ids = resolver.widget_types(
+        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
     )
     resolved: dict[str, type[Widget]] = {}
     for node_id, node in nodes.items():
-        if node.get("instance"):
-            widget = widgets.get(instance_types.get(node["instance"], ""))
+        if node.get("widgetId"):
+            widget = widget_types.get(widget_type_ids.get(node["widgetId"], ""))
         else:
-            widget = widgets.get(node.get("widget") or "")
+            widget = widget_types.get(node.get("widgetType") or "")
             if widget is not None and node.get("schemaVersion") != (
                 widget.schema_version
             ):
@@ -61,7 +61,7 @@ def placement_widgets(
 
 
 def upgrade_inline_props(
-    definition: dict[str, Any], widgets: WidgetRegistry
+    definition: dict[str, Any], widget_types: WidgetTypes
 ) -> dict[str, Any]:
     """
     Bring inline props to their widget's schema version, in place.
@@ -70,7 +70,7 @@ def upgrade_inline_props(
     an unresolved placeholder until the widget can read them.
     """
     for node in definition.get("nodes", {}).values():
-        widget = widgets.get(node.get("widget") or "")
+        widget = widget_types.get(node.get("widgetType") or "")
         version = node.get("schemaVersion")
         if widget is None or not isinstance(version, int):
             continue

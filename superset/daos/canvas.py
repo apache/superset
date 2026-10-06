@@ -25,7 +25,7 @@ from sqlalchemy import func
 from superset import db
 from superset.canvas.definition.ops import AppliedOperation
 from superset.canvas.definition.placements import upgrade_inline_props
-from superset.canvas.definition.registry import get_widgets
+from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.versions import check_definition_version
 from superset.canvas.filters import CanvasAccessFilter
 from superset.daos.base import BaseDAO
@@ -62,7 +62,7 @@ class CanvasDAO(BaseDAO[Canvas]):
         schema versions in memory; the next write stores them.
         """
         definition = check_definition_version(json.loads(canvas.definition))
-        return upgrade_inline_props(definition, get_widgets())
+        return upgrade_inline_props(definition, get_widget_types())
 
     @staticmethod
     def ops_since(canvas_id: int, revision: int) -> list[CanvasOp]:

@@ -90,11 +90,11 @@ def apply_canvas_ops(
     Operations (placement ids are readable slugs; ``parent`` defaults to
     ``"root"``):
 
-    - ``{"op": "add", "widget": "<widget id>", "props": {...}, "layout": {...},
-      "parent": "<id>", "index": n, "id": "<optional id>"}`` adds an inline
-      widget; get its props schema with ``get_widget_control_schema``. Use
-      ``"instance": "<uuid>"`` instead of ``widget``/``props`` to place a
-      saved widget instance.
+    - ``{"op": "add", "widgetType": "<widget type>", "props": {...},
+      "layout": {...}, "parent": "<id>", "index": n, "id": "<optional id>"}``
+      adds an inline widget; get its props schema with
+      ``get_widget_control_schema``. Use ``"widgetId": "<uuid>"`` instead of
+      ``widgetType``/``props`` to place a saved widget.
     - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces an inline
       widget's props.
     - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",

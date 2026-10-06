@@ -22,10 +22,10 @@ import { registerBuiltinRenderers } from './builtinRenderers';
 import { CanvasDefinitionResult } from './types';
 
 const inline = (
-  widget: string,
+  widgetType: string,
   props: Record<string, unknown> = {},
   children?: string[],
-) => ({ widget, schemaVersion: 1, props, layout: {}, children });
+) => ({ widgetType, schemaVersion: 1, props, layout: {}, children });
 
 const result: CanvasDefinitionResult = {
   version: 1,

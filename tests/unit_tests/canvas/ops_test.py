@@ -33,7 +33,7 @@ from superset.canvas.definition.ops import (
 from superset.canvas.definition.schemas import empty_definition
 from superset.canvas.definition.validation import DefinitionValidationError
 from tests.unit_tests.canvas.fixtures import (
-    canvas_widgets,
+    canvas_widget_types,
     FakeResolver,
     ops,
     sequential_ids,
@@ -46,7 +46,7 @@ def apply(
     return apply_operations(
         canvas,
         ops(*raw),
-        widgets=canvas_widgets(),
+        widget_types=canvas_widget_types(),
         resolver=FakeResolver(),
         new_id=sequential_ids(),
     )
@@ -57,14 +57,14 @@ def build(*raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def add(widget: str, **extra: Any) -> dict[str, Any]:
-    return {"op": "add", "instance": widget, **extra}
+    return {"op": "add", "widgetId": widget, **extra}
 
 
 def test_add_assigns_node_ids_and_reports_them() -> None:
     result, applied = apply(empty_definition(), add("chart-1"), add("group"))
 
     assert result["root"]["children"] == ["n0", "n1"]
-    assert result["nodes"]["n0"] == {"instance": "chart-1", "layout": {}}
+    assert result["nodes"]["n0"] == {"widgetId": "chart-1", "layout": {}}
     assert result["nodes"]["n1"]["children"] == []
     assert applied[0].op["id"] == "n0"
     assert applied[0].touched == [Touch("n0", FieldGroup.TREE)]
@@ -122,12 +122,12 @@ def test_add_derives_readable_ids_from_titles_and_widget_names() -> None:
     result, applied = apply_operations(
         empty_definition(),
         ops(
-            {"op": "add", "widget": "chart", "props": {"title": "Revenue trend"}},
-            {"op": "add", "widget": "chart", "props": {"title": "Revenue trend"}},
-            {"op": "add", "widget": "chart"},
+            {"op": "add", "widgetType": "chart", "props": {"title": "Revenue trend"}},
+            {"op": "add", "widgetType": "chart", "props": {"title": "Revenue trend"}},
+            {"op": "add", "widgetType": "chart"},
             add("group-1"),
         ),
-        widgets=canvas_widgets(),
+        widget_types=canvas_widget_types(),
         resolver=FakeResolver(),
     )
 
@@ -142,11 +142,12 @@ def test_add_derives_readable_ids_from_titles_and_widget_names() -> None:
 
 def test_add_inline_stores_props_at_the_widget_schema_version() -> None:
     result, applied = apply(
-        empty_definition(), {"op": "add", "widget": "chart", "props": {"metric": "sum"}}
+        empty_definition(),
+        {"op": "add", "widgetType": "chart", "props": {"metric": "sum"}},
     )
 
     assert result["nodes"]["n0"] == {
-        "widget": "chart",
+        "widgetType": "chart",
         "schemaVersion": 1,
         "props": {"metric": "sum"},
         "layout": {},
@@ -159,9 +160,11 @@ def test_add_inline_stores_props_at_the_widget_schema_version() -> None:
 
 def test_add_inline_rejects_unknown_widgets_and_invalid_props() -> None:
     with pytest.raises(OperationError, match="unknown widget 'nope'"):
-        apply(empty_definition(), {"op": "add", "widget": "nope"})
+        apply(empty_definition(), {"op": "add", "widgetType": "nope"})
     with pytest.raises(DefinitionValidationError) as excinfo:
-        apply(empty_definition(), {"op": "add", "widget": "chart", "props": {"x": 1}})
+        apply(
+            empty_definition(), {"op": "add", "widgetType": "chart", "props": {"x": 1}}
+        )
     assert excinfo.value.issues[0].path == "/nodes/n0/props/x"
 
 
@@ -169,28 +172,30 @@ def test_add_inline_rejects_unknown_widgets_and_invalid_props() -> None:
     "raw",
     [
         {"op": "add"},
-        {"op": "add", "instance": "chart-1", "widget": "chart"},
-        {"op": "add", "instance": "chart-1", "props": {}},
+        {"op": "add", "widgetId": "chart-1", "widgetType": "chart"},
+        {"op": "add", "widgetId": "chart-1", "props": {}},
     ],
 )
 def test_add_takes_exactly_one_kind_of_instance(raw: dict[str, Any]) -> None:
-    with pytest.raises(ValueError, match="either instance or widget|props are only"):
+    with pytest.raises(
+        ValueError, match="either widgetId or widgetType|props are only"
+    ):
         ops(raw)
 
 
 def test_add_uses_the_widget_default_size_on_grids() -> None:
-    widgets = changed_rules("chart", default_size=(30, 4))
-    widgets["group"] = changed_rules("group")["group"]
+    widget_types = changed_rules("chart", default_size=(30, 4))
+    widget_types["group"] = changed_rules("group")["group"]
 
     result, _ = apply_operations(
         empty_definition(),
         ops(
-            {"op": "add", "id": "a", "widget": "chart"},
-            {"op": "add", "id": "b", "widget": "chart", "layout": {"rowSpan": 2}},
-            {"op": "add", "id": "g", "widget": "group"},
-            {"op": "add", "id": "c", "widget": "chart", "parent": "g"},
+            {"op": "add", "id": "a", "widgetType": "chart"},
+            {"op": "add", "id": "b", "widgetType": "chart", "layout": {"rowSpan": 2}},
+            {"op": "add", "id": "g", "widgetType": "group"},
+            {"op": "add", "id": "c", "widgetType": "chart", "parent": "g"},
         ),
-        widgets=widgets,
+        widget_types=widget_types,
         resolver=FakeResolver(),
     )
 
@@ -201,7 +206,7 @@ def test_add_uses_the_widget_default_size_on_grids() -> None:
 
 
 def test_set_props_replaces_inline_props() -> None:
-    doc = build({"op": "add", "widget": "chart", "props": {"title": "A"}})
+    doc = build({"op": "add", "widgetType": "chart", "props": {"title": "A"}})
 
     result, applied = apply(
         doc, {"op": "set_props", "id": "n0", "props": {"metric": "avg"}}
@@ -212,9 +217,9 @@ def test_set_props_replaces_inline_props() -> None:
 
 
 def test_props_written_at_an_older_version_are_migrated() -> None:
-    widgets = canvas_widgets()
-    chart = widgets["chart"]
-    widgets["chart"] = type(
+    widget_types = canvas_widget_types()
+    chart = widget_types["chart"]
+    widget_types["chart"] = type(
         "ChartV2",
         (chart,),
         {"schema_version": 2, "migrators": {1: lambda p: {"metric": p["measure"]}}},
@@ -222,14 +227,17 @@ def test_props_written_at_an_older_version_are_migrated() -> None:
 
     def run(*raw: dict[str, Any]) -> dict[str, Any]:
         return apply_operations(
-            empty_definition(), ops(*raw), widgets=widgets, resolver=FakeResolver()
+            empty_definition(),
+            ops(*raw),
+            widget_types=widget_types,
+            resolver=FakeResolver(),
         )[0]
 
     added = run(
         {
             "op": "add",
             "id": "a",
-            "widget": "chart",
+            "widgetType": "chart",
             "props": {"measure": "sum"},
             "schemaVersion": 1,
         },
@@ -238,7 +246,7 @@ def test_props_written_at_an_older_version_are_migrated() -> None:
     assert added["nodes"]["a"]["props"] == {"metric": "avg"}
     assert added["nodes"]["a"]["schemaVersion"] == 2
     with pytest.raises(OperationError, match="supports up to 2"):
-        run({"op": "add", "widget": "chart", "props": {}, "schemaVersion": 3})
+        run({"op": "add", "widgetType": "chart", "props": {}, "schemaVersion": 3})
 
 
 def test_set_props_needs_an_inline_instance() -> None:
@@ -250,7 +258,7 @@ def test_set_props_needs_an_inline_instance() -> None:
 
 def test_props_are_only_validated_where_written() -> None:
     doc = build(
-        {"op": "add", "widget": "chart", "props": {"title": "A"}},
+        {"op": "add", "widgetType": "chart", "props": {"title": "A"}},
         add("chart-1"),
     )
     # Stored props a newer widget no longer accepts don't block other edits.
@@ -270,12 +278,12 @@ def test_add_into_a_leaf_is_rejected() -> None:
 
 def changed_rules(widget_type: str, **changes: Any) -> dict[str, type[Widget]]:
     """The test widgets, with ``widget_type``'s behavior or UI changed after saving."""
-    widgets = canvas_widgets()
-    base = widgets[widget_type]
+    widget_types = canvas_widget_types()
+    base = widget_types[widget_type]
     ui_fields = {f.name for f in dataclasses.fields(WidgetUi)}
     ui = {k: v for k, v in changes.items() if k in ui_fields}
     behavior = {k: v for k, v in changes.items() if k not in ui_fields}
-    widgets[widget_type] = type(
+    widget_types[widget_type] = type(
         f"Changed{base.__name__}",
         (base,),
         {
@@ -283,14 +291,18 @@ def changed_rules(widget_type: str, **changes: Any) -> dict[str, type[Widget]]:
             "ui": dataclasses.replace(base.ui, **ui),
         },
     )
-    return widgets
+    return widget_types
 
 
 def apply_with(
     rules: dict[str, type[Widget]], doc: dict[str, Any], *raw: dict[str, Any]
 ) -> dict[str, Any]:
     return apply_operations(
-        doc, ops(*raw), widgets=rules, resolver=FakeResolver(), new_id=sequential_ids()
+        doc,
+        ops(*raw),
+        widget_types=rules,
+        resolver=FakeResolver(),
+        new_id=sequential_ids(),
     )[0]
 
 
@@ -333,7 +345,7 @@ def test_unresolved_container_keeps_its_children_but_takes_no_new_ones() -> None
     unregistered, _ = apply_operations(
         doc,
         ops({"op": "place", "id": "n2", "layout": {"colSpan": 6}}),
-        widgets={},
+        widget_types={},
         resolver=FakeResolver(),
     )
 
@@ -342,7 +354,7 @@ def test_unresolved_container_keeps_its_children_but_takes_no_new_ones() -> None
         apply_operations(
             unregistered,
             ops({"op": "move", "id": "n2", "parent": "n0"}),
-            widgets={},
+            widget_types={},
             resolver=FakeResolver(),
         )
 

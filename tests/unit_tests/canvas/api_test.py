@@ -39,7 +39,7 @@ URL = f"{BASE}/100/definition"
 
 @pytest.fixture
 def canvas(
-    session: Session, mocker: MockerFixture, widgets: FakeResolver
+    session: Session, mocker: MockerFixture, widget_types: FakeResolver
 ) -> Iterator[Any]:
     from superset.canvas.definition.schemas import empty_definition
     from superset.models.canvas import Canvas
@@ -72,7 +72,7 @@ def patch_ops(client: Any, base_revision: int, *ops: dict[str, Any]) -> Any:
 
 
 def add(widget: str, **extra: Any) -> dict[str, Any]:
-    return {"op": "add", "instance": widget, **extra}
+    return {"op": "add", "widgetId": widget, **extra}
 
 
 def test_create_and_read_a_canvas(
@@ -287,8 +287,8 @@ def test_widgets_the_author_cannot_place_are_rejected(
     assert response.status_code == 422
     assert response.json["errors"] == [
         {
-            "path": "/ops/1/instance",
-            "message": "unknown widget instance, or no access to it",
+            "path": "/ops/1/widgetId",
+            "message": "unknown widget, or no access to it",
         }
     ]
 
@@ -404,7 +404,7 @@ def test_a_definition_from_a_newer_server_is_refused(
 
 
 def test_schema_is_published(
-    client: Any, full_api_access: None, widgets: FakeResolver
+    client: Any, full_api_access: None, widget_types: FakeResolver
 ) -> None:
     result = client.get(f"{BASE}/schema").json["result"]
 

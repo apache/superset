@@ -218,7 +218,7 @@ export default function CanvasGrid({
           canvasId={canvasId}
           nodeId={nodeId}
           widgetType={widgetType}
-          instanceId={node.instance}
+          widgetId={node.widgetId}
           props={node.props}
           schemaVersion={node.schemaVersion}
           filters={filtersByNode[nodeId] ?? NO_VALUES}

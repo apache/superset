@@ -21,8 +21,10 @@ from typing import Any
 
 from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.hooks import before_request
 from flask_babel import gettext as _
 
+from superset import is_feature_enabled
 from superset.extensions import event_logger
 from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -42,6 +44,12 @@ class WidgetControlsRestApi(BaseSupersetApi):
     there is no data endpoint here. The resource name ``widgets`` is
     a placeholder (see ``WIDGET_FRAMEWORK.md``).
     """
+
+    @before_request
+    def ensure_canvas_enabled(self) -> Response | None:
+        if not is_feature_enabled("CANVAS"):
+            return self.response_404()
+        return None
 
     resource_name = "widgets"
     allow_browser_login = True

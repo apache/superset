@@ -19,10 +19,10 @@
 What a canvas needs from the widget side beyond the widget registry.
 
 A canvas places widget instances. An inline instance is stored on its
-placement, as a widget id, schema version and props; a persisted instance is
-its own entity, referenced by UUID. The registry (``superset_core.widgets``)
-describes each widget's behavior; ``InstanceResolver`` looks up persisted
-instances.
+placement, as a widget type, schema version and props; a persisted widget is
+its own entity (a ``widgets`` row), referenced by UUID. The widget type
+registry (``superset_core.widgets``) describes each type's behavior;
+``WidgetResolver`` looks up persisted widgets.
 """
 
 from __future__ import annotations
@@ -59,19 +59,19 @@ class GridPlacement(BaseModel):
         return self
 
 
-class InstanceResolver(Protocol):
-    """Looks up the persisted widget instances a canvas references."""
+class WidgetResolver(Protocol):
+    """Looks up the persisted widgets a canvas references."""
 
-    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
+    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
         """
-        Return ``{instance UUID: widget id}`` for the instances that exist.
+        Return ``{widget UUID: widget type}`` for the widgets that exist.
 
         Needed to validate nesting and layout for every placement, including
-        instances the current user cannot see, so this is not filtered by
+        widgets the current user cannot see, so this is not filtered by
         access.
         """
         ...
 
-    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
-        """The instances the current user may place on a canvas."""
+    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
+        """The widgets the current user may place on a canvas."""
         ...

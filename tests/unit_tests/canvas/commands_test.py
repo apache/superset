@@ -31,7 +31,7 @@ from tests.unit_tests.canvas.fixtures import canvas, FakeResolver, node
 
 
 @pytest.fixture
-def create_deps(mocker: MockerFixture, widgets: FakeResolver) -> None:
+def create_deps(mocker: MockerFixture, widget_types: FakeResolver) -> None:
     mocker.patch("superset.commands.canvas.create.populate_subjects")
 
 
@@ -70,9 +70,7 @@ def test_create_rejects_widgets_the_author_cannot_place(
         command.validate()
 
     assert excinfo.value.normalized_messages() == {
-        "definition": {
-            "/nodes/a/instance": ["unknown widget instance, or no access to it"]
-        }
+        "definition": {"/nodes/a/widgetId": ["unknown widget, or no access to it"]}
     }
 
 

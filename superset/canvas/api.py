@@ -25,6 +25,7 @@ from typing import Any
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -32,7 +33,8 @@ from pydantic import TypeAdapter, ValidationError as PydanticValidationError
 from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
-from superset.canvas.definition.registry import get_widgets
+from superset import is_feature_enabled
+from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
     ApplyOperationsRequest,
@@ -156,6 +158,12 @@ def _get_canvas(id_or_uuid: str) -> Canvas:
 
 class CanvasRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Canvas)
+
+    @before_request
+    def ensure_canvas_enabled(self) -> Response | None:
+        if not is_feature_enabled("CANVAS"):
+            return self.response_404()
+        return None
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
@@ -698,6 +706,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "definition": CanvasDefinition.model_json_schema(by_alias=True),
                 "operation": TypeAdapter(Operation).json_schema(by_alias=True),
                 "gridPlacement": GridPlacement.model_json_schema(by_alias=True),
-                "widgets": [describe_widget(w) for w in get_widgets().values()],
+                "widgets": [describe_widget(w) for w in get_widget_types().values()],
             },
         )

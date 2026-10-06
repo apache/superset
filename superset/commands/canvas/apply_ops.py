@@ -33,7 +33,7 @@ from superset.canvas.definition.ops import (
     overlapping,
     Touch,
 )
-from superset.canvas.definition.registry import get_instance_resolver
+from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import AddOp, Operation
 from superset.canvas.definition.scopes import resolve_scopes
@@ -79,20 +79,20 @@ class ApplyResult:
 def placement_issues(ops: list[Operation]) -> list[Issue]:
     """Persisted instances being added that the current user may not place."""
     added = [
-        (index, op.instance)
+        (index, op.widget_id)
         for index, op in enumerate(ops)
-        if isinstance(op, AddOp) and op.instance is not None
+        if isinstance(op, AddOp) and op.widget_id is not None
     ]
     if not added:
         return []
-    allowed = get_instance_resolver().placeable({instance for _, instance in added})
+    allowed = get_widget_resolver().placeable({widget_id for _, widget_id in added})
     return [
         Issue(
-            pointer("ops", index, "instance"),
-            "unknown widget instance, or no access to it",
+            pointer("ops", index, "widgetId"),
+            "unknown widget, or no access to it",
         )
-        for index, instance in added
-        if instance not in allowed
+        for index, widget_id in added
+        if widget_id not in allowed
     ]
 
 

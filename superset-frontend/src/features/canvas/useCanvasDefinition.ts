@@ -23,11 +23,9 @@ import {
   subscribeRealtime,
   subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import { CanvasDefinitionResult } from './types';
 
 export const REFETCH_DEBOUNCE_MS = 300;
-export const POLL_INTERVAL_MS = 5000;
 
 export type CanvasDefinitionState =
   | { status: 'loading' }
@@ -40,10 +38,10 @@ const definitionEndpoint = (canvasId: number) =>
 /**
  * Loads a canvas definition and keeps it current.
  *
- * Every write publishes an `entity.changed` nudge carrying only the canvas id;
- * on a nudge (or after a websocket reconnect, since nudges are not replayed)
- * the definition is fetched again. Without websockets, a cheap
- * `/definition/changes?since=<revision>` poll detects new revisions.
+ * Every write publishes an `entity.changed` nudge carrying only the canvas id
+ * over the realtime channel, which canvases require (SIP-227); on a nudge, or
+ * after a reconnect since nudges are not replayed, the definition is fetched
+ * again.
  */
 export function useCanvasDefinition(canvasId: number) {
   const [state, setState] = useState<CanvasDefinitionState>({
@@ -97,28 +95,10 @@ export function useCanvasDefinition(canvasId: number) {
       if (reason === 'reconnect') scheduleLoad();
     });
 
-    let poll: ReturnType<typeof setInterval> | undefined;
-    if (!getBootstrapData()?.common?.conf?.WEBSOCKET_ENABLE) {
-      poll = setInterval(async () => {
-        if (revision.current === undefined) return;
-        try {
-          const { json } = await SupersetClient.get({
-            endpoint: `${definitionEndpoint(canvasId)}/changes?since=${revision.current}`,
-          });
-          if (json.result.changes.length > 0) scheduleLoad();
-        } catch {
-          // A stale revision (409) or a transient error: reload the whole
-          // definition.
-          scheduleLoad();
-        }
-      }, POLL_INTERVAL_MS);
-    }
-
     return () => {
       unsubscribe();
       unsubscribeOpen();
       if (debounce !== undefined) clearTimeout(debounce);
-      if (poll !== undefined) clearInterval(poll);
     };
   }, [canvasId, load]);
 

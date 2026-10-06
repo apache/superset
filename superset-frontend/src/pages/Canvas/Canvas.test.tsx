@@ -44,7 +44,7 @@ const definition = (children: string[], revision = 1) => ({
       nodes: Object.fromEntries(
         children.map(nodeId => [
           nodeId,
-          { instance: `w-${nodeId}`, layout: {} },
+          { widgetId: `w-${nodeId}`, layout: {} },
         ]),
       ),
       interactions: { filters: {}, crossFilters: {}, customizations: {} },

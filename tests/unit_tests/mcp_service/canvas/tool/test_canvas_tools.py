@@ -44,14 +44,14 @@ def test_apply_reports_malformed_ops_without_running_the_command() -> None:
 def test_apply_returns_the_new_revision_and_assigned_ids() -> None:
     applied = ApplyResult(
         revision=4,
-        ops=[{"op": "add", "widget": "markdown", "id": "markdown"}],
+        ops=[{"op": "add", "widgetType": "markdown", "id": "markdown"}],
         scopes={},
         render_context={},
     )
     with patch(COMMAND) as command:
         command.return_value.run.return_value = applied
         result = _apply_canvas_ops_impl(
-            1, 3, [{"op": "add", "widget": "markdown", "props": {"content": "Hi"}}]
+            1, 3, [{"op": "add", "widgetType": "markdown", "props": {"content": "Hi"}}]
         )
 
     assert result == {"revision": 4, "ops": applied.ops}

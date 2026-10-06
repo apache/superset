@@ -15,43 +15,43 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Where the canvas looks up widgets and persisted widget instances.
+Where the canvas looks up widget types and persisted widgets.
 
-Widgets come from the widget registry, which built-ins and extensions register
-into with ``@widget``; persisted instances through an ``InstanceResolver``.
+Widget types come from the registry, which built-ins and extensions register
+into with ``@widget``; persisted widgets through a ``WidgetResolver``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from superset_core.canvas import InstanceResolver
+from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
 
-WidgetRegistry = Mapping[str, type[Widget]]
+WidgetTypes = Mapping[str, type[Widget]]
 
 
-def get_widgets() -> WidgetRegistry:
+def get_widget_types() -> WidgetTypes:
     from superset.widgets.registry import registry
 
     return registry
 
 
-class _NoInstances:
-    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
+class _NoWidgets:
+    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
         return {}
 
-    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
+    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
         return set()
 
 
-_resolver: InstanceResolver = _NoInstances()
+_resolver: WidgetResolver = _NoWidgets()
 
 
-def set_instance_resolver(resolver: InstanceResolver) -> None:
+def set_widget_resolver(resolver: WidgetResolver) -> None:
     global _resolver
     _resolver = resolver
 
 
-def get_instance_resolver() -> InstanceResolver:
+def get_widget_resolver() -> WidgetResolver:
     return _resolver

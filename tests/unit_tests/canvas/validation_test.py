@@ -25,7 +25,7 @@ from superset.canvas.definition.validation import (
 )
 from tests.unit_tests.canvas.fixtures import (
     canvas,
-    canvas_widgets,
+    canvas_widget_types,
     FakeResolver,
     inline,
     node,
@@ -33,7 +33,7 @@ from tests.unit_tests.canvas.fixtures import (
 
 
 def normalize(raw: dict[str, Any]) -> dict[str, Any]:
-    return normalize_definition(raw, canvas_widgets(), FakeResolver())
+    return normalize_definition(raw, canvas_widget_types(), FakeResolver())
 
 
 def issues(raw: dict[str, Any]) -> list[tuple[str, str]]:
@@ -72,7 +72,7 @@ def test_inline_props_are_validated_against_the_widget() -> None:
 def test_unknown_inline_widget_is_rejected_on_write() -> None:
     found = issues(canvas({"a": inline("nope")}))
 
-    assert found[0][0] == "/nodes/a/widget"
+    assert found[0][0] == "/nodes/a/widgetType"
 
 
 def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
@@ -81,7 +81,7 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
     )
 
     result = normalize_definition(
-        raw, canvas_widgets(), FakeResolver(), strict_nodes=["b"], props_nodes=[]
+        raw, canvas_widget_types(), FakeResolver(), strict_nodes=["b"], props_nodes=[]
     )
 
     assert result["nodes"]["a"]["props"] == {"future": 1}
@@ -89,7 +89,7 @@ def test_props_from_a_newer_widget_stay_as_a_placeholder() -> None:
 
 
 def test_inline_props_are_migrated_to_the_widget_version() -> None:
-    rules = canvas_widgets()
+    rules = canvas_widget_types()
     chart = rules["chart"]
     rules["chart"] = type(
         "ChartV2",
@@ -138,7 +138,7 @@ def test_a_widget_can_be_placed_more_than_once() -> None:
 
     result = normalize(raw)
 
-    assert result["nodes"]["a"]["instance"] == result["nodes"]["b"]["instance"]
+    assert result["nodes"]["a"]["widgetId"] == result["nodes"]["b"]["widgetId"]
     assert result["nodes"]["a"]["layout"] == {"colSpan": 8}
 
 
@@ -186,9 +186,9 @@ def test_unregistered_type_with_children_is_kept() -> None:
 def test_size_limits_apply_on_grids() -> None:
     from superset_core.widgets import WidgetUi
 
-    from tests.unit_tests.canvas.fixtures import canvas_widgets
+    from tests.unit_tests.canvas.fixtures import canvas_widget_types
 
-    rules = canvas_widgets()
+    rules = canvas_widget_types()
     chart = rules["chart"]
     rules["kpi"] = type(
         "KpiWidget",

@@ -33,14 +33,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.canvas import InstanceResolver
+from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
 
-from superset.canvas.definition.placements import placement_widgets
+from superset.canvas.definition.placements import placement_types
 from superset.canvas.definition.registry import (
-    get_instance_resolver,
-    get_widgets,
-    WidgetRegistry,
+    get_widget_resolver,
+    get_widget_types,
+    WidgetTypes,
 )
 from superset.canvas.definition.schemas import (
     FilterScopeMode,
@@ -75,25 +75,25 @@ def _reading_order(canvas: dict[str, Any], start: str) -> list[str]:
 
 def resolve_scopes(
     canvas: dict[str, Any],
-    widgets: WidgetRegistry | None = None,
-    resolver: InstanceResolver | None = None,
+    widget_types: WidgetTypes | None = None,
+    resolver: WidgetResolver | None = None,
 ) -> dict[str, dict[str, list[str]]]:
     """
     Map each kind's response key (``filterScopes``, ``crossFilterScopes``,
     ``customizationScopes``) to ``{node id: driven node ids}``, in reading order.
     """
     nodes = canvas["nodes"]
-    node_widgets = placement_widgets(
+    node_types = placement_types(
         nodes,
-        get_widgets() if widgets is None else widgets,
-        resolver or get_instance_resolver(),
+        get_widget_types() if widget_types is None else widget_types,
+        resolver or get_widget_resolver(),
     )
     parents = {
         child: parent
         for parent in [ROOT_ID, *nodes]
         for child in _children(canvas, parent)
     }
-    filterable = {n for n, w in node_widgets.items() if w.behavior.filterable}
+    filterable = {n for n, w in node_types.items() if w.behavior.filterable}
     interactions = canvas.get("interactions", {})
     cross_filters_on = (
         canvas.get("settings", {}).get("crossFilters", {}).get("enabled", True)
@@ -106,7 +106,7 @@ def resolve_scopes(
         if kind == "crossFilter" and not cross_filters_on:
             continue
         overrides = interactions.get(SCOPE_FIELDS[kind], {})
-        for node_id, widget in node_widgets.items():
+        for node_id, widget in node_types.items():
             if not getattr(widget.behavior, role):
                 continue
             override = overrides.get(node_id, {})
@@ -117,7 +117,7 @@ def resolve_scopes(
                 boundary = (
                     ROOT_ID
                     if mode == FilterScopeMode.GLOBAL
-                    else _scope_boundary(node_id, parents, node_widgets)
+                    else _scope_boundary(node_id, parents, node_types)
                 )
                 excluded = set(override.get("exclude", []))
                 candidates = [
@@ -138,11 +138,11 @@ def _children(canvas: dict[str, Any], parent: str) -> list[str]:
 def _scope_boundary(
     node_id: str,
     parents: dict[str, str],
-    node_widgets: dict[str, type[Widget]],
+    node_types: dict[str, type[Widget]],
 ) -> str:
     current = parents.get(node_id, ROOT_ID)
     while current != ROOT_ID:
-        container = node_widgets.get(current)
+        container = node_types.get(current)
         # An unresolved container keeps its filters contained.
         if container is None or container.behavior.bounds_filter_scope:
             return current

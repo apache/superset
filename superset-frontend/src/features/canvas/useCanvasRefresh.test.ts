@@ -26,9 +26,9 @@ const definition = (
   version: 1,
   root: { layout: { columns: 24, gap: 16, rowUnit: 40 }, children: [] },
   nodes: {
-    a: { instance: 'w-a', layout: {} },
-    b: { instance: 'w-b', layout: {} },
-    c: { instance: 'w-c', layout: {} },
+    a: { widgetId: 'w-a', layout: {} },
+    b: { widgetId: 'w-b', layout: {} },
+    c: { widgetId: 'w-c', layout: {} },
   },
   interactions: { filters: {}, crossFilters: {}, customizations: {} },
   settings: {

@@ -31,14 +31,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from superset_core.canvas import InstanceResolver
+from superset_core.canvas import WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
-from superset.canvas.definition.placements import new_placement_id, placement_widgets
+from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
-    get_instance_resolver,
-    get_widgets,
-    WidgetRegistry,
+    get_widget_resolver,
+    get_widget_types,
+    WidgetTypes,
 )
 from superset.canvas.definition.schemas import (
     AddOp,
@@ -156,19 +156,19 @@ class _Applier:
         self,
         canvas: dict[str, Any],
         new_id: Callable[[str, Container[str]], str],
-        widgets: WidgetRegistry,
-        resolver: InstanceResolver,
+        widget_types: WidgetTypes,
+        resolver: WidgetResolver,
     ) -> None:
         self.canvas = copy.deepcopy(canvas)
         self.new_id = new_id
-        self.widgets = widgets
+        self.widget_types = widget_types
         self.resolver = resolver
 
     def is_container(self, node_id: str) -> bool:
         # Placements that no longer resolve keep their stored children but
         # accept no new ones.
-        resolved = placement_widgets(
-            {node_id: self.nodes[node_id]}, self.widgets, self.resolver
+        resolved = placement_types(
+            {node_id: self.nodes[node_id]}, self.widget_types, self.resolver
         )
         return node_id in resolved and resolved[node_id].behavior.container
 
@@ -264,7 +264,7 @@ class _Applier:
 
     def set_props(self, op: SetPropsOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)
-        widget = self.widgets.get(node.get("widget") or "")
+        widget = self.widget_types.get(node.get("widgetType") or "")
         if widget is None:
             raise ValueError(
                 f"{op.id!r} is not an inline instance of a registered widget"
@@ -277,8 +277,8 @@ class _Applier:
         """Columns of ``parent_id``'s grid, or ``None`` if it isn't a grid."""
         if parent_id == ROOT_ID:
             return self.canvas["root"].get("layout", {}).get("columns", 24)
-        resolved = placement_widgets(
-            {parent_id: self.node(parent_id)}, self.widgets, self.resolver
+        resolved = placement_types(
+            {parent_id: self.node(parent_id)}, self.widget_types, self.resolver
         )
         widget = resolved.get(parent_id)
         return widget.behavior.grid_columns if widget is not None else None
@@ -299,24 +299,24 @@ class _Applier:
 
     def add(self, op: AddOp, logged: dict[str, Any]) -> AppliedOperation:
         widget: type[Widget] | None
-        if op.widget is not None:
-            widget = self.widgets.get(op.widget)
+        if op.widget_type is not None:
+            widget = self.widget_types.get(op.widget_type)
             if widget is None:
-                raise ValueError(f"unknown widget {op.widget!r}")
+                raise ValueError(f"unknown widget {op.widget_type!r}")
             props = current_props(widget, op.props or {}, op.schema_version)
             title = props.get("title")
             name = title if isinstance(title, str) and title.strip() else widget.name
             node: dict[str, Any] = {
-                "widget": op.widget,
+                "widgetType": op.widget_type,
                 "schemaVersion": widget.schema_version,
                 "props": props,
             }
         else:
-            assert op.instance is not None  # noqa: S101
-            widget_type = self.resolver.widget_types({op.instance}).get(op.instance)
-            widget = self.widgets.get(widget_type or "")
+            assert op.widget_id is not None  # noqa: S101
+            widget_type = self.resolver.widget_types({op.widget_id}).get(op.widget_id)
+            widget = self.widget_types.get(widget_type or "")
             name = widget.name if widget is not None else "widget"
-            node = {"instance": op.instance}
+            node = {"widgetId": op.widget_id}
         node_id = op.id or self.new_id(name, self.nodes)
         if node_id in self.nodes:
             raise ValueError(f"node {node_id!r} already exists")
@@ -324,7 +324,7 @@ class _Applier:
         layout = self.default_layout(widget, op.parent, op.layout)
         self.nodes[node_id] = {**node, "layout": layout}
         touched = [Touch(node_id, FieldGroup.TREE)]
-        if op.widget is not None:
+        if op.widget_type is not None:
             touched.append(Touch(node_id, FieldGroup.PROPS))
         return AppliedOperation({**logged, "id": node_id}, touched)
 
@@ -382,8 +382,8 @@ def apply_operations(
     canvas: dict[str, Any],
     ops: list[Operation],
     *,
-    widgets: WidgetRegistry | None = None,
-    resolver: InstanceResolver | None = None,
+    widget_types: WidgetTypes | None = None,
+    resolver: WidgetResolver | None = None,
     new_id: Callable[[str, Container[str]], str] = new_placement_id,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
@@ -393,9 +393,9 @@ def apply_operations(
     and an invalid result raises ``DefinitionValidationError``. Returns the
     normalized canvas and what each operation touched.
     """
-    widgets = get_widgets() if widgets is None else widgets
-    resolver = resolver or get_instance_resolver()
-    applier = _Applier(canvas, new_id, widgets, resolver)
+    widget_types = get_widget_types() if widget_types is None else widget_types
+    resolver = resolver or get_widget_resolver()
+    applier = _Applier(canvas, new_id, widget_types, resolver)
     applied: list[AppliedOperation] = []
     for index, op in enumerate(ops):
         try:
@@ -409,7 +409,7 @@ def apply_operations(
     return (
         normalize_definition(
             applier.canvas,
-            widgets,
+            widget_types,
             resolver,
             strict_nodes={touch.node_id for touch in touches},
             props_nodes={t.node_id for t in touches if t.group == FieldGroup.PROPS},

@@ -19,18 +19,18 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.unit_tests.canvas.fixtures import canvas_widgets, FakeResolver
+from tests.unit_tests.canvas.fixtures import canvas_widget_types, FakeResolver
 
 
 @pytest.fixture
-def widgets() -> Iterator[FakeResolver]:
+def widget_types() -> Iterator[FakeResolver]:
     """Swap in the test widgets and a persisted-instance resolver."""
     from superset.canvas.definition import registry
     from superset.widgets.registry import registry as widget_registry
 
     resolver = FakeResolver(hidden={"chart-secret"})
-    previous_resolver = registry.get_instance_resolver()
-    registry.set_instance_resolver(resolver)
-    with patch.dict(widget_registry, canvas_widgets(), clear=True):
+    previous_resolver = registry.get_widget_resolver()
+    registry.set_widget_resolver(resolver)
+    with patch.dict(widget_registry, canvas_widget_types(), clear=True):
         yield resolver
-    registry.set_instance_resolver(previous_resolver)
+    registry.set_widget_resolver(previous_resolver)

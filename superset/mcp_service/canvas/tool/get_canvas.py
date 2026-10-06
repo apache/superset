@@ -68,8 +68,8 @@ def get_canvas(
     revision.
 
     Placements are keyed by readable ids (``revenue-trend``); use them in
-    ``apply_canvas_ops``. A placement holds an inline widget (``widget``,
-    ``props``) or a persisted instance (``instance``), plus its ``layout``.
+    ``apply_canvas_ops``. A placement holds an inline widget (``widgetType``,
+    ``props``) or a saved widget (``widgetId``), plus its ``layout``.
     Pass ``include_resolved=true`` only when you need the server-resolved grid
     positions (``placements``) or which placements each filter drives
     (``filterScopes`` and friends); they're derived from the tree and cost

@@ -16,11 +16,16 @@
 # under the License.
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.validation import normalize_definition
-from tests.unit_tests.canvas.fixtures import canvas, canvas_widgets, FakeResolver, node
+from tests.unit_tests.canvas.fixtures import (
+    canvas,
+    canvas_widget_types,
+    FakeResolver,
+    node,
+)
 
 
 def test_placements_include_auto_placed_nodes_and_grid_containers() -> None:
-    rules, resolver = canvas_widgets(), FakeResolver()
+    rules, resolver = canvas_widget_types(), FakeResolver()
     definition = normalize_definition(
         canvas(
             {

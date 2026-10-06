@@ -29,20 +29,20 @@ interface CanvasNodeBase {
   children?: string[];
 }
 
-/** A placement of a persisted widget instance. */
+/** A placement of a persisted widget, by UUID. */
 export interface PersistedCanvasNode extends CanvasNodeBase {
-  instance: string;
-  widget?: never;
+  widgetId: string;
+  widgetType?: never;
   schemaVersion?: never;
   props?: never;
 }
 
 /** A placement holding an inline widget instance. */
 export interface InlineCanvasNode extends CanvasNodeBase {
-  widget: string;
+  widgetType: string;
   schemaVersion: number;
   props: Record<string, unknown>;
-  instance?: never;
+  widgetId?: never;
 }
 
 export type CanvasNode = PersistedCanvasNode | InlineCanvasNode;

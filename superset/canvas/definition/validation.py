@@ -41,18 +41,18 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
-from superset_core.canvas import GridPlacement, InstanceResolver
+from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import Widget
 
 from superset.canvas.definition.grid import resolve_grid, span_errors
 from superset.canvas.definition.placements import (
-    placement_widgets,
+    placement_types,
     upgrade_inline_props,
 )
 from superset.canvas.definition.registry import (
-    get_instance_resolver,
-    get_widgets,
-    WidgetRegistry,
+    get_widget_resolver,
+    get_widget_types,
+    WidgetTypes,
 )
 from superset.canvas.definition.schemas import (
     CanvasDefinition,
@@ -113,19 +113,19 @@ class _Validator:
     def __init__(
         self,
         raw: dict[str, Any],
-        widgets: WidgetRegistry,
-        resolver: InstanceResolver,
+        widget_types: WidgetTypes,
+        resolver: WidgetResolver,
         strict_nodes: Iterable[str] | None,
         props_nodes: Iterable[str] | None,
     ) -> None:
         self.raw = raw
-        self.widgets = widgets
+        self.widget_types = widget_types
         self.resolver = resolver
         self.strict = None if strict_nodes is None else set(strict_nodes)
         self.props_nodes = None if props_nodes is None else set(props_nodes)
         self.issues: list[Issue] = []
         self.parents: dict[str, str] = {}
-        self.node_widgets: dict[str, type[Widget]] = {}
+        self.node_types: dict[str, type[Widget]] = {}
         self.unresolved: set[str] = set()
 
     def fail(self, path: str, message: str) -> None:
@@ -138,7 +138,7 @@ class _Validator:
         return self.props_nodes is None or node_id in self.props_nodes
 
     def widget_id(self, node_id: str) -> str:
-        return self.node_widgets[node_id].widget_type
+        return self.node_types[node_id].widget_type
 
     def run(self) -> dict[str, Any]:
         try:
@@ -146,7 +146,7 @@ class _Validator:
         except ValidationError as ex:
             raise DefinitionValidationError(_pydantic_issues((), ex)) from ex
         doc = canvas.model_dump(mode="json", by_alias=True, exclude_none=True)
-        upgrade_inline_props(doc, self.widgets)
+        upgrade_inline_props(doc, self.widget_types)
 
         self._check_tree(doc)
         self._check_widgets(doc)
@@ -197,7 +197,7 @@ class _Validator:
 
     def _check_widgets(self, doc: dict[str, Any]) -> None:
         nodes = doc["nodes"]
-        resolved = placement_widgets(nodes, self.widgets, self.resolver)
+        resolved = placement_types(nodes, self.widget_types, self.resolver)
         # An instance may be placed more than once; everything the canvas
         # tracks (placement, scopes, values) is keyed by placement.
         for node_id, node in nodes.items():
@@ -205,19 +205,19 @@ class _Validator:
             if widget is not None and (
                 widget.behavior.container or not node.get("children")
             ):
-                self.node_widgets[node_id] = widget
+                self.node_types[node_id] = widget
                 if widget.behavior.container:
                     node.setdefault("children", [])
                 else:
                     node.pop("children", None)
-                if "widget" in node and self.wrote_props(node_id):
+                if "widgetType" in node and self.wrote_props(node_id):
                     self._check_props(node_id, widget, node["props"])
                 continue
             self.unresolved.add(node_id)
-            if "widget" in node and self.wrote_props(node_id):
+            if "widgetType" in node and self.wrote_props(node_id):
                 self.fail(
-                    pointer("nodes", node_id, "widget"),
-                    f"unknown widget {node['widget']!r}, or props at a schema "
+                    pointer("nodes", node_id, "widgetType"),
+                    f"unknown widget type {node['widgetType']!r}, or props at a schema "
                     "version it doesn't support",
                 )
 
@@ -231,15 +231,15 @@ class _Validator:
 
     def _check_nesting(self) -> None:
         for node_id, parent_id in self.parents.items():
-            widget = self.node_widgets.get(node_id)
+            widget = self.node_types.get(node_id)
             if widget is None or not self.is_strict(node_id):
                 continue
             accepted: frozenset[str] | None = None
             if parent_id == ROOT_ID:
                 parent_type = ROOT_ID
-            elif parent_id in self.node_widgets:
+            elif parent_id in self.node_types:
                 parent_type = self.widget_id(parent_id)
-                accepted = self.node_widgets[parent_id].behavior.accepted_children
+                accepted = self.node_types[parent_id].behavior.accepted_children
             else:
                 continue
             widget_type = widget.widget_type
@@ -263,12 +263,12 @@ class _Validator:
                     self.fail(pointer(*path), f"unknown node {owner_id!r}")
                     continue
                 strict = self.is_strict(owner_id)
-                owner = self.node_widgets.get(owner_id)
+                owner = self.node_types.get(owner_id)
                 if strict and owner is not None and not getattr(owner.behavior, role):
                     self.fail(pointer(*path), f"node {owner_id!r} is not {noun}")
                 for field in ("targets", "exclude"):
                     for index, target in enumerate(scope[field]):
-                        target_widget = self.node_widgets.get(target)
+                        target_widget = self.node_types.get(target)
                         if target not in nodes:
                             self.fail(
                                 pointer(*path, field, index),
@@ -295,7 +295,7 @@ class _Validator:
 
     def _resolve_layouts(self, doc: dict[str, Any]) -> None:
         self._resolve_children(doc, ROOT_ID, doc["root"]["layout"]["columns"], None)
-        for node_id, widget in self.node_widgets.items():
+        for node_id, widget in self.node_types.items():
             if widget.behavior.container:
                 self._resolve_children(
                     doc,
@@ -350,7 +350,7 @@ class _Validator:
     def _size_errors(
         self, node_id: str, layout: dict[str, Any], columns: int
     ) -> list[str]:
-        widget = self.node_widgets.get(node_id)
+        widget = self.node_types.get(node_id)
         if widget is None:
             return []
         ui = widget.ui
@@ -377,8 +377,8 @@ class _Validator:
 
 def normalize_definition(
     raw: dict[str, Any],
-    widgets: WidgetRegistry | None = None,
-    resolver: InstanceResolver | None = None,
+    widget_types: WidgetTypes | None = None,
+    resolver: WidgetResolver | None = None,
     strict_nodes: Iterable[str] | None = None,
     props_nodes: Iterable[str] | None = None,
 ) -> dict[str, Any]:
@@ -392,8 +392,8 @@ def normalize_definition(
     """
     return _Validator(
         raw,
-        get_widgets() if widgets is None else widgets,
-        resolver or get_instance_resolver(),
+        get_widget_types() if widget_types is None else widget_types,
+        resolver or get_widget_resolver(),
         strict_nodes,
         props_nodes,
     ).run()

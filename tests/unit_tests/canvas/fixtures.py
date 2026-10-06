@@ -60,9 +60,9 @@ class BoardColumn(BaseModel):
     lane: str
 
 
-def canvas_widgets() -> dict[str, type[Widget]]:
+def canvas_widget_types() -> dict[str, type[Widget]]:
     """Test widgets by id, standing in for the widget registry."""
-    widgets = [
+    widget_types = [
         _widget("group", WidgetBehavior(container=True, grid_columns=12)),
         _widget(
             "tabs",
@@ -96,7 +96,7 @@ def canvas_widgets() -> dict[str, type[Widget]]:
             ),
         ),
     ]
-    return {widget.widget_type: widget for widget in widgets}
+    return {widget.widget_type: widget for widget in widget_types}
 
 
 class FakeResolver:
@@ -109,15 +109,15 @@ class FakeResolver:
     def __init__(self, hidden: Iterable[str] = ()) -> None:
         self.hidden = set(hidden)
 
-    def widget_types(self, instance_ids: Iterable[str]) -> dict[str, str]:
+    def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
         return {
             instance_id: instance_id.split("-")[0]
-            for instance_id in instance_ids
+            for instance_id in widget_ids
             if not instance_id.startswith("missing")
         }
 
-    def placeable(self, instance_ids: Iterable[str]) -> set[str]:
-        return set(self.widget_types(instance_ids)) - self.hidden
+    def placeable(self, widget_ids: Iterable[str]) -> set[str]:
+        return set(self.widget_types(widget_ids)) - self.hidden
 
 
 _ops_adapter = TypeAdapter(list[Operation])
@@ -132,16 +132,16 @@ def sequential_ids() -> Callable[[str, Container[str]], str]:
     return lambda _base, _taken: f"n{next(counter)}"
 
 
-def node(instance: str, **extra: Any) -> dict[str, Any]:
+def node(widget_id: str, **extra: Any) -> dict[str, Any]:
     """A placement of a persisted instance."""
-    return {"instance": instance, **extra}
+    return {"widgetId": widget_id, **extra}
 
 
 def inline(
     widget: str, props: dict[str, Any] | None = None, **extra: Any
 ) -> dict[str, Any]:
     """A placement holding an inline instance of ``widget``."""
-    return {"widget": widget, "schemaVersion": 1, "props": props or {}, **extra}
+    return {"widgetType": widget, "schemaVersion": 1, "props": props or {}, **extra}
 
 
 def canvas(
