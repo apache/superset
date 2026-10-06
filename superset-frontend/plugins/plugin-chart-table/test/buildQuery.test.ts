@@ -129,6 +129,139 @@ test('semantic raw table drops ordering for a column no longer selected', () => 
   expect(query.orderby).toEqual([['played_at', false]]);
 });
 
+test.each([
+  { percentMetrics: [], label: 'groupby only' },
+  { percentMetrics: ['count'], label: 'percent metric only' },
+])(
+  'semantic aggregate clears raw ordering with $label',
+  ({ percentMetrics }) => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      query_mode: QueryMode.Aggregate,
+      groupby: ['song_name'],
+      metrics: [],
+      percent_metrics: percentMetrics,
+      all_columns: ['played_at'],
+      order_by_cols: ['["played_at",false]'],
+    }).queries[0];
+
+    expect(query.columns).toEqual(['song_name']);
+    expect(query.orderby).toEqual([]);
+  },
+);
+
+test.each([
+  { key: 'song_name', metrics: [], label: 'groupby column' },
+  { key: 'count', metrics: ['count'], label: 'metric' },
+])(
+  'semantic aggregate retains valid paginated $label ordering',
+  ({ key, metrics }) => {
+    const query = buildQueryUncached(
+      {
+        ...basicFormData,
+        datasource: '2__semantic_view',
+        query_mode: QueryMode.Aggregate,
+        groupby: ['song_name'],
+        metrics,
+        server_pagination: true,
+      },
+      { ownState: { sortBy: [{ key, desc: true }] } },
+    ).queries[0];
+
+    expect(query.orderby).toEqual([[key, false]]);
+  },
+);
+
+test('semantic aggregate retains a paginated temporal column sort', () => {
+  const query = buildQueryUncached(
+    {
+      ...basicFormData,
+      datasource: '2__semantic_view',
+      query_mode: QueryMode.Aggregate,
+      groupby: ['metric_time'],
+      metrics: [],
+      time_grain_sqla: TimeGranularity.MONTH,
+      temporal_columns_lookup: { metric_time: true },
+      server_pagination: true,
+    },
+    { ownState: { sortBy: [{ key: 'metric_time', desc: true }] } },
+  ).queries[0];
+
+  expect(query.orderby).toEqual([['metric_time', false]]);
+});
+
+test('semantic aggregate retains an explicit sort-by metric outside selected metrics', () => {
+  const query = buildQueryUncached({
+    ...basicFormData,
+    datasource: '2__semantic_view',
+    query_mode: QueryMode.Aggregate,
+    groupby: ['song_name'],
+    metrics: ['sum'],
+    timeseries_limit_metric: 'count',
+  }).queries[0];
+
+  expect(query.orderby).toEqual([['count', true]]);
+});
+
+test.each([
+  { percentMetrics: [], label: 'groupby only' },
+  { percentMetrics: ['count'], label: 'percent metric only' },
+])(
+  'semantic aggregate rejects stale paginated raw ordering with $label',
+  ({ percentMetrics }) => {
+    const query = buildQueryUncached(
+      {
+        ...basicFormData,
+        datasource: '2__semantic_view',
+        query_mode: QueryMode.Aggregate,
+        groupby: ['song_name'],
+        metrics: [],
+        percent_metrics: percentMetrics,
+        server_pagination: true,
+        all_columns: ['played_at'],
+        order_by_cols: ['["played_at",false]'],
+      },
+      { ownState: { sortBy: [{ key: 'played_at', desc: true }] } },
+    ).queries[0];
+
+    expect(query.columns).toEqual(['song_name']);
+    expect(query.orderby).toEqual([]);
+  },
+);
+
+test.each([
+  {
+    label: 'dataset raw',
+    datasource: '11__table',
+    queryMode: QueryMode.Raw,
+    metrics: [],
+    expectedOrderby: [['artist_name', false]],
+  },
+  {
+    label: 'semantic aggregate',
+    datasource: '2__semantic_view',
+    queryMode: QueryMode.Aggregate,
+    metrics: ['count'],
+    expectedOrderby: [['count', false]],
+  },
+])(
+  'preserves $label ordering outside the semantic raw filter',
+  ({ datasource, queryMode, metrics, expectedOrderby }) => {
+    const query = buildQueryUncached({
+      ...basicFormData,
+      datasource,
+      query_mode: queryMode,
+      metrics,
+      groupby: ['song_name'],
+      all_columns: ['played_at'],
+      order_by_cols: ['["artist_name",false]'],
+    }).queries[0];
+
+    expect(query.orderby).toEqual(expectedOrderby);
+  },
+);
+
 test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
   'preserves ordinary dataset temporal SQL with grain %s',
   grain => {

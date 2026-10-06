@@ -148,6 +148,8 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
         // default to ordering by first metric in descending order
         // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
+      } else if (isSemanticView) {
+        orderby = [];
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
@@ -273,12 +275,22 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.server_pagination && sortByFromOwnState
         ? sortByFromOwnState
         : orderby;
-    const selectedColumns = new Set(columns.filter(isPhysicalColumn));
+    const selectedColumns = new Set(
+      (baseQueryObject.columns || []).filter(isPhysicalColumn),
+    );
+    const sortableSemanticFields = new Set([
+      ...selectedColumns,
+      ...(queryMode === QueryMode.Aggregate
+        ? (metrics || []).map(getMetricLabel)
+        : []),
+    ]);
     const effectiveOrderby =
-      queryMode === QueryMode.Raw && isSemanticView
+      isSemanticView &&
+      (queryMode === QueryMode.Raw ||
+        (formData.server_pagination && sortByFromOwnState))
         ? requestedOrderby.filter(
             ([column]) =>
-              isPhysicalColumn(column) && selectedColumns.has(column),
+              isPhysicalColumn(column) && sortableSemanticFields.has(column),
           )
         : requestedOrderby;
 
