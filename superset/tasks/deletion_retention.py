@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, cast, NamedTuple
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -56,6 +56,7 @@ from superset.models.helpers import (
     skip_visibility_filter,
     SoftDeleteMixin,
 )
+from superset.tasks.retention_cap import validate_retention_cap
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -68,6 +69,15 @@ _BATCH: int = 500
 def _soft_delete_models() -> list[type[SoftDeleteMixin]]:
     """Return all registered soft-delete models in a stable order."""
     return list(SoftDeleteMixin._registered_subclasses)  # noqa: SLF001
+
+
+def _ordered_purge_models(cutoff: datetime) -> list[type[SoftDeleteMixin]]:
+    """Rotate daily priority so one busy model cannot starve later models."""
+    models: list[type[SoftDeleteMixin]] = _soft_delete_models()
+    if not models:
+        return models
+    start: int = cutoff.toordinal() % len(models)
+    return models[start:] + models[:start]
 
 
 def _model_table(model: type[SoftDeleteMixin]) -> sa.Table:
@@ -132,8 +142,136 @@ def _report_model_counts(outcome: str, counts: dict[str, int]) -> None:
         )
 
 
-def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
+def _count_eligible(model: type[SoftDeleteMixin], cutoff: datetime) -> int:
+    """Count aged roots, including roots that a later cascade may block."""
+    table: sa.Table = _model_table(model)
+    with skip_visibility_filter(db.session, model):
+        return int(
+            db.session.scalar(
+                sa.select(sa.func.count())
+                .select_from(table)
+                .where(table.c.deleted_at.is_not(None), table.c.deleted_at < cutoff)
+            )
+            or 0
+        )
+
+
+class _PurgeScan(NamedTuple):
+    """Counts and supported models collected across one purge invocation."""
+
+    purged: dict[str, int]
+    would_purge: dict[str, int]
+    unsupported_models: dict[str, int]
+    failures: int
+    blocked: int
+    remaining_budget: int | None
+    supported_models: list[type[SoftDeleteMixin]]
+
+
+def _scan_purge_models(
+    cutoff: datetime, dry_run: bool, max_per_run: int | None
+) -> _PurgeScan:
+    """Apply one shared root budget across every supported model."""
+    purged: dict[str, int] = {}
+    would_purge: dict[str, int] = {}
+    unsupported_models: dict[str, int] = {}
+    failures: int = 0
+    blocked: int = 0
+    remaining_budget: int | None = max_per_run
+    supported_models: list[type[SoftDeleteMixin]] = []
+
+    for model in _ordered_purge_models(cutoff):
+        entity_type: str = _model_table_name(model)
+        if model not in purge_policy_registry():
+            unsupported_models[entity_type] = 1
+            logger.warning(
+                "deletion_retention: skipping %s: no purge policy", entity_type
+            )
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
+            )
+            continue
+        supported_models.append(model)
+        if remaining_budget == 0 and not dry_run:
+            continue
+        purged_n: int
+        would_n: int
+        failed_n: int
+        blocked_n: int
+        if dry_run or remaining_budget is None:
+            purged_n, would_n, failed_n, blocked_n = _purge_model(
+                model, cutoff, dry_run
+            )
+        else:
+            purged_n, would_n, failed_n, blocked_n = _purge_model(
+                model, cutoff, dry_run, max_per_run=remaining_budget
+            )
+            remaining_budget -= purged_n
+        if would_n:
+            would_purge[entity_type] = would_n
+        if purged_n:
+            purged[entity_type] = purged_n
+        failures += failed_n
+        blocked += blocked_n
+
+    return _PurgeScan(
+        purged,
+        would_purge,
+        unsupported_models,
+        failures,
+        blocked,
+        remaining_budget,
+        supported_models,
+    )
+
+
+def _add_purge_cap_stats(
+    stats: dict[str, Any],
+    cutoff: datetime,
+    scan: _PurgeScan,
+    max_per_run: int | None,
+) -> None:
+    """Count remaining roots without masking a committed purge on failure."""
+    if max_per_run is None:
+        return
+    remaining_eligible: int | None
+    count_complete: bool = True
+    try:
+        remaining_eligible = sum(
+            _count_eligible(model, cutoff) for model in scan.supported_models
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "deletion_retention: remainder count failed after purge",
+            exc_info=True,
+        )
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.remainder_count_failed")
+        remaining_eligible = None
+        count_complete = False
+    cap_reached: bool = scan.remaining_budget == 0
+    stats.update(
+        max_per_run=max_per_run,
+        cap_reached=cap_reached,
+        remaining_eligible=remaining_eligible,
+        remaining_count_complete=count_complete,
+    )
+    if remaining_eligible is not None:
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.remaining_eligible", remaining_eligible
+        )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.remaining_count_complete", int(count_complete)
+    )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.cap_reached", int(cap_reached)
+    )
+
+
+def _purge_impl(
+    window_days: int, dry_run: bool, max_per_run: int | None = None
+) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
+    max_per_run = validate_retention_cap(max_per_run, "SOFT_DELETE_PURGE_MAX_PER_RUN")
     if window_days == 0 or window_days < -1:
         logger.info("deletion_retention: window is disabled or invalid; skipping")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
@@ -151,59 +289,49 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         else datetime.now() - timedelta(days=window_days)
     )
     _reconcile_unless_dry_run(dry_run)
-    purged: dict[str, int] = {}
-    would_purge: dict[str, int] = {}
-    unsupported_models: dict[str, int] = {}
-    failures = 0
-    blocked = 0
-
-    for model in _soft_delete_models():
-        entity_type = _model_table_name(model)
-        if model not in purge_policy_registry():
-            unsupported_models[entity_type] = 1
-            logger.warning(
-                "deletion_retention: skipping %s: no purge policy", entity_type
-            )
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
-            )
-            continue
-        purged_n, would_n, failed_n, blocked_n = _purge_model(model, cutoff, dry_run)
-        if would_n:
-            would_purge[entity_type] = would_n
-        if purged_n:
-            purged[entity_type] = purged_n
-        failures += failed_n
-        blocked += blocked_n
+    scan: _PurgeScan = _scan_purge_models(cutoff, dry_run, max_per_run)
 
     if dry_run:
-        _report_model_counts("would_purge", would_purge)
-        logger.info("deletion_retention: DRY RUN would_purge=%s", would_purge)
-        return {
+        _report_model_counts("would_purge", scan.would_purge)
+        logger.info("deletion_retention: DRY RUN would_purge=%s", scan.would_purge)
+        backlog: int = sum(scan.would_purge.values())
+        dry_stats: dict[str, Any] = {
             "dry_run": 1,
-            "would_purge": would_purge,
-            "unsupported_models": unsupported_models,
+            "would_purge": scan.would_purge,
+            "unsupported_models": scan.unsupported_models,
+            "eligible_backlog": backlog,
+            "max_per_run": max_per_run,
+            "estimated_capped_runs": (
+                (backlog + max_per_run - 1) // max_per_run
+                if max_per_run is not None
+                else int(backlog > 0)
+            ),
         }
+        return dry_stats
 
-    _report_model_counts("purged", purged)
-    if failures:
+    _report_model_counts("purged", scan.purged)
+    if scan.failures:
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.cascade_failures")
-    if blocked:
+    if scan.blocked:
         stats_logger_manager.instance.gauge(
-            f"{_METRIC_PREFIX}.blocked_by_reference", blocked
+            f"{_METRIC_PREFIX}.blocked_by_reference", scan.blocked
         )
-    stats = {
-        "purged": purged,
-        "cascade_failures": failures,
-        "blocked_by_reference": blocked,
-        "unsupported_models": unsupported_models,
+    stats: dict[str, Any] = {
+        "purged": scan.purged,
+        "cascade_failures": scan.failures,
+        "blocked_by_reference": scan.blocked,
+        "unsupported_models": scan.unsupported_models,
     }
+    _add_purge_cap_stats(stats, cutoff, scan, max_per_run)
     logger.info("deletion_retention: %s", stats)
     return stats
 
 
 def _purge_model(
-    model: type[SoftDeleteMixin], cutoff: datetime, dry_run: bool
+    model: type[SoftDeleteMixin],
+    cutoff: datetime,
+    dry_run: bool,
+    max_per_run: int | None = None,
 ) -> tuple[int, int, int, int]:
     """Process one model's eligible rows. Returns ``(purged, would_purge,
     failures, blocked)``. A single entity's blocked/failed cascade never aborts
@@ -215,6 +343,8 @@ def _purge_model(
             would += len(id_batch)
             continue
         for entity_id in id_batch:
+            if max_per_run is not None and purged >= max_per_run:
+                break
             try:
                 result = _purge_one(model, entity_id, cutoff)
                 if result is not None and result.purged:
@@ -229,6 +359,8 @@ def _purge_model(
                     entity_type,
                     entity_id,
                 )
+        if max_per_run is not None and purged >= max_per_run:
+            break
     return purged, would, failures, blocked
 
 
@@ -411,7 +543,16 @@ def purge_soft_deleted() -> dict[str, Any]:
     window_days = resolve_retention_window()
     dry_run = bool(current_app.config.get("SOFT_DELETE_PURGE_DRY_RUN", True))
     try:
-        return _purge_impl(window_days, dry_run)
+        max_per_run: int | None = validate_retention_cap(
+            current_app.config.get("SOFT_DELETE_PURGE_MAX_PER_RUN", 1000),
+            "SOFT_DELETE_PURGE_MAX_PER_RUN",
+        )
+    except ValueError:
+        logger.warning("deletion_retention: invalid purge cap; skipping")
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped_invalid_cap")
+        return {"skipped_invalid_cap": 1}
+    try:
+        return _purge_impl(window_days, dry_run, max_per_run=max_per_run)
     except Exception:  # pylint: disable=broad-except
         logger.exception("deletion_retention.purge_soft_deleted: task failed")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")

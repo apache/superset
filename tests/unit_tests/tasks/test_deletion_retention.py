@@ -23,7 +23,7 @@ is preserved as the disable value, and malformed supplied values defer purge.
 import runpy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 from unittest.mock import ANY, call, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -38,6 +38,7 @@ def app_config(app_context: None, monkeypatch: pytest.MonkeyPatch) -> Config:
     from flask import current_app
 
     current_app.config["SOFT_DELETE_RETENTION_DAYS"] = 30
+    current_app.config["SOFT_DELETE_PURGE_MAX_PER_RUN"] = 0
     monkeypatch.setitem(current_app.config, "SOFT_DELETE_RETENTION_DAYS_FUNC", None)
     return current_app.config
 
@@ -574,3 +575,170 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         purge.assert_not_called()
     else:
         purge.assert_called_once_with(Slice, now - timedelta(days=expected), False)
+
+
+def test_purge_cap_counts_committed_roots_across_batches(app_context: None) -> None:
+    """A failed or blocked root does not consume the successful-purge budget."""
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    purged: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="purged"
+    )
+    not_purged: CascadeResult = CascadeResult(
+        purged=False, entity_type="chart", entity_uuid="not-purged"
+    )
+    purge_one: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2], [3, 4]]) as scan,
+        patch.object(
+            task, "_purge_one", side_effect=[not_purged, purged, purged]
+        ) as purge_one,
+    ):
+        result: tuple[int, int, int, int] = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=2
+        )
+
+    assert result == (2, 0, 0, 0)
+    assert [call.args[1] for call in purge_one.call_args_list] == [1, 2, 3]
+    scan.assert_called_once()
+
+
+def test_scheduled_purge_rejects_invalid_cap_before_work(app_config: Config) -> None:
+    """Malformed scheduled budgets fail closed instead of removing everything."""
+    from superset.tasks import deletion_retention as task
+
+    app_config["SOFT_DELETE_PURGE_MAX_PER_RUN"] = -1
+    purge: MagicMock
+    with (
+        patch.object(task, "_purge_impl") as purge,
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert result == {"skipped_invalid_cap": 1}
+    purge.assert_not_called()
+
+
+def test_purge_budget_spans_models_and_runs(app_context: None) -> None:
+    """A full first run leaves later models for a subsequent invocation."""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    purge: MagicMock
+    with (
+        patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
+        patch.object(
+            task,
+            "_purge_model",
+            side_effect=[
+                (2, 0, 0, 0),
+                (0, 0, 0, 0),
+                (1, 0, 0, 0),
+            ],
+        ) as purge,
+        patch.object(task, "_count_eligible", side_effect=[0, 3, 0, 2]),
+        patch.object(task.audit, "reconcile_pending"),
+    ):
+        first: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
+        second: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
+
+    assert first["purged"] == {"slices": 2}
+    assert first["cap_reached"] is True
+    assert first["remaining_eligible"] == 3
+    assert second["purged"] == {"dashboards": 1}
+    assert second["cap_reached"] is False
+    assert second["remaining_eligible"] == 2
+    assert [entry.args[0] for entry in purge.call_args_list] == [
+        Slice,
+        Slice,
+        Dashboard,
+    ]
+    assert [entry.kwargs["max_per_run"] for entry in purge.call_args_list] == [
+        2,
+        2,
+        2,
+    ]
+
+
+def test_purge_model_priority_rotates_across_days() -> None:
+    """A cap smaller than the model count still gives each model first turn."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    models: list[type[SoftDeleteMixin]] = [Slice, Dashboard, SqlaTable]
+    with patch.object(task, "_soft_delete_models", return_value=models):
+        day: int
+        priorities: set[type[SoftDeleteMixin]] = set()
+        for day in (1, 2, 3):
+            priorities.add(task._ordered_purge_models(datetime(2026, 1, day))[0])
+
+    assert priorities == set(models)
+
+
+@pytest.mark.parametrize("cap", [None, 0, 3])
+def test_purge_dry_run_counts_full_backlog_without_writes(
+    app_context: None, cap: int | None
+) -> None:
+    """Dry-run eligibility is independent of a configured deletion budget."""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    purge_one: MagicMock
+    reconcile: MagicMock
+    with (
+        patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
+        patch.object(
+            task,
+            "_iter_eligible_ids",
+            side_effect=[
+                iter([[1, 2], [3, 4]]),
+                iter([[5, 6, 7]]),
+            ],
+        ),
+        patch.object(task, "_purge_one") as purge_one,
+        patch.object(task.audit, "reconcile_pending") as reconcile,
+    ):
+        result: dict[str, Any] = task._purge_impl(30, True, max_per_run=cap)
+
+    assert result["would_purge"] == {"slices": 4, "dashboards": 3}
+    purge_one.assert_not_called()
+    reconcile.assert_not_called()
+    assert result["eligible_backlog"] == 7
+    assert result["estimated_capped_runs"] == (3 if cap == 3 else 1)
+
+
+@pytest.mark.parametrize("invalid", [-1, True, "2", 1.5])
+def test_purge_rejects_invalid_cap(invalid: object) -> None:
+    """Invalid budgets cannot silently become an unlimited direct call."""
+    from superset.tasks import deletion_retention as task
+
+    with pytest.raises(ValueError, match="SOFT_DELETE_PURGE_MAX_PER_RUN"):
+        task._purge_impl(30, False, max_per_run=cast(int | None, invalid))
+
+
+def test_purge_remainder_failure_keeps_committed_totals(app_context: None) -> None:
+    """A post-commit count failure cannot turn successful purges into an error."""
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    scan: task._PurgeScan = task._PurgeScan({"slices": 2}, {}, {}, 0, 0, 0, [Slice])
+    with (
+        patch.object(task, "_scan_purge_models", return_value=scan),
+        patch.object(task, "_count_eligible", side_effect=RuntimeError("count failed")),
+        patch.object(task.audit, "reconcile_pending"),
+    ):
+        result: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
+
+    assert result["purged"] == {"slices": 2}
+    assert result["cap_reached"] is True
+    assert result["remaining_eligible"] is None
+    assert result["remaining_count_complete"] is False

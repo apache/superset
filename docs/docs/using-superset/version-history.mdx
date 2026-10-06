@@ -96,6 +96,20 @@ History retention is configured independently with `VERSION_HISTORY_RETENTION_DA
 in `superset_config.py` or the environment variable of the same name. Its default
 is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
 live versions and prunes eligible closed history older than the configured window.
+`VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN` defaults to `1000` whole
+transactions per scheduled run. The transaction's shadow rows and change records
+are removed together; the cap counts transactions, not physical rows. Set the
+cap to `0` or `None` in `superset_config.py` for an unlimited run. Negative,
+boolean, string, and fractional caps are invalid and stop the task without
+deleting history. A capped run reports `cap_reached`, `remaining_eligible`, and
+`remaining_count_complete`. The remainder is exact when the bounded probe
+covers the backlog; otherwise it is a lower bound from its first 1,000 aged
+transaction candidates. If that probe fails after a successful prune, the
+remainder is `None` without hiding the committed deletion totals. Large
+backlogs drain over successive scheduled runs. Monitor the
+`superset.versioning.retention.remaining_count_complete` gauge alongside the
+`remaining_eligible_at_least` gauge so a lower-bound zero is not read as an
+empty backlog.
 The released `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` key remains a deprecated
 fallback: its positive window is preserved and any nonpositive value still
 disables pruning. Migrate a legacy `-1` or other negative disable to the new
@@ -121,7 +135,10 @@ one of those transactions: closed rows can be removed when their closing
 transaction expires. Retention can therefore remove history used by previews
 and restores; version history is not a substitute for backups.
 
-There is no dry-run switch for this task. Neither `VERSION_HISTORY` nor
+Set `VERSION_HISTORY_PRUNE_DRY_RUN = True` in `superset_config.py` to scan the
+entire eligible backlog without deleting anything. The result includes
+`eligible_backlog` and `estimated_capped_runs`; a live-anchor transaction is
+excluded from both. Neither `VERSION_HISTORY` nor
 `ENABLE_VERSIONING_CAPTURE` disables pruning of existing history. To preserve
 history while the feature is off, set the retention value to `0` and leave the
 task's beat schedule entry in place: removing the entry logs a missing-schedule

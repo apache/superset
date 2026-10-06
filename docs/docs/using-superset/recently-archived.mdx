@@ -159,6 +159,18 @@ destructive when it runs. Set it to `True` in `superset_config.py` and restart
 the relevant processes to log what the task *would* purge without deleting
 anything. Validate the eligible backlog before enabling live purging or
 shortening a window; the first live run can process accumulated old archives.
+`SOFT_DELETE_PURGE_MAX_PER_RUN` defaults to `1000` root charts, dashboards, or
+datasets per scheduled run. One root's complete cascade counts as one and is
+never split to fit the cap. Set `0` or `None` in `superset_config.py` to remove
+the cap; a negative, boolean, string, or fractional value stops the scheduled
+task without purging. A live run reports `cap_reached` and `remaining_eligible`
+for aged roots remaining across all supported models. This remainder includes
+roots that a reference blocker may prevent from purging. A count failure after
+committed purges sets `remaining_eligible` to `None` and
+`remaining_count_complete` to `False` without hiding the purge totals. Dry-run scans the full
+eligible backlog regardless of the cap, writes nothing, and reports
+`eligible_backlog` plus `estimated_capped_runs`; the estimate assumes all
+eligible roots can be purged. The operator's `force-purge` CLI remains uncapped.
 
 ### Running retention tasks
 

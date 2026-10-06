@@ -30,8 +30,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
-from unittest.mock import MagicMock, patch
+from typing import Any, cast
+from unittest.mock import call, MagicMock, patch
 
 import pytest
 from flask import Flask
@@ -81,7 +81,7 @@ def test_task_reads_canonical_application_retention(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(int(value))
+    prune.assert_called_once_with(int(value), max_per_run=1000, dry_run=False)
     stats.incr.assert_not_called()
 
 
@@ -103,7 +103,7 @@ def test_task_preserves_legacy_only_custom_application_config(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(expected)
+    prune.assert_called_once_with(expected, max_per_run=1000, dry_run=False)
 
 
 @pytest.mark.parametrize(("legacy", "expected"), [(0, 0), (365, 365)])
@@ -124,7 +124,7 @@ def test_task_keeps_legacy_when_custom_module_imports_new_default(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(expected)
+    prune.assert_called_once_with(expected, max_per_run=1000, dry_run=False)
 
 
 @pytest.mark.parametrize(("canonical", "legacy"), [(7, 365), (365, 0), (-1, -1)])
@@ -145,7 +145,7 @@ def test_task_honors_explicit_canonical_config_with_legacy_key_present(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(canonical)
+    prune.assert_called_once_with(canonical, max_per_run=1000, dry_run=False)
 
 
 @pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None, "abc", "30d"])
@@ -163,7 +163,7 @@ def test_task_does_not_coerce_invalid_input_to_immediate(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions.run() == {}
-    prune.assert_called_once_with(0)
+    prune.assert_called_once_with(0, max_per_run=1000, dry_run=False)
     stats.incr.assert_not_called()
     assert "Invalid VERSION_HISTORY_RETENTION_DAYS" in caplog.text
 
@@ -186,7 +186,7 @@ def test_task_env_canonical_precedes_legacy_key(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(30)
+    prune.assert_called_once_with(30, max_per_run=1000, dry_run=False)
 
 
 def test_task_without_either_key_uses_environment_seed(stats: MagicMock) -> None:
@@ -201,7 +201,9 @@ def test_task_without_either_key_uses_environment_seed(stats: MagicMock) -> None
     ):
         assert version_history_retention.prune_old_versions() == {}
     prune.assert_called_once_with(
-        version_history_retention._version_history_retention_seed
+        version_history_retention._version_history_retention_seed,
+        max_per_run=1000,
+        dry_run=False,
     )
 
 
@@ -223,7 +225,7 @@ def test_task_defers_invalid_legacy_retention_with_zero(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(0)
+    prune.assert_called_once_with(0, max_per_run=1000, dry_run=False)
     stats.incr.assert_not_called()
     assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
 
@@ -243,7 +245,7 @@ def test_task_defers_invalid_legacy_only_retention_with_zero(
         ) as prune,
     ):
         assert version_history_retention.prune_old_versions() == {}
-    prune.assert_called_once_with(0)
+    prune.assert_called_once_with(0, max_per_run=1000, dry_run=False)
     stats.incr.assert_not_called()
     assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
 
@@ -263,7 +265,7 @@ def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:
         result = version_history_retention.prune_old_versions()
 
     assert result == {"pruned_transactions": 0}
-    prune.assert_called_once_with(30)
+    prune.assert_called_once_with(30, max_per_run=1000, dry_run=False)
     stats.incr.assert_not_called()
 
 
@@ -413,3 +415,181 @@ def test_immediate_cutoff_and_invalid_skip(stats: MagicMock, days: int) -> None:
         assert result == {"skipped": 1}
         tables.assert_not_called()
         run_pass.assert_not_called()
+
+
+def test_prune_cap_accounts_only_for_committed_passes(stats: MagicMock) -> None:
+    """A retried pass uses the same allowance and cannot overshoot the cap."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    first: dict[str, int] = {
+        "candidate_count": 1000,
+        "max_candidate_id": 1000,
+        "pruned_transactions": 2,
+    }
+    second: dict[str, int] = {
+        "candidate_count": 1000,
+        "max_candidate_id": 2000,
+        "pruned_transactions": 1,
+    }
+    run_pass: MagicMock
+    with (
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=tables
+        ),
+        patch.object(
+            version_history_retention,
+            "_run_pass_with_retry",
+            side_effect=[(first, 1), (second, 0)],
+        ) as run_pass,
+        patch.object(
+            version_history_retention, "_probe_prunable", return_value=(4, False)
+        ),
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            retention_days=30, max_per_run=3
+        )
+
+    assert result["pruned_transactions"] == 3
+    assert result["retried"] == 1
+    assert result["cap_reached"] is True
+    assert result["remaining_eligible"] == 4
+    assert result["remaining_count_complete"] is False
+    stats.gauge.assert_any_call(
+        "superset.versioning.retention.remaining_count_complete", 0
+    )
+    assert run_pass.call_args_list[0].args[-1] == 3
+    assert run_pass.call_args_list[1].args[-1] == 1
+
+
+@pytest.mark.parametrize("cap", [None, 0, 3])
+def test_prune_dry_run_counts_all_eligible_without_writes(
+    stats: MagicMock, cap: int | None
+) -> None:
+    """A dry run reports the whole backlog and capped-run estimate."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    run_pass: MagicMock
+    with (
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=tables
+        ),
+        patch.object(version_history_retention, "_count_prunable", return_value=7),
+        patch.object(version_history_retention, "_run_pass_with_retry") as run_pass,
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            30, max_per_run=cap, dry_run=True
+        )
+
+    assert result["eligible_backlog"] == 7
+    assert result["estimated_capped_runs"] == (3 if cap == 3 else 1)
+    run_pass.assert_not_called()
+    stats.gauge.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid", [-1, True, "3", 2.5])
+def test_prune_rejects_invalid_cap_before_work(invalid: object) -> None:
+    """Malformed budgets fail closed before resolving any shadow table."""
+    with (
+        patch.object(version_history_retention, "_resolve_shadow_tables") as resolve,
+        pytest.raises(ValueError, match="VERSION_HISTORY_PRUNE_MAX"),
+    ):
+        version_history_retention._prune_old_versions_impl(
+            30, max_per_run=cast(int | None, invalid)
+        )
+    resolve.assert_not_called()
+
+
+def test_prune_retry_reuses_the_same_transaction_budget(stats: MagicMock) -> None:
+    """A rolled-back SERIALIZABLE attempt consumes no transaction allowance."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    cutoff: datetime = datetime(2026, 1, 1)
+    run_pass: MagicMock
+    with (
+        patch.object(
+            version_history_retention,
+            "_run_prune_pass",
+            side_effect=[
+                OperationalError("SELECT 1", {}, Exception("serialization conflict")),
+                {"pruned_transactions": 2},
+            ],
+        ) as run_pass,
+        patch.object(version_history_retention.time, "sleep"),
+    ):
+        result: tuple[dict[str, Any], int] = (
+            version_history_retention._run_pass_with_retry(
+                cutoff, tables, after_id=4, max_prune=2
+            )
+        )
+
+    assert result == ({"pruned_transactions": 2}, 1)
+    assert run_pass.call_args_list == [
+        call(cutoff, tables, 4, 2),
+        call(cutoff, tables, 4, 2),
+    ]
+    stats.incr.assert_called_once_with("superset.versioning.retention.retried")
+
+
+def test_scheduled_prune_rejects_invalid_cap_before_work(stats: MagicMock) -> None:
+    """A malformed scheduled budget cannot enter the prune implementation."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN=-1,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(version_history_retention, "_prune_old_versions_impl") as prune,
+    ):
+        result: dict[str, Any] = version_history_retention.prune_old_versions()
+
+    assert result == {"error": 1}
+    prune.assert_not_called()
+    stats.incr.assert_called_once_with("superset.versioning.retention.failed")
+
+
+def test_remainder_probe_failure_does_not_mask_committed_prune(
+    stats: MagicMock,
+) -> None:
+    """A measurement fault leaves committed deletion totals successful."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    with (
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=tables
+        ),
+        patch.object(
+            version_history_retention,
+            "_run_pass_with_retry",
+            return_value=({"pruned_transactions": 2}, 0),
+        ),
+        patch.object(
+            version_history_retention,
+            "_probe_prunable",
+            side_effect=OperationalError("SELECT 1", {}, Exception("database offline")),
+        ),
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            30, max_per_run=2
+        )
+
+    assert result["pruned_transactions"] == 2
+    assert result["cap_reached"] is True
+    assert result["remaining_eligible"] is None
+    assert result["remaining_count_complete"] is False
+    stats.incr.assert_called_once_with(
+        "superset.versioning.retention.remainder_probe_failed"
+    )
