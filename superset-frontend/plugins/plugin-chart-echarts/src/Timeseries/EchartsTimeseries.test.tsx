@@ -510,6 +510,107 @@ test('does not emit duplicate cross-filter for generic axis label clicks', async
   expect(setDataMaskMock).not.toHaveBeenCalled();
 });
 
+test('emits X-axis cross-filter from categorical axis label clicks when dimensions are set', () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{
+        ...defaultFormData,
+        groupby: ['status'],
+        orientation: OrientationType.Horizontal,
+      }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const labelClickHandler =
+    getLatestEchartProps().queryEventHandlers?.[0].handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    value: 'Product A',
+  } as ECElementEvent);
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(1);
+  expect(setDataMaskMock.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [{ col: 'category_column', op: 'IN', val: ['Product A'] }],
+    },
+    filterState: {
+      label: ['Product A'],
+      value: ['Product A'],
+      selectedValues: ['Product A'],
+      crossFilterSource: 'xAxis',
+    },
+  });
+});
+
+test('does not emit dimension cross-filter for generic axis label clicks when dimensions are set', async () => {
+  const setDataMaskMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      setDataMask={setDataMaskMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const clickHandler = getLatestEchartProps().eventHandlers?.click;
+  expect(clickHandler).toBeDefined();
+  clickHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(setDataMaskMock).not.toHaveBeenCalled();
+});
+
+test('does not open context menu for axis labels when dimensions are set', async () => {
+  const onContextMenuMock = jest.fn();
+
+  render(
+    <EchartsTimeseries
+      {...defaultProps}
+      emitCrossFilters
+      onContextMenu={onContextMenuMock}
+      groupby={['status']}
+      labelMap={{ RESOLVED: ['RESOLVED'] }}
+      formData={{ ...defaultFormData, groupby: ['status'] }}
+      xAxis={{
+        label: 'category_column',
+        type: AxisType.Category,
+      }}
+    />,
+  );
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'xAxis',
+    name: 'Product A',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  expect(onContextMenuMock).not.toHaveBeenCalled();
+});
+
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
   const setDataMaskMock = jest.fn();
 
