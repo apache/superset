@@ -834,3 +834,42 @@ test('applies legacy Time column_config to the __timestamp column', () => {
     }),
   );
 });
+
+test('does not apply a dropped Time dataset column config to __timestamp', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+        },
+        table_timestamp_format: '',
+      },
+      datasource: {
+        columns: [{ column_name: 'Time' }],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ __timestamp: '2020-01-01T12:34:56' }],
+          colnames: ['__timestamp'],
+          coltypes: [GenericDataType.Temporal],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.columns.find(col => col.key === '__timestamp')?.config).toEqual(
+    {},
+  );
+});

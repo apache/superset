@@ -447,6 +447,33 @@ describe('plugin-chart-table', () => {
         }),
       );
     });
+
+    test('does not apply a dropped Time dataset column config to __timestamp', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [
+            {
+              column_name: 'Time',
+              type: 'TIMESTAMP',
+              type_generic: GenericDataType.Temporal,
+            },
+          ],
+        },
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+
+      expect(columns.find(col => col.key === '__timestamp')?.config).toEqual(
+        {},
+      );
+    });
+
     test('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(
