@@ -49,7 +49,11 @@ def test_result_capture_excludes_runtime_contribution_totals(
     query: QueryObject
     context, query = context_for(view_for(provider))
     options: dict[str, Any] = {"columns": ["orders"], "contribution_totals": total}
-    query.post_processing = [{"operation": "contribution", "options": options}]
+    rename_options: dict[str, Any] = {"columns": {"orders": "Order count"}}
+    query.post_processing = [
+        {"operation": "contribution", "options": options},
+        {"operation": "rename", "options": rename_options},
+    ]
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
     manager: Mock = Mock()
     manager.get_rls_cache_key.return_value = []
@@ -74,6 +78,11 @@ def test_result_capture_excludes_runtime_contribution_totals(
         assert captured_result_key(context, query) == key
         assert options["contribution_totals"] is total
         options["contribution_totals"] = np.float32(99.5)
+        assert captured_result_key(context, query) == key
+        assert rename_options == {"columns": {"orders": "Order count"}}
+        rename_options["columns"] = {"orders": "Renamed count"}
+        assert captured_result_key(context, query) is None
+        rename_options["columns"] = {"orders": "Order count"}
         assert captured_result_key(context, query) == key
         options["columns"] = ["revenue"]
         assert captured_result_key(context, query) is None
