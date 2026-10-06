@@ -16,7 +16,7 @@
 # under the License.
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import call, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -93,15 +93,19 @@ def test_default_query_object_to_dict():
 
 @pytest.mark.parametrize("clause", ["where", "having"])
 def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
-    """Unsupported SQL clauses fail without SQLA database state."""
+    """Unsupported SQL clauses fail before semantic provider access."""
     view: SemanticView = SemanticView(name="Orders")
-    view.__dict__["implementation"] = MagicMock()
+    provider_access: PropertyMock = PropertyMock(
+        side_effect=AssertionError("provider accessed before SQL extras validation")
+    )
     query: QueryObject = QueryObject(datasource=view, extras={clause: "amount > 10"})
 
-    with pytest.raises(
-        QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
-    ):
-        query.validate()
+    with patch.object(SemanticView, "implementation", provider_access):
+        with pytest.raises(
+            QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
+        ):
+            query.validate()
+    provider_access.assert_not_called()
 
 
 def test_exec_post_processing_rejects_unsupported_operation():
