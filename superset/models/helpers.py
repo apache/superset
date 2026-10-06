@@ -485,7 +485,11 @@ def _instant_from_filter_value(value: Any) -> Optional[datetime]:
     guess. A general parser reads ``'06/07/2026'`` as a date and ``'tomorrow'``
     as an instant, and a mirror derived from the wrong one of day and month is
     precisely the silent narrowing `ExploreMixin._mirror_probe_input` exists to
-    prevent -- so a value this cannot read is left exactly as it arrived.
+    prevent.
+
+    Declining to read a value is therefore an answer, not a failure, and the
+    caller has to treat it as one: on a column the engine compares more coarsely
+    than the value carries, a value this cannot place cannot be mirrored at all.
 
     A value that is already a `datetime` -- an ungrained equality, as
     drill-to-detail builds -- is returned as it is, so that the same filter
@@ -519,6 +523,14 @@ class LiteralResolution(Enum):
     SECOND = "second"
     #: The literal is a bare date; the time of day is absent entirely.
     DAY = "day"
+
+
+#: Instant `ExploreMixin._column_literal_resolution` measures a column at when
+#: there is no particular value to measure. It carries both a time of day and a
+#: sub-second part on purpose: `_engine_literal_resolution` detects what an
+#: engine throws away by rendering two instants and comparing the text, and a
+#: probe at midnight with no remainder leaves it nothing to detect.
+_RESOLUTION_REFERENCE_INSTANT = datetime(2026, 1, 1, 12, 0, 0, 500000)
 
 
 class CachedTimeOffset(TypedDict):
@@ -4576,6 +4588,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return bool(dttm.microsecond)
         return False
 
+    def _column_literal_resolution(
+        self, col: Optional["TableColumn"]
+    ) -> LiteralResolution:
+        """
+        How much of *any* value this engine compares on ``col``.
+
+        `_engine_literal_resolution` answers about a particular instant, which
+        is what a mirror derived from one needs. Two callers have no instant to
+        ask about -- the summary the Explore glyph reads, and a filter value
+        `_instant_from_filter_value` cannot read as an instant at all -- and
+        both need the column's own answer. Through one helper so that the glyph
+        and the query path cannot disagree about which column is coarse, which
+        is the same reason `mirrorable_operators` is computed once.
+
+        A non-temporal column has no answer, and asking anyway gets a wrong one:
+        SQLite's ``convert_dttm`` renders for ``types.String`` as well as for the
+        date types, so a reference instant makes a ``VARCHAR`` mapped column look
+        second-resolution -- and ``country = 'US'``, the text half of this
+        feature, reads as a value the engine compares coarsely. The per-instant
+        callers never meet this, because they arrive only with a value that
+        parsed as an instant.
+        """
+        if col is None or not col.is_dttm:
+            return LiteralResolution.FULL
+        return self._engine_literal_resolution(_RESOLUTION_REFERENCE_INSTANT, col)
+
     def _round_bound_outward(
         self,
         instant: datetime,
@@ -4644,6 +4682,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         load-bearing assumption in
         `superset.connectors.sqla.partition_mapping`.
 
+        A *string* `_instant_from_filter_value` cannot read at all is declined on
+        the same terms, and for the same reason one more step back: there is no
+        instant to round. ``'07/06/2026 10:08:11'`` is not ISO 8601, so the
+        parser leaves it alone -- and Postgres casts that same text to a DATE and
+        keeps the whole of July 6 while the probe, handed the string verbatim,
+        evaluates the transform at 10:08:11 and asks for a partition key no row
+        holds. That is exactly the narrowing the ISO-only parser was written to
+        prevent, reached through a value it declines to read, so the decline has
+        to travel with it. Which costs a non-ISO *date* its pruning too, because
+        telling July 6 from June 7 is the guess that started this.
+
+        Only a string. `_as_probe_input` has already run, so the engine SQL
+        `filter_values_handler` returns for an epoch-millisecond bound arrives
+        here as a `RawProbeValue` rather than text -- and that literal was
+        rendered by the engine at the engine's own resolution, so it is the one
+        thing on this path with nothing left to resolve.
+
         Where the engine compares the whole instant, a string is returned
         exactly as it arrived -- down to the type the probe binds and the cache
         key it lands on, because every query that was already correct has to
@@ -4654,6 +4709,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         parsed = _instant_from_filter_value(value)
         if parsed is None:
+            if (
+                isinstance(value, str)
+                and self._column_literal_resolution(col) is not LiteralResolution.FULL
+            ):
+                return _UNMIRRORABLE
             return value
 
         if (

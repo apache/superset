@@ -1273,30 +1273,125 @@ def test_a_string_in_list_is_untouched_on_a_full_precision_engine(
     assert "dt_epoch IN (1, 2)" in sql
 
 
-def test_an_unparseable_string_is_left_exactly_as_it_arrived(app: Flask) -> None:
+@pytest.mark.parametrize(
+    "operator, value",
+    [
+        (FilterOperator.EQUALS.value, "07/06/2026 10:08:11"),
+        (FilterOperator.EQUALS.value, "2026/07/06 10:08:11"),
+        (FilterOperator.EQUALS.value, "July 6 2026 10:08:11"),
+        (FilterOperator.GREATER_THAN_OR_EQUALS.value, "07/05/2026 10:00:00"),
+        (FilterOperator.LESS_THAN.value, "07/20/2026"),
+        # The date-only form, which mirrored correctly by luck -- it denotes
+        # midnight, so probing the whole instant and probing the date agreed.
+        # It declines with the rest, because telling July 6 from June 7 is the
+        # guess that started this.
+        (FilterOperator.EQUALS.value, "06/07/2026"),
+    ],
+    ids=[
+        "us-equality",
+        "ymd-slashes",
+        "month-name",
+        "lower-bound",
+        "upper-bound",
+        "date-only",
+    ],
+)
+def test_an_unreadable_string_does_not_mirror_on_a_date_column(
+    app: Flask, operator: str, value: str
+) -> None:
     """
     Only ISO 8601 is read, because it is the one format whose meaning is not a
-    guess. Reading ``'06/07/2026'`` as July 6 or as June 7 is a coin flip, and a
-    mirror derived from the wrong one is the silent narrowing all of this is
-    here to prevent -- so a value the mirror cannot read is passed through.
+    guess: ``'06/07/2026'`` as July 6 or as June 7 is a coin flip, and a mirror
+    derived from the wrong one is the silent narrowing all of this is here to
+    prevent.
+
+    Passing such a value through to the probe was the same narrowing by another
+    door. Postgres casts ``'07/06/2026 10:08:11'`` to a DATE and keeps the whole
+    of July 6, while the probe evaluated the transform at 10:08:11 and asked for
+    ``day_epoch = 1783332491`` -- a key no row holds. The chart returned 0 rows
+    where the filter matched 13, with no error and the pruning glyph still
+    showing.
+
+    A bound declines too, where a readable one widens: rounding outward needs an
+    instant to round, and there is none.
     """
     table = _mapped_date_table()
 
     with app.app_context():
         with _rendering_dates_like_presto(table):
             with patch(PROBE, return_value=[1]) as probe:
-                _query(
+                sql = _query(
+                    table,
+                    filter=[{"col": "event_date", "op": operator, "val": value}],
+                )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+    # The filter the author wrote is still there, so the query is correct and
+    # merely unpruned -- the one failure this feature is allowed.
+    assert f"'{value}'" in sql
+
+
+def test_an_unreadable_member_declines_an_in_list_on_a_date_column(
+    app: Flask,
+) -> None:
+    """
+    One member the server cannot place is the whole list's problem, exactly as
+    one carrying a time of day is: dropping just that member mirrors a narrower
+    list than the filter and loses the rows it named.
+    """
+    table = _mapped_date_table()
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                sql = _query(
                     table,
                     filter=[
                         {
                             "col": "event_date",
-                            "op": FilterOperator.GREATER_THAN_OR_EQUALS.value,
-                            "val": "06/07/2026",
+                            "op": FilterOperator.IN.value,
+                            "val": ["2026-07-06", "07/07/2026 09:00:00"],
                         }
                     ],
                 )
 
-    assert probe.call_args.args[-1] == ["06/07/2026"]
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
+def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
+    app: Flask,
+) -> None:
+    """
+    The decline belongs to the coarseness, not to the format. On a TIMESTAMP
+    column the engine compares the whole string the chart author typed, so there
+    is nothing for the server to resolve and the probe is handed the text as it
+    arrived -- which is what keeps the same non-ISO filter working on a
+    timestamp mapped column while it declines on a DATE one.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(lambda cls, target_type, dttm, db_extra=None: repr(dttm)),
+        ):
+            with patch(PROBE, return_value=[1783332491]) as probe:
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_time",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "07/06/2026 10:08:11",
+                        }
+                    ],
+                )
+
+    assert probe.call_args.args[-1] == ["07/06/2026 10:08:11"]
+    assert "dt_epoch = 1783332491" in sql
 
 
 def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> None:
@@ -2264,6 +2359,47 @@ def test_an_epoch_millisecond_equality_is_probed_as_the_predicate_renders_it(
 
     assert probed == [[RawProbeValue("'2026-01-01 10:00:00'")]]
     assert "dt_epoch = 1767261600" in sql
+
+
+def test_an_epoch_millisecond_equality_still_mirrors_on_a_date_column(
+    app: Flask,
+) -> None:
+    """
+    The counterpart of the unreadable-string decline, and the reason that gate
+    asks whether the value is a `str`.
+
+    `_as_probe_input` has already run by then, so an epoch-millisecond bound --
+    what drill-to-detail and cross-filters send -- arrives as a `RawProbeValue`
+    rather than as text. Reading it as an instant is hopeless and declining it
+    would be wrong: the engine rendered that literal itself, at its own
+    resolution, so it is the one value on this path with nothing left to
+    resolve. Catching it in the string branch would cost drill-to-detail its
+    pruning on every DATE column.
+    """
+    table = _mapped_date_table()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return [1767225600]
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, side_effect=record):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "event_date",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": 1767261600000,
+                        }
+                    ],
+                )
+
+    assert probed == [[RawProbeValue("DATE '2026-01-01'")]]
+    assert "dt_epoch = 1767225600" in sql
 
 
 def test_an_epoch_millisecond_in_filter_is_probed_element_wise(app: Flask) -> None:
