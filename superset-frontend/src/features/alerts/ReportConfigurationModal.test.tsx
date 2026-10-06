@@ -158,6 +158,51 @@ test('saves the configuration with intervals converted to seconds', async () => 
   );
 });
 
+test('disables configuration fields while saving', async () => {
+  let finishSave: (response: unknown) => void = () => {};
+  fetchMock.put(
+    CONFIGURATION_ENDPOINT,
+    () =>
+      new Promise(resolve => {
+        finishSave = resolve;
+      }),
+    { name: 'pending-save' },
+  );
+  const { onHide } = renderModal();
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('spinbutton', { name: 'Alert minimum interval' }),
+    ).toHaveValue('10'),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('pending-save')).toHaveLength(1),
+  );
+
+  expect(
+    screen.getByRole('switch', { name: 'Enable attachments for alerts' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('switch', { name: 'Limit recipients to users' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('switch', { name: 'Format dates in email subjects' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('spinbutton', { name: 'Alert minimum interval' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('spinbutton', { name: 'Report minimum interval' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('textbox', { name: 'Allowed e-mail domains' }),
+  ).toBeDisabled();
+
+  finishSave({ result: configuration });
+  await waitFor(() => expect(onHide).toHaveBeenCalled());
+});
+
 test('lists the impacted schedules when the configuration conflicts', async () => {
   fetchMock.put(
     CONFIGURATION_ENDPOINT,

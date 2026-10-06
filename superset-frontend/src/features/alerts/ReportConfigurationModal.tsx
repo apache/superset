@@ -281,6 +281,7 @@ const ReportConfigurationModal: FunctionComponent<
           <Flex align="center" gap={theme.marginXS}>
             <Switch
               checked={form.alerts_attach_reports}
+              disabled={saving}
               onChange={(checked: boolean) =>
                 updateForm('alerts_attach_reports', checked)
               }
@@ -298,6 +299,7 @@ const ReportConfigurationModal: FunctionComponent<
           <Flex align="center" gap={theme.marginXS}>
             <Switch
               checked={form.limit_recipients_to_users}
+              disabled={saving}
               onChange={(checked: boolean) =>
                 updateForm('limit_recipients_to_users', checked)
               }
@@ -315,6 +317,7 @@ const ReportConfigurationModal: FunctionComponent<
           <Flex align="center" gap={theme.marginXS}>
             <Switch
               checked={form.date_format_in_email_subject}
+              disabled={saving}
               onChange={(checked: boolean) =>
                 updateForm('date_format_in_email_subject', checked)
               }
@@ -338,6 +341,7 @@ const ReportConfigurationModal: FunctionComponent<
             <Flex align="center" gap={theme.marginXS}>
               <InputNumber
                 id="alert_minimum_interval_minutes"
+                disabled={saving}
                 aria-label={t('Alert minimum interval')}
                 min={0}
                 step={1}
@@ -377,6 +381,7 @@ const ReportConfigurationModal: FunctionComponent<
             <Flex align="center" gap={theme.marginXS}>
               <InputNumber
                 id="report_minimum_interval_minutes"
+                disabled={saving}
                 aria-label={t('Report minimum interval')}
                 min={0}
                 step={1}
@@ -431,6 +436,7 @@ const ReportConfigurationModal: FunctionComponent<
           >
             <Input.TextArea
               rows={3}
+              disabled={saving}
               aria-label={t('Allowed e-mail domains')}
               placeholder={t('example.com, *.example.org')}
               value={form.allowed_email_domains}
