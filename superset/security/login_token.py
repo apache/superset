@@ -210,13 +210,14 @@ def resolve_identity(  # pylint: disable=too-many-return-statements
         )
         return None
 
-    # Drop keys whose value is empty or whitespace-only, because
+    # Drop keys whose value is ``None``, empty or whitespace-only, because
     # ``auth_user_oauth`` selects on key *presence* rather than truthiness:
-    # ``if "username" in userinfo`` wins even when the value is empty, and the
-    # empty username is then rejected outright. A resolver returning
-    # {"username": "", "email": "jdoe@example.com"} would otherwise mint a
-    # perfectly good token that always fails redemption with a 401, instead of
-    # falling back to the email.
+    # ``if "username" in userinfo`` wins even when the value is unusable, and
+    # that username is then rejected outright. A resolver returning
+    # {"username": "", "email": "jdoe@example.com"} -- or, more commonly,
+    # {"username": claims.get("preferred_username"), ...} with the claim absent,
+    # which yields ``None`` -- would otherwise mint a perfectly good token that
+    # always fails redemption with a 401, instead of falling back to the email.
     #
     # Values that survive are passed through **byte for byte**. Trimming them
     # would be an identity change, not a cleanup: usernames are unique but
@@ -231,7 +232,7 @@ def resolve_identity(  # pylint: disable=too-many-return-statements
     userinfo = {
         key: value
         for key, value in userinfo.items()
-        if not (isinstance(value, str) and not value.strip())
+        if value is not None and not (isinstance(value, str) and not value.strip())
     }
 
     if not (userinfo.get("username") or userinfo.get("email")):

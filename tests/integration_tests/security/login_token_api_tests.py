@@ -327,6 +327,7 @@ class TestLoginTokenApi(SupersetTestCase):
         for userinfo in (
             {"username": "", "email": GAMMA_USERNAME},
             {"username": "   ", "email": GAMMA_USERNAME},
+            {"username": None, "email": GAMMA_USERNAME},
             {"username": "", "first_name": "", "email": GAMMA_USERNAME},
         ):
             with self.subTest(userinfo=userinfo):

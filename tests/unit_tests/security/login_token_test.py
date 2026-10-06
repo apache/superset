@@ -175,6 +175,16 @@ def test_resolve_identity_accepts_email_only(app_context: None) -> None:
             {"username": "   ", "email": "jdoe@example.com"},
             {"email": "jdoe@example.com"},
         ),
+        # None is the same key-present-but-unusable shape, and the common one:
+        # `claims.get("preferred_username")` with the claim absent.
+        (
+            {"username": None, "email": "jdoe@example.com"},
+            {"email": "jdoe@example.com"},
+        ),
+        (
+            {"username": "jdoe", "first_name": None},
+            {"username": "jdoe"},
+        ),
         # Padding is PRESERVED, never trimmed. Usernames are unique but may
         # legally contain surrounding whitespace, so trimming " admin " to
         # "admin" would authenticate a different account if both exist --
@@ -212,6 +222,7 @@ def test_resolve_identity_normalizes_empty_identity_keys(
     [
         {"username": "", "email": ""},
         {"username": "   ", "email": "  "},
+        {"username": None, "email": None},
         {"username": ""},
         {"email": ""},
     ],
