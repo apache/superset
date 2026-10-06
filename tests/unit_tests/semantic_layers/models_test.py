@@ -37,6 +37,7 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
+from superset.common.tabular_query import _resolve_time_column
 from superset.semantic_layers.models import (
     ColumnMetadata,
     get_column_type,
@@ -329,6 +330,7 @@ def mock_implementation(
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
     impl.features = frozenset()
+    impl.preferred_time_dimension = None
     return impl
 
 
@@ -736,8 +738,9 @@ def test_semantic_view_data_honors_exposed_temporal_preference(
     semantic_view: SemanticView,
     preferred: str | None,
     expected: str | None,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Only an exposed temporal dimension can become Explore's default."""
+    """Backend and Explore use the same exposed temporal preference."""
     mock_implementation.get_dimensions.return_value = [
         Dimension(id="entity.time", name="entity_time", type=pa.date32()),
         Dimension(id="entity.name", name="entity_name", type=pa.string()),
@@ -745,11 +748,23 @@ def test_semantic_view_data_honors_exposed_temporal_preference(
     ]
     mock_implementation.preferred_time_dimension = preferred
 
+    assert semantic_view.main_dttm_col == expected
     data: ExplorableData = semantic_view.data
 
     assert data["columns"][0]["column_name"] == "entity_time"
     assert data["columns"][0]["is_dttm"] is True
     assert data["main_dttm_col"] == expected
+    assert data["granularity_sqla"] == [
+        ("entity_time", "entity_time"),
+        ("metric_time", "metric_time"),
+    ]
+    if expected is not None:
+        assert _resolve_time_column(semantic_view, semantic_view.name, None, True) == (
+            expected
+        )
+    assert any(
+        "preferred_time_dimension" in record.message for record in caplog.records
+    ) is (preferred is not None and expected is None)
 
 
 def test_semantic_view_data_features_empty(

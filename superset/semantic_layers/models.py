@@ -42,6 +42,7 @@ from superset_core.semantic_layers.layer import (
     SemanticLayer as SemanticLayerABC,
 )
 from superset_core.semantic_layers.types import (
+    Dimension,
     Filter,
     Operator,
     PredicateType,
@@ -592,21 +593,36 @@ class SemanticView(AuditMixinNullable, Model):
         return [dimension.name for dimension in self._unique_dimensions]
 
     @property
-    def data(self) -> ExplorableData:
-        dimensions = self._unique_dimensions
-        metrics = list(self.implementation.get_metrics())
+    def main_dttm_col(self) -> str | None:
+        """Return the preferred exposed temporal dimension for backend and UI."""
         preferred_time_dimension: str | None = (
             self.implementation.preferred_time_dimension
         )
-        main_dttm_col: str | None = next(
+        if preferred_time_dimension is None:
+            return None
+        matching_dimension: Dimension | None = next(
             (
-                dimension.name
-                for dimension in dimensions
+                dimension
+                for dimension in self._unique_dimensions
                 if dimension.name == preferred_time_dimension
                 and get_column_type(dimension.type) == GenericDataType.TEMPORAL
             ),
             None,
         )
+        if matching_dimension is None:
+            logger.warning(
+                "Semantic view %s preferred_time_dimension %r is not an "
+                "exposed temporal dimension",
+                self.name,
+                preferred_time_dimension,
+            )
+            return None
+        return matching_dimension.name
+
+    @property
+    def data(self) -> ExplorableData:
+        dimensions = self._unique_dimensions
+        metrics = list(self.implementation.get_metrics())
         verbose_map = {
             **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
@@ -705,14 +721,18 @@ class SemanticView(AuditMixinNullable, Model):
             # sql-specific
             "schema": None,
             "catalog": None,
-            "main_dttm_col": main_dttm_col,
+            "main_dttm_col": self.main_dttm_col,
             # ``time_grain_sqla`` in ``ExplorableData`` is the ``(duration,
             # name)`` tuple shape the explore UI consumes; the dict shape
             # lives on ``get_time_grains``.
             "time_grain_sqla": [
                 (grain["duration"], grain["name"]) for grain in self.get_time_grains()
             ],
-            "granularity_sqla": [],
+            "granularity_sqla": [
+                (dimension.name, dimension.verbose_name or dimension.name)
+                for dimension in sorted(dimensions, key=lambda item: item.name)
+                if get_column_type(dimension.type) == GenericDataType.TEMPORAL
+            ],
             "fetch_values_predicate": None,
             "template_params": None,
             "is_sqllab_view": False,
