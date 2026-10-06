@@ -1626,6 +1626,42 @@ async def test_update_first_item_required_toggle_preserves_unset_selection(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize("filter_state", [{"value": None}, {"value": []}])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"name": "Renamed region"},
+        {"description": "Updated description"},
+        {"scope_chart_ids": [10]},
+        {"sort_ascending": True},
+        {"search_all_options": True},
+    ],
+)
+async def test_update_first_item_heals_legacy_selection(
+    mcp_server: object,
+    enable_empty_filter: bool,
+    filter_state: dict[str, Any],
+    changes: dict[str, Any],
+) -> None:
+    """Any update heals defined legacy selections that block first-item defaults."""
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"].update(
+        defaultToFirstItem=True, enableEmptyFilter=enable_empty_filter
+    )
+    existing["defaultDataMask"] = {
+        "extraFormData": {},
+        "filterState": copy.deepcopy(filter_state),
+    }
+    original = copy.deepcopy(existing)
+
+    config = await _update_existing(mcp_server, existing, changes)
+
+    assert config["defaultDataMask"] == {"extraFormData": {}, "filterState": {}}
+    assert existing == original
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
 @pytest.mark.parametrize("changes", [{"column": "country"}, {"multi_select": False}])
 async def test_update_first_item_stale_default_restores_unset_selection(
     mcp_server: object, enable_empty_filter: bool, changes: dict[str, Any]
@@ -1767,8 +1803,11 @@ async def test_update_default_to_first_item_and_default_value_rejected(
             )
 
 
-def test_required_empty_default_applies_in_server_dashboard_context() -> None:
-    """An explicit required empty default must reach server-side chart queries."""
+@pytest.mark.parametrize("default_value", [None, []])
+def test_required_empty_default_applies_in_server_dashboard_context(
+    default_value: list[object] | None,
+) -> None:
+    """Required empty defaults must reach queries with or without an explicit value."""
     from superset.charts.data.dashboard_filter_context import (
         _extract_filter_extra_form_data,
         DashboardFilterStatus,
@@ -1785,7 +1824,7 @@ def test_required_empty_default_applies_in_server_dashboard_context() -> None:
                 name="Region",
                 dataset_id=5,
                 column="region",
-                default_value=[],
+                default_value=default_value,
                 enable_empty_filter=True,
             ),
             [10, 11],

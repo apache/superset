@@ -307,7 +307,11 @@ def _build_new_filter_config(
             "defaultDataMask": _empty_data_mask(),
         }
 
-        if spec.default_value is not None or spec.default_to_first_item:
+        if (
+            spec.default_value is not None
+            or spec.default_to_first_item
+            or spec.enable_empty_filter
+        ):
             config["defaultDataMask"] = _default_data_mask(
                 config, spec.default_value or []
             )
@@ -455,6 +459,14 @@ def _merge_select_default(
                 "before setting an explicit default_value."
             )
         merged["defaultDataMask"] = _default_data_mask(merged, spec.default_value)
+    elif (
+        existing.get("filterType") == "filter_select"
+        and (merged.get("controlValues") or {}).get("defaultToFirstItem")
+        and "value"
+        in ((existing.get("defaultDataMask") or {}).get("filterState") or {})
+    ):
+        # Heal defined legacy selections that block the UI's first-item default.
+        merged["defaultDataMask"] = _default_data_mask(merged, [])
     elif (
         existing.get("filterType") == "filter_select"
         and spec.enable_empty_filter is not None

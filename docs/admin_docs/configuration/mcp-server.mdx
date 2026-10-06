@@ -116,6 +116,8 @@ rolled back, so do not blindly retry mutating SQL.
 list clears the selection. With `enable_empty_filter: true`, that explicit
 empty default matches no rows in both the dashboard UI and server-side
 dashboard chart queries, including for UI-created non-exact select filters.
+Creating a required select filter without `default_value` also stores this
+match-nothing default, unless `default_to_first_item` is enabled.
 Inverse-selection filters retain the UI's no-predicate behavior for empty
 selections. Disabling `enable_empty_filter` removes the empty default's
 match-nothing predicate without requiring another `default_value` update.
@@ -124,7 +126,9 @@ Explicit defaults, including an empty list, cannot be combined with
 option on an existing filter leaves the stored selection unset so the dashboard
 can choose the first available item after loading options. Toggling
 `enable_empty_filter` on a first-item filter preserves that behavior rather than
-storing an explicit empty selection or match-nothing predicate.
+storing an explicit empty selection or match-nothing predicate. Any update to
+a first-item filter also clears a defined legacy stored selection (including
+`null`) when first-item mode remains enabled, allowing automatic selection.
 Select filters with legacy string-column
 targets support both default updates and applied selections.
 
