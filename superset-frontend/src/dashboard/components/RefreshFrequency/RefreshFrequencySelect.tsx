@@ -86,9 +86,7 @@ export const isPresetValue = (
   frequency: number,
   options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
 ) =>
-  options.some(
-    option => option.value === frequency && option.value !== -1,
-  );
+  options.some((option) => option.value === frequency && option.value !== -1);
 
 /**
  * Formats a custom frequency as a string value for the custom input.
@@ -158,7 +156,7 @@ export const RefreshFrequencySelect = ({
     if (Array.isArray(rawOptions) && rawOptions.length > 0) {
       const validOptions = rawOptions
         .filter(
-          item =>
+          (item) =>
             Array.isArray(item) &&
             typeof item[0] === 'number' &&
             !Number.isNaN(item[0]) &&
@@ -226,7 +224,7 @@ export const RefreshFrequencySelect = ({
 
   return (
     <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
-      {activeOptions.map(option => (
+      {activeOptions.map((option) => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
@@ -242,7 +240,7 @@ export const RefreshFrequencySelect = ({
             onChange={handleCustomInputChange}
             placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
             disabled={radioSelection !== -1}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           />
           <span>{t('seconds')}</span>
         </CustomContent>

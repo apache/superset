@@ -79,10 +79,7 @@ const setup = (
   });
 
 test('renders configured auto refresh intervals from redux store', () => {
-  setup(
-    {},
-    createInitialState(mockConfiguredIntervals),
-  );
+  setup({}, createInitialState(mockConfiguredIntervals));
 
   expect(screen.getByRole('radio', { name: '15 seconds' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: '45 seconds' })).toBeInTheDocument();
@@ -118,10 +115,7 @@ test('options prop takes precedence over redux store configured intervals', () =
     [25, '25 seconds'],
   ];
 
-  setup(
-    { options: propOptions },
-    createInitialState(mockConfiguredIntervals),
-  );
+  setup({ options: propOptions }, createInitialState(mockConfiguredIntervals));
 
   expect(screen.getByRole('radio', { name: '5 seconds' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: '25 seconds' })).toBeInTheDocument();
@@ -129,5 +123,3 @@ test('options prop takes precedence over redux store configured intervals', () =
     screen.queryByRole('radio', { name: '15 seconds' }),
   ).not.toBeInTheDocument();
 });
-
-
