@@ -147,41 +147,34 @@ one of their `entity_type` names, which the cascade branches on. Two
 declarations for one root are ignored too, so that root is reported as
 unsupported rather than purged by an arbitrary one of them.
 
-The shapes the shared cleanup can execute are the shapes it accepts. A policy
-is refused when its root is not keyed on a single `id` column (the scan pages
-by it and the row is then fetched with a scalar lookup), has no `deleted_at`
-column (every purge path requires an archived row), or carries a table name
-that a bare-name lookup cannot resolve unambiguously — identities are recorded
-without their schema, so a schema-qualified root is not supported. It is also
-refused when a dependency it would have to execute cannot be:
+Superset guarantees the **frame** around a purge: the locked claim, the
+identity and eligibility predicates, the write-ahead audit record, the
+conditional delete and the blocked/failed accounting. Within that frame a
+policy either uses the shared cleanup callbacks, in which case its declared
+dependencies are the instructions they execute, or supplies its own callbacks
+and owns what happens between the claim and the delete. Either way the frame
+decides whether the row may be purged at all, so no policy can remove a row
+that is not archived and past the window.
 
-- an owned, association or block dependency that is not an inbound foreign
-  key, or that names a table outside the root's metadata;
-- a block with no audit reason code, or a listener effect with no execution
-  phase, which is dispatched by phase and would never run;
-- a listener effect whose action cannot act for the root's `entity_type`: tag
-  cleanup resolves a tag object type from it, and the dataset permission name
-  is only built for a dataset, so neither serves a host's own root;
-- a block declared by a policy that replaces `validate`, which is what applies
-  blockers — the declaration would otherwise be silently unenforced;
-- an owned table reachable only through an association, since associations are
-  deleted first and those rows would be orphaned — declare the intermediate
-  table owned instead;
-- an owned table that references itself while the policy keeps the stock
-  `delete_owned_children`, which prunes one level and would leave a deeper
-  sub-tree behind — such a policy supplies cleanup that walks the sub-tree;
-- two owned tables, or two association tables, at the same depth that
-  reference each other, because those deletes run in declaration order and an
-  enforced constraint would refuse one of the two orders;
-- a version target whose column is not root-relative, since cleanup compares
-  it with the root's id directly: it must be the root's own key or a foreign
-  key into the root, or it would match another root's history and leave this
-  root's behind.
+Validation is not an attempt to prove that an arbitrary declaration executes
+correctly. A policy is refused when a mistake in it would delete the wrong
+rows or silently skip cleanup, since neither announces itself:
 
-Every one of these is decided when the policy is admitted, not when a row is
-purged: a refused policy is logged with its reason and its root reported as
-unsupported, exactly like a root with no policy at all. The provider itself is
-invoked once per process, however many roots a run purges.
+- its root is not keyed on a single `id` column, has no `deleted_at` column,
+  is not a class, or claims an `entity_type` the cascade branches on;
+- a table it names cannot be resolved unambiguously without a schema, so
+  cleanup would resolve it to a different table;
+- a version target is not root-relative, so cleanup would delete another
+  root's history and leave this root's behind;
+- it declares a block or a listener effect, which resolve from Superset's own
+  validator and entity types and so are never carried out for a host root. A
+  host refuses a purge by raising `PurgeBlockedError` from its own validator
+  instead.
+
+Anything else is left to fail where it fails. A predicate the cleanup cannot
+build, or an ordering a foreign key refuses, raises per row: counted as a
+cascade failure, isolated to its own root, and recorded against the audit
+attempt rather than quietly skipped.
 
 A host that wants to confirm this hook exists before relying on it can check
 for `HOST_POLICIES_CONFIG_KEY` in

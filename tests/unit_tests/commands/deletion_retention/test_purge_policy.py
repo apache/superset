@@ -40,7 +40,6 @@ from superset.commands.deletion_retention.purge_policy import (
     _dependency_predicates,
     _fk_key,
     BlockerReason,
-    cleanup_dataset_permission,
     compare_policy,
     delete_associations,
     delete_owned_children,
@@ -833,18 +832,6 @@ def _host_chain_edges(
     )
 
 
-def test_owned_table_behind_an_association_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Associations are emptied first, so owning through one cannot execute."""
-    model: type[Any] = _host_chain("behind")
-    policy: PurgeEntityPolicy = _host_policy(
-        model, _host_chain_edges("behind", DependencyClassification.ASSOCIATION)
-    )
-
-    _assert_rejected(model, policy, "associations are deleted first", caplog)
-
-
 def test_owned_table_behind_an_owned_link_is_accepted() -> None:
     """Declaring the intermediate hop owned puts both in the same phase."""
     model: type[Any] = _host_chain("owned")
@@ -943,88 +930,6 @@ def _host_tree_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
     )
 
 
-def _host_siblings(prefix: str) -> type[Any]:
-    """Map a host root owning two tables, one referencing the other."""
-    metadata: sa.MetaData = sa.MetaData()
-    root_table: sa.Table = sa.Table(
-        f"{prefix}_entity",
-        metadata,
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("deleted_at", sa.DateTime, nullable=True),
-    )
-    sa.Table(
-        f"{prefix}_asset",
-        metadata,
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
-    )
-    sa.Table(
-        f"{prefix}_task",
-        metadata,
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("entity_id", sa.Integer, sa.ForeignKey(f"{prefix}_entity.id")),
-        sa.Column("asset_id", sa.Integer, sa.ForeignKey(f"{prefix}_asset.id")),
-    )
-
-    class HostSiblingRoot:
-        """Temporary mapped root with two owned, cross-linked children."""
-
-    return _map_host_root(HostSiblingRoot, root_table)
-
-
-def _host_sibling_edges(
-    prefix: str,
-    classification: DependencyClassification = DependencyClassification.OWNED,
-) -> tuple[DependencyPolicy, ...]:
-    entity: str = f"{prefix}_entity"
-    asset: str = f"{prefix}_asset"
-    task: str = f"{prefix}_task"
-    owned = (
-        classification,
-        ExecutionPhase.OWNED
-        if classification is DependencyClassification.OWNED
-        else ExecutionPhase.ASSOCIATIONS,
-    )
-    return (
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", entity, asset, ("id",), ("entity_id",), "inbound"
-            ),
-            *owned,
-        ),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", entity, task, ("id",), ("entity_id",), "inbound"
-            ),
-            *owned,
-        ),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", asset, task, ("id",), ("asset_id",), "inbound"
-            ),
-            DependencyClassification.PRESERVE,
-        ),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", asset, entity, ("entity_id",), ("id",), "outbound"
-            ),
-            DependencyClassification.PRESERVE,
-        ),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", task, entity, ("entity_id",), ("id",), "outbound"
-            ),
-            DependencyClassification.PRESERVE,
-        ),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key", task, asset, ("asset_id",), ("id",), "outbound"
-            ),
-            DependencyClassification.PRESERVE,
-        ),
-    )
-
-
 def test_root_without_an_id_column_is_rejected(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -1032,16 +937,6 @@ def test_root_without_an_id_column_is_rejected(
     model: type[Any] = _host_bare_root("uuidonly", "uuid")
 
     _assert_rejected(model, _host_policy(model, ()), "has no 'id' column", caplog)
-
-
-def test_self_referencing_owned_table_rejects_stock_cleanup(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Stock cleanup prunes one level, which would orphan a deeper tree."""
-    model: type[Any] = _host_tree("stocktree")
-    policy: PurgeEntityPolicy = _host_policy(model, _host_tree_edges("stocktree"))
-
-    _assert_rejected(model, policy, "must supply its own", caplog)
 
 
 def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
@@ -1054,16 +949,6 @@ def test_self_referencing_owned_table_accepts_custom_cleanup() -> None:
 
     with _installed(lambda: [policy]):
         assert get_purge_policy(model) is policy
-
-
-def test_cross_linked_owned_siblings_are_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Same-depth owned deletes run in declaration order, so this is a trap."""
-    model: type[Any] = _host_siblings("siblings")
-    policy: PurgeEntityPolicy = _host_policy(model, _host_sibling_edges("siblings"))
-
-    _assert_rejected(model, policy, "reference each other", caplog)
 
 
 def test_discovery_walks_each_recursive_table_once(
@@ -1116,85 +1001,6 @@ def test_root_without_a_deleted_at_column_is_rejected(
     model: type[Any] = _host_bare_root("noflag", "id")
 
     _assert_rejected(model, _host_policy(model, ()), "no 'deleted_at' column", caplog)
-
-
-def test_executable_classification_on_an_outbound_key_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Cleanup reads inbound foreign keys; an outbound one has nothing to delete."""
-    model: type[Any] = _host_root("outbound")
-    declared: tuple[DependencyPolicy, ...] = (
-        DependencyPolicy(
-            _host_edge("outbound").key,
-            DependencyClassification.OWNED,
-            ExecutionPhase.OWNED,
-        ),
-    )
-
-    _assert_rejected(
-        model, _host_policy(model, declared), "not an inbound foreign key", caplog
-    )
-
-
-def test_executable_dependency_outside_the_metadata_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """A table cleanup cannot resolve is refused before it is executed."""
-    model: type[Any] = _host_root("elsewhere")
-    declared: tuple[DependencyPolicy, ...] = (
-        _host_edge("elsewhere"),
-        DependencyPolicy(
-            DependencyKey(
-                "foreign_key",
-                "elsewhere_entity",
-                "a_table_in_another_metadata",
-                ("id",),
-                ("entity_id",),
-                "inbound",
-            ),
-            DependencyClassification.ASSOCIATION,
-            ExecutionPhase.ASSOCIATIONS,
-        ),
-    )
-
-    _assert_rejected(
-        model, _host_policy(model, declared), "outside the root's metadata", caplog
-    )
-
-
-def test_blocker_without_a_reason_is_rejected(caplog: pytest.LogCaptureFixture) -> None:
-    """A block with no audit code could not report why it refused."""
-    model: type[Any] = _host_referenced("noreason")
-    declared: tuple[DependencyPolicy, ...] = (
-        DependencyPolicy(
-            _inbound_ref_key("noreason"),
-            DependencyClassification.BLOCK,
-            ExecutionPhase.VALIDATE,
-        ),
-    )
-
-    _assert_rejected(
-        model, _host_policy(model, declared), "Missing blocker reason", caplog
-    )
-
-
-def test_listener_effect_without_a_phase_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Listener effects are dispatched by phase, so one without it never runs."""
-    model: type[Any] = _host_root("nophase")
-    declared: tuple[DependencyPolicy, ...] = (
-        _host_edge("nophase"),
-        DependencyPolicy(
-            DependencyKey("synthetic", "", "tagged_object", relationship="tags"),
-            DependencyClassification.LISTENER_EFFECT,
-            listener_action=ListenerAction.DELETE_TAGGED_OBJECTS,
-        ),
-    )
-
-    _assert_rejected(
-        model, _host_policy(model, declared), "Missing execution phase", caplog
-    )
 
 
 def test_discovery_keeps_a_child_version_shadow_reached_through_its_mapper() -> None:
@@ -1251,81 +1057,6 @@ def test_provider_is_invoked_once_however_many_roots_resolve() -> None:
     assert len(invocations) == 1
 
 
-def test_declared_blocker_with_a_replaced_validator_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Blockers are applied by the stock validator, so replacing it drops them."""
-    model: type[Any] = _host_referenced("ownvalidator")
-    declared: tuple[DependencyPolicy, ...] = (
-        DependencyPolicy(
-            _inbound_ref_key("ownvalidator"),
-            DependencyClassification.BLOCK,
-            ExecutionPhase.VALIDATE,
-            blocker=BlockerReason("host_reference", "a reference exists"),
-        ),
-    )
-    policy: PurgeEntityPolicy = replace(
-        _host_policy(model, declared),
-        validate=lambda session, policy, entity_id: None,
-    )
-
-    _assert_rejected(model, policy, "which is what applies them", caplog)
-
-
-def test_listener_effect_for_an_unsupported_entity_type_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Tag cleanup resolves its object type from the root's entity type.
-
-    A host root is not in that mapping, so the effect raises per row -- after
-    the write-ahead audit row is committed, which is exactly what admission
-    exists to prevent.
-    """
-    model: type[Any] = _host_root("tagging")
-    declared: tuple[DependencyPolicy, ...] = (
-        _host_edge("tagging"),
-        DependencyPolicy(
-            DependencyKey("synthetic", "", "tagged_object", relationship="tags"),
-            DependencyClassification.LISTENER_EFFECT,
-            ExecutionPhase.ASSOCIATIONS,
-            listener_action=ListenerAction.DELETE_TAGGED_OBJECTS,
-        ),
-    )
-
-    _assert_rejected(
-        model,
-        _host_policy(model, declared),
-        "supports only the entity types",
-        caplog,
-    )
-
-
-def test_permission_effect_for_a_non_dataset_root_is_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """The stock permission name is only built for a dataset.
-
-    Without one the cascade never calls the cleanup at all, so the declared
-    effect would silently do nothing.
-    """
-    model: type[Any] = _host_root("permission")
-    declared: tuple[DependencyPolicy, ...] = (
-        _host_edge("permission"),
-        DependencyPolicy(
-            DependencyKey("synthetic", "", "ab_permission_view", relationship="perm"),
-            DependencyClassification.LISTENER_EFFECT,
-            ExecutionPhase.POST_DELETE,
-            listener_action=ListenerAction.DELETE_DATASET_PERMISSION,
-        ),
-    )
-    policy: PurgeEntityPolicy = replace(
-        _host_policy(model, declared),
-        cleanup_permission=cleanup_dataset_permission,
-    )
-
-    _assert_rejected(model, policy, "supports only the entity types", caplog)
-
-
 def test_host_policy_claiming_a_built_in_entity_type_is_dropped(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -1378,19 +1109,6 @@ def test_host_policies_may_arrive_as_any_iterable() -> None:
 
     with _installed(lambda: (item for item in [policy])):
         assert get_purge_policy(model) is policy
-
-
-def test_cross_linked_association_siblings_are_rejected(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Association deletes share the depth sort, so they share the trap."""
-    model: type[Any] = _host_siblings("assocsiblings")
-    policy: PurgeEntityPolicy = _host_policy(
-        model,
-        _host_sibling_edges("assocsiblings", DependencyClassification.ASSOCIATION),
-    )
-
-    _assert_rejected(model, policy, "reference each other", caplog)
 
 
 def test_root_with_a_composite_primary_key_is_rejected(
@@ -1485,30 +1203,65 @@ def test_root_whose_table_name_is_ambiguous_is_rejected(
     )
 
 
-def test_concurrent_first_use_invokes_the_provider_once() -> None:
-    """Two first uses resolve one index between them, not one each.
+def test_provider_may_build_on_a_built_in_policy() -> None:
+    """Borrowing a built-in policy inside the provider must not stall.
 
-    Without single-flight both invoke the provider and the slower publish
-    overwrites the other -- dropping the host roots it had admitted, if that
-    second invocation happened to fail transiently, until a restart.
+    ``replace(get_purge_policy(Slice), ...)`` is the obvious way for a host to
+    pick up the stock callbacks, and it re-enters resolution while the first
+    call is still inside the provider. Run on a thread so a regression here
+    surfaces as a timeout rather than hanging the suite.
     """
     app = current_app._get_current_object()  # noqa: SLF001
-    model: type[Any] = _host_root("concurrent")
-    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("concurrent"),))
-    invocations: list[int] = []
-    both_ready: threading.Barrier = threading.Barrier(2)
+    model: type[Any] = _host_root("reentrant")
 
     def provider() -> list[PurgeEntityPolicy]:
-        invocations.append(1)
-        time.sleep(0.05)
-        return [policy]
+        return [
+            replace(
+                get_purge_policy(Slice),
+                model=model,
+                entity_type="host_root",
+                dependencies=(_host_edge("reentrant"),),
+            )
+        ]
 
     resolved: list[PurgeEntityPolicy] = []
 
     def resolve() -> None:
         with app.app_context():
-            both_ready.wait(timeout=5)
             resolved.append(get_purge_policy(model))
+
+    with _installed(provider):
+        thread = threading.Thread(target=resolve)
+        thread.start()
+        thread.join(timeout=10)
+
+    assert not thread.is_alive(), "resolution did not finish: re-entry stalled"
+    assert len(resolved) == 1
+    assert resolved[0].model is model
+
+
+def test_concurrent_first_use_publishes_a_whole_index() -> None:
+    """Each caller sees a complete index, never a half-built one.
+
+    Two first uses may each invoke the provider -- the deliberate trade for
+    not holding a lock across host code -- but publishing is a single rebind,
+    so neither sees a partial result.
+    """
+    app = current_app._get_current_object()  # noqa: SLF001
+    model: type[Any] = _host_root("concurrent")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("concurrent"),))
+    both_ready: threading.Barrier = threading.Barrier(2)
+
+    def provider() -> list[PurgeEntityPolicy]:
+        time.sleep(0.05)
+        return [policy]
+
+    seen: list[tuple[PurgeEntityPolicy, set[type[Any]]]] = []
+
+    def resolve() -> None:
+        with app.app_context():
+            both_ready.wait(timeout=5)
+            seen.append((get_purge_policy(model), set(purge_policy_registry())))
 
     with _installed(provider):
         threads: list[threading.Thread] = [
@@ -1517,7 +1270,112 @@ def test_concurrent_first_use_invokes_the_provider_once() -> None:
         for thread in threads:
             thread.start()
         for thread in threads:
-            thread.join(timeout=5)
+            thread.join(timeout=10)
 
-    assert len(invocations) == 1
-    assert resolved == [policy, policy]
+    assert len(seen) == 2
+    for found, roots in seen:
+        assert found is policy
+        assert {Slice, Dashboard, SqlaTable} <= roots
+
+
+def test_root_with_a_non_integer_id_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The scan pages an integer watermark, starting from zero."""
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "stringid_entity",
+        metadata,
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class StringIdRoot:
+        """Temporary mapped root keyed on a string id."""
+
+    _map_host_root(StringIdRoot, root_table)
+
+    _assert_rejected(
+        StringIdRoot, _host_policy(StringIdRoot, ()), "integer 'id'", caplog
+    )
+
+
+def test_version_target_keyed_on_a_non_primary_root_column_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Cleanup compares the target with the root's id, not another column.
+
+    A child keyed on some other root column matches rows whose value happens
+    to equal this root's id -- another root's history.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "coded_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("code", sa.Integer, unique=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    sa.Table(
+        "coded_child",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("root_code", sa.Integer, sa.ForeignKey("coded_entity.code")),
+    )
+
+    class CodedRoot:
+        """Temporary mapped root whose child is keyed on a non-primary column."""
+
+    _map_host_root(CodedRoot, root_table)
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey(
+                "relationship",
+                "coded_child",
+                "coded_child_version",
+                direction="onetomany",
+                relationship="versions",
+            ),
+            DependencyClassification.VERSION_OWNED,
+            ExecutionPhase.VERSION,
+            version_column="root_code",
+        ),
+    )
+
+    _assert_rejected(
+        CodedRoot, _host_policy(CodedRoot, declared), "is not root-relative", caplog
+    )
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        pytest.param(DependencyClassification.BLOCK, id="block"),
+        pytest.param(DependencyClassification.LISTENER_EFFECT, id="listener_effect"),
+    ],
+)
+def test_host_policy_declaring_core_only_dependencies_is_dropped(
+    classification: DependencyClassification, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Both resolve from core's own identities, so a host declaration is silent.
+
+    The stock listener actions decide what to delete from a built-in entity
+    type, and blockers are applied by the stock validator. Declared by a host
+    either one is accepted and then never carried out -- the one outcome worth
+    refusing, since nothing announces it. A host refuses a purge by raising
+    PurgeBlockedError from its own validator instead.
+    """
+    model: type[Any] = _host_referenced("coreonly")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            _inbound_ref_key("coreonly"),
+            classification,
+            ExecutionPhase.VALIDATE,
+            blocker=BlockerReason("host_reference", "a reference exists"),
+            listener_action=ListenerAction.DELETE_TAGGED_OBJECTS,
+        ),
+    )
+
+    _assert_rejected(
+        model, _host_policy(model, declared), "cannot be carried out", caplog
+    )
