@@ -121,6 +121,7 @@ TOOL_BUDGETS = {
     "list_themes": 3_000,
     "list_users": 2_900,
     "manage_dashboard_certification": 1_900,
+    "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
     "manage_native_filters": 9_600,
