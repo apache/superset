@@ -56,12 +56,14 @@ const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
 const mockExportChart = exploreUtils.exportChart as jest.Mock;
 
 const mockAddDangerToast = jest.fn();
+const mockAddWarningToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (component: ComponentType) => component,
   useToasts: () => ({
     addDangerToast: mockAddDangerToast,
     addSuccessToast: jest.fn(),
+    addWarningToast: mockAddWarningToast,
   }),
 }));
 
@@ -319,6 +321,7 @@ const domEvent = {} as React.MouseEvent;
 const buildScreenshotItems = () => {
   const setIsDropdownVisible = jest.fn();
   const dispatch = jest.fn();
+  const addWarningToast = jest.fn();
   const items = getExportScreenshotMenuItems({
     chartSelector: CHART_SELECTOR,
     sliceName: SLICE_NAME,
@@ -330,8 +333,9 @@ const buildScreenshotItems = () => {
     transparentKey: 'export_png_transparent',
     solidKey: 'export_png_solid',
     pdfKey: 'export_pdf',
+    addWarningToast,
   }) as any[];
-  return { items, setIsDropdownVisible, dispatch };
+  return { items, setIsDropdownVisible, dispatch, addWarningToast };
 };
 
 test('getExportScreenshotMenuItems builds the PNG submenu and PDF item with the provided keys', () => {
@@ -346,7 +350,8 @@ test('getExportScreenshotMenuItems builds the PNG submenu and PDF item with the 
 });
 
 test('getExportScreenshotMenuItems transparent option downloads a transparent PNG and dispatches a log event', () => {
-  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+  const { items, setIsDropdownVisible, dispatch, addWarningToast } =
+    buildScreenshotItems();
 
   items[0].children[0].onClick({ domEvent });
 
@@ -356,13 +361,15 @@ test('getExportScreenshotMenuItems transparent option downloads a transparent PN
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'transparent' },
+    addWarningToast,
   );
   expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
   expect(dispatch).toHaveBeenCalledTimes(1);
 });
 
 test('getExportScreenshotMenuItems solid option downloads a solid PNG and dispatches a log event', () => {
-  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+  const { items, setIsDropdownVisible, dispatch, addWarningToast } =
+    buildScreenshotItems();
 
   items[0].children[1].onClick({ domEvent });
 
@@ -372,13 +379,15 @@ test('getExportScreenshotMenuItems solid option downloads a solid PNG and dispat
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'solid' },
+    addWarningToast,
   );
   expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
   expect(dispatch).toHaveBeenCalledTimes(1);
 });
 
 test('getExportScreenshotMenuItems PDF option calls downloadAsPdf and dispatches a log event', () => {
-  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+  const { items, setIsDropdownVisible, dispatch, addWarningToast } =
+    buildScreenshotItems();
 
   items[1].onClick({ domEvent });
 
@@ -386,6 +395,7 @@ test('getExportScreenshotMenuItems PDF option calls downloadAsPdf and dispatches
     CHART_SELECTOR,
     SLICE_NAME,
     true,
+    addWarningToast,
   );
   expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
   expect(dispatch).toHaveBeenCalledTimes(1);
@@ -456,4 +466,24 @@ test('the item stays hidden while the feature flag is off', async () => {
 
   await screen.findByText('View query');
   expect(screen.queryByText('View version history')).not.toBeInTheDocument();
+});
+
+test('Export All Data JPEG screenshot passes addWarningToast to downloadAsImage', async () => {
+  render(<TestComponent {...defaultProps} />, {
+    useRedux: true,
+    initialState: { explore: { can_export_image: true } },
+  });
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  await userEvent.click(await screen.findByText('Export screenshot (jpeg)'));
+
+  expect(mockDownloadAsImage).toHaveBeenCalledWith(
+    expect.any(String),
+    'Test Chart',
+    true,
+    expect.anything(),
+    undefined,
+    mockAddWarningToast,
+  );
 });
