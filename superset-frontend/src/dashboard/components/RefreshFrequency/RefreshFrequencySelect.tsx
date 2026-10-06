@@ -117,10 +117,21 @@ export const RefreshFrequencySelect = ({
   const activeOptions = useMemo(() => {
     const rawOptions = optionsProp ?? configuredIntervals;
     if (Array.isArray(rawOptions) && rawOptions.length > 0) {
-      return rawOptions.map(([interval, label]) => ({
-        value: interval,
-        label: t(label),
-      }));
+      const validOptions = rawOptions
+        .filter(
+          item =>
+            Array.isArray(item) &&
+            typeof item[0] === 'number' &&
+            !Number.isNaN(item[0]) &&
+            typeof item[1] === 'string',
+        )
+        .map(([interval, label]) => ({
+          value: interval,
+          label: t(label),
+        }));
+      if (validOptions.length > 0) {
+        return validOptions;
+      }
     }
     return REFRESH_FREQUENCY_OPTIONS.slice(0, -1);
   }, [optionsProp, configuredIntervals]);

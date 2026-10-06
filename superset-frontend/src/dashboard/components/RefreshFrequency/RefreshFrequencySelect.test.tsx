@@ -92,4 +92,42 @@ test('renders configured auto refresh intervals from redux store', () => {
   ).not.toBeInTheDocument();
 });
 
+test('renders default options when config is not present', () => {
+  setup({}, createInitialState(undefined));
+
+  expect(
+    screen.getByRole('radio', { name: "Don't refresh" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '10 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '30 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '24 hours' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: /Custom/i })).toBeInTheDocument();
+});
+
+test('renders default options when configured intervals is empty array', () => {
+  setup({}, createInitialState([]));
+
+  expect(screen.getByRole('radio', { name: '10 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '30 seconds' })).toBeInTheDocument();
+});
+
+test('options prop takes precedence over redux store configured intervals', () => {
+  const propOptions: [number, string][] = [
+    [5, '5 seconds'],
+    [25, '25 seconds'],
+  ];
+
+  setup(
+    { options: propOptions },
+    createInitialState(mockConfiguredIntervals),
+  );
+
+  expect(screen.getByRole('radio', { name: '5 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '25 seconds' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '15 seconds' }),
+  ).not.toBeInTheDocument();
+});
+
 
