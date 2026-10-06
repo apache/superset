@@ -166,6 +166,16 @@ class TestLoginTokenApi(SupersetTestCase):
             KeyValueDAO.get_entry(KeyValueResource.LOGIN_TOKEN, UUID(token)) is not None
         )
 
+    def _assert_no_session(self) -> None:
+        """Assert that no user was logged in to the test client's session.
+
+        Checks the session directly rather than asking ``/api/v1/me/``, whose
+        answer for an anonymous caller depends on deployment configuration (a
+        401, or a 200 describing the anonymous user).
+        """
+        with self.client.session_transaction() as session:
+            assert "_user_id" not in session, dict(session)
+
     # ---------------------------------------------------------------- closed off
 
     def test_endpoints_are_404_without_the_feature_flag(self):
@@ -410,12 +420,8 @@ class TestLoginTokenApi(SupersetTestCase):
             f"passed through verbatim (got {redeemed.status_code})"
         )
 
-        # And no session was established for anyone. `/api/v1/me/` answers 200
-        # with `is_anonymous` for a caller with no session, so assert on that
-        # rather than on the status code.
-        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
-        assert me.get("is_anonymous") is True, me
-        assert me.get("username") != GAMMA_USERNAME, me
+        # And no session was established for anyone.
+        self._assert_no_session()
 
     @with_feature_flags(LOGIN_TOKEN=True)
     @with_config(
@@ -504,8 +510,7 @@ class TestLoginTokenApi(SupersetTestCase):
         # earlier branch that would make this test pass for the wrong reason.
         assert login.call_count == 1
         assert response.status_code == 401, response.headers.get("Location")
-        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
-        assert me.get("is_anonymous") is True, me
+        self._assert_no_session()
 
     @with_feature_flags(LOGIN_TOKEN=True)
     @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
