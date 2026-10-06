@@ -554,63 +554,77 @@ def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
         assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
 
 
-def test_copy_dashboard_duplicate_slices_remaps_native_filters(
+def _make_dashboard_with_slices(
     session: Session,
-) -> None:
+    slice_names: list[str] | None = None,
+    dashboard_title: str = "original_dash",
+) -> tuple[Dashboard, list[Slice]]:
     Dashboard.metadata.create_all(session.get_bind())
     dataset = SqlaTable(
-        table_name="filter_test_table",
-        database=Database(database_name="filter_test_db", sqlalchemy_uri="sqlite://"),
+        table_name="dao_test_table",
+        database=Database(database_name="dao_test_db", sqlalchemy_uri="sqlite://"),
     )
     db.session.add(dataset)
     db.session.flush()
 
-    chart1 = Slice(
-        slice_name="chart_1",
-        datasource_id=dataset.id,
-        datasource_type="table",
-    )
-    chart2 = Slice(
-        slice_name="chart_2",
-        datasource_id=dataset.id,
-        datasource_type="table",
-    )
+    names = slice_names or ["chart_1", "chart_2"]
+    slices = [
+        Slice(
+            slice_name=name,
+            datasource_id=dataset.id,
+            datasource_type="table",
+        )
+        for name in names
+    ]
     dashboard = Dashboard(
-        dashboard_title="original_dash",
-        slices=[chart1, chart2],
+        dashboard_title=dashboard_title,
+        slices=slices,
         published=True,
     )
-    db.session.add_all([chart1, chart2, dashboard])
+    db.session.add_all([*slices, dashboard])
     db.session.flush()
+    return dashboard, slices
 
+
+def _make_sample_native_filter_metadata(
+    slices: list[Slice],
+    excluded_slices: list[Slice] | None = None,
+    extra_filters: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     positions = {
-        "CHART-1": {
+        f"CHART-{slc.id}": {
             "type": "CHART",
-            "id": "CHART-1",
+            "id": f"CHART-{slc.id}",
             "children": [],
-            "meta": {"chartId": chart1.id, "width": 4, "height": 50},
-        },
-        "CHART-2": {
-            "type": "CHART",
-            "id": "CHART-2",
-            "children": [],
-            "meta": {"chartId": chart2.id, "width": 4, "height": 50},
-        },
+            "meta": {"chartId": slc.id, "width": 4, "height": 50},
+        }
+        for slc in slices
     }
-
-    native_filter_configuration = [
+    excluded_ids = [s.id for s in excluded_slices] if excluded_slices else []
+    filters: list[dict[str, Any]] = [
         {
             "id": "NATIVE_FILTER-1",
             "name": "Filter 1",
-            "scope": {"rootPath": ["ROOT_ID"], "excluded": [chart2.id]},
-            "chartsInScope": [chart1.id, chart2.id],
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": excluded_ids},
+            "chartsInScope": [s.id for s in slices],
         }
     ]
-
-    json_metadata = {
+    if extra_filters:
+        filters.extend(extra_filters)
+    return {
         "positions": positions,
-        "native_filter_configuration": native_filter_configuration,
+        "native_filter_configuration": filters,
     }
+
+
+def test_copy_dashboard_duplicate_slices_remaps_native_filters(
+    session: Session,
+) -> None:
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+    json_metadata = _make_sample_native_filter_metadata(
+        slices=[chart1, chart2],
+        excluded_slices=[chart2],
+    )
 
     copy_data = {
         "dashboard_title": "copied_dash",
@@ -639,4 +653,5 @@ def test_copy_dashboard_duplicate_slices_remaps_native_filters(
         copied_slices["chart_2"],
     ]
     assert copied_filters[0]["scope"]["excluded"] == [copied_slices["chart_2"]]
+
 
