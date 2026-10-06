@@ -12024,6 +12024,9 @@ msgstr ""
 msgid "Semantic views"
 msgstr ""
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 

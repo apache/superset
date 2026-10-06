@@ -653,3 +653,18 @@ async def test_served_discovery_regressions_keep_prose(
     assert UNTOUCHED_DESCRIPTION_PHRASES[name] in re.sub(
         r"\s+", " ", entry["description"]
     ), (name, entry["description"])
+
+
+@pytest.mark.asyncio
+async def test_dashboard_datasets_served_request_describes_lookup_and_caps() -> None:
+    """Served request metadata describes lookup and preserves cap constraints."""
+    tools = await mcp.list_tools(run_middleware=True)
+    tool = next(item for item in tools if item.name == "get_dashboard_datasets")
+    request = tool.to_mcp_tool().inputSchema["properties"]["request"]
+    assert request["description"] == "Dashboard lookup plus per-dataset detail caps."
+    assert request["required"] == ["identifier"]
+    for field, maximum in (("max_columns", 100), ("max_metrics", 50)):
+        cap = request["properties"][field]
+        assert cap["minimum"] == 0
+        assert cap["maximum"] == maximum
+        assert cap["default"] == maximum
