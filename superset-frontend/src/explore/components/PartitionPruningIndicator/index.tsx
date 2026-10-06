@@ -58,7 +58,10 @@ export interface MirrorCandidateFilter {
  */
 function mirrorsAnything(
   mapping: PartitionFilterMapping | null | undefined,
-): boolean {
+): mapping is PartitionFilterMapping {
+  // A type predicate rather than a `boolean`: an absent mapping mirrors
+  // nothing, so `true` here means there is one, and the callers that go on to
+  // read its fields should not each have to re-establish that.
   return Boolean(mapping?.active) && mapping?.evaluable !== false;
 }
 
@@ -145,7 +148,7 @@ export function isMirroredColumn(
   return Boolean(
     mirrorsAnything(mapping) &&
     columnName &&
-    mapping?.mapped_column === columnName,
+    mapping.mapped_column === columnName,
   );
 }
 
