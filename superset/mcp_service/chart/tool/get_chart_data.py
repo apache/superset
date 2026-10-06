@@ -1448,6 +1448,14 @@ def _export_scalar(value: Any) -> Any:
     return value
 
 
+_EXCEL_MIN_DATE = dt.date(1900, 1, 1)
+_EXCEL_MIN_DATETIME = dt.datetime.combine(_EXCEL_MIN_DATE, dt.time.min)
+# Leave room for XLSX writers' and readers' millisecond rounding so the final
+# supported day or time cannot roll over past Excel's range.
+_EXCEL_MAX_TIME = dt.time(23, 59, 59, 999000)
+_EXCEL_MAX_DATETIME = dt.datetime.combine(dt.date.max, _EXCEL_MAX_TIME)
+
+
 def _temporal_result_columns(query_result: Any) -> frozenset[str]:
     """Return the validated result columns whose generic type is temporal."""
     colnames = query_result.get("colnames") or []
@@ -1466,15 +1474,19 @@ def _excel_temporal_value(value: Any) -> Any:
     projection. Excel stores dates as typed serial values, so temporal columns
     are restored here. Excel cannot store offsets; like the Superset Excel
     export, aware values keep their wall-clock time and drop the offset.
-    Unparseable text is written unchanged.
+    Unparseable text, and values outside Excel's 1900 date system (before
+    1900-01-01, or rounding past its final supported day or time), are
+    written unchanged.
     """
     if type(value) is not str:
         return value
     try:
         if len(value) == 10:
-            return dt.date.fromisoformat(value)
+            day = dt.date.fromisoformat(value)
+            return day if day >= _EXCEL_MIN_DATE else value
         if "T" not in value and " " not in value and ":" in value:
-            return dt.time.fromisoformat(value).replace(tzinfo=None)
+            at = dt.time.fromisoformat(value).replace(tzinfo=None)
+            return at if at <= _EXCEL_MAX_TIME else value
         timestamp = pd.Timestamp(value)
     except (OverflowError, TypeError, ValueError):
         return value
@@ -1482,7 +1494,10 @@ def _excel_temporal_value(value: Any) -> Any:
         return value
     if timestamp.tzinfo is not None:
         timestamp = timestamp.tz_localize(None)
-    return timestamp.to_pydatetime(warn=False)
+    moment = timestamp.to_pydatetime(warn=False)
+    if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
+        return value
+    return moment
 
 
 def _excel_scalar(value: Any, temporal: bool) -> Any:

@@ -22,7 +22,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 import asyncio
 import importlib
 from contextlib import nullcontext
-from datetime import datetime, timezone
+from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
@@ -653,6 +653,59 @@ class TestChartDataValuePreservation:
         assert sheet["C2"].value == dt_time(3, 4, 5)
         assert sheet["D2"].value == "2025-01-02"
         assert sheet["D2"].data_type == "s"
+
+    @pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+    @pytest.mark.parametrize(
+        ("text", "expected"),
+        [
+            # Before Excel's 1900 date system: keep the ISO text.
+            ("1850-06-01", None),
+            ("1899-12-30", None),
+            ("1850-06-01T12:00:00", None),
+            ("1899-12-31T23:59:59", None),
+            ("1900-01-01", datetime(1900, 1, 1)),
+            # Beyond pandas' range but inside Excel's 9999 limit.
+            ("9999-12-31", datetime(9999, 12, 31)),
+            ("9999-12-31T12:00:00", datetime(9999, 12, 31, 12)),
+            # Millisecond rounding would roll past the final day or time.
+            ("9999-12-31T23:59:59.999900", None),
+            ("23:59:59.999900", None),
+            ("23:59:59.999000", dt_time(23, 59, 59, 999000)),
+        ],
+    )
+    def test_excel_export_keeps_out_of_range_temporal_text(
+        self, engine: str, text: str, expected: datetime | dt_time | None
+    ) -> None:
+        """Temporal text Excel cannot store exactly stays a string cell."""
+        import base64
+        import io
+
+        from openpyxl import load_workbook
+
+        from superset.mcp_service.chart.tool.get_chart_data import (
+            _create_excel_with_openpyxl,
+            _create_excel_with_xlsxwriter,
+        )
+
+        chart = cast(
+            Any,
+            SimpleNamespace(id=9, slice_name="Temporal export", viz_type="table"),
+        )
+        exporter = (
+            _create_excel_with_openpyxl
+            if engine == "openpyxl"
+            else _create_excel_with_xlsxwriter
+        )
+
+        encoded = exporter(chart, [{"at": text}], ["at"], frozenset({"at"}))
+        cell = load_workbook(io.BytesIO(base64.b64decode(encoded))).active["A2"]
+
+        if expected is None:
+            assert cell.data_type == "s"
+            assert cell.value == text
+        else:
+            assert cell.is_date
+            assert cell.value == expected
 
     def test_csv_export_uses_shared_uuid_projection(self) -> None:
         identifier = UUID("12345678-1234-5678-1234-567812345678")
