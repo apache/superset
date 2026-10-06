@@ -69,13 +69,14 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -192,9 +193,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)
@@ -230,6 +243,26 @@ def get_extra_editors_by_pk(
         getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
         for resource in resources
     }
+
+
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -3965,8 +3998,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        We need to delete:
-         - The dataset PVM
+        Retain the datasource_access PVM if a semantic view still owns the
+        same permission name.
 
         :param mapper: The SQLA mapper
         :param connection: The SQLA connection
@@ -3976,6 +4009,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         dataset_vm_name = self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        if connection.execute(
+            select(sv_table.c.id).where(sv_table.c.perm == dataset_vm_name).limit(1)
+        ).first():
+            return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
         )
@@ -4335,6 +4377,107 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .values(perm=new_view_perm)
                     )
 
+    def semantic_layer_before_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Remove child view permissions before the layer row is deleted.
+
+        Views the session has not loaded are deleted by the database
+        ``ON DELETE CASCADE`` (``passive_deletes=True``), so their ORM
+        ``after_delete`` hook never runs. Read their perms through the
+        connection while the rows still exist; views the ORM deletes itself
+        are already gone by now and clean up in ``semantic_view_after_delete``.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_perms: set[str] = {
+            perm
+            for perm in connection.execute(
+                select(sv_table.c.perm).where(
+                    sv_table.c.semantic_layer_uuid == target.uuid
+                )
+            ).scalars()
+            if perm
+        }
+        if not view_perms:
+            return
+
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        dataset_table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        deleting_views: Alias = sv_table.alias("deleting_views")
+        owned_perms: set[str] = set(
+            connection.execute(
+                select(dataset_table.c.perm)
+                .join(
+                    deleting_views,
+                    dataset_table.c.perm == deleting_views.c.perm,
+                )
+                .where(deleting_views.c.semantic_layer_uuid == target.uuid)
+                .distinct()
+            ).scalars()
+        )
+        owned_perms.update(
+            connection.execute(
+                select(sv_table.c.perm)
+                .join(deleting_views, sv_table.c.perm == deleting_views.c.perm)
+                .where(
+                    deleting_views.c.semantic_layer_uuid == target.uuid,
+                    sv_table.c.semantic_layer_uuid != target.uuid,
+                )
+                .distinct()
+            ).scalars()
+        )
+        view_perm: str
+        for view_perm in view_perms - owned_perms:
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", view_perm
+            )
+
+    def _semantic_view_perm_owned_elsewhere(
+        self,
+        connection: Connection,
+        perm: str,
+        deleted_view_id: int,
+    ) -> bool:
+        """
+        Whether a live resource other than the deleted view owns *perm*.
+
+        A deleted view's permission is removed only when no dataset and no
+        other semantic view still uses the same permission name; removing it
+        would otherwise revoke that resource's grants.
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        if connection.execute(
+            table.select().where(table.c.perm == perm).limit(1)
+        ).first():
+            return True
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        return (
+            connection.execute(
+                sv_table.select()
+                .where(sv_table.c.perm == perm, sv_table.c.id != deleted_view_id)
+                .limit(1)
+            ).first()
+            is not None
+        )
+
     def semantic_layer_after_delete(
         self,
         mapper: Mapper,
@@ -4462,11 +4605,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Handle permission cleanup when a semantic view is deleted.
 
-        Removes the datasource_access PVM.
+        Removes the datasource_access PVM unless another live resource still
+        owns the same permission name.
         """
-        self._delete_pvm_on_sqla_event(
-            mapper, connection, "datasource_access", target.perm
-        )
+        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+            connection, target.perm, target.id
+        ):
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", target.perm
+            )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
         self,
@@ -5182,6 +5329,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = query_context.form_data
 
             assert datasource
+            self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
                 if not (
@@ -5528,6 +5676,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
+    def raise_for_unsupported_guest_rls(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> None:
+        """Deny semantic reads whose guest row restrictions cannot be enforced."""
+        if (
+            datasource.type == DatasourceType.SEMANTIC_VIEW
+            and self.get_guest_rls_filters(datasource)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "Semantic views cannot enforce guest row-level security rules."
+                    ),
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"
     ) -> list[GuestTokenRlsRule]:
@@ -5542,7 +5708,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.data["id"])
+                or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -5741,6 +5907,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
+        self.raise_for_unsupported_guest_rls(datasource)
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
