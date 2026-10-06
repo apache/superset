@@ -218,6 +218,49 @@ def _get_aggregate_funcs(
     return agg_funcs
 
 
+def _is_multi_index(df: DataFrame) -> bool:
+    """Check whether a DataFrame has a MultiIndex column index."""
+    return isinstance(df.columns, pd.MultiIndex)
+
+
+def _transfer_column(
+    base_df: DataFrame,
+    append_df: DataFrame,
+    source: str,
+    target: str,
+) -> DataFrame:
+    """
+    Transfer a single column mapping from append_df to base_df.
+
+    Separates overwrite logic from append logic:
+    if target exists in base_df, overwrites existing target values;
+    if target does not exist, appends the new column.
+    """
+    if source not in append_df:
+        return base_df
+
+    if _is_multi_index(base_df):
+        if target in base_df:
+            base_df[target] = append_df[source]
+            return base_df
+        if _is_multi_index(append_df):
+            src_slice = append_df[[source]].copy()
+            new_cols = [(target, *col[1:]) for col in src_slice.columns]
+            src_slice.columns = pd.MultiIndex.from_tuples(
+                new_cols, names=base_df.columns.names
+            )
+            return pd.concat([base_df, src_slice], axis="columns")
+        new_cols = [(target, *([""] * (base_df.columns.nlevels - 1)))]
+        src_slice = append_df[[source]].copy()
+        src_slice.columns = pd.MultiIndex.from_tuples(
+            new_cols, names=base_df.columns.names
+        )
+        return pd.concat([base_df, src_slice], axis="columns")
+
+    base_df[target] = append_df[source]
+    return base_df
+
+
 def _append_columns(
     base_df: DataFrame, append_df: DataFrame, columns: dict[str, str]
 ) -> DataFrame:
