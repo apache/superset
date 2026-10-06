@@ -918,6 +918,9 @@ msgstr ""
 msgid "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types."
 msgstr ""
 
+msgid "A download reason is required"
+msgstr ""
+
 msgid "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)"
 msgstr ""
 
@@ -967,6 +970,9 @@ msgid "A polar coordinate chart where the circle is broken into wedges of equal 
 msgstr ""
 
 msgid "A readable URL for your dashboard"
+msgstr ""
+
+msgid "A reason is required to download data."
 msgstr ""
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
@@ -5381,6 +5387,9 @@ msgid "Download as Image"
 msgstr ""
 
 msgid "Download is on the way"
+msgstr ""
+
+msgid "Download reason"
 msgstr ""
 
 msgid "Download to CSV"
@@ -16165,6 +16174,9 @@ msgid "Which relatives to highlight on hover"
 msgstr ""
 
 msgid "Whisker/outlier options"
+msgstr ""
+
+msgid "Why are you downloading this data?"
 msgstr ""
 
 msgid "Why do I need to create a database?"
