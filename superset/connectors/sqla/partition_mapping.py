@@ -2148,11 +2148,10 @@ UPPER_BOUND_OPERATORS = {
 #: What Python type a probe result may have, per generic type of the partition
 #: column it is about to be compared against.
 #:
-#: Only the types a mismatch can actually break a query with are listed. A
-#: ``STRING`` partition column is deliberately absent: every engine accepts a
-#: number in a text comparison, and refusing one would break a working mapping
-#: for the sake of tidiness. An unresolvable column type is absent for the
-#: stronger reason that there is nothing to check against.
+#: Only the types a mismatch can actually break a query with are listed. An
+#: unresolvable column type is absent because there is nothing to check
+#: against, and ``MULTI_VALUE`` because this module does not mirror onto an
+#: array partition key at all.
 #: ``numbers.Number`` rather than ``(int, float)``: Postgres answers
 #: ``extract(epoch from ...)`` with a `Decimal`, which is the single commonest
 #: transform this feature has, and an engine is free to answer with any number
@@ -2163,6 +2162,15 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     utils.GenericDataType.BOOLEAN: (bool,),
     # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text.
     utils.GenericDataType.TEMPORAL: (datetime, date, str),
+    # Text, and not a number rendered as one. Not every engine accepts a number
+    # in a text comparison: Postgres refuses ``character varying = integer``,
+    # Trino ``varchar = bigint`` and BigQuery ``STRING = INT64``, all of which
+    # fail the whole chart once the predicate is in the statement. SQLite is
+    # worse -- it raises nothing and compares across storage classes as never
+    # equal, so the mirror drops every row rather than losing pruning, which is
+    # the one outcome this feature may not have. An owner whose partition key
+    # really is text writes the cast into the transform.
+    utils.GenericDataType.STRING: (str,),
 }
 
 

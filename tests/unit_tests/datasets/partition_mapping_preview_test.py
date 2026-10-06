@@ -90,8 +90,14 @@ def dataset(session: Session) -> Any:
             # text cannot be previewed against `dt_epoch` -- the predicate it
             # would emit is `dt_epoch = 'us'`, which the database refuses, and
             # `probed_value_type_error` says so before the preview can call it
-            # valid. Tests about anything other than the key's type point here.
+            # valid. Tests whose transform answers with text point here.
             TableColumn(column_name="region_key", type="VARCHAR"),
+            # And a temporal one, for a transform that answers with a date or a
+            # timestamp. `region_key` will not do: the type gate holds a text
+            # key to text results, because not every engine accepts anything
+            # else in a text comparison and one of them compares it as never
+            # equal rather than refusing it.
+            TableColumn(column_name="part_ts", type="TIMESTAMP"),
         ],
     )
     table.partition_column = "dt_epoch"
@@ -328,6 +334,60 @@ def test_preview_refuses_a_transform_whose_result_the_key_cannot_hold(
     assert result["reason"] == "type"
     assert "dt_epoch" in result["error"]
     assert result["sample_input"] == "event_time == '2026-01-15 00:00:00'"
+
+
+def test_preview_refuses_a_number_against_a_text_partition_key(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The mirror image, and the one that used to be exempt. A text partition key
+    was held to no type at all, on the belief that every engine takes a number
+    in a text comparison -- but Postgres refuses `character varying = integer`,
+    Trino `varchar = bigint` and BigQuery `STRING = INT64`, so the preview said
+    "Valid" for a mapping whose every chart 400s.
+
+    SQLite is the reason this is a decline rather than a coercion: it raises
+    nothing and compares a number against text as never equal, so the mirror
+    would silently drop every row the filter keeps.
+    """
+    with patch(PROBE, return_value=[1768435200]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "region_key" in result["error"]
+    assert "string" in result["error"]
+
+
+def test_preview_mirrors_text_against_a_text_partition_key(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """The other half: a text key still takes a transform that answers text."""
+    with patch(PROBE, return_value=["20260115"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "to_char(:value, 'YYYYMMDD')",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is True
+    assert "'20260115'" in result["emitted_predicate"]
 
 
 def test_preview_reports_a_failed_probe_rather_than_erroring(
@@ -811,7 +871,7 @@ def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
-                "partition_column": "region_key",
+                "partition_column": "part_ts",
                 "value_transform": "date(:value)",
                 "sample_value": "2026-01-15 00:00:00",
             },

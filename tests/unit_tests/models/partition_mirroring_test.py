@@ -2198,15 +2198,18 @@ def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
     The same inference, one step later and on the other side of the probe. The
     probe answers per value, so a transform over a mixed-number filter can
     answer with a mixed-number *partition key*: results of `[33, 29.02]` bound
-    through `in_` emitted `region_key IN (33, 29)` and pruned away the
+    through `in_` emitted `dt_epoch IN (33, 29)` and pruned away the
     partition holding `29.02`.
+
+    Mapped onto the numeric partition key rather than the text one, because
+    that is the only kind of key a mixed-number result belongs on -- the type
+    gate holds a text key to text results.
     """
     table = _table(
         transform="lower(:value)",
         monotonic=False,
         mapped_column="country",
         partition_mapped_column="country",
-        partition_column="region_key",
     )
 
     with app.app_context():
@@ -2222,7 +2225,7 @@ def test_a_mixed_number_probe_result_is_bound_as_one_type(app: Flask) -> None:
                 ],
             )
 
-    assert "region_key IN (33.0, 29.02)" in sql
+    assert "dt_epoch IN (33.0, 29.02)" in sql
     assert "29)" not in sql
 
 
