@@ -77,7 +77,6 @@ import {
   TOKEN_SEPARATORS,
   VIRTUAL_THRESHOLD,
 } from './constants';
-import { Space } from '../Space';
 import { Button } from '../Button';
 
 // An option is eligible for a bulk "Select all" when it carries a truthy value
