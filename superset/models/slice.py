@@ -404,6 +404,24 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
+    def get_query_context_datasource(self) -> Datasource | None:
+        """Resolve the saved query source without constructing queries or metadata."""
+        from superset.daos.datasource import DatasourceDAO
+
+        if self.query_context:
+            try:
+                datasource: utils.DatasourceDict = json.loads(self.query_context)[
+                    "datasource"
+                ]
+            except json.JSONDecodeError:
+                # Match get_query_context's missing-context fallback.
+                return self.resolved_datasource
+            return DatasourceDAO.get_datasource(
+                datasource_type=utils.DatasourceType(datasource["type"]),
+                database_id_or_uuid=datasource["id"],
+            )
+        return self.resolved_datasource
+
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:

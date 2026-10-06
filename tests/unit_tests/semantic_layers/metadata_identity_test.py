@@ -106,9 +106,11 @@ def context_for(view: Explorable) -> tuple[QueryContext, QueryObject]:
     return context, query
 
 
+@pytest.mark.parametrize("changed_identity", ["catalog", "configuration"])
 def test_same_name_and_discovery_after_refresh_cannot_reuse_old_query_result(
     app: Flask,
     monkeypatch: pytest.MonkeyPatch,
+    changed_identity: str,
 ) -> None:
     monkeypatch.setattr(SemanticView, "raise_for_access", lambda self: None)
     monkeypatch.setattr(
@@ -120,7 +122,17 @@ def test_same_name_and_discovery_after_refresh_cannot_reuse_old_query_result(
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
     monkeypatch.setitem(registry, "cache-test", RefreshLayer)
     old: ResultView = ResultView("scope:old", 17)
-    new: ResultView = ResultView("scope:new", 23)
+    new: ResultView = ResultView(
+        "scope:new" if changed_identity == "catalog" else "scope:old", 23
+    )
+    old_view: SemanticView = view_for(old)
+    new_view: SemanticView = view_for(new)
+    if changed_identity == "configuration":
+        old_view.configuration = '{"selection": "old"}'
+        new_view.configuration = '{"selection": "new"}'
+    assert old_view.uuid == new_view.uuid
+    assert old_view.name == new_view.name
+    assert old_view.changed_on == new_view.changed_on
     with (
         app.test_request_context(),
         patch("superset.is_feature_enabled", return_value=True),
@@ -135,14 +147,14 @@ def test_same_name_and_discovery_after_refresh_cannot_reuse_old_query_result(
     ):
         old_context: QueryContext
         old_query: QueryObject
-        old_context, old_query = context_for(view_for(old))
+        old_context, old_query = context_for(old_view)
         old_payload: dict[str, Any] = old_context.get_df_payload(old_query)
         assert old_payload["df"].to_dict("list") == {"orders": [17]}
         assert old.calls == 1
         assert old_context.get_df_payload(old_query)["is_cached"]
         new_context: QueryContext
         new_query: QueryObject
-        new_context, new_query = context_for(view_for(new))
+        new_context, new_query = context_for(new_view)
         new_payload: dict[str, Any] = new_context.get_df_payload(new_query)
         assert new_payload["df"].to_dict("list") == {"orders": [23]}
         assert not new_payload["is_cached"]
@@ -396,7 +408,8 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
         assert context.get_df_payload(query)["cache_key"] == second["cache_key"]
         assert context.get_df_payload(query)["is_cached"]
         assert rls.call_args_list
-        assert all(call.args[0] is parent for call in rls.call_args_list)
+        assert any(call.args[0] is parent for call in rls.call_args_list)
+        assert any(call.args[0] is source for call in rls.call_args_list)
 
 
 @pytest.mark.parametrize("state", ["missing", "expired", "backend_error", "deadline"])
@@ -548,17 +561,24 @@ def test_async_totals_reuse_only_the_captured_catalog_cache(
 
 
 @pytest.mark.parametrize("source_type", ["table", "semantic_view"])
-def test_annotation_rls_context_retains_table_only_contract(
+@pytest.mark.parametrize("saved_context", [None, "{invalid"])
+def test_annotation_rls_context_includes_each_source_type(
     app: Flask,
     source_type: str,
+    saved_context: str | None,
 ) -> None:
-    """Flag-off metadata keeps existing keys and never sends a view to SQL RLS."""
+    """Both table and semantic annotations pass through the guest-aware RLS gate."""
     from superset.common.query_context_processor import QueryContextProcessor
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.slice import Slice
 
     table: SqlaTable = SqlaTable(id=12, table_name="source")
-    chart: Slice = Slice(id=31, datasource_id=12, datasource_type=source_type)
+    chart: Slice = Slice(
+        id=31,
+        datasource_id=12,
+        datasource_type=source_type,
+        query_context=saved_context,
+    )
     if source_type == "table":
         chart.table = table
     else:
@@ -586,17 +606,15 @@ def test_annotation_rls_context_retains_table_only_contract(
     ):
         assert processor._annotation_cache_context(query) == {
             "user_id": 7,
-            "source_rls": {"31": ["rls"] if source_type == "table" else None},
+            "source_rls": {"31": ["rls"]},
         }
-        if source_type == "table":
-            rls.assert_called_once_with(table)
-        else:
-            rls.assert_not_called()
+        rls.assert_called_once_with(chart.resolved_datasource)
 
 
+@pytest.mark.parametrize("chart_source", ["semantic_view", "table"])
 @pytest.mark.parametrize("denied", [False, True])
 def test_semantic_annotation_is_captured_before_slow_sql_parent(
-    app: Flask, monkeypatch: pytest.MonkeyPatch, denied: bool
+    app: Flask, monkeypatch: pytest.MonkeyPatch, denied: bool, chart_source: str
 ) -> None:
     """Only a miss captures authorized annotations before warehouse execution."""
     import pandas as pd
@@ -632,15 +650,18 @@ def test_semantic_annotation_is_captured_before_slow_sql_parent(
     chart: Slice = Slice(
         id=31,
         datasource_id=source.id,
-        datasource_type="semantic_view",
+        datasource_type=chart_source,
         semantic_view=source,
     )
+    if chart_source == "table":
+        chart.table = parent
     annotation_context: Mock = Mock(spec=QueryContext, datasource=source)
     if denied:
         annotation_context.raise_for_access.side_effect = QueryObjectValidationError(
             "denied annotation"
         )
     monkeypatch.setattr(Slice, "get_query_context", lambda self: annotation_context)
+    monkeypatch.setattr(Slice, "get_query_context_datasource", lambda self: source)
     monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda self, query: [])
     monkeypatch.setattr(
         "superset.semantic_layers.metadata_binding.connection_store",
@@ -713,3 +734,76 @@ def test_semantic_annotation_is_captured_before_slow_sql_parent(
         assert parent_calls == ["parent"]
         provider.get_semantic_view.assert_called_once()
         annotation_context.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize("chart_source", ["semantic_view", "table"])
+def test_annotation_cache_key_tracks_the_executed_datasource(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, chart_source: str
+) -> None:
+    """A saved query context determines annotation identity even after chart edits."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    source: SemanticView = view_for(ResultView("scope:executed", 17))
+    advertised: SemanticView = view_for(ResultView("scope:other", 23))
+    advertised.name = "other"
+    parent: SqlaTable = SqlaTable(
+        id=12, table_name="parent", changed_on=datetime(2026, 1, 1)
+    )
+    chart: Slice = Slice(
+        id=31,
+        datasource_type=chart_source,
+        datasource_id=advertised.id,
+        semantic_view=advertised,
+        table=parent,
+        query_context=json.dumps(
+            {
+                "datasource": {"id": source.id, "type": "semantic_view"},
+                "queries": [{"metrics": ["orders"]}],
+            }
+        ),
+    )
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(registry, "cache-test", RefreshLayer)
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.is_feature_enabled",
+        lambda flag: True,
+    )
+    discovery: Mock = Mock(
+        side_effect=AssertionError("cache lookup discovered metadata")
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.view_implementation", discovery
+    )
+    token: Mock = Mock(return_value="executed:first")
+    rls: Mock = Mock(return_value=[])
+    monkeypatch.setattr(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        lambda *args, **kwargs: source,
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        lambda *args: chart,
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_cache.annotation_cache_token", token
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+        rls,
+    )
+    monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda *args: [])
+    with app.test_request_context():
+        context: QueryContext
+        query: QueryObject
+        context, query = context_for(parent)
+        query.annotation_layers = [
+            {"sourceType": "line", "value": 31, "name": "source"}
+        ]
+        first: str | None = context.query_cache_key(query)
+        discovery.assert_not_called()
+        token.assert_called_once_with(source)
+        assert any(call.args[0] is source for call in rls.call_args_list)
+        token.return_value = "executed:refreshed"
+        assert context.query_cache_key(query) != first

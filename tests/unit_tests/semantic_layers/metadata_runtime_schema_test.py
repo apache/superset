@@ -154,6 +154,7 @@ def test_runtime_endpoint_returns_refreshed_bound_choices(
     else:
         assert response.status_code == 422
         assert response.json["error"] == "configuration"
+        assert response.json["message"] != "configuration"
         assert backend.entries == {}
 
 

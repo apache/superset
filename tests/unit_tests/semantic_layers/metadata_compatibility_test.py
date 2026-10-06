@@ -211,6 +211,19 @@ def test_actual_compatible_endpoint_uses_snapshot_and_generation_identity(
         assert endpoint(api, "semantic_view", 11)[1]["result"][
             "compatible_metrics"
         ] == ["newer"]
+        # Only stored view configuration changes: UUID, name, catalog identity,
+        # selected fields, and changed_on remain identical to the warmed call.
+        expected[:] = ["configured"]
+        assert endpoint(api, "semantic_view", 11)[1]["result"][
+            "compatible_metrics"
+        ] == ["newer"]
+        view.configuration = '{"selection": "configured"}'
+        assert endpoint(api, "semantic_view", 11)[1]["result"][
+            "compatible_metrics"
+        ] == ["configured"]
+        assert endpoint(api, "semantic_view", 11)[1]["result"][
+            "compatible_metrics"
+        ] == ["configured"]
 
 
 def test_clear_during_provider_resolution_does_not_relabel_old_observation(
