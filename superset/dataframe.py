@@ -85,8 +85,27 @@ def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
     return False
 
 
+def _convert_decimals(value: Any) -> Any:
+    """Keep SQL Lab decimals exact across JSON, MessagePack and browser parsing."""
+    # Match exact types only, as below, so object-column values never get to run
+    # overridden ``items``/``__iter__`` hooks during conversion.
+    value_type = type(value)
+    if value_type is Decimal:
+        return format(value, "f") if Decimal.is_finite(value) else None
+    if value_type is dict:
+        return {key: _convert_decimals(item) for key, item in dict.items(value)}
+    if value_type is list:
+        return [_convert_decimals(item) for item in value]
+    if value_type is tuple:
+        return tuple(_convert_decimals(item) for item in value)
+    return value
+
+
 def df_to_records(
-    dframe: pd.DataFrame, *, convert_big_integers: bool = True
+    dframe: pd.DataFrame,
+    *,
+    convert_big_integers: bool = True,
+    convert_decimals: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
@@ -97,6 +116,8 @@ def df_to_records(
     :param dframe: the DataFrame to convert
     :param convert_big_integers: whether integers outside JavaScript's safe range
         should be represented as strings
+    :param convert_decimals: whether ``Decimal`` values should be represented as
+        exact strings rather than JSON numbers
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
@@ -118,12 +139,13 @@ def df_to_records(
             # converting it to float can overflow or lose precision.
             if type(value) in _NUMPY_NATIVE_TYPES:
                 value = value.item()
-            dict.__setitem__(
-                record,
-                key,
-                None
-                if _is_trusted_missing_or_nonfinite(value)
-                else (_convert_big_integers(value) if convert_big_integers else value),
-            )
+            if _is_trusted_missing_or_nonfinite(value):
+                value = None
+            else:
+                if convert_big_integers:
+                    value = _convert_big_integers(value)
+                if convert_decimals:
+                    value = _convert_decimals(value)
+            dict.__setitem__(record, key, value)
 
     return records

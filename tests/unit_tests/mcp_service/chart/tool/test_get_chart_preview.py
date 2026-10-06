@@ -1839,3 +1839,40 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
     else:
         assert "Blue" in result.ascii_content
         assert "Empty" not in result.ascii_content
+
+
+@pytest.mark.parametrize("viz_type", ["funnel", "sankey", "radar", "unknown"])
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_preview_fallback_dispatch(
+    mock_build_query_context: MagicMock, mock_command: MagicMock, viz_type: str
+) -> None:
+    """Saved previews use funnel, unsupported, or generic fallback contracts."""
+    chart = SimpleNamespace(
+        id=109,
+        viz_type=viz_type,
+        params=utils_json.dumps(
+            {"viz_type": viz_type, "groupby": ["stage"], "metric": "value"}
+        ),
+        datasource_id=1,
+        datasource_type="table",
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["value"], columns=["stage"])]
+    )
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"stage": "Visit", "value": 10}]}]
+    }
+    result = VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+    if viz_type in ("sankey", "radar"):
+        assert isinstance(result, ChartError)
+        assert result.error_type == "UnsupportedFormat"
+    else:
+        assert isinstance(result, VegaLitePreview)
+        if viz_type == "funnel":
+            assert result.specification["encoding"]["y"]["field"] == "stage"
