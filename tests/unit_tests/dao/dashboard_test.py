@@ -552,3 +552,91 @@ def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
     with skip_visibility_filter(db.session, Slice):
         db.session.expire(dashboard, ["slices"])
         assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
+
+
+def test_copy_dashboard_duplicate_slices_remaps_native_filters(
+    session: Session,
+) -> None:
+    Dashboard.metadata.create_all(session.get_bind())
+    dataset = SqlaTable(
+        table_name="filter_test_table",
+        database=Database(database_name="filter_test_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    chart1 = Slice(
+        slice_name="chart_1",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    chart2 = Slice(
+        slice_name="chart_2",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard = Dashboard(
+        dashboard_title="original_dash",
+        slices=[chart1, chart2],
+        published=True,
+    )
+    db.session.add_all([chart1, chart2, dashboard])
+    db.session.flush()
+
+    positions = {
+        "CHART-1": {
+            "type": "CHART",
+            "id": "CHART-1",
+            "children": [],
+            "meta": {"chartId": chart1.id, "width": 4, "height": 50},
+        },
+        "CHART-2": {
+            "type": "CHART",
+            "id": "CHART-2",
+            "children": [],
+            "meta": {"chartId": chart2.id, "width": 4, "height": 50},
+        },
+    }
+
+    native_filter_configuration = [
+        {
+            "id": "NATIVE_FILTER-1",
+            "name": "Filter 1",
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [chart2.id]},
+            "chartsInScope": [chart1.id, chart2.id],
+        }
+    ]
+
+    json_metadata = {
+        "positions": positions,
+        "native_filter_configuration": native_filter_configuration,
+    }
+
+    copy_data = {
+        "dashboard_title": "copied_dash",
+        "duplicate_slices": True,
+        "json_metadata": json.dumps(json_metadata),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dash = DashboardDAO.copy_dashboard(dashboard, copy_data)
+
+    copied_slices = {s.slice_name: s.id for s in copied_dash.slices}
+    assert len(copied_slices) == 2
+    assert copied_slices["chart_1"] != chart1.id
+    assert copied_slices["chart_2"] != chart2.id
+
+    copied_metadata = json.loads(copied_dash.json_metadata)
+    copied_filters = copied_metadata["native_filter_configuration"]
+    assert len(copied_filters) == 1
+
+    assert copied_filters[0]["chartsInScope"] == [
+        copied_slices["chart_1"],
+        copied_slices["chart_2"],
+    ]
+    assert copied_filters[0]["scope"]["excluded"] == [copied_slices["chart_2"]]
+
