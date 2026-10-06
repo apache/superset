@@ -226,8 +226,10 @@ async def _call(mcp_server: object, request: dict[str, Any]) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_add_filter_select(mcp_server):
-    captured: dict = {"current_config": []}
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+async def test_add_filter_select(mcp_server: object, enable_empty_filter: bool) -> None:
+    """First-item defaults must leave selection to the dashboard UI."""
+    captured: dict[str, Any] = {"current_config": []}
     dashboard = _mock_dashboard(filters=[], chart_ids=[10, 11, 12])
 
     with (
@@ -247,7 +249,7 @@ async def test_add_filter_select(mcp_server):
                         "column": "region",
                         "multi_select": False,
                         "default_to_first_item": True,
-                        "enable_empty_filter": True,
+                        "enable_empty_filter": enable_empty_filter,
                         "sort_ascending": False,
                         "search_all_options": True,
                         "scope_chart_ids": [10, 11],
@@ -277,15 +279,17 @@ async def test_add_filter_select(mcp_server):
         "controlValues": {
             "multiSelect": False,
             "defaultToFirstItem": True,
-            "enableEmptyFilter": True,
+            "enableEmptyFilter": enable_empty_filter,
             "searchAllOptions": True,
             "sortAscending": False,
         },
-        "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
+        "defaultDataMask": {"filterState": {}, "extraFormData": {}},
         "cascadeParentIds": [],
     }
     assert data["filters"][0]["id"] == new_id
     assert data["filters"][0]["filter_type"] == "filter_select"
+
+    assert "value" not in config["defaultDataMask"]["filterState"]
 
 
 @pytest.mark.asyncio
@@ -1568,16 +1572,80 @@ async def test_update_single_select_keeps_single_value_default(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_default_to_first_item_clears_explicit_default(mcp_server):
-    existing = copy.deepcopy(EXISTING_SELECT_FILTER)
-    existing["defaultDataMask"] = copy.deepcopy(_EMEA_DEFAULT_MASK)
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize(
+    "default_mask",
+    [
+        _EMEA_DEFAULT_MASK,
+        _CLEARED_MASK,
+        {"extraFormData": {}, "filterState": {"value": []}},
+        {"extraFormData": {}, "filterState": {}},
+    ],
+)
+async def test_update_default_to_first_item_clears_explicit_default(
+    mcp_server: object, enable_empty_filter: bool, default_mask: dict[str, Any]
+) -> None:
+    """Enabling first-item selection must remove any defined selection value."""
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"]["enableEmptyFilter"] = enable_empty_filter
+    existing["defaultDataMask"] = copy.deepcopy(default_mask)
 
     config = await _update_existing(
         mcp_server, existing, {"default_to_first_item": True}
     )
 
     assert config["controlValues"]["defaultToFirstItem"] is True
-    assert config["defaultDataMask"] == _CLEARED_MASK
+    assert "value" not in config["defaultDataMask"]["filterState"]
+    assert config["defaultDataMask"] == {"extraFormData": {}, "filterState": {}}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize("filter_state", [{}, {"value": None}, {"value": []}])
+async def test_update_first_item_required_toggle_preserves_unset_selection(
+    mcp_server: object, enable_empty_filter: bool, filter_state: dict[str, Any]
+) -> None:
+    """Required-control changes must not block automatic first-item selection."""
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"].update(
+        defaultToFirstItem=True, enableEmptyFilter=not enable_empty_filter
+    )
+    existing["defaultDataMask"] = {
+        "extraFormData": {},
+        "filterState": filter_state,
+    }
+
+    config = await _update_existing(
+        mcp_server, existing, {"enable_empty_filter": enable_empty_filter}
+    )
+
+    assert config["controlValues"]["enableEmptyFilter"] is enable_empty_filter
+    assert "value" not in config["defaultDataMask"]["filterState"]
+    assert config["defaultDataMask"] == {"extraFormData": {}, "filterState": {}}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize("changes", [{"column": "country"}, {"multi_select": False}])
+async def test_update_first_item_stale_default_restores_unset_selection(
+    mcp_server: object, enable_empty_filter: bool, changes: dict[str, Any]
+) -> None:
+    """Every stale-default reset must defer to automatic first-item selection."""
+    existing: dict[str, Any] = copy.deepcopy(EXISTING_SELECT_FILTER)
+    existing["controlValues"].update(
+        defaultToFirstItem=True, enableEmptyFilter=enable_empty_filter
+    )
+    existing["defaultDataMask"] = {
+        "extraFormData": {
+            "filters": [{"col": "region", "op": "IN", "val": ["EMEA", "APAC"]}]
+        },
+        "filterState": {"value": ["EMEA", "APAC"], "label": "EMEA, APAC"},
+    }
+
+    config = await _update_existing(mcp_server, existing, changes)
+
+    assert "value" not in config["defaultDataMask"]["filterState"]
+    assert config["defaultDataMask"] == {"extraFormData": {}, "filterState": {}}
 
 
 @pytest.mark.asyncio

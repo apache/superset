@@ -190,10 +190,14 @@ def _default_data_mask(
 ) -> dict[str, Any]:
     """Build a stored select default, allowing empty unsupported UI selections.
 
-    Empty selections do not depend on the matching operator. Required filters
-    still contribute an impossible predicate unless inverse selection is on,
-    matching SelectFilterPlugin.updateDataMask.
+    First-item defaults leave the value unset so the UI can select it after
+    loading options. Explicit empty selections do not depend on the matching
+    operator. Required filters still contribute an impossible predicate unless
+    inverse selection is on, matching SelectFilterPlugin.updateDataMask.
     """
+    if (conf.get("controlValues") or {}).get("defaultToFirstItem"):
+        # A defined value, including None or [], blocks the UI's first-item default.
+        return {"filterState": {}, "extraFormData": {}}
     if not values:
         return _empty_select_data_mask(conf)
     return _select_data_mask(conf, values)
@@ -303,8 +307,10 @@ def _build_new_filter_config(
             "defaultDataMask": _empty_data_mask(),
         }
 
-        if spec.default_value is not None:
-            config["defaultDataMask"] = _default_data_mask(config, spec.default_value)
+        if spec.default_value is not None or spec.default_to_first_item:
+            config["defaultDataMask"] = _default_data_mask(
+                config, spec.default_value or []
+            )
         return config
 
     if isinstance(spec, FilterRangeSpec):
@@ -423,17 +429,15 @@ def _stored_default_is_stale(
     """
     if existing.get("filterType") != "filter_select":
         return False
+    if spec.default_to_first_item is True:
+        return True
     stored = ((existing.get("defaultDataMask") or {}).get("filterState") or {}).get(
         "value"
     )
     if stored is None:
         return False
     stored_count = len(stored) if isinstance(stored, list) else 1
-    return (
-        target_changed
-        or spec.default_to_first_item is True
-        or (spec.multi_select is False and stored_count > 1)
-    )
+    return target_changed or (spec.multi_select is False and stored_count > 1)
 
 
 def _merge_select_default(
