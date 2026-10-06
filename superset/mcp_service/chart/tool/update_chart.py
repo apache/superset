@@ -21,9 +21,10 @@ MCP tool: update_chart
 
 import logging
 import time
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -643,9 +644,16 @@ def _validate_update_against_dataset(
     for dataset-only rebinds where no new chart config is provided).
     """
     from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
 
     if dataset_id is not None:
         dataset = DatasetDAO.find_by_id(dataset_id)
+        # A rebind names a caller-supplied dataset, so enforce the data-level
+        # check the sibling tools run. Without it a column error could carry
+        # the target's table, schema, database and column names on a security
+        # manager whose datasource filter is broader than its access check.
+        if dataset is not None and not has_dataset_access(dataset):
+            dataset = None
     else:
         dataset = getattr(chart, "datasource", None)
         if dataset is None and getattr(chart, "datasource_id", None) is not None:
@@ -886,7 +894,18 @@ def _create_preview_url(
     ),
 )
 async def update_chart(  # noqa: C901
-    request: UpdateChartRequest, ctx: Context
+    request: Annotated[
+        UpdateChartRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "generate_preview=True previews; False persists immediately. "
+                "MUST display explore URL. identifier: ID/UUID, NOT chart name. "
+                "Omit config to rename only; add_columns appends table columns."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
 

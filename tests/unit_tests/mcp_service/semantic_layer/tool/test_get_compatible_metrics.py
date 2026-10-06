@@ -87,7 +87,9 @@ def _make_dataset(dataset_id: int = 42) -> MagicMock:
 
 
 def _make_view(view_id: int = 5) -> MagicMock:
-    view: MagicMock = MagicMock()
+    view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version=None)
+    )
     view.id = view_id
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
@@ -177,9 +179,14 @@ async def test_get_compatible_metrics_builtin_unknown_selection(
 
 
 @pytest.mark.asyncio
-async def test_get_compatible_metrics_external_happy_path(mcp_server: FastMCP) -> None:
+@pytest.mark.parametrize("version", [None, "cube-member-id-v1"])
+async def test_get_compatible_metrics_external_happy_path(
+    mcp_server: FastMCP,
+    version: str | None,
+) -> None:
     """External views delegate to view.get_compatible_metrics()."""
-    mock_view = _make_view(5)
+    mock_view: MagicMock = _make_view(5)
+    mock_view.implementation.selection_identity_version = version
 
     with patch(
         "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
@@ -195,6 +202,7 @@ async def test_get_compatible_metrics_external_happy_path(mcp_server: FastMCP) -
     assert data["success"] is True
     assert data["source"] == "external"
     assert [m["name"] for m in data["compatible_metrics"]] == ["bookings"]
+    assert data["compatible_metrics"][0]["semantic_selection_version"] == version
     mock_view.get_compatible_metrics.assert_called_once_with([], ["country_name"])
 
 
