@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
@@ -23,6 +24,19 @@ import {
   REFRESH_FREQUENCY_OPTIONS,
   validateRefreshFrequency,
 } from './RefreshFrequencySelect';
+
+// No language pack is loaded in tests, so t() is the identity function. Mock
+// it with jest.fn so a test can register a translation and observe it. The
+// default lives in a hoisted function declaration: the factory runs before
+// module-level bindings initialize (transitive imports call t() at load time).
+function mockTranslate(str: string, ...args: unknown[]): string {
+  return str.replace(/%s/g, () => String(args.shift()));
+}
+
+jest.mock('@apache-superset/core/translation', () => ({
+  ...jest.requireActual('@apache-superset/core/translation'),
+  t: jest.fn(mockTranslate),
+}));
 
 test('validateRefreshFrequency treats millisecond refreshLimit as seconds', () => {
   const errors = validateRefreshFrequency(5, 10000);
@@ -85,21 +99,39 @@ test('getRefreshFrequencyOptions drops malformed entries instead of rendering th
   ]);
 });
 
-test('getRefreshFrequencyOptions keeps configured labels verbatim, including untranslated ones', () => {
-  const options = getRefreshFrequencyOptions([[600, '10 Minuten']]);
+test('getRefreshFrequencyOptions localizes labels with a translation and passes the rest through', () => {
+  const tMock = jest.mocked(t);
+  tMock.mockImplementation((str: string, ...args: unknown[]) =>
+    str === '10 seconds' ? '10 Sekunden' : mockTranslate(str, ...args),
+  );
+  try {
+    const options = getRefreshFrequencyOptions([
+      [10, '10 seconds'],
+      [600, '10 Minuten'],
+    ]);
 
-  expect(options[0].label).toBe('10 Minuten');
+    expect(options).toEqual([
+      { value: 10, label: '10 Sekunden' },
+      { value: 600, label: '10 Minuten' },
+      { value: CUSTOM_REFRESH_FREQUENCY, label: 'Custom' },
+    ]);
+  } finally {
+    tMock.mockImplementation(mockTranslate);
+  }
 });
 
-test('getRefreshFrequencyOptions does not append a second Custom entry', () => {
+test('getRefreshFrequencyOptions drops a configured Custom entry and appends exactly one', () => {
+  // CUSTOM_REFRESH_FREQUENCY is negative, so the seconds < 0 guard drops it;
+  // the list always ends with the single built-in Custom affordance.
   const options = getRefreshFrequencyOptions([
     [600, '10 minutes'],
     [CUSTOM_REFRESH_FREQUENCY, 'Custom'],
   ]);
 
-  expect(
-    options.filter(option => option.value === CUSTOM_REFRESH_FREQUENCY),
-  ).toHaveLength(1);
+  expect(options).toEqual([
+    { value: 600, label: '10 minutes' },
+    { value: CUSTOM_REFRESH_FREQUENCY, label: 'Custom' },
+  ]);
 });
 
 test('getRefreshFrequencyOptions rejects values that coerce to a real interval', () => {

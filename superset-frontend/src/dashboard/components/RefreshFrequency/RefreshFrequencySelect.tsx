@@ -90,10 +90,12 @@ const toIntervalSeconds = (value: unknown): number => {
 
 /**
  * Builds the interval list from DASHBOARD_AUTO_REFRESH_INTERVALS, which reaches
- * the browser as a list of `[seconds, label]` pairs. Labels stay verbatim: the
- * deployment authored them, so translating them here would rewrite operator
- * wording. Anything that is not a well-formed non-empty list falls back to the
- * built-in options rather than rendering an empty selector.
+ * the browser as a list of `[seconds, label]` pairs. Labels run through `t()`
+ * so translated UIs render the English defaults from config.py localized;
+ * `t()` passes strings it has no entry for back unchanged, so operator-authored
+ * non-English labels survive verbatim. Anything that is not a well-formed
+ * non-empty list falls back to the built-in options rather than rendering an
+ * empty selector.
  */
 export const getRefreshFrequencyOptions = (
   configuredIntervals?: unknown,
@@ -118,18 +120,15 @@ export const getRefreshFrequencyOptions = (
         return;
       }
       seen.add(seconds);
-      options.push({ value: seconds, label });
+      options.push({ value: seconds, label: t(label) });
     },
   );
 
-  const baseOptions = options.length ? options : REFRESH_FREQUENCY_OPTIONS;
-  const hasCustom = baseOptions.some(
-    option => option.value === CUSTOM_REFRESH_FREQUENCY,
-  );
-
-  return hasCustom
-    ? baseOptions
-    : [...baseOptions, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }];
+  // Negative intervals never survive the guard above, so a configured list
+  // cannot carry the Custom entry; only the built-in list already has it.
+  return options.length
+    ? [...options, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }]
+    : REFRESH_FREQUENCY_OPTIONS;
 };
 
 const getCustomValue = (
