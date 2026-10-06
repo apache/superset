@@ -110,10 +110,48 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+## Bounding dashboard dataset metadata
+
+`get_dashboard_datasets` lists a dashboard's datasets and semantic views with
+column and metric details. Its optional `max_columns` and `max_metrics`
+parameters limit the number of columns (0–100, default 100) and metrics (0–50,
+default 50) returned **per dataset**. Columns and metrics are sorted by name
+before the caps apply, so repeated calls return the same subset. For a wide
+dashboard, start with smaller caps or omit the details entirely:
+
+```json
+{
+  "request": {
+    "identifier": 123,
+    "max_columns": 0,
+    "max_metrics": 0
+  }
+}
+```
+
+Dataset identities, chart counts, and total column and metric counts are
+retained. `columns_truncated` and `metrics_truncated` are true whenever fewer
+items are returned than the dataset contains, including when a cap of 0 omits a
+nonempty list. Use `get_dataset_info` to fetch details for an individual
+dataset. Omitting both parameters returns up to 100 columns and 50 metrics per
+dataset. The caps bound per-dataset details, not the number of datasets or the
+entire response's byte size; a dashboard with many datasets can still exceed the
+server's configured byte limit.
+
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, and time filters. Inverse-selection configurations are rejected.
+selection, time filters, numeric range filters, and time-grain filters. Range
+bounds must be finite numbers representable as floats, or null; booleans are
+rejected. Range permalink labels use the dashboard's smart number formatting
+with ASCII minus signs, falling back to plain numeric representations if
+formatting overflows; time-grain labels come from
+the target datasource's grain names when available. Time grains must be supported
+by the filter's target dataset's database engine, as listed in the datasource's
+`time_grain_sqla` options. If the filter has a nonempty configured allowlist, the
+selected grain must also appear in that list. An unresolved target dataset is
+rejected.
+Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
@@ -1553,6 +1591,39 @@ For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
 
+## Big Number headlines
+
+For Big Number charts (`big_number` and `big_number_total`), `get_chart_data`
+and `get_dashboard_data` return a `headline` object holding the number the chart
+displays. Agents should report `headline.value` rather than reading or summing
+the data rows: for the trendline variant the rows are a time series, and the
+displayed number is derived from the whole series by the chart's aggregation.
+
+| Field | Contents |
+| --- | --- |
+| `value` | The displayed number, or `null` when it cannot be computed exactly |
+| `aggregation` | `total` for `big_number_total`; otherwise the chart's aggregation (`LAST_VALUE`, `sum`, `mean`, `min`, `max`, `median`, or `raw`) |
+| `rows_used` | The number of non-null values aggregated |
+| `reason` | Why `value` is `null` |
+
+A headline is only returned when it matches the rendered chart, so `value` is
+`null` with a `reason` when:
+
+- The query returned no rows, the metric column is missing, or every metric
+  value is null.
+- The chart applies a rolling window or resampling that the executed query did
+  not include, or the fetch was truncated at the row limit.
+- The aggregation picks the latest value (`LAST_VALUE`) and some rows have no
+  usable timestamp. The chart's ordering of such rows depends on row order, so
+  the value it shows cannot be determined exactly. Order-independent
+  aggregations still include those rows.
+- The aggregation is `raw` ("Overall value") and the chart has no saved query
+  context. That value comes from a second query that only a saved query context
+  carries, so unsaved and `form_data_key` requests return `null`.
+
+When `form_data_key` is supplied, the headline follows the unsaved visualization
+type, including when switching to or from a Big Number chart.
+
 ## Dataset query dimensions and nested fields
 
 The `query_dataset` tool accepts exact column names registered on the selected
@@ -1708,6 +1779,22 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Managing and applying dashboard native filters
+
+`manage_native_filters` requires a numeric dataset column when adding a
+`filter_range` filter or changing its dataset/column target. Select filters
+continue to accept nonnumeric columns.
+
+For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
+one datasource-supported duration (for example, `["P1D"]`). Custom engine
+durations are accepted when exposed in the datasource's time-grain options,
+rather than limited to a fixed enum.
+A nonempty `time_grains` list in the saved filter configuration restricts the
+allowed selection to grains that appear in both that list and the target dataset's
+supported time grains; missing or empty lists use the dataset's supported grains.
+Pass `[]` to clear an optional time-grain filter; required filters cannot be
+cleared.
 
 ## Missing chart columns
 
