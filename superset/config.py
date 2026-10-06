@@ -3084,6 +3084,17 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
+# Base SQLAlchemy dialect names (the part before any "+driver") that
+# check_sqlalchemy_uri() blocks by default (sqlite, shillelagh, duckdb) but
+# which this particular deployment chooses to permit. These dialects can
+# resolve local filesystem paths at query time, so only allow one where the
+# users who can create or edit database connections are already trusted with
+# that level of access (eg a deployment that relies on duckdb/MotherDuck).
+# Adding a dialect here re-enables just that dialect; the rest of the blocklist
+# still applies. Has no effect when PREVENT_UNSAFE_DB_CONNECTIONS is False
+# (the check is skipped entirely in that case).
+ALLOWED_UNSAFE_DB_DIALECTS: set[str] = set()
+
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 

@@ -16,6 +16,7 @@
 # under the License.
 import re
 
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
@@ -41,8 +42,14 @@ def check_sqlalchemy_uri(uri: URL) -> None:
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         BLOCKLIST.add(re.compile(r"superset$"))
 
+    allowed_dialects = current_app.config.get("ALLOWED_UNSAFE_DB_DIALECTS", set())
+    base_dialect = uri.drivername.split("+", 1)[0]
+
     for blocklist_regex in BLOCKLIST:
         if not re.match(blocklist_regex, uri.drivername):
+            continue
+        # The operator has explicitly opted this dialect in for this deployment.
+        if base_dialect in allowed_dialects:
             continue
         try:
             dialect = uri.get_dialect().__name__
