@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 16:31+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -239,6 +239,20 @@ msgstr "%(label)s Datei"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
 msgstr ""
 
 #, python-format
@@ -970,6 +984,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
 msgstr ""
@@ -1023,6 +1043,14 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Eine durch Kommas getrennte Liste von Schemata, in die Dateien "
 "hochgeladen werden dürfen."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Bei der Verbindung über SSH-Tunnel ist ein Datenbank-Port erforderlich."
@@ -1117,6 +1145,30 @@ msgstr "Es wird ein neues Diagramm erstellt."
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1195,6 +1247,12 @@ msgstr "Ein gültiges Farbschema ist erforderlich"
 msgid ""
 "A value transform is required on %(name)s, which is not a temporal "
 "column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
 msgstr ""
 
 msgid ""
@@ -1460,6 +1518,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ordner hinzufügen"
 
+msgid "Add group"
+msgstr "Gruppe hinzufügen"
+
 msgid "Add item"
 msgstr "Element hinzufügen"
 
@@ -1470,6 +1531,9 @@ msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Fügen Sie Metriken im Dialog \"Datenquelle bearbeiten\" zum Datensatz "
 "hinzu"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Neuen Farbformatierer hinzufügen"
@@ -1502,6 +1566,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Tabelle hinzufügen"
+
+msgid "Add subgroup"
+msgstr "Untergruppe hinzufügen"
 
 msgid "Add tag to entities"
 msgstr "Schlagwort zu Entitäten hinzufügen"
@@ -3371,6 +3438,9 @@ msgstr "Zellgrenze"
 msgid "Cell title template"
 msgstr "Vorlage für die Zellenüberschrift"
 
+msgid "Center"
+msgstr "Zentriert"
+
 msgid "Center value"
 msgstr ""
 
@@ -3765,6 +3835,12 @@ msgstr "Wählen Sie Spalten, die als Datumswerte analysiert werden sollen"
 msgid "Choose columns to read"
 msgstr "Zu lesende Spalten wählen"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4048,6 +4124,9 @@ msgstr "Datenbereich ausblenden"
 msgid "Collapse row"
 msgstr "Zeile zusammenklappen"
 
+msgid "Collapse settings"
+msgstr "Einstellungen einklappen"
+
 msgid "Collapse tab content"
 msgstr "Inhalt der Registerkarte ausblenden"
 
@@ -4103,6 +4182,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Das Farbfeld muss eine Hexadezimalfarbe (#rrggbb) oder 'rgb(r, g, b)' "
 "sein."
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4177,6 +4260,9 @@ msgstr "Spalte mit Längengraddaten"
 
 msgid "Column data types"
 msgstr "Spaltendatentypen"
+
+msgid "Column groups"
+msgstr "Spaltengruppen"
 
 msgid "Column header tooltip"
 msgstr "Tooltip zur Spaltenüberschrift"
@@ -6889,6 +6975,9 @@ msgstr "Dauer in Sekunden eingeben"
 msgid "Enter fullscreen"
 msgstr "Vollbildmodus aktivieren"
 
+msgid "Enter group name"
+msgstr "Gruppennamen eingeben"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
@@ -6928,6 +7017,9 @@ msgstr "Anmeldenamen eingeben"
 
 msgid "Enter theme name"
 msgstr "Designnamen eingeben"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7106,6 +7198,9 @@ msgstr "Genaue Übereinstimmung (IN)"
 msgid "Example"
 msgstr "Beispiel"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Beispiele"
 
@@ -7165,6 +7260,9 @@ msgstr "Zeile aufklappen"
 
 msgid "Expand row to edit"
 msgstr "Zeile zum Bearbeiten erweitern"
+
+msgid "Expand settings"
+msgstr "Einstellungen aufklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8157,6 +8255,10 @@ msgstr ""
 msgid "Group"
 msgstr "Gruppe"
 
+#, python-format
+msgid "Group %s"
+msgstr "Gruppe %s"
+
 msgid "Group By"
 msgstr "Gruppieren nach"
 
@@ -8170,6 +8272,12 @@ msgstr "Gruppenschlüssel"
 
 msgid "Group by"
 msgstr "Gruppieren nach"
+
+msgid "Group columns"
+msgstr "Spalten gruppieren"
+
+msgid "Group name"
+msgstr "Gruppenname"
 
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
@@ -8417,6 +8525,9 @@ msgstr "Importiere %s"
 msgid "Import Error"
 msgstr "Import-Fehler"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Fehler beim Importieren des Diagramms aus unbekanntem Grund"
 
@@ -8631,6 +8742,11 @@ msgstr "Ungültige JSON-Konfiguration."
 
 msgid "Invalid JSON metadata"
 msgstr "Ungültige JSON-Metadaten"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -8919,6 +9035,9 @@ msgstr "Kilometer"
 
 msgid "Label"
 msgstr "Beschriftung"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Beschriftungsinhalt"
@@ -9551,6 +9670,9 @@ msgstr ""
 msgid "Map a different column instead →"
 msgstr ""
 
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (Open Source)"
 
@@ -10023,7 +10145,8 @@ msgid ""
 "Monotonicity is a property of the transform, not of the column type: "
 "hour(:value) and dayofweek(:value) are reasonable transforms on a "
 "timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror."
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
 msgstr ""
 
 msgid "Month"
@@ -10047,6 +10170,12 @@ msgstr "Weitere Filter"
 
 msgid "MotherDuck token"
 msgstr "MotherDuck-Token"
+
+msgid "Move group left"
+msgstr "Gruppe nach links verschieben"
+
+msgid "Move group right"
+msgstr "Gruppe nach rechts verschieben"
 
 msgid "Move icon"
 msgstr "Symbol verschieben"
@@ -10084,6 +10213,9 @@ msgstr "Mehrstufige"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variablen"
+
+msgid "Multi-level header"
+msgstr "Mehrstufige Überschrift"
 
 msgid "Multiple"
 msgstr "Mehrfach"
@@ -10317,6 +10449,9 @@ msgstr "Keine Filter verfügbar."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Keine Spalten gefunden"
 
@@ -10458,6 +10593,9 @@ msgid "No saved metrics found"
 msgstr "Keine gespeicherten Metriken gefunden"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11683,6 +11821,9 @@ msgstr "Port %(port)s auf Hostname \"%(hostname)s\" verweigerte die Verbindung."
 msgid "Port out of range 0-65535"
 msgstr "Port außerhalb des Bereichs 0-65535"
 
+msgid "Position"
+msgstr "Position"
+
 msgid "Position JSON"
 msgstr "Anordnungs-JSON"
 
@@ -12131,6 +12272,9 @@ msgstr "Dunkles Systemdesign entfernen"
 msgid "Remove System Default Theme"
 msgstr "Standard Systemdesign entfernen"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Kreuzfilter entfernen"
 
@@ -12145,6 +12289,9 @@ msgstr "Filter entfernen"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Gruppe entfernen"
 
 msgid "Remove item"
 msgstr "Element entfernen"
@@ -12411,6 +12558,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Zurücksetzen"
 
@@ -12419,6 +12569,9 @@ msgstr "Spalten zurücksetzen"
 
 msgid "Reset all folders to default"
 msgstr "Alle Ordner auf die Standardeinstellungen zurücksetzen"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Spalten zurücksetzen"
@@ -12987,6 +13140,14 @@ msgstr "Gespeicherte Abfrage nicht gefunden."
 msgid "Saved query parameters are invalid."
 msgstr "Gespeicherte Abfrageparameter sind ungültig."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Speichern..."
 
@@ -13364,6 +13525,9 @@ msgstr "Spalte auswählen"
 msgid "Select column name"
 msgstr "Spaltennamen auswählen"
 
+msgid "Select columns"
+msgstr "Spalten auswählen"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -13493,6 +13657,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Wert eingeben oder auswählen..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Währungssymbol auswählen oder eingeben"
@@ -14627,6 +14794,21 @@ msgstr "Startdatum"
 msgid "Start date included in time range"
 msgstr "Startdatum im Zeitbereich enthalten"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "y-Achse bei 0 beginnen"
 
@@ -14761,6 +14943,10 @@ msgstr "Unterkategorien"
 msgid "Subdomain"
 msgstr "Subdomain"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Untergruppe %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14803,6 +14989,12 @@ msgstr "Suffix"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Suffix, das hinter der Prozentanzeige angezeigt werden soll"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -14993,6 +15185,9 @@ msgstr "Tabellenname nicht definiert"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Die Tabelle oder View \"%(table)s\" existiert nicht."
+
+msgid "Table side"
+msgstr "Tabellenseite"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15188,6 +15383,11 @@ msgid "The %s linked to this chart may have been deleted."
 msgstr ""
 "Der/Die/Das mit diesem Diagramm verknüpfte %s wurde möglicherweise "
 "gelöscht."
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16286,6 +16486,12 @@ msgstr ""
 msgid "The transform could not be evaluated against the database: %(reason)s"
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Die beiden Passwörter stimmen nicht überein!"
 
@@ -16361,6 +16567,10 @@ msgstr ""
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -17199,6 +17409,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Dieses Passwort ist zu gebräuchlich; bitte wählen Sie ein schwerer zu "
 "erratendes."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18502,6 +18717,11 @@ msgstr "Werte"
 
 msgid "Values are dependent on other filters"
 msgstr "Werte sind abhängig von anderen Filtern"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Werte abhängig von"

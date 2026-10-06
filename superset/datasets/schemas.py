@@ -31,7 +31,10 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.partition_mapping import MIRRORABLE_OPERATORS
+from superset.connectors.sqla.partition_mapping import (
+    MAX_TRANSFORM_LENGTH,
+    PREVIEWABLE_OPERATORS,
+)
 from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
@@ -105,6 +108,7 @@ class DatasetColumnsPutSchema(Schema):
     )
     partition_value_transform = fields.String(
         allow_none=True,
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
         metadata={
             "description": (
                 "SQL expression containing a :value placeholder. Filters on "
@@ -369,10 +373,18 @@ class ImportV1ColumnSchema(Schema):
     datetime_format = fields.String(
         allow_none=True, validate=[Length(1, 100), validate_python_date_format]
     )
-    partition_value_transform = fields.String(allow_none=True)
-    # Bundles predating the field must not claim their transform preserves
-    # ordering, which would silently enable range mirroring on import.
-    partition_transform_is_monotonic = fields.Boolean(load_default=False)
+    partition_value_transform = fields.String(
+        allow_none=True, validate=Length(1, MAX_TRANSFORM_LENGTH)
+    )
+    # `load_default` so bundles predating the field do not claim their transform
+    # preserves ordering, which would silently enable range mirroring on import.
+    # `allow_none` because the column is nullable on purpose -- the legacy
+    # datasource editor writes NULL for any field its payload omits -- and export
+    # emits every field unconditionally, so an untouched export of such a dataset
+    # carries an explicit null that import would otherwise refuse outright.
+    partition_transform_is_monotonic = fields.Boolean(
+        allow_none=True, load_default=False
+    )
     uuid = fields.UUID(allow_none=True)
 
 
@@ -556,10 +568,10 @@ class PartitionMappingPreviewSchema(Schema):
     value_transform = fields.String(
         required=True,
         allow_none=True,
-        # The stored column is `Text`, so this bounds the *request*, not the
-        # feature: a transform is one expression around `:value`, and 1024
-        # characters is far past anything that reads as one.
-        validate=Length(1, 1024),
+        # The same bound the typed column field and the import schema enforce:
+        # a transform is one expression around `:value`, and this is far past
+        # anything that reads as one.
+        validate=Length(1, MAX_TRANSFORM_LENGTH),
         metadata={"description": "SQL expression containing a :value placeholder"},
     )
     sample_values = fields.List(
@@ -579,11 +591,13 @@ class PartitionMappingPreviewSchema(Schema):
         # `=` mirrors under any transform, so the default is meaningful on its
         # own. A range default would refuse unless `is_monotonic` came with it.
         load_default=FilterOperator.EQUALS.value,
-        validate=OneOf([operator.value for operator in sorted(MIRRORABLE_OPERATORS)]),
+        validate=OneOf([operator.value for operator in sorted(PREVIEWABLE_OPERATORS)]),
         metadata={
             "description": (
-                "Filter operator being mirrored. Only operators that can be "
-                "mirrored at all are accepted."
+                "Filter operator being mirrored. Only operators the preview "
+                "can construct are accepted: TEMPORAL_RANGE is mirrored by the "
+                "query path as two bounds decomposed from a since/until pair, "
+                "which this request has no way to express."
             )
         },
     )

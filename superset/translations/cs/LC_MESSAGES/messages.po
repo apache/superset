@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 16:31+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -244,6 +244,20 @@ msgstr "soubor %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
 msgstr ""
 
 #, python-format
@@ -1018,6 +1032,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
 msgstr ""
@@ -1070,6 +1090,14 @@ msgstr "Čárkami oddělený seznam sloupců, které se mají zpracovat jako dat
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Čárkami oddělený seznam schémat, do kterých je povoleno nahrávat soubory."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Při připojování přes SSH tunel je vyžadován port databáze."
@@ -1159,6 +1187,30 @@ msgstr "Bude vytvořen nový graf."
 msgid "A new dashboard will be created."
 msgstr "Bude vytvořena nová nástěnka."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1233,6 +1285,12 @@ msgstr "Je vyžadováno platné barevné schéma."
 msgid ""
 "A value transform is required on %(name)s, which is not a temporal "
 "column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
 msgstr ""
 
 msgid ""
@@ -1512,6 +1570,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Přidat složku"
 
+msgid "Add group"
+msgstr "Přidat skupinu"
+
 msgid "Add item"
 msgstr "Přidat položku"
 
@@ -1520,6 +1581,9 @@ msgstr "Přidat metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Přidat metriky do sady dat v modálním okně „Upravit zdroj dat“"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Přidat nový formátovač barev"
@@ -1554,6 +1618,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Přidat list"
+
+msgid "Add subgroup"
+msgstr "Přidat podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Přidat značku k entitám"
@@ -3424,6 +3491,9 @@ msgstr "Limit buněk"
 msgid "Cell title template"
 msgstr "Šablona názvu buňky"
 
+msgid "Center"
+msgstr "Na střed"
+
 msgid "Center value"
 msgstr ""
 
@@ -3825,6 +3895,12 @@ msgstr "Vyberte sloupce, které se mají zpracovat jako data"
 msgid "Choose columns to read"
 msgstr "Vyberte sloupce ke čtení"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4107,6 +4183,9 @@ msgstr "Sbalit datový panel"
 msgid "Collapse row"
 msgstr "Sbalit řádek"
 
+msgid "Collapse settings"
+msgstr "Sbalit nastavení"
+
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
 
@@ -4173,6 +4252,10 @@ msgstr "Barva podle směru"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Pole barvy musí být hexadecimální barva (#rrggbb) nebo 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4248,6 +4331,9 @@ msgstr "Sloupec obsahující data o zeměpisné délce"
 
 msgid "Column data types"
 msgstr "Datové typy sloupců"
+
+msgid "Column groups"
+msgstr "Skupiny sloupců"
 
 msgid "Column header tooltip"
 msgstr "Nápověda záhlaví sloupce"
@@ -7031,6 +7117,9 @@ msgstr "Zadejte dobu trvání v sekundách"
 msgid "Enter fullscreen"
 msgstr "Vstoupit do režimu celé obrazovky"
 
+msgid "Enter group name"
+msgstr "Zadejte název skupiny"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
 
@@ -7074,6 +7163,9 @@ msgstr "Zadejte uživatelské jméno uživatele"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Zadejte název tématu"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7259,6 +7351,9 @@ msgstr "Přesná shoda (IN)"
 msgid "Example"
 msgstr "Příklad"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Příklady"
 
@@ -7322,6 +7417,9 @@ msgstr "Rozbalit řádek"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rozbalit řádek"
+
+msgid "Expand settings"
+msgstr "Rozbalit nastavení"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8344,6 +8442,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Seskupit podle"
 
@@ -8355,6 +8457,12 @@ msgstr "Klíč skupiny"
 
 msgid "Group by"
 msgstr "Seskupit podle"
+
+msgid "Group columns"
+msgstr "Seskupit sloupce"
+
+msgid "Group name"
+msgstr "Název skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
@@ -8604,6 +8712,9 @@ msgstr "Importovat %s"
 msgid "Import Error"
 msgstr "Chyba importu"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafu selhal z neznámého důvodu"
 
@@ -8831,6 +8942,11 @@ msgstr "Neplatná konfigurace zeměpisné šířky/délky."
 #, fuzzy
 msgid "Invalid JSON metadata"
 msgstr "Neplatná JSON metadata"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
@@ -9127,6 +9243,9 @@ msgstr "Kilometry"
 
 msgid "Label"
 msgstr "Popisek"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Obsah popisku"
@@ -9782,6 +9901,9 @@ msgstr ""
 msgid "Map a different column instead →"
 msgstr ""
 
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10281,7 +10403,8 @@ msgid ""
 "Monotonicity is a property of the transform, not of the column type: "
 "hour(:value) and dayofweek(:value) are reasonable transforms on a "
 "timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror."
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
 msgstr ""
 
 msgid "Month"
@@ -10306,6 +10429,12 @@ msgstr "Více filtrů"
 
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
+
+msgid "Move group left"
+msgstr "Přesunout skupinu doleva"
+
+msgid "Move group right"
+msgstr "Přesunout skupinu doprava"
 
 #, fuzzy
 msgid "Move icon"
@@ -10342,6 +10471,9 @@ msgstr "Více úrovní"
 
 msgid "Multi-Variables"
 msgstr "Více proměnných"
+
+msgid "Multi-level header"
+msgstr "Víceúrovňové záhlaví"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -10583,6 +10715,9 @@ msgstr "Nejsou k dispozici žádné filtry."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nebyly nalezeny žádné sloupce"
 
@@ -10731,6 +10866,9 @@ msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žádné uložené metriky"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11957,6 +12095,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl připojení."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+msgid "Position"
+msgstr "Pozice"
+
 msgid "Position JSON"
 msgstr "JSON pozice"
 
@@ -12423,6 +12564,9 @@ msgstr "Odstranit systémové tmavé téma"
 msgid "Remove System Default Theme"
 msgstr "Odstranit systémové výchozí téma"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstranit křížový filtr"
 
@@ -12439,6 +12583,9 @@ msgstr "Odstranit položku"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstranit skupinu"
 
 msgid "Remove item"
 msgstr "Odstranit položku"
@@ -12700,6 +12847,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Resetovat"
 
@@ -12709,6 +12859,9 @@ msgstr "Resetovat sloupce"
 
 msgid "Reset all folders to default"
 msgstr "Resetovat všechny složky na výchozí hodnoty"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Resetovat sloupce"
@@ -13294,6 +13447,14 @@ msgstr "Uložený dotaz nenalezen."
 msgid "Saved query parameters are invalid."
 msgstr "Parametry uloženého dotazu jsou neplatné."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Ukládání..."
 
@@ -13685,6 +13846,9 @@ msgstr "Vybrat sloupec"
 msgid "Select column name"
 msgstr "Vybrat sloupec"
 
+msgid "Select columns"
+msgstr "Vybrat sloupce"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -13817,6 +13981,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Vyberte nebo zadejte vlastní hodnotu..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Vyberte nebo zadejte symbol měny"
@@ -15025,6 +15192,21 @@ msgstr "Datum zahájení"
 msgid "Start date included in time range"
 msgstr "Datum zahájení zahrnuto v časovém rozsahu"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Začít osu Y na 0"
 
@@ -15164,6 +15346,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15207,6 +15393,12 @@ msgstr "Přípona"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Přípona, která se použije za zobrazením procent"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15402,6 +15594,9 @@ msgstr "Název tabulky není definován"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabulka nebo pohled „%(table)s“ neexistuje."
+
+msgid "Table side"
+msgstr "Strana tabulky"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15603,6 +15798,11 @@ msgstr "Načteno %s"
 
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
+msgstr ""
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
 msgstr ""
 
 #, python-format
@@ -16661,6 +16861,12 @@ msgstr ""
 msgid "The transform could not be evaluated against the database: %(reason)s"
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Hesla se neshodují!"
@@ -16736,6 +16942,10 @@ msgstr ""
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -17552,6 +17762,11 @@ msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu ta
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je příliš běžné; zvolte prosím méně předvídatelné."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18891,6 +19106,11 @@ msgstr "Hodnoty"
 
 msgid "Values are dependent on other filters"
 msgstr "Hodnoty jsou závislé na jiných filtrech"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Hodnoty závislé na"

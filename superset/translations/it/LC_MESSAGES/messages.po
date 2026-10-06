@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 16:31+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -272,6 +272,20 @@ msgstr "file %(label)s"
 #, python-format
 msgid "%(name)s deleted successfully"
 msgstr "%(name)s eliminato con successo"
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
+msgstr ""
 
 #, python-format
 msgid "%(name)s is not a column on this dataset."
@@ -1209,6 +1223,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
 msgstr ""
@@ -1264,6 +1284,14 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Un elenco separato da virgole di schemi in cui i file possono essere "
 "caricati."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr ""
@@ -1372,6 +1400,30 @@ msgstr "Sarà creato un nuovo grafico."
 msgid "A new dashboard will be created."
 msgstr "Una nuova dashboard sarà creata."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1462,6 +1514,12 @@ msgstr "È richiesta una combinazione di colori valida"
 msgid ""
 "A value transform is required on %(name)s, which is not a temporal "
 "column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -1784,6 +1842,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Aggiungi cartella"
 
+msgid "Add group"
+msgstr "Aggiungi gruppo"
+
 msgid "Add item"
 msgstr "Aggiungi elemento"
 
@@ -1792,6 +1853,9 @@ msgstr "Aggiungi metrica"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Aggiungi metriche al dataset nella modale \"Modifica sorgente dati\""
+
+msgid "Add more"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1836,6 +1900,9 @@ msgstr "Aggiungi credenziali di servizio"
 
 msgid "Add sheet"
 msgstr "Aggiungi foglio"
+
+msgid "Add subgroup"
+msgstr "Aggiungi sottogruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4142,6 +4209,9 @@ msgstr "Limite cella"
 msgid "Cell title template"
 msgstr "Template per il titolo della cella"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -4601,6 +4671,12 @@ msgstr "Scegli le colonne da analizzare come date"
 msgid "Choose columns to read"
 msgstr "Seleziona le colonne da leggere"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4993,6 +5069,9 @@ msgstr "Collassa pannello dati"
 msgid "Collapse row"
 msgstr "Collassa riga"
 
+msgid "Collapse settings"
+msgstr "Comprimi impostazioni"
+
 msgid "Collapse tab content"
 msgstr "Collassa il contenuto della scheda"
 
@@ -5066,6 +5145,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Il campo colore deve essere un colore esadecimale (#rrggbb) o 'rgb(r, g, "
 "b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -5166,6 +5249,9 @@ msgstr "Colonna contenente dati sulla longitudine"
 
 msgid "Column data types"
 msgstr "Tipi dati per la colonna"
+
+msgid "Column groups"
+msgstr "Gruppi di colonne"
 
 msgid "Column header tooltip"
 msgstr "Tooltip intestazione colonna"
@@ -8493,6 +8579,9 @@ msgstr "Immettere la durata in secondi"
 msgid "Enter fullscreen"
 msgstr "Modalità fullscreen"
 
+msgid "Enter group name"
+msgstr "Immettere il nome del gruppo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -8534,6 +8623,9 @@ msgstr "Immettere lo username dell'utente"
 
 msgid "Enter theme name"
 msgstr "Immettere il nome del tema"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -8780,6 +8872,9 @@ msgstr "Corrispondenza esatta (IN)"
 msgid "Example"
 msgstr "Esempio"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -8864,6 +8959,9 @@ msgstr "Espandi riga"
 
 msgid "Expand row to edit"
 msgstr "Espandi la riga da modificare"
+
+msgid "Expand settings"
+msgstr "Espandi impostazioni"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10142,6 +10240,10 @@ msgstr ""
 msgid "Group"
 msgstr "Gruppo"
 
+#, python-format
+msgid "Group %s"
+msgstr "Gruppo %s"
+
 msgid "Group By"
 msgstr "Raggruppa per"
 
@@ -10156,6 +10258,12 @@ msgstr "Chiave raggruppamento"
 
 msgid "Group by"
 msgstr "Raggruppa per"
+
+msgid "Group columns"
+msgstr "Raggruppa colonne"
+
+msgid "Group name"
+msgstr "Nome del gruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10502,6 +10610,9 @@ msgstr "Importa %s"
 msgid "Import Error"
 msgstr "Errore importazione"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -10787,6 +10898,11 @@ msgstr "Configurazione JSON non valida"
 
 msgid "Invalid JSON metadata"
 msgstr "Metadati JSON non validi"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
@@ -11218,6 +11334,9 @@ msgstr "Chilometri"
 # sr_Latn, tr, uk, zh, zh_TW]
 msgid "Label"
 msgstr "Etichetta"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Contenuto dell'etichetta"
@@ -12027,6 +12146,9 @@ msgstr ""
 msgid "Map a different column instead →"
 msgstr ""
 
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "MapLibre (open-source)"
@@ -12677,7 +12799,8 @@ msgid ""
 "Monotonicity is a property of the transform, not of the column type: "
 "hour(:value) and dayofweek(:value) are reasonable transforms on a "
 "timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror."
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
 msgstr ""
 
 msgid "Month"
@@ -12703,6 +12826,12 @@ msgstr "Più filtri"
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "MotherDuck token"
 msgstr "Gettone MotherDuck"
+
+msgid "Move group left"
+msgstr "Sposta il gruppo a sinistra"
+
+msgid "Move group right"
+msgstr "Sposta il gruppo a destra"
 
 msgid "Move icon"
 msgstr "Sposta icona"
@@ -12753,6 +12882,9 @@ msgstr "Multi-livelli"
 # uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Multivariabili"
+
+msgid "Multi-level header"
+msgstr "Intestazione a più livelli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13031,6 +13163,9 @@ msgstr "Nessun filtro disponibile."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nessuna colonna trovata"
 
@@ -13184,6 +13319,9 @@ msgid "No saved metrics found"
 msgstr "Nessuna metrica salvata trovata"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14769,6 +14907,9 @@ msgstr "La porta %(port)s dell'host \"%(hostname)s\" ha rifiutato la connessione
 msgid "Port out of range 0-65535"
 msgstr "Porta furi dall'intervallo 0-65535"
 
+msgid "Position"
+msgstr "Posizione"
+
 msgid "Position JSON"
 msgstr "Posizione del JSON"
 
@@ -15350,6 +15491,9 @@ msgstr "Rimuovi tema di sistema scuro"
 msgid "Remove System Default Theme"
 msgstr "Rimuovi tema di sistema predefinito"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Rimuovi filtri cross"
 
@@ -15364,6 +15508,9 @@ msgstr "Rimuovi filtro"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Rimuovi gruppo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15720,6 +15867,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Reset"
@@ -15730,6 +15880,9 @@ msgstr "Reimposta colonne"
 
 msgid "Reset all folders to default"
 msgstr "Reimposta tutte le cartelle al valore predefinito"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Reimposta colonne"
@@ -16427,6 +16580,14 @@ msgstr "Query salvata non trovata."
 msgid "Saved query parameters are invalid."
 msgstr "I parametri della query salvata non sono validi."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Salvataggio..."
 
@@ -16878,6 +17039,9 @@ msgstr "Seleziona colonna"
 msgid "Select column name"
 msgstr "Seleziona un nome colonna"
 
+msgid "Select columns"
+msgstr "Seleziona colonne"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
@@ -17023,6 +17187,9 @@ msgstr "Seleziona o digita destinatari in CC"
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
 msgid "Select or type a custom value..."
 msgstr "Seleziona o digita un valore personalizzato..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Seleziona o digita il simbolo di valuta"
@@ -18466,6 +18633,21 @@ msgstr "Data iniziale"
 msgid "Start date included in time range"
 msgstr "Data iniziale inclusa nell'intervallo temporale"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "L'asse Y inizia da 0"
 
@@ -18631,6 +18813,10 @@ msgstr "Sottocategorie"
 msgid "Subdomain"
 msgstr "Sottodominio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Sottogruppo %s"
+
 msgid "Subject"
 msgstr "Soggetto"
 
@@ -18685,6 +18871,12 @@ msgstr "Suffizzo"
 # uk, zh, zh_TW]
 msgid "Suffix to apply after the percentage display"
 msgstr "Suffisso da applicare dopo la visualizzazione della percentuale"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -18945,6 +19137,9 @@ msgstr "Nome tabella non definito"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La tabella o vista \"%(table)s\" non esiste."
 
+msgid "Table side"
+msgstr "Lato della tabella"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19176,6 +19371,11 @@ msgstr "Il %s"
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr "Il %s collegato a questo grafico potrebbe essere stato eliminato."
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20531,6 +20731,12 @@ msgstr ""
 msgid "The transform could not be evaluated against the database: %(reason)s"
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Le due password inserite non corrispondono"
 
@@ -20609,6 +20815,10 @@ msgstr ""
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -21621,6 +21831,11 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Questa password è troppo comune; scegline una più difficile da indovinare."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -23319,6 +23534,11 @@ msgstr "Valori"
 # uk, zh, zh_TW]
 msgid "Values are dependent on other filters"
 msgstr "I valori dipendono da altri filtri"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Valori dipendenti su"

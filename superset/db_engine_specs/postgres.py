@@ -178,6 +178,9 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_multivalues_insert = True
 
     # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
@@ -625,6 +628,40 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
                 "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+            },
+            {
+                "name": "ClickHouse Managed Postgres",
+                "description": "Managed PostgreSQL from ClickHouse.",
+                "logo": "clickhouse.png",
+                "homepage_url": "https://clickhouse.com/cloud/postgres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}?sslmode=verify-full"
+                    "&sslrootcert={ca_certificate_path}"
+                ),
+                "parameters": {
+                    "username": "Database user",
+                    "password": "URL-encoded database password",
+                    "host": "Direct PostgreSQL hostname from the Connect dialog",
+                    "port": "Port from the Connect dialog (default: 5432)",
+                    "database": "Database name",
+                    "ca_certificate_path": (
+                        "URL-encoded absolute path to the instance CA certificate "
+                        "on the Superset server"
+                    ),
+                },
+                "notes": (
+                    "In ClickHouse Cloud, open the Connect menu and use the "
+                    "Directly option. Download the instance-specific CA certificate "
+                    "from Settings and make it available to each Superset process "
+                    "that connects to the database. Use verify-full to verify "
+                    "the certificate and hostname."
+                ),
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/managed-postgres/connection"
+                ),
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
             },
         ],
     }

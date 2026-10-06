@@ -24,46 +24,39 @@ import { test, expect, devices, Page } from '@playwright/test';
 // environment (FEATURE_FLAGS = {"MOBILE_CONSUMPTION_MODE": True}).
 import { TIMEOUT } from '../../utils/constants';
 import { URL } from '../../utils/urls';
-import { DashboardPage } from '../../pages/DashboardPage';
+import { gotoWithRetry } from '../../helpers/navigation';
 
 /**
  * Mobile dashboard viewing tests verify that dashboards can be viewed
  * and interacted with on mobile devices.
  *
- * These tests assume the World Bank's Health sample dashboard exists.
+ * These tests assume the World Bank's Data sample dashboard exists.
  */
 
 // Use iPhone 12 viewport for mobile tests
 const mobileViewport = devices['iPhone 12'];
 
-// The World Bank's Health sample dashboard, seeded by `superset load_examples`.
-const SAMPLE_DASHBOARD_SLUG = 'world_health';
-
-/**
- * Opens the World Bank's Health sample dashboard, which `load_examples`
- * always seeds with charts.
- *
- * Opening "the first card in the dashboard list" instead would make these
- * tests depend on the contents of a database that every other spec in the
- * same CI job mutates: the list is ordered by `changed_on` descending, so
- * any dashboard another spec touched - or leaked - sorts ahead of the
- * seeded examples and gets opened here. A chartless leftover then fails
- * the chart assertions for reasons that have nothing to do with mobile.
- */
-async function openSampleDashboard(page: Page): Promise<void> {
-  const dashboardPage = new DashboardPage(page);
-  await dashboardPage.gotoBySlug(SAMPLE_DASHBOARD_SLUG);
-  await dashboardPage.waitForLoad();
+/** Opens the required sample dashboard and asserts navigation succeeds. */
+async function openExampleDashboard(page: Page): Promise<void> {
+  const response = await gotoWithRetry(page, 'dashboard/world_health/');
+  expect(
+    response?.status(),
+    'world_health missing; run superset load_examples',
+  ).toBe(200);
+  await page.waitForLoadState('networkidle');
 }
 
 /**
- * Opens the World Bank's Health dashboard and returns a locator for its
- * mobile filter button. Skips the current test when the fixture has no
- * native filters configured.
+ * Navigates to the World Bank's Data dashboard and returns a locator
+ * for its mobile filter button. Skips the current test when the fixture
+ * has no native filters configured.
  */
 async function getMobileFilterButton(page: Page) {
-  await openSampleDashboard(page);
-  await page.waitForLoadState('networkidle');
+  // Navigate directly to the World Bank's Data dashboard, which this
+  // spec's fixtures require, rather than an arbitrary first card from
+  // the list. Whether it has native filters configured depends on the
+  // fixture, so callers skip themselves when none are present.
+  await openExampleDashboard(page);
 
   // Give filters time to load
   await page.waitForTimeout(2000);
@@ -161,7 +154,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard loads and shows charts on mobile', async ({ page }) => {
-    await openSampleDashboard(page);
+    await openExampleDashboard(page);
 
     // Dashboard content should be visible
     await expect(
@@ -182,7 +175,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('dashboard header shows hamburger menu on mobile', async ({ page }) => {
-    await openSampleDashboard(page);
+    await openExampleDashboard(page);
 
     // Look for the hamburger menu / more actions button
     const menuButton = page
@@ -195,7 +188,7 @@ test.describe('Mobile Dashboard Interaction', () => {
   });
 
   test('refresh dashboard works from mobile menu', async ({ page }) => {
-    await openSampleDashboard(page);
+    await openExampleDashboard(page);
 
     // Open the actions menu
     const menuButton = page

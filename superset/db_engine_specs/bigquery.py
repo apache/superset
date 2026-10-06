@@ -52,7 +52,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import hash_from_str
 
@@ -225,6 +225,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     engine = "bigquery"
     engine_name = "Google BigQuery"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     max_column_name_length = 128
     disable_ssh_tunneling = True
 
@@ -416,7 +419,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         Samples a first batch to estimate row size, then extrapolates the
         total number of rows that fit within ``BQ_FETCH_MAX_MB``.
-        Falls back to the parent implementation on any error.
+        Falls back to the parent implementation if the initial read fails.
+        Errors after consuming rows propagate instead of returning partial data.
         """
         # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
         # access in-context — a missing key should surface as a loud KeyError
@@ -428,13 +432,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
         max_bytes = max_mb * 1024 * 1024
 
+        first_batch: list[Any] = []
         try:
             initial_batch_size = (
                 min(_BQ_INITIAL_SAMPLE_ROWS, limit)
                 if limit
                 else _BQ_INITIAL_SAMPLE_ROWS
             )
-            first_batch: list[Any] = cursor.fetchmany(initial_batch_size)
+            first_batch = cursor.fetchmany(initial_batch_size)
 
             if not first_batch:
                 if has_request_context():
@@ -465,13 +470,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
             # First batch already covers the budget or the result set
             if rows_fetched < initial_batch_size or remaining_rows <= 0:
+                # A full sample can also be the entire result. Confirm an omitted
+                # row; a bounded cursor leaves its own EOF probe to the executor.
                 memory_limited = (
-                    remaining_rows <= 0 and rows_fetched == initial_batch_size
+                    remaining_rows <= 0
+                    and rows_fetched == initial_batch_size
+                    and bool(cursor.fetchmany(1))
                 )
                 if has_request_context():
                     g.bq_memory_limited = memory_limited
                     g.bq_memory_limited_row_count = len(first_batch)
-                return first_batch
+                return FetchedRows(first_batch, truncated=memory_limited)
 
             # Fetch one extra row to confirm truncation without false positives
             second_batch: list[Any] = cursor.fetchmany(remaining_rows + 1) or []
@@ -488,16 +497,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if has_request_context():
                 g.bq_memory_limited = memory_limited
                 g.bq_memory_limited_row_count = len(data)
-            return data
+            return FetchedRows(data, truncated=memory_limited)
 
-        except Exception:  # pylint: disable=broad-except
-            # Broad catch on purpose: any failure in the size-estimation /
-            # progressive-fetch path (BigQuery DB-API errors, network or
-            # auth timeouts mid-fetch, ``sys.getsizeof`` raising on an
-            # unexpected cell type, or a future ``Row`` subclass we don't
-            # know how to unwrap) must degrade gracefully to the parent's
-            # straight fetch so the user still gets data.
-            # Fallback to parent implementation
+        except Exception as ex:  # pylint: disable=broad-except
+            # A forward-only cursor cannot replay the consumed sample. Falling
+            # back after an estimation, second-batch, or EOF-probe failure would
+            # silently discard it and return only the remaining rows as success.
+            if first_batch:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+            # An initial read failure leaves no buffered rows to lose.
             data = super().fetch_data(cursor, limit)
             if data and type(data[0]).__name__ == "Row":
                 data = [r.values() for r in data]  # type: ignore

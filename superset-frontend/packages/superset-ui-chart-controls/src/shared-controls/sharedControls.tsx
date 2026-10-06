@@ -232,7 +232,10 @@ function timeRangePartitionMapping({
   ) {
     return null;
   }
-  if (formData?.time_range === NO_TIME_RANGE) {
+  // An absent `time_range` is the same as `No filter` -- a legacy saved chart
+  // predating this control, or a render before the defaults populate, has no
+  // key at all rather than the sentinel.
+  if ((formData?.time_range ?? NO_TIME_RANGE) === NO_TIME_RANGE) {
     return null;
   }
   const granularity = formData?.granularity_sqla;
@@ -242,7 +245,11 @@ function timeRangePartitionMapping({
   const mirrorsSelectedColumn = selectedColumn === mapping.mapped_column;
   // `always_filter_main_dttm` adds a second time filter on the main datetime
   // column even when the chart groups by another one, and that filter mirrors.
+  // The backend collects it inside the `if granularity:` branch, so with no
+  // temporal column selected the query has no such filter to mirror and the
+  // glyph would stand next to SQL that never mentions the partition column.
   const mirrorsMainDttm = Boolean(
+    selectedColumn &&
     dataset?.always_filter_main_dttm &&
     dataset.main_dttm_col === mapping.mapped_column,
   );
@@ -259,13 +266,17 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
     partitionMapping: timeRangePartitionMapping(state),
   }),
   // SET_FIELD_VALUE rebuilds the changed control against the *pre-action* form
-  // data and rebuilds no other control at all, so `partitionMapping` would go
-  // stale the moment either input to `timeRangePartitionMapping` changes: the
-  // glyph would survive a switch to `No filter`, and stay hidden on the way
-  // back. Listing both inputs here routes this control through the reducer's
-  // `dependantControls` path, which re-runs mapStateToProps against the new
-  // value (see SET_FIELD_VALUE in `src/explore/reducers/exploreReducer.ts`).
-  validationDependencies: ['time_range', 'granularity_sqla'],
+  // data, so `partitionMapping` would go stale the moment the range itself
+  // changes: the glyph would survive a switch to `No filter`, and stay hidden
+  // on the way back. Recomputing at render from the live explore state is the
+  // mechanism for that -- `ControlPanelsContainer` merges the fresh props over
+  // the control state without touching its value. `validationDependencies` is
+  // not usable here: it names *other* controls, and a control that lists itself
+  // is rebuilt by the reducer from its own superseded value.
+  shouldMapStateToProps: () => true,
+  // The chart's temporal column is the other input, and it lives on a control
+  // this one does not own, so that transition is picked up the intended way.
+  validationDependencies: ['granularity_sqla'],
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(

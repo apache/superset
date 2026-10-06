@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 16:31+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -254,6 +254,20 @@ msgstr "fișier %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
 msgstr ""
 
 #, python-format
@@ -1066,6 +1080,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
 msgstr ""
@@ -1119,6 +1139,14 @@ msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "O listă separată prin virgulă a schemelor în care fișierele sunt permise "
 "să fie încărcate."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr ""
@@ -1216,6 +1244,30 @@ msgstr "Un grafic nou va fi creat."
 msgid "A new dashboard will be created."
 msgstr "Un panou de control va fi creat."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1291,6 +1343,12 @@ msgstr "Este necesară o schemă de culori validă"
 msgid ""
 "A value transform is required on %(name)s, which is not a temporal "
 "column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
 msgstr ""
 
 msgid ""
@@ -1601,6 +1659,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adaugă folder"
 
+msgid "Add group"
+msgstr "Adaugă grup"
+
 msgid "Add item"
 msgstr "Adaugă element"
 
@@ -1609,6 +1670,9 @@ msgstr "Adaugă indicator"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Adaugă indicatori la setul de date în fereastra „Editare sursă de date”"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Adaugă nou formatator de culoare"
@@ -1648,6 +1712,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Adaugă foaie"
+
+msgid "Add subgroup"
+msgstr "Adaugă subgrup"
 
 msgid "Add tag to entities"
 msgstr "Adaugă etichetă la entități"
@@ -3595,6 +3662,9 @@ msgstr "Limită celulă"
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
 
+msgid "Center"
+msgstr "Centru"
+
 msgid "Center value"
 msgstr ""
 
@@ -4010,6 +4080,12 @@ msgstr "Alege coloanele care vor fi analizate ca date"
 msgid "Choose columns to read"
 msgstr "Alege coloanele de citit"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4309,6 +4385,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse settings"
+msgstr "Restrânge setările"
+
 msgid "Collapse tab content"
 msgstr "Restrânge conținutul filei"
 
@@ -4379,6 +4458,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Câmpul de culoare trebuie să fie o culoare hexazecimală (#rrggbb) sau "
 "'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4462,6 +4545,9 @@ msgstr "Coloană care conține date de longitudine"
 
 msgid "Column data types"
 msgstr "Tipuri de date coloană"
+
+msgid "Column groups"
+msgstr "Grupuri de coloane"
 
 msgid "Column header tooltip"
 msgstr "Tooltip antet coloană"
@@ -7383,6 +7469,9 @@ msgstr "Introduceți durata în secunde"
 msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
 
+msgid "Enter group name"
+msgstr "Introduceți numele grupului"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
 
@@ -7425,6 +7514,9 @@ msgstr "Introduceți numele de utilizator"
 
 msgid "Enter theme name"
 msgstr "Introduceți numele temei"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7612,6 +7704,9 @@ msgstr "Potrivire exactă (IN)"
 msgid "Example"
 msgstr "Exemplu"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Exemple"
 
@@ -7677,6 +7772,9 @@ msgstr "Extinde rând"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
+
+msgid "Expand settings"
+msgstr "Extinde setările"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8752,6 +8850,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grup"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grup %s"
+
 msgid "Group By"
 msgstr "Grupare După"
 
@@ -8765,6 +8867,12 @@ msgstr "Cheie Grup"
 
 msgid "Group by"
 msgstr "Grupare după"
+
+msgid "Group columns"
+msgstr "Grupează coloane"
+
+msgid "Group name"
+msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
@@ -9037,6 +9145,9 @@ msgstr "Importă %s"
 msgid "Import Error"
 msgstr "Eroare Import"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Importul graficului a eșuat din cauza necunoscută"
 
@@ -9285,6 +9396,11 @@ msgstr "Configurație JSON nevalidă"
 
 msgid "Invalid JSON metadata"
 msgstr "Metadate JSON invalide"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -9588,6 +9704,9 @@ msgstr "Kilometri"
 
 msgid "Label"
 msgstr "Etichetă"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Conținut Etichetă"
@@ -10268,6 +10387,9 @@ msgstr ""
 msgid "Map a different column instead →"
 msgstr ""
 
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -10792,7 +10914,8 @@ msgid ""
 "Monotonicity is a property of the transform, not of the column type: "
 "hour(:value) and dayofweek(:value) are reasonable transforms on a "
 "timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror."
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
 msgstr ""
 
 msgid "Month"
@@ -10819,6 +10942,12 @@ msgstr "Mai multe filtre"
 
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
+
+msgid "Move group left"
+msgstr "Mută grupul la stânga"
+
+msgid "Move group right"
+msgstr "Mută grupul la dreapta"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, sr, sr_Latn]
@@ -10857,6 +10986,9 @@ msgstr "Multi-Nivele"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabile"
+
+msgid "Multi-level header"
+msgstr "Antet pe mai multe niveluri"
 
 msgid "Multiple"
 msgstr "Multiplu"
@@ -11105,6 +11237,9 @@ msgstr "Fără filtre disponibile."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nicio coloană găsită"
 
@@ -11264,6 +11399,9 @@ msgid "No saved metrics found"
 msgstr "Nu s-au găsit indicatori salvați"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -12515,6 +12653,9 @@ msgstr "Portul %(port)s de pe hostname \"%(hostname)s\" a refuzat conexiunea."
 msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
 
+msgid "Position"
+msgstr "Poziție"
+
 msgid "Position JSON"
 msgstr "Poziție JSON"
 
@@ -12987,6 +13128,9 @@ msgstr "Elimină tema întunecată de sistem"
 msgid "Remove System Default Theme"
 msgstr "Elimină tema implicită de sistem"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Elimină filtru transversal"
 
@@ -13007,6 +13151,9 @@ msgstr "Eliminați filtrul"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Elimină grupul"
 
 msgid "Remove item"
 msgstr "Elimină element"
@@ -13270,6 +13417,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Resetează"
 
@@ -13281,6 +13431,9 @@ msgstr "Resetează coloanele"
 #, fuzzy
 msgid "Reset all folders to default"
 msgstr "Resetați toate folderele la valorile implicite"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Resetează coloanele"
@@ -13895,6 +14048,14 @@ msgstr "Interogarea salvată nu a fost găsită."
 msgid "Saved query parameters are invalid."
 msgstr "Parametrii interogării salvate sunt invalizi."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Se salvează..."
 
@@ -14305,6 +14466,9 @@ msgstr "Selectează coloană"
 msgid "Select column name"
 msgstr "Selectați numele coloanei"
 
+msgid "Select columns"
+msgstr "Selectează coloane"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -14447,6 +14611,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Selectează sau tastează o valoare personalizată..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Selectează sau tastează simbol monedă"
@@ -15702,6 +15869,21 @@ msgstr "Dată început"
 msgid "Start date included in time range"
 msgstr "Data de început inclusă în intervalul de timp"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Începe axa y la 0"
 
@@ -15844,6 +16026,10 @@ msgstr "Subcategorii"
 msgid "Subdomain"
 msgstr "Subdomeniu"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrup %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -15903,6 +16089,12 @@ msgstr "Sufix"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Sufix de aplicat după afișarea procentului"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -16103,6 +16295,9 @@ msgstr "Numele tabelului este nedefinit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
+
+msgid "Table side"
+msgstr "Partea tabelului"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16328,6 +16523,11 @@ msgstr "%s"
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr "%s legat de acest grafic poate fi șters."
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -17437,6 +17637,12 @@ msgstr ""
 msgid "The transform could not be evaluated against the database: %(reason)s"
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Cele două parole pe care le-ați introdus nu se potrivesc!"
 
@@ -17521,6 +17727,10 @@ msgstr ""
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -18397,6 +18607,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Această parolă este prea comună; vă rugăm să alegeți una mai greu de "
 "ghicit."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -19779,6 +19994,11 @@ msgstr "Valori"
 
 msgid "Values are dependent on other filters"
 msgstr "Valorile depind de alte filtre"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Valori dependente de"

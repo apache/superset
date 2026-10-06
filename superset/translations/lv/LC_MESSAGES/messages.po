@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 16:31+0000\n"
+"POT-Creation-Date: 2026-10-05 23:38+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -249,6 +249,20 @@ msgstr "%(label)s fails"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
 msgstr ""
 
 #, python-format
@@ -1019,6 +1033,12 @@ msgstr ""
 
 #, python-format
 msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
 "A %(operator)s filter is only mirrored when the transform preserves "
 "ordering, which this one is not declared to do."
 msgstr ""
@@ -1070,6 +1090,14 @@ msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Ar komatu atdalīts shēmu saraksts, kurās atļauts augšupielādēt failus."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Datubāzes ports ir nepieciešams, veidojot savienojumu caur SSH tuneli."
@@ -1158,6 +1186,30 @@ msgstr "Tiks izveidota jauna diagramma."
 msgid "A new dashboard will be created."
 msgstr "Tiks izveidots jauns infopanelis."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1233,6 +1285,12 @@ msgstr "Nepieciešama derīga krāsu shēma"
 msgid ""
 "A value transform is required on %(name)s, which is not a temporal "
 "column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
 msgstr ""
 
 msgid ""
@@ -1506,6 +1564,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pievienot mapi"
 
+msgid "Add group"
+msgstr "Pievienot grupu"
+
 msgid "Add item"
 msgstr "Pievienot ierakstu"
 
@@ -1514,6 +1575,9 @@ msgstr "Pievienot metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Pievienot rādītājus datu kopai \"Rediģēt datu avotu\" logā"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Pievienot jaunu krāsu formatētāju"
@@ -1545,6 +1609,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Pievienot lapu"
+
+msgid "Add subgroup"
+msgstr "Pievienot apakšgrupu"
 
 msgid "Add tag to entities"
 msgstr "Pievienot birku ierakstiem"
@@ -3392,6 +3459,9 @@ msgstr "Šūnu limits"
 msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
+msgid "Center"
+msgstr "Centrs"
+
 msgid "Center value"
 msgstr ""
 
@@ -3788,6 +3858,12 @@ msgstr "Izvēlieties kolonnas, kas jāparsē kā datumi"
 msgid "Choose columns to read"
 msgstr "Izvēlēties lasāmās kolonnas"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4064,6 +4140,9 @@ msgstr "Sakļaut datu paneli"
 msgid "Collapse row"
 msgstr "Sakļaut rindu"
 
+msgid "Collapse settings"
+msgstr "Sakļaut iestatījumus"
+
 msgid "Collapse tab content"
 msgstr "Sakļaut cilnes saturu"
 
@@ -4128,6 +4207,10 @@ msgstr "Krāsa pēc virziena"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Krāsas laukam jābūt heksadecimālai krāsai (#rrggbb) vai 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4204,6 +4287,9 @@ msgstr "Kolonna, kas satur garuma datus"
 
 msgid "Column data types"
 msgstr "Kolonnas datu tipi"
+
+msgid "Column groups"
+msgstr "Kolonnu grupas"
 
 msgid "Column header tooltip"
 msgstr "Kolonnas galvenes padoms"
@@ -6911,6 +6997,9 @@ msgstr "Ievadiet ilgumu sekundēs"
 msgid "Enter fullscreen"
 msgstr "Pāriet pilnekrāna režīmā"
 
+msgid "Enter group name"
+msgstr "Ievadiet grupas nosaukumu"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
 
@@ -6950,6 +7039,9 @@ msgstr "Ievadiet lietotāja lietotājvārdu"
 
 msgid "Enter theme name"
 msgstr "Ievadiet motīva nosaukumu"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7131,6 +7223,9 @@ msgstr "Precīza atbilstība (IN)"
 msgid "Example"
 msgstr "Piemērs"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Piemēri"
 
@@ -7191,6 +7286,9 @@ msgstr "Izvērst rindu"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Izvērst rindu"
+
+msgid "Expand settings"
+msgstr "Izvērst iestatījumus"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8193,6 +8291,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupa"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupa %s"
+
 msgid "Group By"
 msgstr "Grupēt pēc"
 
@@ -8204,6 +8306,12 @@ msgstr "Grupas atslēga"
 
 msgid "Group by"
 msgstr "Grupēt pēc"
+
+msgid "Group columns"
+msgstr "Grupēt kolonnas"
+
+msgid "Group name"
+msgstr "Grupas nosaukums"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
@@ -8447,6 +8555,9 @@ msgstr "Importēt %s"
 msgid "Import Error"
 msgstr "Importēšanas kļūda"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Diagrammas imports neizdevās nezināma iemesla dēļ"
 
@@ -8660,6 +8771,11 @@ msgstr "Nederīga platuma/garuma konfigurācija."
 
 msgid "Invalid JSON metadata"
 msgstr "Nederīgi JSON metadati"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -8952,6 +9068,9 @@ msgstr "Kilometri"
 
 msgid "Label"
 msgstr "Apzīmējums"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Apzīmējuma saturs"
@@ -9593,6 +9712,9 @@ msgstr ""
 msgid "Map a different column instead →"
 msgstr ""
 
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10086,7 +10208,8 @@ msgid ""
 "Monotonicity is a property of the transform, not of the column type: "
 "hour(:value) and dayofweek(:value) are reasonable transforms on a "
 "timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror."
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
 msgstr ""
 
 msgid "Month"
@@ -10110,6 +10233,12 @@ msgstr "Vairāk filtru"
 
 msgid "MotherDuck token"
 msgstr "MotherDuck žetons"
+
+msgid "Move group left"
+msgstr "Pārvietot grupu pa kreisi"
+
+msgid "Move group right"
+msgstr "Pārvietot grupu pa labi"
 
 #, fuzzy
 msgid "Move icon"
@@ -10146,6 +10275,9 @@ msgstr "Daudzlīmeņu"
 
 msgid "Multi-Variables"
 msgstr "Daudzmainīgo"
+
+msgid "Multi-level header"
+msgstr "Vairāklīmeņu galvene"
 
 msgid "Multiple"
 msgstr "Vairāki"
@@ -10384,6 +10516,9 @@ msgstr "Nav pieejamu filtru."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Kolonnas nav atrastas"
 
@@ -10525,6 +10660,9 @@ msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11731,6 +11869,9 @@ msgstr "Ports %(port)s resursdatorā \"%(hostname)s\" noraidīja savienojumu."
 msgid "Port out of range 0-65535"
 msgstr "Ports ārpus diapazona 0-65535"
 
+msgid "Position"
+msgstr "Pozīcija"
+
 msgid "Position JSON"
 msgstr "Pozīcijas JSON"
 
@@ -12189,6 +12330,9 @@ msgstr "Noņemt sistēmas tumšo motīvu"
 msgid "Remove System Default Theme"
 msgstr "Noņemt sistēmas noklusējuma motīvu"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Noņemt krustenisko filtru"
 
@@ -12205,6 +12349,9 @@ msgstr "Noņemt elementu"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Noņemt grupu"
 
 msgid "Remove item"
 msgstr "Noņemt elementu"
@@ -12466,6 +12613,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Atiestatīt"
 
@@ -12474,6 +12624,9 @@ msgstr "Atjaunot kolonnas"
 
 msgid "Reset all folders to default"
 msgstr "Attiestatīt visas mapes uz noklusējuma vērtībām"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Atiestatīt kolonnas"
@@ -13045,6 +13198,14 @@ msgstr "Saglabātais vaicājums nav atrasts."
 msgid "Saved query parameters are invalid."
 msgstr "Saglabātā vaicājuma parametri nav derīgi."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Saglabā..."
 
@@ -13425,6 +13586,9 @@ msgstr "Atlasīt kolonnu"
 msgid "Select column name"
 msgstr "Atlasīt kolonnu"
 
+msgid "Select columns"
+msgstr "Atlasīt kolonnas"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -13552,6 +13716,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Atlasīt vai ierakstīt pielāgotu vērtību..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Atlasīt vai ierakstīt valūtas simbolu"
@@ -14725,6 +14892,21 @@ msgstr "Sākuma datums"
 msgid "Start date included in time range"
 msgstr "Sākuma datums iekļauts laika diapazonā"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Sākt Y asi no 0"
 
@@ -14861,6 +15043,10 @@ msgstr "Apakškategorijas"
 msgid "Subdomain"
 msgstr "Apakšdomēns"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Apakšgrupa %s"
+
 msgid "Subject"
 msgstr "Subjekts"
 
@@ -14904,6 +15090,12 @@ msgstr "Piedēklis"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Piedēklis, ko pievienot pēc procentu attēlojuma"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15095,6 +15287,9 @@ msgstr "Tabulas nosaukums nav definēts"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabula vai skats \"%(table)s\" nepastāv."
+
+msgid "Table side"
+msgstr "Tabulas puse"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15296,6 +15491,11 @@ msgstr "Iegūts %s"
 
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
+msgstr ""
+
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
 msgstr ""
 
 #, python-format
@@ -16354,6 +16554,12 @@ msgstr ""
 msgid "The transform could not be evaluated against the database: %(reason)s"
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
 
@@ -16426,6 +16632,10 @@ msgstr ""
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -17221,6 +17431,11 @@ msgstr "Šī lapa ir paredzēta iegulšanai iframe, bet šķiet, ka tas tā nav.
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Šī parole ir pārāk izplatīta; lūdzu, izvēlieties grūtāk uzminamu paroli."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18527,6 +18742,11 @@ msgstr "Vērtības"
 
 msgid "Values are dependent on other filters"
 msgstr "Vērtības ir atkarīgas no citiem filtriem"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Vērtības atkarīgas no"

@@ -19,6 +19,7 @@
 
 import logging
 import re
+import sqlite3
 
 import pytest
 import sqlglot
@@ -2720,6 +2721,15 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        ("SELECT TOP 5 PERCENT * FROM t", "mssql", None),
+        ("SELECT TOP 5 WITH TIES * FROM t ORDER BY n", "mssql", None),
+        ("SELECT * FROM t FETCH FIRST 5 ROWS ONLY", "postgresql", 5),
+        ("SELECT * FROM t FETCH FIRST ROW ONLY", "postgresql", 1),
+        ("SELECT * FROM t FETCH FIRST 0 ROWS ONLY", "postgresql", 0),
+        ("SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES", "postgresql", None),
+        ("SELECT * FROM t LIMIT ((5))", "sqlite", 5),
+        ("SELECT * FROM t LIMIT (0)", "sqlite", 0),
+        ("SELECT * FROM t LIMIT (2 + 3)", "sqlite", None),
         # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
         # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
         # or off the `Offset` node for the `OFFSET` / `m, n` spellings.
@@ -2739,6 +2749,56 @@ LATERAL generate_series(1, value) AS i;
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).get_limit_value() == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("limit", [1, 10])
+def test_cap_limit_hoists_cte_with_expression_limit(
+    method: LimitMethod, limit: int
+) -> None:
+    """Hoist CTEs while preserving expression limits and enforcing the outer cap."""
+    sql = (
+        "WITH numbers AS (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "
+        "SELECT n FROM numbers ORDER BY n LIMIT (1 + 1)"
+    )
+    statement = SQLStatement(sql, "sqlite")
+    assert statement.get_limit_value() is None
+
+    statement.cap_limit_value(limit, method)
+    rendered = statement.format()
+    parsed = parse_one(rendered, dialect="sqlite")
+    subquery = parsed.args["from_"].this
+
+    assert rendered.startswith("WITH numbers AS (")
+    assert parsed.args["with_"].expressions[0].alias == "numbers"
+    assert subquery.alias == "__superset_limit"
+    assert subquery.this.args.get("with_") is None
+    assert statement.get_limit_value() == limit
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        assert original_rows == [(1,), (2,)]
+        assert connection.execute(rendered).fetchall() == original_rows[:limit]
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(@n)"])
+@pytest.mark.parametrize(
+    "projection", ["1 AS n, 2 AS n", "COUNT(*)", "a.id, b.id", "a.*, b.*", "a.id AS n"]
+)
+def test_cap_limit_preserves_tsql_restrictions(
+    method: LimitMethod, top: str, projection: str
+) -> None:
+    """T-SQL restrictions survive caps without imposing derived-table rules."""
+    statement = SQLStatement(
+        f"SELECT TOP {top} {projection} FROM a JOIN b ON a.id = b.id ORDER BY 1",  # noqa: S608
+        "mssql",
+    )
+    original = statement.format()
+
+    statement.cap_limit_value(10, method)
+
+    assert statement.format() == original
+    assert statement.get_limit_value() is None
 
 
 @pytest.mark.parametrize(
@@ -7208,3 +7268,207 @@ def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> Non
     determinism need to distinguish the two by arity, not by name.
     """
     assert SQLStatement(sql, engine).get_niladic_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
+        (
+            "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
+            "postgresql",
+            {"query_to_xml"},
+        ),
+        ("SELECT a FROM t WHERE my_udf(a) > 1", "postgresql", {"my_udf"}),
+        (
+            "SELECT * FROM EXTERNAL_QUERY('c', 'SELECT 1')",
+            "bigquery",
+            {"EXTERNAL_QUERY"},
+        ),
+        # A qualified call keeps its qualifier, so it never reads as a builtin.
+        ("SELECT NOW(), s.now() FROM t", "mysql", {"NOW", "s.now"}),
+    ],
+)
+def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Functions SQLGlot does not model are reported, since they may read tables
+    that table extraction cannot see.
+    """
+    assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country)", "hive", 1),
+        ("SELECT unix_timestamp(ds)", "hive", 1),
+        # The case this exists for: a caller wrapping a user-supplied fragment
+        # in `SELECT <fragment>` parses the same whether the fragment is one
+        # expression or a list, and the two return a different column count.
+        ("SELECT lower(country), 'x'", "hive", 2),
+        ("SELECT a, b, c", "hive", 3),
+        ("SELECT * FROM some_table", "hive", 1),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", 0),
+    ],
+)
+def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
+    """Check the `count_select_expressions` method."""
+    assert SQLStatement(sql, engine).count_select_expressions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country) AS v0", "hive", ["v0"]),
+        ("SELECT a AS v0, b AS v1", "hive", ["v0", "v1"]),
+        # Unaliased, which is the case the method exists to make visible: a
+        # caller that reads results back positionally needs the aliases it
+        # asked for to have survived.
+        ("SELECT lower(country)", "hive", [None]),
+        ("SELECT a AS v0, b", "hive", ["v0", None]),
+        # A comment swallows the rest of its line, alias included, and the
+        # query still returns the right number of columns -- so counting them
+        # does not notice and reading the aliases does.
+        ("SELECT 1 -- 'x' AS v0", "hive", [None]),
+        # A FROM clause is no obstacle; some engines cannot SELECT without one.
+        ("SELECT lower(country) AS v0 FROM t", "hive", ["v0"]),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", []),
+    ],
+)
+def test_get_select_aliases(sql: str, engine: str, expected: list[str | None]) -> None:
+    """Check the `get_select_aliases` method."""
+    assert SQLStatement(sql, engine).get_select_aliases() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, name, expected",
+    [
+        ("SELECT lower(standin)", "hive", "standin", 1),
+        ("SELECT concat(standin, standin)", "hive", "standin", 2),
+        ("SELECT CAST(standin AS BIGINT)", "hive", "standin", 1),
+        ("SELECT lower(country)", "hive", "standin", 0),
+        # The cases the method exists for: a caller that substitutes an
+        # identifier for a placeholder learns from the count whether the
+        # placeholder landed anywhere the engine evaluates. A string literal
+        # holds no column reference...
+        ("SELECT 'standin'", "hive", "standin", 0),
+        # ...and a comment is not parsed at all.
+        ("SELECT 1 -- standin", "hive", "standin", 0),
+        ("SELECT 1 /* standin */", "hive", "standin", 0),
+        # Compared case-insensitively, since a dialect may normalize the case
+        # of an unquoted identifier.
+        ("SELECT lower(STANDIN)", "hive", "standin", 1),
+        ("SELECT lower(standin)", "snowflake", "STANDIN", 1),
+    ],
+)
+def test_count_bare_column_references(
+    sql: str, engine: str, name: str, expected: int
+) -> None:
+    """Check the `count_bare_column_references` method."""
+    assert SQLStatement(sql, engine).count_bare_column_references(name) == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", True),
+        ("SELECT lower(country) AS x", True),
+        ("SELECT CAST(ds AS DATE)", True),
+        ("SELECT NULL", True),
+        # The case this exists for. `count_select_expressions` returns 1 here,
+        # so a caller gated on that alone splices the fragment in and whatever
+        # it appends -- an alias, a suffix -- lands inside the FROM clause.
+        ("SELECT secret FROM vault", False),
+        ("SELECT 1 WHERE 1 = 1", False),
+        ("SELECT 1 GROUP BY 1", False),
+        ("SELECT 1 ORDER BY 1", False),
+        ("SELECT 1 LIMIT 1", False),
+        ("SELECT a, b", False),
+        ("SELECT 1 UNION ALL SELECT 2", False),
+        ("INSERT INTO t VALUES (1)", False),
+        # A sub-query sits inside the projection, so it is bare by this
+        # measure. Callers that care need `has_subquery` as well.
+        ("SELECT (SELECT secret FROM vault)", True),
+    ],
+)
+def test_is_bare_select_expression(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `is_bare_select_expression` method.
+
+    Parametrized by engine because the predicate is stated as an allow-list
+    over the parsed node's arguments: a dialect that parses one of these into a
+    differently named argument has to keep failing closed.
+    """
+    assert SQLStatement(sql, engine).is_bare_select_expression() is expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", set()),
+        ("SELECT a, b", set()),
+        # Reported without sqlglot's keyword-avoiding underscore, which its FROM
+        # clause carries as `from_`. A caller comparing against {"from"} should
+        # not have to know that, nor track it across releases.
+        ("SELECT 1 FROM t", {"from"}),
+        ("SELECT 1 FROM t WHERE x = 1", {"from", "where"}),
+        ("SELECT 1 GROUP BY 1", {"group"}),
+        ("SELECT 1 LIMIT 1", {"limit"}),
+        ("INSERT INTO t VALUES (1)", set()),
+    ],
+)
+def test_get_clause_names(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_clause_names` method.
+
+    Parametrized by engine for the same reason `is_bare_select_expression` is:
+    the answer is read off the parsed node's own arguments, so a dialect that
+    names one differently has to show up in the answer rather than vanish from
+    it.
+    """
+    assert SQLStatement(sql, engine).get_clause_names() == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", None),
+        ("SELECT 1 FROM DUAL", "FROM DUAL"),
+        ("SELECT 1 FROM SYSIBM.SYSDUMMY1", "FROM SYSIBM.SYSDUMMY1"),
+        # Rendered, so the caller's own spacing does not have to match...
+        ("SELECT 1   FROM    DUAL", "FROM DUAL"),
+        # ...while identifier case, which an engine may treat as significant,
+        # survives.
+        ("SELECT 1 FROM dual", "FROM dual"),
+        ("SELECT 1 FROM a.b AS c", "FROM a.b AS c"),
+        ("INSERT INTO t VALUES (1)", None),
+    ],
+)
+def test_get_from_clause_sql(sql: str, engine: str, expected: str | None) -> None:
+    """Check the `get_from_clause_sql` method."""
+    assert SQLStatement(sql, engine).get_from_clause_sql() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM t JOIN s.u ON t.id = u.id", "postgresql", False),
+        ('SELECT * FROM "Quoted Table"', "postgresql", False),
+        ("WITH c AS (SELECT 1 AS a) SELECT * FROM c", "postgresql", False),
+        ("SELECT * FROM generate_series(1, 3)", "postgresql", True),
+        ("SELECT * FROM read_csv('x.csv')", "duckdb", True),
+        ("SELECT * FROM IDENTIFIER('t')", "snowflake", True),
+        ("SELECT * FROM TABLE('t')", "snowflake", True),
+    ],
+)
+def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None:
+    """
+    Table functions and dynamically named tables are sources without a table
+    name, so ``tables`` cannot report them.
+    """
+    assert SQLStatement(sql, engine).has_dynamic_table_source() == expected

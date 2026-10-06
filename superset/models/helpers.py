@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -93,8 +94,13 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    LOWER_BOUND_OPERATORS,
+    mirror_operator,
+    normalize_mixed_numbers,
     PartitionMapping,
+    raw_probe_value,
     resolve_partition_mapping,
+    UPPER_BOUND_OPERATORS,
 )
 from superset.constants import (
     CacheRegion,
@@ -457,6 +463,76 @@ def _shift_grainless_temporal_source(
     return source.map(shift)
 
 
+#: Returned by `ExploreMixin._as_probe_input` when the engine cannot render a
+#: filter value as a literal. A sentinel rather than `None`, because `None` is a
+#: filter value in its own right.
+_UNRENDERABLE = object()
+
+#: Returned by `ExploreMixin._mirror_probe_input` when the engine compares less
+#: of the filter's value than any mirror could be built from. A sentinel rather
+#: than `None` for the same reason `_UNRENDERABLE` is, and a *separate* sentinel
+#: because the two decline for different reasons: that one is an engine that
+#: cannot render a literal at all, which is worth a warning, and this one is an
+#: ordinary filter the mirror has to stay quiet about.
+_UNMIRRORABLE = object()
+
+
+def _instant_from_filter_value(value: Any) -> Optional[datetime]:
+    """
+    The instant a filter value denotes, or `None` if it denotes none.
+
+    Only ISO 8601 is read, because it is the one format whose meaning is not a
+    guess. A general parser reads ``'06/07/2026'`` as a date and ``'tomorrow'``
+    as an instant, and a mirror derived from the wrong one of day and month is
+    precisely the silent narrowing `ExploreMixin._mirror_probe_input` exists to
+    prevent.
+
+    Declining to read a value is therefore an answer, not a failure, and the
+    caller has to treat it as one: on a column the engine compares more coarsely
+    than the value carries, a value this cannot place cannot be mirrored at all.
+
+    A value that is already a `datetime` -- an ungrained equality, as
+    drill-to-detail builds -- is returned as it is, so that the same filter
+    cannot mirror differently depending on which of the two shapes it arrived
+    in. That asymmetry is what let the string case go unnoticed.
+
+    An offset is kept rather than dropped, so the caller can see it and decline.
+    """
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+class LiteralResolution(Enum):
+    """
+    How much of a `datetime` survives into an engine's SQL literal for a column.
+
+    A mirror has to describe a range no narrower than the predicate it stands in
+    for, so the probe's bounds have to be widened to whatever the engine's own
+    literal resolves to -- see `ExploreMixin._engine_literal_resolution`.
+    """
+
+    #: The literal carries the full value, so the bounds need no widening.
+    FULL = "full"
+    #: The literal is floored to the second.
+    SECOND = "second"
+    #: The literal is a bare date; the time of day is absent entirely.
+    DAY = "day"
+
+
+#: Instant `ExploreMixin._column_literal_resolution` measures a column at when
+#: there is no particular value to measure. It carries both a time of day and a
+#: sub-second part on purpose: `_engine_literal_resolution` detects what an
+#: engine throws away by rendering two instants and comparing the text, and a
+#: probe at midnight with no remainder leaves it nothing to detect.
+_RESOLUTION_REFERENCE_INSTANT = datetime(2026, 1, 1, 12, 0, 0, 500000)
+
+
 class CachedTimeOffset(TypedDict):
     """Result type for time offset processing"""
 
@@ -663,6 +739,18 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
+
+
+#: Operators that compare an array column against whole array literal(s)
+#: rather than element-wise. Named because two places have to agree on the set:
+#: the branch that builds those literals, and the partition mirror that has to
+#: record the same literal rather than the raw filter value.
+_ARRAY_LITERAL_OPERATORS = {
+    utils.FilterOperator.EQUALS,
+    utils.FilterOperator.NOT_EQUALS,
+    utils.FilterOperator.IN,
+    utils.FilterOperator.NOT_IN,
+}
 
 
 def parse_array_literal(value: Any) -> list[Any]:
@@ -2690,6 +2778,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data
         result.df = df
@@ -4295,6 +4385,319 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
+    def _mirror_probe_value(self, dttm: datetime, col: Optional["TableColumn"]) -> Any:
+        """
+        ``dttm`` in the mapped column's own stored representation.
+
+        The predicate this mirror stands in for compares the column against
+        `dttm_sql_literal(dttm, col)`, so the transform has to be probed with
+        the same value. On a column stored as an epoch integer, ``T`` is a
+        function of an integer: probing it with a `datetime` either returns
+        something unrelated to the partition keys or raises, and a raise costs
+        the dataset its pruning silently.
+
+        Only the ``python_date_format`` branches of `dttm_sql_literal` are
+        reproduced, because only those produce a *value*. `convert_dttm` yields
+        engine-specific SQL text, which cannot be bound as a parameter; its own
+        divergence from the probe is handled by widening the bounds instead.
+        """
+        if col is None:
+            return dttm
+
+        tf = col.python_date_format
+        if not tf and self.db_extra:
+            tf = self.db_extra.get("python_date_format_by_column_name", {}).get(
+                col.column_name
+            )
+        if not tf:
+            return dttm
+
+        if tf in EPOCH_FORMATS:
+            dttm_tz_aware = dttm
+            if dttm_tz_aware.tzinfo is None:
+                dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
+            return int(dttm_tz_aware.timestamp()) * EPOCH_FORMATS[tf]
+        return dttm.strftime(tf)
+
+    def _engine_literal_resolution(
+        self, dttm: datetime, col: Optional["TableColumn"]
+    ) -> LiteralResolution:
+        """
+        How much of ``dttm`` survives into this engine's literal for ``col``.
+
+        The real predicate compares `dttm_sql_literal(dttm, col)`, so whatever
+        that literal throws away is a bound the engine never sees. A mirror
+        derived from the full precision then describes a *narrower* range than
+        the predicate it stands in for -- and narrower means it drops rows the
+        filter keeps.
+
+        Two things get thrown away in practice:
+
+        - the sub-second part. SQLite renders a timestamp with
+          ``timespec="seconds"``.
+        - the time of day entirely. Every engine spec with a ``types.Date``
+          branch renders ``dttm.date().isoformat()``, so Presto, Trino,
+          BigQuery and some two dozen others answer `DATE '2026-01-01'` for a
+          bound of 10:00 -- and `T(DATE '2026-01-01')` is below the mirror's
+          own lower bound, so the whole first day is dropped.
+
+        Detected rather than enumerated per engine, because the branch depends
+        on the column's type as well as the spec: instants differing only in the
+        part under test render as the same text exactly when the engine has
+        thrown that part away.
+
+        The day test uses two fixed times of day rather than ``dttm`` and one
+        alternative, so a bound that happens to sit on the hour the alternative
+        uses cannot read as "no time at all". Neither probe sits at midnight on
+        purpose: SQLite renders a DATE column at exactly midnight as a bare
+        date, so a midnight probe would differ from its alternative for a
+        reason that has nothing to do with resolution.
+
+        Likewise both sub-second probes carry a non-zero remainder. Comparing
+        against ``dttm`` truncated to the second looks like the obvious test and
+        is wrong for the same formatting-boundary reason.
+        """
+        if col is None or not col.type:
+            return LiteralResolution.FULL
+
+        def render(moment: datetime) -> Optional[str]:
+            return self.db_engine_spec.convert_dttm(
+                col.type, moment, db_extra=self.db_extra
+            )
+
+        try:
+            early = render(dttm.replace(hour=1, minute=2, second=3, microsecond=444444))
+            late = render(
+                dttm.replace(hour=22, minute=33, second=44, microsecond=555555)
+            )
+            if early is not None and early == late:
+                return LiteralResolution.DAY
+
+            # Flooring to the second is a no-op on a bound that has no
+            # sub-second part, so there is nothing to detect.
+            if not dttm.microsecond:
+                return LiteralResolution.FULL
+
+            first = render(dttm.replace(microsecond=111111))
+            second = render(dttm.replace(microsecond=222222))
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return LiteralResolution.FULL
+
+        if first is not None and first == second:
+            return LiteralResolution.SECOND
+        return LiteralResolution.FULL
+
+    def _round_bounds_outward(
+        self,
+        start_dttm: Optional[datetime],
+        end_dttm: Optional[datetime],
+        col: Optional["TableColumn"],
+    ) -> tuple[Optional[datetime], Optional[datetime]]:
+        """
+        The bounds widened to whatever the engine's literal actually resolves to.
+
+        Rounding outward is never narrower than the predicate being mirrored,
+        which is the only property the mirror has to hold.
+        """
+        resolutions = {
+            self._engine_literal_resolution(bound, col)
+            for bound in (start_dttm, end_dttm)
+            if bound is not None
+        }
+
+        if LiteralResolution.DAY in resolutions:
+            # The engine compares a bare date, so the real predicate's lower
+            # bound is the start of that day and its upper bound admits the
+            # whole of the day before. Anything finer excludes rows it keeps.
+            if start_dttm is not None:
+                start_dttm = start_dttm.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+            if end_dttm is not None and end_dttm != end_dttm.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ):
+                end_dttm = end_dttm.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                ) + timedelta(days=1)
+        elif LiteralResolution.SECOND in resolutions:
+            if start_dttm is not None:
+                start_dttm = start_dttm.replace(microsecond=0)
+            if end_dttm is not None and end_dttm.microsecond:
+                end_dttm = end_dttm.replace(microsecond=0) + timedelta(seconds=1)
+
+        return start_dttm, end_dttm
+
+    def _literal_is_coarser_than(
+        self, dttm: datetime, col: Optional["TableColumn"]
+    ) -> bool:
+        """
+        Whether the engine's literal for ``dttm`` throws away part of it.
+
+        Unlike a range, an equality cannot be widened outward, so the only safe
+        answer when the engine compares less than the full value is to decline
+        the mirror.
+        """
+        resolution = self._engine_literal_resolution(dttm, col)
+        if resolution is LiteralResolution.DAY:
+            return dttm != dttm.replace(hour=0, minute=0, second=0, microsecond=0)
+        if resolution is LiteralResolution.SECOND:
+            return bool(dttm.microsecond)
+        return False
+
+    def _column_literal_resolution(
+        self, col: Optional["TableColumn"]
+    ) -> LiteralResolution:
+        """
+        How much of *any* value this engine compares on ``col``.
+
+        `_engine_literal_resolution` answers about a particular instant, which
+        is what a mirror derived from one needs. Two callers have no instant to
+        ask about -- the summary the Explore glyph reads, and a filter value
+        `_instant_from_filter_value` cannot read as an instant at all -- and
+        both need the column's own answer. Through one helper so that the glyph
+        and the query path cannot disagree about which column is coarse, which
+        is the same reason `mirrorable_operators` is computed once.
+
+        A non-temporal column has no answer, and asking anyway gets a wrong one:
+        SQLite's ``convert_dttm`` renders for ``types.String`` as well as for the
+        date types, so a reference instant makes a ``VARCHAR`` mapped column look
+        second-resolution -- and ``country = 'US'``, the text half of this
+        feature, reads as a value the engine compares coarsely. The per-instant
+        callers never meet this, because they arrive only with a value that
+        parsed as an instant.
+        """
+        if col is None or not col.is_dttm:
+            return LiteralResolution.FULL
+        return self._engine_literal_resolution(_RESOLUTION_REFERENCE_INSTANT, col)
+
+    def _round_bound_outward(
+        self,
+        instant: datetime,
+        col: Optional["TableColumn"],
+        *,
+        is_upper: bool,
+    ) -> datetime:
+        """
+        One bound widened to whatever the engine resolves ``col`` to.
+
+        `_round_bounds_outward` answers for a since/until pair, because a time
+        range is the shape it was written for. A single comparison is one end of
+        such a pair with the other end absent, and the widening is per-end
+        already -- a lower bound moves back, an upper bound forward.
+
+        Narrowing the return type is the other half of the point: a bound handed
+        in non-`None` comes back non-`None`, and saying so here saves every
+        caller from re-establishing it.
+        """
+        start_dttm, end_dttm = self._round_bounds_outward(
+            None if is_upper else instant,
+            instant if is_upper else None,
+            col,
+        )
+        rounded = end_dttm if is_upper else start_dttm
+        return rounded if rounded is not None else instant
+
+    def _mirror_probe_input(
+        self,
+        operator: utils.FilterOperator,
+        value: Any,
+        col: Optional["TableColumn"],
+    ) -> Any:
+        """
+        ``value`` in the representation the mirror may probe the transform at.
+
+        A simple filter on a temporal column carries a *string*.
+        `filter_values_handler` rewrites only an all-digit value, which it reads
+        as epoch milliseconds, so ``'2026-07-06 10:08:11'`` reaches here exactly
+        as the chart author typed it and is bound as text. The engine compares
+        that text against the column under its own cast, and on a ``DATE``
+        column the cast drops the time of day: the filter keeps the whole of
+        2026-07-06 while a mirror probed at 10:08:11 keeps one instant of it,
+        which is narrower than the predicate it stands in for.
+
+        So the text is read back into the instant it denotes -- the only way
+        `_engine_literal_resolution`, which answers about a `datetime`, reaches
+        a filter value at all -- and where the engine compares less of that
+        instant than the filter carries, what to do about it is a property of
+        the *operator*:
+
+        * a bound rounds outward, through the helper the range collector uses.
+          Reading one extra bucket at the edge is the trade this feature makes
+          everywhere else too -- see `mirror_operator` -- and the original
+          predicate is still in the query to exclude the rows that bucket adds.
+        * an equality, or one member of an ``IN`` list, has nowhere to widen to.
+          These entries are ``AND``-ed onto the query, so "or the day either
+          side" is not something this sink can express, and the request is
+          declined with `_UNMIRRORABLE`. The query is then correct and unpruned,
+          which is the one failure mode this feature is allowed.
+
+        An instant carrying a UTC offset is declined for every operator, a
+        bound included. Rounding one outward would first have to place it in the
+        frame the partition column was written in, and guessing that frame is
+        how a mirror ends up a whole offset narrower than the filter -- see the
+        load-bearing assumption in
+        `superset.connectors.sqla.partition_mapping`.
+
+        A *string* `_instant_from_filter_value` cannot read at all is declined on
+        the same terms, and for the same reason one more step back: there is no
+        instant to round. ``'07/06/2026 10:08:11'`` is not ISO 8601, so the
+        parser leaves it alone -- and Postgres casts that same text to a DATE and
+        keeps the whole of July 6 while the probe, handed the string verbatim,
+        evaluates the transform at 10:08:11 and asks for a partition key no row
+        holds. That is exactly the narrowing the ISO-only parser was written to
+        prevent, reached through a value it declines to read, so the decline has
+        to travel with it. Which costs a non-ISO *date* its pruning too, because
+        telling July 6 from June 7 is the guess that started this.
+
+        Only a string. `_as_probe_input` has already run, so the engine SQL
+        `filter_values_handler` returns for an epoch-millisecond bound arrives
+        here as a `RawProbeValue` rather than text -- and that literal was
+        rendered by the engine at the engine's own resolution, so it is the one
+        thing on this path with nothing left to resolve.
+
+        Where the engine compares the whole instant, a string is returned
+        exactly as it arrived -- down to the type the probe binds and the cache
+        key it lands on, because every query that was already correct has to
+        stay byte-for-byte correct. A `datetime` is still converted, which it
+        has always needed: on a column stored as an epoch integer the transform
+        is a function of an integer, and a `datetime` is not the value the real
+        predicate compares.
+        """
+        parsed = _instant_from_filter_value(value)
+        if parsed is None:
+            if (
+                isinstance(value, str)
+                and self._column_literal_resolution(col) is not LiteralResolution.FULL
+            ):
+                return _UNMIRRORABLE
+            return value
+
+        if (
+            self._engine_literal_resolution(parsed.replace(tzinfo=None), col)
+            is LiteralResolution.FULL
+        ):
+            return (
+                self._mirror_probe_value(parsed, col)
+                if isinstance(value, datetime)
+                else value
+            )
+
+        if parsed.tzinfo is not None:
+            return _UNMIRRORABLE
+
+        if operator in LOWER_BOUND_OPERATORS:
+            instant = self._round_bound_outward(parsed, col, is_upper=False)
+        elif operator in UPPER_BOUND_OPERATORS:
+            instant = self._round_bound_outward(parsed, col, is_upper=True)
+        elif self._literal_is_coarser_than(parsed, col):
+            return _UNMIRRORABLE
+        else:
+            instant = parsed
+
+        if instant == parsed and not isinstance(value, datetime):
+            return value
+        return self._mirror_probe_value(instant, col)
+
     def _collect_partition_mirror_range(
         self,
         mapping: Optional["PartitionMapping"],
@@ -4315,14 +4718,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Either bound may be `None` for an open-ended range, in which case only
         the bound that exists is mirrored.
 
+        Both bounds are recorded with the operators the real predicate uses,
+        `>=` and `<`. Relaxing the strict one is `mirror_operator`'s job, at the
+        single point where an operator becomes SQL -- which is also the point
+        the preview endpoint goes through.
+
         `widen_bounds_by` is one grain bucket width, passed when the filter this
         stands in for compares a *truncated* column. The real predicate then
         keeps rows the raw bounds exclude, and widening both ends by one bucket
         is the smallest range guaranteed to contain all of them -- see the "Time
-        grains" section of `superset.connectors.sqla.partition_mapping`. Note
-        the widened upper bound is `<=` rather than `<`: `ts < until + width`
-        only gives `T(ts) <= T(until + width)` for a transform that is monotonic
-        but not strictly so, such as `unix_timestamp` on a sub-second column.
+        grains" section of `superset.connectors.sqla.partition_mapping`.
 
         A widened range can also be wide enough to fail `_bounds_are_ordered`
         against a tighter filter on the same column. That fails open -- no
@@ -4347,18 +4752,111 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # bucket width has to be added there too. The two commute for the
         # hour-offset branch but not for the `ZoneInfo` one, where widening
         # across a DST boundary first lands an hour out.
-        upper_operator = utils.FilterOperator.LESS_THAN
         if widen_bounds_by is not None:
             if start_dttm is not None:
                 start_dttm -= widen_bounds_by
             if end_dttm is not None:
                 end_dttm += widen_bounds_by
-            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
 
+        # Then round outward, to whatever the engine's literal resolves to.
+        start_dttm, end_dttm = self._round_bounds_outward(
+            start_dttm, end_dttm, mapped_col
+        )
+
+        # Converted last. The widening and rounding above are `datetime`
+        # arithmetic, and the stored representation may be an integer.
         if start_dttm is not None:
-            sink.append((utils.FilterOperator.GREATER_THAN_OR_EQUALS, start_dttm))
+            sink.append(
+                (
+                    utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                    self._mirror_probe_value(start_dttm, mapped_col),
+                )
+            )
         if end_dttm is not None:
-            sink.append((upper_operator, end_dttm))
+            sink.append(
+                (
+                    utils.FilterOperator.LESS_THAN,
+                    self._mirror_probe_value(end_dttm, mapped_col),
+                )
+            )
+
+    def _array_mirror_probe_value(
+        self,
+        value: Any,
+        operator: utils.FilterOperator,
+        element_type: Optional[utils.GenericDataType],
+        db_engine_spec: builtins.type["BaseEngineSpec"],
+    ) -> Any:
+        """
+        The array literal the real predicate compares, ready to probe with.
+
+        On an array column the predicate is not built from `eq` at all: the
+        branch below reads the raw `val`, parses the pasted literal into
+        elements, coerces them to the array's element type and asks the engine
+        spec for its own array syntax. Mirroring `eq` would probe the transform
+        at a value the query never compares, so this reproduces that chain
+        instead -- the mirror then probes exactly what the predicate holds.
+
+        The result is SQL text rather than a value, because an array literal is
+        an expression; `RawProbeValue` carries it and `build_probe_sql`
+        substitutes rather than binds. Returns `None` when the engine spec
+        claims multi-value columns without implementing a literal for them,
+        which costs the query its pruning and nothing else.
+        """
+
+        def literal(entry: Any) -> Any:
+            return raw_probe_value(
+                self.database,
+                db_engine_spec.array_literal(
+                    coerce_array_values(parse_array_literal(entry), element_type)
+                ),
+            )
+
+        try:
+            if operator in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}:
+                candidates = (
+                    list(value) if isinstance(value, (list, tuple)) else [value]
+                )
+                return tuple(literal(candidate) for candidate in candidates)
+            return literal(value)
+        except NotImplementedError:
+            return None
+
+    def _as_probe_input(self, value: Any) -> Any:
+        """
+        ``value`` in a form `build_probe_sql` can put into the probe.
+
+        `filter_values_handler` returns engine SQL rather than a value for an
+        epoch-millisecond bound on a temporal column -- what drill-to-detail and
+        cross-filters send -- and SQL cannot be the value of a bind parameter.
+        Carrying it as text lets the probe substitute it instead, exactly as the
+        preview path's own coercion does and as an array literal needs.
+
+        Text rather than the expression itself also matters for caching: the
+        probe cache keys on `repr` of each value, and a `ColumnClause`'s default
+        `repr` carries its memory address, so every request would miss.
+
+        Returns `_UNRENDERABLE` when the engine cannot render the literal, which
+        costs the query its pruning and nothing else -- the same thing the probe
+        itself does on failure.
+        """
+
+        def rendered(entry: Any) -> Any:
+            if isinstance(entry, ColumnElement):
+                return raw_probe_value(self.database, entry)
+            return entry
+
+        try:
+            if isinstance(value, (list, tuple)):
+                return type(value)(rendered(item) for item in value)
+            return rendered(value)
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            logger.warning(
+                "Could not render a filter value for the partition mirror; "
+                "queries will not prune",
+                exc_info=True,
+            )
+            return _UNRENDERABLE
 
     def _collect_partition_mirror_filter(
         self,
@@ -4373,11 +4871,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Only operators the mapping declares safe are recorded; see the operator
         matrix in `superset.connectors.sqla.partition_mapping`.
+
+        Every value then goes through `_mirror_probe_input`, which is where what
+        the engine actually compares is applied. Routing per *value* rather than
+        per Python type is what makes a bound widen and an equality decline
+        whichever shape the value arrived in -- a `datetime` from
+        drill-to-detail, or the raw string a simple filter binds.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
         if not mapping.mirrors(operator):
             return
+
+        # First, and ahead of anything that reads the value as an instant: a
+        # value `filter_values_handler` already turned into engine SQL is
+        # carried as text from here on, and the probe has to receive exactly
+        # that literal -- it is what the real predicate compares, so there is
+        # nothing left to resolve about it.
+        probe_input = self._as_probe_input(value)
+        if probe_input is _UNRENDERABLE:
+            return
+        value = probe_input
+
+        mapped_col = next(
+            (col for col in self.columns if col.column_name == column_name), None
+        )
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:
@@ -4386,11 +4904,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # A `None` in the list widens the real predicate to
                 # `col IS NULL OR col IN (...)`. Mirroring only the non-null
                 # members would be *narrower* than the original filter and
-                # would drop rows it keeps.
+                # would drop rows it keeps. Checked before the conversion
+                # below, which passes a `None` straight through and could not
+                # be told apart from a value afterwards.
                 return
-            sink.append((operator, tuple(value)))
+            members = tuple(
+                self._mirror_probe_input(operator, item, mapped_col) for item in value
+            )
+            if any(member is _UNMIRRORABLE for member in members):
+                # One member the engine compares more coarsely than the mirror
+                # can be built from is the whole list's problem: dropping just
+                # that member is the same narrowing the `None` guard above
+                # refuses. So the list declines entire.
+                return
+            sink.append((operator, members))
         elif value is not None:
-            sink.append((operator, value))
+            probe_value = self._mirror_probe_input(operator, value, mapped_col)
+            if probe_value is _UNMIRRORABLE:
+                return
+            sink.append((operator, probe_value))
 
     def _build_partition_mirror_predicates(
         self,
@@ -4412,7 +4944,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         deduped: list[tuple[utils.FilterOperator, Any]] = []
         seen: set[Any] = set()
         for operator, value in requests:
-            key = (operator, value if isinstance(value, Hashable) else repr(value))
+            # Keyed on the operator the mirror is *emitted* with, not the one
+            # collected: a strict bound and its non-strict twin on the same
+            # value build the same predicate, so they are the same request.
+            key = (
+                mirror_operator(operator),
+                value if isinstance(value, Hashable) else repr(value),
+            )
             if key not in seen:
                 seen.add(key)
                 deduped.append((operator, value))
@@ -4868,6 +5406,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        # Set False by callers that want the SQL's *shape* rather than the SQL
+        # a chart would run -- `get_extra_cache_keys`, which reaches this before
+        # the chart cache is even consulted. The mirrors cost a synchronous
+        # warehouse probe, and they contribute nothing to `extra_cache_keys`.
+        # Not in `SQLA_QUERY_KEYS`, so no request payload can set it.
+        mirror_partition_filters: bool = True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -5155,6 +5699,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # append sites. `None` when the dataset has no usable mapping.
         partition_mapping = resolve_partition_mapping(cast("SqlaTable", self))
         partition_mirror: list[tuple[utils.FilterOperator, Any]] = []
+        # Requests derived from the main time window are collected a second
+        # time against the *inner* window, because the series-limit ranking
+        # subquery filters that window instead. On a time comparison the two
+        # differ: `processing_time_offsets` shifts `from_dttm`/`to_dttm` to the
+        # comparison period and leaves `inner_*` on the original. A mirror from
+        # the outer window then demands partition keys from a period the
+        # subquery's own time filter excludes, the ranking comes back empty, and
+        # the join drops the comparison series entirely.
+        partition_mirror_inner: list[tuple[utils.FilterOperator, Any]] = []
 
         # Process FROM clause early to populate removed_filters from virtual dataset
         # templates before we decide whether to add time filters
@@ -5205,6 +5758,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         from_dttm,
                         to_dttm,
                     )
+                    # Outer query only, and deliberately no inner counterpart.
+                    # The series-limit subquery's time predicate is built on
+                    # `dttm_col` (see `inner_time_filter` below), which this
+                    # branch has already established is a *different* column
+                    # from `main_dttm_col` -- so the subquery never carries a
+                    # `main_dttm_col` predicate for a mirror to stand in for.
+                    # Collecting one anyway made it the only predicate
+                    # narrowing the ranking to a window nothing else in that
+                    # subquery mentions, and which series came back "top"
+                    # changed just because mapping was enabled.
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -5229,6 +5792,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         from_dttm,
                         to_dttm,
                     )
+                    # The bounds the series-limit subquery's own time filter
+                    # uses, which is the same expression it builds below --
+                    # but only when it builds one. On a `time_groupby_inline`
+                    # engine (ClickHouse, Databend, Elasticsearch, Kusto) the
+                    # subquery is left unfiltered in time on purpose, so a
+                    # mirror here would be the one predicate narrowing it to a
+                    # window nothing else in that query mentions: the ranking
+                    # would be computed over a different span from the one the
+                    # engine was asked for, and which series come back "top"
+                    # could change just because mapping is enabled.
+                    #
+                    # The window-*independent* filter mirrors are collected
+                    # into both sinks above and stay -- those correspond to
+                    # `where_clause_and`, which the subquery does receive.
+                    if not db_engine_spec.time_groupby_inline:
+                        self._collect_partition_mirror_range(
+                            partition_mapping,
+                            partition_mirror_inner,
+                            dttm_col.column_name,
+                            inner_from_dttm or from_dttm,
+                            inner_to_dttm or to_dttm,
+                        )
 
         # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
         # real GROUP BY signal and also captures the timeseries time bucket. A
@@ -5488,10 +6073,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_extra=self.db_extra,
                 )
 
+                # Hoisted above the mirror collection below, which has to
+                # record the values the real predicate *binds*. SQLAlchemy
+                # infers an `IN` bind's type from the first element, so a mixed
+                # int/float list has to be widened before binding or every
+                # later float is truncated (see #33206). The `IN` branch did
+                # this itself, 100-odd lines down and by rebinding `eq` -- so
+                # the mirror had already copied the unwidened values and probed
+                # the transform at a number the query never compares.
+                #
+                # Scoped to the operators whose branch did it, so that moving
+                # the call changes when it runs and not what it applies to:
+                # `CONTAINS_ANY`/`CONTAINS_ALL` are list targets too and were
+                # never widened.
+                if (
+                    target_generic_type == utils.GenericDataType.NUMERIC
+                    and op in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}
+                    and isinstance(eq, (list, tuple))
+                ):
+                    eq = normalize_mixed_numbers(eq)
+
                 # Mirror onto the partition column. This single site covers
                 # ad-hoc filters, dashboard native filters and cross-filters,
                 # because they all arrive as entries in `filter`. `eq` rather
-                # than the raw `val`: it is the value the real predicate uses.
+                # than the raw `val`: it is the value the real predicate binds,
+                # which is only true because the numeric widening above now
+                # runs before this rather than inside the `IN` branch below.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
                 #
@@ -5513,13 +6120,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     and op != utils.FilterOperator.TEMPORAL_RANGE
                     and not filter_grain
                 ):
-                    self._collect_partition_mirror_filter(
-                        partition_mapping,
-                        partition_mirror,
-                        col_obj.column_name,
-                        op,
-                        eq,
-                    )
+                    mirror_value: Any = eq
+                    if is_multivalue_col and op in _ARRAY_LITERAL_OPERATORS:
+                        # The array branch below never looks at `eq`; it builds
+                        # an engine array literal out of the raw `val`. Mirror
+                        # that same literal, or nothing.
+                        mirror_value = self._array_mirror_probe_value(
+                            val, op, array_element_type, db_engine_spec
+                        )
+
+                    # Window-independent, so both sinks get it. The subquery
+                    # filters a different time window but the same everything
+                    # else, and this filter is in `where_clause_and` for both.
+                    for sink in (partition_mirror, partition_mirror_inner):
+                        self._collect_partition_mirror_filter(
+                            partition_mapping,
+                            sink,
+                            col_obj.column_name,
+                            op,
+                            mirror_value,
+                        )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5550,12 +6170,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col, op, bus_resp["values"]
                         )
                     )
-                elif is_multivalue_col and op in {
-                    utils.FilterOperator.EQUALS,
-                    utils.FilterOperator.NOT_EQUALS,
-                    utils.FilterOperator.IN,
-                    utils.FilterOperator.NOT_IN,
-                }:
+                elif is_multivalue_col and op in _ARRAY_LITERAL_OPERATORS:
                     # Whole-array (column-level) comparison against array
                     # literal(s). The value is a pasted array literal like
                     # ``['a', 'b']`` (parsed into elements): ``col = ['a', 'b']``
@@ -5606,16 +6221,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _("Filter value list cannot be empty")
                         )
 
-                    # Normalize mixed int/float values before binding, since
-                    # SQLAlchemy may infer the bind parameter type from the
-                    # first element and silently truncate other values
-                    # (see #33206)
-                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
-                        isinstance(v, float) for v in eq
-                    ):
-                        eq = [
-                            float(v) if isinstance(v, (int, float)) else v for v in eq
-                        ]
+                    # `eq` was already normalized where it was produced, so
+                    # that the partition mirror could record the same values
+                    # this binds -- see the comment there.
 
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
@@ -5813,14 +6421,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 flt_grain, db_engine_spec.engine
                             )
                             if not flt_grain or widen_by is not None:
-                                self._collect_partition_mirror_range(
-                                    partition_mapping,
+                                # Both sinks, with the *same* bounds. These come
+                                # from the filter's own `_since`/`_until`, and
+                                # `processing_time_offsets` rewrites that
+                                # filter's value to the shifted window -- so the
+                                # shifted filter is itself in `where_clause_and`
+                                # and reaches the subquery unchanged. Mirroring
+                                # it to the inner window instead would make the
+                                # mirror disagree with the predicate it stands
+                                # in for, which is the one thing a mirror may
+                                # never do.
+                                for sink in (
                                     partition_mirror,
-                                    col_obj.column_name,
-                                    _since,
-                                    _until,
-                                    widen_bounds_by=widen_by,
-                                )
+                                    partition_mirror_inner,
+                                ):
+                                    self._collect_partition_mirror_range(
+                                        partition_mapping,
+                                        sink,
+                                        col_obj.column_name,
+                                        _since,
+                                        _until,
+                                        widen_bounds_by=widen_by,
+                                    )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -5829,11 +6451,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # col_obj is None and sqla_col is None - column not found!
                 # Silently skip - this can happen for removed columns or invalid filters
                 pass
-        if partition_mapping is not None:
-            where_clause_and += self._build_partition_mirror_predicates(
-                partition_mapping,
-                partition_mirror,
-            )
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -5854,6 +6471,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     template_processor=template_processor,
                 )
                 having_clause_and += [Grouping(self.text(having))]
+
+        # The mirrors go on last, so the snapshot taken here is everything the
+        # outer query and the series-limit ranking subquery agree about: row
+        # level security, the extras `where`, every filter. The two disagree
+        # about exactly the mirrors, and subtracting them again later is not an
+        # option -- `==` on a SQLAlchemy expression builds a new expression
+        # rather than answering a question, so the list cannot be filtered by
+        # identity.
+        where_clause_and_without_mirrors = list(where_clause_and)
+        inner_partition_mirror_predicates: list[Any] = []
+        if partition_mapping is not None and mirror_partition_filters:
+            partition_mirror_predicates = self._build_partition_mirror_predicates(
+                partition_mapping,
+                partition_mirror,
+            )
+            # Reused rather than rebuilt when both windows ask for the same
+            # thing, which is every query that is not a time comparison.
+            # Building twice costs a second probe round trip.
+            inner_partition_mirror_predicates = (
+                partition_mirror_predicates
+                if partition_mirror_inner == partition_mirror
+                else self._build_partition_mirror_predicates(
+                    partition_mapping,
+                    partition_mirror_inner,
+                )
+            )
+            where_clause_and += partition_mirror_predicates
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(
@@ -5921,7 +6565,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     if _inner_filter is not None:
                         inner_time_filter = [_inner_filter]
-                subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
+                # The mirrors swapped for the inner window's own, since the
+                # time filter just built describes that window: an outer-window
+                # mirror here would demand partition keys from a period this
+                # subquery excludes, and the empty ranking would drop the
+                # comparison series from the join below.
+                subq = subq.where(
+                    and_(
+                        *(
+                            where_clause_and_without_mirrors
+                            + inner_partition_mirror_predicates
+                            + inner_time_filter
+                        )
+                    )
+                )
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr

@@ -70,6 +70,7 @@ export type ColumnMeta = Omit<Column, 'id'> & {
 } & AnyDict;
 
 export interface Dataset {
+  semantic_selection_version?: string | null;
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -115,6 +116,13 @@ export interface PartitionFilterMapping {
   partition_column: string;
   mapped_column: string | null;
   active: boolean;
+  /**
+   * Whether the last probe of this transform produced a mirror. `active` is a
+   * parse, which a misspelled function clears happily, so this is the weaker
+   * claim that only the engine can answer. `null`/absent means nothing has
+   * probed yet -- honest on a cold cache, and deliberately not `false`.
+   */
+  evaluable?: boolean | null;
   /** Whether the owner declared the value transform order-preserving. */
   is_monotonic: boolean;
   /**
@@ -123,6 +131,13 @@ export interface PartitionFilterMapping {
    * `is_monotonic` so the operator matrix lives in one place.
    */
   mirrorable_operators: string[];
+  /**
+   * How much of a filter's value this engine compares on the mapped column.
+   * `day` means a `DATE`-typed column whose comparison drops the time of day,
+   * so an `=` or `IN` carrying one is declined server-side -- see
+   * `hasMirrorableValue`.
+   */
+  literal_resolution?: 'full' | 'second' | 'day';
 }
 
 export interface ControlPanelState {
@@ -195,6 +210,7 @@ export type InternalControlType =
   | 'DateFilterControl'
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
+  | 'HeaderGroupsControl'
   | 'HiddenControl'
   | 'JSEditorControl'
   | 'SelectAsyncControl'
@@ -289,6 +305,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */

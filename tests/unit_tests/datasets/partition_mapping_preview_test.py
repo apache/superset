@@ -26,7 +26,7 @@ expression from costing a query at all.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
@@ -86,6 +86,18 @@ def dataset(session: Session) -> Any:
         columns=[
             TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
             TableColumn(column_name="dt_epoch", type="BIGINT"),
+            # A second, text-typed partition key. A transform that answers with
+            # text cannot be previewed against `dt_epoch` -- the predicate it
+            # would emit is `dt_epoch = 'us'`, which the database refuses, and
+            # `probed_value_type_error` says so before the preview can call it
+            # valid. Tests whose transform answers with text point here.
+            TableColumn(column_name="region_key", type="VARCHAR"),
+            # And a temporal one, for a transform that answers with a date or a
+            # timestamp. `region_key` will not do: the type gate holds a text
+            # key to text results, because not every engine accepts anything
+            # else in a text comparison and one of them compares it as never
+            # equal rather than refusing it.
+            TableColumn(column_name="part_ts", type="TIMESTAMP"),
         ],
     )
     table.partition_column = "dt_epoch"
@@ -140,6 +152,37 @@ def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
     }
 
 
+def test_preview_shows_a_strict_bound_mirroring_non_strictly(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The preview and the query path agree only because both go through
+    `build_mirrored_predicates`. A preview rendering `<` while the chart emitted
+    `<=` would be the editor claiming something the SQL does not do.
+
+    `sample_input` describes the owner's filter and `emitted_predicate` the
+    mirror, so the two carrying different operators is the behaviour under test
+    rather than a defect.
+    """
+    with patch(PROBE, return_value=[1768435200]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "operator": "<",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time < '2026-01-15 00:00:00'",
+        "emitted_predicate": "dt_epoch <= 1768435200 OR dt_epoch IS NULL",
+    }
+
+
 def test_preview_refuses_a_range_when_the_transform_is_not_monotonic(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -177,6 +220,7 @@ def test_preview_mirrors_in_element_wise(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
+                "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["US", "CA"],
                 "operator": "IN",
@@ -186,7 +230,7 @@ def test_preview_mirrors_in_element_wise(
     assert response.json["result"] == {
         "valid": True,
         "sample_input": "event_time IN ('US', 'CA')",
-        "emitted_predicate": "dt_epoch IN ('us', 'ca') OR dt_epoch IS NULL",
+        "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
     }
 
 
@@ -258,6 +302,92 @@ def test_preview_reports_an_unknown_mapped_column(
         )
 
     assert response.json["result"]["valid"] is False
+
+
+def test_preview_refuses_a_transform_whose_result_the_key_cannot_hold(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The one verdict a preview must never give: "Valid" for a mapping that makes
+    every chart fail. `cast(:value as text) || 'x'` evaluates perfectly, so the
+    probe succeeds -- and the preview went on to render the predicate the chart
+    would carry, `dt_epoch >= '2026-01-15 00:00:00x'` against a BIGINT, which
+    Postgres answers with a 400.
+
+    Its own `reason`, because "the database would not evaluate this" and "it
+    evaluated and answered with the wrong kind of thing" are different problems
+    and only the owner can say which transform they meant.
+    """
+    with patch(PROBE, return_value=["2026-01-15 00:00:00x"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "cast(:value as text) || 'x'",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "dt_epoch" in result["error"]
+    assert result["sample_input"] == "event_time == '2026-01-15 00:00:00'"
+
+
+def test_preview_refuses_a_number_against_a_text_partition_key(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The mirror image, and the one that used to be exempt. A text partition key
+    was held to no type at all, on the belief that every engine takes a number
+    in a text comparison -- but Postgres refuses `character varying = integer`,
+    Trino `varchar = bigint` and BigQuery `STRING = INT64`, so the preview said
+    "Valid" for a mapping whose every chart 400s.
+
+    SQLite is the reason this is a decline rather than a coercion: it raises
+    nothing and compares a number against text as never equal, so the mirror
+    would silently drop every row the filter keeps.
+    """
+    with patch(PROBE, return_value=[1768435200]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "region_key" in result["error"]
+    assert "string" in result["error"]
+
+
+def test_preview_mirrors_text_against_a_text_partition_key(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """The other half: a text key still takes a transform that answers text."""
+    with patch(PROBE, return_value=["20260115"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "to_char(:value, 'YYYYMMDD')",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is True
+    assert "'20260115'" in result["emitted_predicate"]
 
 
 def test_preview_reports_a_failed_probe_rather_than_erroring(
@@ -371,43 +501,83 @@ def test_the_budget_is_spent_exactly_once_per_request(
     assert statuses == [200, 200, 200, 429, 429]
 
 
-def test_the_window_is_dated_by_its_first_request_not_its_last(
+def test_each_window_gets_a_fresh_budget(
     app: Flask, client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
-    Only `add` sets a lifetime. Re-stamping the key on every increment would
-    make this a sliding window, where sustained typing keeps the budget spent
-    indefinitely instead of recovering a minute after the burst began.
+    The window is carried by the *key*, not by the entry's lifetime, so a
+    counter that outlives its bucket is simply never read again.
+
+    Relying on the TTL could not deliver that on either supported backend.
+    cachelib's generic `inc` is a read-modify-write whose `set` restamps
+    `CACHE_DEFAULT_TIMEOUT` -- a day by default -- so on SimpleCache a spent
+    budget kept renewing a day-long lockout every time the owner retried. And
+    on Redis, a key that expires between a losing `add` and the `inc` is
+    recreated by `INCR` with no TTL at all, so past the limit the owner was
+    429'd permanently.
     """
     from superset.datasets.api import PREVIEW_RATE_LIMIT_WINDOW
-    from superset.extensions import cache_manager
 
-    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 5
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 1
 
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
-    timeouts: list[Any] = []
+    url = f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/"
+    start = 1_800_000_000
+
+    with patch(PROBE, return_value=[1]):
+        with patch("superset.datasets.api.time.time", return_value=start):
+            assert client.post(url, json=payload).status_code == 200
+            assert client.post(url, json=payload).status_code == 429
+        with patch(
+            "superset.datasets.api.time.time",
+            return_value=start + PREVIEW_RATE_LIMIT_WINDOW,
+        ):
+            assert client.post(url, json=payload).status_code == 200
+
+
+def test_a_restamping_backend_cannot_extend_the_lockout(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The concrete failure the bucketed key exists to rule out: a backend whose
+    `inc` rewrites the entry with its own default lifetime. Here that lifetime
+    is a day, and the next window still starts from zero because it is a
+    different key.
+    """
+    from superset.datasets.api import PREVIEW_RATE_LIMIT_WINDOW
+    from superset.extensions import cache_manager
+
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 1
+
+    payload = {
+        "mapped_column": "event_time",
+        "value_transform": "unix_timestamp(:value)",
+        "sample_values": ["2026-01-15"],
+    }
+    url = f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/"
+    start = 1_900_000_000
     backend = cache_manager.cache.cache
-    original_add = backend.add
+    original_inc = backend.inc
 
-    def record(key: str, value: Any, timeout: Any = None) -> Any:
-        timeouts.append(timeout)
-        return original_add(key, value, timeout=timeout)
+    def restamping_inc(key: str, delta: int = 1) -> Any:
+        used = original_inc(key, delta)
+        backend.set(key, used, timeout=86400)
+        return used
 
-    with patch.object(backend, "add", side_effect=record):
-        with patch(PROBE, return_value=[1]):
-            for day in range(1, 4):
-                client.post(
-                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-                )
-
-    # Three requests, three `add` attempts, but only the first one takes -- and
-    # every later one is a no-op that leaves the original expiry alone.
-    assert timeouts == [PREVIEW_RATE_LIMIT_WINDOW] * 3
+    with patch(PROBE, return_value=[1]):
+        with patch.object(backend, "inc", side_effect=restamping_inc):
+            with patch("superset.datasets.api.time.time", return_value=start):
+                assert client.post(url, json=payload).status_code == 200
+                assert client.post(url, json=payload).status_code == 429
+            with patch(
+                "superset.datasets.api.time.time",
+                return_value=start + PREVIEW_RATE_LIMIT_WINDOW,
+            ):
+                assert client.post(url, json=payload).status_code == 200
 
 
 def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
@@ -470,6 +640,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
                 "mapped_column": "event_time",
+                "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["O'Hara"],
             },
@@ -477,7 +648,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
 
     assert response.status_code == 200
     result = response.json["result"]
-    assert result["emitted_predicate"] == "dt_epoch = 'o''hara' OR dt_epoch IS NULL"
+    assert result["emitted_predicate"] == "region_key = 'o''hara' OR region_key IS NULL"
     # The sample input is display-only but still reads as SQL, so the value it
     # echoes back is quoted and escaped the same way.
     assert result["sample_input"] == "event_time == 'O''Hara'"
@@ -502,3 +673,297 @@ def test_an_over_long_transform_is_rejected_before_the_engine(
 
     assert response.status_code == 400
     probe.assert_not_called()
+
+
+def test_preview_rejects_a_subquery_without_touching_the_engine(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    `build_probe_sql` binds `:value` and splices the rest of the transform in as
+    SQL text, so without the stored-expression gate a dataset editor who has no
+    SQL Lab access could read another table through the preview: the subquery
+    runs and its result comes back in `emitted_predicate`.
+
+    The save path has always applied this gate. Preview evaluates a transform
+    that has not been saved, so it has to apply it too.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": ("(SELECT password FROM ab_user LIMIT 1) || :value"),
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_rejects_a_smuggled_from_clause_without_touching_the_engine(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The sibling above covers the sub-query. This covers the shape that got
+    past it: a top-level FROM is not a sub-query, so `ALLOW_ADHOC_SUBQUERY`
+    never applied, and the single-select-expression check counts only the
+    projection -- so `password || :value FROM ab_user` read as one expression
+    and the probe ran `SELECT password || '...' AS v0 FROM ab_user`, with the
+    alias landing on the table the transform smuggled in.
+
+    The verdict comes from the shape gate, so it arrives as a validation
+    reason and the probe is never reached.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "password || :value FROM ab_user",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "emitted_predicate" not in response.json["result"]
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "':value'",
+        "concat(':value', 'x')",
+        "1 -- :value",
+        "1 /* :value */",
+    ],
+    ids=["quoted", "quoted-in-call", "line-comment", "block-comment"],
+)
+def test_preview_rejects_a_placeholder_the_engine_will_not_evaluate(
+    client: Any, full_api_access: None, dataset: Any, transform: str
+) -> None:
+    """
+    The two siblings above cover a transform that reads another table in the
+    clear. This covers the same read assembled out of pieces that each look
+    harmless.
+
+    Every write-side gate reads the transform with `:value` replaced by the
+    `NULL` keyword, so `':value'` arrives as the literal `SELECT 'NULL'` -- a
+    constant, and nothing a shape check objects to. The escape completes later:
+    SQLAlchemy's `text()` scan is no more literal-aware than the regex, so the
+    placeholder inside the quotes is bound anyway and the dialect renders the
+    bind *including its own quotes* in the middle of the owner's. A sample of
+    `" || (SELECT secret FROM vault LIMIT 1) || "` then closes the literal and
+    the probe runs the sub-query.
+
+    The comment forms are the other half: the probe joins its selections on one
+    line, so a comment eats its own `AS v0` alias and everything after it. The
+    engine still answers with one column, the constant in front of the comment
+    is accepted as the transform's result, and the mirror emits
+    `partition_col = <constant>` for every filter value -- wrong rows, not lost
+    pruning.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": transform,
+                "sample_values": [" || (SELECT 1) || "],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
+    client: Any, full_api_access: None, dataset: Any, app: Flask
+) -> None:
+    """
+    `resolve_partition_mapping` refuses to mirror such a column -- its filters
+    go through `translate_filter`, which builds its own predicate shape from
+    translated values, so the `(operator, value)` pair the operator matrix
+    reasons about does not exist. The Explore indicator repeats the bail-out.
+    Preview did not, so it reported a valid emitted predicate for a mapping no
+    chart would ever mirror: the one answer a preview panel must not give.
+    """
+    column = next(col for col in dataset.columns if col.column_name == "event_time")
+    column.advanced_data_type = "port"
+    db.session.flush()
+
+    app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"] = True
+    app.config["ADVANCED_DATA_TYPES"] = {"port": MagicMock()}
+    try:
+        with patch(PROBE, side_effect=AssertionError("probe must not run")):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "event_time",
+                    "value_transform": "unix_timestamp(:value)",
+                    "sample_values": ["2026-01-15 00:00:00"],
+                },
+            )
+    finally:
+        del app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"]
+        app.config["ADVANCED_DATA_TYPES"] = {}
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "validation"
+    assert "advanced data type" in response.json["result"]["error"]
+    assert "emitted_predicate" not in response.json["result"]
+
+
+def test_preview_renders_a_probed_value_read_from_a_dataframe(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The probe reads its results out of a pandas frame, so the canonical epoch
+    transform returns a `numpy.int64` and a temporal one a `pandas.Timestamp`.
+    SQLAlchemy has a literal renderer for neither -- `sa.literal` infers
+    `NullType` and raises `CompileError`, which the endpoint turns into a 500.
+
+    Patching `Database.get_df` rather than `evaluate_transform` is what makes
+    this a regression test: stubbing the evaluator hands back a plain Python
+    `int` and never exercises the frame at all.
+    """
+    import pandas as pd
+
+    frame = pd.DataFrame([[1768435200]], columns=["v0"])
+    with patch(
+        "superset.models.core.Database.get_df",
+        return_value=frame,
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is True
+    assert "1768435200" in response.json["result"]["emitted_predicate"]
+
+
+def test_preview_renders_a_probed_timestamp_read_from_a_dataframe(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """A transform returning a date hits the same renderer gap as an integer."""
+    import pandas as pd
+
+    frame = pd.DataFrame([[pd.Timestamp("2026-01-15")]], columns=["v0"])
+    with patch(
+        "superset.models.core.Database.get_df",
+        return_value=frame,
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "part_ts",
+                "value_transform": "date(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is True
+    assert "2026-01-15" in response.json["result"]["emitted_predicate"]
+
+
+def test_preview_is_authorized_as_a_write() -> None:
+    """
+    Preview inspects a mapping the caller is entitled to *save*, so it is
+    authorized the way the PUT behind it is: ``can_write`` plus
+    ``raise_for_editorship``. Without the mapping, FAB's ``@protect()`` falls
+    back to ``can_partition_mapping_preview_Dataset``, which no stock role
+    carries -- so a custom role with ``can_write`` could store a mapping and not
+    preview it.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert DatasetRestApi.method_permission_name["partition_mapping_preview"] == (
+        "write"
+    )
+
+
+def test_preview_coerces_a_sample_the_way_a_chart_filter_is_coerced(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Samples arrive as strings and the probe is keyed on exactly what it is
+    handed, so a numeric column's sample has to be cast the way
+    `filter_values_handler` casts a chart filter's value. Under the reviewer's
+    `typeof(:value)` on SQLite the raw string previewed a partition key of
+    `'text'` where the equivalent chart filter emitted `'integer'`.
+
+    It also makes the shared probe cache actually shared: `_probe_cache_key`
+    keys on each value's `repr`, so `'2025'` and `2025` were separate entries.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(TableColumn(column_name="year", type="BIGINT"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["integer"]
+
+    with patch(PROBE, side_effect=record):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "year",
+                "partition_column": "region_key",
+                "value_transform": "typeof(:value)",
+                "sample_values": ["2025"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is True
+    assert probed == [[2025]]
+
+
+def test_preview_leaves_a_string_column_s_sample_alone(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The counterweight to the test above: the coercion is the column's, not a
+    blanket cast, so a digit-only sample on a VARCHAR column stays a string --
+    exactly as it would reaching a chart filter on that column.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(TableColumn(column_name="zip", type="VARCHAR"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return ["text"]
+
+    with patch(PROBE, side_effect=record):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "zip",
+                "value_transform": "typeof(:value)",
+                "sample_values": ["02134"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert probed == [["02134"]]

@@ -17,13 +17,38 @@
  * under the License.
  */
 
-import { NO_TIME_RANGE, QueryFormData } from '@superset-ui/core';
 import {
+  DatasourceType,
+  QueryFormData,
+  VizType,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
+import {
+  ControlConfig,
+  ControlPanelConfig,
+  ControlPanelState,
+  ControlState,
+  CustomControlItem,
+  Dataset,
   sections,
   sharedControls,
-  CustomControlItem,
 } from '@superset-ui/chart-controls';
-import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
+import { controlPanel as timeTableControlPanel } from 'src/visualizations/TimeTable/config/controlPanel/controlPanel';
+import {
+  getControlConfig,
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
+// Reached through the plugins' source rather than as `@superset-ui/plugin-chart-*`
+// subpaths: `tsc` maps those package names as a whole and cannot resolve a
+// subpath within one, so it rejects the import that jest and webpack accept.
+// `VizTypeControl.test.tsx` reaches the plugins themselves the same way.
+import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
+import horizonControlPanel from '../../../plugins/plugin-chart-horizon/src/controlPanel';
+import roseControlPanel from '../../../plugins/plugin-chart-echarts/src/Rose/controlPanel';
+import timePivotControlPanel from '../../../plugins/plugin-chart-echarts/src/TimePivot/controlPanel';
+import pairedTTestControlPanel from '../../../plugins/plugin-chart-paired-t-test/src/controlPanel';
+import partitionControlPanel from '../../../plugins/plugin-chart-partition/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -173,14 +198,17 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
 });
 
-// Regression guard for the partition-pruning indicator on the standalone Time
-// Range control. `time_range`'s mapStateToProps decides whether the time range
-// is mirrored onto a partition column, which depends on `time_range` itself and
-// on `granularity_sqla`. SET_FIELD_VALUE rebuilds the changed control against
-// the *pre-action* form data and rebuilds no other control at all, so without
-// `validationDependencies` the glyph keeps rendering after the range is set to
-// "No filter" or the temporal column is switched away from the mapped one --
-// promising a predicate the generated SQL does not carry.
+// Regression guards for the standalone Time Range control.
+//
+// `time_range`'s mapStateToProps decides whether the range is mirrored onto a
+// partition column, and its two inputs are handled by two different mechanisms.
+// The temporal column lives on another control, so `validationDependencies`
+// covers it here. The range itself is recomputed at render from the live
+// explore state (`ControlPanelsContainer`), because a control that named itself
+// as a dependency would be rebuilt by the reducer from its own superseded
+// value -- which silently dropped every Time Range change on the charts that
+// still carry this control. That transition is covered in
+// `src/explore/components/ControlPanelsContainer.test.tsx`.
 const PARTITION_FILTER_MAPPING = {
   partition_column: 'dt_epoch',
   mapped_column: 'event_time',
@@ -221,21 +249,6 @@ function mirroredTimeRangeState(): ExploreState {
   } as ExploreState;
 }
 
-test('SET_FIELD_VALUE drops the time range partition mapping when the range becomes "No filter"', () => {
-  const initialState = mirroredTimeRangeState();
-  expect(initialState.controls.time_range.partitionMapping).toEqual(
-    PARTITION_FILTER_MAPPING,
-  );
-
-  const afterNoFilter = exploreReducer(
-    initialState,
-    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
-      typeof exploreReducer
-    >[1],
-  );
-  expect(afterNoFilter.controls.time_range.partitionMapping).toBeNull();
-});
-
 test('SET_FIELD_VALUE drops the time range partition mapping when the temporal column is not the mapped one', () => {
   const initialState = mirroredTimeRangeState();
 
@@ -248,22 +261,350 @@ test('SET_FIELD_VALUE drops the time range partition mapping when the temporal c
   expect(afterColumnSwitch.controls.time_range.partitionMapping).toBeNull();
 });
 
-test('SET_FIELD_VALUE restores the time range partition mapping when a real range is chosen', () => {
+test('SET_FIELD_VALUE applies the new time range to the control, not just the form data', () => {
   const initialState = mirroredTimeRangeState();
-  const noFilterState = exploreReducer(
-    initialState,
-    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
-      typeof exploreReducer
-    >[1],
-  );
 
   const afterRealRange = exploreReducer(
-    noFilterState,
+    initialState,
     setControlValue('time_range', '2026-03-01 : 2026-04-01') as Parameters<
       typeof exploreReducer
     >[1],
   );
-  expect(afterRealRange.controls.time_range.partitionMapping).toEqual(
-    PARTITION_FILTER_MAPPING,
+
+  expect(afterRealRange.form_data.time_range).toBe('2026-03-01 : 2026-04-01');
+  // The query is built from the controls, not from `form_data`, so a control
+  // left holding the superseded range sends the superseded range.
+  expect(afterRealRange.controls.time_range.value).toBe(
+    '2026-03-01 : 2026-04-01',
   );
+});
+
+test('SET_FIELD_VALUE ignores a control that names itself as a dependency', () => {
+  // `validationDependencies` names *other* controls. The rebuild it triggers
+  // reuses the value held before the action, so a self-naming control would
+  // overwrite the value just set. Nothing in the tree does this, and the
+  // reducer makes sure nothing can.
+  const selfDependentState = {
+    form_data: { row_limit: 100 } as unknown as QueryFormData,
+    controls: {
+      row_limit: {
+        type: 'SelectControl',
+        value: 100,
+        validationDependencies: ['row_limit'],
+      },
+    },
+  } as unknown as ExploreState;
+
+  const afterChange = exploreReducer(
+    selfDependentState,
+    setControlValue('row_limit', 500) as Parameters<typeof exploreReducer>[1],
+  );
+
+  expect(afterChange.controls.row_limit.value).toBe(500);
+});
+
+// Every chart that still carries the standalone Time Range control, resolved
+// through the registry the reducer itself reads. These are the charts the
+// self-referencing dependency broke, so this is the list that has to stay
+// fixed -- modern charts express the range as a TEMPORAL_RANGE clause in
+// `adhoc_filters` and never dispatch SET_FIELD_VALUE for `time_range`.
+const CHARTS_WITH_A_TIME_RANGE_CONTROL: [VizType, ControlPanelConfig][] = [
+  [VizType.Calendar, calendarControlPanel],
+  [VizType.Horizon, horizonControlPanel],
+  [VizType.Rose, roseControlPanel],
+  [VizType.TimePivot, timePivotControlPanel],
+  [VizType.PairedTTest, pairedTTestControlPanel],
+  [VizType.Partition, partitionControlPanel],
+  [VizType.TimeTable, timeTableControlPanel],
+];
+
+test.each(CHARTS_WITH_A_TIME_RANGE_CONTROL)(
+  'a new time range reaches the control on %s',
+  (vizType, controlPanelConfig) => {
+    getChartControlPanelRegistry().registerValue(vizType, controlPanelConfig);
+    try {
+      const form_data = {
+        viz_type: vizType,
+        time_range: 'Last week',
+      } as unknown as QueryFormData;
+      // Resolved the way the app resolves it: through the chart's own control
+      // panel, so a per-chart override would show up here rather than be
+      // assumed away.
+      const controlConfig = getControlConfig('time_range', vizType);
+      const state = {
+        form_data,
+        controls: {
+          time_range: getControlStateFromControlConfig(
+            controlConfig as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            { controls: {}, form_data } as Parameters<
+              typeof getControlStateFromControlConfig
+            >[1],
+            'Last week',
+          )!,
+        },
+      } as unknown as ExploreState;
+
+      const afterChange = exploreReducer(
+        state,
+        setControlValue('time_range', 'Last quarter') as Parameters<
+          typeof exploreReducer
+        >[1],
+      );
+
+      expect(afterChange.controls.time_range.value).toBe('Last quarter');
+      expect(afterChange.form_data.time_range).toBe('Last quarter');
+    } finally {
+      getChartControlPanelRegistry().remove(vizType);
+    }
+  },
+);
+
+type ReducerAction = Parameters<typeof exploreReducer>[1];
+
+type MirrorControlState = ControlState & { mirroredValue?: unknown };
+
+// A control whose derived props depend on another control's current value.
+const mirrorOf = (sourceControl: string): ControlConfig =>
+  ({
+    type: 'TextControl',
+    mapStateToProps: (state: ControlPanelState) => ({
+      mirroredValue: state.controls?.[sourceControl]?.value,
+    }),
+  }) as unknown as ControlConfig;
+
+const buildControl = (
+  config: ControlConfig,
+  formData: QueryFormData,
+  value: unknown,
+  controls: Record<string, ControlState> = {},
+) =>
+  getControlStateFromControlConfig(
+    config,
+    { controls, form_data: formData },
+    value as never,
+  )!;
+
+test('SET_FIELD_VALUE re-derives controls listed in `rerender` from the updated control value', () => {
+  const form_data = {
+    matrixify_mode_rows: 'disabled',
+    matrixify_mode_columns: 'disabled',
+  } as unknown as QueryFormData;
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      matrixify_mode_rows: buildControl(
+        sharedControls.matrixify_mode_rows as unknown as ControlConfig,
+        form_data,
+        'disabled',
+      ),
+      matrixify_mode_columns: buildControl(
+        sharedControls.matrixify_mode_columns as unknown as ControlConfig,
+        form_data,
+        'disabled',
+      ),
+      matrixify_dimension_rows: buildControl(
+        sharedControls.matrixify_dimension_rows as unknown as ControlConfig,
+        form_data,
+        { dimension: '', values: [] },
+      ),
+    },
+  };
+  const metricsOption = (state: ExploreState) =>
+    (
+      state.controls.matrixify_mode_columns.options as Array<{
+        value: string;
+        disabled?: boolean;
+      }>
+    ).find(option => option.value === 'metrics');
+
+  // Columns offer "metrics" while the rows axis is not using it.
+  expect(metricsOption(initialState)?.disabled).toBe(false);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('matrixify_mode_rows', 'metrics') as ReducerAction,
+  );
+
+  // The rows axis now owns "metrics", so the columns control must be
+  // re-derived without the user touching it.
+  expect(metricsOption(newState)?.disabled).toBe(true);
+  expect(newState.controls.matrixify_mode_columns.value).toBe('disabled');
+});
+
+test('SET_FIELD_VALUE leaves controls that are not listed in `rerender` stale', () => {
+  const form_data = { source: 'a' } as unknown as QueryFormData;
+  const plain = { type: 'TextControl' } as unknown as ControlConfig;
+  const buildState = (rerender: string[]): ExploreState => {
+    const source = buildControl(
+      { ...plain, rerender } as unknown as ControlConfig,
+      form_data,
+      'a',
+    );
+    const controls = { source };
+    return {
+      form_data,
+      controls: {
+        source,
+        listed: buildControl(mirrorOf('source'), form_data, null, controls),
+        unlisted: buildControl(mirrorOf('source'), form_data, null, controls),
+      },
+    };
+  };
+  const mirrored = (state: ExploreState, name: string) =>
+    (state.controls[name] as MirrorControlState).mirroredValue;
+
+  const initialState = buildState(['listed']);
+  expect(mirrored(initialState, 'listed')).toBe('a');
+  expect(mirrored(initialState, 'unlisted')).toBe('a');
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('source', 'b') as ReducerAction,
+  );
+
+  expect(mirrored(newState, 'listed')).toBe('b');
+  expect(mirrored(newState, 'unlisted')).toBe('a');
+});
+
+test('SET_FIELD_VALUE only re-validates controls that declare the changed control in `validationDependencies`', () => {
+  const STALE_ERROR = 'Driven by the changed control';
+  const requiresOk = (declaresDependency: boolean): ControlConfig =>
+    ({
+      type: 'TextControl',
+      mapStateToProps: (state: ControlPanelState) => ({
+        externalValidationErrors:
+          state.form_data.source === 'bad' ? [STALE_ERROR] : [],
+      }),
+      ...(declaresDependency && { validationDependencies: ['source'] }),
+    }) as unknown as ControlConfig;
+
+  const form_data = { source: 'bad' } as unknown as QueryFormData;
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      source: buildControl(
+        { type: 'TextControl' } as unknown as ControlConfig,
+        form_data,
+        'bad',
+      ),
+      declared: buildControl(requiresOk(true), form_data, 'x'),
+      undeclared: buildControl(requiresOk(false), form_data, 'x'),
+    },
+  };
+
+  // Both dependents start out in error.
+  expect(initialState.controls.declared.validationErrors).toEqual([
+    STALE_ERROR,
+  ]);
+  expect(initialState.controls.undeclared.validationErrors).toEqual([
+    STALE_ERROR,
+  ]);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('source', 'good') as ReducerAction,
+  );
+
+  // The declared dependent re-validates against the new value; the other one
+  // keeps the error because nothing tells the reducer to re-run it.
+  expect(newState.controls.declared.validationErrors).toEqual([]);
+  expect(newState.controls.undeclared.validationErrors).toEqual([STALE_ERROR]);
+});
+
+test('SET_FIELD_VALUE raises a dependent control error when the changed control makes it invalid', () => {
+  const REQUIRED_DATE_ERROR = 'A date is required when using custom date shift';
+  const timeComparisonSection = sections.timeComparisonControls({
+    multi: false,
+    showCalculationType: false,
+    showFullChoices: false,
+  });
+  const timeCompareConfig = (
+    timeComparisonSection.controlSetRows[0][0] as CustomControlItem
+  ).config;
+  const startDateOffsetConfig = (
+    timeComparisonSection.controlSetRows[1][0] as CustomControlItem
+  ).config;
+  const form_data = {
+    time_compare: '1 week ago',
+    start_date_offset: '',
+  } as unknown as QueryFormData;
+  const controlPanelState = { controls: {}, form_data };
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      time_compare: getControlStateFromControlConfig(
+        timeCompareConfig,
+        controlPanelState,
+        '1 week ago',
+      )!,
+      start_date_offset: getControlStateFromControlConfig(
+        startDateOffsetConfig,
+        controlPanelState,
+        '',
+      )!,
+    },
+  };
+
+  // An empty start date is fine until the shift becomes "custom".
+  expect(initialState.controls.start_date_offset.validationErrors).toEqual([]);
+
+  const newState = exploreReducer(
+    initialState,
+    setControlValue('time_compare', 'custom') as ReducerAction,
+  );
+
+  expect(newState.controls.start_date_offset.validationErrors).toEqual([
+    REQUIRED_DATE_ERROR,
+  ]);
+});
+
+test('explicit semantic reset removes stale fields and stash and persists only new generation', () => {
+  const datasource = {
+    id: 7,
+    uid: 'cube:Orders',
+    type: DatasourceType.SemanticView,
+    semantic_selection_version: 'cube-member-id-v1',
+    columns: [],
+    metrics: [],
+    verbose_map: {},
+    column_formats: {},
+    main_dttm_col: '',
+    datasource_name: 'Orders',
+    description: null,
+  } as Dataset;
+  getChartControlPanelRegistry().registerValue('identity-test', {
+    // Exercise Explore's default section, without injecting the shared section.
+    controlPanelSections: [],
+  });
+  const initial: ExploreState = {
+    datasource,
+    controls: {},
+    form_data: {
+      datasource: '7__semantic_view',
+      viz_type: 'identity-test',
+      slice_id: 12,
+      metrics: ['Orders.b'],
+      column_config: { 'Orders.b': {} },
+    },
+    hiddenFormData: { metrics: ['Orders.b'] },
+  };
+  const refreshed = exploreReducer(initial, {
+    type: 'SYNC_DATASOURCE_METADATA',
+    datasource,
+  });
+  expect(refreshed.form_data.semantic_selection_version).toBeUndefined();
+  const reset = exploreReducer(initial, { type: 'RESET_SEMANTIC_SELECTIONS' });
+  expect(reset.form_data).toEqual({
+    datasource: '7__semantic_view',
+    viz_type: 'identity-test',
+    slice_id: 12,
+    semantic_selection_version: 'cube-member-id-v1',
+  });
+  expect(reset.hiddenFormData).toEqual({});
+  expect(
+    getFormDataFromControls(reset.controls).semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+  getChartControlPanelRegistry().remove('identity-test');
 });

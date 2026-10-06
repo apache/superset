@@ -756,6 +756,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Apply a row cap without increasing an existing smaller limit."""
+        current_limit = self.get_limit_value()
+        if current_limit is None or limit < current_limit:
+            self.set_limit_value(limit, method)
+
     def set_limit_value(
         self,
         limit: int,
@@ -802,6 +812,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         Check if the statement has a subquery.
 
         :return: True if the statement has a subquery at the top level.
+        """
+        raise NotImplementedError()
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        :return: one entry per select expression, ``None`` where unaliased
         """
         raise NotImplementedError()
 
@@ -1179,6 +1197,140 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             Dialects.TSQL,
         }
     )
+
+    def count_select_expressions(self) -> int:
+        """
+        How many expressions this statement's ``SELECT`` list holds.
+
+        A caller that wraps a user-supplied fragment in ``SELECT <fragment>``
+        parses successfully whether the fragment is one expression or a
+        comma-separated list, and the two are not interchangeable: the second
+        returns more columns than the caller asked for. Returns 0 for anything
+        that is not a ``SELECT``.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return 0
+        return len(self._parsed.expressions)
+
+    def is_bare_select_expression(self) -> bool:
+        """
+        Whether this is ``SELECT <one expression>`` and nothing else.
+
+        `count_select_expressions` counts only the projection, so
+        ``SELECT secret FROM vault`` holds one expression and satisfies it. A
+        caller that splices a user-supplied fragment into a larger statement as
+        *text* needs the stronger claim: no FROM, no WHERE, no GROUP BY, no
+        clause of any kind -- otherwise whatever the caller appends after the
+        fragment lands inside the fragment's own syntax instead of its own.
+
+        Stated as "no populated argument other than the projection" rather than
+        as a denylist of clause names, so a sqlglot release or a dialect that
+        introduces a clause this does not know about fails closed.
+
+        This says nothing about sub-queries, which live *inside* the projection:
+        callers that care need `has_subquery` as well.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return False
+        if len(self._parsed.expressions) != 1:
+            return False
+        return not self.get_clause_names()
+
+    def get_clause_names(self) -> set[str]:
+        """
+        Which clauses other than the projection this ``SELECT`` populates.
+
+        `is_bare_select_expression` answers "none of them", which is too strong
+        for a caller that assembles a statement with a FROM clause of its own
+        and needs to know that nothing *else* came along with it.
+
+        Reported as the set that is present rather than as a denylist of clause
+        names, for the same reason: a sqlglot release or a dialect introducing a
+        clause this does not know about shows up in the answer instead of being
+        silently permitted.
+
+        Returns an empty set for anything that is not a ``SELECT``, which such a
+        caller has to reject on other grounds anyway.
+
+        Trailing underscores are stripped, because sqlglot appends one to the
+        names that collide with a Python keyword -- its FROM clause is
+        ``from_``. Callers should not have to know that, nor track it across
+        sqlglot releases.
+
+        :return: clause names, e.g. ``{"from", "where"}``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return set()
+        return {
+            key.rstrip("_")
+            for key, value in self._parsed.args.items()
+            if value and key != "expressions"
+        }
+
+    def get_from_clause_sql(self) -> str | None:
+        """
+        This statement's ``FROM`` clause, rendered back to SQL.
+
+        For comparing an assembled statement's FROM against the one its builder
+        intended. Both sides are rendered rather than compared as raw text, so
+        the comparison does not depend on the whitespace the builder happened to
+        use. Identifier case is preserved, as it has to be for an engine that
+        treats it as significant.
+
+        :return: the rendered clause, or ``None`` where there is no FROM
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        # ``from_`` is sqlglot's own name for it, the trailing underscore being
+        # how it avoids the Python keyword; both are read so that the lookup
+        # does not depend on which one a given release uses.
+        from_clause = self._parsed.args.get("from_") or self._parsed.args.get("from")
+        return from_clause.sql(dialect=self._dialect) if from_clause else None
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        ``None`` where an expression carries no alias. A caller that builds a
+        projection per input and reads the results back positionally needs the
+        aliases it asked for to have survived -- a comment inside a spliced
+        fragment swallows the rest of its line, alias included, and the query
+        still returns the right number of columns.
+
+        Returns an empty list for anything that is not a ``SELECT``.
+
+        :return: one entry per select expression, in order
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return []
+        return [
+            expression.alias if isinstance(expression, exp.Alias) else None
+            for expression in self._parsed.expressions
+        ]
+
+    def count_bare_column_references(self, name: str) -> int:
+        """
+        How many times ``name`` appears as a column reference in this statement.
+
+        A caller that stands a placeholder in for a value -- replacing it in the
+        *text* before parsing -- cannot otherwise tell whether the placeholder
+        landed somewhere the engine will evaluate. Substituting an identifier
+        and counting the column references it produced answers that: a
+        substitution that fell inside a string literal or a comment yields no
+        column reference at all, because neither holds parseable nodes.
+
+        Compared case-insensitively, since a dialect may normalize the case of
+        an unquoted identifier.
+
+        :param name: the identifier to count references to
+        :return: the number of column references to ``name``
+        """
+        target = name.lower()
+        return sum(
+            1
+            for column in self._parsed.find_all(exp.Column)
+            if column.name.lower() == target
+        )
 
     def get_niladic_functions(self) -> set[str]:
         """
@@ -2119,7 +2271,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def get_limit_value(self) -> int | None:
         """
-        Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
+        Return a fixed outer `LIMIT`, `TOP`, or `FETCH` row count, if known.
         """
         # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
         # here would make `_set_query_limit()` clamp the whole query to 2 rows.
@@ -2127,13 +2279,56 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return None
 
         if limit_node := self._parsed.args.get("limit"):
-            literal = limit_node.args.get("expression") or getattr(
-                limit_node, "this", None
-            )
+            options = limit_node.args.get("limit_options")
+            if options and (
+                options.args.get("percent") or options.args.get("with_ties")
+            ):
+                return None
+            if isinstance(limit_node, exp.Fetch):
+                literal = limit_node.args.get("count")
+                # FETCH FIRST ROW ONLY has an implicit count of one.
+                if literal is None:
+                    return 1
+            else:
+                literal = limit_node.args.get("expression")
+            while isinstance(literal, exp.Paren):
+                literal = literal.this
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
         return None
+
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Preserve complex limits, using a SQL cap only when safe to wrap."""
+        if (
+            self._parsed.args.get("limit") is not None
+            and self.get_limit_value() is None
+            and method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}
+            and isinstance(self._parsed, exp.Query)
+        ):
+            # SQL Server derived tables reject unnamed or duplicate output
+            # columns, including names hidden behind stars. Preserve the SQL
+            # restriction and let the executor cap returned rows instead.
+            if self._dialect == Dialects.TSQL:
+                return
+
+            # PERCENT, WITH TIES and expressions aren't fixed row counts. Keep
+            # them intact: replacing them could enlarge a smaller result set.
+            self.set_limit_value(limit, LimitMethod.WRAP_SQL)
+            subquery = self._parsed.args["from_"].this
+            subquery.set(
+                "alias",
+                exp.TableAlias(this=exp.to_identifier("__superset_limit")),
+            )
+            # Keep CTEs at statement level rather than inside the derived table.
+            if cte := subquery.this.args.pop("with_", None):
+                self._parsed.set("with_", cte)
+        else:
+            super().cap_limit_value(limit, method)
 
     def set_limit_value(
         self,
@@ -2288,6 +2483,46 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
         """
         return isinstance(self._parsed, exp.SetOperation)
+
+    def get_unmodelled_functions(self) -> set[str]:
+        """
+        Return the names of function calls SQLGlot does not model.
+
+        Such calls parse into ``exp.Anonymous`` and their behavior is opaque: a
+        user-defined function or a dialect builtin such as ``query_to_xml`` or
+        ``dblink`` can read tables named in string arguments, which ``tables``
+        cannot report.
+
+        :return: The function names, as written; a qualified call keeps its
+            qualifier (``my_schema.my_function``) so it is never mistaken for a
+            builtin of the same name
+        """
+        names: set[str] = set()
+        for node in self._parsed.find_all(exp.Anonymous):
+            parent = node.parent
+            if isinstance(parent, exp.Dot) and parent.expression is node:
+                names.add(f"{parent.this.sql()}.{node.name}")
+            else:
+                names.add(node.name)
+        return names
+
+    def has_dynamic_table_source(self) -> bool:
+        """
+        Check if the statement reads from something other than a named table.
+
+        Table functions (``read_csv(...)``, ``generate_series(...)``) and
+        dynamically named tables (``IDENTIFIER('t')``, Snowflake ``TABLE('t')``)
+        carry no table name for ``tables`` to report.
+
+        :return: True if any table source is not a plain named table
+        """
+        return (
+            any(
+                not isinstance(table.this, exp.Identifier)
+                for table in self._parsed.find_all(exp.Table)
+            )
+            or self._parsed.find(exp.TableFromRows) is not None
+        )
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """

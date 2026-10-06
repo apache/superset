@@ -376,7 +376,11 @@ interface ColumnCollectionTableProps {
   onMoveMappingHere?: (columnName: string) => void;
   onRemoveMapping?: () => void;
   onMonotonicChange?: (columnName: string, isMonotonic: boolean) => void;
+  /** Relayed from the mapped column's preview; see `PartitionColumnFields`. */
+  onPreviewVerdict?: (mirrors: boolean | null) => void;
   expandedColumnName?: string | null;
+  /** Bumped per reveal request, so the same column can be asked for twice. */
+  expandedColumnNonce?: number;
 }
 
 interface StackedFieldProps {
@@ -649,7 +653,9 @@ function ColumnCollectionTable({
   onMoveMappingHere,
   onRemoveMapping,
   onMonotonicChange,
+  onPreviewVerdict,
   expandedColumnName,
+  expandedColumnNonce,
 }: ColumnCollectionTableProps): JSX.Element {
   const tableColumns = [
     'column_name',
@@ -749,6 +755,7 @@ function ColumnCollectionTable({
             ? record => record.column_name === expandedColumnName
             : undefined
         }
+        expandItemNonce={expandedColumnNonce}
         stickyHeader
         expandFieldset={
           <FormContainer>
@@ -887,6 +894,7 @@ function ColumnCollectionTable({
                       onMoveMappingHere={onMoveMappingHere ?? (() => {})}
                       onRemoveMapping={onRemoveMapping ?? (() => {})}
                       onMonotonicChange={onMonotonicChange ?? (() => {})}
+                      onPreviewVerdict={onPreviewVerdict}
                     />
                   }
                 />
@@ -1226,15 +1234,24 @@ function DatasourceEditor({
         validationErrors = validationErrors.concat(folderValidation.errors);
       }
 
-      // Validate the partition filter mapping. `databaseColumns` rather than
-      // `datasource.columns`, because the two only meet in `onChangeInternal`
-      // when the payload is assembled -- `datasource.columns` does not carry the
-      // transform the owner just typed.
+      // Validate the partition filter mapping. The editor's own two lists
+      // rather than `datasource.columns`, because the two only meet in
+      // `onChangeInternal` when the payload is assembled -- `datasource.columns`
+      // does not carry the transform the owner just typed.
+      //
+      // Both lists, because this asks what exists and not what may be picked.
+      // The backend builds its own column set from every column, so a
+      // calculated column is a valid mapped-column override; checking against
+      // `databaseColumns` alone called one that is really there missing, and
+      // that is a blocking error with no way out -- the partition-column
+      // dropdown is physical-only, so reopening such a dataset and changing
+      // nothing but its description left Save permanently disabled.
       if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
-          partitionMappingErrors(datasource, databaseColumns).map(
-            issue => issue.message,
-          ),
+          partitionMappingErrors(datasource, [
+            ...databaseColumns,
+            ...calculatedColumns,
+          ]).map(issue => issue.message),
         );
       }
 
@@ -1362,7 +1379,22 @@ function DatasourceEditor({
 
   // Which column's row expand to open, for the "map a different column" links.
   // Consumed by the Columns tab, which scrolls the row into view and expands it.
-  const [columnToReveal, setColumnToReveal] = useState<string | null>(null);
+  //
+  // Carries a nonce because the request is an event, not a state: clicking the
+  // same link twice -- after collapsing the row by hand in between -- asks for
+  // the same column name, and a bare string would make the second
+  // `setColumnToReveal` a no-op. React would bail out of the render, nothing
+  // downstream would see a change, and the row would stay shut.
+  const [columnToReveal, setColumnToReveal] = useState<{
+    name: string;
+    nonce: number;
+  } | null>(null);
+
+  // What the mapped column's own preview said, relayed up from its row expand
+  // so the dataset-level banner cannot claim a mirror that panel has already
+  // refused. Reported rather than lifted: the transform the preview judges is
+  // the debounced local one that panel owns. `null` means no verdict yet.
+  const [previewMirrors, setPreviewMirrors] = useState<boolean | null>(null);
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
@@ -1389,7 +1421,10 @@ function DatasourceEditor({
     // would otherwise open somewhere below the fold, which reads as the link
     // having done nothing.
     setColumnSearchTerm(columnName);
-    setColumnToReveal(columnName);
+    setColumnToReveal(previous => ({
+      name: columnName,
+      nonce: (previous?.nonce ?? 0) + 1,
+    }));
   }, []);
 
   const handleMoveMappingHere = useCallback(
@@ -1453,13 +1488,27 @@ function DatasourceEditor({
   const handleMainDttmColChange = useCallback(
     (value?: string) => {
       // Without an override the mapped column *is* the default datetime column,
-      // so re-pointing it moves the mapping rather than stranding it: the
-      // transform travels to the new column and is gone from the old one, where
-      // it would be invisible and still saved. Tested on the partition column
-      // plus the absent override rather than on `mappedColumnIsImplicit`, which
-      // needs a datetime column already set and so misses the transition that
-      // sets the first one.
-      if (datasource.partition_column && !datasource.partition_mapped_column) {
+      // so re-pointing it moves the mapping. The value transform stays behind
+      // and is cleared: it was written about the old column, and the mapping
+      // arrives inert rather than mirroring an expression nobody checked
+      // against its new home. Tested on the partition column plus the absent
+      // override rather than on `mappedColumnIsImplicit`, which needs a
+      // datetime column already set and so misses the transition that sets the
+      // first one.
+      //
+      // Gated on the flag for the reason `clear_unmapped_partition_transforms`
+      // is gated server-side: this discards stored configuration rather than
+      // repairing a broken reference, and with the flag off nothing mirrors,
+      // so there is no armed mapping to disarm and clearing is pure loss. The
+      // backend gate does not cover it either -- the cleared value travels as
+      // an explicit null inside the `columns` payload, which `update_columns`
+      // writes whatever the flag says. The datetime column select itself is
+      // not gated, since it predates this feature.
+      if (
+        isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+        datasource.partition_column &&
+        !datasource.partition_mapped_column
+      ) {
         setDatabaseColumns(prev =>
           applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
         );
@@ -1572,6 +1621,20 @@ function DatasourceEditor({
     addDangerToast,
   ]);
 
+  // The live column state, which is what a sync has to merge against.
+  // `datasource.columns` is the mount-time snapshot and never moves: no
+  // `setDatasource` call writes `columns`, and the props-sync effect only
+  // re-seeds the two column states. Merging a sync against it restored
+  // whatever the dataset held when the modal opened -- a transform and
+  // monotonicity flag just cleared, the `filterable`/`groupby` flags
+  // `applyPartitionColumnDefaults` just turned off, a description edited this
+  // session -- because `updateColumns` passes an unchanged column through
+  // verbatim.
+  const currentColumns = useMemo(
+    () => [...databaseColumns, ...calculatedColumns],
+    [databaseColumns, calculatedColumns],
+  );
+
   const syncMetadata = useCallback(async () => {
     // Abort previous syncMetadata if still pending
     if (abortControllers.current.syncMetadata) {
@@ -1587,7 +1650,7 @@ function DatasourceEditor({
       const newCols = await fetchSyncedColumns(datasource, signal);
 
       const columnChanges = updateColumns(
-        datasource.columns,
+        currentColumns,
         newCols,
         addSuccessToast,
       );
@@ -1643,6 +1706,7 @@ function DatasourceEditor({
     }
   }, [
     datasource,
+    currentColumns,
     addSuccessToast,
     addDangerToast,
     setColumns,
@@ -1999,8 +2063,10 @@ function DatasourceEditor({
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}
+              allColumns={[...databaseColumns, ...calculatedColumns]}
               onPartitionColumnChange={handlePartitionColumnChange}
               onNavigateToColumn={handleNavigateToColumn}
+              previewMirrors={previewMirrors}
             />
           )}
         </Flex>
@@ -2012,6 +2078,7 @@ function DatasourceEditor({
     handlePartitionColumnChange,
     handleNavigateToColumn,
     handleMainDttmColChange,
+    previewMirrors,
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,
@@ -2893,7 +2960,9 @@ function DatasourceEditor({
               onMoveMappingHere={handleMoveMappingHere}
               onRemoveMapping={handleRemoveMapping}
               onMonotonicChange={handleMonotonicChange}
-              expandedColumnName={columnToReveal}
+              onPreviewVerdict={setPreviewMirrors}
+              expandedColumnName={columnToReveal?.name ?? null}
+              expandedColumnNonce={columnToReveal?.nonce}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>

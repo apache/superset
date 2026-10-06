@@ -72,9 +72,11 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
+    known_mirror_verdict,
     mirrorable_operators,
     resolve_partition_mapping,
 )
@@ -1992,6 +1994,18 @@ class SqlaTable(
         return self.db_engine_spec.supports_partition_filter_mapping
 
     @property
+    def partition_filter_mapping(self) -> dict[str, Any] | None:
+        """
+        `partition_filter_mapping_summary` under the name its payload uses.
+
+        FAB resolves a `show_columns` entry as an attribute name, and the key
+        Explore's indicator reads is `partition_filter_mapping` -- the dataset
+        editor spreads this endpoint's result straight onto the chart's
+        datasource, so the two names have to be the same one.
+        """
+        return self.partition_filter_mapping_summary
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
@@ -2046,9 +2060,41 @@ class SqlaTable(
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            # Whether the last probe of this transform produced a mirror.
+            # `active` is the save path's own verdict and deliberately stays
+            # that -- a parse, which a misspelled function clears happily -- so
+            # a second, weaker claim carries what only the engine can answer.
+            # `None` means nothing has probed yet, which is honest on a cold
+            # cache and is not `False`: reporting a working mapping as broken
+            # until a chart runs trades one wrong claim for another.
+            "evaluable": (
+                known_mirror_verdict(
+                    self.database, self.catalog, self.schema, transform
+                )
+                if active and transform
+                else None
+            ),
             "is_monotonic": is_monotonic,
+            # How much of a value this engine compares on the mapped column, so
+            # the Explore indicator can replay the gates it otherwise cannot
+            # see. On a column compared at day resolution an equality carrying a
+            # time of day is declined, and so is any value the server cannot
+            # read as an instant, whatever its operator; without this the glyph
+            # would promise pruning the query does not do. Through the same
+            # helper the query path uses, for the same reason
+            # `mirrorable_operators` is.
+            "literal_resolution": self._column_literal_resolution(mapped_column).value,
             "mirrorable_operators": sorted(
-                operator.value for operator in mirrorable_operators(is_monotonic)
+                operator.value
+                for operator in mirrorable_operators(
+                    is_monotonic,
+                    # Through the same helper `resolve_partition_mapping` uses,
+                    # so the glyph cannot advertise an operator the query path
+                    # declines to mirror.
+                    equality_is_safe=equality_mirrors_safely(
+                        mapped_column, self.database.db_engine_spec
+                    ),
+                )
             ),
         }
 
@@ -2551,6 +2597,15 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
+                # Only on a column being discovered. Setting them on a matched
+                # existing column undoes whatever the owner chose for it -- and
+                # a PUT with `override_columns=true` runs this refresh *after*
+                # the update has committed those choices, so a save through the
+                # editor's "Automatically sync columns" box reverted the very
+                # flags it had just written, including the ones designating a
+                # partition column turns off.
+                new_column.groupby = True
+                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2565,10 +2620,20 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
             columns.append(new_column)
-            if not any_date_col and new_column.is_temporal:
+            # Never the partition column. It is a technical column -- an epoch
+            # integer, a lowercased region key -- that no analyst filters on,
+            # which makes it a poor default datetime column on its own merits.
+            # It is also the column a mapping points *at*, so choosing it here
+            # resolves the mapping onto itself (`partition_mapped_column or
+            # main_dttm_col`), a state every later write rejects as a blocking
+            # self-mapping -- including a write that changes nothing but the
+            # description.
+            if (
+                not any_date_col
+                and new_column.is_temporal
+                and col["column_name"] != self.partition_column
+            ):
                 any_date_col = col["column_name"]
 
         # Add back calculated (virtual) columns, i.e. those that weren't matched
@@ -2748,7 +2813,19 @@ class SqlaTable(
             filtered_query_obj = {
                 k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
             }
-            sqla_query = self.get_sqla_query(**cast(Any, filtered_query_obj))
+            # Without the mirrors. This runs *before* the chart cache lookup,
+            # unconditionally, so probing here means a warehouse round trip on
+            # a cache hit -- and on a relative range like "Last 24 hours" the
+            # chart key is deliberately stable while the probe key moves every
+            # second, so the probe misses every time. Skipping it cannot change
+            # the key: the mirrors contribute nothing to `extra_cache_keys`,
+            # which the Jinja template processor collects, and the mapping's own
+            # identity is appended below. A miss falls through to SQL
+            # generation, which probes.
+            sqla_query = self.get_sqla_query(
+                **cast(Any, filtered_query_obj),
+                mirror_partition_filters=False,
+            )
             extra_cache_keys += sqla_query.extra_cache_keys
 
         # For virtual datasets, include RLS predicates in the cache key

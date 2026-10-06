@@ -47,6 +47,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
 
     # Epoch-integer partition keys are the common Impala layout, and the
     # one-argument form takes the bound being mirrored rather than "now".

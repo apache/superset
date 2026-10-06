@@ -41,13 +41,14 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
+    drop_unusable_partition_transforms,
     import_dataset,
     validate_data_uri,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
-from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.datasets.schemas import ImportV1ColumnSchema, ImportV1DatasetSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
@@ -2863,3 +2864,410 @@ def test_import_drops_a_transform_the_mapping_does_not_mirror(
         "event_time2": "to_unixtime(:value)",
         "dt_epoch": None,
     }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_overwrite_import_disarms_a_transform_parked_on_the_old_mapping(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Omitted column fields keep their stored values, so a bundle that clears the
+    mapped-column override makes whatever `main_dttm_col` names the effective
+    column. A cleanup that only runs *after* the new references land resolves
+    the new mapping, finds that column effective and skips it -- so a transform
+    parked on it, invisible until now, goes live under a mapping nobody in the
+    bundle authored.
+
+    `DatasetDAO.update` is immune because it clears under the old resolution
+    too, before applying the request.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_parked_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset_uuid = uuid.uuid4()
+    base: dict[str, Any] = {
+        "table_name": "pfm_parked",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    # Park a transform on the default datetime column, which the override
+    # currently hides. This is the state the editor can produce and the state
+    # the post-import cleanup is meant to leave unreachable.
+    for column in dataset.columns:
+        if column.column_name == "event_time":
+            column.partition_value_transform = "unix_timestamp(:value)"
+            column.partition_transform_is_monotonic = True
+    db.session.flush()
+
+    # Now clear the override, so `main_dttm_col` -- and the parked transform --
+    # becomes the effective mapping. The bundle says nothing about either
+    # column's transform.
+    overwrite = copy.deepcopy(base)
+    overwrite["partition_mapped_column"] = None
+    for column in overwrite["columns"]:
+        column.pop("partition_value_transform", None)
+        column.pop("partition_transform_is_monotonic", None)
+
+    dataset = import_dataset(overwrite, overwrite=True)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms["event_time"] is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_clears_a_mapping_whose_column_the_sync_removed(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An overwrite import syncs columns, so it can delete the column
+    `partition_column` names. Left dangling, the reference fails
+    `UpdateDatasetCommand`'s validation on every later edit -- including a
+    description-only PUT, which carries no columns payload and so cannot reach
+    the branch that forgives a stored-only dangle.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_dangle_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    base: dict[str, Any] = {
+        "table_name": "pfm_dangle",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    import_dataset(copy.deepcopy(base))
+    db.session.flush()
+
+    without_partition_column = copy.deepcopy(base)
+    without_partition_column["columns"] = [
+        column
+        for column in without_partition_column["columns"]
+        if column["column_name"] != "dt_epoch"
+    ]
+
+    dataset = import_dataset(without_partition_column, overwrite=True)
+    db.session.flush()
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
+def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
+    return {
+        "table_name": "web_events",
+        "uuid": uuid.uuid4(),
+        "database_id": database_id,
+        "main_dttm_col": "event_time",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": transform,
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "metrics": [],
+    }
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp({{ current_username() }})", "rand() + 0 * :value"],
+    ids=["jinja", "non-deterministic"],
+)
+def test_import_drops_a_transform_the_save_path_would_reject(
+    session: Session, transform: str
+) -> None:
+    """
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform that will never
+    mirror a filter. Dropping it leaves a state an owner can see and fix rather
+    than a stored expression that looks configured and is not.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_defaults_an_omitted_monotonic_declaration_to_false(
+    session: Session,
+) -> None:
+    """
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False, but
+    the importer applies the raw config and throws `schema.load()`'s output
+    away, so the default never reaches storage. On an overwrite that leaves a
+    stored True standing next to a *replacement* transform -- and a
+    non-monotonic transform declared monotonic enables range mirrors that
+    exclude rows the filter keeps.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "hour(:value)")
+    del config["columns"][0]["partition_transform_is_monotonic"]
+
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "hour(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_leaves_a_declared_monotonic_transform_declared(
+    session: Session,
+) -> None:
+    """
+    Only an *omitted* declaration is defaulted. A bundle that says True still
+    means it, or export-then-import would downgrade every range mirror to
+    equality-only.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_keeps_a_usable_transform(session: Session) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "unix_timestamp(:value)")
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert config["columns"][0]["partition_transform_is_monotonic"] is True
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_leaves_transforms_alone_while_the_feature_is_off(
+    session: Session,
+) -> None:
+    """
+    No *usability* check runs with the flag off: nothing mirrors, so there is
+    only stored configuration to lose. The structural check still runs, and
+    Jinja passes it -- balanced blocks are substituted out before parsing.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(
+        database.id, "unix_timestamp({{ current_username() }})"
+    )
+    drop_unusable_partition_transforms(config)
+
+    assert (
+        config["columns"][0]["partition_value_transform"]
+        == "unix_timestamp({{ current_username() }})"
+    )
+
+
+#: Expressions the save path refuses outright, rather than ones that merely
+#: never mirror. The probe splices a transform into SQL and runs it, so a
+#: bundle carrying one of these is a way to execute arbitrary SQL without the
+#: `sql_lab` role.
+UNSTORABLE_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    [
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
+    ],
+    ids=["subquery", "set-operation", "multi-statement", "bare-from"],
+)
+
+
+def _assert_import_drops(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] is None
+    assert config["columns"][0]["partition_transform_is_monotonic"] is False
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_a_transform_that_is_not_a_storable_expression(
+    session: Session, transform: str
+) -> None:
+    _assert_import_drops(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNSTORABLE_TRANSFORMS
+def test_import_drops_an_unstorable_transform_even_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """
+    The one check the flag does not switch off.
+
+    Everything else here asks whether a transform will mirror, which is a
+    question about a live feature. This asks whether the expression is one the
+    product stores at all, and a bundle imported with the flag off would
+    otherwise sit in the metadata DB fully armed, waiting for an operator to
+    turn the flag on.
+    """
+    _assert_import_drops(transform)
+
+
+#: A transform a PUT accepts and parks inactive, rather than one it refuses.
+#: `validate_transform` classifies an unparseable transform as a Tier-2 issue:
+#: the mapping saves and stays inactive until the owner finishes typing it.
+UNFINISHED_TRANSFORMS = pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp(:value", "unix_timestamp(:value))", "unix_timestamp(:value) +"],
+    ids=["unclosed", "extra-paren", "trailing-operator"],
+)
+
+
+def _assert_import_keeps(transform: str) -> None:
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, transform)
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_a_put_would_park(
+    session: Session, transform: str
+) -> None:
+    """
+    `stored_expression_error` fails closed on a transform that does not parse,
+    which is right for the probe and wrong here: a PUT saves the same transform
+    and reports it inactive, so nulling it on import means an export cannot
+    round-trip the dataset it was taken from. `UpdateDatasetCommand` puts the
+    same parseability condition in front of the same gate.
+    """
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+@UNFINISHED_TRANSFORMS
+def test_import_keeps_an_unfinished_transform_with_the_feature_off(
+    session: Session, transform: str
+) -> None:
+    """With the flag off there is only stored configuration to lose."""
+    _assert_import_keeps(transform)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unfinished_transform_survives_the_export_import_round_trip(
+    session: Session,
+) -> None:
+    """
+    The test that would have caught this. An owner mid-edit saves, exports, and
+    imports the bundle back: the transform has to come out the way it went in,
+    inactive but intact.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="hive_db", sqlalchemy_uri="hive://localhost/db")
+    db.session.add(database)
+    db.session.flush()
+
+    transform = "unix_timestamp(:value"
+    stored = TableColumn(column_name="event_time", is_dttm=True)
+    stored.partition_value_transform = transform
+
+    # What export writes, from a column a PUT accepted and parked inactive.
+    exported = {
+        "column_name": stored.column_name,
+        "partition_value_transform": stored.partition_value_transform,
+        "partition_transform_is_monotonic": None,
+    }
+    loaded = ImportV1ColumnSchema().load(exported)
+
+    config = _partition_mapping_config(database.id, transform)
+    config["columns"][0] = loaded
+    drop_unusable_partition_transforms(config)
+
+    assert config["columns"][0]["partition_value_transform"] == transform

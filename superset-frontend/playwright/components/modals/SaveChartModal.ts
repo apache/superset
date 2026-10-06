@@ -19,6 +19,7 @@
 
 import { Page } from '@playwright/test';
 import { Input, Modal, Radio, Select } from '../core';
+import { waitForGet } from '../../helpers/api/intercepts';
 
 /**
  * Save actions offered by the modal's radio group, keyed to their labels.
@@ -92,23 +93,32 @@ export class SaveChartModal extends Modal {
    * affordance creates one with `dashboardTitle` when the chart is saved.
    */
   async selectDashboard(dashboardTitle: string): Promise<void> {
-    await this.dashboardSelect.selectOption(dashboardTitle);
+    // The select offers the typed title as a "create" option immediately.
+    // Typing before the dashboard list has loaded can therefore create a
+    // second dashboard with an existing title instead of selecting it. The
+    // list is fetched when the dropdown first opens (the modal remounts on
+    // every open), so wait for it before typing.
+    const dashboardsLoaded = waitForGet(this.page, '/api/v1/dashboard/?q=');
+    await this.dashboardSelect.selectOption(dashboardTitle, {
+      afterOpen: dashboardsLoaded,
+    });
   }
 
   /**
-   * Adds the chart to an existing dashboard. Waits for the select's initial
-   * options to load before typing: the "create new" option is only offered
-   * when no loaded option has the typed title, so typing earlier leaves it as
-   * the sole match and picking it silently saves the chart to a duplicate
-   * dashboard. Relies on the workspace holding fewer dashboards than the
-   * select's page size, so the initial load contains the target and typing
-   * filters client-side without a server search.
+   * Adds the chart to an existing dashboard. A strict prefix keeps the
+   * "create new" option's label distinct from the exact target title.
+   * The exact-only click waits for either local filtering or server search
+   * to expose the existing dashboard, without selecting a partial match.
    */
   async selectExistingDashboard(dashboardTitle: string): Promise<void> {
     await this.dashboardSelect.open();
-    await this.dashboardSelect.getVisibleOptionTexts();
-    await this.dashboardSelect.type(dashboardTitle);
-    await this.dashboardSelect.clickOption(dashboardTitle);
+    await this.dashboardSelect.type(dashboardTitle.slice(0, -1));
+    await this.page
+      .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden)')
+      .last()
+      .locator('.ant-select-item-option')
+      .getByText(dashboardTitle, { exact: true })
+      .click();
   }
 
   /**

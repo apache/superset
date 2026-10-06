@@ -48,8 +48,8 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
-    is_parseable,
-    parse_skeleton,
+    is_unfinished,
+    stored_expression_error,
     validate_partition_mapping,
 )
 from superset.daos.dataset import DatasetDAO
@@ -470,6 +470,30 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if not partition_column:
             return
 
+        # A column payload drops every column it omits, and `update_columns`
+        # then runs `DatasetDAO.clear_dangling_partition_mapping` to drop a
+        # mapping whose columns went with them -- but that happens later, during
+        # `run()`. Validate the state that cleanup leaves behind, or a metadata
+        # sync that legitimately removes the mapped column is rejected before
+        # the cleanup meant to handle it ever runs, which is exactly the
+        # orphaned case the cleanup exists for.
+        #
+        # Only a *stored* reference is forgiven. Asking in this very request to
+        # map onto a column the same request does not define is a mistake worth
+        # reporting, not something to quietly clean up.
+        if columns is not None:
+            if (
+                "partition_column" not in self._properties
+                and partition_column not in column_names
+            ):
+                return
+            if (
+                "partition_mapped_column" not in self._properties
+                and partition_mapped_column
+                and partition_mapped_column not in column_names
+            ):
+                partition_mapped_column = None
+
         database = self._properties.get("database") or self._model.database
         catalog = self._properties.get("catalog", self._model.catalog)
         schema = self._properties.get("schema", self._model.schema)
@@ -490,22 +514,23 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     ValidationError(str(issue.message), field_name=issue.field)
                 )
 
-        if transform and is_parseable(transform, database.backend):
-            try:
-                validate_stored_expression(
-                    database, catalog, schema, parse_skeleton(transform)
-                )
-            except (SupersetSecurityException, QueryClauseValidationException) as ex:
-                message = (
-                    ex.error.message
-                    if isinstance(ex, SupersetSecurityException)
-                    else ex.message
-                )
+        # Everything except a transform that is not SQL yet. A half-typed
+        # transform is a Tier-2 issue above -- the mapping saves and stays
+        # inactive -- and this gate fails closed on anything that does not
+        # parse, so asking it would refuse the save mid-keystroke. Narrower
+        # than "parses as a single expression": a set-operation or a
+        # multi-statement transform fails that too, and has to reach this gate.
+        if transform and not is_unfinished(transform, database.backend):
+            # `stored_expression_error` rather than `validate_stored_expression`
+            # alone, which it already includes: it is the gate preview, import
+            # and the legacy save path all use, and running a narrower one here
+            # left a normal PUT the only door into this field that skipped the
+            # function denylist. A transform stored through that door is spliced
+            # into the probe as SQL and run by the engine, so it has to clear
+            # the same bar everywhere.
+            if reason := stored_expression_error(database, catalog, schema, transform):
                 exceptions.append(
-                    ValidationError(
-                        message,
-                        field_name="partition_value_transform",
-                    )
+                    ValidationError(reason, field_name="partition_value_transform")
                 )
 
     def _effective_transform(

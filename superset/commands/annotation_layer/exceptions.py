@@ -21,6 +21,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ImportFailedError,
     ValidationError,
 )
 
@@ -47,6 +48,10 @@ class AnnotationLayerDeleteFailedError(DeleteFailedError):
 
 class AnnotationLayerDeleteIntegrityError(CommandException):
     message = _("Annotation layer has associated annotations.")
+
+
+class AnnotationLayerImportError(ImportFailedError):
+    message = _("Import annotation layer failed for an unknown reason")
 
 
 class AnnotationLayerNameUniquenessValidationError(ValidationError):

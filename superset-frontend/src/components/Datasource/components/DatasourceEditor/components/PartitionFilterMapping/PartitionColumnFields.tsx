@@ -22,6 +22,7 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import {
   Divider,
+  Button,
   Flex,
   Icons,
   InfoTooltip,
@@ -33,20 +34,45 @@ import {
 import {
   mappedColumnIsImplicit,
   mappingIsActive,
+  partitionMappingErrors,
   resolveMappedColumn,
   suggestedMappedColumn,
 } from './utils';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
+  PartitionMappingIssue,
 } from './types';
 
 interface PartitionColumnFieldsProps {
   datasource: PartitionMappingDatasource;
+  /**
+   * Physical columns: what the partition-column dropdown may offer, and where
+   * a replacement mapped column may be suggested from. A calculated column
+   * belongs in neither -- the engine cannot partition on an expression, and
+   * the mapping picker only renders on a physical column's row.
+   */
   columns: PartitionMappingColumn[];
+  /**
+   * Every column on the dataset, physical and calculated. What *exists* is a
+   * different question from what may be picked, and validation asks the first:
+   * the backend accepts a calculated column as the mapped-column override, so
+   * checking existence against the physical columns alone reported a column
+   * that is really there as missing -- and blocked Save with no way out, since
+   * the dropdown cannot offer it back.
+   */
+  allColumns: PartitionMappingColumn[];
   onPartitionColumnChange: (columnName: string | null) => void;
   /** Open the given column's row expand in the Columns table. */
   onNavigateToColumn: (columnName: string) => void;
+  /**
+   * Whether the mapped column's own preview says the transform mirrors, or
+   * `null`/undefined when no verdict is in yet. The checks this section can
+   * make are all static -- a transform the database rejects clears every one
+   * of them -- so without the preview's answer the banner claimed a speed-up
+   * the query never delivers.
+   */
+  previewMirrors?: boolean | null;
 }
 
 /**
@@ -61,8 +87,10 @@ interface PartitionColumnFieldsProps {
 export default function PartitionColumnFields({
   datasource,
   columns,
+  allColumns,
   onPartitionColumnChange,
   onNavigateToColumn,
+  previewMirrors,
 }: PartitionColumnFieldsProps) {
   const theme = useTheme();
 
@@ -94,8 +122,44 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
-  const isActive = mappingIsActive(datasource, columns);
+  // The static checks are necessary, not sufficient: an unparseable expression
+  // or a function the database does not have needs the engine to spot, and the
+  // mapped column's row already asks it. Deferring to that answer where there
+  // is one is what keeps this banner and that panel from contradicting each
+  // other. A stored transform whose last probe failed says the same thing
+  // through the datasource's own summary, which is what an owner sees on
+  // reopening the editor.
+  const isActive =
+    mappingIsActive(datasource, allColumns) &&
+    previewMirrors !== false &&
+    datasource.partition_filter_mapping?.evaluable !== false;
   const { partition_column: partitionColumn } = datasource;
+
+  // `field` is what the issues carry it for: a message about the partition
+  // column belongs under the partition column, not only in the Save button's
+  // tooltip, where an owner has to guess which of the two selects is at fault.
+  const issues = useMemo(
+    () => partitionMappingErrors(datasource, allColumns),
+    [datasource, allColumns],
+  );
+  const issueFor = (field: PartitionMappingIssue['field']) =>
+    issues.find(issue => issue.field === field)?.message;
+
+  // "Map a different column instead" normally opens the currently-mapped
+  // column's row, which is where the picker lives. When the mapped column *is*
+  // the partition column -- the self-mapping the backend rejects, and reachable
+  // in one click because the picker offers every column -- that row renders no
+  // mapping section at all, so the one guided way out of the broken state led
+  // nowhere. Offer a column that is not the partition column instead.
+  //
+  // Null only when there is no mapped column at all, which is also when the
+  // block below does not render -- but a dataset whose every column is the
+  // partition column would otherwise be offered a link to nothing, so the link
+  // is guarded rather than the type asserted away.
+  const differentColumnTarget =
+    mappedColumn && mappedColumn !== partitionColumn
+      ? mappedColumn
+      : (suggestedMappedColumn(columns, partitionColumn) ?? mappedColumn);
 
   return (
     <Flex vertical gap={theme.sizeUnit} data-test="partition-column-fields">
@@ -117,6 +181,11 @@ export default function PartitionColumnFields({
         allowClear
         data-test="partition-column-select"
       />
+      {issueFor('partition_column') && (
+        <Typography.Text type="danger" data-test="partition-column-error">
+          {issueFor('partition_column')}
+        </Typography.Text>
+      )}
       <Typography.Text type="secondary">
         {t('Column used for partition pruning on this table.')}
       </Typography.Text>
@@ -193,16 +262,30 @@ export default function PartitionColumnFields({
                   <Label>{mappedColumn}</Label>
                 )}
               </Flex>
+              {issueFor('partition_mapped_column') && (
+                <Typography.Text
+                  type="danger"
+                  data-test="partition-mapped-column-error"
+                >
+                  {issueFor('partition_mapped_column')}
+                </Typography.Text>
+              )}
               <Typography.Text type="secondary">
                 {t(
                   'Filters on this column are mirrored onto the partition column.',
-                )}{' '}
-                <Typography.Link
-                  onClick={() => onNavigateToColumn(mappedColumn)}
-                  data-test="map-a-different-column"
-                >
-                  {t('Map a different column instead →')}
-                </Typography.Link>
+                )}
+                {differentColumnTarget && (
+                  <>
+                    {' '}
+                    <Button
+                      buttonStyle="link"
+                      onClick={() => onNavigateToColumn(differentColumnTarget)}
+                      data-test="map-a-different-column"
+                    >
+                      {t('Map a different column instead →')}
+                    </Button>
+                  </>
+                )}
               </Typography.Text>
               {isActive ? (
                 <Alert
@@ -215,11 +298,12 @@ export default function PartitionColumnFields({
                         'Filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s.',
                         { mapped: mappedColumn, partition: partitionColumn },
                       )}{' '}
-                      <Typography.Link
+                      <Button
+                        buttonStyle="link"
                         onClick={() => onNavigateToColumn(mappedColumn)}
                       >
                         {t('Customize the value transform →')}
-                      </Typography.Link>
+                      </Button>
                     </span>
                   }
                 />
@@ -244,7 +328,8 @@ export default function PartitionColumnFields({
                 >
                   {t('No mapping')}
                 </Label>
-                <Typography.Link
+                <Button
+                  buttonStyle="link"
                   onClick={() => {
                     const candidate = suggestedMappedColumn(
                       columns,
@@ -257,7 +342,7 @@ export default function PartitionColumnFields({
                   data-test="map-a-column"
                 >
                   {t('Map a column →')}
-                </Typography.Link>
+                </Button>
               </Flex>
               <Typography.Text type="secondary">
                 {t(

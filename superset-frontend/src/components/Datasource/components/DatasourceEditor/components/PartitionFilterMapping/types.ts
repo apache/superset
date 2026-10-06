@@ -36,6 +36,12 @@ export interface PartitionMappingDatasource {
   partition_mapped_column?: string | null;
   partition_value_transform_default?: string | null;
   supports_partition_filter_mapping?: boolean;
+  /**
+   * The backend's own read of the stored mapping. Only `evaluable` is read
+   * here, and only to stop the banner claiming a mirror the last probe of the
+   * stored transform refused -- the rest of the summary is Explore's.
+   */
+  partition_filter_mapping?: { evaluable?: boolean | null } | null;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
@@ -45,7 +51,13 @@ export interface PartitionMappingPreview {
   emitted_predicate?: string;
   error?: string;
   /** Why it is invalid, so the panel can headline it correctly. */
-  reason?: 'parse' | 'validation' | 'operator' | 'engine' | 'unconfigured';
+  reason?:
+    | 'parse'
+    | 'validation'
+    | 'operator'
+    | 'engine'
+    | 'type'
+    | 'unconfigured';
 }
 
 /**
@@ -65,8 +77,11 @@ export type PartitionRowState = 'mapped' | 'unmapped' | 'partition' | 'none';
  * the backend reports two tiers because a half-written transform is allowed to
  * save and sit inactive, and only the blocking tier is worth stopping the owner
  * in the editor for. Everything this carries blocks, so the flag has nothing to
- * distinguish. `field` names the input at fault, so the message can be shown
- * there rather than only in the Save button's tooltip.
+ * distinguish. `field` names the input at fault: `PartitionColumnFields` shows
+ * the column-level messages under the select they are about, and
+ * `PartitionMappingSection` shows the transform's under the transform box,
+ * rather than leaving an owner to guess which of the three the Save button's
+ * tooltip means.
  */
 export interface PartitionMappingIssue {
   field:
