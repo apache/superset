@@ -242,7 +242,7 @@ def _transfer_column(
 
     if _is_multi_index(base_df):
         if target in base_df.columns or target in base_df:
-            base_df[target] = append_df[source]
+            base_df[target] = append_df[source].copy()
             return base_df
         if _is_multi_index(append_df) and source in append_df.columns.levels[0]:
             src_slice = append_df[[source]].copy()
@@ -252,7 +252,7 @@ def _transfer_column(
             )
             return pd.concat([base_df, src_slice], axis="columns")
         if isinstance(target, tuple) and len(target) == base_df.columns.nlevels:
-            base_df[target] = append_df[source]
+            base_df[target] = append_df[source].copy()
             return base_df
         new_cols = [(target, *([""] * (base_df.columns.nlevels - 1)))]
         src_slice = append_df[[source]].copy()
@@ -261,7 +261,7 @@ def _transfer_column(
         )
         return pd.concat([base_df, src_slice], axis="columns")
 
-    base_df[target] = append_df[source]
+    base_df[target] = append_df[source].copy()
     return base_df
 
 
@@ -285,6 +285,9 @@ def _append_columns(
            in `base_df` unchanged.
     :return: new DataFrame with combined data from `base_df` and `append_df`
     """
+    if not columns:
+        return base_df.copy()
+
     _base_df = base_df.copy()
     for source, target in columns.items():
         _base_df = _transfer_column(_base_df, append_df, source, target)
