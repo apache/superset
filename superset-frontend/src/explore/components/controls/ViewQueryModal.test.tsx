@@ -405,3 +405,111 @@ test('preserves empty entries alongside reported requests in a mixed run', () =>
   ]);
   expect(fetchMock.callHistory.calls()).toHaveLength(0);
 });
+
+test('uses the owning chart ID when query form data has no saved-chart ID', () => {
+  const request = '-- SQL\nSELECT saved_chart';
+  const { container } = render(
+    <ViewQueryModal
+      chartId={42}
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{ query: '-- SQL\nSELECT unrelated' }],
+          },
+          42: { ...chart, id: 42, queriesResponse: [{ query: request }] },
+        },
+      },
+    },
+  );
+  expect(container.querySelector('pre')?.textContent).toBe(request);
+  expect(container.textContent).not.toContain('unrelated');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each([
+  {
+    response: [{ error: 'Provider rejected the selected dimension.' }],
+    message: 'Provider rejected the selected dimension.',
+  },
+  { response: undefined, message: 'Network error.' },
+])('shows the actual chart failure: $message', ({ response, message }) => {
+  const store = createStore(
+    {
+      charts: {
+        0: {
+          ...chart,
+          queriesResponse: [{ query: '-- SQL\nSELECT previous' }],
+        },
+      },
+    },
+    { charts: chartReducer },
+  );
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    { store },
+  );
+  act(() => {
+    store.dispatch({
+      type: chartAction.CHART_UPDATE_FAILED,
+      key: 0,
+      queriesResponse: response,
+    });
+  });
+  expect(screen.getByRole('alert')).toHaveTextContent(message);
+  expect(container.textContent).not.toContain('No provider query is available');
+  expect(container.textContent).not.toContain('after the chart runs');
+  expect(container.textContent).not.toContain('SELECT previous');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test('keeps per-entry errors beside provider requests in a mixed response', () => {
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [
+              { query: '-- SQL\nSELECT first' },
+              { error: 'Second query failed.' },
+              { query: '-- SQL\nSELECT third', error: 'Third query failed.' },
+            ],
+          },
+        },
+      },
+    },
+  );
+  expect(
+    Array.from(
+      container.querySelectorAll('[role="alert"], pre'),
+      entry => entry.textContent,
+    ),
+  ).toEqual([
+    '-- SQL\nSELECT first',
+    'Second query failed.',
+    'Third query failed.',
+    '-- SQL\nSELECT third',
+  ]);
+  expect(container.textContent).not.toContain('No provider query is available');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});

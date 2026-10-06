@@ -211,8 +211,11 @@ text. The text is not reformatted, and a block can contain multiple requests fro
 
 If no run report is available, the message is **The provider query will be available after the chart
 runs.** Run the chart to make its reported requests available. If a run report is present but has no
-request text for an entry, the message is **No provider query is available for this run.** This can
+request text or an error for an entry, the message is **No provider query is available for this run.** This can
 occur when a provider does not report request text; it does not mean the chart returned no data.
+
+If the run fails, View query displays the chart's error message. For responses containing both
+requests and errors, each error appears alongside the reported requests.
 
 View query for regular dataset charts is unchanged.
 

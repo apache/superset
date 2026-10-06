@@ -43,6 +43,7 @@ import SemanticRequestView from './SemanticRequestView';
 interface Props {
   latestQueryFormData: QueryFormData;
   ownState?: JsonObject;
+  chartId?: number;
 }
 
 type Result = {
@@ -69,16 +70,18 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
+const ViewQueryModal: FC<Props> = ({
+  latestQueryFormData,
+  ownState,
+  chartId,
+}) => {
   const isSemanticView =
     new DatasourceKey(latestQueryFormData.datasource).type ===
     DatasourceType.SemanticView;
-  const queriesResponse = useSelector<
-    RootState,
-    ChartState['queriesResponse'] | undefined
-  >(
-    state => state.charts?.[latestQueryFormData.slice_id ?? 0]?.queriesResponse,
+  const chartState = useSelector<RootState, ChartState | undefined>(
+    state => state.charts?.[chartId ?? latestQueryFormData.slice_id ?? 0],
   );
+  const queriesResponse = chartState?.queriesResponse;
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,24 +130,35 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
   if (isSemanticView) {
     const reportState = getSemanticReportState(queriesResponse);
     const noRequestMessage = t('No provider query is available for this run.');
+    const chartError =
+      chartState?.chartStatus === 'failed' ? chartState.chartAlert : null;
     return (
       <ViewQueryModalContainer>
-        {reportState === 'not-run' ? (
-          <Alert
-            type="info"
-            message={t(
-              'The provider query will be available after the chart runs.',
-            )}
-          />
-        ) : (
-          queriesResponse?.map((entry, index) =>
-            entry.query ? (
-              <SemanticRequestView key={index} requestText={entry.query} />
-            ) : (
-              <Alert key={index} type="info" message={noRequestMessage} />
-            ),
-          )
+        {chartError && !queriesResponse?.some(entry => entry.error) && (
+          <Alert type="error" message={chartError} closable={false} />
         )}
+        {reportState === 'not-run'
+          ? !chartError && (
+              <Alert
+                type="info"
+                message={t(
+                  'The provider query will be available after the chart runs.',
+                )}
+              />
+            )
+          : queriesResponse?.map((entry, index) => (
+              <Fragment key={index}>
+                {entry.error && (
+                  <Alert type="error" message={entry.error} closable={false} />
+                )}
+                {entry.query && (
+                  <SemanticRequestView requestText={entry.query} />
+                )}
+                {!entry.error && !entry.query && (
+                  <Alert type="info" message={noRequestMessage} />
+                )}
+              </Fragment>
+            ))}
       </ViewQueryModalContainer>
     );
   }
