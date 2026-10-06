@@ -51,6 +51,7 @@ from superset.semantic_layers.metadata_cache import (
     compatibility_identity,
     CompatibilityIdentity,
 )
+from superset.semantic_layers.metadata_errors import metadata_api_errors
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -512,6 +513,7 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return metrics and dimensions compatible with the current selection.
         ---

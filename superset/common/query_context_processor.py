@@ -73,7 +73,6 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.slice import Slice
 
@@ -507,22 +506,22 @@ class QueryContextProcessor:
             chart: Slice | None = (
                 ChartDAO.find_by_id(value) if value is not None else None
             )
-            source: Datasource | None = chart.resolved_datasource if chart else None
-            if not isinstance(source, SemanticView) or not participates(
-                source.semantic_layer
-            ):
+            if chart is None:
                 continue
-            assert chart is not None
             try:
                 context: QueryContext | None = chart.get_query_context()
                 if context is None:
                     # The annotation executor reports its missing-context error.
                     continue
+                source: Explorable = context.datasource
+                if not isinstance(source, SemanticView) or not participates(
+                    source.semantic_layer
+                ):
+                    continue
                 context.raise_for_access()
-                if isinstance(context.datasource, SemanticView):
-                    # Reuse the annotation command's canonical query authority.
-                    # Later execution retains this view without renewing its budget.
-                    _captured: str | None = context.datasource.metadata_cache_token
+                # Reuse the annotation command's canonical query authority.
+                # Later execution retains this view without renewing its budget.
+                _captured: str | None = source.metadata_cache_token
             except SupersetException as ex:
                 raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
@@ -551,17 +550,16 @@ class QueryContextProcessor:
             chart = (
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
-            annotation_datasource = chart.datasource if chart else None
+            annotation_datasource: Explorable | None = (
+                chart.get_query_context_datasource() if chart else None
+            )
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)
                 if annotation_datasource
                 else None
             )
-            metadata_datasource: Datasource | None = (
-                chart.resolved_datasource if chart else None
-            )
-            if isinstance(metadata_datasource, SemanticView):
-                token: str | None = annotation_cache_token(metadata_datasource)
+            if isinstance(annotation_datasource, SemanticView):
+                token: str | None = annotation_cache_token(annotation_datasource)
                 if token is not None:
                     source_metadata[str(layer.get("value"))] = token
         return {

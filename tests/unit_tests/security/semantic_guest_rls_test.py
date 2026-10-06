@@ -59,6 +59,50 @@ def set_guest(rules: list[GuestTokenRlsRule]) -> None:
     g.user = GuestUser(token=token, roles=[])
 
 
+def test_annotation_query_source_guest_rules_precede_metadata_identity(
+    mocker: MockerFixture,
+) -> None:
+    """Annotation cache context uses the executing source's guest row rules."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    set_guest([GuestTokenRlsRule(dataset="7", clause="category = 'a'")])
+    source: SemanticView = SemanticView(id=7, name="annotation-source")
+    chart: Slice = Slice(id=12, datasource_id=99, datasource_type="table")
+    chart.table = SqlaTable(id=99, table_name="edited-source")
+    chart.query_context = (
+        '{"datasource": {"id": 7, "type": "semantic_view"}, '
+        '"queries": [{"metrics": ["orders"]}]}'
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=source
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    metadata: MagicMock = mocker.patch(
+        "superset.semantic_layers.metadata_cache.annotation_cache_token"
+    )
+    primary: MagicMock = MagicMock()
+    primary.type = DatasourceType.TABLE
+    primary.id = 99
+    primary.is_rls_supported = False
+    primary.get_extra_cache_keys.return_value = []
+    query: MagicMock = MagicMock()
+    query.annotation_layers = [{"sourceType": "line", "value": chart.id}]
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=primary)
+    )
+    with pytest.raises(
+        SupersetSecurityException, match="cannot enforce guest row-level"
+    ):
+        processor.query_cache_key(query)
+    query.cache_key.assert_not_called()
+    metadata.assert_not_called()
+
+
 @pytest.fixture
 def provider(mocker: MockerFixture) -> MagicMock:
     """The provider returns rows unless the request is refused."""

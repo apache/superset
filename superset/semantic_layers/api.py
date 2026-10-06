@@ -68,6 +68,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers import metadata_binding
 from superset.semantic_layers.masking import mask_configuration
+from superset.semantic_layers.metadata_errors import metadata_api_errors
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -688,6 +689,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
+    @metadata_api_errors
     def runtime_schema(self, uuid: str) -> FlaskResponse:
         """Get runtime schema for a stored semantic layer.
         ---
@@ -749,6 +751,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     layer.implementation.configuration,  # type: ignore[attr-defined]
                     runtime_data,
                 )
+        except MetadataRefreshError:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             return self.response_400(message=str(ex))
 
