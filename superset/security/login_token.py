@@ -30,6 +30,16 @@ proof into an ordinary Superset session in two steps:
 
 The token is an opaque handle to a short-lived server-side record; no identity
 data travels in the URL.
+
+**This module must stay importable from ``superset_config.py``.** The documented
+way to write a resolver begins with ``from superset.security.login_token import
+LoginTokenUserInfo``, and the config is read before the application is
+initialized. Anything reaching ``superset.models`` -- the key-value DAO and its
+model both do, via ``superset.models.helpers`` -- builds encrypted columns and
+``relationship(security_manager.user_model, ...)`` at class-definition time and
+raises "App not initialized yet". Those imports are therefore deferred into the
+functions that need them; ``key_value.types`` and ``key_value.utils`` pull in no
+models and are safe at module scope.
 """
 
 from __future__ import annotations
@@ -42,8 +52,6 @@ from uuid import UUID, uuid4
 
 from flask import current_app, Request
 
-from superset.daos.key_value import KeyValueDAO
-from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.key_value.utils import get_filter
 
@@ -219,6 +227,11 @@ def mint(userinfo: LoginTokenUserInfo) -> tuple[str, datetime]:
     Returns the token and its expiry. The token is a ``uuid4``, so it carries no
     identity data and is not guessable.
     """
+    # Deferred: importing the DAO at module scope would break `superset_config.py`.
+    from superset.daos.key_value import (  # pylint: disable=import-outside-toplevel
+        KeyValueDAO,
+    )
+
     token = uuid4()
     expires_on = datetime.now() + timedelta(seconds=get_ttl_seconds())
 
@@ -267,7 +280,13 @@ def consume(token: str) -> LoginTokenUserInfo | None:
     Returns ``None`` for an unknown, malformed, expired or already-claimed token
     -- callers must not distinguish between those cases in their response.
     """
-    from superset import db  # pylint: disable=import-outside-toplevel
+    # Deferred for the reason in the module docstring.
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.daos.key_value import KeyValueDAO
+    from superset.key_value.models import KeyValueEntry
+
+    # pylint: enable=import-outside-toplevel
 
     try:
         key = UUID(token)

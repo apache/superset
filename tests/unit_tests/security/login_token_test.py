@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import os
+import subprocess
+import sys
 from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -382,3 +385,37 @@ def test_is_safe_next_path_accepts_relative_paths(path: str) -> None:
 def test_is_safe_next_path_rejects_everything_else(path: str) -> None:
     """Anything that is not unambiguously a single-slash-rooted path is refused."""
     assert login_token.is_safe_next_path(path) is False
+
+
+def test_module_is_importable_without_an_initialized_app() -> None:
+    """``superset_config.py`` must be able to import this module.
+
+    The documented way to write a resolver begins with ``from
+    superset.security.login_token import LoginTokenUserInfo``, and the config is
+    read before the app exists. A module-scope import of the key-value DAO or its
+    model reaches ``superset.models.core``, which builds encrypted columns and
+    ``relationship(security_manager.user_model, ...)`` at class-definition time
+    and raises "App not initialized yet" -- so following the documentation would
+    break startup.
+
+    Run in a subprocess deliberately: by the time this suite runs, the app and
+    the models are already imported, so an in-process import would pass whether
+    or not the dependency exists.
+    """
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            "from superset.security.login_token import LoginTokenUserInfo; "
+            "print(sorted(LoginTokenUserInfo.__annotations__))",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "SUPERSET_CONFIG": "", "SUPERSET_CONFIG_PATH": ""},
+    )
+    assert result.returncode == 0, (
+        "superset.security.login_token is not importable without an app, so the "
+        f"documented resolver example would break startup:\n{result.stderr[-2000:]}"
+    )
+    assert "username" in result.stdout
