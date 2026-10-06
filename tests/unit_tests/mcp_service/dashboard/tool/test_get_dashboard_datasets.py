@@ -553,16 +553,16 @@ async def test_get_dashboard_datasets_multiple_datasets(mock_find, mcp_server):
     assert sales_data["chart_count"] == 2
     assert sales_data["columns"] == [
         {
-            "column_name": "region",
-            "verbose_name": _wrapped("Region"),
-            "type": "VARCHAR",
-            "is_dttm": False,
-        },
-        {
             "column_name": "order_date",
             "verbose_name": None,
             "type": "TIMESTAMP",
             "is_dttm": True,
+        },
+        {
+            "column_name": "region",
+            "verbose_name": _wrapped("Region"),
+            "type": "VARCHAR",
+            "is_dttm": False,
         },
     ]
     assert sales_data["metrics"] == [
@@ -725,3 +725,211 @@ async def test_get_dashboard_datasets_truncates_wide_datasets(mock_find, mcp_ser
     assert dataset["metrics_truncated"] is True
     assert dataset["total_column_count"] == MAX_DASHBOARD_DATASET_COLUMNS + 5
     assert dataset["total_metric_count"] == MAX_DASHBOARD_DATASET_METRICS + 3
+
+
+@pytest.mark.parametrize("max_columns", [0, 1, 3, 100])
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_max_columns(
+    mock_find: Mock, mcp_server: FastMCP, max_columns: int
+) -> None:
+    """A requested cap bounds tables and views without losing totals or metrics."""
+    table = _build_datasource_mock(
+        dataset_id=1,
+        columns=[_build_column_mock(f"column_{i}") for i in range(3)],
+        metrics=[_build_metric_mock("count", expression="COUNT(*)")],
+    )
+    view_slice = _build_view_slice()
+    view_slice.semantic_view.columns = [
+        ColumnMetadata(f"column_{i}", "VARCHAR", False, None) for i in range(3)
+    ]
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[_build_slice_mock(table), _build_slice_mock(table), view_slice]
+    )
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_datasets",
+            {"request": {"identifier": 1, "max_columns": max_columns}},
+        )
+    data = json.loads(result.content[0].text)
+    assert data["dataset_count"] == 2
+    assert [item["chart_count"] for item in data["datasets"]] == [2, 1]
+    for item in data["datasets"]:
+        assert [column["column_name"] for column in item["columns"]] == [
+            f"column_{i}" for i in range(min(max_columns, 3))
+        ]
+        assert item["total_column_count"] == 3
+        assert item["columns_truncated"] is (max_columns < 3)
+        assert len(item["metrics"]) == item["total_metric_count"] == 1
+        assert item["metrics_truncated"] is False
+
+
+@pytest.mark.parametrize("max_columns", [-1, 101])
+def test_get_dashboard_datasets_rejects_invalid_column_cap(max_columns: int) -> None:
+    """Clients cannot request a negative cap or raise the existing ceiling."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import GetDashboardDatasetsRequest
+
+    with pytest.raises(ValidationError, match="max_columns"):
+        GetDashboardDatasetsRequest(identifier=1, max_columns=max_columns)
+
+
+def test_get_dashboard_datasets_default_column_cap() -> None:
+    """The optional parameter keeps the existing 100-column default."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDatasetsRequest
+
+    request = GetDashboardDatasetsRequest(identifier=1)
+    assert request.max_columns == 100
+    assert request.max_metrics == 50
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_large_dashboard_fits_with_column_details_omitted(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """A wide dashboard can fit a byte budget by requesting zero columns."""
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[
+            _build_slice_mock(
+                _build_datasource_mock(
+                    dataset_id=index,
+                    columns=[_build_column_mock(f"column_{i}") for i in range(120)],
+                )
+            )
+            for index in range(1, 11)
+        ]
+    )
+    async with Client(mcp_server) as client:
+        full = await client.call_tool(
+            "get_dashboard_datasets", {"request": {"identifier": 1}}
+        )
+        bounded = await client.call_tool(
+            "get_dashboard_datasets",
+            {"request": {"identifier": 1, "max_columns": 0}},
+        )
+    full_data = json.loads(full.content[0].text)
+    bounded_data = json.loads(bounded.content[0].text)
+    assert get_response_size_bytes(full_data) > 20_000
+    assert get_response_size_bytes(bounded_data) < 20_000
+    assert bounded_data["dataset_count"] == 10
+    assert all(item["total_column_count"] == 120 for item in bounded_data["datasets"])
+
+
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_exposes_column_cap(mcp_server: FastMCP) -> None:
+    """Tool discovery advertises the optional parameter and its bounds."""
+    async with Client(mcp_server) as client:
+        tools = await client.list_tools()
+    tool = next(tool for tool in tools if tool.name == "get_dashboard_datasets")
+    request_schema = tool.inputSchema["properties"]["request"]
+    assert request_schema["required"] == ["identifier"]
+    cap = request_schema["properties"]["max_columns"]
+    assert cap["default"] == cap["maximum"] == 100
+    assert cap["minimum"] == 0
+    metric_cap = request_schema["properties"]["max_metrics"]
+    assert metric_cap["default"] == metric_cap["maximum"] == 50
+    assert metric_cap["minimum"] == 0
+
+
+@pytest.mark.parametrize("max_columns", [2, 100])
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_datasets_caps_are_deterministic(
+    mock_find: Mock, mcp_server: FastMCP, max_columns: int
+) -> None:
+    """Unordered relationship rows are sorted by name before the caps apply."""
+    shuffled = ["delta", "alpha", "echo", "charlie", "bravo"]
+    table = _build_datasource_mock(
+        dataset_id=1,
+        columns=[_build_column_mock(name) for name in shuffled],
+        metrics=[_build_metric_mock(name) for name in shuffled],
+    )
+    view_slice = _build_view_slice()
+    view_slice.semantic_view.columns = [
+        ColumnMetadata(name, "VARCHAR", False, None) for name in shuffled
+    ]
+    view_slice.semantic_view.metrics = [
+        MetricMetadata(name, "COUNT(*)", None) for name in shuffled
+    ]
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[_build_slice_mock(table), view_slice]
+    )
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_datasets",
+            {
+                "request": {
+                    "identifier": 1,
+                    "max_columns": max_columns,
+                    "max_metrics": 2,
+                }
+            },
+        )
+    data = json.loads(result.content[0].text)
+    ordered = sorted(shuffled)
+    for item in data["datasets"]:
+        assert [column["column_name"] for column in item["columns"]] == ordered[
+            :max_columns
+        ]
+        assert [metric["metric_name"] for metric in item["metrics"]] == ordered[:2]
+        assert item["total_metric_count"] == 5
+        assert item["metrics_truncated"] is True
+
+
+@pytest.mark.parametrize("max_metrics", [-1, 51])
+def test_get_dashboard_datasets_rejects_invalid_metric_cap(max_metrics: int) -> None:
+    """Clients cannot request a negative metric cap or raise its ceiling."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import GetDashboardDatasetsRequest
+
+    with pytest.raises(ValidationError, match="max_metrics"):
+        GetDashboardDatasetsRequest(identifier=1, max_metrics=max_metrics)
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_metric_heavy_dashboard_fits_with_all_details_omitted(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """Metrics are no longer an irreducible floor once max_metrics=0 is set."""
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    mock_find.return_value = _build_dashboard_mock(
+        slices=[
+            _build_slice_mock(
+                _build_datasource_mock(
+                    dataset_id=index,
+                    columns=[_build_column_mock(f"column_{i}") for i in range(120)],
+                    metrics=[
+                        _build_metric_mock(f"metric_{i}", expression="SUM(amount)")
+                        for i in range(50)
+                    ],
+                )
+            )
+            for index in range(1, 11)
+        ]
+    )
+    async with Client(mcp_server) as client:
+        columns_only = await client.call_tool(
+            "get_dashboard_datasets",
+            {"request": {"identifier": 1, "max_columns": 0}},
+        )
+        counts_only = await client.call_tool(
+            "get_dashboard_datasets",
+            {"request": {"identifier": 1, "max_columns": 0, "max_metrics": 0}},
+        )
+    columns_only_data = json.loads(columns_only.content[0].text)
+    counts_only_data = json.loads(counts_only.content[0].text)
+    assert get_response_size_bytes(columns_only_data) > 20_000
+    assert get_response_size_bytes(counts_only_data) < 20_000
+    assert all(
+        item["metrics"] == []
+        and item["total_metric_count"] == 50
+        and item["metrics_truncated"] is True
+        for item in counts_only_data["datasets"]
+    )
