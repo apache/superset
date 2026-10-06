@@ -3456,6 +3456,9 @@ msgstr ""
 msgid "Collapse row"
 msgstr ""
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr ""
 
@@ -12698,6 +12701,9 @@ msgid "Start date"
 msgstr ""
 
 msgid "Start date included in time range"
+msgstr ""
+
+msgid "Start with row groups collapsed when row subtotals are shown. Each group can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
