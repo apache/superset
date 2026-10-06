@@ -186,9 +186,9 @@ host root's id and record a count and a referrer list for an unrelated entity.
 
 Each application resolves its own index, so two in one process do not
 re-resolve each other's. A provider that cannot be called is logged, and the
-built-in roots answer reads for a short window before it is tried again -- so a passing outage is
-not remembered for the life of the process, and it is not re-attempted on
-every read either.
+built-in roots answer reads for a short window before it is tried again --
+so a passing outage is not remembered for the life of the process, and it is
+not re-attempted on every read either.
 
 Anything else is left to fail where it fails. A predicate the cleanup cannot
 build raises per row and is counted in `cascade_failures`; an ordering a
