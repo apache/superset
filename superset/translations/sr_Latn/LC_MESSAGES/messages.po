@@ -2302,6 +2302,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Uvek filtriraj glavnu kolonu datuma i vremena"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "An Error Occurred"
 msgstr "Došlo je do greške"
@@ -9884,6 +9890,9 @@ msgstr "GeoJson podešavanja"
 msgid "Geographic metric %s must be a finite number"
 msgstr ""
 
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -12382,6 +12391,12 @@ msgid ""
 msgstr ""
 "Više formata je prihvaćeno, pogledajte Python biblioteku geopy.points za "
 "više detalja"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Multiplier"
@@ -21818,6 +21833,12 @@ msgid ""
 "format or normalize source values before aggregation."
 msgstr ""
 
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -21840,6 +21861,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodržani tip klauze: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # ru, sk, uk]
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."

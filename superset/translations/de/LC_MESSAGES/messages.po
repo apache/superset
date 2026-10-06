@@ -1911,6 +1911,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Hauptdatums-Spalte immer filtern"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "Ein Fehler ist aufgetreten"
 
@@ -8089,6 +8095,9 @@ msgstr "GeoJson-Einstellungen"
 msgid "Geographic metric %s must be a finite number"
 msgstr ""
 
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geo Hashing"
 
@@ -10117,6 +10126,12 @@ msgid ""
 msgstr ""
 "Mehrere Formate akzeptiert, recherchieren Sie in der geopy.points Python-"
 "Bibliothek nach weiteren Details"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplikator"
@@ -18053,6 +18068,12 @@ msgid ""
 "format or normalize source values before aggregation."
 msgstr ""
 
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -18072,6 +18093,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nicht unterstützter Ausdruck-Typ: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr ""

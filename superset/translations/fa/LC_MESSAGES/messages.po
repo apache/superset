@@ -1998,6 +1998,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "همیشه ستون اصلی تاریخ و زمان را فیلتر کنید"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "یک خطا رخ داد"
 
@@ -8610,6 +8616,9 @@ msgstr "تنظیمات GeoJson"
 msgid "Geographic metric %s must be a finite number"
 msgstr ""
 
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "ژئوهش"
 
@@ -10830,6 +10839,12 @@ msgid ""
 msgstr ""
 "فرمت‌های متنوعی پذیرفته می‌شوند، به کتابخانه پایتون geopy.points برای "
 "جزئیات بیشتر مراجعه کنید."
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "ضریب"
@@ -19219,6 +19234,12 @@ msgid ""
 "format or normalize source values before aggregation."
 msgstr ""
 
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19238,6 +19259,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "نوع بند پشتیبانی نشده: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
