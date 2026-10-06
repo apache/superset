@@ -85,6 +85,7 @@ test('the selected partition column shows its name and type pill when closed', (
     <PartitionColumnFields
       datasource={{ main_dttm_col: 'event_time', partition_column: 'dt_epoch' }}
       columns={COLUMNS}
+      allColumns={COLUMNS}
       onPartitionColumnChange={jest.fn()}
       onNavigateToColumn={jest.fn()}
     />,
