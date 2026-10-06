@@ -459,14 +459,19 @@ const renderWithDatabases = async (supportsPartitionMapping: boolean) => {
 
   const props = createProps();
   const current = DATABASES[supportsPartitionMapping ? 0 : 1];
-  props.datasource.database = {
-    id: current.id,
-    database_name: current.database_name,
-    backend: current.backend,
-  } as DatasourceEditorProps['datasource']['database'];
-  props.datasource.supports_partition_filter_mapping = supportsPartitionMapping;
-  props.datasource.partition_value_transform_default =
-    current.engine_information.partition_value_transform_default;
+  // `database` and the transform default are on the editor's datasource but
+  // not on `DatasetObject`, hence the cast.
+  props.datasource = {
+    ...props.datasource,
+    database: {
+      id: current.id,
+      database_name: current.database_name,
+      backend: current.backend,
+    },
+    supports_partition_filter_mapping: supportsPartitionMapping,
+    partition_value_transform_default:
+      current.engine_information.partition_value_transform_default,
+  } as DatasourceEditorProps['datasource'];
 
   fastRender(props);
   await dismissDatasourceWarning();
