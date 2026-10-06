@@ -309,17 +309,25 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # then the dataset's main datetime column, to match those consumers.
             # Candidates are matched against the dataset's
             # temporal columns so one that has since been dropped, or is no
-            # longer temporal, is ignored.
+            # longer temporal, is ignored. ``granularity_sqla`` can also hold an
+            # adhoc column (the viz migrations in ``migrate_viz/base.py`` handle
+            # that shape). It is matched by its ``sqlExpression``, since a dict
+            # cannot be looked up in the ``temporal_columns`` set.
             candidates = (
-                (form_data or {}).get("granularity"),
-                (form_data or {}).get("granularity_sqla"),
-                getattr(datasource, "main_dttm_col", None),
+                candidate.get("sqlExpression")
+                if isinstance(candidate, dict)
+                else candidate
+                for candidate in (
+                    (form_data or {}).get("granularity"),
+                    (form_data or {}).get("granularity_sqla"),
+                    getattr(datasource, "main_dttm_col", None),
+                )
             )
             query_object.granularity = next(
                 (
                     candidate
                     for candidate in candidates
-                    if candidate in temporal_columns
+                    if isinstance(candidate, str) and candidate in temporal_columns
                 ),
                 None,
             )
