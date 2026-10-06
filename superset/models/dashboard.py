@@ -116,7 +116,9 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
 
 def register_dashboard_copy_events(user_model: Any) -> None:
     """Register after_insert event listener on the given user model."""
-    pass
+    if not sqla.event.contains(user_model, "after_insert", copy_dashboard):
+        sqla.event.listen(user_model, "after_insert", copy_dashboard)
+
 
 
 dashboard_slices = Table(
