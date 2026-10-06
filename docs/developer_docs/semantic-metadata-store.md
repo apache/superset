@@ -24,7 +24,9 @@ under the License.
 ## Enablement and scope
 
 This host implementation supports the optional [SDK metadata contract](./semantic-metadata-contract.md).
-It provides storage and cache identity; it does not add refresh endpoints or UI.
+It provides storage and cache identity. The [metadata operations API](./semantic-metadata-operations.md)
+adds authorized refresh, invalidation, and cache-inspection endpoints; this backend
+layer does not add UI controls.
 Both `SEMANTIC_LAYERS` and `SEMANTIC_LAYER_METADATA_REFRESH_ENABLED` remain off
 by default. A provider must explicitly declare support and supply the adapter
 and captured view token. Legacy providers retain their existing behavior.
@@ -92,6 +94,17 @@ A busy explicit refresh returns `in_progress`; an unknown write outcome returns
 
 ## Snapshot lifetime and chart-cache reuse
 
+An async query that outlasts its captured snapshot's lifetime may execute again
+when the browser reads back the completed task. The worker caches its result
+under the captured token, while read-back resolves the live snapshot; natural
+expiry rotates that token even when discovery returns identical fields. A
+forced-query nonce does not reuse a result under a different catalog token.
+This preserves the same freshness rule as an independent request: identical
+fields do not prove unchanged upstream definitions. Operators with long-running
+queries can raise `SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS` to reduce this
+re-execution risk, trading slower metadata rediscovery for longer cache reuse.
+
+
 `SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS` sets the catalog lifetime and the
 independent compatibility-generation lifetime. It defaults to `300` seconds and
 accepts integer values from `1` through `2147483647`; booleans, strings, zero,
@@ -147,10 +160,18 @@ This covers connection setup, Sentinel discovery and response parsing; retries
 are disabled. Configured `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT` values are retained when shorter than the
 remaining budget, allowing Sentinel to try another node after a node timeout.
-For Sentinel deployments, start with finite positive per-node values such as
-`CACHE_REDIS_SOCKET_TIMEOUT = 1.0` and
-`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT = 1.0` (seconds), then tune them for the
-network and discovery latency. Unset or invalid values use the remaining
+For Sentinel deployments, set finite positive per-node timeouts inside the
+existing `DISTRIBUTED_COORDINATION_CONFIG` dictionary in `superset_config.py`:
+
+```python
+DISTRIBUTED_COORDINATION_CONFIG.update(
+    CACHE_REDIS_SOCKET_TIMEOUT=1.0,
+    CACHE_REDIS_SOCKET_CONNECT_TIMEOUT=1.0,
+)
+```
+
+These values are seconds; tune them for network and discovery latency. Standalone
+settings with those names are not read by the private metadata client. Unset or invalid values use the remaining
 operation budget, which can leave no time to try a second node. Each command
 creates a new Sentinel client and can pay the first node's timeout again.
 Unit tests verify timeout configuration, not live second-node failover.
@@ -230,7 +251,8 @@ or undecodable entries do not become successful observations.
 Catalog and compatibility maintenance/inspection require connection-management
 authority in the host command layer. Query-result inspection retains query/RLS
 access. The helpers accept internal resolved identities, not raw user cache keys.
-The protected commands and API transport are a separate change.
+See [metadata operations](./semantic-metadata-operations.md) for the protected
+commands, route permissions, and API request and response shapes.
 
 ## Verification
 

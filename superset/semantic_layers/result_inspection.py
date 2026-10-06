@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask import g, has_request_context, request
 
@@ -44,13 +44,25 @@ class CapturedResultIdentity:
 
 def _fingerprint(context: QueryContext, query: QueryObject) -> str:
     """Bind an existing key to its subject, stored view, query and RLS scope."""
+    query_identity: dict[str, Any] = dict(query.to_dict())
+    post_processing: list[dict[str, Any]] = []
+    operation: dict[str, Any]
+    for operation in query.post_processing:
+        copied: dict[str, Any] = dict(operation)
+        if copied.get("operation") == "contribution" and "options" in copied:
+            options: dict[str, Any] = dict(copied["options"])
+            # Match QueryObject.cache_key: runtime totals are not query inputs.
+            options.pop("contribution_totals", None)
+            copied["options"] = options
+        post_processing.append(copied)
+    query_identity["post_processing"] = post_processing
     return hashlib.sha256(
         json.dumps(
             [
                 id(getattr(g, "user", None)),
                 str(getattr(context.datasource, "uuid", None)),
                 context.datasource.changed_on,
-                query.to_dict(),
+                query_identity,
                 context.form_data,
                 security_manager.get_rls_cache_key(context.datasource),
             ],
