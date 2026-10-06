@@ -13,7 +13,7 @@
         "name": "ALERT_REPORT_DYNAMIC_EXECUTOR",
         "default": false,
         "lifecycle": "development",
-        "description": "Enables the per-schedule \"Run As\" fields in Alerts & Reports (SIP-209). When enabled, each alert/report records which user's credentials (RBAC, database OAuth2 tokens) are used at execution time, and alerts can specify a distinct user for the alert condition query. Schedules without a value keep using the ALERT_REPORTS_EXECUTORS resolution."
+        "description": "Enables the per-schedule \"Run As\" fields in Alerts & Reports (SIP-209). When enabled, each alert/report records which user's credentials (RBAC, database OAuth2 tokens) are used at execution time, and alerts can specify a distinct user for the alert condition query. Admins can pick any user; non-admins are restricted to their own account. Schedules without a value keep using the ALERT_REPORTS_EXECUTORS resolution."
       },
       {
         "name": "ALERT_REPORT_TABS",
@@ -167,7 +167,7 @@
         "name": "DATE_FORMAT_IN_EMAIL_SUBJECT",
         "default": false,
         "lifecycle": "testing",
-        "description": "Allow users to optionally specify date formats in email subjects. Deprecation notice: this flag is superseded by the \"Format dates in email subjects\" setting in the Alerts & Reports configuration UI (SIP-209). The flag is only used as a fallback while that setting is not saved.",
+        "description": "Allow users to optionally specify date formats in email subjects",
         "docs": "https://superset.apache.org/docs/configuration/alerts-reports"
       },
       {
