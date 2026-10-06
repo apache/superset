@@ -52,6 +52,7 @@ class XYChartPlugin(BaseChartPlugin):
 
     chart_type = "xy"
     display_name = "Line / Bar / Area / Scatter Chart"
+    resizes_saved_preview = True
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "echarts_timeseries_line": "Line Chart",
         "echarts_timeseries_bar": "Bar Chart",

@@ -92,10 +92,14 @@ is unavailable.
 
 MCP Vega-Lite previews of grouped time-series charts retain each series from
 post-processed chart data, including charts with multiple grouping dimensions.
+Saved line, bar, area, and scatter previews honor the requested width and height
+and include the chart name in their description.
 When rebuilding queries for saved charts without a query context, MCP honors
 resampling across the requested time range, inherited table time comparisons,
-and temporal column references for semantic views. Forecasts use the x-axis
-time grain, resolved query grain, or panel grain, with a daily fallback.
+and temporal column references for semantic views. A matching inherited table
+comparison preserves other selected offsets, including custom comparisons.
+Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
+daily fallback.
 
 ### Create Dashboards
 

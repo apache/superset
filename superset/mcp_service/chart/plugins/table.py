@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
+from superset.common.form_data_query_context import _table_time_offsets
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     _table_chart_what,
@@ -31,7 +32,6 @@ from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef, TableChartConfig
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
-from superset.utils.core import as_list
 
 
 class TableChartPlugin(BaseChartPlugin):
@@ -48,9 +48,8 @@ class TableChartPlugin(BaseChartPlugin):
 
     def prepare_query_form_data(self, form_data: dict[str, Any]) -> None:
         """Resolve inherited offsets before the filter merge removes their source."""
-        inherited = (form_data.get("extra_form_data") or {}).get("time_compare")
-        if inherited and inherited not in as_list(form_data.get("time_compare") or []):
-            form_data["time_compare"] = [inherited]
+        if (form_data.get("extra_form_data") or {}).get("time_compare"):
+            form_data["time_compare"] = _table_time_offsets(form_data)
 
     def pre_validate(
         self,

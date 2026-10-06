@@ -18,7 +18,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -29,8 +29,10 @@ from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form
 from superset.mcp_service.chart.preview_utils import (
     _generate_vega_lite_preview_from_data,
 )
-from superset.mcp_service.chart.schemas import VegaLitePreview
+from superset.mcp_service.chart.schemas import GetChartPreviewRequest, VegaLitePreview
+from superset.mcp_service.chart.tool.get_chart_preview import VegaLitePreviewStrategy
 from superset.semantic_layers.mapper import _normalize_column
+from superset.utils import json
 
 
 @pytest.mark.parametrize(
@@ -230,3 +232,143 @@ def test_wide_preview_fold_does_not_overwrite_the_axis(x_axis: str) -> None:
     assert x_axis not in spec["transform"][0]["as"]
     assert spec["transform"][0]["fold"] == ["revenue, East", "revenue, West"]
     assert spec["encoding"]["x"]["field"] == x_axis
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("saved_viz", [True, False])
+@pytest.mark.parametrize("request_offset", [None, "2 weeks ago", "3 weeks ago"])
+def test_table_inherited_custom_offset_preserves_other_comparisons(
+    viz_type: str, saved_viz: bool, request_offset: str | None
+) -> None:
+    """Resolve custom before checking whether inheritance replaces the selection."""
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["revenue"],
+        "time_compare": ["1 year ago", "custom"],
+        "start_date_offset": "2 weeks ago",
+        "comparison_type": "difference",
+        "extra_form_data": {"time_compare": "2 weeks ago"},
+    }
+    if not saved_viz:
+        form_data.pop("viz_type")
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(
+            form_data,
+            1,
+            "table",
+            chart=SimpleNamespace(viz_type=viz_type),
+            extra_form_data={"time_compare": request_offset}
+            if request_offset
+            else None,
+        )[0]
+    offsets = (
+        ["3 weeks ago"]
+        if request_offset == "3 weeks ago"
+        else ["1 year ago", "2 weeks ago"]
+    )
+    assert "extra_form_data" not in form_data
+    assert query["time_offsets"] == offsets
+    assert query["post_processing"][0]["options"]["compare_columns"] == [
+        f"revenue__{offset}" for offset in offsets
+    ]
+
+
+@pytest.mark.parametrize(
+    "viz_type",
+    [
+        "echarts_timeseries_line",
+        "echarts_timeseries_bar",
+        "echarts_area",
+        "echarts_timeseries_scatter",
+    ],
+)
+@pytest.mark.parametrize("dimensions", [{}, {"width": 800, "height": 200}])
+def test_saved_xy_preview_honors_dimensions_and_description(
+    viz_type: str, dimensions: dict[str, int]
+) -> None:
+    """Saved plugin previews keep the framing contract of the saved fallback."""
+    form_data = {
+        "viz_type": viz_type,
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    data = [{"ds": "2026-01-01", "revenue, East": 10, "revenue, West": 20}]
+    chart = SimpleNamespace(
+        id=1,
+        slice_name="Regional revenue",
+        viz_type=viz_type,
+        datasource_id=1,
+        datasource_type="table",
+        params=json.dumps(form_data),
+    )
+    strategy = VegaLitePreviewStrategy(
+        chart,
+        GetChartPreviewRequest(identifier=1, format="vega_lite", **dimensions),
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(strategy, "_authorize_guest_query"),
+    ):
+        command.return_value.run.return_value = {"queries": [{"data": data}]}
+        result = strategy.generate()
+    assert isinstance(result, VegaLitePreview)
+    spec = result.specification
+    assert spec["width"] == dimensions.get("width", 800)
+    assert spec["height"] == dimensions.get("height", 600)
+    assert spec["description"] == "Chart preview for Regional revenue"
+    assert spec["encoding"]["x"]["field"] == "ds"
+    assert spec["transform"][0]["fold"] == ["revenue, East", "revenue, West"]
+    unsaved = _generate_vega_lite_preview_from_data(data, form_data)
+    assert isinstance(unsaved, VegaLitePreview)
+    assert unsaved.specification["width"] == "container"
+    assert unsaved.specification["height"] == 400
+
+
+@pytest.mark.parametrize(
+    ("axis", "field"),
+    [
+        (None, "__timestamp"),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "DATE_TRUNC('month', ds)",
+                "label": "Month",
+            },
+            "Month",
+        ),
+    ],
+)
+def test_grouped_timeseries_preview_resolves_legacy_and_sql_axes(
+    axis: dict[str, str] | None, field: str
+) -> None:
+    """Render wide rows using the legacy timestamp or the SQL axis result label."""
+    form_data: dict[str, Any] = {
+        "viz_type": "echarts_timeseries_line",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    if axis is not None:
+        form_data["x_axis"] = axis
+    rows = [{field: "2026-01-01", "revenue, East": 10, "revenue, West": 20}]
+    result = _generate_vega_lite_preview_from_data(rows, form_data)
+    assert isinstance(result, VegaLitePreview)
+    spec = result.specification
+    assert spec["encoding"]["x"]["field"] == field
+    assert spec["transform"] == [
+        {"fold": ["revenue, East", "revenue, West"], "as": ["series", "value"]}
+    ]
+    assert spec["encoding"]["y"]["field"] == "value"
+    assert spec["encoding"]["color"]["field"] == "series"
