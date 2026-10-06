@@ -2406,3 +2406,48 @@ def test_no_inner_time_mirror_when_the_subquery_gets_no_time_filter(
 
     # The outer query, which does carry the time filter, still prunes.
     assert "dt_epoch >= 1735689600" in outer
+
+
+def test_no_inner_mirror_for_main_dttm_which_the_subquery_never_filters(
+    app: Flask,
+) -> None:
+    """
+    `always_filter_main_dttm` adds a second time predicate on `main_dttm_col`,
+    and this branch only runs when that is a *different* column from the one
+    the chart grouped by. The ranking subquery's own time predicate is built on
+    the grouped column, so it never carries a `main_dttm_col` predicate at all
+    -- there is nothing there for an inner mirror to stand in for.
+
+    Guarding the inner mirror on `time_groupby_inline` asked the wrong
+    question: "does the subquery get *a* time filter", not "does it get one on
+    this column". Since the mapping tracks `main_dttm_col` here, the grouped
+    column's own mirror sites record nothing, so the mirror was the sole
+    predicate narrowing the ranking to a window nothing else in the subquery
+    mentioned, and which series ranked top moved just because mapping was on.
+    """
+    table = _table()
+    table.always_filter_main_dttm = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]):
+            sql = _query(
+                table,
+                columns=["country"],
+                metrics=["hits"],
+                granularity="other_time",
+                is_timeseries=True,
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+                timeseries_limit=5,
+                timeseries_limit_metric="hits",
+            )
+
+    subquery, outer = _split_series_limit(sql)
+
+    # The subquery filters `other_time`, the grouped column, and nothing else.
+    assert "other_time >=" in subquery
+    assert "dt_epoch" not in subquery
+
+    # The outer query does filter `main_dttm_col`, so it still prunes.
+    assert "dt_epoch >= 1767225600" in outer
+    assert "dt_epoch <= 1769904000" in outer

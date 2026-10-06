@@ -5742,16 +5742,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         from_dttm,
                         to_dttm,
                     )
-                    if not db_engine_spec.time_groupby_inline:
-                        # Only where the subquery actually gets a time filter
-                        # -- see the longer note on the `dttm_col` mirror below.
-                        self._collect_partition_mirror_range(
-                            partition_mapping,
-                            partition_mirror_inner,
-                            self.main_dttm_col,
-                            inner_from_dttm or from_dttm,
-                            inner_to_dttm or to_dttm,
-                        )
+                    # Outer query only, and deliberately no inner counterpart.
+                    # The series-limit subquery's time predicate is built on
+                    # `dttm_col` (see `inner_time_filter` below), which this
+                    # branch has already established is a *different* column
+                    # from `main_dttm_col` -- so the subquery never carries a
+                    # `main_dttm_col` predicate for a mirror to stand in for.
+                    # Collecting one anyway made it the only predicate
+                    # narrowing the ranking to a window nothing else in that
+                    # subquery mentions, and which series came back "top"
+                    # changed just because mapping was enabled.
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
