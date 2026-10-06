@@ -41,28 +41,55 @@ test('getRefreshWarningMessage normalizes refreshLimit', () => {
   expect(getRefreshWarningMessage(15, 10000, 'warn')).toBeNull();
 });
 
-test('renders configured auto refresh intervals from redux store', () => {
-  const configuredIntervals = [
-    [15, '15 seconds'],
-    [45, '45 seconds'],
-  ];
-  render(<RefreshFrequencySelect value={0} onChange={jest.fn()} />, {
-    useRedux: true,
-    initialState: {
-      dashboardInfo: {
-        common: {
-          conf: {
-            DASHBOARD_AUTO_REFRESH_INTERVALS: configuredIntervals,
-          },
-        },
+const mockConfiguredIntervals: [number, string][] = [
+  [0, "Don't refresh"],
+  [15, '15 seconds'],
+  [45, '45 seconds'],
+  [90, '90 seconds'],
+];
+
+const createInitialState = (
+  intervals?: [number, string][],
+  extraConf?: Record<string, unknown>,
+) => ({
+  dashboardInfo: {
+    common: {
+      conf: {
+        ...(intervals !== undefined
+          ? { DASHBOARD_AUTO_REFRESH_INTERVALS: intervals }
+          : {}),
+        ...extraConf,
       },
     },
+  },
+});
+
+const defaultTestProps = {
+  value: 0,
+  onChange: jest.fn(),
+};
+
+const setup = (
+  props: Partial<typeof defaultTestProps> = {},
+  initialState?: object,
+) =>
+  render(<RefreshFrequencySelect {...defaultTestProps} {...props} />, {
+    useRedux: true,
+    ...(initialState ? { initialState } : {}),
   });
+
+test('renders configured auto refresh intervals from redux store', () => {
+  setup(
+    {},
+    createInitialState(mockConfiguredIntervals),
+  );
 
   expect(screen.getByRole('radio', { name: '15 seconds' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: '45 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '90 seconds' })).toBeInTheDocument();
   expect(
     screen.queryByRole('radio', { name: '10 seconds' }),
   ).not.toBeInTheDocument();
 });
+
 
