@@ -35,6 +35,7 @@ data travels in the URL.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, TypedDict
 from uuid import UUID, uuid4
@@ -74,6 +75,40 @@ class LoginTokenUserInfo(TypedDict, total=False):
 
 
 LoginTokenIdentityResolver = Callable[..., LoginTokenUserInfo | None]
+
+# Characters a WHATWG URL parser strips before resolving, plus their
+# percent-encoded forms, which some browsers also remove when following a
+# Location header. Normalizing them first stops `/\tx` or `/%09x` smuggling a
+# different target past the checks below.
+_URL_STRIPPED_CONTROL_CHARS = re.compile(r"[\t\n\r]|%09|%0[ADad]")
+
+
+def is_safe_next_path(url: str) -> bool:
+    """Whether ``url`` is a site-relative path this endpoint may redirect to.
+
+    Deliberately stricter than :func:`superset.utils.link_redirect.
+    is_safe_redirect_url`, which resolves "internal" against
+    ``WEBDRIVER_BASEURL`` / ``WEBDRIVER_BASEURL_USER_FRIENDLY``. Those are
+    report-worker settings defaulting to ``http://0.0.0.0:8080/`` and need bear
+    no relation to the public origin, so a deployment that has never configured
+    reports would see a legitimate same-origin absolute URL rejected and be
+    redirected to ``/`` instead of the requested dashboard.
+
+    Requiring a relative path avoids the question entirely: the parent
+    application always knows the path it wants, the browser resolves it against
+    Superset's own origin, and there is no host to compare.
+    """
+    if not url or not url.strip():
+        return False
+
+    normalized = _URL_STRIPPED_CONTROL_CHARS.sub("", url.strip())
+    # Browsers treat backslashes as forward slashes in special schemes, so
+    # `/\evil.com` would resolve as the protocol-relative `//evil.com`.
+    normalized = normalized.replace("\\", "/")
+
+    # A single leading slash, and nothing that could be read as a host or a
+    # scheme. `//host`, `https://host` and `mailto:x` are all rejected.
+    return normalized.startswith("/") and not normalized.startswith("//")
 
 
 def is_enabled() -> bool:
@@ -189,16 +224,27 @@ def mint(userinfo: LoginTokenUserInfo) -> tuple[str, datetime]:
 
 
 def consume(token: str) -> LoginTokenUserInfo | None:
-    """Exchange a token for its ``userinfo``, deleting it in the same breath.
+    """Exchange a token for its ``userinfo``, burning it durably.
 
     The entry is row-locked before it is read, so two concurrent requests cannot
     both observe it: the second blocks until the first commits and then finds it
-    gone. That is what makes the token genuinely single-use rather than
-    single-use-unless-raced.
+    gone.
+
+    The delete is then **committed here**, rather than left to the caller's unit
+    of work. Flask-AppBuilder's ``add_user`` / ``update_user`` catch their own
+    failures, call ``rollback()`` on this same session and return ``False``
+    without raising -- and ``update_user_auth_stat`` ignores that return value
+    entirely. A provisioning error, or a failing ``user_updating`` signal
+    handler, would therefore silently undo a pending delete and leave a token
+    that has already been handed to a browser redeemable again. Committing the
+    burn first makes it independent of anything provisioning does, including a
+    login that ultimately succeeds.
 
     Returns ``None`` for an unknown, malformed, or expired token -- callers must
     not distinguish between those cases in their response.
     """
+    from superset import db  # pylint: disable=import-outside-toplevel
+
     try:
         key = UUID(token)
     except (AttributeError, TypeError, ValueError):
@@ -218,6 +264,8 @@ def consume(token: str) -> LoginTokenUserInfo | None:
         userinfo = None
 
     KeyValueDAO.delete_entry(LOGIN_TOKEN_RESOURCE, key)
+    # Durable before any provisioning runs; see the docstring.
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     if expired or not userinfo:
         return None

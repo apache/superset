@@ -52,7 +52,6 @@ from superset.security.guest_token import (
 )
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
-from superset.utils.link_redirect import is_safe_redirect_url
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -297,7 +296,16 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.messages)
 
     @expose("/login-token/", methods=("POST",))
-    @event_logger.log_this
+    # Request data is deliberately excluded from the event log. A resolver may
+    # read the caller's proof of identity -- an OIDC id token, an internal
+    # service credential -- from the body or query string, and
+    # ``collect_request_payload`` would otherwise persist it verbatim into
+    # ``logs.json``, including on rejection. The one-time token's TTL bounds
+    # nothing about that upstream credential's lifetime.
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.login_token",
+        include_request_data=False,
+    )
     @safe
     @statsd_metrics
     @transaction()
@@ -372,7 +380,10 @@ class SecurityRestApi(BaseSupersetApi):
             required: false
             schema:
               type: string
-            description: Internal URL to redirect to; rejected if not internal
+            description: >-
+              Site-relative path to redirect to, e.g. `/dashboard/1/`. Must begin
+              with a single `/`; absolute URLs and protocol-relative values are
+              rejected and fall back to `/`.
           responses:
             302:
               description: Session established; redirect to `next`
@@ -392,12 +403,12 @@ class SecurityRestApi(BaseSupersetApi):
         if not token or (userinfo := login_token_utils.consume(token)) is None:
             return self.response_401()
 
-        # ``consume`` has deleted the entry, but ``@transaction()`` does not nest
-        # and only commits when this handler returns normally. An exception
-        # escaping from here would roll the deletion back and resurrect a token
-        # that has already been handed out, so provisioning failures are caught
-        # and reported as a denial: the burn stays durable and a spent token is
-        # never redeemable a second time.
+        # ``consume`` has already committed the burn, so nothing here can make a
+        # spent token redeemable again. Provisioning failures are still caught
+        # and reported as a denial rather than allowed to escape: an exception
+        # would otherwise surface as a 500, which is indistinguishable from an
+        # outage to the parent application and invites a retry with a token that
+        # no longer exists.
         try:
             user = self.appbuilder.sm.auth_user_oauth(userinfo)
         except Exception:  # pylint: disable=broad-except
@@ -417,16 +428,18 @@ class SecurityRestApi(BaseSupersetApi):
         login_user(user)
         logger.info("Session established from a one-time login token for '%s'", user)
 
-        # Only ever redirect to a value that has passed the internal-URL check.
+        # Only ever redirect to a value that has passed the relative-path check.
         # Assigning into a separate variable inside the guarded branch — rather
         # than reassigning the request-derived one — keeps the sanitizer on the
         # path to the redirect, which taint analysis can follow.
         requested_next = request.args.get("next") or "/"
         safe_next_url = "/"
-        if is_safe_redirect_url(requested_next):
+        if login_token_utils.is_safe_next_path(requested_next):
             safe_next_url = requested_next
         else:
-            logger.warning("Rejected unsafe `next` on login-token consume")
+            logger.warning(
+                "Rejected `next` on login-token consume: not a relative path"
+            )
 
         return redirect(safe_next_url)
 

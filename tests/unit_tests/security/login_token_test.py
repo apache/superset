@@ -205,26 +205,83 @@ def test_token_carries_no_identity_data(app_context: None, kv_table: Session) ->
         assert value not in token
 
 
-def test_consume_burn_survives_a_later_failure(
+def test_consume_burn_survives_a_later_rollback(
     app_context: None, kv_table: Session
 ) -> None:
-    """The deletion must not be undone if provisioning fails afterwards.
+    """A rollback after ``consume`` must not resurrect the token.
 
-    ``@transaction()`` does not nest, so the whole consume endpoint shares one
-    unit of work: an exception escaping after ``consume`` would roll the delete
-    back and make a token that has already been handed out redeemable again. The
-    endpoint therefore catches provisioning failures rather than propagating
-    them. This pins the invariant at the storage level -- once consumed, the
-    entry is gone even if the caller then errors and the session is rolled back.
+    This is the ordering that matters, and the reason ``consume`` commits rather
+    than leaving the delete pending. Flask-AppBuilder's ``add_user`` /
+    ``update_user`` catch their own failures, call ``rollback()`` on this same
+    session and return ``False`` without raising, and
+    ``update_user_auth_stat`` ignores that return value -- so a provisioning
+    error, or a failing ``user_updating`` handler, rolls back whatever the
+    endpoint had pending. If the burn were not already committed, a token
+    already handed to a browser would become redeemable again.
+
+    The mint is committed first, deliberately. Without that, the rollback would
+    discard the insert along with the delete and the assertions below would hold
+    even with the burn left pending -- passing for the wrong reason. See
+    ``tests/integration_tests/security/login_token_api_tests.py`` for the same
+    property through the real endpoint and the real security manager.
     """
     token, _ = login_token.mint(USERINFO)
+    # The token exists as far as any other transaction is concerned; that is the
+    # state a browser holding it is in.
     kv_table.commit()
 
     assert login_token.consume(token) == USERINFO
-    kv_table.commit()
 
-    # Simulate a caller that fails after consuming and rolls back.
+    # Exactly what FAB does internally on a provisioning failure.
     kv_table.rollback()
 
     assert kv_table.query(KeyValueEntry).count() == 0
     assert login_token.consume(token) is None
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/",
+        "/dashboard/1/",
+        "/sqllab/",
+        "/dashboard/list/?pageIndex=0",
+        "/dashboard/1/#anchor",
+        # Stripped control characters leave a plain relative path, which is
+        # what a browser resolves this to.
+        "/\tdashboard",
+    ],
+)
+def test_is_safe_next_path_accepts_relative_paths(path: str) -> None:
+    """A site-relative path is what the parent application is expected to send."""
+    assert login_token.is_safe_next_path(path) is True
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "",
+        "   ",
+        # Absolute, including the deployment's own origin: relative-only by
+        # contract, so there is no host comparison to get wrong.
+        "https://superset.example.com/dashboard/1/",
+        "http://evil.example.com/",
+        # Protocol-relative, and the backslash variants browsers normalize to it.
+        "//evil.example.com/",
+        "/\\evil.example.com/",
+        "\\\\evil.example.com/",
+        # Control characters a URL parser strips, raw and percent-encoded.
+        "/\t/evil.example.com",
+        "/%09/evil.example.com",
+        # Schemes that never start with a slash.
+        "javascript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "mailto:someone@example.com",
+        # Relative but not site-rooted.
+        "dashboard/1/",
+        "../dashboard/1/",
+    ],
+)
+def test_is_safe_next_path_rejects_everything_else(path: str) -> None:
+    """Anything that is not unambiguously a single-slash-rooted path is refused."""
+    assert login_token.is_safe_next_path(path) is False

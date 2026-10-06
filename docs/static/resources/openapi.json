@@ -30248,7 +30248,7 @@
             }
           },
           {
-            "description": "Internal URL to redirect to; rejected if not internal",
+            "description": "Site-relative path to redirect to, e.g. `/dashboard/1/`. Must begin with a single `/`; absolute URLs and protocol-relative values are rejected and fall back to `/`.",
             "in": "query",
             "name": "next",
             "required": false,
