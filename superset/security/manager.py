@@ -497,7 +497,9 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
         if exclude_users:
-            return query.filter(User.username.not_in(exclude_users))
+            return query.filter(
+                current_app.appbuilder.sm.user_model.username.not_in(exclude_users)
+            )
 
         return query
 

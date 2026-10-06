@@ -774,3 +774,33 @@ def mock_dashboard_template() -> Dashboard:
     return dash
 
 
+def test_exclude_users_filter_with_custom_user_model(
+    app_context: None,
+    monkeypatch: pytest.MonkeyPatch,
+    custom_user_model: type[CustomUserModel],
+) -> None:
+    """Ensure ExcludeUsersFilter dynamically uses appbuilder.sm.user_model."""
+    from superset.security.manager import ExcludeUsersFilter
+
+    monkeypatch.setattr(current_app.appbuilder.sm, "user_model", custom_user_model)
+    monkeypatch.setattr(
+        current_app.appbuilder.sm,
+        "get_exclude_users_from_lists",
+        lambda: ["excluded_user"],
+    )
+    query_mock = Mock()
+    query_mock.filter.return_value = query_mock
+
+    datamodel_mock = Mock()
+    datamodel_mock.obj = custom_user_model
+    filtr = ExcludeUsersFilter("username", datamodel_mock)
+    result = filtr.apply(query_mock, None)
+
+    assert result == query_mock
+    query_mock.filter.assert_called_once()
+    filter_arg = query_mock.filter.call_args[0][0]
+    assert filter_arg.left == custom_user_model.username
+
+
+
+
