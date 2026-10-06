@@ -401,7 +401,7 @@ def _apply_one(
             f"Filter '{spec.filter_name_or_id}' has no ID in the dashboard's "
             "configuration and cannot be targeted."
         )
-    filter_type = conf.get("filterType")
+    filter_type = "divider" if conf.get("type") == "DIVIDER" else conf.get("filterType")
     if filter_type not in SUPPORTED_FILTER_TYPES:
         raise _FilterApplyError(
             f"Filter '{spec.filter_name_or_id}' has type '{filter_type}', "

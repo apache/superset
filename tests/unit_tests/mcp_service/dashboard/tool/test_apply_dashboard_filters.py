@@ -1430,6 +1430,36 @@ async def test_unsupported_filter_type_is_rejected(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
+async def test_divider_id_is_rejected_with_divider_type(mcp_server: object) -> None:
+    """Divider IDs report their display type without creating a permalink."""
+    divider = {
+        "id": "NATIVE_FILTER_DIVIDER-geography",
+        "type": "DIVIDER",
+        "title": "Geography",
+        "description": "Location filters",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([divider])),
+        patch(CREATE_PERMALINK) as create_permalink,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": divider["id"], "values": ["FR"]}],
+            },
+        )
+
+    assert data["permalink_key"] is None
+    assert (
+        "Filter 'NATIVE_FILTER_DIVIDER-geography' has type 'divider', "
+        "which this tool cannot apply values to."
+    ) in data["error"]
+    create_permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_duplicate_target_is_rejected(mcp_server: object) -> None:
     """Duplicate target is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
