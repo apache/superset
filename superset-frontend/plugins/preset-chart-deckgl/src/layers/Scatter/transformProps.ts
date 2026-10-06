@@ -26,7 +26,7 @@ import {
   parseMetricValue,
   addPropertiesToFeature,
 } from '../transformUtils';
-import { DeckScatterFormData } from './buildQuery';
+import { DeckScatterFormData, getTypedFixedRadius } from './buildQuery';
 import { isFixedValue, getFixedValue } from '../utils/metricUtils';
 
 interface ScatterPoint {
@@ -170,15 +170,9 @@ export default function transformProps(chartProps: ChartProps) {
   const { spatial, point_radius_fixed, dimension } =
     formData as DeckScatterFormData;
 
-  // Typed compatibility accepts preserved numeric-string fixed radii.
-  // Native charts interpret bare strings as saved metric names.
-  const legacyFixedRadius =
-    formData.mcp_geographic &&
-    typeof point_radius_fixed === 'string' &&
-    point_radius_fixed.trim() !== '' &&
-    Number.isFinite(Number(point_radius_fixed))
-      ? Number(point_radius_fixed)
-      : null;
+  const legacyFixedRadius = getTypedFixedRadius(
+    formData as DeckScatterFormData,
+  );
   const fixedRadiusValue =
     legacyFixedRadius ??
     (isFixedValue(point_radius_fixed)

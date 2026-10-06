@@ -161,6 +161,26 @@ def _typed_row_limit(form_data: Mapping[str, Any]) -> int:
     return min(MAX_GEOGRAPHIC_ROWS, max(1, limit))
 
 
+def _normalize_fixed_radius(form_data: dict[str, Any]) -> None:
+    """Save a preserved numeric-string radius as an explicit fixed radius.
+
+    The typed contract reads a bare numeric string as a fixed size, while the
+    native Scatter query reads any bare string as a saved metric; the explicit
+    ``fix`` object keeps both in agreement.
+    """
+    from superset.mcp_service.chart.chart_helpers import _is_metric_ref
+
+    radius = form_data.get("point_radius_fixed")
+    if not isinstance(radius, str) or not radius or _is_metric_ref(radius):
+        return
+    value = float(radius)
+    if math.isfinite(value):
+        form_data["point_radius_fixed"] = {
+            "type": "fix",
+            "value": int(value) if value.is_integer() else value,
+        }
+
+
 class GeographicChartPlugin(BaseChartPlugin):
     """Translate explicit geographic roles into native plugin controls.
 
@@ -341,6 +361,7 @@ class GeographicChartPlugin(BaseChartPlugin):
         # Native query and compile validation must cover the same bounded rows.
         if merged.get("mcp_geographic"):
             merged["row_limit"] = _typed_row_limit(merged)
+            _normalize_fixed_radius(merged)
         return merged
 
     def extract_column_refs(self, config: GeographicConfig) -> list[ColumnRef]:
@@ -481,11 +502,14 @@ class CountryMapChartPlugin(GeographicChartPlugin):
         entity = column_result_label(form_data.get("entity"))
         if entity is None:
             raise ValueError("Geographic maps require an entity column")
-        # Explore's legacy format uses full boundary ISO codes without normalization.
+        # Explore's legacy format joins on exact boundary ISO codes without
+        # normalization, so only an exact identifier renders.
+        region_format = form_data.get("region_format")
         return resolve_region(
             row.get(entity),
             form_data.get("select_country", ""),
-            form_data.get("region_format") or "iso_3166_2",
+            region_format or "iso_3166_2",
+            exact=not region_format,
         )
 
 

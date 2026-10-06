@@ -33,25 +33,39 @@ def geographic_key(value: str) -> str:
 
 
 def resolve_geographic_value(
-    value: object, entries: Iterable[tuple[str, str]], *, fold_diacritics: bool = True
+    value: object,
+    entries: Iterable[tuple[str, str]],
+    *,
+    fold_diacritics: bool = True,
+    exact: bool = False,
 ) -> str:
-    """Resolve exactly first, then accept only a unique folded identifier."""
+    """Resolve exactly first, then accept only a unique folded identifier.
+
+    With ``exact``, only identical identifiers resolve.
+    """
     if not isinstance(value, str) or not value or len(value) > 500:
         raise ValueError(
             "Geographic values must be nonempty strings of at most 500 characters"
         )
     key = geographic_key if fold_diacritics else str.lower
     pairs = list(entries)
-    exact = {code for alias, code in pairs if alias == value}
-    matches = exact or {code for alias, code in pairs if key(alias) == key(value)}
+    matches = {code for alias, code in pairs if alias == value}
+    if not matches and not exact:
+        matches = {code for alias, code in pairs if key(alias) == key(value)}
     if len(matches) != 1:
         reason = "ambiguous" if matches else "unrecognized"
         raise ValueError(f"{reason} geographic value {value[:100]!r}")
     return next(iter(matches))
 
 
-def resolve_region(value: object, country: str, region_format: str) -> str:
-    """Resolve only identifiers present in the selected bundled geometry."""
+def resolve_region(
+    value: object, country: str, region_format: str, *, exact: bool = False
+) -> str:
+    """Resolve only identifiers present in the selected bundled geometry.
+
+    ``exact`` disables case and diacritic folding for renderers that join on
+    the identifier as-is.
+    """
     if country not in REGIONS or region_format not in {
         "name",
         "abbreviation",
@@ -78,7 +92,7 @@ def resolve_region(value: object, country: str, region_format: str) -> str:
         # are too short to fold safely: an accented label like "Cá" would fold
         # onto an unrelated region's code and resolve silently to that region.
         return resolve_geographic_value(
-            value, entries, fold_diacritics=region_format == "name"
+            value, entries, fold_diacritics=region_format == "name", exact=exact
         )
     except ValueError as exc:
         raise ValueError(

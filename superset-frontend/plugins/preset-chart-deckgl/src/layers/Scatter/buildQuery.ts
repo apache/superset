@@ -51,6 +51,22 @@ export interface DeckScatterFormData
   mcp_geographic?: boolean;
 }
 
+/**
+ * Typed MCP compatibility reads a bare numeric-string radius as a fixed size.
+ * Native charts interpret every bare string as a saved metric name.
+ */
+export function getTypedFixedRadius(
+  formData: Pick<DeckScatterFormData, 'mcp_geographic' | 'point_radius_fixed'>,
+): number | null {
+  const { mcp_geographic, point_radius_fixed } = formData;
+  return mcp_geographic &&
+    typeof point_radius_fixed === 'string' &&
+    point_radius_fixed.trim() !== '' &&
+    Number.isFinite(Number(point_radius_fixed))
+    ? Number(point_radius_fixed)
+    : null;
+}
+
 export default function buildQuery(formData: DeckScatterFormData) {
   const { spatial, point_radius_fixed, dimension, tooltip_contents } = formData;
 
@@ -70,7 +86,9 @@ export default function buildQuery(formData: DeckScatterFormData) {
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       // Only add metric if point_radius_fixed is a metric type
-      const isMetric = isMetricValue(point_radius_fixed);
+      const isMetric =
+        getTypedFixedRadius(formData) === null &&
+        isMetricValue(point_radius_fixed);
       // Extract metric value: legacy string format or object with metric value
       const rawValue =
         typeof point_radius_fixed === 'string'

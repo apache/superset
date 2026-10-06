@@ -477,10 +477,20 @@ def test_compile_checks_full_bounded_map_result(kind: str) -> None:
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
         ) as command,
     ):
+        rows = result["queries"][0]["data"]
+        second = (
+            {"state": "TX", "SUM(sales)": 20}
+            if kind == "country_map"
+            else {"country": "FR", "SUM(sales)": 20}
+            if kind == "world_map"
+            else {"latitude": 40.7, "longitude": -74.0}
+        )
+        rows.append(second)
         command.return_value.run.return_value = result
         assert _compile_chart(form_for(kind), 3).success
         assert build.call_args.kwargs["row_limit"] == 10000
-        result["queries"][0]["data"].append({})
+        assert len(rows) == 2
+        rows.append({})
         failure = _compile_chart(form_for(kind), 3)
         assert not failure.success
         assert failure.error_code == "INVALID_GEOGRAPHIC_RESULT"
@@ -1772,6 +1782,49 @@ def test_point_dimension_cannot_replace_native_spatial_fields(name: str) -> None
         CHART_CONFIG_ADAPTER.validate_python(
             {**_CHART_EXAMPLES["deck_scatter"][0], "dimension": {"name": name}}
         )
+
+
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+def test_point_dimension_cannot_reuse_a_coordinate_column(role: str) -> None:
+    """Coordinate columns are stripped from point properties, so they cannot color."""
+    example = _CHART_EXAMPLES["deck_scatter"][0]
+    with pytest.raises(ValidationError, match="coordinate column"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {**example, "dimension": {"name": example[role]["name"]}}
+        )
+
+
+@pytest.mark.parametrize("value", ["us-ca", "Us-Ca", "US-ca"])
+def test_legacy_country_format_requires_exact_boundary_iso(value: str) -> None:
+    """The legacy renderer joins on exact boundary ids without normalization."""
+    plugin = CountryMapChartPlugin()
+    form = {**form_for("country_map"), "region_format": None}
+    assert plugin.row_identifier({"state": "US-CA"}, form) == "US-CA"
+    with pytest.raises(ValueError, match="unrecognized"):
+        plugin.row_identifier({"state": value}, form)
+
+
+@pytest.mark.parametrize(
+    ("saved", "expected"),
+    [
+        ("100", {"type": "fix", "value": 100}),
+        ("2.5", {"type": "fix", "value": 2.5}),
+        ("count", "count"),
+    ],
+)
+def test_update_normalizes_preserved_numeric_string_radius(
+    saved: str, expected: Any
+) -> None:
+    """A preserved fixed radius is saved in the form the native query reads."""
+    old = {**form_for("deck_scatter"), "point_radius_fixed": saved}
+    config = config_for("deck_scatter")
+    plugin = get_registry().get("deck_scatter")
+    assert plugin is not None
+    merged = plugin.merge_update_form_data(
+        old, map_config_to_form_data(config), config, dataset_rebind=False
+    )
+    assert merged is not None
+    assert merged["point_radius_fixed"] == expected
 
 
 @pytest.mark.parametrize("show_bubbles", [False, True])

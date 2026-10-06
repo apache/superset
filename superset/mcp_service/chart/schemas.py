@@ -3916,6 +3916,14 @@ class DeckScatterChartConfig(GeographicChartConfig):
                 f"Dimension column {self.dimension.name!r} "
                 "conflicts with a native spatial field"
             )
+        if self.dimension is not None and self.dimension.name in {
+            self.latitude.name,
+            self.longitude.name,
+        }:
+            raise ValueError(
+                f"Dimension column {self.dimension.name!r} reuses a coordinate "
+                "column; choose a separate category column"
+            )
         return self
 
 
