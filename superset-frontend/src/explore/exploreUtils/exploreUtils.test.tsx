@@ -30,9 +30,41 @@ import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
+  getChartBuildQueryRegistry,
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import { buildQuery as buildTableQuery } from '../../../plugins/plugin-chart-table/src/buildQuery';
+
+test('shared chart request producer rebuilds saved semantic Table without saving', async () => {
+  const viz = 'semantic_table_dormant_grain_test';
+  const registry = getChartBuildQueryRegistry();
+  registry.registerValue(viz, buildTableQuery);
+  const post = jest.spyOn(SupersetClient, 'post');
+  const put = jest.spyOn(SupersetClient, 'put');
+  const formData = Object.freeze({
+    viz_type: viz,
+    datasource: '2__semantic_view',
+    slice_id: 17,
+    metrics: ['orders'],
+    groupby: [],
+    time_grain_sqla: 'P1D',
+    extra_form_data: Object.freeze({ time_grain_sqla: 'P1M' }),
+  });
+  try {
+    const payload = await buildV1ChartDataPayload({ formData });
+    expect(payload.queries[0].extras).not.toHaveProperty('time_grain_sqla');
+    expect(payload.form_data).toMatchObject(formData);
+    expect(formData.time_grain_sqla).toBe('P1D');
+    expect(formData.extra_form_data.time_grain_sqla).toBe('P1M');
+    expect(post).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  } finally {
+    post.mockRestore();
+    put.mockRestore();
+    registry.remove(viz);
+  }
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('exploreUtils', () => {
