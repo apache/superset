@@ -210,3 +210,12 @@ def test_none_allowlist_matches_default_behavior(allowed_dialects):
     allowed_dialects(None)
     with pytest.raises(SupersetSecurityException):
         check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
+
+
+def test_allowlist_cannot_relax_superset_meta_db_block(allowed_dialects):
+    """The feature-flag-gated ``superset`` meta-database block is not
+    allowlistable: listing it must not bypass ENABLE_SUPERSET_META_DB (which is
+    off by default in the test app, so the ``superset`` block is active)."""
+    allowed_dialects({"superset"})
+    with pytest.raises(SupersetSecurityException):
+        check_sqlalchemy_uri(make_url("superset://"))
