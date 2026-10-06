@@ -2289,6 +2289,10 @@ class DeleteDashboardResponse(BaseModel):
 # manage_native_filters schemas
 # ---------------------------------------------------------------------------
 
+# The JSON scalars a filter_select selection can hold. Mirrors the value array
+# the frontend stores in a native filter's ``filterState.value``.
+FilterSelectValue = bool | int | float | str | None
+
 
 def _reject_bool_dataset_id(value: object) -> object:
     """bool is a subclass of int, so dataset_id=true would coerce to dataset ID 1
@@ -2347,6 +2351,23 @@ class FilterSelectSpec(BaseNewFilterSpec):
     search_all_options: bool = Field(
         False, description="Query the database on search rather than client-side"
     )
+    default_value: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "Default selected value(s), shown when a viewer opens the "
+            "dashboard unchanged. Omit for no default. Mutually exclusive "
+            "with default_to_first_item."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_default_value_compat(self) -> "FilterSelectSpec":
+        if self.default_to_first_item and self.default_value is not None:
+            raise ValueError(
+                "default_to_first_item and default_value are mutually "
+                "exclusive; set at most one."
+            )
+        return self
 
 
 class FilterTimeSpec(BaseNewFilterSpec):
@@ -2451,6 +2472,14 @@ class NativeFilterUpdateSpec(BaseModel):
     search_all_options: bool | None = Field(
         None, description="Search all options in the database (filter_select only)"
     )
+    default_value: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "New default value(s) (filter_select only). Empty list clears "
+            "it. Mutually exclusive with default_to_first_item=True; if "
+            "already enabled, also pass default_to_first_item=False here."
+        ),
+    )
     default_time_range: str | None = Field(
         None, description="Default time range (filter_time only)"
     )
@@ -2466,6 +2495,15 @@ class NativeFilterUpdateSpec(BaseModel):
     @classmethod
     def _validate_default_time_range(cls, v: str | None) -> str | None:
         return validate_time_range(v)
+
+    @model_validator(mode="after")
+    def _validate_default_value_compat(self) -> "NativeFilterUpdateSpec":
+        if self.default_to_first_item and self.default_value is not None:
+            raise ValueError(
+                "default_to_first_item and default_value are mutually "
+                "exclusive; set at most one in the same update."
+            )
+        return self
 
     @field_validator("dataset_id", mode="before")
     @classmethod
@@ -2560,10 +2598,6 @@ class ManageNativeFiltersResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # apply_dashboard_filters schemas
 # ---------------------------------------------------------------------------
-
-# The JSON scalars a filter_select selection can hold. Mirrors the value array
-# the frontend stores in a native filter's ``filterState.value``.
-FilterSelectValue = bool | int | float | str | None
 
 
 def _reject_bool_range_bound(value: object) -> object:
