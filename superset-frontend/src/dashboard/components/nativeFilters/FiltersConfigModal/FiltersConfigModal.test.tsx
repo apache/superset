@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { Preset, DatasourceType, Filter } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -173,7 +173,10 @@ const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^can select multiple values$/i;
 const FILTER_REQUIRED_REGEX = /^filter value is required/i;
-const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
+// No trailing `$`: like the other tooltip-bearing checkboxes below, the
+// accessible name includes the trailing info icon (e.g. "... other filters
+// info-circle"), so an exact-end anchor would never match.
+const DEPENDENCIES_REGEX = /^values are dependent on other filters/i;
 const FIRST_VALUE_REGEX = /^select first filter value by default/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection/i;
 const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
@@ -531,6 +534,43 @@ test('deletes a filter including dependencies', async () => {
     ),
   );
 }, 30000);
+
+test('shows the dependency control on first render for a saved cascade filter', () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // No interaction: the dependency control must be checked as soon as the
+  // modal opens on a filter that already has a cascade parent, without
+  // waiting for a rerender.
+  expect(getCheckbox(DEPENDENCIES_REGEX)).toBeChecked();
+
+  // The saved parent ("country") must render as the actual selected
+  // dependency, not a "(deleted or invalid type)" placeholder. antd Select
+  // renders the active selection as a span whose title attribute is the
+  // picked option's label.
+  expect(
+    document.querySelector(
+      '.ant-select-content-has-value[title="country"], .ant-select-selection-item[title="country"]',
+    ),
+  ).toBeInTheDocument();
+
+  // hasAdditionalFilters has the same first-render read as
+  // canDependOnOtherFilters above: the pre-filter control must also be
+  // present (not merely unchecked) on the very first paint.
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+});
 
 const SORTABLE_ITEM_HEIGHT = 40;
 const SORTABLE_ITEM_WIDTH = 200;
@@ -1120,4 +1160,105 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   await waitFor(() => {
     expect(screen.queryByText(/^default value$/i)).not.toBeInTheDocument();
   });
+});
+
+test('semantic filter reset requires reselection and survives save and reopen', async () => {
+  fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
+    result: {
+      name: 'Orders',
+      semantic_selection_version: 'cube-member-id-v1',
+      dimensions: [{ name: 'Orders.status', type: 'string' }],
+      metrics: [],
+    },
+  });
+  const filter = {
+    ...buildNativeFilter('NATIVE_FILTER-identity', 'Legacy', []),
+    targets: [
+      {
+        datasetId: 987,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.status' },
+      },
+    ],
+    time_range: 'Last week',
+    time_grains: ['P1D'],
+    defaultDataMask: {
+      filterState: { value: ['old default'] },
+      extraFormData: {
+        filters: [
+          { col: 'Orders.status', op: 'IN' as const, val: ['old default'] },
+        ],
+      },
+    },
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
+    dashboardLayout,
+  };
+  const onSave = jest
+    .fn<
+      ReturnType<FiltersConfigModalProps['onSave']>,
+      Parameters<FiltersConfigModalProps['onSave']>
+    >()
+    .mockResolvedValue(undefined);
+  const { unmount } = defaultRender(state, {
+    ...props,
+    onSave,
+    createNewOnOpen: false,
+  });
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Start field selection' }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Choose current semantic filter fields'),
+    ).not.toBeInTheDocument(),
+  );
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+  expect(getCheckbox(DEFAULT_VALUE_REGEX)).not.toBeChecked();
+  expect(screen.queryByText('old default')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  expect(await screen.findByText(COLUMN_REQUIRED_REGEX)).toBeInTheDocument();
+  expect(onSave).not.toHaveBeenCalled();
+
+  // This ID also spelled the legacy title; only explicit reselection certifies it.
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Column select' }),
+  );
+  await userEvent.click(await screen.findByText('Orders.status'));
+  // Column validation clears the previous save error asynchronously.
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  const changes = onSave.mock.calls[0][0].filterChanges;
+  expect(changes?.modified).toHaveLength(1);
+  const saved = changes?.modified[0];
+  const reopened: Filter = JSON.parse(JSON.stringify(saved));
+  expect(reopened.targets).toEqual([
+    {
+      datasetId: 987,
+      datasourceType: DatasourceType.SemanticView,
+      column: { name: 'Orders.status' },
+      semantic_selection_version: 'cube-member-id-v1',
+    },
+  ]);
+  expect(reopened.time_range).toBeUndefined();
+  expect(reopened.time_grains).toBeUndefined();
+  expect(reopened.defaultDataMask.filterState?.value).toBeUndefined();
+  expect(reopened.defaultDataMask.extraFormData?.filters).toBeUndefined();
+
+  unmount();
+  const reopenedState = {
+    ...state,
+    dashboardInfo: { metadata: { native_filter_configuration: [reopened] } },
+  };
+  defaultRender(reopenedState, { ...props, createNewOnOpen: false });
+  expect(await screen.findByText('Orders.status')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Start field selection' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('old default')).not.toBeInTheDocument();
 });

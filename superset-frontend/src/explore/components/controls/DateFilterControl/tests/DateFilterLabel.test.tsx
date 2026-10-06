@@ -21,11 +21,14 @@ import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
   fireEvent,
+  selectOption,
+  within,
 } from 'spec/helpers/testing-library';
 
 import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
@@ -74,6 +77,10 @@ beforeEach(() => {
   mockedFetchTimeRange.mockReset();
   mockedFetchTimeRange.mockResolvedValue({ value: FIELD_TOOLTIP });
   mockPopoverProps.length = 0;
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 function setup(
@@ -197,6 +204,119 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', as
   expect(popoverAfterRerender?.parentElement).toBe(document.body);
 });
 
+test('applies a configured displayFormat to the evaluated range but leaves the human-readable pill untouched', async () => {
+  mockedFetchTimeRange.mockImplementation(
+    async (_value, _columnPlaceholder, _shifts, dateFormat) =>
+      dateFormat
+        ? { value: `2024-01-01 ≤ col < 2024-01-08 (${dateFormat})` }
+        : { value: FIELD_TOOLTIP },
+  );
+
+  render(
+    setup({
+      ...defaultProps,
+      value: 'Last week',
+      displayFormat: '%d-%m-%Y',
+    }),
+  );
+
+  // the pill shows the raw human-readable value regardless of displayFormat
+  expect(await screen.findByText('Last week')).toBeInTheDocument();
+
+  // the tooltip shows the evaluated range, formatted with displayFormat
+  await userEvent.hover(screen.getByText('Last week'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    '2024-01-01 ≤ col < 2024-01-08 (%d-%m-%Y)',
+  );
+});
+
+test('regression: Apply during a pending debounced draft fetch must still update the pill', async () => {
+  // Reproduces the maintainer-identified race: the user edits the draft
+  // range (scheduling a 500ms debounced preview fetch), then clicks Apply
+  // before that timer fires. The Apply-triggered fetch (effect 1) must not
+  // be discarded just because the leftover draft fetch (effect 2) resolves
+  // its own request-tracking after Apply's fetch started.
+  jest.useFakeTimers({ advanceTimers: true });
+
+  const pendingResolvers: Array<(result: { value: string }) => void> = [];
+  mockedFetchTimeRange.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        pendingResolvers.push(resolve);
+      }),
+  );
+
+  const onChange = jest.fn();
+  const { rerender } = render(
+    setup({ ...defaultProps, onChange, value: 'Last week' }),
+  );
+
+  // Settle every fetch effect-1 issues on mount (useCSSTextTruncation's
+  // ref/measurement can cause it to re-run once after the initial paint),
+  // so validTimeRange reflects the settled 'Last week' state and Apply is
+  // enabled before we start the actual scenario.
+  await act(async () => {
+    pendingResolvers.forEach(resolve =>
+      resolve({ value: 'evaluated: Last week' }),
+    );
+  });
+
+  // open the popover and wait for Apply to be enabled
+  await userEvent.click(screen.getByText('Last week'));
+  await waitFor(() => {
+    expect(screen.getByText('Apply').closest('button')).not.toBeDisabled();
+  });
+  const baseRequestCount = pendingResolvers.length;
+
+  // change the draft selection to 'Last month' — this schedules effect 2's
+  // 500ms debounced draft-preview fetch
+  fireEvent.click(screen.getByText('Last month'));
+
+  // click Apply well before that debounce timer fires
+  await act(async () => {
+    jest.advanceTimersByTime(100);
+  });
+  fireEvent.click(screen.getByText('Apply'));
+  expect(onChange).toHaveBeenCalledWith('Last month');
+
+  // simulate the real parent (TimeFilterPlugin) re-rendering with the
+  // applied value, exactly as it would after onChange updates formData
+  rerender(setup({ ...defaultProps, onChange, value: 'Last month' }));
+
+  // effect 1 (driven by the new `value` prop) starts its own fetch
+  await waitFor(() => {
+    expect(pendingResolvers.length).toBe(baseRequestCount + 1);
+  });
+  const applyRequestIndex = baseRequestCount;
+
+  // the leftover debounce timer from before Apply now fires and starts
+  // effect 2's fetch for the same value, *before* effect 1's fetch above
+  // has resolved
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  await waitFor(() => {
+    expect(pendingResolvers.length).toBe(baseRequestCount + 2);
+  });
+  const staleDraftRequestIndex = baseRequestCount + 1;
+
+  // effect 1's (older, Apply-triggered) fetch finally resolves
+  await act(async () => {
+    pendingResolvers[applyRequestIndex]({ value: 'evaluated: Last month' });
+  });
+
+  // the pill must reflect the applied selection, not the stale pre-Apply one
+  expect(screen.getByText('Last month')).toBeInTheDocument();
+  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
+
+  // drain effect 2's own fetch so it doesn't dangle past the test
+  await act(async () => {
+    pendingResolvers[staleDraftRequestIndex]({
+      value: 'evaluated: Last month',
+    });
+  });
+});
+
 test('hovering the description icon does not show the date range tooltip', async () => {
   const tooltipOnClick = jest.fn();
   render(
@@ -253,4 +373,191 @@ test('hovering the description icon does not show the date range tooltip', async
 
   fireEvent.keyDown(descriptionIcon, { key: 'Enter' });
   expect(tooltipOnClick).toHaveBeenCalled();
+});
+
+const RANGE_TYPE_LABEL = 'Range type';
+const INVALID_EXPRESSION_ERROR = 'Invalid time range expression';
+
+const FRAME_MARKERS = {
+  Common: () => screen.queryByTestId(DateFilterTestKey.CommonFrame),
+  Calendar: () => screen.queryByText('Configure Time Range: Previous...'),
+  Current: () => screen.queryByText('Configure Time Range: Current...'),
+  Custom: () => screen.queryByText('Configure custom time range'),
+  Advanced: () => screen.queryByText('Configure Advanced Time Range'),
+  'No filter': () => screen.queryByTestId(DateFilterTestKey.NoFilter),
+};
+
+type FrameName = keyof typeof FRAME_MARKERS;
+
+async function expectOnlyFrame(frame: FrameName) {
+  await waitFor(() => {
+    expect(FRAME_MARKERS[frame]()).toBeInTheDocument();
+  });
+  (Object.keys(FRAME_MARKERS) as FrameName[])
+    .filter(other => other !== frame)
+    .forEach(other => {
+      expect(FRAME_MARKERS[other]()).not.toBeInTheDocument();
+    });
+}
+
+test.each<[string, FrameName, string]>([
+  ['No filter', 'No filter', 'No filter'],
+  ['Last week', 'Common', 'Last'],
+  ['previous calendar month', 'Calendar', 'Previous'],
+  ['Current quarter', 'Current', 'Current'],
+  ['2021-03-16T00:00:00 : 2021-03-17T00:00:00', 'Custom', 'Custom'],
+  ['Last week : tomorrow', 'Advanced', 'Advanced'],
+])(
+  'opens on the frame that matches the value "%s"',
+  async (value, expectedFrame, expectedSelectLabel) => {
+    render(setup({ ...defaultProps, value }));
+
+    await userEvent.click(await screen.findByRole('button'));
+
+    await expectOnlyFrame(expectedFrame);
+    expect(screen.getByTitle(expectedSelectLabel)).toBeInTheDocument();
+  },
+);
+
+test.each<[string, FrameName]>([
+  ['Previous', 'Calendar'],
+  ['Current', 'Current'],
+  ['Custom', 'Custom'],
+  ['Advanced', 'Advanced'],
+  ['No filter', 'No filter'],
+])(
+  'range type select switches from the Last frame to the %s frame',
+  async (optionLabel, expectedFrame) => {
+    render(setup({ ...defaultProps, value: 'Last week' }));
+    await userEvent.click(screen.getByText('Last week'));
+    await expectOnlyFrame('Common');
+
+    await selectOption(optionLabel, RANGE_TYPE_LABEL);
+
+    await expectOnlyFrame(expectedFrame);
+  },
+);
+
+test('range type select switches back to the Last frame from another frame', async () => {
+  render(setup({ ...defaultProps, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await selectOption('Advanced', RANGE_TYPE_LABEL);
+  await expectOnlyFrame('Advanced');
+
+  await selectOption('Last', RANGE_TYPE_LABEL);
+
+  await expectOnlyFrame('Common');
+});
+
+test('selecting the No filter frame previews No filter as the actual time range', async () => {
+  render(setup({ ...defaultProps, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+
+  await selectOption('No filter', RANGE_TYPE_LABEL);
+
+  await expectOnlyFrame('No filter');
+  await waitFor(
+    () => {
+      expect(
+        within(screen.getByText('Actual time range').parentElement!).getByText(
+          'No filter',
+        ),
+      ).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+});
+
+test('Apply after selecting the No filter frame saves the No filter range', async () => {
+  const onChange = jest.fn();
+  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await selectOption('No filter', RANGE_TYPE_LABEL);
+
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+
+  expect(onChange).toHaveBeenCalledWith(NO_TIME_RANGE);
+});
+
+test('an invalid Advanced expression shows the error and disables Apply', async () => {
+  mockedFetchTimeRange.mockImplementation(async value =>
+    value.includes('bogus')
+      ? { error: INVALID_EXPRESSION_ERROR }
+      : { value: FIELD_TOOLTIP },
+  );
+  const onChange = jest.fn();
+  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await selectOption('Advanced', RANGE_TYPE_LABEL);
+  await waitFor(() => {
+    expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled();
+  });
+
+  await userEvent.type(screen.getAllByRole('textbox')[0], 'bogus');
+
+  expect(
+    await screen.findByText(INVALID_EXPRESSION_ERROR, {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeDisabled();
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('correcting an invalid Advanced expression clears the error and re-enables Apply', async () => {
+  mockedFetchTimeRange.mockImplementation(async value =>
+    value.includes('bogus')
+      ? { error: INVALID_EXPRESSION_ERROR }
+      : { value: FIELD_TOOLTIP },
+  );
+  render(setup({ ...defaultProps, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await selectOption('Advanced', RANGE_TYPE_LABEL);
+  const sinceInput = screen.getAllByRole('textbox')[0];
+  await userEvent.type(sinceInput, 'bogus');
+  await screen.findByText(INVALID_EXPRESSION_ERROR, {}, { timeout: 3000 });
+
+  await userEvent.clear(sinceInput);
+  await userEvent.type(sinceInput, 'today');
+
+  await waitFor(
+    () => {
+      expect(
+        screen.queryByText(INVALID_EXPRESSION_ERROR),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled();
+    },
+    { timeout: 3000 },
+  );
+});
+
+test('Cancel restores the frame guessed from the saved value', async () => {
+  const onChange = jest.fn();
+  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await selectOption('Advanced', RANGE_TYPE_LABEL);
+  await expectOnlyFrame('Advanced');
+
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.CancelButton));
+  await waitFor(() => {
+    expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
+  });
+  await userEvent.click(screen.getByText('Last week'));
+
+  await expectOnlyFrame('Common');
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('Cancel discards an unsaved range selection', async () => {
+  render(setup({ ...defaultProps, value: 'Last week' }));
+  await userEvent.click(screen.getByText('Last week'));
+  await userEvent.click(screen.getByLabelText('Last month'));
+
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.CancelButton));
+  await waitFor(() => {
+    expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
+  });
+  await userEvent.click(screen.getByText('Last week'));
+
+  expect(await screen.findByLabelText('Last week')).toBeChecked();
+  expect(screen.getByLabelText('Last month')).not.toBeChecked();
 });

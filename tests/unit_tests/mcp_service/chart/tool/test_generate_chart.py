@@ -28,6 +28,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BubbleChartConfig,
     ColumnRef,
     FilterConfig,
     GaugeChartConfig,
@@ -98,6 +99,63 @@ class TestGenerateChart:
             result = await generate_chart(request, ctx=ctx)
 
         assert result.chart_type_label == "table chart"
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_preview_non_decimal_digit_dataset_id(self) -> None:
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the preview-only compile-check lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        request = GenerateChartRequest(
+            dataset_id="²",
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="region")],
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+        validation_result = Mock(
+            is_valid=True,
+            request=request,
+            warnings={},
+            error=None,
+        )
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_user.roles = []
+        mock_user.groups = []
+
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value=(
+                    "http://localhost:9001/explore/?"
+                    "form_data_key=test_form_data_key_123"
+                ),
+            ),
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=None
+            ) as mock_find_by_id,
+        ):
+            result = await generate_chart(request, ctx=ctx)
+
+        assert result.chart_type_label == "table chart"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("has_finite", [True, False])
@@ -571,15 +629,17 @@ class _DetachableSlice:
 async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
+    config: Any = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
     ``refetch`` is used as the ``ChartDAO.find_by_id`` behaviour of the
-    serialization path.
+    serialization path. ``config`` defaults to a minimal table chart.
     """
     request = GenerateChartRequest(
         dataset_id="1",
-        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        config=config
+        or TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
         save_chart=True,
         generate_preview=False,
     )
@@ -973,3 +1033,37 @@ class TestGenerateChartSqlMetric:
         assert m["sqlExpression"] == _SQL_EXPR
         assert m["label"] == "Win Rate"
         assert m["optionName"] == "metric_sql_abcd1234"
+
+
+class TestGenerateBubbleWithSqlExpressionMetric:
+    """A SQL-expression metric must survive the response-building analyzers.
+
+    Bubble carries a metric in ``x``, and a SQL-expression ColumnRef has no
+    name, so the semantics analyzer joined None into its data story. The
+    analyzers run while the response is assembled — in save mode that is
+    after CreateChartCommand has already committed the chart, so the caller
+    got an exception for a chart that exists.
+    """
+
+    @pytest.mark.asyncio
+    async def test_saved_bubble_with_sql_expression_x_is_reported(self) -> None:
+        result, _chart, create_command = await _generate_saved_chart(
+            refetch=Mock(return_value=_make_mock_chart()),
+            config=BubbleChartConfig(
+                chart_type="bubble_v2",
+                entity={"name": "country"},
+                x={"sql_expression": "AVG(gdp)", "label": "GDP per capita"},
+                y={"name": "life_expectancy", "aggregate": "AVG"},
+                size={"name": "population", "aggregate": "SUM"},
+            ),
+        )
+
+        assert result.success is True
+        assert result.error is None
+        assert result.chart is not None
+        assert result.chart.id == 42
+        create_command.return_value.run.assert_called_once()
+        # the crash was in the semantics analyzer, so assert what it produced
+        assert result.semantics is not None
+        assert "GDP per capita" in result.semantics.data_story
+        assert "None" not in result.semantics.data_story

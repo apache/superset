@@ -257,6 +257,13 @@ class SqlLabRestApi(BaseSupersetApi):
                                 if isinstance(template_params, str)
                                 else template_params
                             )
+                            if not isinstance(template_params, dict):
+                                logger.warning(
+                                    "template_params is not a dict: %s."
+                                    " Skipping processing",
+                                    type(template_params).__name__,
+                                )
+                                template_params = None
                             if template_params:
                                 # Check access before rendering the Jinja
                                 # template (mirrors the SQL Lab execute path).

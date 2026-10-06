@@ -19,6 +19,7 @@
 Unit tests for update_chart_preview MCP tool
 """
 
+import asyncio
 import importlib
 from contextlib import nullcontext
 from typing import Any
@@ -161,8 +162,8 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
         ),
     )
 
-    result = update_chart_preview_module.update_chart_preview(
-        request=request, ctx=Mock()
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
     )
 
     assert result["success"] is True, result
@@ -212,9 +213,11 @@ class TestUpdateChartPreview:
         with patch.object(
             update_chart_preview_module, "_find_dataset", side_effect=error
         ):
-            result = update_chart_preview_module.update_chart_preview(
-                request=request,
-                ctx=Mock(),
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request,
+                    ctx=Mock(),
+                )
             )
 
         assert result["success"] is False
@@ -1057,7 +1060,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1135,7 +1138,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1215,7 +1218,7 @@ class TestUpdateChartPreview:
         with patch.object(
             feature_flag_manager, "is_feature_enabled", return_value=True
         ):
-            result = update_chart_preview_module.update_chart_preview(
+            result = await update_chart_preview_module.update_chart_preview(
                 request=request, ctx=Mock()
             )
 
@@ -1294,7 +1297,7 @@ class TestUpdateChartPreview:
             preview_formats=["url", "table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1444,6 +1447,37 @@ class TestUpdateChartPreviewValidation:
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
+
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_non_decimal_digit_dataset_id_uses_uuid_lookup(
+        self,
+        mock_find_by_id,
+        mock_find_dataset,
+        mcp_server,
+        mock_auth,
+    ):
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the Tier-1 schema-validation lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartPreviewRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "DatasetNotAccessible"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
 
 
 @pytest.mark.parametrize("allowed", [True, False])

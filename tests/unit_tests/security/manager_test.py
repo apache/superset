@@ -25,10 +25,20 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
-from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
+from flask_appbuilder.actions import ActionItem
+from flask_appbuilder.const import (
+    AUTH_DB,
+    AUTH_LDAP,
+    AUTH_OAUTH,
+    AUTH_REMOTE_USER,
+    AUTH_SAML,
+)
 from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from werkzeug.exceptions import NotFound
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
@@ -53,8 +63,38 @@ def test_security_manager(app_context: None) -> None:
     assert sm
 
 
+def test_is_guest_user_no_jwt_returns_false_without_raising(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    ``is_guest_user`` must not propagate ``NoAuthorizationError``.
+
+    Resolving the current user on a request with no JWT and no guest token
+    invokes the app's request loader, which lets ``verify_jwt_in_request``
+    raise ``NoAuthorizationError``. When ``is_guest_user`` runs before auth
+    (e.g. error sanitization while handling an unrelated HTTPException) that
+    raise would escape as an unhandled exception. Such a request cannot be an
+    embedded guest viewer, so the method must return ``False`` instead.
+    """
+    from flask_jwt_extended.exceptions import NoAuthorizationError
+
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.get_current_user",
+        side_effect=NoAuthorizationError("Missing JWT in cookies or headers"),
+    )
+
+    assert SupersetSecurityManager.is_guest_user() is False
+
+
 def _register_views_with_mock_appbuilder(
-    mocker: MockerFixture, auth_type: int
+    mocker: MockerFixture,
+    auth_type: int,
+    auth_user_registration: bool = False,
+    register_superset_registeruser_view: bool = False,
 ) -> MagicMock:
     """
     Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
@@ -71,7 +111,7 @@ def _register_views_with_mock_appbuilder(
         current_app.config,
         {
             "AUTH_TYPE": auth_type,
-            "AUTH_USER_REGISTRATION": False,
+            "AUTH_USER_REGISTRATION": auth_user_registration,
             "AUTH_RATE_LIMITED": False,
         },
     )
@@ -83,7 +123,7 @@ def _register_views_with_mock_appbuilder(
     sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
     sm.appbuilder = mock_appbuilder
     sm.register_superset_auth_view = True
-    sm.register_superset_registeruser_view = False
+    sm.register_superset_registeruser_view = register_superset_registeruser_view
     sm.userstatschartview = None
 
     mocker.patch(
@@ -133,6 +173,69 @@ def test_register_views_still_registers_superset_auth_view_for_db_auth(
         call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
     ]
     assert SupersetAuthView in registered
+
+
+@pytest.mark.parametrize(
+    "auth_type,auth_user_registration",
+    [
+        (AUTH_LDAP, True),
+        (AUTH_REMOTE_USER, True),
+        (AUTH_SAML, True),
+        (AUTH_DB, False),
+    ],
+)
+def test_register_views_does_not_register_registeruser_view(
+    app_context: None,
+    mocker: MockerFixture,
+    auth_type: int,
+    auth_user_registration: bool,
+) -> None:
+    """
+    SupersetRegisterUserView must only register where self-registration works.
+
+    FlaskAppBuilder wires the "/register/form" handler that the page posts to
+    only for AUTH_DB and AUTH_OAUTH, and only when AUTH_USER_REGISTRATION is
+    set. LDAP/SAML/AUTH_REMOTE_USER deployments must set AUTH_USER_REGISTRATION
+    anyway so users get provisioned on first login, which used to publish a
+    public "/register/" form that submits to a 404 -- reported in
+    apache/superset#37100.
+    """
+    from superset.views.auth import SupersetRegisterUserView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(
+        mocker,
+        auth_type,
+        auth_user_registration=auth_user_registration,
+        register_superset_registeruser_view=True,
+    )
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetRegisterUserView not in registered
+
+
+@pytest.mark.parametrize("auth_type", [AUTH_DB, AUTH_OAUTH])
+def test_register_views_registers_registeruser_view_for_self_registration(
+    app_context: None, mocker: MockerFixture, auth_type: int
+) -> None:
+    """
+    Control case: the auth types FlaskAppBuilder registers a register-user view
+    for still get the "/register/" page when AUTH_USER_REGISTRATION is set.
+    """
+    from superset.views.auth import SupersetRegisterUserView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(
+        mocker,
+        auth_type,
+        auth_user_registration=True,
+        register_superset_registeruser_view=True,
+    )
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetRegisterUserView in registered
 
 
 @pytest.fixture
@@ -1157,6 +1260,83 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})
 
 
+def test_can_access_schema_query_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A schema_access holder can access a Query's schema via can_access_schema.
+
+    Regression test for the widened isinstance gate: Query is not a
+    BaseDatasource but exposes ``database`` and ``schema_perm``, so the
+    catalog/schema hierarchy checks must still run for it. Previously the
+    6.1.0 Explorable refactor's ``isinstance(datasource, BaseDatasource)``
+    gate caused ``can_access_schema(Query)`` to always return False.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, view: (
+            perm == "schema_access" and view == "[examples].[main]"
+        ),
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None)
+    query.database = database
+
+    assert sm.can_access_schema(query) is True
+
+
+def test_can_access_schema_query_denied_ungranted_schema(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """can_access_schema(Query) is False when the schema is not granted."""
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    query = Query(sql="SELECT * FROM t1", schema="other", catalog=None)
+    query.database = database
+
+    assert sm.can_access_schema(query) is False
+
+
+def test_can_access_schema_transient_query_no_database(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """can_access_schema(Query) must not crash when database is None.
+
+    A transient Query built from just a ``database_id`` (the ORM relationship
+    was never loaded) has ``database = None``.  The widened gate must reject
+    it rather than passing it through to ``can_access_database(None)``, which
+    would crash.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, database_id=1)
+    query.database = None
+
+    assert sm.can_access_schema(query) is False
+
+
 def test_raise_for_access_chart_for_datasource_permission(
     mocker: MockerFixture,
     app_context: None,
@@ -1403,6 +1583,192 @@ def test_query_context_modified_malformed_stored_query_context(
     }
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_injected_annotation_layer(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest must not be able to inject annotation layers the stored chart
+    does not carry: native annotation layers resolve all their annotations
+    with no further access check. Replaying the chart's own stored layers is
+    not tampering.
+    """
+    layer = {
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "value": 1,
+        "name": "Incidents",
+    }
+
+    # replaying the stored layer is allowed
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[layer])  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+    # injecting a layer the chart was not saved with is tampering
+    injected = {**layer, "value": 2}
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [injected],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[injected])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_stale_annotation_layer_in_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A layer removed from the chart's current ``params`` is tampering even if
+    it still lingers in the chart's cached ``query_context``: a params-only
+    chart update can drop a layer without refreshing that stale snapshot, so
+    authorization must go by ``params`` alone.
+    """
+    layer = {
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "value": 1,
+        "name": "Incidents",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"annotation_layers": [layer]}]}
+    )
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[layer])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_result_type_expansion(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Requesting the ``samples``/``drill_detail`` result types is tampering:
+    the server-side preparers expand those queries to every datasource
+    column after the subset checks on columns/metrics have run.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+
+    # Top-level result type rewritten to samples.
+    query_context.result_type = ChartDataResultType.SAMPLES
+    assert query_context_modified(query_context)
+
+    # Per-query result type rewritten to drill_detail.
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.queries[0].result_type = ChartDataResultType.DRILL_DETAIL
+    assert query_context_modified(query_context)
+
+    # The chart's own result type is not tampering.
+    query_context.queries[0].result_type = None
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_result_type_per_query_position(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A chart's queries are validated by position: only the query stored with
+    ``samples``/``drill_detail`` may request it, and swapping which query
+    index carries that result type is tampering even though the type itself
+    is used somewhere on the stored chart.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {"metrics": stored_metrics}
+    query_context.slice_.query_context = json.dumps(
+        {
+            "result_type": "full",
+            "queries": [
+                {"metrics": stored_metrics, "result_type": "full"},
+                {"metrics": stored_metrics, "result_type": "samples"},
+            ],
+        }
+    )
+    query_context.form_data = {"slice_id": 42, "metrics": stored_metrics}
+    query_context.result_type = ChartDataResultType.FULL
+
+    # Replaying each query's own stored result type, in the stored order, is
+    # not tampering.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+    ]
+    assert not query_context_modified(query_context)
+
+    # Requesting `samples` for the query stored at index 0 - a position the
+    # chart never renders with raw datasource rows - is tampering, even
+    # though `samples` is the stored result type of a different query.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+    ]
+    assert query_context_modified(query_context)
+
+    # Neither the query nor the query context names a result type: nothing
+    # resolves to a row-expanding type, so this is not tampering.
+    query_context.result_type = None
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics),  # type: ignore
+        QueryObject(metrics=stored_metrics),  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
 
 
 def test_query_context_modified_singular_metric_param(
@@ -1790,6 +2156,73 @@ def test_query_context_modified_chartless_non_native_filter_allowed(
     qc.slice_ = None
     qc.form_data = {"dashboardId": 10, "slice_id": 0, "groupby": ["ssn"]}
     assert not query_context_modified(qc)
+
+
+def test_query_context_modified_drill_by_row_expanding_result_type_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Drill By request (``slice_id`` 0 sentinel + source ``chart_id``) is
+    rejected when it asks for a row-expanding result type: that would bypass
+    the drillable-dimension allowlist raise_for_access already checked for it
+    and return every column instead.
+    """
+    query = SimpleNamespace(
+        columns=[], metrics=[], groupby=["region"], result_type="samples"
+    )
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {
+        "dashboardId": 10,
+        "slice_id": 0,
+        "chart_id": 5,
+        "groupby": ["region"],
+    }
+    qc.queries = [query]
+    assert query_context_modified(qc)
+
+    query.result_type = "drill_detail"
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_drill_to_detail_row_expanding_result_type_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Drill to Detail (no ``slice_id``/``chart_id`` at all) is unaffected: it is
+    already meant to expose every column of a dataset attached to the
+    dashboard, and is validated by raise_for_access rather than here.
+    """
+    query = SimpleNamespace(
+        columns=[], metrics=[], groupby=[], result_type="drill_detail"
+    )
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {"dashboardId": 10}
+    qc.queries = [query]
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_row_expanding_result_type_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A native-filter request limited to its target column is still rejected
+    when it asks for a row-expanding result type (``samples``/``drill_detail``):
+    those preparers replace the column list with every datasource column,
+    which would bypass the target-column allowlist entirely.
+    """
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], result_type="samples"
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], result_type="drill_detail"
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
 
 
 def test_query_context_modified_native_filter_without_type_marker_blocked(
@@ -4641,17 +5074,192 @@ def test_validate_guest_token_resources_rejects_non_embedded_int_id(
 def test_validate_guest_token_resources_accepts_embedded_int_id(
     app_context: None, mocker: MockerFixture
 ) -> None:
-    """A raw int id for an embedded dashboard is accepted."""
+    """A raw int id for an embedded dashboard is accepted when the caller
+    minting the token is entitled to it."""
     from superset.security.guest_token import GuestTokenResourceType
 
     sm = SupersetSecurityManager(appbuilder)
     embedded_dash = MagicMock()
     embedded_dash.embedded = [MagicMock()]  # embedded
     mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+    raise_for_access = mocker.patch.object(sm, "raise_for_access")
+    # An admin's dashboard entitlement covers every member datasource, so the
+    # per-datasource minting check is skipped (see the dedicated tests below).
+    mocker.patch.object(sm, "is_admin", return_value=True)
 
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+    raise_for_access.assert_called_once_with(dashboard=embedded_dash)
+
+
+def test_validate_guest_token_resources_rejects_unauthorized_dashboard(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Minting a guest token for a dashboard the calling principal is not
+    themselves entitled to must be refused. Without this, a non-Admin role
+    granted only the coarse `can_grant_guest_token` permission (a realistic
+    "embedding backend service" grant, since SECURITY.md treats an
+    operator-narrowed permission as shifting the boundary, not redefining
+    the model) could mint a valid guest token scoped to *any* embedded
+    dashboard in the instance, not just ones it can see.
+    """
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+    from superset.exceptions import SupersetSecurityException
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    embedded_dash = MagicMock()
+    embedded_dash.embedded = [MagicMock()]  # embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+    mocker.patch.object(
+        sm,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(mocker.MagicMock()),
+    )
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def _guest_token_dashboard_with_datasources(
+    mocker: MockerFixture, ids: list[int]
+) -> MagicMock:
+    """A published, non-RBAC dashboard whose slices resolve to datasources ``ids``."""
+    dashboard = MagicMock()
+    dashboard.embedded = [MagicMock()]
+    dashboard.viewers = []
+    dashboard.published = True
+    slices = []
+    for ds_id in ids:
+        slc = MagicMock()
+        slc.datasource_type = "table"
+        slc.datasource_id = ds_id
+        slc.resolved_datasource = MagicMock(id=ds_id)
+        slices.append(slc)
+    dashboard.slices = slices
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=dashboard)
+    return dashboard
+
+
+def test_validate_guest_token_resources_requires_every_granted_datasource(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    A dashboard-scoped guest token grants every member datasource, but
+    ``raise_for_access(dashboard=...)`` passes on a non-RBAC dashboard as soon
+    as the caller can read any ONE of them. Minting must therefore require
+    access to each datasource the token will grant.
+    """
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=False)
+    # Can read datasource 1 only.
+    mocker.patch.object(sm, "can_access_datasource", side_effect=lambda ds: ds.id == 1)
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_datasets_claim_limits_the_check(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    When the token carries a ``datasets`` allowlist, only those datasources
+    are granted, so only those need to be accessible to the minting caller.
+    """
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=False)
+    mocker.patch.object(sm, "can_access_datasource", side_effect=lambda ds: ds.id == 1)
+
+    # Restricted to datasource 1, which the caller can read: allowed.
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}], datasets=[1]
+    )
+
+
+def test_validate_guest_token_resources_rbac_viewer_skips_datasource_check(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    A viewer of a published RBAC dashboard is entitled to every member chart
+    through the dashboard itself, so no per-datasource check applies.
+    """
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    dashboard = _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    dashboard.viewers = [MagicMock()]
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    can_access = mocker.patch.object(sm, "can_access_datasource", return_value=False)
+
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+    )
+    can_access.assert_not_called()
+
+
+def test_validate_guest_token_resources_checks_access_via_embedded_dao_fallback(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    The same access check applies on the EmbeddedDashboardDAO lookup path
+    (a resource id that isn't a plain dashboard id -- e.g. the embedded
+    config's own uuid), not just the `Dashboard.get` path.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=None)
+    target_dashboard = MagicMock()
+    embedded = MagicMock()
+    embedded.dashboard = target_dashboard
+    mocker.patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=embedded,
+    )
+    raise_for_access = mocker.patch.object(
+        sm,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(mocker.MagicMock()),
+    )
+
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}]
+        )
+
+    raise_for_access.assert_called_once_with(dashboard=target_dashboard)
 
 
 def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
@@ -4829,3 +5437,211 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
+
+
+def test_skip_legacy_fab_password_view_registration_refuses_reset_views(
+    app_context: None,
+) -> None:
+    """The patched ``add_view_no_menu`` drops both legacy reset views, whether
+    FAB hands over an instance (as ``register_views`` does) or the class, and
+    passes everything else through to the original."""
+
+    class NonPasswordView:
+        pass
+
+    registered: list[Any] = []
+
+    def add_view_no_menu(baseview: Any, *args: Any, **kwargs: Any) -> Any:
+        registered.append(baseview)
+        return baseview
+
+    fake_appbuilder = SimpleNamespace(add_view_no_menu=add_view_no_menu)
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = fake_appbuilder
+
+    original = sm._skip_legacy_fab_password_view_registration()
+    assert original is add_view_no_menu
+
+    fake_appbuilder.add_view_no_menu(ResetPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetPasswordView)
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
+    fake_appbuilder.add_view_no_menu(NonPasswordView)
+
+    assert registered == [NonPasswordView]
+
+
+def test_register_views_never_registers_legacy_password_views(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """End to end through ``register_views``: the reset views FAB adds for
+    ``AUTH_DB`` never reach the appbuilder, other views do, and the appbuilder's
+    ``add_view_no_menu`` is restored once FAB's registration is done."""
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": AUTH_DB,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+    original_add_view_no_menu = mock_appbuilder.add_view_no_menu
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    class NonPasswordView:
+        pass
+
+    def fab_register_views(fab_sm: SupersetSecurityManager) -> None:
+        # What FAB's ``register_views`` does for AUTH_DB, reduced to the calls
+        # that matter here.
+        fab_sm.appbuilder.add_view_no_menu(ResetPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(ResetMyPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(NonPasswordView)
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+        side_effect=fab_register_views,
+    )
+
+    sm.register_views()
+
+    registered = [call.args[0] for call in original_add_view_no_menu.call_args_list]
+    assert NonPasswordView in registered
+    assert not any(
+        isinstance(view, (ResetPasswordView, ResetMyPasswordView))
+        or view in (ResetPasswordView, ResetMyPasswordView)
+        for view in registered
+    )
+    assert mock_appbuilder.add_view_no_menu is original_add_view_no_menu
+
+
+def test_disable_legacy_password_reset_launchers(app_context: None) -> None:
+    """The user view's two reset buttons are hidden and answer 404, while
+    unrelated actions on the same view are left alone.
+
+    FAB's ``UserDBModelView`` actions redirect to the reset views via
+    ``url_for``, which would raise ``BuildError`` (a 500) since those views are
+    never registered.
+    """
+
+    def launcher(item: Any) -> str:
+        return "redirect"
+
+    actions = {
+        name: ActionItem(name, name, None, "fa-lock", False, True, launcher)
+        for name in ("resetpasswords", "resetmypassword", "userinfoedit")
+    }
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = SimpleNamespace(actions=actions)
+
+    sm._disable_legacy_password_reset_launchers()
+
+    for name in ("resetpasswords", "resetmypassword"):
+        assert actions[name].single is False
+        assert actions[name].multiple is False
+        with pytest.raises(NotFound):
+            actions[name].func(None)
+    assert actions["userinfoedit"].single is True
+    assert actions["userinfoedit"].func(None) == "redirect"
+
+
+def test_disable_legacy_password_reset_launchers_without_user_view() -> None:
+    """Auth backends other than AUTH_DB have no reset launchers to hide."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = None
+
+    sm._disable_legacy_password_reset_launchers()
+
+
+@pytest.mark.parametrize(
+    "permission,view_menu,expected",
+    [
+        ("can_this_form_get", "ResetPasswordView", True),
+        ("can_this_form_post", "ResetPasswordView", True),
+        ("can_this_form_get", "ResetMyPasswordView", True),
+        ("can_this_form_post", "ResetMyPasswordView", True),
+        ("resetpasswords", "UserDBModelView", True),
+        ("resetmypassword", "UserDBModelView", True),
+        ("userinfoedit", "UserDBModelView", False),
+        ("can_userinfo", "UserDBModelView", False),
+        ("resetmypassword", "SomeOtherView", False),
+        ("can_read", "Dashboard", False),
+    ],
+)
+def test_is_legacy_password_pvm(
+    permission: str, view_menu: str, expected: bool
+) -> None:
+    assert (
+        SupersetSecurityManager._is_legacy_password_pvm(_pvm(permission, view_menu))
+        is expected
+    )
+
+
+def test_sync_role_definitions_excludes_stale_legacy_password_pvms(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Upgraded installs must not have any role retain the removed views.
+
+    The reset views' permission rows (and the user-view launcher actions that
+    redirected to them) persist in the metadata database of an installation
+    that ran them before, and ``_get_all_pvms`` still returns them;
+    ``sync_role_definitions`` has to leave them out of every role.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    stale_pvms = [
+        _pvm("can_this_form_get", "ResetPasswordView"),
+        _pvm("can_this_form_post", "ResetMyPasswordView"),
+        _pvm("resetpasswords", "UserDBModelView"),
+        _pvm("resetmypassword", "UserDBModelView"),
+    ]
+    other_pvm = _pvm("can_read", "Dashboard")
+
+    mocker.patch.object(sm, "create_custom_permissions")
+    mocker.patch.object(sm, "_get_all_pvms", return_value=[*stale_pvms, other_pvm])
+    mock_set_role = mocker.patch.object(sm, "set_role")
+    mocker.patch.object(sm, "create_missing_perms")
+    mocker.patch.object(sm, "clean_perms")
+    mocker.patch.dict(current_app.config, {"PUBLIC_ROLE_LIKE": None})
+
+    sm.sync_role_definitions()
+
+    assert mock_set_role.call_args_list
+    for call in mock_set_role.call_args_list:
+        role_name, _classifier_fn, synced_pvms = call.args
+        for stale_pvm in stale_pvms:
+            assert stale_pvm not in synced_pvms, role_name
+        assert other_pvm in synced_pvms, role_name
+
+
+def test_reset_password_self_service_commits_cleared_flag(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """``clear_password_must_change`` no longer commits on its own, so the
+    self-service branch of ``reset_password`` has to."""
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch(
+        "superset.security.manager.g", new=SimpleNamespace(user=SimpleNamespace(id=5))
+    )
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+    mock_commit = mocker.patch("superset.db.session.commit")
+
+    sm.reset_password(5, "new-password")
+
+    mock_clear.assert_called_once_with(5)
+    # One commit for the session-invalidation stamp, one for the cleared flag.
+    assert mock_commit.call_count == 2

@@ -126,6 +126,32 @@ Build ad-hoc SQL datasets that can be used as the basis for charts:
 > "Create a dataset from: SELECT region, SUM(revenue) as total_revenue FROM orders GROUP BY region"
 > "Make a virtual dataset called 'monthly_signups' from the users table filtered to last 12 months"
 
+### Query the Semantic Layer
+
+Discover and query metrics across both built-in datasets and external semantic
+views (when your deployment has semantic views registered), without writing SQL:
+
+- **Discover metrics** -- search metrics by name or description across every dataset and semantic view you can access, optionally including each metric's compatible dimensions
+- **Query by metric and dimension** -- get tabular results by naming metrics and dimensions instead of writing SQL, with optional filters and time ranges
+- **Progressively refine a query** -- given metrics and/or dimensions already picked, see which dimensions and metrics are compatible with that selection
+
+**Example prompts:**
+
+> "What metrics are available related to revenue?"
+> "Show me revenue by region for the last 30 days"
+> "I've picked the revenue metric -- what dimensions can I break it down by?"
+
+:::tip Recommended workflow
+1. **`list_metrics`** -- search for a metric; note its `dataset_id` (built-in) or `view_id` (external semantic view), plus its `semantic_selection_version` when non-null
+2. **`get_table`** -- pass that `dataset_id`/`view_id` (and, for a versioned external view, its `semantic_selection_version`) along with metric and dimension names to get results
+3. **`get_compatible_dimensions`** / **`get_compatible_metrics`** -- as the user adds selections, check what can validly be combined. `get_compatible_dimensions` returns the full compatible set (including dimensions already selected), so filter out your current picks client-side; `get_compatible_metrics` already excludes selected metrics for built-in datasets but not for external semantic views
+
+Built-in datasets accept any combination of saved metrics and groupby-enabled
+columns since a SQL `GROUP BY` has no metric-level constraints. External
+semantic views can impose additional compatibility rules, which these tools
+surface instead of failing the query outright.
+:::
+
 ### Run SQL Queries
 
 Execute SQL directly through your AI assistant:
@@ -257,6 +283,12 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `health_check`      | Verify the MCP server is running and connected                       |
 | `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts)           |
 | `get_schema`        | Discover available charts, datasets, and dashboards with schema info |
+| `get_catalog`       | Compact, permission-filtered page of databases, datasets, charts, or dashboards (id, uuid, name, description, url) |
+
+Catalog pages are ordered oldest first (by id) and stay within 32 KiB. URLs longer than 2,048 characters are returned as
+`null` with `truncated: true`, rather than shortened into unusable links.
+Resource-specific read scopes (for example, `superset:dataset:read`) authorize only
+the corresponding catalog asset type, subject to the caller's permissions.
 
 ### Datasets
 
@@ -265,7 +297,35 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `list_datasets`          | List datasets with filtering and search                                                                                      |
 | `get_dataset_info`       | Get dataset metadata (columns, metrics, schema details)                                                                      |
 | `create_virtual_dataset` | Create a virtual dataset from a SQL query                                                                                    |
+| `create_dataset_metric` | Add a saved metric with a unique name and SQL expression; accepts the same optional properties as `update_dataset_metric` (requires dataset editorship) |
+| `delete_dataset_metric` | Delete only the selected saved metric by ID, UUID, or name, preserving concurrently added metrics, and report accessible charts referencing it; chart definitions are not modified (requires dataset editorship) |
 | `update_dataset_metric`  | Update a saved metric's expression, name, verbose_name, or format (affects every chart using it; requires dataset ownership) |
+
+Saved-metric creation and deletion accept a dataset ID or UUID and require the
+same dataset write permission and editorship as metric updates. For example,
+call `create_dataset_metric` with
+`{"dataset_id": 123, "metric_name": "sum_revenue", "expression": "SUM(revenue)"}`.
+Optional properties include `verbose_name`, `description`, `d3format`, `currency`,
+`warning_text`, `metric_type`, and `extra`, just as for `update_dataset_metric`.
+Duplicate names are rejected; creation adds only the requested metric without
+replacing or rewriting existing metrics.
+
+Call `delete_dataset_metric` with
+`{"dataset_id": 123, "metric": "sum_revenue"}` to remove that metric. The response
+includes the deleted metric and `affected_charts`: accessible charts referencing
+its name in saved metric controls, HAVING filters, or query contexts. Warn users
+that those charts may need repair; deletion does not rewrite charts. References
+embedded in SQL expressions are not inferred. If a chart has malformed query-context
+JSON, impact reporting still checks its saved form data and other accessible charts.
+
+### Semantic Layer
+
+| Tool                         | Description                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `list_metrics`                | Discover metrics by name/description across built-in datasets and external semantic views; pass `include_compatible_dimensions` to embed each metric's compatible dimensions (off by default)    |
+| `get_table`                   | Query a dataset or semantic view by metric and dimension names, with optional filters, time range, and sorting                    |
+| `get_compatible_dimensions`   | Given metrics/dimensions already selected, return the full set of dimensions compatible with that selection (may include ones already selected) |
+| `get_compatible_metrics`      | Given metrics/dimensions already selected, return the compatible metrics; already-selected metrics are excluded for built-in datasets, while external semantic views return whatever their connector reports and may include ones already selected |
 
 ### Charts
 
@@ -281,6 +341,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `update_chart_preview`  | Update a cached chart preview without saving                                                                                                      |
 | `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                                             |
 | `delete_chart`          | Delete a chart by ID or UUID (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the chart — owners, Admins, and explicitly granted editors qualify)   |
+| `restore_chart`         | Restore a soft-deleted chart from trash by ID or UUID; not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted charts can be restored — permanently deleted charts are unrecoverable; returns `permission_denied` if the caller can see the chart but isn't an editor of it, or `NotFound` if the chart is outside the caller's RBAC visibility entirely |
 
 ### Dashboards
 
@@ -292,6 +353,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `generate_dashboard`              | Create a new dashboard with specified charts                                                                                                                                         |
 | `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard                                                                                                                                                 |
 | `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the dashboard — owners, Admins, and explicitly granted editors qualify) |
+| `restore_dashboard`               | Restore a soft-deleted dashboard from trash by ID or UUID (slug lookup does not cover trashed dashboards); not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted dashboards can be restored — permanently deleted dashboards are unrecoverable; returns `permission_denied` if the caller can see the dashboard but isn't an editor of it, or `NotFound` if the dashboard is outside the caller's RBAC visibility entirely |
 
 ### SQL
 
@@ -300,6 +362,14 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `execute_sql`               | Run a SQL query with RBAC enforcement          |
 | `save_sql_query`            | Persist a SQL query to SQL Lab's saved queries |
 | `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query        |
+
+`execute_sql` returns the last data-bearing statement's `rows`, `columns`, and
+`row_count` at the top level. Each entry in `statements` retains execution
+metadata, but only earlier data-bearing statements include `data.rows` and
+`data.columns`. The last data-bearing statement's `data` is `null`, so its result
+is not repeated, even if DML statements follow it. Statements without result data
+also have `data: null`. For each statement, `executed_sql` is `null` when it equals
+`original_sql`; use `original_sql` in that case.
 
 ### Databases
 

@@ -29,6 +29,7 @@ from marshmallow import (
     Schema,
     validate,
     validates,
+    validates_schema,
     ValidationError,
 )
 from marshmallow.validate import Length, NoneOf, Range
@@ -37,6 +38,7 @@ from marshmallow_union import Union
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.semantic_layers.bundle_schemas import SemanticViewReferenceSchema
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
@@ -592,15 +594,17 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
     Aggregate operation config.
     """
 
-    groupby = (
-        fields.List(
-            fields.String(
-                allow_none=False,
-                metadata={"description": "Columns by which to group by"},
-            ),
-            metadata={"minLength": 1},
-            required=True,
+    groupby = fields.List(
+        fields.String(
+            allow_none=False,
+            metadata={"description": "Columns by which to group by"},
         ),
+        # No lower bound: `aggregate()` reads an empty `groupby` as the
+        # global-aggregation case, grouping the frame as a whole, and the
+        # frontend's `aggregateOperator` emits exactly `groupby: []` for it.
+        # A `minItems` constraint here would document that request as invalid.
+        # The parameter has no default, though, so it is still required.
+        required=True,
     )
     aggregates = ChartDataAggregateConfigField()
 
@@ -610,17 +614,18 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     Rolling operation config.
     """
 
-    columns = (
-        fields.Dict(
-            metadata={
-                "description": "columns on which to perform rolling, mapping source "
-                "column to target column. For instance, `{'y': 'y'}` will replace the "
-                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "  # noqa: E501
-                "a column `y2` based on rolling values calculated from `y`, leaving the "  # noqa: E501
-                "original column `y` unchanged.",
-                "example": {"weekly_rolling_sales": "sales"},
-            },
-        ),
+    columns = fields.Dict(
+        metadata={
+            "description": "columns on which to perform rolling, mapping source "
+            "column to target column. For instance, `{'y': 'y'}` will replace the "
+            "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
+            "a column `y2` based on rolling values calculated from `y`, leaving the "
+            "original column `y` unchanged.",
+            "example": {"sales": "weekly_rolling_sales"},
+        },
+        # `rolling()` takes `columns` positionally with no default, exactly as
+        # it takes `rolling_type`, which this schema already marks required.
+        required=True,
     )
     rolling_type = fields.String(
         metadata={
@@ -960,15 +965,17 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     Pivot operation config.
     """
 
-    index = (
-        fields.List(
-            fields.String(allow_none=False),
-            metadata={
-                "description": "Columns to group by on the table index (=rows)",
-                "minLength": 1,
-            },
-            required=True,
-        ),
+    index = fields.List(
+        fields.String(allow_none=False),
+        metadata={
+            "description": "Columns to group by on the table index (=rows)",
+        },
+        # `pivot()` rejects an empty index ("Pivot operation requires at least
+        # one index"), so the schema has to say so. The previous `minLength`
+        # metadata did neither: it is not a validator, and arrays use
+        # `minItems` in OpenAPI.
+        validate=Length(min=1),
+        required=True,
     )
     columns = fields.List(
         fields.String(allow_none=False),
@@ -1176,6 +1183,12 @@ class ChartDataFilterSchema(Schema):
 
 
 class ChartDataExtrasSchema(Schema):
+    semantic_selection_version: fields.String = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Identity encoding used for semantic member selections."
+        },
+    )
     relative_start = fields.String(
         metadata={
             "description": "Start time for relative time deltas. "
@@ -2015,11 +2028,22 @@ class ImportV1ChartSchema(Schema):
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
-    dataset_uuid = fields.UUID(required=True)
+    dataset_uuid: fields.UUID = fields.UUID()
+    datasource_ref: fields.Nested = fields.Nested(SemanticViewReferenceSchema)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
     extra = fields.Dict(allow_none=True, load_only=True)
+
+    @validates_schema
+    def validate_datasource_reference(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """Require exactly one legacy table or typed semantic reference."""
+        if ("dataset_uuid" in data) == ("datasource_ref" in data):
+            raise ValidationError(
+                "Specify exactly one of dataset_uuid and datasource_ref."
+            )
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

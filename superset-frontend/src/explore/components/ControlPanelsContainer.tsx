@@ -55,8 +55,12 @@ import {
   Dataset,
   ExpandedControlItem,
   isCustomControlItem,
+  getHeaderGroupsControlProps,
+  headerGroupsHaveSameContent,
   isTemporalColumn,
   sections,
+  syncTimeComparisonGroups,
+  type HeaderGroupConfig,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { kebabCase, isEqual } from 'lodash-es';
@@ -100,8 +104,7 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  // Only setControlValue is used from actions in this component
-  actions: Pick<ExploreActions, 'setControlValue'>;
+  actions: Pick<ExploreActions, 'setControlValue' | 'resetSemanticSelections'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -324,6 +327,70 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const { x_axis, adhoc_filters } = form_data;
 
   const previousXAxis = usePrevious(x_axis);
+
+  const hasHeaderGroupsControl = Boolean(props.controls.header_groups);
+  const headerGroupsValue = props.controls.header_groups?.value;
+  const exploreDatasource = props.exploreState.datasource;
+  const exploreFormData = props.exploreState.form_data;
+  const exploreControls = props.exploreState.controls;
+  const timeCompareValue = exploreControls?.time_compare?.value;
+  const queryModeValue = exploreControls?.query_mode?.value;
+  const comparisonTypeValue = exploreControls?.comparison_type?.value;
+  const queryColnames = props.chart.queriesResponse?.[0]?.colnames;
+
+  // HeaderGroupsControl is on the Customize tab and is not mounted until that
+  // tab is opened. Sync time-comparison auto-groups into form_data here so
+  // enabling Time Comparison updates the chart without visiting Customize.
+  useEffect(() => {
+    if (!hasHeaderGroupsControl || !setControlValue) {
+      return;
+    }
+    const current = ensureIsArray(headerGroupsValue) as HeaderGroupConfig[];
+    const { timeComparisonGroups } = getHeaderGroupsControlProps(
+      {
+        datasource: exploreDatasource,
+        form_data: {
+          metrics: exploreFormData?.metrics,
+          percent_metrics: exploreFormData?.percent_metrics,
+          groupby: exploreFormData?.groupby,
+          all_columns: exploreFormData?.all_columns,
+          query_mode: exploreFormData?.query_mode,
+          comparison_type: exploreFormData?.comparison_type,
+          time_compare: exploreFormData?.time_compare,
+        },
+        controls: {
+          time_compare: { value: timeCompareValue },
+          query_mode: { value: queryModeValue },
+          comparison_type: { value: comparisonTypeValue },
+        },
+      },
+      {
+        queriesResponse: queryColnames ? [{ colnames: queryColnames }] : null,
+      },
+    );
+    const next = syncTimeComparisonGroups(current, timeComparisonGroups);
+    if (!headerGroupsHaveSameContent(current, next)) {
+      setControlValue('header_groups', next, undefined, {
+        programmatic: true,
+      });
+    }
+  }, [
+    exploreDatasource,
+    comparisonTypeValue,
+    exploreFormData?.all_columns,
+    exploreFormData?.comparison_type,
+    exploreFormData?.groupby,
+    exploreFormData?.metrics,
+    exploreFormData?.percent_metrics,
+    exploreFormData?.query_mode,
+    exploreFormData?.time_compare,
+    hasHeaderGroupsControl,
+    headerGroupsValue,
+    queryColnames,
+    queryModeValue,
+    setControlValue,
+    timeCompareValue,
+  ]);
 
   useEffect(() => {
     if (
@@ -844,8 +911,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     props.errorMessage,
   ]);
 
+  const requiresSemanticReselection = Boolean(
+    props.exploreState.datasource?.semantic_selection_version &&
+    form_data.semantic_selection_version !==
+      props.exploreState.datasource.semantic_selection_version,
+  );
   const showCustomizeTab = customizeSections.length > 0;
   const showMatrixifyTab =
+    !requiresSemanticReselection &&
     isFeatureEnabled(FeatureFlag.Matrixify) &&
     !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
 
@@ -859,10 +932,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   // Auto-switch to Matrixify tab when it's enabled
   useEffect(() => {
-    if (showMatrixifyTab && matrixifyIsEnabled) {
+    if (requiresSemanticReselection) {
+      setActiveTabKey(TABS_KEYS.DATA);
+    } else if (showMatrixifyTab && matrixifyIsEnabled) {
       setActiveTabKey(TABS_KEYS.MATRIXIFY);
     }
-  }, [showMatrixifyTab, matrixifyIsEnabled]);
+  }, [requiresSemanticReselection, showMatrixifyTab, matrixifyIsEnabled]);
 
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
@@ -959,14 +1034,29 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               label: dataTabTitle,
               children: (
                 <>
+                  {requiresSemanticReselection && (
+                    <ExploreAlert
+                      title={t('Choose current semantic fields')}
+                      bodyText={t(
+                        'Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save.',
+                      )}
+                      primaryButtonText={t('Start field selection')}
+                      primaryButtonAction={() =>
+                        actions.resetSemanticSelections(form_data.slice_id)
+                      }
+                      type="warning"
+                    />
+                  )}
                   {showDatasourceAlert && <DatasourceAlert />}
-                  <Collapse
-                    defaultActiveKey={expandedQuerySections}
-                    expandIconPosition="end"
-                    ghost
-                    bordered
-                    items={querySections.map(renderControlPanelSection)}
-                  />
+                  {!requiresSemanticReselection && (
+                    <Collapse
+                      defaultActiveKey={expandedQuerySections}
+                      expandIconPosition="end"
+                      ghost
+                      bordered
+                      items={querySections.map(renderControlPanelSection)}
+                    />
+                  )}
                 </>
               ),
             },

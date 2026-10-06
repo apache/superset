@@ -23,9 +23,11 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated, TYPE_CHECKING
+from uuid import UUID
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -40,6 +42,7 @@ from superset.mcp_service.dataset.schemas import (
     ListDatasetsRequest,
     serialize_dataset_object,
 )
+from superset.mcp_service.dataset_scope import DatasetScopeFilter, get_dataset_scope
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -81,15 +84,35 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 )
 @requires_data_model_metadata_access
 async def list_datasets(
-    request: ListDatasetsRequest | None = None,
+    request: Annotated[
+        ListDatasetsRequest | None,
+        Field(
+            description=(
+                'Wrap {"request": {...}}; Do NOT pass search/page/filters top-level. '
+                "Candidates, not a ranking: several fit? explain alternatives, "
+                "clarify before querying; empty result doesn't prove absence. "
+                "Never substitute out-of-scope data. "
+                "Users: find_users ID filter, not search."
+            )
+        ),
+    ] = None,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
-    """List datasets with filtering and search.
+    """List/search/filter datasets.
 
     Returns dataset metadata including table name, schema, and last modified
     time. Set ``request.certified`` to true to return only governed,
     semantic-layer datasets; false returns only uncertified datasets, while
     omitting it preserves the unfiltered behavior.
+
+    Search matches schema, SQL, table name, and description as case-insensitive
+    substrings. A complete UUID passed as ``search`` is treated as an exact UUID
+    lookup for compatibility; clients may also filter on the ``uuid`` column
+    explicitly. Results are candidates, not a relevance ranking. Compare
+    descriptions and metadata; when multiple candidates fit, explain the
+    alternatives and clarify before querying. An empty search result does not
+    establish that the requested data does not exist. Never substitute a
+    different dataset for one outside the MCP scope.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -98,13 +121,14 @@ async def list_datasets(
         # Correct usage
         list_datasets(request={"search": "sales", "page": 1, "page_size": 10})
         list_datasets(request={"filters": [{"col": "table_name", "opr": "sw", "value": "orders"}]})
+        list_datasets(request={"filters": [{"col": "uuid", "opr": "eq", "value": "a1b2c3d4-5678-90ab-cdef-1234567890ab"}]})
         list_datasets()  # no arguments returns first page with defaults
 
         # Wrong — causes pydantic validation errors
         list_datasets(search="sales", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``table_name``, ``schema``, ``database_name``,
+        ``uuid``, ``table_name``, ``schema``, ``database_name``,
         ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
@@ -156,8 +180,12 @@ async def list_datasets(
 
     try:
         from superset.daos.dataset import DatasetDAO
-        from superset.datasets.filters import DatasetCertifiedFilter
+        from superset.datasets.filters import (
+            DatasetCertifiedFilter,
+            DatasetDeletedStateFilter,
+        )
         from superset.mcp_service.common.schema_discovery import (
+            DATASET_SEARCH_COLUMNS,
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
             get_dataset_columns,
@@ -179,25 +207,46 @@ async def list_datasets(
             item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
-            search_columns=["schema", "sql", "table_name", "uuid"],
+            search_columns=DATASET_SEARCH_COLUMNS,
             list_field_name="datasets",
             output_list_schema=DatasetList,
             all_columns=all_columns,
             sortable_columns=DATASET_SORTABLE_COLUMNS,
             logger=logger,
+            deleted_state_filter=DatasetDeletedStateFilter,
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
-            custom_filters = None
+            custom_filters = {}
             if request.certified is not None:
-                custom_filters = {
-                    "certified": tool.build_bound_filter(
-                        DatasetCertifiedFilter, request.certified
-                    )
-                }
+                custom_filters["certified"] = tool.build_bound_filter(
+                    DatasetCertifiedFilter, request.certified
+                )
+            scope = get_dataset_scope()
+            if scope is not None:
+                custom_filters["mcp_dataset_scope"] = tool.build_bound_filter(
+                    DatasetScopeFilter, scope
+                )
+            filters = request.filters
+            search = request.search
+            if search is not None:
+                try:
+                    searched_uuid = UUID(search)
+                except (ValueError, AttributeError):
+                    pass
+                else:
+                    # UUID storage differs across database engines. Use an exact
+                    # typed filter instead of the text-cast substring search so
+                    # the long-supported ``search=<uuid>`` form is portable.
+                    filters = [
+                        *filters,
+                        DatasetFilter(col="uuid", opr="eq", value=str(searched_uuid)),
+                    ]
+                    search = None
+
             result = tool.run_tool(
-                filters=request.filters,
-                search=request.search,
+                filters=filters,
+                search=search,
                 select_columns=request.select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
@@ -205,7 +254,8 @@ async def list_datasets(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
-                custom_filters=custom_filters,
+                deleted_state=request.deleted_state,
+                custom_filters=custom_filters or None,
             )
 
         await ctx.info(

@@ -67,6 +67,7 @@ Example usage:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
@@ -74,12 +75,14 @@ from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 from pydantic import (
     AliasChoices,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     field_validator,
     model_serializer,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -89,6 +92,10 @@ if TYPE_CHECKING:
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
+from superset.mcp_service.chart.schemas import (
+    resolve_chart_datasource_id,
+    resolve_chart_datasource_name,
+)
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -117,6 +124,8 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
 from superset.utils.json import loads as json_loads
@@ -197,6 +206,30 @@ class ListDashboardsRequest(
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, dashboard_title, slug, published, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Search matches titles and slugs only, not people. Resolve names "
+                "with find_users and filter by created_by_fk or changed_by_fk "
+                "using the user ID. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -206,8 +239,12 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller owns (admins see all); requires the "
-                "SOFT_DELETE feature flag to have produced trashed rows."
+                "dashboards the caller can edit (the same audience that can "
+                "restore them, not merely the ones they own; admins see "
+                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
+                "role-derived editorship, so some restorable dashboards may "
+                "be under-enumerated. Requires the SOFT_DELETE feature flag "
+                "to have produced trashed rows."
             ),
         ),
     ]
@@ -249,10 +286,7 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for dashboard identifiers and shared permalink URLs.
 
-    When permalink_key is provided, the tool will retrieve the dashboard's filter
-    state from the permalink, allowing you to see what filters the user has applied
-    (not just the default filter state). This is useful when a user applies filters
-    in a dashboard but the URL contains a permalink_key.
+    permalink_key retrieves the user's applied filter state, not just defaults.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -280,14 +314,16 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     filter_state: dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Active filters supplied directly rather than via a permalink, so the "
-            "tool can describe the dashboard as the user currently views it, "
-            'filtered. Accepts dashboard dataMask state, e.g. {"dataMask": '
+            "Direct active filters describing the user's dashboard view. "
+            'Accepts dashboard dataMask state, e.g. {"dataMask": '
             '{"<configured filter ID>": {"filterState": {"value": ["EMEA"]}}}}, '
             'or {"applied_filters": [{"col": "region", "op": "IN", '
-            '"val": ["EMEA"]}]}. Native mask values '
-            "are projected without column metadata for restricted users. Ignored "
-            "when permalink_key is provided."
+            '"val": ["EMEA"]}]}. Ignored '
+            "when permalink_key is provided. Use returned filter_state as context. "
+            "Restricted users receive native_filter_values (names, types, values, "
+            "labels, exclusion flags), not raw dataMask/column targets. "
+            "native_filter_values_incomplete flags unsupported filters/chart state "
+            "that cannot be summarized safely."
         ),
     )
     select_columns: Annotated[
@@ -295,11 +331,14 @@ class GetDashboardInfoRequest(MetadataCacheControl):
         Field(
             default_factory=lambda: list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS),
             description=(
-                "Top-level fields to include in the response. Defaults to a lean "
-                "set that excludes 'css' (raw CSS, can be many KB) and 'filter_state' "
-                "(only relevant when permalink_key is provided). Pass an explicit list "
-                "to override, e.g. ['id','dashboard_title','charts'] for minimal "
-                "output, or add 'css' to include raw dashboard CSS."
+                "Top-level response fields; defaults exclude 'css' (raw CSS, "
+                "potentially KBs) and 'filter_state' (shared/applied filter context). "
+                "Override with "
+                "e.g. ['id','dashboard_title','charts'], or add 'css' for raw CSS. "
+                "Charts/native_filters may be capped: check chart_count and "
+                "_truncation_notes. For all charts, call list_charts with "
+                'request={"filters": [{"col": "dashboards", "opr": "eq", '
+                '"value": <dashboard id>}]} and paginate with page/page_size.'
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -329,29 +368,41 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Request a dashboard layout by its identifier or shared permalink.
-
-    Permalink requests resolve the dashboard while preserving shared active-tab
-    and filter state in the response.
-    """
+    """Dashboard layout, optionally scoped."""
 
     identifier: Annotated[
         int | str | None,
         Field(
             default=None,
             description=(
-                "Dashboard ID, UUID, slug, bare permalink key, or a shared URL "
-                "containing /superset/dashboard/p/<key>/. Omit when "
-                "permalink_key is provided."
+                "Dashboard ID, UUID, slug, or permalink key/URL (/dashboard/p/<key>/). "
+                "Omit with permalink_key."
             ),
         ),
     ]
     permalink_key: str | None = Field(
         default=None,
         description=(
-            "Key from a shared dashboard URL such as "
-            "'/superset/dashboard/p/<key>/'. Resolves the dashboard and includes "
-            "the shared active-tab and filter context in the layout response."
+            "Permalink key; resolves dashboard and preserves shared "
+            "active-tab/filter state."
+        ),
+    )
+    tabs_only: bool = Field(
+        default=False,
+        description=(
+            "Tab tree only (ID, name, parent, depth, chart_count), in tab_tree."
+        ),
+    )
+    tab: str | None = Field(
+        default=None,
+        description=(
+            "Tab subtree by ID or exact title (case-sensitive); IDs win over titles."
+        ),
+    )
+    untabbed_only: bool = Field(
+        default=False,
+        description=(
+            "Only charts outside every tab; cannot combine with tab or tabs_only."
         ),
     )
 
@@ -411,7 +462,22 @@ class DashboardChartSummary(BaseModel):
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type")
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_type: str | None = Field(
+        None,
+        description=(
+            "Type of the datasource; datasource_id is only unique within this type"
+        ),
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
 
@@ -460,7 +526,7 @@ class DashboardInfo(BaseModel):
         description=(
             "Charts on this dashboard. May be capped below chart_count "
             "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
-            "response would exceed the token budget. "
+            "response would exceed the size budget. "
             "Compare len(charts) to chart_count to detect this. For "
             "dashboards with more charts than the cap, call list_charts "
             "with filters=[{'col': 'dashboards', 'opr': 'eq', "
@@ -666,8 +732,7 @@ class GenerateDashboardRequest(BaseModel):
     dashboard_title: str | None = Field(
         None,
         description=(
-            "Title for the new dashboard. When omitted a descriptive title "
-            "is generated from the included chart names."
+            "Dashboard title; if omitted, generated descriptively from chart names."
         ),
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
@@ -691,7 +756,9 @@ class GenerateDashboardRequest(BaseModel):
             "dict). When set, replaces the auto-generated layout entirely. "
             "Pass this when you need custom row composition, MARKDOWN "
             "blocks, HEADER components, or specific chart widths/heights. "
-            "Omit to let the tool auto-generate a packed grid from chart_ids."
+            "Omit for an auto-generated 2-column grid from chart_ids. "
+            "Each component's parents is recomputed from its children edges "
+            "before saving; omitted or incomplete parents arrays are fine."
         ),
     )
     json_metadata_overrides: Dict[str, Any] | None = Field(
@@ -717,7 +784,7 @@ class GenerateDashboardRequest(BaseModel):
             "dashboard's css field."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -789,7 +856,7 @@ class GenerateDashboardRequest(BaseModel):
         )
 
 
-class UpdateDashboardRequest(BaseModel):
+class UpdateDashboardRequest(OmittedMeansUnchanged):
     """Request schema for updating an existing dashboard's layout/theme/style.
 
     All fields are optional; only the fields explicitly passed are applied.
@@ -883,7 +950,7 @@ class UpdateDashboardRequest(BaseModel):
             "the ``filter_bar_orientation`` json_metadata key."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1378,7 +1445,7 @@ class DuplicateDashboardRequest(BaseModel):
             "source."
         ),
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -1513,6 +1580,39 @@ class DashboardTab(BaseModel):
     )
 
 
+class DashboardTabSummary(BaseModel):
+    """Compact tab-tree entry without chart IDs or chart positions."""
+
+    id: str = Field(..., description="Tab component ID from position_json")
+    name: str | None = Field(None, description="Tab display name")
+    parent_tab_id: str | None = Field(None, description="ID of the enclosing tab")
+    depth: int = Field(
+        ..., description="Tab nesting depth; top-level tabs have depth 0"
+    )
+    chart_count: int = Field(
+        ...,
+        description="Distinct chart IDs directly or indirectly under this tab",
+    )
+
+
+class DashboardLayoutScope(BaseModel):
+    """Scope applied to a get_dashboard_layout response."""
+
+    tabs_only: bool = Field(
+        False,
+        description=(
+            "True when chart positions were omitted by request; charts is then "
+            "empty regardless of what the dashboard contains."
+        ),
+    )
+    tab_id: str | None = Field(
+        None, description="Resolved ID of the tab the response is limited to"
+    )
+    untabbed_only: bool = Field(
+        False, description="True when only charts outside every tab are returned"
+    )
+
+
 class DashboardLayout(BaseModel):
     """Parsed layout data for a dashboard, derived from position_json."""
 
@@ -1522,12 +1622,38 @@ class DashboardLayout(BaseModel):
     tabs: List[DashboardTab] = Field(
         default_factory=list,
         description=(
-            "Tabs declared in the dashboard layout (empty for untabbed dashboards)"
+            "Tabs declared in the dashboard layout, limited to the selected "
+            "subtree when scoped by tab. Empty for untabbed dashboards and when "
+            "tabs_only or untabbed_only is requested."
+        ),
+    )
+    tab_tree: List[DashboardTabSummary] = Field(
+        default_factory=list,
+        description=(
+            "Compact tab tree without chart IDs or positions; populated only when "
+            "tabs_only is requested."
         ),
     )
     charts: List[ChartPosition] = Field(
         default_factory=list,
-        description="Charts placed in the dashboard layout with their tab context",
+        description=(
+            "Charts placed in the dashboard layout with their tab context, limited "
+            "to the requested scope. Always empty when tabs_only is requested; "
+            "see scope."
+        ),
+    )
+    untabbed_chart_count: int = Field(
+        0,
+        description=(
+            "Count of distinct charts outside every tab in the full layout; "
+            "untabbed_only lists each placement."
+        ),
+    )
+    scope: DashboardLayoutScope | None = Field(
+        None,
+        description=(
+            "Scope applied to tabs, tab_tree, and charts; None for the full layout."
+        ),
     )
     has_layout: bool = Field(
         default=False,
@@ -1790,7 +1916,13 @@ def serialize_chart_summary(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None)
+        datasource_id=resolve_chart_datasource_id(chart)
+        if include_data_model_metadata
+        else None,
+        datasource_type=getattr(chart, "datasource_type", None)
+        if include_data_model_metadata
+        else None,
+        datasource_name=resolve_chart_datasource_name(chart)
         if include_data_model_metadata
         else None,
         url=chart_url,
@@ -2074,12 +2206,18 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
     """Serialize a Dashboard model to a parsed DashboardLayout."""
     position_json_str = getattr(dashboard, "position_json", None)
     tabs, charts = _extract_layout_from_position(position_json_str)
+    untabbed_chart_ids = {
+        chart.chart_id
+        for chart in charts
+        if chart.tab_id is None and chart.chart_id is not None
+    }
     return DashboardLayout(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         tabs=tabs,
         charts=charts,
+        untabbed_chart_count=len(untabbed_chart_ids),
         has_layout=bool(position_json_str),
     )
 
@@ -2133,6 +2271,14 @@ class DeleteDashboardResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _reject_bool_dataset_id(value: object) -> object:
+    """bool is a subclass of int, so dataset_id=true would coerce to dataset ID 1
+    and target the wrong dataset; reject it outright."""
+    if isinstance(value, bool):
+        raise ValueError("dataset_id must be an integer dataset ID")
+    return value
+
+
 class BaseNewFilterSpec(BaseModel):
     """Common fields shared by all new native filter specs."""
 
@@ -2146,6 +2292,11 @@ class BaseNewFilterSpec(BaseModel):
             "charts that are on the dashboard."
         ),
     )
+
+    @field_validator("dataset_id", mode="before", check_fields=False)
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
 
 
 class FilterSelectSpec(BaseNewFilterSpec):
@@ -2199,8 +2350,43 @@ class FilterTimeSpec(BaseNewFilterSpec):
         return validate_time_range(v)
 
 
+class FilterRangeSpec(BaseNewFilterSpec):
+    """Spec for a new numerical range (filter_range) native filter."""
+
+    filter_type: Literal["filter_range"] = Field(
+        ..., description="Discriminator - must be 'filter_range'"
+    )
+    dataset_id: int = Field(..., description="ID of the dataset to filter on")
+    column: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the numeric dataset column to filter on",
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class FilterTimeGrainSpec(BaseNewFilterSpec):
+    """Spec for a new time grain (filter_timegrain) native filter."""
+
+    filter_type: Literal["filter_timegrain"] = Field(
+        ..., description="Discriminator - must be 'filter_timegrain'"
+    )
+    dataset_id: int = Field(
+        ...,
+        description=(
+            "ID of the dataset whose supported time grains this filter "
+            "offers and validates selections against"
+        ),
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
 NewNativeFilterSpec = Annotated[
-    FilterSelectSpec | FilterTimeSpec,
+    FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
     Field(discriminator="filter_type"),
 ]
 
@@ -2218,10 +2404,15 @@ class NativeFilterUpdateSpec(BaseModel):
     name: str | None = Field(None, min_length=1, description="New display name")
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
-        None, description="New target dataset ID (filter_select only)"
+        None,
+        description=(
+            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
+        ),
     )
     column: str | None = Field(
-        None, min_length=1, description="New target column name (filter_select only)"
+        None,
+        min_length=1,
+        description="New target column name (filter_select, filter_range only)",
     )
     multi_select: bool | None = Field(
         None, description="Allow multiple values (filter_select only)"
@@ -2230,7 +2421,10 @@ class NativeFilterUpdateSpec(BaseModel):
         None, description="Default to first item (filter_select only)"
     )
     enable_empty_filter: bool | None = Field(
-        None, description="Require a value (filter_select only)"
+        None,
+        description=(
+            "Require a value (filter_select, filter_range, filter_timegrain only)"
+        ),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2254,6 +2448,11 @@ class NativeFilterUpdateSpec(BaseModel):
     def _validate_default_time_range(cls, v: str | None) -> str | None:
         return validate_time_range(v)
 
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
+
 
 class ManageNativeFiltersRequest(BaseModel):
     """Request schema for the manage_native_filters tool."""
@@ -2263,9 +2462,9 @@ class ManageNativeFiltersRequest(BaseModel):
         default_factory=list,
         description=(
             "New filters to create. Supported types: filter_select "
-            "(dropdown) and filter_time (time range). Other filter types "
-            "(numerical range, time column, time grain) are not yet "
-            "supported by this tool."
+            "(dropdown), filter_time (time range), filter_range (numerical "
+            "range), and filter_timegrain (time grain). filter_timecolumn "
+            "(time column) is not yet supported by this tool."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -2348,12 +2547,21 @@ class ManageNativeFiltersResponse(BaseModel):
 FilterSelectValue = bool | int | float | str | None
 
 
+def _reject_bool_range_bound(value: object) -> object:
+    """Reject boolean bounds before they can be coerced to integers."""
+    if isinstance(value, bool):
+        raise ValueError("range bounds must be numbers or null, not booleans")
+    return value
+
+
 class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
-    Exactly one of ``values`` (filter_select) or ``time_range``
-    (filter_time) must be supplied, and it must match the target filter's
-    type. An empty ``values`` list clears the filter's selection.
+    Exactly one of ``values`` (filter_select), ``time_range``
+    (filter_time), ``range`` (filter_range), or ``time_grain``
+    (filter_timegrain) must be supplied, and it must match the target
+    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
+    empty ``time_grain`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -2380,6 +2588,30 @@ class ApplyFilterValueSpec(BaseModel):
             "'No filter' to clear the filter."
         ),
     )
+    range: (
+        List[Annotated[int | float | None, BeforeValidator(_reject_bool_range_bound)]]
+        | None
+    ) = Field(
+        None,
+        min_length=2,
+        max_length=2,
+        description=(
+            "[lower, upper] bounds to apply, for a filter_range filter. "
+            "Either bound may be null to leave that side unbounded. Pass "
+            "[null, null] to clear the filter."
+        ),
+    )
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Time grain to apply, for a filter_timegrain filter, as a list "
+            "with at most one datasource-supported duration, e.g. ['P1D']. "
+            "Custom engine and semantic-layer durations are accepted. "
+            "Pass an empty list to "
+            "clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -2387,26 +2619,50 @@ class ApplyFilterValueSpec(BaseModel):
         """Validate the time range with the shared dashboard parser."""
         return validate_time_range(v)
 
+    @field_validator("range")
+    @classmethod
+    def _validate_range_order(
+        cls, v: List[int | float | None] | None
+    ) -> List[int | float | None] | None:
+        """Reject non-finite bounds and a lower bound greater than the upper bound."""
+        try:
+            finite = v is None or all(
+                bound is None or math.isfinite(bound) for bound in v
+            )
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise ValueError("range bounds must be finite numbers or null.")
+        if v is not None and v[0] is not None and v[1] is not None and v[0] > v[1]:
+            raise ValueError(
+                f"range lower bound {v[0]} cannot be greater than upper bound {v[1]}."
+            )
+        return v
+
     @model_validator(mode="after")
     def _require_exactly_one_value(self) -> "ApplyFilterValueSpec":
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values`` list still counts as a supplied value: that is the
-        way a caller clears a filter_select selection.
+        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
+        still count as a supplied value: that is how a caller clears a
+        filter_select, filter_timegrain, or filter_range selection.
         """
         supplied = [
             name
             for name, value in (
                 ("values", self.values),
                 ("time_range", self.time_range),
+                ("range", self.range),
+                ("time_grain", self.time_grain),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
-                "Provide exactly one of values (filter_select) or time_range "
-                f"(filter_time) for filter '{self.filter_name_or_id}'; "
+                "Provide exactly one of values (filter_select), time_range "
+                "(filter_time), range (filter_range), or time_grain "
+                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -2444,13 +2700,23 @@ class AppliedFilterSummary(BaseModel):
     id: str = Field(description="ID of the filter the value was applied to")
     name: str | None = Field(None, description="Filter display name")
     filter_type: str | None = Field(
-        None, description="Filter type (filter_select or filter_time)"
+        None,
+        description=(
+            "Filter type (filter_select, filter_time, filter_range, "
+            "or filter_timegrain)"
+        ),
     )
     values: List[FilterSelectValue] | None = Field(
         None, description="Selected values, for a filter_select filter"
     )
     time_range: str | None = Field(
         None, description="Applied time range, for a filter_time filter"
+    )
+    range: List[int | float | None] | None = Field(
+        None, description="Applied [lower, upper] bounds, for a filter_range filter"
+    )
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None, description="Applied time grain, for a filter_timegrain filter"
     )
 
 
@@ -2907,11 +3173,11 @@ class DashboardChartQueryData(BaseModel):
 
     query_index: int = Field(..., description="Zero-based query position")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by this query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by this query")
+    total_rows: OptionalRowCount = Field(
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
@@ -2926,11 +3192,11 @@ class DashboardChartData(BaseModel):
     chart_name: str = Field(..., description="Chart name")
     chart_type: str = Field(..., description="Chart viz type")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by the query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by the query")
+    total_rows: OptionalRowCount = Field(
         None,
         description=(
             "Total rows available when known; null when the fetch was capped with "
