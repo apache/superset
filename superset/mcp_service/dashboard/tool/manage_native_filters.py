@@ -33,6 +33,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
+    DividerSpec,
     FilterRangeSpec,
     FilterSelectSpec,
     FilterTimeGrainSpec,
@@ -160,10 +161,29 @@ def _build_scope(
 
 
 def _build_new_filter_config(
-    spec: FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
+    spec: (
+        FilterSelectSpec
+        | FilterTimeSpec
+        | FilterRangeSpec
+        | FilterTimeGrainSpec
+        | DividerSpec
+    ),
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
-    """Build a full native filter config dict for a new filter."""
+    """Build a full native filter (or divider) config dict for a new entry."""
+    if isinstance(spec, DividerSpec):
+        # Dividers have no filterType/targets/controlValues/cascadeParentIds;
+        # matching the frontend's stored shape (see
+        # transformDivider in filterTransformer.ts) keeps this entry
+        # indistinguishable from one created through the UI.
+        return {
+            "id": generate_id("NATIVE_FILTER_DIVIDER"),
+            "type": "DIVIDER",
+            "title": spec.name,
+            "description": spec.description,
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        }
+
     base: dict[str, Any] = {
         "id": generate_id("NATIVE_FILTER"),
         "type": "NATIVE_FILTER",
@@ -226,9 +246,14 @@ def _build_new_filter_config(
 
 
 def _validate_update_type_compat(
-    spec: NativeFilterUpdateSpec, filter_type: str | None
+    spec: NativeFilterUpdateSpec, filter_type: str | None, *, is_divider: bool = False
 ) -> None:
-    """Reject update fields that do not apply to the filter's type."""
+    """Reject update fields that do not apply to the filter's type.
+
+    Dividers have no ``filterType`` at all, so every type-specific field
+    (dataset_id, column, multi_select, ...) is rejected for them, same as
+    for any other filter type that does not declare it as allowed.
+    """
     allowed = (
         _TYPE_SPECIFIC_UPDATE_FIELDS.get(filter_type, frozenset())
         if filter_type is not None
@@ -247,8 +272,9 @@ def _validate_update_type_compat(
                 if fields & set(invalid_fields)
             }
         )
+        type_label = "divider" if is_divider else filter_type
         raise _FilterValidationError(
-            f"Filter '{spec.id}' has type '{filter_type}'; fields "
+            f"Filter '{spec.id}' has type '{type_label}'; fields "
             f"{invalid_fields} only apply to {', '.join(valid_types)} filters."
         )
 
@@ -298,16 +324,23 @@ def _merge_filter_update(
     existing: dict[str, Any],
     dashboard_chart_ids: list[int],
 ) -> dict[str, Any]:
-    """Merge a partial update into an existing filter config.
+    """Merge a partial update into an existing filter (or divider) config.
 
     Returns a FULL filter config (the backend command substitutes whole
     entries, it does not merge deltas).
     """
     merged = copy.deepcopy(existing)
-    _validate_update_type_compat(spec, merged.get("filterType"))
+    is_divider = merged.get("type") == "DIVIDER"
+    _validate_update_type_compat(spec, merged.get("filterType"), is_divider=is_divider)
 
     if spec.name is not None:
-        merged["name"] = spec.name
+        # Dividers store their display text under "title", not "name";
+        # writing "name" here would silently fail to update what the
+        # filter bar actually renders.
+        if is_divider:
+            merged["title"] = spec.name
+        else:
+            merged["name"] = spec.name
     if spec.description is not None:
         merged["description"] = spec.description
     if spec.scope_chart_ids is not None:
@@ -315,33 +348,44 @@ def _merge_filter_update(
     if spec.dataset_id is not None or spec.column is not None:
         _merge_target(spec, merged)
 
-    control_values = dict(merged.get("controlValues") or {})
-    for field, control_key in _CONTROL_VALUE_FIELDS.items():
-        value = getattr(spec, field)
-        if value is not None:
-            control_values[control_key] = value
-    merged["controlValues"] = control_values
+    if not is_divider:
+        # Dividers have no controlValues/defaultDataMask; type-specific
+        # fields that would populate them are already rejected above, so
+        # skip these to avoid introducing fields the frontend never writes
+        # for a divider.
+        control_values = dict(merged.get("controlValues") or {})
+        for field, control_key in _CONTROL_VALUE_FIELDS.items():
+            value = getattr(spec, field)
+            if value is not None:
+                control_values[control_key] = value
+        merged["controlValues"] = control_values
 
-    if spec.default_time_range is not None:
-        merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
+        if spec.default_time_range is not None:
+            merged["defaultDataMask"] = _time_data_mask(spec.default_time_range)
 
     return merged
 
 
 def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
-    """Summarize a filter config for the response.
+    """Summarize a filter (or divider) config for the response.
 
     Returns the id, name, filterType, and non-empty targets; empty target
     entries (e.g. for time filters) are dropped so the summary only lists
     real dataset/column targets. All user-controlled and operational fields
     preserve their application values so clients can pass them back verbatim.
+
+    Dividers store their display text under "title" and have no
+    "filterType"; both are normalized here so a divider shows up with a
+    usable name and a "divider" filter_type instead of None/None.
     """
-    name = conf.get("name")
+    is_divider = conf.get("type") == "DIVIDER"
+    name = conf.get("title") if is_divider else conf.get("name")
+    filter_type = "divider" if is_divider else conf.get("filterType")
     targets = [t for t in (conf.get("targets") or []) if t]
     return NativeFilterSummary(
         id=conf.get("id"),
         name=name,
-        filter_type=conf.get("filterType"),
+        filter_type=filter_type,
         targets=targets,
     )
 
@@ -470,11 +514,14 @@ def manage_native_filters(
 
     Supported filter types for new filters: filter_select (dropdown backed
     by a dataset column), filter_time (time range), filter_range (numerical
-    range backed by a dataset column), and filter_timegrain (time grain
+    range backed by a dataset column), filter_timegrain (time grain
     backed by a dataset, which determines the grains it offers and
-    validates selections against). filter_timecolumn (time column) is not
-    yet supported. Filter IDs are generated by the server and returned in
-    the response.
+    validates selections against), and divider (a title/description-only
+    visual separator with no dataset or column, used to group related
+    filters in the filter bar). filter_timecolumn (time column) is not
+    yet supported. Filter and divider IDs are generated by the server and
+    returned in the response. Dividers share the same ordering as filters,
+    so include their IDs in ``reorder`` alongside filter IDs.
 
     Concurrency note: the filter-list snapshot used for validation is read
     outside the DAO write transaction.  A ``reorder`` that is valid against

@@ -504,6 +504,51 @@ class TestExtractNativeFilters:
         assert _extract_native_filters("123") == []
         assert _extract_native_filters('"just a string"') == []
 
+    def test_divider_uses_title_as_name_and_divider_as_filter_type(self) -> None:
+        """A divider stores its text under "title" and has no "filterType";
+        both must be normalized rather than surfaced as None/None."""
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-abc123",
+                        "type": "DIVIDER",
+                        "title": "Geography",
+                        "description": "Location filters",
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+        assert result[0].id == "NATIVE_FILTER_DIVIDER-abc123"
+        assert result[0].name == "Geography"
+        assert result[0].filter_type == "divider"
+        assert result[0].targets == []
+
+    def test_divider_alongside_regular_filter(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-abc123",
+                        "type": "DIVIDER",
+                        "title": "Geography",
+                    },
+                    {
+                        "id": "f1",
+                        "name": "Region",
+                        "filterType": "filter_select",
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert [(r.id, r.name, r.filter_type) for r in result] == [
+            ("NATIVE_FILTER_DIVIDER-abc123", "Geography", "divider"),
+            ("f1", "Region", "filter_select"),
+        ]
+
 
 class TestExtractCrossFiltersEnabled:
     """Tests for _extract_cross_filters_enabled helper."""
