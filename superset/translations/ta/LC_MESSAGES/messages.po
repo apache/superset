@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-06 02:49-0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1713,6 +1713,9 @@ msgstr "வினவலை இயக்கும்போது எச்சர�
 msgid "Alert is active"
 msgstr "எச்சரிக்கை செயல்பாட்டில் உள்ளது"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "எச்சரிக்கைப் பெயர்"
 
@@ -1767,6 +1770,18 @@ msgstr "எச்சரிக்கைகள்"
 
 msgid "Alerts & Reports"
 msgstr "எச்சரிக்கைகள் மற்றும் அறிக்கைகள்"
+
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
 
 msgid "Alerts & reports"
 msgstr "எச்சரிக்கைகள் மற்றும் அறிக்கைகள்"
@@ -1880,6 +1895,9 @@ msgstr "பயனர்கள் பல மதிப்புகளைத் த
 
 msgid "Allowed Domains (comma separated)"
 msgstr "அனுமதிக்கப்பட்ட டொமைன்கள் (கமாவால் பிரிக்கப்பட்டவை)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "அகரவரிசை (Alphabetical)"
@@ -2208,6 +2226,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "காட்சிப்படுத்தலை (visualization) உருவாக்கும்போது ஒரு பிழை ஏற்பட்டது: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "திறவுகோலை (key) பாகுபடுத்தும்போது (parsing) ஒரு பிழை ஏற்பட்டது."
@@ -2420,6 +2441,9 @@ msgstr ""
 "SQL Alchemy URI-கள் வழியாக இணைப்பை அனுமதிக்கும் எந்தவொரு தரவுத்தளத்தையும்"
 " சேர்க்கலாம். தரவுத்தள டிரைவரை எவ்வாறு இணைப்பது என்பதைப் பற்றி அறியுங்கள்"
 " "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3695,6 +3719,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "துணைக் குறிச்சொல் (Child label) நிலை"
 
+msgid "Choose Application default or a specific user"
+msgstr ""
+
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -4510,6 +4537,12 @@ msgstr ""
 
 #, python-format
 msgid "Contains text (ILIKE %x%)"
+msgstr ""
+
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
 msgstr ""
 
 msgid "Content format"
@@ -6712,6 +6745,9 @@ msgstr "Matrixify-ஐ இயக்கு"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7091,6 +7127,9 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட மதிப�
 msgid "Excluded subjects"
 msgstr "தவிர்க்கப்பட்ட பதவிகள்"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "இயக்கப்பட்ட SQL"
 
@@ -7105,6 +7144,10 @@ msgstr "செயலாக்கப் பதிவு (Execution log)"
 
 msgid "Existing dataset"
 msgstr "ஏற்கனவே உள்ள தரவுத்தொகுப்பு"
+
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
 
 msgid "Exit edit mode"
 msgstr ""
@@ -7918,6 +7961,9 @@ msgstr ""
 "தரவு லேபிள்களை வடிவமைக்கவும். மாறிகளைப் பயன்படுத்தவும்: {name}, {value}, "
 "{percent}."
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
@@ -8439,6 +8485,9 @@ msgstr "உங்கள் அறிக்கையுடன் அனுப்�
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "%s உடன் அனுப்பப்பட வேண்டிய விளக்கத்தைச் சேர்க்கவும்"
@@ -8638,6 +8687,14 @@ msgstr "சேமிக்கப்பட்ட அளவீடுகளில�
 
 msgid "Invalid date/timestamp format"
 msgstr "தவறான தேதி/நேர வடிவமைப்பு"
+
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
 
 msgid "Invalid executor type"
 msgstr "தவறான எக்ஸிகியூட்டர் வகை"
@@ -9165,6 +9222,9 @@ msgstr "போன்றது (எழுத்து வடிவம் உண�
 
 msgid "Limit"
 msgstr "வரம்பு (Limit)"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "வரம்பு வகை"
@@ -10224,6 +10284,9 @@ msgstr "பயன்படுத்தப்பட்ட வடிகட்ட�
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "கிடைக்கக்கூடிய வடிகட்டிகள் இல்லை."
 
@@ -10364,6 +10427,9 @@ msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -10705,11 +10771,17 @@ msgstr "மொத்தம் மட்டும்"
 msgid "Only `SELECT` statements are allowed"
 msgstr "`SELECT` கூற்றுகள் மட்டுமே அனுமதிக்கப்படுகின்றன"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "\"Label Type\" சதவீதமாக இல்லாதபோது மட்டுமே பொருந்தும்."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "\"Label Type\" மதிப்புகளைக் காட்டுவதாக இருக்கும்போது மட்டுமே பொருந்தும்."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 msgid "Only exact match is available for non-string columns."
 msgstr ""
@@ -12024,6 +12096,12 @@ msgstr "அட்டவணை கலங்களை HTML ஆகக் காட�
 msgid "Replace"
 msgstr "மாற்று (Replace)"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "அறிக்கை"
 
@@ -12089,6 +12167,12 @@ msgstr "அறிக்கை அட்டவணை இன்னும் செ
 msgid "Report Schedule log prune failed."
 msgstr "அறிக்கை அட்டவணை பதிவு நீக்கம் தோல்வியுற்றது."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "அறிக்கை அட்டவணை காணப்படவில்லை."
 
@@ -12112,6 +12196,9 @@ msgstr "அறிக்கை தோல்வியுற்றது"
 
 msgid "Report is active"
 msgstr "அறிக்கை செயல்பாட்டில் உள்ளது"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "அறிக்கை பெயர்"
@@ -12146,6 +12233,9 @@ msgstr "அறிக்கை புதுப்பிக்கப்பட்�
 
 msgid "Reports"
 msgstr "அறிக்கைகள்"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "விலக்கு விசை (Repulsion)"
@@ -12502,6 +12592,18 @@ msgstr "வினவல் வரலாற்றைக் காட்ட ஒர
 msgid "Run a query to display results"
 msgstr "முடிவுகளைக் காட்ட ஒரு வினவலை இயக்கவும்"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "தற்போதைய வினவலை இயக்கு"
 
@@ -12625,6 +12727,9 @@ msgstr "STRING"
 
 msgid "SUN"
 msgstr "ஞாயிறு"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr "மாதிரி திட்ட விலக்கம் (Sample Standard Deviation)"
@@ -13382,6 +13487,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "பயன்படுத்த வேண்டிய வண்ணத் திட்டத்தின் வகையைத் தேர்ந்தெடுக்கவும்."
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "பயனர்களைத் தேர்ந்தெடு"
 
@@ -13506,6 +13614,9 @@ msgid "Send as text"
 msgstr "உரையாக அனுப்பு"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14089,6 +14200,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -14298,6 +14414,9 @@ msgstr "இடம் சார்ந்தது"
 
 msgid "Specific Date/Time"
 msgstr "குறிப்பிட்ட தேதி/நேரம்"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "ஸ்கீமாவில் CREATE TABLE செய்ய பெயரைக் குறிப்பிடவும்: public"
@@ -15044,6 +15163,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "குறிப்பு சேமிக்கப்பட்டது"
 
@@ -15338,6 +15460,12 @@ msgid ""
 msgstr ""
 "பின்வரும் வடிகட்டிகளை ஏற்ற முடியவில்லை, இது டாஷ்போர்டு காட்டப்படுவதைத் "
 "தடுக்கிறது: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "புள்ளி லேபிள்களின் எழுத்துரு அளவு"
@@ -15900,6 +16028,18 @@ msgstr "பயனர் வெற்றிகரமாக புதுப்ப�
 msgid "The user was updated successfully"
 msgstr "பயனர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "பயனர்/கடவுச்சொல் சேர்க்கை செல்லாதது (பயனருக்கான கடவுச்சொல் தவறானது)."
 
@@ -16263,6 +16403,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "இந்த வடிகட்டி பயன்படுத்தப்படும் தரவுத்தொகுப்புகள் இவை."
+
+#, python-format
+msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16668,6 +16814,11 @@ msgstr ""
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -17375,6 +17526,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "டாஷ்போர்டை ஏற்ற முடியவில்லை"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -17654,6 +17808,9 @@ msgstr "பயன்பாடு"
 msgid "Use %s to open in a new tab."
 msgstr "புதிய தாவலில் திறக்க %s ஐப் பயன்படுத்தவும்."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "பரப்பளவு விகிதாச்சாரத்தைப் பயன்படுத்தவும்"
 
@@ -17690,6 +17847,12 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 "மெட்ரிக் மதிப்பு நேர முத்திரையாக இல்லாவிட்டாலும் தேதி வடிவமைப்பைப் "
 "பயன்படுத்தவும்"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
@@ -17736,6 +17899,9 @@ msgstr "பயனர் பெயர்"
 
 msgid "User Registrations"
 msgstr "பயனர் பதிவுகள்"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "பயனருக்குப் போதுமான அனுமதிகள் இல்லை."
@@ -18298,6 +18464,11 @@ msgstr ""
 "பெரிதாக்கிக் காட்டும்"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -18851,6 +19022,12 @@ msgid ""
 msgstr ""
 "வலதுபுறம் உள்ள பலகத்திலிருந்து புதிய சார்ட்டை உருவாக்கலாம் அல்லது "
 "உள்ளவற்றைப் பயன்படுத்தலாம்"
+
+msgid ""
+"You can edit the alert condition, name, and schedule, but changing the "
+"attachment content or recipients requires updating it to execute with "
+"your permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -19650,6 +19827,9 @@ msgstr "ஒவ்வொரு நிமிடமும்"
 msgid "every month"
 msgstr "ஒவ்வொரு மாதமும்"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "விரிவுபடுத்து"
 
@@ -19831,6 +20011,9 @@ msgstr "நிமிடம்"
 msgid "minute(s)"
 msgstr "நிமிடம்(கள்)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "மாதம்"
 
@@ -19983,6 +20166,10 @@ msgstr "மறுதொடக்கம்"
 msgid "recent"
 msgstr "சமீபத்திய"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "பெறுநர்கள்"
 
@@ -20007,11 +20194,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "வரிசை நிலை பாதுகாப்பு"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "இயங்குகிறது"
 
 msgid "save"
 msgstr "சேமி"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

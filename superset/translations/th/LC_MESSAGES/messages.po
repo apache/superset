@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-06 02:49-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -2576,6 +2576,9 @@ msgstr "การแจ้งเตือนพบข้อผิดพลาด
 msgid "Alert is active"
 msgstr "การแจ้งเตือนเปิดใช้งานอยู่"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -2663,6 +2666,18 @@ msgstr "การแจ้งเตือน"
 #, fuzzy
 msgid "Alerts & Reports"
 msgstr "การแจ้งเตือนและรายงาน"
+
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -2867,6 +2882,9 @@ msgstr "อนุญาตให้ผู้ใช้เลือกหลาย
 #, fuzzy
 msgid "Allowed Domains (comma separated)"
 msgstr "โดเมนที่อนุญาต (คั่นด้วยเครื่องหมายจุลภาค)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -3366,6 +3384,9 @@ msgstr "เกิดข้อผิดพลาดขณะลบโครงส
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "เกิดข้อผิดพลาดขณะแสดงผลการแสดงข้อมูล: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -3741,6 +3762,9 @@ msgid ""
 msgstr ""
 "ฐานข้อมูลใดๆ ที่อนุญาตการเชื่อมต่อผ่าน SQL Alchemy URIs สามารถเพิ่มได้ "
 "เรียนรู้วิธีเชื่อมต่อไดรเวอร์ฐานข้อมูล "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -5879,6 +5903,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "ตำแหน่งป้ายกำกับย่อย"
 
+msgid "Choose Application default or a specific user"
+msgstr ""
+
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -7226,6 +7253,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "มีข้อความ (ILIKE %x%)"
+
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -10987,6 +11020,9 @@ msgstr "เปิดใช้งาน Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -11654,6 +11690,9 @@ msgstr "ยกเว้นค่าที่เลือก"
 msgid "Excluded subjects"
 msgstr "เลือกหัวเรื่อง"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -11684,6 +11723,10 @@ msgstr "บันทึกการดำเนินการ"
 #, fuzzy
 msgid "Existing dataset"
 msgstr "ชุดข้อมูลที่มีอยู่"
+
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
 
 msgid "Exit edit mode"
 msgstr ""
@@ -13026,6 +13069,9 @@ msgstr ""
 "แทนบรรทัดใหม่ ความเข้ากันได้กับ ECharts:\n"
 "{a} (ชุดข้อมูล), {b} (ชื่อ), {c} (ค่า), {d} (เปอร์เซ็นต์)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -13961,6 +14007,9 @@ msgstr "รวมคำอธิบายที่จะส่งพร้อม
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -14314,6 +14363,14 @@ msgstr "รหัสสกุลเงินไม่ถูกต้องใน
 #, fuzzy
 msgid "Invalid date/timestamp format"
 msgstr "รูปแบบวันที่/การประทับเวลาไม่ถูกต้อง"
+
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -15245,6 +15302,9 @@ msgstr "เหมือน (ไม่คำนึงถึงตัวพิม�
 #, fuzzy
 msgid "Limit"
 msgstr "จำกัด"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -17126,6 +17186,9 @@ msgstr "ไม่มีตัวกรองที่ใช้งาน"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -17378,6 +17441,9 @@ msgid "No saved metrics found"
 msgstr "ไม่พบเมตริกที่บันทึกไว้"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -17998,6 +18064,9 @@ msgstr "เฉพาะผลรวม"
 msgid "Only `SELECT` statements are allowed"
 msgstr "อนุญาตเฉพาะคำสั่ง `SELECT` เท่านั้น"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -18009,6 +18078,9 @@ msgstr "ใช้เฉพาะเมื่อ \"ประเภทป้าย
 #, fuzzy
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "ใช้เฉพาะเมื่อ \"ประเภทป้ายกำกับ\" ตั้งค่าให้แสดงค่า"
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20284,6 +20356,12 @@ msgstr ""
 msgid "Replace"
 msgstr "แทนที่"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20385,6 +20463,12 @@ msgstr "กำหนดการรายงานยังคงทำงาน
 msgid "Report Schedule log prune failed."
 msgstr "การตัดแต่งบันทึกกำหนดการรายงานล้มเหลว"
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20432,6 +20516,9 @@ msgstr "รายงานล้มเหลว"
 #, fuzzy
 msgid "Report is active"
 msgstr "รายงานกำลังใช้งาน"
+
+msgid "Report minimum interval"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -20494,6 +20581,9 @@ msgstr "อัปเดตรายงานแล้ว"
 #, fuzzy
 msgid "Reports"
 msgstr "รายงาน"
+
+msgid "Reports require a content format"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21094,6 +21184,18 @@ msgstr "เรียกใช้คิวรีเพื่อแสดงปร
 msgid "Run a query to display results"
 msgstr "เรียกใช้คิวรีเพื่อแสดงผลลัพธ์"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -21338,6 +21440,9 @@ msgstr "STRING"
 #, fuzzy
 msgid "SUN"
 msgstr "อา."
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -22691,6 +22796,9 @@ msgstr "เลือกเมตริกที่ใช้กำหนดว่
 msgid "Select the type of color scheme to use."
 msgstr "เลือกประเภทของรูปแบบสีที่ต้องการใช้"
 
+msgid "Select user"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -22902,6 +23010,9 @@ msgid "Send as text"
 msgstr "ส่งเป็นข้อความ"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -23902,6 +24013,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -24258,6 +24374,9 @@ msgstr "เชิงพื้นที่"
 #, fuzzy
 msgid "Specific Date/Time"
 msgstr "วันที่/เวลาเฉพาะ"
+
+msgid "Specific user"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25520,6 +25639,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -26001,6 +26123,12 @@ msgstr ""
 "ฟิลเตอร์ต่อไปนี้มีตัวเลือก 'เลือกค่าฟิลเตอร์แรกตามค่าเริ่มต้น'\n"
 "                    ที่เปิดใช้งานและไม่สามารถโหลดได้ ซึ่งกำลังป้องกัน\n"
 "                    ไม่ให้แดชบอร์ดแสดงผล: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -26907,6 +27035,18 @@ msgstr "อัปเดตผู้ใช้เรียบร้อยแล้
 msgid "The user was updated successfully"
 msgstr "อัปเดตผู้ใช้เรียบร้อยแล้ว"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -27467,6 +27607,12 @@ msgstr ""
 #, fuzzy
 msgid "These are the datasets this filter will be applied to."
 msgstr "นี่คือชุดข้อมูลที่ตัวกรองนี้จะถูกนำไปใช้"
+
+#, python-format
+msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -28056,6 +28202,11 @@ msgstr "รหัสผ่านนี้พบบ่อยเกินไป �
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -29250,6 +29401,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "ไม่สามารถโหลดแดชบอร์ดได้"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29722,6 +29876,9 @@ msgstr "การใช้งาน"
 msgid "Use %s to open in a new tab."
 msgstr "ใช้ %s เพื่อเปิดในแท็บใหม่"
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29790,6 +29947,12 @@ msgstr "ใช้ขอบเขตปัจจุบัน"
 #, fuzzy
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "ใช้การจัดรูปแบบวันที่แม้ว่าค่าเมตริกจะไม่ใช่การประทับเวลา"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -29876,6 +30039,9 @@ msgstr "ชื่อผู้ใช้"
 #, fuzzy
 msgid "User Registrations"
 msgstr "การลงทะเบียนผู้ใช้"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30775,6 +30941,11 @@ msgstr "เมื่อมีการระบุเมตริกรอง �
 #, fuzzy
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "เมื่อเลือกแล้ว แผนที่จะซูมเข้าหาข้อมูลของคุณหลังจากแต่ละคำค้นหา"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -31697,6 +31868,12 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "คุณสามารถสร้างชาร์ตใหม่หรือใช้ชาร์ตที่มีอยู่จากแผงด้านขวา"
+
+msgid ""
+"You can edit the alert condition, name, and schedule, but changing the "
+"attachment content or recipients requires updating it to execute with "
+"your permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -33051,6 +33228,9 @@ msgstr "ทุกนาที"
 msgid "every month"
 msgstr "ทุกเดือน"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -33387,6 +33567,9 @@ msgstr "นาที"
 msgid "minute(s)"
 msgstr "นาที"
 
+msgid "minutes"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -33661,6 +33844,10 @@ msgstr "รีบูต"
 msgid "recent"
 msgstr "ล่าสุด"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -33705,6 +33892,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "ความปลอดภัยระดับแถว"
 
+msgid "run as"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -33716,6 +33906,10 @@ msgstr "กำลังทำงาน"
 #, fuzzy
 msgid "save"
 msgstr "บันทึก"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

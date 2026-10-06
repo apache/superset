@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-06 02:49-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1861,6 +1861,9 @@ msgstr "Alarm wykrył błąd podczas wykonywania zapytania."
 msgid "Alert is active"
 msgstr "Alarm jest aktywny"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Nazwa alarmu"
 
@@ -1915,6 +1918,18 @@ msgstr "Alarmy"
 
 msgid "Alerts & Reports"
 msgstr "Alarmy i raporty"
+
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
 
 msgid "Alerts & reports"
 msgstr "Alarmy i raporty"
@@ -2041,6 +2056,9 @@ msgstr "Można wybrać wiele wartości"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Dozwolone domeny (oddzielone przecinkami)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Alfabetyczny"
@@ -2378,6 +2396,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr ""
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Wystąpił błąd podczas ładowania SQL."
@@ -2599,6 +2620,9 @@ msgid ""
 msgstr ""
 "Można dodać dowolne bazy danych umożliwiające połączenia za pomocą URI "
 "SQL Alchemy. Dowiedz się, jak połączyć sterownik bazy danych."
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3989,6 +4013,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Pozycja etykiety podrzędnej"
 
+msgid "Choose Application default or a specific user"
+msgstr ""
+
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -4909,6 +4936,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "Zawiera tekst (ILIKE %x%)"
+
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
 
 #, fuzzy
 msgid "Content format"
@@ -7407,6 +7440,9 @@ msgstr "Włącz Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7854,6 +7890,9 @@ msgstr "Wyklucz wybrane wartości"
 msgid "Excluded subjects"
 msgstr "Wybierz temat"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Wykonane SQL"
 
@@ -7869,6 +7908,10 @@ msgstr "Dziennik wykonania"
 #, fuzzy
 msgid "Existing dataset"
 msgstr "Brakujący zestaw danych"
+
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
 
 msgid "Exit edit mode"
 msgstr ""
@@ -8804,6 +8847,9 @@ msgstr ""
 "\\n reprezentuje nową linię. Kompatybilność z ECharts:\n"
 "{a} (seria), {b} (nazwa), {c} (wartość), {d} (procent)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9413,6 +9459,9 @@ msgstr "Dołącz opis, który zostanie wysłany z raportem."
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
 msgstr "Dołącz opis, który zostanie wysłany z %s."
@@ -9641,6 +9690,14 @@ msgstr "Nieprawidłowy kod waluty w zapisanych metrykach"
 
 msgid "Invalid date/timestamp format"
 msgstr "Nieprawidłowy format daty/znacznika czasu"
+
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10218,6 +10275,9 @@ msgstr "Podobnie (bez rozróżnienia wielkości liter)"
 #, fuzzy
 msgid "Limit"
 msgstr "LIMIT"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Typ limitu"
@@ -11435,6 +11495,9 @@ msgstr "Nie zastosowano filtrów"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 #, fuzzy
 msgid "No available filters."
 msgstr "Brak dostępnych filtrów."
@@ -11591,6 +11654,9 @@ msgid "No saved metrics found"
 msgstr "Nie znaleziono zapisanych metryk"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11964,11 +12030,17 @@ msgstr "Tylko suma"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Dozwolone są tylko instrukcje `SELECT`"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Dotyczy tylko, gdy „Typ etykiety” nie jest ustawiony na procenty."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Dotyczy tylko, gdy „Typ etykiety” jest ustawiony na wyświetlanie wartości."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13474,6 +13546,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Zastąp"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 #, fuzzy
 msgid "Report"
 msgstr "Raport"
@@ -13548,6 +13626,12 @@ msgstr "Harmonogram raportu nadal działa, odmowa ponownego przeliczenia."
 msgid "Report Schedule log prune failed."
 msgstr "Nie udało się przyciąć dziennika harmonogramu raportu."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Nie znaleziono harmonogramu raportu."
 
@@ -13573,6 +13657,9 @@ msgstr "Raport nie powiódł się"
 #, fuzzy
 msgid "Report is active"
 msgstr "Raport jest aktywny"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Nazwa raportu"
@@ -13611,6 +13698,9 @@ msgstr "Raport zaktualizowany"
 
 msgid "Reports"
 msgstr "Raporty"
+
+msgid "Reports require a content format"
+msgstr ""
 
 #, fuzzy
 msgid "Repulsion"
@@ -14023,6 +14113,18 @@ msgstr "Uruchom zapytanie, aby wyświetlić historię zapytań"
 msgid "Run a query to display results"
 msgstr "Uruchom zapytanie, aby wyświetlić wyniki"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 #, fuzzy
 msgid "Run current query"
 msgstr "Uruchom bieżące zapytanie"
@@ -14171,6 +14273,9 @@ msgstr "Ciąg znaków"
 
 msgid "SUN"
 msgstr "NIE"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -15072,6 +15177,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Wybierz schemat kolorów"
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Wybierz właścicieli"
@@ -15220,6 +15328,9 @@ msgid "Send as text"
 msgstr "Wyślij jako tekst"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15903,6 +16014,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -16147,6 +16263,9 @@ msgstr "Przestrzenny"
 
 msgid "Specific Date/Time"
 msgstr "Konkretna data/godzina"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Określ nazwę dla schematu CREATE TABLE AS w: public"
@@ -17029,6 +17148,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "Adnotacja została zapisana."
 
@@ -17398,6 +17520,12 @@ msgstr ""
 "                    i nie można ich załadować, co uniemożliwia "
 "wyświetlenie panelu:\n"
 "                    %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 #, fuzzy
 msgid "The font size of the point labels"
@@ -18070,6 +18198,18 @@ msgstr "Ten pulpit został pomyślnie zapisany."
 msgid "The user was updated successfully"
 msgstr "Ten pulpit został pomyślnie zapisany."
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "Kombinacja użytkownik/hasło jest nieprawidłowa (niepoprawne hasło dla "
@@ -18489,6 +18629,12 @@ msgstr ""
 #, fuzzy
 msgid "These are the datasets this filter will be applied to."
 msgstr "Oto zbiory danych, do których zostanie zastosowany ten filtr."
+
+#, python-format
+msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18974,6 +19120,11 @@ msgstr "To hasło jest zbyt popularne; wybierz mniej przewidywalne."
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 #, fuzzy
@@ -19814,6 +19965,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Nie można załadować pulpitu nawigacyjnego"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -20141,6 +20295,9 @@ msgstr "Użycie"
 msgid "Use %s to open in a new tab."
 msgstr "Użyj %s, aby otworzyć w nowej karcie."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 #, fuzzy
 msgid "Use Area Proportions"
 msgstr "Użyj proporcji obszarów"
@@ -20188,6 +20345,12 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 "Użyj formatowania daty, nawet jeśli wartość miary nie jest znacznikiem "
 "czasu"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -20240,6 +20403,9 @@ msgstr "Nazwa użytkownika"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Użyj proporcji obszarów"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Użytkownik nie ma odpowiednich uprawnień."
@@ -20868,6 +21034,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Po zaznaczeniu mapa będzie przybliżać do danych po każdym zapytaniu."
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -21464,6 +21635,12 @@ msgid ""
 msgstr ""
 "Możesz utworzyć nowy wykres lub skorzystać z istniejących w panelu po "
 "prawej stronie."
+
+msgid ""
+"You can edit the alert condition, name, and schedule, but changing the "
+"attachment content or recipients requires updating it to execute with "
+"your permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -22360,6 +22537,9 @@ msgstr "co minutę"
 msgid "every month"
 msgstr "każdego miesiąca"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 #, fuzzy
 msgid "expand"
 msgstr "rozwiń"
@@ -22584,6 +22764,9 @@ msgstr "minuta"
 msgid "minute(s)"
 msgstr "minuty"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "miesiąc"
 
@@ -22773,6 +22956,10 @@ msgstr "restart"
 msgid "recent"
 msgstr "niedawny"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 #, fuzzy
 msgid "recipients"
 msgstr "odbiorcy"
@@ -22800,6 +22987,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "zabezpieczenie na poziomie wiersza"
 
+msgid "run as"
+msgstr ""
+
 #, fuzzy
 msgid "running"
 msgstr "uruchomiony"
@@ -22807,6 +22997,10 @@ msgstr "uruchomiony"
 #, fuzzy
 msgid "save"
 msgstr "Zapisz"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

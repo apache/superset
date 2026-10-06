@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-06 02:49-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1809,6 +1809,9 @@ msgstr "Alert heeft een fout gevonden tijdens het uitvoeren van een query."
 msgid "Alert is active"
 msgstr "E-mailrapporten actief"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Naam van de waarschuwing"
 
@@ -1863,6 +1866,18 @@ msgstr "Waarschuwingen"
 
 msgid "Alerts & Reports"
 msgstr "Waarschuwingen en rapporten"
+
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
 
 msgid "Alerts & reports"
 msgstr "Waarschuwingen & rapporten"
@@ -1989,6 +2004,9 @@ msgstr "Kan meerdere waarden selecteren"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Toegestane domeinen (komma gescheiden)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Alfabetisch"
@@ -2349,6 +2367,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Er is een fout opgetreden bij het renderen van de visualisatie: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Er is een fout opgetreden bij het laden van de SQL"
@@ -2569,6 +2590,9 @@ msgstr ""
 "Alle databases die verbindingen via SQL Alchemy URI's toestaan, kunnen "
 "worden toegevoegd. Meer informatie over het verbinden met een database "
 "driver "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3975,6 +3999,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Onderliggend label positie"
 
+msgid "Choose Application default or a specific user"
+msgstr ""
+
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -4869,6 +4896,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
 msgstr "Bevat tekst (ILIKE %x%)"
+
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
 
 #, fuzzy
 msgid "Content format"
@@ -7297,6 +7330,9 @@ msgstr "Matrixify inschakelen"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7735,6 +7771,9 @@ msgstr "Geselecteerde waarden uitsluiten"
 msgid "Excluded subjects"
 msgstr "Uitgesloten subjects"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Uitgevoerde SQL"
 
@@ -7749,6 +7788,10 @@ msgstr "Uitvoeringslog"
 
 msgid "Existing dataset"
 msgstr "Bestaande dataset"
+
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
 
 msgid "Exit edit mode"
 msgstr ""
@@ -8662,6 +8705,9 @@ msgstr ""
 "\\n staat voor een nieuwe regel. ECharts-compatibiliteit:\n"
 "{a} (reeks), {b} (naam), {c} (waarde), {d} (percentage)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9251,6 +9297,9 @@ msgstr "Voeg een beschrijving toe die zal worden verzonden met uw rapport"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr ""
@@ -9481,6 +9530,14 @@ msgstr "Ongeldige valuta code in opgeslagen metriek"
 
 msgid "Invalid date/timestamp format"
 msgstr "Ongeldig datum/tijdstempel opmaak"
+
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10063,6 +10120,9 @@ msgstr "Like (hoofdlettergevoelig)"
 #, fuzzy
 msgid "Limit"
 msgstr "LIMIT"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Limiet type"
@@ -11269,6 +11329,9 @@ msgstr "Geen toegepaste filters"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Geen beschikbare filters."
 
@@ -11422,6 +11485,9 @@ msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11799,11 +11865,17 @@ msgstr "Alleen Totaal"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Alleen `SELECT` statements zijn toegestaan"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Geldt alleen wanneer \"Label Type\" niet is ingesteld op een percentage."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Geldt alleen wanneer \"Label Type\" is ingesteld op toon waarden."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13275,6 +13347,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Vervang"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Rapport"
 
@@ -13341,6 +13419,12 @@ msgstr "Rapportage planning werkt nog steeds, weigert om opnieuw te berekenen."
 msgid "Report Schedule log prune failed."
 msgstr "Rapportage planning log prune mislukt."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Rapportage planning niet gevonden."
 
@@ -13366,6 +13450,9 @@ msgstr "Rapport mislukt"
 #, fuzzy
 msgid "Report is active"
 msgstr "E-mailrapporten actief"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Naam rapport"
@@ -13401,6 +13488,9 @@ msgstr "Rapport bijgewerkt"
 
 msgid "Reports"
 msgstr "Rapporten"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Afstoting"
@@ -13798,6 +13888,18 @@ msgstr "Voer een query uit om de querygeschiedenis weer te geven"
 msgid "Run a query to display results"
 msgstr "Voer een query uit om resultaten weer te geven"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Voer huidige query uit"
 
@@ -13939,6 +14041,9 @@ msgstr "STRING"
 
 msgid "SUN"
 msgstr "ZO"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -14807,6 +14912,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Selecteer kleurschema"
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Selecteer eigenaren"
@@ -14955,6 +15063,9 @@ msgid "Send as text"
 msgstr "Verstuur als tekst"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15610,6 +15721,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -15841,6 +15957,9 @@ msgstr "Ruimtelijk"
 
 msgid "Specific Date/Time"
 msgstr "Specifieke datum/tijd"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Specificeer de naam van CREATE TABLE AS schema in: public"
@@ -16688,6 +16807,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "De annotatie is opgeslagen"
 
@@ -17073,6 +17195,12 @@ msgstr ""
 "                    aangevinkt en konden niet worden geladen, waardoor "
 "het dashboard\n"
 "                    niet kan worden weergegeven: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 #, fuzzy
 msgid "The font size of the point labels"
@@ -17770,6 +17898,18 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 msgid "The user was updated successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "De combinatie van gebruiker/wachtwoord is niet geldig (onjuist wachtwoord"
@@ -18176,6 +18316,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "Dit zijn de datasets waarop dit filter zal worden toegepast."
+
+#, python-format
+msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18667,6 +18813,11 @@ msgstr "Dit wachtwoord is te gewoon; kies een minder voorspelbaar wachtwoord."
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -19478,6 +19629,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Toegevoegd aan het dashboard"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -19797,6 +19951,9 @@ msgstr "Gebruik"
 msgid "Use %s to open in a new tab."
 msgstr "Gebruik %s om een nieuw tabblad te openen."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Gebruik Gebied Proporties"
 
@@ -19842,6 +19999,12 @@ msgstr "Voer huidige query uit"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Gebruik datum opmaak zelfs wanneer metrische waarde geen tijdstempel is"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -19894,6 +20057,9 @@ msgstr "Gebruikersnaam"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Gebruik Gebied Proporties"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Gebruiker heeft niet de juiste permissies."
@@ -20513,6 +20679,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Wanneer aangevinkt, zal de kaart uw gegevens zoomen na elke zoekopdracht"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -21114,6 +21285,12 @@ msgid ""
 msgstr ""
 "Je kunt een nieuwe grafiek maken of bestaande vanuit het paneel aan de "
 "rechterkant gebruiken"
+
+msgid ""
+"You can edit the alert condition, name, and schedule, but changing the "
+"attachment content or recipients requires updating it to execute with "
+"your permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -21979,6 +22156,9 @@ msgstr "elke minuut"
 msgid "every month"
 msgstr "elke maand"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "uitklappen"
 
@@ -22191,6 +22371,9 @@ msgstr "minuut"
 msgid "minute(s)"
 msgstr "minu(u)t(en)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "maand"
 
@@ -22370,6 +22553,10 @@ msgstr "herstart"
 msgid "recent"
 msgstr "recent"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 #, fuzzy
 msgid "recipients"
 msgstr "recente"
@@ -22395,12 +22582,19 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "rij-level-beveiliging"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "bezig"
 
 #, fuzzy
 msgid "save"
 msgstr "Opslaan"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
