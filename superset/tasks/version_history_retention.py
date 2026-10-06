@@ -366,7 +366,7 @@ def _count_prunable(cutoff: datetime, tables: ShadowTables) -> int:
     after_id: int = 0
     live_bearing_tables: list[sa.Table] = _live_bearing_tables(tables)
     conn: sa.engine.Connection
-    with db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn:
+    with db.engine.connect() as conn:
         while True:
             window: _PruneWindow = _resolve_prune_window(
                 conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
@@ -380,7 +380,7 @@ def _count_prunable(cutoff: datetime, tables: ShadowTables) -> int:
 def _probe_prunable(cutoff: datetime, tables: ShadowTables) -> tuple[int, bool]:
     """Count one candidate window and say whether it covers the backlog."""
     conn: sa.engine.Connection
-    with db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn:
+    with db.engine.connect() as conn:
         window: _PruneWindow = _resolve_prune_window(
             conn, cutoff, _live_bearing_tables(tables), 0, _MAX_PRUNE_BATCH
         )
@@ -472,9 +472,10 @@ def _run_pass_with_retry(
     """
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:
-            if max_prune is None:
-                return _run_prune_pass(cutoff, tables, after_id), attempt - 1
-            return _run_prune_pass(cutoff, tables, after_id, max_prune), attempt - 1
+            return (
+                _run_prune_pass(cutoff, tables, after_id, max_prune=max_prune),
+                attempt - 1,
+            )
         except OperationalError as exc:
             stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
             if attempt == _MAX_RETRY_ATTEMPTS:
@@ -632,13 +633,14 @@ def _prune_old_versions_impl(
     pass_stats: dict[str, Any]
     retries: int
     while True:
-        if max_per_run is None:
-            pass_stats, retries = _run_pass_with_retry(cutoff, tables, after_id)
-        else:
-            remaining_budget: int = max_per_run - totals["pruned_transactions"]
-            pass_stats, retries = _run_pass_with_retry(
-                cutoff, tables, after_id, remaining_budget
-            )
+        remaining_budget: int | None = (
+            max_per_run - totals["pruned_transactions"]
+            if max_per_run is not None
+            else None
+        )
+        pass_stats, retries = _run_pass_with_retry(
+            cutoff, tables, after_id, max_prune=remaining_budget
+        )
         total_retried += retries
         for key in totals:
             totals[key] += pass_stats.get(key, 0)
@@ -681,12 +683,17 @@ def prune_old_versions() -> dict[str, Any]:
         retention_days: int = _resolve_version_history_retention_days(
             configured, legacy_configured, seed=_version_history_retention_seed
         )
-        max_per_run: int | None = validate_retention_cap(
-            current_app.config.get(
-                "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN", 1000
-            ),
-            "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN",
-        )
+        try:
+            max_per_run: int | None = validate_retention_cap(
+                current_app.config.get(
+                    "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN", 1000
+                ),
+                "VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN",
+            )
+        except ValueError:
+            logger.warning("version_history_retention: invalid prune cap; skipping")
+            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped_invalid_cap")
+            return {"skipped_invalid_cap": 1}
         dry_run: bool = current_app.config.get("VERSION_HISTORY_PRUNE_DRY_RUN", False)
         if type(dry_run) is not bool:
             raise ValueError("VERSION_HISTORY_PRUNE_DRY_RUN must be a bool")

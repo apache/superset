@@ -162,8 +162,10 @@ shortening a window; the first live run can process accumulated old archives.
 `SOFT_DELETE_PURGE_MAX_PER_RUN` defaults to `1000` root charts, dashboards, or
 datasets per scheduled run. One root's complete cascade counts as one and is
 never split to fit the cap. Set `0` or `None` in `superset_config.py` to remove
-the cap; a negative, boolean, string, or fractional value stops the scheduled
-task without purging. A live run reports `cap_reached` and `remaining_eligible`
+the cap. It bounds committed deletions, not candidate evaluations: blocked roots
+are re-evaluated every run, so a blocked-heavy backlog can still require
+substantial work. A negative, boolean, string, or fractional value stops the
+scheduled task without purging. A live run reports `cap_reached` and `remaining_eligible`
 for aged roots remaining across all supported models. This remainder includes
 roots that a reference blocker may prevent from purging. A count failure after
 committed purges sets `remaining_eligible` to `None` and

@@ -409,7 +409,7 @@ def test_immediate_cutoff_and_invalid_skip(stats: MagicMock, days: int) -> None:
             days
         )
     if days == -1:
-        run_pass.assert_called_once_with(now, [], 0)
+        run_pass.assert_called_once_with(now, [], 0, max_prune=None)
         assert result["cutoff"] == now.isoformat()
     else:
         assert result == {"skipped": 1}
@@ -460,8 +460,8 @@ def test_prune_cap_accounts_only_for_committed_passes(stats: MagicMock) -> None:
     stats.gauge.assert_any_call(
         "superset.versioning.retention.remaining_count_complete", 0
     )
-    assert run_pass.call_args_list[0].args[-1] == 3
-    assert run_pass.call_args_list[1].args[-1] == 1
+    assert run_pass.call_args_list[0].kwargs["max_prune"] == 3
+    assert run_pass.call_args_list[1].kwargs["max_prune"] == 1
 
 
 @pytest.mark.parametrize("cap", [None, 0, 3])
@@ -490,6 +490,35 @@ def test_prune_dry_run_counts_all_eligible_without_writes(
     assert result["estimated_capped_runs"] == (3 if cap == 3 else 1)
     run_pass.assert_not_called()
     stats.gauge.assert_not_called()
+
+
+@pytest.mark.parametrize("helper_name", ["_count_prunable", "_probe_prunable"])
+def test_remainder_reads_use_default_isolation(helper_name: str) -> None:
+    """Backlog measurement does not request the delete pass's isolation."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[], child=[], m2m=None, transaction=MagicMock()
+        )
+    )
+    engine: MagicMock = MagicMock()
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[], candidate_count=0, max_candidate_id=0
+        )
+    )
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+    ):
+        mock_db.engine = engine
+        result: int | tuple[int, bool] = getattr(
+            version_history_retention, helper_name
+        )(datetime(2026, 1, 1), tables)
+
+    assert result in (0, (0, True))
+    engine.connect.return_value.execution_options.assert_not_called()
 
 
 @pytest.mark.parametrize("invalid", [-1, True, "3", 2.5])
@@ -533,8 +562,8 @@ def test_prune_retry_reuses_the_same_transaction_budget(stats: MagicMock) -> Non
 
     assert result == ({"pruned_transactions": 2}, 1)
     assert run_pass.call_args_list == [
-        call(cutoff, tables, 4, 2),
-        call(cutoff, tables, 4, 2),
+        call(cutoff, tables, 4, max_prune=2),
+        call(cutoff, tables, 4, max_prune=2),
     ]
     stats.incr.assert_called_once_with("superset.versioning.retention.retried")
 
@@ -553,9 +582,11 @@ def test_scheduled_prune_rejects_invalid_cap_before_work(stats: MagicMock) -> No
     ):
         result: dict[str, Any] = version_history_retention.prune_old_versions()
 
-    assert result == {"error": 1}
+    assert result == {"skipped_invalid_cap": 1}
     prune.assert_not_called()
-    stats.incr.assert_called_once_with("superset.versioning.retention.failed")
+    stats.incr.assert_called_once_with(
+        "superset.versioning.retention.skipped_invalid_cap"
+    )
 
 
 def test_remainder_probe_failure_does_not_mask_committed_prune(

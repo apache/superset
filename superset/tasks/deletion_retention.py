@@ -198,14 +198,10 @@ def _scan_purge_models(
         would_n: int
         failed_n: int
         blocked_n: int
-        if dry_run or remaining_budget is None:
-            purged_n, would_n, failed_n, blocked_n = _purge_model(
-                model, cutoff, dry_run
-            )
-        else:
-            purged_n, would_n, failed_n, blocked_n = _purge_model(
-                model, cutoff, dry_run, max_per_run=remaining_budget
-            )
+        purged_n, would_n, failed_n, blocked_n = _purge_model(
+            model, cutoff, dry_run, max_per_run=None if dry_run else remaining_budget
+        )
+        if remaining_budget is not None and not dry_run:
             remaining_budget -= purged_n
         if would_n:
             would_purge[entity_type] = would_n
@@ -215,13 +211,13 @@ def _scan_purge_models(
         blocked += blocked_n
 
     return _PurgeScan(
-        purged,
-        would_purge,
-        unsupported_models,
-        failures,
-        blocked,
-        remaining_budget,
-        supported_models,
+        purged=purged,
+        would_purge=would_purge,
+        unsupported_models=unsupported_models,
+        failures=failures,
+        blocked=blocked,
+        remaining_budget=remaining_budget,
+        supported_models=supported_models,
     )
 
 
@@ -533,7 +529,8 @@ def prune_purge_audit() -> dict[str, Any]:
 def purge_soft_deleted() -> dict[str, Any]:
     """Beat entry point. Resolves the window live, honors the SOFT_DELETE
     rollout gate and dry-run flag, and isolates failures so one bad run does
-    not poison the schedule."""
+    not poison the schedule. The cap bounds committed root deletions, not
+    candidate evaluations; blocked roots are re-evaluated on every run."""
     # While the temporary SOFT_DELETE rollout gate is off the delete path
     # writes no ``deleted_at`` rows, so the task already no-ops; check the gate
     # explicitly for clarity (the check is removed when the gate is).

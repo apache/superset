@@ -236,7 +236,9 @@ def test_clock_uses_now_not_utcnow() -> None:
         clock.now.return_value = now
         mod._purge_impl(30, dry_run=False)
 
-    purge.assert_called_once_with(Slice, now - timedelta(days=30), False)
+    purge.assert_called_once_with(
+        Slice, now - timedelta(days=30), False, max_per_run=None
+    )
 
 
 @pytest.mark.parametrize("dry_run", [False, True])
@@ -378,7 +380,7 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
     assert purge.call_count == len(supported_models)
     model: type[SoftDeleteMixin]
     for model in supported_models:
-        assert call(model, ANY, dry_run) in purge.call_args_list
+        assert call(model, ANY, dry_run, max_per_run=None) in purge.call_args_list
     assert result["would_purge" if dry_run else "purged"] == {
         "dashboards": 1,
         "slices": 1,
@@ -537,7 +539,7 @@ def test_immediate_cutoff_and_invalid_skip(days: int) -> None:
         clock.now.return_value = now
         result: dict[str, Any] = mod._purge_impl(days, dry_run=False)
     if days == -1:
-        purge.assert_called_once_with(Slice, now, False)
+        purge.assert_called_once_with(Slice, now, False, max_per_run=None)
     else:
         assert result == {"skipped": 1}
         models.assert_not_called()
@@ -574,7 +576,9 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         assert result == {"skipped": 1}
         purge.assert_not_called()
     else:
-        purge.assert_called_once_with(Slice, now - timedelta(days=expected), False)
+        purge.assert_called_once_with(
+            Slice, now - timedelta(days=expected), False, max_per_run=None
+        )
 
 
 def test_purge_cap_counts_committed_roots_across_batches(app_context: None) -> None:
@@ -730,7 +734,15 @@ def test_purge_remainder_failure_keeps_committed_totals(app_context: None) -> No
     from superset.models.slice import Slice
     from superset.tasks import deletion_retention as task
 
-    scan: task._PurgeScan = task._PurgeScan({"slices": 2}, {}, {}, 0, 0, 0, [Slice])
+    scan: task._PurgeScan = task._PurgeScan(
+        purged={"slices": 2},
+        would_purge={},
+        unsupported_models={},
+        failures=0,
+        blocked=0,
+        remaining_budget=0,
+        supported_models=[Slice],
+    )
     with (
         patch.object(task, "_scan_purge_models", return_value=scan),
         patch.object(task, "_count_eligible", side_effect=RuntimeError("count failed")),
