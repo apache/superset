@@ -394,9 +394,7 @@ export function normalizeColumnConfigKeys<T>(
   const next: Record<string, T> = {};
   Object.entries(value).forEach(([key, config]) => {
     if (colnamesSet.has(key)) {
-      if (!(key in next)) {
-        next[key] = config;
-      }
+      next[key] = config;
       return;
     }
     const stored = toStoredTimeComparisonColumnKey(key, colnames);

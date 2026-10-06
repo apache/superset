@@ -406,6 +406,9 @@ test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames'
 });
 
 test('normalizeColumnConfigKeys prefers an existing stored Main entry over a localized duplicate', () => {
+  const expected = {
+    'Main revenue': { columnWidth: 120 },
+  };
   expect(
     normalizeColumnConfigKeys(
       {
@@ -414,9 +417,16 @@ test('normalizeColumnConfigKeys prefers an existing stored Main entry over a loc
       },
       comparisonRevenueColumns,
     ),
-  ).toEqual({
-    'Main revenue': { columnWidth: 120 },
-  });
+  ).toEqual(expected);
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        'Principale revenue': { columnWidth: 300 },
+        'Main revenue': { columnWidth: 120 },
+      },
+      comparisonRevenueColumns,
+    ),
+  ).toEqual(expected);
 });
 
 test('normalizeColumnConfigKeys returns an empty object without saved config', () => {
@@ -460,6 +470,9 @@ test('normalizeColumnConfigKeys remaps display aliases onto real column keys', (
 });
 
 test('normalizeColumnConfigKeys prefers an existing stored key over a display alias', () => {
+  const expected = {
+    __timestamp: { customColumnName: 'Stored' },
+  };
   expect(
     normalizeColumnConfigKeys(
       {
@@ -468,9 +481,16 @@ test('normalizeColumnConfigKeys prefers an existing stored key over a display al
       },
       ['__timestamp'],
     ),
-  ).toEqual({
-    __timestamp: { customColumnName: 'Stored' },
-  });
+  ).toEqual(expected);
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        Time: { customColumnName: 'Alias' },
+        __timestamp: { customColumnName: 'Stored' },
+      },
+      ['__timestamp'],
+    ),
+  ).toEqual(expected);
 });
 
 test('normalizeColumnConfigKeys keeps a real Time column when it is not in colnames but __timestamp is', () => {
