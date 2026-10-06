@@ -1596,6 +1596,9 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
   exclude rows without coordinates. Dimension columns and radius
   metric aliases cannot be `position`,
   `weight`, or `extraProps`, which are reserved native spatial feature fields.
+  A dimension must also differ from both coordinate columns. Updates validate
+  the merged roles, including a saved dimension omitted from the request;
+  explicitly clear or replace it when changing a coordinate to that column.
 
 Explore saves preserve generated dashboard-time binding provenance. Explicit
 `temporal_column: null` clears that binding, and a replacement column removes

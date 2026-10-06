@@ -543,6 +543,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     rebind: bool = False,
     result_override: dict[str, Any] | None = None,
     existing_override: dict[str, Any] | None = None,
+    config_override: dict[str, Any] | None = None,
+    expected_error: str | None = None,
 ) -> None:
     """Run native public compile/save paths against controlled database results."""
     import importlib
@@ -550,6 +552,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
 
     config = config_for(kind)
     request = {"config": config.model_dump(exclude_unset=True)}
+    if config_override is not None:
+        request["config"].update(config_override)
     dataset = Mock(
         id=3,
         table_name="locations",
@@ -718,6 +722,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
                         **form_for(kind),
                         "datasource": "3__table",
                         "row_limit": 12,
+                        **(existing_override or {}),
                     },
                 )
             )
@@ -749,6 +754,12 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         assert payload["success"] is valid, json.dumps(payload)
         if rebind:
             dataset_access.assert_called_once_with(datasource=dataset)
+        if expected_error is not None:
+            assert expected_error in json.dumps(payload["error"])
+            command.return_value.run.assert_not_called()
+            if persist:
+                update.assert_not_called()
+            return
         assert command.return_value.run.called
         if valid:
             assert payload["form_data"]["viz_type"] == kind
@@ -1800,6 +1811,58 @@ def test_point_dimension_cannot_reuse_a_coordinate_column(role: str) -> None:
         CHART_CONFIG_ADAPTER.validate_python(
             {**example, "dimension": {"name": example[role]["name"]}}
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_inherited_dimension_coordinate_collision(
+    role: str, entry: str, persist: bool
+) -> None:
+    """Merged role collisions must fail before querying or persisting points."""
+    row = {"latitude": 37.8, "longitude": -122.4}
+    row["category"] = row.pop(role)
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override={"dimension": "category"},
+        config_override={role: {"name": "category"}},
+        result_override={"queries": [{"data": [row]}]},
+        expected_error="reuses a coordinate column",
+    )
+
+
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+@pytest.mark.parametrize("operation", ["preserve", "clear", "replace", "rebind"])
+def test_point_update_accepts_distinct_effective_dimension(
+    role: str, operation: str
+) -> None:
+    """Omission preserves valid roles; clearing/replacing/rebinding removes clashes."""
+    update = dict(_CHART_EXAMPLES["deck_scatter"][0])
+    if operation != "preserve":
+        update[role] = {"name": "category"}
+    if operation in {"clear", "replace"}:
+        update["dimension"] = None if operation == "clear" else {"name": "segment"}
+    config = CHART_CONFIG_ADAPTER.validate_python(update)
+    merged = merge_chart_form_data(
+        {**form_for("deck_scatter"), "dimension": "category"},
+        map_config_to_form_data(config),
+        config,
+        dataset_rebind=operation == "rebind",
+    )
+    expected = {
+        "preserve": "category",
+        "clear": None,
+        "replace": "segment",
+        "rebind": None,
+    }
+    assert merged.get("dimension") == expected[operation]
+    assert DeckScatterChartPlugin().validate_merged_form_data(merged, 3) is None
 
 
 @pytest.mark.parametrize("value", ["us-ca", "Us-Ca", "US-ca"])

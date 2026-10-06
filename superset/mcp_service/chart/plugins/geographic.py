@@ -639,6 +639,31 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
         "deck_scatter": "Geographic Points"
     }
 
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Any = None,
+    ) -> Any | None:
+        """Reject an effective dimension that aliases a replacement coordinate.
+
+        Omitted dimensions survive updates, but the frontend removes coordinate
+        columns from feature properties before applying categorical filters.
+        """
+        dimension = column_result_label(form_data.get("dimension"))
+        spatial = form_data.get("spatial")
+        if (
+            dimension is not None
+            and isinstance(spatial, Mapping)
+            and spatial.get("type") == "latlong"
+            and dimension in {spatial.get("latCol"), spatial.get("lonCol")}
+        ):
+            raise ValueError(
+                f"Dimension column {dimension!r} reuses a coordinate column; "
+                "choose a separate category column"
+            )
+        return None
+
     def build_query_dicts(
         self,
         form_data: dict[str, Any],
