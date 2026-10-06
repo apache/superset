@@ -371,6 +371,14 @@ JSON, impact reporting still checks its saved form data and other accessible cha
 | `save_sql_query`            | Persist a SQL query to SQL Lab's saved queries |
 | `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query        |
 
+`execute_sql` returns the last data-bearing statement's `rows`, `columns`, and
+`row_count` at the top level. Each entry in `statements` retains execution
+metadata, but only earlier data-bearing statements include `data.rows` and
+`data.columns`. The last data-bearing statement's `data` is `null`, so its result
+is not repeated, even if DML statements follow it. Statements without result data
+also have `data: null`. For each statement, `executed_sql` is `null` when it equals
+`original_sql`; use `original_sql` in that case.
+
 ### Databases
 
 | Tool                | Description                                      |

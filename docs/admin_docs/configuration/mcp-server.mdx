@@ -113,7 +113,17 @@ rolled back, so do not blindly retry mutating SQL.
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, and time filters. Inverse-selection configurations are rejected.
+selection, time filters, numeric range filters, and time-grain filters. Range
+bounds must be finite numbers representable as floats, or null; booleans are
+rejected. Range permalink labels use the dashboard's smart number formatting
+with ASCII minus signs, falling back to plain numeric representations if
+formatting overflows; time-grain labels come from
+the target datasource's grain names when available. Time grains must be supported
+by the filter's target dataset's database engine, as listed in the datasource's
+`time_grain_sqla` options. If the filter has a nonempty configured allowlist, the
+selected grain must also appear in that list. An unresolved target dataset is
+rejected.
+Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
@@ -1800,6 +1810,22 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Managing and applying dashboard native filters
+
+`manage_native_filters` requires a numeric dataset column when adding a
+`filter_range` filter or changing its dataset/column target. Select filters
+continue to accept nonnumeric columns.
+
+For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
+one datasource-supported duration (for example, `["P1D"]`). Custom engine
+durations are accepted when exposed in the datasource's time-grain options,
+rather than limited to a fixed enum.
+A nonempty `time_grains` list in the saved filter configuration restricts the
+allowed selection to grains that appear in both that list and the target dataset's
+supported time grains; missing or empty lists use the dataset's supported grains.
+Pass `[]` to clear an optional time-grain filter; required filters cannot be
+cleared.
 
 ## Missing chart columns
 

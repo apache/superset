@@ -67,6 +67,7 @@ Example usage:
 from __future__ import annotations
 
 import logging
+import math
 import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
@@ -74,6 +75,7 @@ from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 from pydantic import (
     AliasChoices,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     field_validator,
@@ -2269,6 +2271,14 @@ class DeleteDashboardResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _reject_bool_dataset_id(value: object) -> object:
+    """bool is a subclass of int, so dataset_id=true would coerce to dataset ID 1
+    and target the wrong dataset; reject it outright."""
+    if isinstance(value, bool):
+        raise ValueError("dataset_id must be an integer dataset ID")
+    return value
+
+
 class BaseNewFilterSpec(BaseModel):
     """Common fields shared by all new native filter specs."""
 
@@ -2282,6 +2292,11 @@ class BaseNewFilterSpec(BaseModel):
             "charts that are on the dashboard."
         ),
     )
+
+    @field_validator("dataset_id", mode="before", check_fields=False)
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
 
 
 class FilterSelectSpec(BaseNewFilterSpec):
@@ -2335,8 +2350,43 @@ class FilterTimeSpec(BaseNewFilterSpec):
         return validate_time_range(v)
 
 
+class FilterRangeSpec(BaseNewFilterSpec):
+    """Spec for a new numerical range (filter_range) native filter."""
+
+    filter_type: Literal["filter_range"] = Field(
+        ..., description="Discriminator - must be 'filter_range'"
+    )
+    dataset_id: int = Field(..., description="ID of the dataset to filter on")
+    column: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the numeric dataset column to filter on",
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class FilterTimeGrainSpec(BaseNewFilterSpec):
+    """Spec for a new time grain (filter_timegrain) native filter."""
+
+    filter_type: Literal["filter_timegrain"] = Field(
+        ..., description="Discriminator - must be 'filter_timegrain'"
+    )
+    dataset_id: int = Field(
+        ...,
+        description=(
+            "ID of the dataset whose supported time grains this filter "
+            "offers and validates selections against"
+        ),
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
 NewNativeFilterSpec = Annotated[
-    FilterSelectSpec | FilterTimeSpec,
+    FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
     Field(discriminator="filter_type"),
 ]
 
@@ -2354,10 +2404,15 @@ class NativeFilterUpdateSpec(BaseModel):
     name: str | None = Field(None, min_length=1, description="New display name")
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
-        None, description="New target dataset ID (filter_select only)"
+        None,
+        description=(
+            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
+        ),
     )
     column: str | None = Field(
-        None, min_length=1, description="New target column name (filter_select only)"
+        None,
+        min_length=1,
+        description="New target column name (filter_select, filter_range only)",
     )
     multi_select: bool | None = Field(
         None, description="Allow multiple values (filter_select only)"
@@ -2366,7 +2421,10 @@ class NativeFilterUpdateSpec(BaseModel):
         None, description="Default to first item (filter_select only)"
     )
     enable_empty_filter: bool | None = Field(
-        None, description="Require a value (filter_select only)"
+        None,
+        description=(
+            "Require a value (filter_select, filter_range, filter_timegrain only)"
+        ),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2390,6 +2448,11 @@ class NativeFilterUpdateSpec(BaseModel):
     def _validate_default_time_range(cls, v: str | None) -> str | None:
         return validate_time_range(v)
 
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_dataset_id(cls, value: object) -> object:
+        return _reject_bool_dataset_id(value)
+
 
 class ManageNativeFiltersRequest(BaseModel):
     """Request schema for the manage_native_filters tool."""
@@ -2399,9 +2462,9 @@ class ManageNativeFiltersRequest(BaseModel):
         default_factory=list,
         description=(
             "New filters to create. Supported types: filter_select "
-            "(dropdown) and filter_time (time range). Other filter types "
-            "(numerical range, time column, time grain) are not yet "
-            "supported by this tool."
+            "(dropdown), filter_time (time range), filter_range (numerical "
+            "range), and filter_timegrain (time grain). filter_timecolumn "
+            "(time column) is not yet supported by this tool."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -2484,12 +2547,21 @@ class ManageNativeFiltersResponse(BaseModel):
 FilterSelectValue = bool | int | float | str | None
 
 
+def _reject_bool_range_bound(value: object) -> object:
+    """Reject boolean bounds before they can be coerced to integers."""
+    if isinstance(value, bool):
+        raise ValueError("range bounds must be numbers or null, not booleans")
+    return value
+
+
 class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
-    Exactly one of ``values`` (filter_select) or ``time_range``
-    (filter_time) must be supplied, and it must match the target filter's
-    type. An empty ``values`` list clears the filter's selection.
+    Exactly one of ``values`` (filter_select), ``time_range``
+    (filter_time), ``range`` (filter_range), or ``time_grain``
+    (filter_timegrain) must be supplied, and it must match the target
+    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
+    empty ``time_grain`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -2516,6 +2588,30 @@ class ApplyFilterValueSpec(BaseModel):
             "'No filter' to clear the filter."
         ),
     )
+    range: (
+        List[Annotated[int | float | None, BeforeValidator(_reject_bool_range_bound)]]
+        | None
+    ) = Field(
+        None,
+        min_length=2,
+        max_length=2,
+        description=(
+            "[lower, upper] bounds to apply, for a filter_range filter. "
+            "Either bound may be null to leave that side unbounded. Pass "
+            "[null, null] to clear the filter."
+        ),
+    )
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Time grain to apply, for a filter_timegrain filter, as a list "
+            "with at most one datasource-supported duration, e.g. ['P1D']. "
+            "Custom engine and semantic-layer durations are accepted. "
+            "Pass an empty list to "
+            "clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -2523,26 +2619,50 @@ class ApplyFilterValueSpec(BaseModel):
         """Validate the time range with the shared dashboard parser."""
         return validate_time_range(v)
 
+    @field_validator("range")
+    @classmethod
+    def _validate_range_order(
+        cls, v: List[int | float | None] | None
+    ) -> List[int | float | None] | None:
+        """Reject non-finite bounds and a lower bound greater than the upper bound."""
+        try:
+            finite = v is None or all(
+                bound is None or math.isfinite(bound) for bound in v
+            )
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise ValueError("range bounds must be finite numbers or null.")
+        if v is not None and v[0] is not None and v[1] is not None and v[0] > v[1]:
+            raise ValueError(
+                f"range lower bound {v[0]} cannot be greater than upper bound {v[1]}."
+            )
+        return v
+
     @model_validator(mode="after")
     def _require_exactly_one_value(self) -> "ApplyFilterValueSpec":
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values`` list still counts as a supplied value: that is the
-        way a caller clears a filter_select selection.
+        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
+        still count as a supplied value: that is how a caller clears a
+        filter_select, filter_timegrain, or filter_range selection.
         """
         supplied = [
             name
             for name, value in (
                 ("values", self.values),
                 ("time_range", self.time_range),
+                ("range", self.range),
+                ("time_grain", self.time_grain),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
-                "Provide exactly one of values (filter_select) or time_range "
-                f"(filter_time) for filter '{self.filter_name_or_id}'; "
+                "Provide exactly one of values (filter_select), time_range "
+                "(filter_time), range (filter_range), or time_grain "
+                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -2580,13 +2700,23 @@ class AppliedFilterSummary(BaseModel):
     id: str = Field(description="ID of the filter the value was applied to")
     name: str | None = Field(None, description="Filter display name")
     filter_type: str | None = Field(
-        None, description="Filter type (filter_select or filter_time)"
+        None,
+        description=(
+            "Filter type (filter_select, filter_time, filter_range, "
+            "or filter_timegrain)"
+        ),
     )
     values: List[FilterSelectValue] | None = Field(
         None, description="Selected values, for a filter_select filter"
     )
     time_range: str | None = Field(
         None, description="Applied time range, for a filter_time filter"
+    )
+    range: List[int | float | None] | None = Field(
+        None, description="Applied [lower, upper] bounds, for a filter_range filter"
+    )
+    time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None, description="Applied time grain, for a filter_timegrain filter"
     )
 
 
