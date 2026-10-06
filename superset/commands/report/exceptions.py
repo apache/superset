@@ -267,11 +267,16 @@ class ReportScheduleExecutorNotFoundError(CommandException):
     status = 500
 
     def __init__(self, username: str = "", exception: Optional[Exception] = None):
-        super().__init__(
+        message = (
             _(
                 "Report Schedule executor user %(username)s was not found.",
-                username=f'"{username}"' if username else "(unknown)",
-            ),
+                username=f'"{username}"',
+            )
+            if username
+            else _("Scheduled task executor not found")
+        )
+        super().__init__(
+            message,
             exception,
         )
 

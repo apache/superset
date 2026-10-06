@@ -2576,13 +2576,11 @@ def test_blank_capture_prevents_pdf_generation_and_delivery(
 
 def test_executor_not_found_error_message_without_username() -> None:
     """
-    When no username is available, the message falls back to ``(unknown)``
-    rather than leaving a double space ("...executor user  was not found.").
+    When no username is available, explain that no executor was resolved.
     """
     message = str(ReportScheduleExecutorNotFoundError().message)
 
-    assert "(unknown)" in message
-    assert "user  was" not in message
+    assert message == "Scheduled task executor not found"
 
 
 def test_executor_not_found_error_status_is_server_error() -> None:

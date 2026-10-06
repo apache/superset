@@ -148,7 +148,7 @@ def get_executor_user(model: ReportSchedule) -> tuple["User | None", str | None]
         user = get_dynamic_executor(model)
     except ReportScheduleExecutorNotFoundError:
         # Keep missing-user failures inside the state machine's error envelope.
-        return None, "configured executor"
+        return None, None
     if user is not None:
         return (user if user.is_active else None), user.username
     try:
@@ -157,7 +157,7 @@ def get_executor_user(model: ReportSchedule) -> tuple["User | None", str | None]
             model=model,
         )
     except ExecutorNotFoundError:
-        return None, "configured executor"
+        return None, None
     user = security_manager.find_user(username)
     return (user if user is not None and user.is_active else None), username
 

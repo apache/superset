@@ -276,7 +276,7 @@ class AlertCommand(BaseCommand):
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except ExecutorNotFoundError as ex:
-            raise ReportScheduleExecutorNotFoundError("configured executor") from ex
+            raise ReportScheduleExecutorNotFoundError() from ex
         except ReportScheduleExecutorNotFoundError:
             # A missing executor user is a configuration problem, not a transient
             # query error; surface the typed error rather than masking it.

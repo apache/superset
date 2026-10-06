@@ -461,6 +461,9 @@ When the flag is enabled:
   Alert SQL templates, SQL mutation hooks, authorization and database access all use
   the query executor's identity.
 
+It's possible to set a custom "Run As" tooltip value via the `ALERT_REPORTS_RUN_AS_TOOLTIP`
+config in `superset_config.py`. This is useful if you want to provide further context on what
+the "Application default" means. **It does not change the feature behavior**.
 `ALERT_REPORTS_EXECUTORS` is deprecated in favor of this field and will be removed once the
 feature graduates from the flag.
 
@@ -490,8 +493,10 @@ are exempt; if recipient validation fails during a retry notice, only eligible o
 are attempted.
 
 Domain matching is case-insensitive. An exact entry such as `example.com` does not
-include subdomains. Use wildcards like `*.example.com` / `example.* `to allow subdomains
-at any depth. Combining leading and trailing wildcards, or placing wildcards inside a label,
+include subdomains. Use `*.example.com` to allow subdomains at any depth, or
+`example.*` to allow `example.com`, `example.org`, and other single-segment top-level
+domains.
+Combining leading and trailing wildcards, or placing wildcards inside a label,
 is not supported. A prohibited address in To, Cc, or Bcc blocks the entire normal delivery.
 
 An attachment-free alert needs only its condition-query executor. Its unused content

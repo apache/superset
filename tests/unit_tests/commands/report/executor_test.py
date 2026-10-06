@@ -39,6 +39,7 @@ from superset.commands.report.execute import (
     resolve_executor_user,
 )
 from superset.reports.models import ReportConfigKey, ReportSchedule
+from superset.tasks.exceptions import ExecutorNotFoundError
 
 
 def _user(username: str, active: bool = True) -> Mock:
@@ -93,6 +94,22 @@ def test_get_executor_user_falls_back_to_legacy_resolution(
     model.run_alert_query_as = None
 
     assert get_executor_user(model) == (legacy, "legacy")
+
+
+def test_missing_legacy_executor_has_no_username(mocker: MockerFixture) -> None:
+    mocker.patch("superset.reports.utils.is_feature_enabled", return_value=False)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        side_effect=ExecutorNotFoundError(),
+    )
+    model = ReportSchedule()
+
+    assert get_executor_user(model) == (None, None)
+    with pytest.raises(
+        ReportScheduleExecutorNotFoundError,
+        match="Scheduled task executor not found",
+    ):
+        resolve_executor_user(model)
 
 
 def test_get_executor_user_ignores_run_as_when_feature_disabled(

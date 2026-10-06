@@ -773,6 +773,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     ALERT_REPORTS_DEFAULT_CRON_VALUE,
     ALERT_REPORTS_DEFAULT_RETENTION,
+    ALERT_REPORTS_RUN_AS_TOOLTIP,
   } = useSelector<any, AlertsReportsConfig>(state => {
     const conf = state.common?.conf;
     return {
@@ -782,6 +783,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         conf?.ALERT_REPORTS_DEFAULT_CRON_VALUE ?? DEFAULT_CRON_VALUE,
       ALERT_REPORTS_DEFAULT_RETENTION:
         conf?.ALERT_REPORTS_DEFAULT_RETENTION ?? DEFAULT_RETENTION,
+      ALERT_REPORTS_RUN_AS_TOOLTIP: conf?.ALERT_REPORTS_RUN_AS_TOOLTIP ?? null,
     };
   });
 
@@ -1972,10 +1974,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       isReport ||
       (attachmentsEnabledForAlerts && reportFormat !== 'NONE') ||
       !currentAlert?.run_alert_query_as_type;
+    const contentExecutorChanged =
+      !isEditMode ||
+      currentAlert?.run_as_type !== resource?.run_as_type ||
+      currentAlert?.run_as?.value !== resource?.run_as?.id;
     if (
       dynamicExecutorEnabled &&
       isAdmin &&
-      ((needsContentExecutor &&
+      (((needsContentExecutor || contentExecutorChanged) &&
         currentAlert?.run_as_type === 'fixed_user' &&
         !currentAlert?.run_as?.value) ||
         (!isReport &&
@@ -2664,10 +2670,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       required={
                         isAdmin && currentAlert?.run_as_type === 'fixed_user'
                       }
-                      tooltip={t(
-                        'The user whose permissions and database credentials are used to render this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins can pick another user.',
-                        reportOrAlert,
-                      )}
+                      tooltip={
+                        ALERT_REPORTS_RUN_AS_TOOLTIP ||
+                        t(
+                          'The user whose permissions and database credentials are used to render this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins can pick another user.',
+                          reportOrAlert,
+                        )
+                      }
                       testId="run-as-field"
                     >
                       <Flex vertical gap={theme.sizeUnit * 2}>

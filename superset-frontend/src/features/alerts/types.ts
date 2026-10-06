@@ -204,6 +204,7 @@ export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
   ALERT_REPORTS_DEFAULT_RETENTION: number;
   ALERT_REPORTS_DEFAULT_CRON_VALUE: string;
+  ALERT_REPORTS_RUN_AS_TOOLTIP: string | null;
 }
 
 /**

@@ -3198,6 +3198,31 @@ test('editing a legacy schedule preserves the application default executor', asy
   expect(await screen.findByText('Application default')).toBeInTheDocument();
 });
 
+test('shows the operator Run as tooltip', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true)} />, {
+    useRedux: true,
+    initialState: {
+      user: adminUser,
+      common: {
+        conf: {
+          ALERT_REPORTS_RUN_AS_TOOLTIP:
+            'Uses the internal System report account.',
+        },
+      },
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await userEvent.hover(
+    within(screen.getByTestId('run-as-field')).getByRole('button', {
+      name: 'Show info tooltip',
+    }),
+  );
+  expect(
+    await screen.findByText(/Uses the workspace report account\./),
+  ).toBeInTheDocument();
+});
+
 test('admins can return a specific user to the application default', async () => {
   render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
     useRedux: true,
@@ -3369,6 +3394,44 @@ test('an alert without an asset can save only while attachments are off', async 
   expect(payload).not.toHaveProperty('dashboard');
   expect(payload).not.toHaveProperty('chart');
   expect(payload).not.toHaveProperty('extra');
+});
+
+test('an attachment-free alert cannot select a missing content executor', async () => {
+  fetchMock.get('glob:*/api/v1/report/91', {
+    result: {
+      ...generateMockPayload(true),
+      id: 91,
+      chart: null,
+      dashboard: null,
+      report_format: 'NONE',
+      run_as: null,
+      run_as_type: null,
+      run_alert_query_as: {
+        id: adminUser.userId,
+        first_name: adminUser.firstName,
+        last_name: adminUser.lastName,
+      },
+      run_alert_query_as_type: 'fixed_user',
+    },
+  });
+  render(
+    <AlertReportModal
+      {...generateMockedProps(false, true)}
+      alert={{ ...validAlert, id: 91 }}
+    />,
+    { useRedux: true, initialState: { user: adminUser } },
+  );
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Run as type',
+  });
+  await userEvent.click(typePicker);
+  await userEvent.click(await screen.findByText('Specific user'));
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled(),
+  );
 });
 
 test('reports always show content controls without an attachment toggle', async () => {

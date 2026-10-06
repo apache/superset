@@ -2701,6 +2701,8 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # When the flag is enabled, an explicit user or executor type takes precedence.
 # Schedules with neither configured use this resolution.
 ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
+# Optional override text for the the Run as tooltip
+ALERT_REPORTS_RUN_AS_TOOLTIP: str | None = None
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())

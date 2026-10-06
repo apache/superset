@@ -87,6 +87,15 @@ logger = logging.getLogger(__name__)
 class ReportScheduleRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportSchedule)
 
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Only admins may search users for the per-schedule executors."""
+        if (
+            column_name in {"run_as", "run_alert_query_as"}
+            and not security_manager.is_admin()
+        ):
+            return self.response_403()
+        return super().ensure_access_list_write_access(column_name)
+
     @before_request
     def ensure_alert_reports_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("ALERT_REPORTS"):
