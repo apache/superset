@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.1.8, <8",
+    "cachetools>=7.2.0, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -71,12 +71,12 @@ dependencies = [
     "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.104, <1",
+    "holidays>=0.105, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.4.1",
-    "markdown>=3.10.3",
+    "markdown>=3.11",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
@@ -94,7 +94,6 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
-    "polyline>=2.0.4, <3.0",
     "pydantic>=2.13.5",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
@@ -116,7 +115,7 @@ dependencies = [
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
     # that can be cleaned up when bumping
-    "sqlglot>=30.18.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
+    "sqlglot>=30.19.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -143,7 +142,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.45.2",
 ]
-clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.9.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -162,7 +161,7 @@ crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 d1 = ["sqlalchemy-d1>=0.2.0, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
-    "databricks-sql-connector>=4.5.0, <4.6.0",
+    "databricks-sql-connector>=4.6.0, <4.7.0",
     "databricks-sqlalchemy>=2.0.1, <3",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
@@ -199,7 +198,7 @@ excel-export = ["boto3"]
 # superset.utils.gcs, so this extra is an alternative to excel-export, not an
 # addition to it -- pick whichever matches your bucket's provider.
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
-excel-export-gcs = ["google-cloud-storage>=3.14.1"]
+excel-export-gcs = ["google-cloud-storage>=3.15.0"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
@@ -361,7 +360,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset, apache-superset-core, apache-superset-extensions-cli"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
@@ -412,14 +411,16 @@ module = [
 ]
 warn_unused_ignores = false
 
-# The mirror case: superset-core declares SqlaTable's id/uuid/perm as plain
-# value types, so column expressions like SqlaTable.uuid.in_() only need a
-# type: ignore when superset-core's sources are part of the same mypy run
-# (full-repo lint) and not when only changed files are checked.
+# The mirror case: superset-core declares SqlaTable's id/uuid/perm, and
+# Chart's uuid, as plain value types, so column expressions like
+# SqlaTable.uuid.in_() and Slice.uuid.in_() only need a type: ignore when
+# superset-core's sources are part of the same mypy run (full-repo lint)
+# and not when only changed files are checked.
 [[tool.mypy.overrides]]
 module = [
     "superset.mcp_service.dataset_scope",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
+    "superset.commands.chart.importers.v1",
 ]
 warn_unused_ignores = false
 
@@ -597,10 +598,6 @@ authorized_licenses = [
 ]
 [tool.liccheck.authorized_packages]
 # --------------------------------------------------------------
-# These are ok, checked manually
-# Seems ok, might need legal review
-# https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
-polyline = "2"
 # NumPy 2.x reports a combined SPDX license expression covering vendored
 # code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
 # are permissive OSI-approved licenses; the package itself remains
