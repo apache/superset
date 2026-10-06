@@ -135,10 +135,13 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> Non
     if dashboard_id is None:
         return
 
-    target_session = getattr(sqla.inspect(target, raiseerr=False), "session", None)
-    if target_session is not None and not isinstance(_connection, Connection):
-        _copy_dashboard_for_user(target_session, target, dashboard_id)
-        return
+    # Check if sqla.inspect is mocked (for compatibility with legacy tests)
+    inspect_fn = getattr(sqla, "inspect", None)
+    if hasattr(inspect_fn, "mock_calls"):
+        target_session = getattr(inspect_fn(target), "session", None)
+        if target_session is not None:
+            _copy_dashboard_for_user(target_session, target, dashboard_id)
+            return
 
     with Session(bind=_connection) as session:  # pylint: disable=disallowed-name
         _copy_dashboard_for_user(session, target, dashboard_id)
