@@ -70,10 +70,20 @@ logger = logging.getLogger(__name__)
 
 
 def _copy_dashboard_for_user(
-    session: Any,
+    session: Session,
     target: Any,
     dashboard_id: int | str,
 ) -> None:
+    """Copy the configured template dashboard to a newly created user.
+
+    Clones the template dashboard metadata and slices, associates the new user
+    as an editor and their groups as viewers, and configures the cloned dashboard
+    as the user's welcome dashboard.
+
+    :param session: The active SQLAlchemy session to use for queries and persistence.
+    :param target: The newly created user instance.
+    :param dashboard_id: The ID of the template dashboard to copy.
+    """
     from superset.subjects.utils import (
         get_default_viewers_for_groups,
         get_user_subject,
@@ -111,6 +121,16 @@ def _copy_dashboard_for_user(
 
 
 def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> None:
+    """SQLAlchemy mapper event hook triggered on user creation (after_insert).
+
+    Creates a personal copy of the configured template dashboard for the user.
+    Uses an isolated session bound to the active transaction connection to avoid
+    SQLAlchemy FlushError or overlapping flush issues during the flush lifecycle.
+
+    :param _mapper: The SQLAlchemy mapper for the entity.
+    :param _connection: The active database connection for the event.
+    :param target: The user entity instance being inserted.
+    """
     dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
@@ -124,11 +144,17 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> Non
         _copy_dashboard_for_user(session, target, dashboard_id)
 
 
-
 def register_dashboard_copy_events(user_model: Any) -> None:
-    """Register after_insert event listener on the given user model."""
+    """Register the after_insert listener that copies dashboard templates for new users.
+
+    Dynamically attaches the listener to the active security manager user model,
+    supporting custom and extended user models. Idempotent across repeated calls.
+
+    :param user_model: The user model class to attach the event listener to.
+    """
     if not sqla.event.contains(user_model, "after_insert", copy_dashboard):
         sqla.event.listen(user_model, "after_insert", copy_dashboard)
+
 
 
 
