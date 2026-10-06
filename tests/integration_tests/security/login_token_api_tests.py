@@ -25,10 +25,12 @@ tests can see.
 
 from typing import Any
 from unittest.mock import patch
+from uuid import UUID
 
 from flask_appbuilder.security.sqla.manager import user_updating
 
 from superset import db
+from superset.daos.key_value import KeyValueDAO
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.utils import json
@@ -53,6 +55,18 @@ def _resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
     return {"username": username} if username else None
 
 
+def _verbatim_resolver(request: Any, **kwargs: Any) -> dict[str, Any] | None:
+    """Return the request body as ``userinfo``, unmodified.
+
+    Lets a test drive an arbitrary resolver result through the real route, which
+    is the only way to cover shapes a sensible resolver would not produce but a
+    misbehaving one will.
+    """
+    if request.headers.get("X-Test-Mint-Secret") != MINT_SECRET:
+        return None
+    return request.get_json(silent=True) or None
+
+
 class TestLoginTokenApi(SupersetTestCase):
     def _mint(self, username: str = GAMMA_USERNAME) -> str:
         """Mint a token through the route and return it."""
@@ -73,6 +87,18 @@ class TestLoginTokenApi(SupersetTestCase):
             db.session.query(KeyValueEntry)
             .filter(KeyValueEntry.resource == KeyValueResource.LOGIN_TOKEN.value)
             .count()
+        )
+
+    @staticmethod
+    def _is_stored(token: str) -> bool:
+        """Whether this specific token still has a row.
+
+        Scoped to one key rather than counting the table: the metadata database
+        is shared across the suite, so an absolute count couples these
+        assertions to whatever other tests happen to have left behind.
+        """
+        return (
+            KeyValueDAO.get_entry(KeyValueResource.LOGIN_TOKEN, UUID(token)) is not None
         )
 
     # ---------------------------------------------------------------- closed off
@@ -166,7 +192,7 @@ class TestLoginTokenApi(SupersetTestCase):
             "the token was redeemable after a provisioning rollback -- the burn "
             "was not committed independently of provisioning"
         )
-        assert self._stored_tokens() == 0
+        assert not self._is_stored(token)
 
     @with_feature_flags(LOGIN_TOKEN=True)
     @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
@@ -215,7 +241,7 @@ class TestLoginTokenApi(SupersetTestCase):
             "user_updating hook rolled the session back -- the burn must be "
             "committed before provisioning runs"
         )
-        assert self._stored_tokens() == 0
+        assert not self._is_stored(token)
 
     @with_feature_flags(LOGIN_TOKEN=True)
     @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
@@ -225,6 +251,62 @@ class TestLoginTokenApi(SupersetTestCase):
             with self.subTest(token=token):
                 response = self.client.get(f"{ENDPOINT}?token={token}")
                 assert response.status_code == 401
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_empty_identity_keys_do_not_mint_a_doomed_token(self):
+        """A token that mints must be redeemable, end to end.
+
+        ``auth_user_oauth`` selects the identifier on key *presence*: ``if
+        "username" in userinfo`` wins even when the value is empty, and the empty
+        username is then rejected outright. So a resolver returning
+        ``{"username": "", "email": ...}`` used to mint a perfectly good token
+        that could only ever 401 on redemption, instead of falling back to the
+        email. Surrounding whitespace failed the same way, via ``find_user``.
+
+        Both now normalize before minting, so each of these redeems. Note FAB
+        uses whichever value it selected as the ``find_user`` lookup key, which
+        is why the email slot here holds a username rather than an address.
+        """
+        for userinfo in (
+            {"username": "", "email": GAMMA_USERNAME},
+            {"username": f"  {GAMMA_USERNAME}  "},
+            {"username": "", "first_name": "", "email": GAMMA_USERNAME},
+        ):
+            with self.subTest(userinfo=userinfo):
+                response = self.client.post(
+                    ENDPOINT,
+                    data=json.dumps(userinfo),
+                    content_type="application/json",
+                    headers={"X-Test-Mint-Secret": MINT_SECRET},
+                )
+                assert response.status_code == 200, response.data
+                token = json.loads(response.data)["access_token"]
+
+                redeemed = self.client.get(f"{ENDPOINT}?token={token}")
+                assert redeemed.status_code == 302, (
+                    f"minted a token for {userinfo} that could not be redeemed "
+                    f"({redeemed.status_code}) -- empty or padded identity keys "
+                    "must be normalized before minting"
+                )
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _verbatim_resolver})
+    def test_mint_rejects_an_identity_with_no_usable_identifier(self):
+        """If nothing survives normalization there is no identity to mint for."""
+        for userinfo in (
+            {"username": "", "email": ""},
+            {"username": "   "},
+            {"first_name": "Jane", "last_name": "Doe"},
+        ):
+            with self.subTest(userinfo=userinfo):
+                response = self.client.post(
+                    ENDPOINT,
+                    data=json.dumps(userinfo),
+                    content_type="application/json",
+                    headers={"X-Test-Mint-Secret": MINT_SECRET},
+                )
+                assert response.status_code == 401, response.data
 
     # --------------------------------------------------------------------- next
 

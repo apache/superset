@@ -156,6 +156,68 @@ def test_resolve_identity_accepts_email_only(app_context: None) -> None:
         _set_resolver(original)
 
 
+@pytest.mark.parametrize(
+    "resolved,expected",
+    [
+        # The key must be dropped, not merely falsy: auth_user_oauth branches on
+        # `if "username" in userinfo`, so an empty value still wins over the
+        # email and is then rejected, 401ing a token that was minted happily.
+        (
+            {"username": "", "email": "jdoe@example.com"},
+            {"email": "jdoe@example.com"},
+        ),
+        (
+            {"username": "   ", "email": "jdoe@example.com"},
+            {"email": "jdoe@example.com"},
+        ),
+        # Surrounding whitespace would make find_user miss an existing account.
+        ({"username": "  jdoe  "}, {"username": "jdoe"}),
+        # Empty optional fields are dropped too, rather than stored and later
+        # written onto the user record as blanks.
+        (
+            {"username": "jdoe", "first_name": "", "last_name": "Doe"},
+            {"username": "jdoe", "last_name": "Doe"},
+        ),
+        # Non-string values are passed through untouched.
+        (
+            {"username": "jdoe", "role_keys": ["Gamma"]},
+            {"username": "jdoe", "role_keys": ["Gamma"]},
+        ),
+    ],
+)
+def test_resolve_identity_normalizes_empty_identity_keys(
+    app_context: None, resolved: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """Empty identity values are stripped away before a token is ever minted."""
+    original = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
+    try:
+        _set_resolver(lambda request, **kwargs: resolved)
+        assert login_token.resolve_identity(object()) == expected
+    finally:
+        _set_resolver(original)
+
+
+@pytest.mark.parametrize(
+    "resolved",
+    [
+        {"username": "", "email": ""},
+        {"username": "   ", "email": "  "},
+        {"username": ""},
+        {"email": ""},
+    ],
+)
+def test_resolve_identity_rejects_only_empty_identifiers(
+    app_context: None, resolved: dict[str, Any]
+) -> None:
+    """If nothing usable survives normalization, reject rather than mint."""
+    original = current_app.config.get("LOGIN_TOKEN_IDENTITY_RESOLVER")
+    try:
+        _set_resolver(lambda request, **kwargs: resolved)
+        assert login_token.resolve_identity(object()) is None
+    finally:
+        _set_resolver(original)
+
+
 def test_mint_then_consume_round_trip(app_context: None, kv_table: Session) -> None:
     """A minted token returns exactly the stored userinfo."""
     token, expires_on = login_token.mint(USERINFO)
