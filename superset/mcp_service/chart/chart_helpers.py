@@ -1143,20 +1143,19 @@ def resolve_gantt_query_fields(
 
 def _table_time_offsets(form_data: dict[str, Any], query: dict[str, Any]) -> list[Any]:
     """Resolve the Table plugin's custom/inherit comparison offsets."""
-    if not _time_comparison(form_data, query.get("metrics") or []):
-        return []
     offsets: list[Any] = []
-    for offset in _as_list(form_data.get("time_compare")):
-        if offset == "custom":
-            offset = form_data.get("start_date_offset")
-        elif offset == "inherit":
-            offset = "inherit"
-        if offset is not None and offset not in offsets:
-            offsets.append(offset)
+    if _time_comparison(form_data, query.get("metrics") or []):
+        for offset in _as_list(form_data.get("time_compare")):
+            if offset == "custom":
+                offset = form_data.get("start_date_offset")
+            elif offset == "inherit":
+                offset = "inherit"
+            if offset is not None and offset not in offsets:
+                offsets.append(offset)
     extra = form_data.get("extra_form_data")
     if isinstance(extra, dict):
         offset = extra.get("time_compare")
-        if offset is not None and offset not in offsets:
+        if offset and offset not in offsets:
             offsets = [offset]
     return offsets
 
@@ -1973,6 +1972,7 @@ def build_table_query_dicts(  # noqa: C901
                 break
     # Native comparisons use ordinary metrics, before percentage-only metrics
     # are added to the selected query and contribution operator.
+    has_time_comparison = _time_comparison(form_data, table_metrics)
     offsets = _table_time_offsets(form_data, {**query, "metrics": table_metrics})
     query["time_offsets"] = offsets
     post_processing: list[dict[str, Any]] = []
@@ -1982,7 +1982,7 @@ def build_table_query_dicts(  # noqa: C901
         for metric in percent_metrics:
             if label := _metric_label(metric):
                 candidates = [label]
-                if offsets:
+                if has_time_comparison:
                     candidates.extend(f"{label}__{offset}" for offset in offsets)
                 for candidate in candidates:
                     if candidate not in labels:
@@ -1995,7 +1995,7 @@ def build_table_query_dicts(  # noqa: C901
             },
         }
         post_processing.append(contribution)
-    if offsets and form_data.get("comparison_type") != "values":
+    if has_time_comparison and offsets and form_data.get("comparison_type") != "values":
         source: list[str] = []
         shifted: list[str] = []
         for metric in table_metrics:
@@ -2312,6 +2312,9 @@ def build_query_dicts_from_form_data(
     is enough.
     """
     engine = resolve_datasource_engine(datasource_id, datasource_type)
+    comparison_extras = merge_extra_form_data(
+        form_data.get("extra_form_data"), extra_form_data or {}
+    )
     prepare_form_data_for_query(
         form_data,
         datasource_id,
@@ -2325,6 +2328,12 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+    if comparison_extras.get("time_compare"):
+        # Common filter normalization consumes extra_form_data. Plugin query
+        # hooks may also read this comparison override after that step.
+        form_data["extra_form_data"] = {
+            "time_compare": comparison_extras["time_compare"]
+        }
 
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 

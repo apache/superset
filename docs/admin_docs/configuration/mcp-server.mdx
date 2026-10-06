@@ -1324,6 +1324,11 @@ Disabling a plugin only stops new charts of that type from being created. Existi
 
 Saved aggregate Table charts normalize empty-string `groupby` values to no
 grouping columns, matching Explore's native query extraction.
+Table comparison overrides in `extra_form_data.time_compare` apply even when
+the saved chart has no native time comparisons. Table and XY same-visualization updates
+normalize legacy `where`, `having`, and `filters` predicates into `adhoc_filters`:
+omitting typed `filters` preserves them, while an explicit array replaces them
+and `filters: []` clears them.
 
 ## Security Best Practices
 
