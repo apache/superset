@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-09 03:40+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -254,6 +254,20 @@ msgstr "fișier %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s has an advanced data type, so its filters are translated into "
+"their own predicate shape and cannot be mirrored onto the partition "
+"column."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(name)s is both the partition column and the default datetime column, so"
+" the mapping points at itself and stays inactive. Set a mapped column "
+"override, or change the default datetime column."
 msgstr ""
 
 #, python-format
@@ -1065,6 +1079,18 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
+" a single value cannot describe."
+msgstr ""
+
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "Un Număr Mare"
 
@@ -1081,6 +1107,11 @@ msgstr ""
 "suprascriind alte opțiuni de control cu prioritate mai mare. (de ex. { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). "
 "Detalii: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
@@ -1214,6 +1245,40 @@ msgstr "Un grafic nou va fi creat."
 msgid "A new dashboard will be created."
 msgstr "Un panou de control va fi creat."
 
+#, python-format
+msgid "A partition value transform cannot be longer than %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "A partition value transform cannot call %(functions)s."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot change data. It is evaluated against "
+"the database to check that it mirrors, so it has to be a read."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot contain a MySQL executable comment, "
+"which the database executes and every validator reads as a comment."
+msgstr ""
+
+msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform must be a single SQL expression, with no "
+"FROM, WHERE or other clause."
+msgstr ""
+
+msgid "A partition value transform must parse as a single SQL expression."
+msgstr ""
+
+msgid ""
+"A partition value transform must use the :value placeholder where the "
+"engine will evaluate it, not inside a string literal or a comment."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1289,6 +1354,24 @@ msgstr "A apărut o expirare a timpului la realizarea unei capturi de ecran."
 
 msgid "A valid color scheme is required"
 msgstr "Este necesară o schemă de culori validă"
+
+msgid ""
+"A value transform cannot contain a MySQL executable comment (/*! ... */ "
+"or /*M! ... */). Those are comments to every validator and statement text"
+" to the database, so what would run is not what was checked."
+msgstr ""
+
+#, python-format
+msgid ""
+"A value transform is required on %(name)s, which is not a temporal "
+"column. Use :value for each value."
+msgstr ""
+
+msgid ""
+"A value transform must be a single SQL expression. It cannot carry a "
+"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
+"query."
+msgstr ""
 
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
@@ -3483,6 +3566,9 @@ msgstr "Nu se poate muta fila de nivel superior în file imbricate"
 msgid "Can select multiple values"
 msgstr "Poate selecta valori multiple"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Anulează"
 
@@ -4365,6 +4451,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Restrânge setările"
 
@@ -4573,6 +4662,11 @@ msgstr ""
 
 msgid "Column type"
 msgstr "Tip coloană"
+
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
 
 msgid "Columnar upload"
 msgstr "Încărcare coloanară"
@@ -5401,6 +5495,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -7271,6 +7368,9 @@ msgstr "Panoul de control încorporat nu a putut fi șters."
 msgid "Embedding deactivated."
 msgstr "Încorporarea dezactivată."
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "Accentuare"
 
@@ -8084,6 +8184,9 @@ msgstr "Eșuat la încărcarea datelor graficului."
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8390,8 +8493,28 @@ msgid "Filters for values less than or equal."
 msgstr "Filtrează pentru valori mai mici sau egale."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Filtre în afara domeniului (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -9519,6 +9642,9 @@ msgstr "Tip rezultat invalid: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type invalid: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "Stare invalidă."
 
@@ -10394,6 +10520,12 @@ msgstr "Renderer hartă"
 msgid "Map Style"
 msgstr "Stil Hartă"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
@@ -10427,6 +10559,9 @@ msgstr "Mapbox necesită configurarea unui MAPBOX_API_KEY pe server."
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -10914,6 +11049,14 @@ msgstr "Modificat din șablonul \"%s\""
 msgid "Monday"
 msgstr "Luni"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror — except on a text column "
+"whose engine compares text case-insensitively, where they never do."
+msgstr ""
+
 msgid "Month"
 msgstr "Lună"
 
@@ -10950,6 +11093,9 @@ msgstr "Mută grupul la dreapta"
 #, fuzzy
 msgid "Move icon"
 msgstr "Pictogramă de mutare"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "Mută doar"
@@ -11283,6 +11429,12 @@ msgstr "Nicio entitate nu are această etichetă atribuită în prezent"
 msgid "No filter"
 msgstr "Fără filtru"
 
+#, python-format
+msgid ""
+"No filter is mirrored onto %(partition)s — queries will scan every "
+"partition until a column is mapped."
+msgstr ""
+
 msgid "No filter is selected."
 msgstr "Niciun filtru nu este selectat."
 
@@ -11322,6 +11474,9 @@ msgstr ""
 msgid "No items"
 msgstr "Fără elemente"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "Nicio înregistrare potrivită găsită"
 
@@ -11339,10 +11494,10 @@ msgstr ""
 "Nu există diagrame deck.gl cu mai multe straturi adăugate în prezent la "
 "acest tablou de bord."
 
-msgid "No provider query is available for this run."
+msgid "No partition column is set."
 msgstr ""
 
-msgid "No partition column is set."
+msgid "No provider query is available for this run."
 msgstr ""
 
 msgid "No records found"
@@ -11440,6 +11595,12 @@ msgstr ""
 "Niciun validator numit %(validator_name)s găsit (configurat pentru "
 "motorul %(engine_spec)s)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -11483,6 +11644,9 @@ msgstr "Normalizează numele coloanelor"
 msgid "Normalized"
 msgstr "Normalizat"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "Nu Conține"
 
@@ -11514,6 +11678,9 @@ msgstr ""
 
 msgid "Not available"
 msgstr "Nu este disponibil"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "Nu este definit"
@@ -11733,6 +11900,9 @@ msgstr "Unul sau mai mulți indicatori de afișat"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Unul sau mai multe straturi de adnotare au eșuat la încărcare."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Una sau mai multe coloane există deja"
@@ -12105,10 +12275,16 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 "Descărcarea PDF a eșuat, vă rugăm să reîmprospătați și să încercați din "
 "nou."
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "Pagină"
@@ -12168,8 +12344,17 @@ msgstr "Limită partiție"
 msgid "Partition Threshold"
 msgstr "Prag partiție"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -13140,6 +13325,9 @@ msgstr "Elimină grupul"
 msgid "Remove item"
 msgstr "Elimină element"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -13390,7 +13578,13 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Valorile de control obligatorii au fost eliminate"
 
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
 msgid "Required if your account already has a password"
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
@@ -13847,6 +14041,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "Interogare SQL"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "Expresie SQL"
 
@@ -13915,6 +14114,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -15046,6 +15248,11 @@ msgstr "Setează actualizare automată"
 msgid "Set filter mapping"
 msgstr "Setează mapare filtru"
 
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -15382,6 +15589,9 @@ msgid "Show summary"
 msgstr "Afișează rezumat"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -15896,6 +16106,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16538,6 +16753,11 @@ msgstr "%s"
 msgid "The %s linked to this chart may have been deleted."
 msgstr "%s legat de acest grafic poate fi șters."
 
+msgid ""
+"The :value placeholder must appear where the engine will evaluate it. It "
+"cannot sit inside a string literal or a comment."
+msgstr ""
+
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Răspunsul API de la %s nu se potrivește cu interfața IDatabaseTable."
@@ -16764,6 +16984,11 @@ msgstr "Coloana de folosit ca țintă a muchiei."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Coloana a fost ștearsă sau redenumită în baza de date."
+
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
 
 msgid ""
 "The columns allowed for this control are no longer in the dataset. Ask "
@@ -17316,6 +17541,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Raza în pixeli"
 
@@ -17333,6 +17563,9 @@ msgstr "Portul este închis."
 
 msgid "The port number is invalid."
 msgstr "Numărul portului este invalid."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
@@ -17524,6 +17757,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL-ul serviciului stratului"
 
@@ -17642,6 +17890,16 @@ msgstr "Unitatea de timp folosită pentru gruparea blocurilor"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
+"Mirrored filters on this mapping would fail at the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Cele două parole pe care le-ați introdus nu se potrivesc!"
 
@@ -17729,9 +17987,25 @@ msgid ""
 "inactive until it does."
 msgstr ""
 
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
+msgstr ""
+
 msgid ""
 "The value transform must contain the :value placeholder, which stands for"
 " the filter value being mirrored."
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform on %(mapped)s is not mirroring filters, so queries "
+"will scan every partition."
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -18247,7 +18521,22 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
@@ -18413,6 +18702,14 @@ msgid ""
 msgstr "Acest email este deja asociat cu un cont. Vă rugăm să alegeți altul."
 
 #, python-format
+msgid ""
+"This engine compares less of a %(operator)s value on %(column)s than the "
+"filter carries, so there is no mirror a predicate on the partition column"
+" could stand in for. Map a column the engine compares in full to mirror "
+"this operator."
+msgstr ""
+
+#, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
 
@@ -18438,6 +18735,11 @@ msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "Acest filtru există deja pe raport"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # sr, sr_Latn]
@@ -19103,6 +19405,9 @@ msgstr "Total: %s"
 msgid "Track job"
 msgstr "Urmărește job"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "Transformabil"
 
@@ -19727,6 +20032,9 @@ msgstr "Folosiți %s pentru a deschide într-un tab nou."
 msgid "Use 0 or leave empty to allow any schedule."
 msgstr ""
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Folosește proporții de arie"
 
@@ -19914,6 +20222,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Folosește primele 25 de valori dacă dimensiunea conține mai multe."
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "Expresie SQL validă"
 
@@ -19951,6 +20262,9 @@ msgstr "Format valoare"
 msgid "Value and Percentage"
 msgstr "Valoare și procentaj"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "Limite valoare"
 
@@ -19985,6 +20299,9 @@ msgstr "Valoarea trebuie să fie 0 sau mai mare"
 
 msgid "Value must be greater than 0"
 msgstr "Valoarea trebuie să fie mai mare decât 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -22433,6 +22750,10 @@ msgstr "sumă"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "sintaxă."
 
@@ -22486,6 +22807,9 @@ msgstr "sus"
 
 msgid "undo"
 msgstr "anulează"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "iconiță tip necunoscut"
@@ -22569,6 +22893,9 @@ msgstr "zonă zoom"
 
 msgid "© Layer attribution"
 msgstr "© Atribuire Strat"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
