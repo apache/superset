@@ -390,6 +390,26 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+
+    test('applies legacy Time column_config to the __timestamp column', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+      const timestampColumn = columns.find(col => col.key === '__timestamp');
+
+      expect(timestampColumn?.config).toEqual(
+        expect.objectContaining({
+          customColumnName: 'Date',
+          d3TimeFormat: '%Y',
+        }),
+      );
+    });
     test('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(

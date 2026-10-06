@@ -753,3 +753,39 @@ test('drops time comparison header groups when time_compare is empty', () => {
 
   expect(result.headerGroups).toEqual([]);
 });
+
+test('applies legacy Time column_config to the __timestamp column', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+        },
+        table_timestamp_format: '',
+      },
+      queriesData: [
+        {
+          data: [{ __timestamp: '2020-01-01T12:34:56' }],
+          colnames: ['__timestamp'],
+          coltypes: [GenericDataType.Temporal],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  const timestampColumn = result.columns.find(col => col.key === '__timestamp');
+  expect(timestampColumn?.config).toEqual(
+    expect.objectContaining({
+      customColumnName: 'Date',
+      d3TimeFormat: '%Y',
+    }),
+  );
+});
