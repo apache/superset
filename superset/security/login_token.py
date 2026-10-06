@@ -43,7 +43,9 @@ from uuid import UUID, uuid4
 from flask import current_app, Request
 
 from superset.daos.key_value import KeyValueDAO
+from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+from superset.key_value.utils import get_filter
 
 logger = logging.getLogger(__name__)
 
@@ -239,9 +241,18 @@ def mint(userinfo: LoginTokenUserInfo) -> tuple[str, datetime]:
 def consume(token: str) -> LoginTokenUserInfo | None:
     """Exchange a token for its ``userinfo``, burning it durably.
 
-    The entry is row-locked before it is read, so two concurrent requests cannot
-    both observe it: the second blocks until the first commits and then finds it
-    gone.
+    **The delete is the gate.** The identity is returned only to the caller whose
+    ``DELETE`` actually removed the row, established by its affected-row count
+    rather than by having read the entry a moment earlier. A read-then-delete
+    cannot be the gate: on SQLite -- the default metastore -- ``with_for_update``
+    compiles to nothing at all, so two overlapping requests can both read and
+    decode the same entry, and ``KeyValueDAO.delete_entry`` reports the result of
+    its own ``SELECT`` rather than of the write, so both would be told they
+    succeeded and both would establish a session from one token. Exactly one
+    ``DELETE`` can match the row on every backend, which is the property that
+    actually makes this single-use. ``FOR UPDATE`` is retained as a backstop
+    where the dialect honours it: it serializes the contenders up front instead
+    of letting the loser do the decode work and discard it.
 
     The delete is then **committed here**, rather than left to the caller's unit
     of work. Flask-AppBuilder's ``add_user`` / ``update_user`` catch their own
@@ -253,8 +264,8 @@ def consume(token: str) -> LoginTokenUserInfo | None:
     burn first makes it independent of anything provisioning does, including a
     login that ultimately succeeds.
 
-    Returns ``None`` for an unknown, malformed, or expired token -- callers must
-    not distinguish between those cases in their response.
+    Returns ``None`` for an unknown, malformed, expired or already-claimed token
+    -- callers must not distinguish between those cases in their response.
     """
     from superset import db  # pylint: disable=import-outside-toplevel
 
@@ -276,9 +287,23 @@ def consume(token: str) -> LoginTokenUserInfo | None:
         logger.exception("Unable to decode stored login token payload")
         userinfo = None
 
-    KeyValueDAO.delete_entry(LOGIN_TOKEN_RESOURCE, key)
+    # A single conditional DELETE rather than ``KeyValueDAO.delete_entry``, whose
+    # ORM read-then-delete cannot report whether *this* transaction is the one
+    # that removed the row. Its semantics are shared with other callers, so the
+    # claim is made here instead of changing it underneath them.
+    claimed = (
+        db.session.query(KeyValueEntry)
+        .filter_by(**get_filter(LOGIN_TOKEN_RESOURCE, key))
+        .delete(synchronize_session=False)
+    )
     # Durable before any provisioning runs; see the docstring.
     db.session.commit()  # pylint: disable=consider-using-transaction
+
+    if claimed != 1:
+        # Another request removed the row between the read and the delete, so it
+        # owns this token and this one must not also mint a session from it.
+        logger.warning("Lost the race to claim a one-time login token")
+        return None
 
     if expired or not userinfo:
         return None

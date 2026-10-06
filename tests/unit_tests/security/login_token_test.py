@@ -17,12 +17,14 @@
 
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import UUID
 
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.daos.key_value import KeyValueDAO
 from superset.key_value.models import KeyValueEntry
 from superset.security import login_token
 from superset.security.login_token import (
@@ -265,6 +267,39 @@ def test_token_carries_no_identity_data(app_context: None, kv_table: Session) ->
 
     for value in ("jdoe", "jdoe@example.com", "Jane", "Doe", "Gamma"):
         assert value not in token
+
+
+def test_consume_rejects_the_loser_of_a_concurrent_claim(
+    app_context: None, kv_table: Session, mocker: MockerFixture
+) -> None:
+    """Only the request whose DELETE removed the row gets the identity.
+
+    The read cannot be the gate. On SQLite -- the default metastore --
+    ``with_for_update`` compiles to nothing, so two overlapping requests both
+    read and decode the same entry; and ``KeyValueDAO.delete_entry`` returns the
+    result of its own ``SELECT``, not of the write, so both would be told the
+    burn succeeded and both would establish a session from one token.
+
+    The interleaving is forced rather than raced: a competitor removes and
+    commits the row after this request has read it but before it deletes, which
+    is exactly the window the row lock does not cover on SQLite.
+    """
+    token, _ = login_token.mint(USERINFO)
+    kv_table.commit()
+
+    real_get_entry = KeyValueDAO.get_entry
+
+    def read_then_lose_the_row(*args: Any, **kwargs: Any) -> Any:
+        entry = real_get_entry(*args, **kwargs)
+        # The competing request wins the claim and commits.
+        kv_table.query(KeyValueEntry).filter_by(uuid=UUID(token)).delete()
+        kv_table.commit()
+        return entry
+
+    mocker.patch.object(KeyValueDAO, "get_entry", side_effect=read_then_lose_the_row)
+
+    assert login_token.consume(token) is None
+    assert kv_table.query(KeyValueEntry).count() == 0
 
 
 def test_consume_burn_survives_a_later_rollback(
