@@ -1238,7 +1238,8 @@ class TestExecuteSql:
             assert row["price"] == "19.99"
             assert row["total"] == "1234567.89"
             assert row["precise"] == "0.10000000000000000001"
-            assert data["statements"][0]["data"]["rows"] == data["rows"]
+            # The last result is promoted to top-level rows without duplication.
+            assert data["statements"][0]["data"] is None
 
 
 class TestStatementRowSanitization:
