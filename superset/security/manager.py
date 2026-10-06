@@ -66,6 +66,7 @@ from flask_appbuilder.security.views import (
 )
 from flask_babel import lazy_gettext as _
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
@@ -191,9 +192,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)
@@ -229,6 +242,26 @@ def get_extra_editors_by_pk(
         getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
         for resource in resources
     }
+
+
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -618,6 +651,13 @@ class SupersetUserApi(UserApi):
         from superset.daos.user import UserDAO
 
         item.roles = []
+        # Rows written before the self-referencing audit columns were guarded
+        # can point at themselves, which SQLAlchemy cannot order for DELETE
+        # (CircularDependencyError). Clear them so the delete can proceed.
+        for column in ("changed_by_fk", "created_by_fk"):
+            if getattr(item, column, None) == item.id:
+                setattr(item, column, None)
+        self.datamodel.session.flush()
         UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:
@@ -5174,6 +5214,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = query_context.form_data
 
             assert datasource
+            self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
                 if not (
@@ -5525,6 +5566,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
+    def raise_for_unsupported_guest_rls(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> None:
+        """Deny semantic reads whose guest row restrictions cannot be enforced."""
+        if (
+            datasource.type == DatasourceType.SEMANTIC_VIEW
+            and self.get_guest_rls_filters(datasource)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "Semantic views cannot enforce guest row-level security rules."
+                    ),
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"
     ) -> list[GuestTokenRlsRule]:
@@ -5539,7 +5598,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.data["id"])
+                or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -5738,6 +5797,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
+        self.raise_for_unsupported_guest_rls(datasource)
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
@@ -6159,9 +6219,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if not user:
-            if not get_current_user():
+            # Resolving the current user forces evaluation of flask_login's
+            # ``current_user`` proxy, which on a request that carries no JWT and
+            # no guest token invokes the app's request loader and lets
+            # ``verify_jwt_in_request`` raise ``NoAuthorizationError``. That is
+            # fine for a real view (a global handler turns it into a 401), but
+            # ``is_guest_user`` is also called from paths that run before auth
+            # (e.g. error sanitization while handling an unrelated HTTPException),
+            # where the raise escapes as an unhandled exception. A request with
+            # no JWT/guest token definitionally cannot be an embedded guest
+            # viewer, so returning ``False`` is the semantically correct answer.
+            try:
+                if not get_current_user():
+                    return False
+                user = g.user
+            except NoAuthorizationError:
                 return False
-            user = g.user
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
 

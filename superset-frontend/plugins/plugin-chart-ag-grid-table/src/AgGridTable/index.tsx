@@ -59,7 +59,9 @@ import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
-import reconcileColumnState from '../utils/reconcileColumnState';
+import reconcileColumnState, {
+  getLeafColumnIds,
+} from '../utils/reconcileColumnState';
 import getColumnStateSignature from '../utils/getColumnStateSignature';
 import { PAGE_SIZE_OPTIONS, ROW_NUMBER_COL_ID } from '../consts';
 import {
@@ -67,6 +69,7 @@ import {
   type FilterState,
 } from '../utils/filterStateManager';
 import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
+import { openJsonDialogOnEnter } from '../utils/isJsonCellActionTarget';
 import type { ClientViewSnapshot } from '../utils/externalAPIs';
 
 export interface AgGridState extends Partial<GridState> {
@@ -120,11 +123,81 @@ export interface AgGridTableProps {
   chartState?: AgGridChartState;
   onClientViewChange?: (snapshot: ClientViewSnapshot) => void;
   zebraStriping: boolean;
+  resetColumnOrder?: boolean;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
 
 const isSearchFocused = new Map<string, boolean>();
+
+type MinWidthColDef = {
+  colId?: string;
+  field?: string;
+  minWidth?: number;
+  children?: MinWidthColDef[];
+};
+
+function getMinWidthSignature(colDefs: MinWidthColDef[]): string {
+  return colDefs
+    .map(def => {
+      const id = def.colId ?? def.field ?? '';
+      const children = def.children?.length
+        ? getMinWidthSignature(def.children)
+        : '';
+      return `${id}:${def.minWidth ?? ''}:${children}`;
+    })
+    .join('|');
+}
+
+function collectLeafMinWidthState(
+  colDefs: MinWidthColDef[],
+): { colId: string; width: number }[] {
+  return colDefs.flatMap(def => {
+    if (def.children?.length) {
+      return collectLeafMinWidthState(def.children);
+    }
+    const colId = def.colId ?? def.field;
+    if (!colId || colId === ROW_NUMBER_COL_ID) {
+      return [];
+    }
+    return [{ colId, width: def.minWidth ?? 100 }];
+  });
+}
+
+type GridColumnApi = {
+  applyColumnState?: (params: {
+    state: { colId: string; width?: number }[];
+    applyOrder?: boolean;
+  }) => void;
+  sizeColumnsToFit?: () => void;
+};
+
+function refitColumnsToMinWidths(
+  api: GridColumnApi,
+  colDefs: MinWidthColDef[],
+): void {
+  const state = collectLeafMinWidthState(colDefs);
+  if (state.length > 0) {
+    api.applyColumnState?.({ state });
+  }
+  api.sizeColumnsToFit?.();
+}
+
+function applyColDefOrder(
+  api: {
+    applyColumnState?: (params: {
+      state: { colId: string }[];
+      applyOrder: boolean;
+    }) => void;
+  },
+  colDefs: ColDef[],
+): void {
+  const state = getLeafColumnIds(colDefs).map(colId => ({ colId }));
+  if (state.length === 0) {
+    return;
+  }
+  api.applyColumnState?.({ state, applyOrder: true });
+}
 
 const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
   ({
@@ -162,6 +235,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     chartState,
     onClientViewChange,
     zebraStriping,
+    resetColumnOrder = false,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -284,6 +358,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     // Enterprise clipboard module is not registered (#106389).
     const handleCellKeyDown = useCallback((event: CellKeyDownEvent) => {
       copyCellValueOnKeyDown(event);
+      openJsonDialogOnEnter(event.event);
     }, []);
 
     const onFilterTextBoxChanged = useCallback(
@@ -583,11 +658,45 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [hasServerPageLengthChanged]);
 
+    const minWidthSignature = useMemo(
+      () => getMinWidthSignature(colDefsFromProps),
+      [colDefsFromProps],
+    );
+    const columnOrderSignature = useMemo(
+      () => getLeafColumnIds(colDefsFromProps).join('|'),
+      [colDefsFromProps],
+    );
     useEffect(() => {
       if (gridRef.current?.api) {
         gridRef.current.api.sizeColumnsToFit();
       }
     }, [width]);
+
+    // AG Grid grows a column when minWidth increases but keeps that pixel
+    // width when minWidth drops (sizeColumnsToFit is a no-op if the row
+    // already fills the grid). Reset each leaf to its current minWidth, then
+    // refit so "auto" actually shrinks without waiting for a chart refresh.
+    useEffect(() => {
+      const api = gridRef.current?.api;
+      if (!api) {
+        return;
+      }
+      refitColumnsToMinWidths(api, colDefsFromProps);
+    }, [minWidthSignature]);
+
+    // Header-group order comes from Explore, but AG Grid keeps the previous
+    // visual order while maintainColumnOrder is on. Mirror Table V1's
+    // resetColumnOrder: drop saved order and apply the new colDef sequence.
+    useEffect(() => {
+      if (!resetColumnOrder || !columnOrderSignature) {
+        return;
+      }
+      const api = gridRef.current?.api;
+      if (!api) {
+        return;
+      }
+      applyColDefOrder(api, colDefsFromProps as ColDef[]);
+    }, [resetColumnOrder, columnOrderSignature]);
 
     // Row highlighting must reflect the active cross filter regardless of how
     // it was applied (cell click, context menu, or an external dashboard
@@ -632,12 +741,17 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           if (reconciledColumnState) {
             params.api.applyColumnState?.({
               state: reconciledColumnState.columnState,
-              applyOrder: reconciledColumnState.applyOrder,
+              applyOrder: resetColumnOrder
+                ? false
+                : reconciledColumnState.applyOrder,
             });
           }
         } catch {
           // Silently fail if state restoration fails
         }
+      }
+      if (resetColumnOrder) {
+        applyColDefOrder(params.api, colDefsFromProps as ColDef[]);
       }
     };
 
@@ -704,7 +818,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             onModelUpdated={handleModelUpdated}
             onStateUpdated={handleGridStateChange}
             initialState={gridInitialState}
-            maintainColumnOrder
+            maintainColumnOrder={!resetColumnOrder}
             suppressAggFuncInHeader
             // Clicking a cell should select (focus) the cell rather than select
             // its text content (#106389). enableCellTextSelection forces browser
