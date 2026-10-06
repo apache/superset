@@ -1873,15 +1873,11 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
     return form_data
 
 
-def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, Any]:
-    """Fold inherited native predicates and ordering into canonical controls."""
-    from superset.mcp_service.chart.chart_helpers import _parse_orderby
+def _normalize_native_filter_aliases(form_data: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fold legacy WHERE, HAVING, and filter predicates into adhoc controls."""
     from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
 
     normalized = dict(form_data)
-    if "groupby" in normalized and not isinstance(normalized["groupby"], list):
-        # Bullet/buildQuery and transformProps read ensureIsArray(groupby).
-        normalized["groupby"] = bullet_groupby_list(normalized["groupby"])
     legacy_filters = [
         form_data_to_adhoc(normalized, clause)
         for clause in ("having", "where")
@@ -1899,6 +1895,17 @@ def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, A
         ]
     for key in ("where", "having", "filters"):
         normalized.pop(key, None)
+    return normalized
+
+
+def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fold inherited native predicates and ordering into canonical controls."""
+    from superset.mcp_service.chart.chart_helpers import _parse_orderby
+
+    normalized = _normalize_native_filter_aliases(form_data)
+    if "groupby" in normalized and not isinstance(normalized["groupby"], list):
+        # Bullet/buildQuery and transformProps read ensureIsArray(groupby).
+        normalized["groupby"] = bullet_groupby_list(normalized["groupby"])
     if "order_by_cols" in normalized:
         # Native extractQueryFields concatenates both aliases in key order.
         ordering: list[Any] = []
@@ -2184,6 +2191,11 @@ def merge_update_form_data(  # noqa: C901
         "viz_type"
     ):
         return
+    existing_form_data = _normalize_native_filter_aliases(existing_form_data)
+    # The initial overlay may carry legacy keys from saved form data. Filter
+    # omission/replacement below owns the complete canonical predicate sequence.
+    for key in ("where", "having", "filters"):
+        new_form_data.pop(key, None)
     existing_filters = list(existing_form_data.get("adhoc_filters") or [])
     incoming_filters = list(new_form_data.get("adhoc_filters") or [])
     existing_subject = existing_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
@@ -2547,6 +2559,10 @@ def merge_same_viz_form_data(
     _apply_explicit_form_controls(existing_form_data, new_form_data, config)
 
     for key, value in existing_form_data.items():
+        if key in {"where", "having", "filters"}:
+            # merge_update_form_data already resolved these legacy predicates
+            # into adhoc_filters; restoring them would undo replacement/clear.
+            continue
         if key == MCP_DASHBOARD_TIME_FILTER_SUBJECT:
             # merge_update_form_data owns this provenance marker. Its absence
             # may be an intentional subject clear and must not be undone by the

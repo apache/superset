@@ -60,6 +60,45 @@ def test_extract_form_data_key_from_url_with_key():
     assert extract_form_data_key_from_url(url) == "abc123"
 
 
+@pytest.mark.parametrize("native_offsets", [None, [], ["1 month ago"]])
+@pytest.mark.parametrize("request_override", [False, True])
+@pytest.mark.parametrize("comparison_type", [None, "values", "difference"])
+def test_table_extra_time_comparison_overrides_native_offsets(
+    native_offsets: list[str] | None,
+    request_override: bool,
+    comparison_type: str | None,
+) -> None:
+    """Dashboard comparison offsets apply independently of native comparisons."""
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["sales"],
+        "comparison_type": comparison_type,
+        "extra_form_data": {"time_compare": "1 year ago"},
+    }
+    if native_offsets is not None:
+        form_data["time_compare"] = native_offsets
+    extra_form_data = None
+    if request_override:
+        form_data["extra_form_data"] = {"time_compare": "2 years ago"}
+        extra_form_data = {"time_compare": "1 year ago"}
+
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(
+            form_data, 1, "table", extra_form_data=extra_form_data
+        )[0]
+
+    assert query["time_offsets"] == ["1 year ago"]
+    comparisons = [
+        item for item in query["post_processing"] if item["operation"] == "compare"
+    ]
+    assert bool(comparisons) is bool(native_offsets and comparison_type == "difference")
+
+
 def test_extract_form_data_key_from_url_no_key():
     url = "http://localhost:8088/explore/?slice_id=1"
     assert extract_form_data_key_from_url(url) is None

@@ -54,6 +54,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _inherited_state_invalid_keys,
 )
 from superset.utils import json
+from superset.utils.core import form_data_to_adhoc, simple_filter_to_adhoc
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -61,6 +62,78 @@ from superset.utils import json
 update_chart_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart"
 )
+
+
+@pytest.mark.parametrize("chart_type", ["table", "xy"])
+@pytest.mark.parametrize("filter_action", ["omit", "clear", "replace"])
+@pytest.mark.parametrize("generate_preview", [False, True])
+def test_sibling_update_normalizes_and_replaces_legacy_predicates(
+    chart_type: str, filter_action: str, generate_preview: bool
+) -> None:
+    """Legacy predicates obey the same omission/replacement contract as adhoc ones."""
+    filter_options: dict[str, Any] = {}
+    if filter_action != "omit":
+        filter_options["filters"] = (
+            []
+            if filter_action == "clear"
+            else [FilterConfig(column="region", op="=", value="EU")]
+        )
+    config = (
+        TableChartConfig(columns=[ColumnRef(name="region")], **filter_options)
+        if chart_type == "table"
+        else XYChartConfig(
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+            **filter_options,
+        )
+    )
+    existing: dict[str, Any] = {
+        "viz_type": "table" if chart_type == "table" else "echarts_timeseries_bar",
+        "where": "region != 'APAC'",
+        "having": "SUM(revenue) > 100",
+        "filters": [{"col": "region", "op": "==", "val": "US"}],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "region IS NOT NULL",
+            }
+        ],
+    }
+    saved_params = json.dumps(existing)
+    chart = Mock(id=9, datasource_id=4, slice_name="Filtered", params=saved_params)
+    request = UpdateChartRequest(
+        identifier=9, config=config, generate_preview=generate_preview
+    )
+
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=False,
+    ):
+        if generate_preview:
+            result = _build_preview_form_data(request, chart, parsed_config=config)
+        else:
+            payload = _build_update_payload(request, chart, parsed_config=config)
+            assert isinstance(payload, dict)
+            result = json.loads(payload["params"])
+
+    assert isinstance(result, dict)
+    assert not {"where", "having", "filters"} & result.keys()
+    if filter_action == "omit":
+        assert result["adhoc_filters"] == [
+            form_data_to_adhoc(existing, "having"),
+            form_data_to_adhoc(existing, "where"),
+            simple_filter_to_adhoc(existing["filters"][0], "where"),
+            *existing["adhoc_filters"],
+        ]
+    elif filter_action == "clear":
+        assert result["adhoc_filters"] == []
+    else:
+        assert len(result["adhoc_filters"]) == 1
+        assert result["adhoc_filters"][0]["subject"] == "region"
+        assert result["adhoc_filters"][0]["comparator"] == "EU"
+    assert chart.params == saved_params
 
 
 class TestUpdateChart:
