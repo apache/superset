@@ -76,11 +76,11 @@ from superset.connectors.sqla.partition_mapping import (
     declares_array_type,
     epoch_mapping_refusal,
     equality_mirrors_safely,
-    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    partition_mapping_supported,
     raw_instant_refusal,
     resolve_partition_mapping,
     value_round_trips,
@@ -2313,14 +2313,13 @@ class SqlaTable(
         type bail-out is not part of that verdict, so it is checked here as
         `resolve_partition_mapping` checks it.
 
-        Gated on the feature flag for the same reason `resolve_partition_mapping`
-        is: with the flag off nothing is mirrored, so reporting an active mapping
-        would have the Explore indicator promise a predicate the query never
-        carries.
+        Gated by `partition_mapping_supported`, the same check
+        `resolve_partition_mapping` makes: with the flag off, or on an engine
+        that does not support partition filter mapping, nothing is mirrored, so
+        reporting an active mapping would have the Explore indicator promise a
+        predicate the query never carries.
         """
-        if not self.partition_column or not is_feature_enabled(
-            PARTITION_FILTER_MAPPING_FLAG
-        ):
+        if not self.partition_column or not partition_mapping_supported(self):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}
