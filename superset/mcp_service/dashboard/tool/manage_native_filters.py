@@ -31,6 +31,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
+from superset.dashboards.filter_scope import _is_divider
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
@@ -525,7 +526,7 @@ def _merge_filter_update(
     entries, it does not merge deltas).
     """
     merged = copy.deepcopy(existing)
-    is_divider = merged.get("type") == "DIVIDER"
+    is_divider = _is_divider(merged)
     _validate_update_type_compat(spec, merged.get("filterType"), is_divider=is_divider)
 
     if spec.name is not None:
@@ -580,7 +581,7 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
     "filterType"; both are normalized here so a divider shows up with a
     usable name and a "divider" filter_type instead of None/None.
     """
-    is_divider = conf.get("type") == "DIVIDER"
+    is_divider = _is_divider(conf)
     name = conf.get("title") if is_divider else conf.get("name")
     filter_type = "divider" if is_divider else conf.get("filterType")
     targets = [t for t in (conf.get("targets") or []) if t]

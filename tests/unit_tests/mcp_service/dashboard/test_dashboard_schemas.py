@@ -504,15 +504,25 @@ class TestExtractNativeFilters:
         assert _extract_native_filters("123") == []
         assert _extract_native_filters('"just a string"') == []
 
-    def test_divider_uses_title_as_name_and_divider_as_filter_type(self) -> None:
+    @pytest.mark.parametrize(
+        "divider_id,divider_type",
+        [
+            ("NATIVE_FILTER_DIVIDER-abc123", "DIVIDER"),
+            ("NATIVE_FILTER_DIVIDER-abc123", None),
+            ("legacy-divider", "DIVIDER"),
+        ],
+    )
+    def test_divider_uses_title_as_name_and_divider_as_filter_type(
+        self, divider_id: str, divider_type: str | None
+    ) -> None:
         """A divider stores its text under "title" and has no "filterType";
         both must be normalized rather than surfaced as None/None."""
         metadata = json_dumps(
             {
                 "native_filter_configuration": [
                     {
-                        "id": "NATIVE_FILTER_DIVIDER-abc123",
-                        "type": "DIVIDER",
+                        "id": divider_id,
+                        **({"type": divider_type} if divider_type else {}),
                         "title": "Geography",
                         "description": "Location filters",
                     }
@@ -521,7 +531,7 @@ class TestExtractNativeFilters:
         )
         result = _extract_native_filters(metadata)
         assert len(result) == 1
-        assert result[0].id == "NATIVE_FILTER_DIVIDER-abc123"
+        assert result[0].id == divider_id
         assert result[0].name == "Geography"
         assert result[0].filter_type == "divider"
         assert result[0].targets == []

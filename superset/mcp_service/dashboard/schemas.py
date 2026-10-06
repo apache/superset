@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.dashboards.filter_scope import _is_divider
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
@@ -1747,7 +1748,7 @@ def _extract_native_filters(
     for f in native_filters:
         if not isinstance(f, dict):
             continue
-        is_divider = f.get("type") == "DIVIDER"
+        is_divider = _is_divider(f)
         raw_targets = f.get("targets", [])
         if not isinstance(raw_targets, list):
             raw_targets = []

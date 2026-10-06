@@ -605,7 +605,7 @@ async def test_add_divider_requires_non_empty_name(mcp_server):
 
     with patch(DAO_FIND_BY_ID, return_value=dashboard):
         async with Client(mcp_server) as client:
-            with pytest.raises(Exception, match="name"):
+            with pytest.raises(Exception, match="at least 1 character"):
                 await client.call_tool(
                     "manage_native_filters",
                     {
@@ -901,11 +901,17 @@ async def test_update_and_remove_same_filter_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_divider_title_and_description(mcp_server):
+@pytest.mark.parametrize("include_type", [True, False])
+async def test_update_divider_title_and_description(
+    mcp_server: object, include_type: bool
+) -> None:
     """``name`` on a divider update must land in "title", not "name" --
     "title" is what the filter bar actually renders."""
-    captured: dict = {"current_config": [EXISTING_DIVIDER]}
-    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
+    divider = copy.deepcopy(EXISTING_DIVIDER)
+    if not include_type:
+        divider.pop("type")
+    captured: dict[str, Any] = {"current_config": [divider]}
+    dashboard = _mock_dashboard(filters=[divider])
 
     with (
         patch(DAO_FIND_BY_ID, return_value=dashboard),
