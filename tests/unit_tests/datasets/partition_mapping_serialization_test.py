@@ -150,6 +150,36 @@ def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
     assert summary["literal_resolution"] == "day"
 
 
+def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
+    app: Flask,
+) -> None:
+    """
+    A text mapping -- ``country`` onto ``region_key``, the half of this feature
+    that has nothing to do with time -- has no resolution to report, and the
+    answer has to be the one that withholds nothing.
+
+    Asking the engine without a value gets it wrong: SQLite's ``convert_dttm``
+    renders for ``types.String`` as well as for the date types, so a `VARCHAR`
+    mapped column measured against a reference instant comes back
+    second-resolution. The glyph would then read `country = 'US'` as a value the
+    server cannot place and go quiet on a filter the query mirrors.
+    """
+    table = _table()
+    country = TableColumn(column_name="country", type="VARCHAR")
+    country.partition_value_transform = "lower(:value)"
+    country.partition_transform_is_monotonic = False
+    table.columns.append(country)
+    table.partition_mapped_column = "country"
+    table.partition_column = "region_key"
+    table.columns.append(TableColumn(column_name="region_key", type="VARCHAR"))
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["literal_resolution"] == "full"
+
+
 def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
     app: Flask,
 ) -> None:

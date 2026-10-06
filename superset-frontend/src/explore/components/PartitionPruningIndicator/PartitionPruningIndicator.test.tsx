@@ -300,15 +300,61 @@ test('a range at day resolution still mirrors, by widening to the day', () => {
   ).toBe(true);
 });
 
-test('a value the pattern cannot read keeps the glyph', () => {
-  // Matching the server's `datetime.fromisoformat` acceptance set in the browser
-  // is not achievable, so the pattern only ever fires on a value the server
-  // certainly declines. Everything else falls back to the advisory behaviour.
+test('a value the server cannot read as an instant shows nothing', () => {
+  // The server reads ISO 8601 only, because `06/07/2026` as July 6 or June 7 is
+  // a coin flip. On a DATE column it therefore cannot place the value at all,
+  // and declines for every operator rather than probe the transform at an
+  // instant the engine never compares -- a bound included, because there is no
+  // instant to widen. The glyph has to say the same thing.
   const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
 
+  [
+    '07/06/2026 10:08:11',
+    '2026/07/06 10:08:11',
+    'July 6 2026 10:08:11',
+  ].forEach(comparator => {
+    expect(isMirroredFilter(DAY, { ...equalsFilter, comparator })).toBe(false);
+    expect(
+      isMirroredFilter(DAY, { ...equalsFilter, operator: '>=', comparator }),
+    ).toBe(false);
+  });
   expect(
-    isMirroredFilter(DAY, { ...equalsFilter, comparator: '01/01/2024 10:08' }),
+    isMirroredFilter(DAY, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['2026-07-06', '07/07/2026 09:00:00'],
+    }),
+  ).toBe(false);
+});
+
+test('a sub-second engine declines an unreadable value too', () => {
+  // What `second` resolution drops is a part no pattern in this file can see,
+  // so an unreadable value is declined there for the same reason as at `day`.
+  // The time-of-day gate does not apply: midnight says nothing about the
+  // sub-second part.
+  const SECOND = { ...ACTIVE, literal_resolution: 'second' as const };
+
+  expect(
+    isMirroredFilter(SECOND, {
+      ...equalsFilter,
+      comparator: '07/06/2026 10:08:11',
+    }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(SECOND, {
+      ...equalsFilter,
+      comparator: '2026-07-06 10:08:11',
+    }),
   ).toBe(true);
+});
+
+test('a non-string comparator is left to the other gates', () => {
+  // Matching the server's `datetime.fromisoformat` acceptance set in the browser
+  // is not achievable, so both patterns here only ever fire on text. An
+  // epoch-millisecond value is turned into engine SQL server-side, at the
+  // engine's own resolution, so it mirrors whatever the column's resolution is.
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
   expect(
     isMirroredFilter(DAY, { ...equalsFilter, comparator: 1704103691000 }),
   ).toBe(true);
@@ -326,6 +372,21 @@ test('a summary with no resolution, or full resolution, is unaffected', () => {
     isMirroredFilter(
       { ...ACTIVE, literal_resolution: 'full' as const },
       { ...equalsFilter, comparator: '2024-01-01 10:08:11' },
+    ),
+  ).toBe(true);
+  // Including the non-ISO text that loses its mirror at day resolution: on a
+  // TIMESTAMP column the engine compares the whole string, so there is nothing
+  // for the server to resolve and nothing for the glyph to withhold.
+  expect(
+    isMirroredFilter(ACTIVE, {
+      ...equalsFilter,
+      comparator: '07/06/2026 10:08:11',
+    }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(
+      { ...ACTIVE, literal_resolution: 'full' as const },
+      { ...equalsFilter, comparator: '07/06/2026 10:08:11' },
     ),
   ).toBe(true);
 });

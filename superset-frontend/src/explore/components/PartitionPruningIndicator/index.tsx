@@ -185,6 +185,29 @@ function carriesTimeOfDay(value: unknown): boolean {
   return time !== undefined && !MIDNIGHT.test(time);
 }
 
+/** A zero-padded ISO calendar date, extended (`2024-01-01`) or basic (`20240101`). */
+const ISO_DATE_PREFIX = /^\d{4}(-\d{2}-\d{2}|\d{4})/;
+
+/**
+ * Whether the server stands a chance of reading this value as an instant.
+ *
+ * Where the engine compares less of a value than it carries, the mirror is
+ * built from an instant -- and a string `datetime.fromisoformat` declines is not
+ * one, so the query path declines the filter outright rather than hand the text
+ * to the probe and get a predicate narrower than the filter.
+ *
+ * The same trade as `carriesTimeOfDay`, in the other direction: this is used
+ * only to *hide* the glyph, so it has to fire only on text the server certainly
+ * cannot read. A leading zero-padded ISO date is the test, because everything
+ * `fromisoformat` accepts begins with one and the formats that reached this bug
+ * -- `07/06/2026 10:08:11`, `2026/07/06 10:08:11`, `July 6 2026 10:08:11` -- do
+ * not. Non-strings are left to the gates above: a number is not text the server
+ * reads, and the mirror is built from it the same way either way.
+ */
+function readableAsInstant(value: unknown): boolean {
+  return typeof value !== 'string' || ISO_DATE_PREFIX.test(value);
+}
+
 /**
  * Whether the comparator is one the mirrored predicate can be built from.
  *
@@ -202,6 +225,12 @@ function carriesTimeOfDay(value: unknown): boolean {
  * and an AND-ed equality has nowhere to widen to. Only those two operators --
  * a bound does have somewhere to widen to, and widens to the day rather than
  * declining, so the glyph stays on it.
+ *
+ * Wherever the engine compares less than the whole value, a value the server
+ * cannot read as an instant at all is declined for *every* operator, a bound
+ * included -- there is no instant to widen. So that gate is the broader of the
+ * two, and the only one that applies at `second` resolution as well, where what
+ * the engine drops is a sub-second part no pattern here can see.
  */
 function hasMirrorableValue(
   operator: string,
@@ -209,16 +238,27 @@ function hasMirrorableValue(
   resolution: PartitionFilterMapping['literal_resolution'],
 ): boolean {
   if (operator === 'TEMPORAL_RANGE') {
-    // `No filter` resolves to neither bound, so no range is mirrored.
+    // `No filter` resolves to neither bound, so no range is mirrored. A range
+    // is resolved to a pair of bounds server-side rather than read as one
+    // instant, so neither resolution gate below applies to it.
     return typeof comparator === 'string' && comparator !== NO_TIME_RANGE;
   }
+  const comparesLessThanTheValue =
+    resolution === 'day' || resolution === 'second';
   if (operator === 'IN') {
     return (
       Array.isArray(comparator) &&
       comparator.length > 0 &&
       !comparator.some(isNullish) &&
+      !(
+        comparesLessThanTheValue &&
+        comparator.some(member => !readableAsInstant(member))
+      ) &&
       !(resolution === 'day' && comparator.some(carriesTimeOfDay))
     );
+  }
+  if (comparesLessThanTheValue && !readableAsInstant(comparator)) {
+    return false;
   }
   if (
     operator === '==' &&
