@@ -30,6 +30,9 @@ from superset.sql.parse import Table
 from tests.unit_tests.conftest import with_feature_flags
 
 
+pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
+
+
 def test_validate_update_uniqueness(session: Session) -> None:
     """
     Test the `validate_update_uniqueness` static method.
