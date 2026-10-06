@@ -425,7 +425,7 @@ MAX_DASHBOARD_DATASET_METRICS: int = 50
 
 
 class GetDashboardDatasetsRequest(BaseModel):
-    """Dataset detail caps."""
+    """Dashboard lookup plus per-dataset detail caps."""
 
     identifier: Annotated[
         int | str,
@@ -436,13 +436,13 @@ class GetDashboardDatasetsRequest(BaseModel):
         MAX_DASHBOARD_DATASET_COLUMNS,
         ge=0,
         le=MAX_DASHBOARD_DATASET_COLUMNS,
-        description="Per-dataset cap; 0: totals only.",
+        description="Cap; 0: totals only.",
     )
     max_metrics: int = Field(
         MAX_DASHBOARD_DATASET_METRICS,
         ge=0,
         le=MAX_DASHBOARD_DATASET_METRICS,
-        description="Per-dataset cap; 0: totals only.",
+        description="Cap; 0: totals only.",
     )
 
 
