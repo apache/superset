@@ -113,12 +113,9 @@ export default function CRUDCollection({
   if (!initialKeyed.current) {
     initialKeyed.current = createKeyedCollection(propsCollection);
   }
-  // Only `collectionArray` is kept as state. The keyed index it was mirrored
-  // into had exactly one reader -- the old `onFieldsetChange`, which closed
-  // over it and wrote it back as an absolute value -- and that is the bug
-  // being fixed here, so nothing reads it any more. Every writer updated both
-  // in lockstep, and the array is what the render and `onChange` are built
-  // from, so dropping it changes nothing but the bookkeeping.
+  const [collection, setCollection] = useState<
+    Record<PropertyKey, CollectionItem>
+  >(() => initialKeyed.current!.collection);
   const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
     () => initialKeyed.current!.collectionArray,
   );
@@ -148,8 +145,9 @@ export default function CRUDCollection({
 
   // Sync with props.collection changes
   useEffect(() => {
-    const { collectionArray: newCollectionArray } =
+    const { collection: newCollection, collectionArray: newCollectionArray } =
       createKeyedCollection(propsCollection);
+    setCollection(newCollection);
     setCollectionArray(newCollectionArray);
     // Refresh the restore order too, so that clearing a sort after an
     // external sync (e.g. a source-control-synced column set) reflects the
@@ -177,6 +175,17 @@ export default function CRUDCollection({
 
   const onCellChange = useCallback(
     (id: string | number, col: string, val: unknown) => {
+      setCollection(prevCollection => {
+        const updatedCollection = {
+          ...prevCollection,
+          [id]: {
+            ...prevCollection[id],
+            [col]: val,
+          },
+        };
+        return updatedCollection;
+      });
+
       setCollectionArray(prevCollectionArray => {
         const updatedCollectionArray = prevCollectionArray.map(item => {
           if (item.id === id) {
@@ -200,6 +209,12 @@ export default function CRUDCollection({
 
   const deleteItem = useCallback(
     (id: string | number) => {
+      setCollection(prevCollection => {
+        const newColl = { ...prevCollection };
+        delete newColl[id];
+        return newColl;
+      });
+
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = prevCollectionArray.filter(
           item => item.id !== id,
@@ -224,6 +239,11 @@ export default function CRUDCollection({
       }
       delete newItem.expanded;
 
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [newItem.id]: newItem,
+      }));
+
       setCollectionArray(prevCollectionArray => {
         const newCollectionArray = [newItem, ...prevCollectionArray];
 
@@ -242,24 +262,33 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      // A functional updater, like every other mutator here -- and for a
+      // Functional updaters, like every other mutator here -- and for a
       // sharper reason than consistency. A fieldset's edits are committed on a
       // debounce, and each expanded row renders its own `Fieldset`, so the
       // collection a closure captured at the keystroke is older than the real
       // one by the time the timer fires. Writing that snapshot back as an
       // absolute value reverted whatever a *different* row had committed in
-      // between: edit row A's value transform and row B's description within a
-      // debounce interval of each other and one of the two was silently lost
-      // on save.
+      // between: edit one column's value transform and another's description
+      // within a debounce interval and one of the two was silently lost.
+      //
+      // Both structures, not just the array: `onSortChange` restores the
+      // pre-sort order by reading `collection[id]`, so a keyed entry left
+      // behind here would resurface as a stale row the moment a sort is
+      // cleared.
       //
       // `onChange` inside an updater is impure and double-fires under
       // StrictMode in development -- as it already does in `onCellChange`,
       // `deleteItem` and `onAddItem`, so matching them beats inventing a
       // fourth shape here.
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [item.id]: item,
+      }));
+
       setCollectionArray(prevCollectionArray => {
         // A fieldset only ever edits a row that already exists; the append is
-        // a safety net, and it is also what preserves order, which the
-        // previous two-pass rebuild was doing by hand.
+        // a safety net, and mapping in place is also what preserves order,
+        // which the previous two-pass rebuild was doing by hand.
         const newCollectionArray = prevCollectionArray.some(
           existing => existing.id === item.id,
         )
@@ -308,18 +337,28 @@ export default function CRUDCollection({
   const expandItemWhereRef = useRef(expandItemWhere);
   expandItemWhereRef.current = expandItemWhere;
 
+  // The collection is read through its ref too, and deliberately not a
+  // dependency: it is replaced wholesale on every cell edit, delete, add and
+  // props sync, so depending on it re-asserted the expansion afterwards and
+  // reopened a row the user had collapsed on their next edit to any row.
+  //
+  // The cost is that a nonce arriving before its target row exists never
+  // retries. Nothing can do that today -- the reveal links are rendered inside
+  // the already-loaded editor and change only the search term and the nonce,
+  // never the collection -- so widening these deps again would trade a
+  // documented behaviour for a case that cannot happen.
   useEffect(() => {
     const matches = expandItemWhereRef.current;
     if (!matches || expandItemNonce === undefined) {
       return;
     }
-    const target = collectionArray.find(matches);
+    const target = collectionArrayRef.current.find(matches);
     if (!target) {
       return;
     }
     // Merged rather than replaced, so rows the user opened stay open.
     setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
-  }, [expandItemNonce, collectionArray]);
+  }, [expandItemNonce]);
 
   const handleTableChange = useCallback(
     (
