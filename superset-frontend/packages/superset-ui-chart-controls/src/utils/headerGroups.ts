@@ -391,7 +391,7 @@ export function normalizeColumnConfigKeys<T>(
       aliasToKey.set(alias, col);
     });
   });
-  const next: Record<string, T> = {};
+  const next: Record<string, T> = Object.create(null);
   Object.entries(value).forEach(([key, config]) => {
     if (colnamesSet.has(key)) {
       next[key] = config;
