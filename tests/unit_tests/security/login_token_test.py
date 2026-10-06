@@ -347,9 +347,6 @@ def test_consume_burn_survives_a_later_rollback(
         "/sqllab/",
         "/dashboard/list/?pageIndex=0",
         "/dashboard/1/#anchor",
-        # Stripped control characters leave a plain relative path, which is
-        # what a browser resolves this to.
-        "/\tdashboard",
     ],
 )
 def test_is_safe_next_path_accepts_relative_paths(path: str) -> None:
@@ -371,8 +368,16 @@ def test_is_safe_next_path_accepts_relative_paths(path: str) -> None:
         "/\\evil.example.com/",
         "\\\\evil.example.com/",
         # Control characters a URL parser strips, raw and percent-encoded.
+        # Rejected outright rather than stripped: the value checked must be the
+        # value redirected to. A surviving CR/LF reaches `redirect()`, which
+        # Werkzeug refuses with a ValueError -- a 500 after the token is burned.
         "/\t/evil.example.com",
         "/%09/evil.example.com",
+        "/\tdashboard",
+        "/dashboard/1/\r\nX-Injected: yes",
+        "/\ndashboard/",
+        "/%0Adashboard/",
+        "/%0D%0Adashboard/",
         # Schemes that never start with a slash.
         "javascript:alert(1)",
         "data:text/html,<script>alert(1)</script>",

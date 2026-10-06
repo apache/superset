@@ -88,8 +88,8 @@ LoginTokenIdentityResolver = Callable[..., LoginTokenUserInfo | None]
 
 # Characters a WHATWG URL parser strips before resolving, plus their
 # percent-encoded forms, which some browsers also remove when following a
-# Location header. Normalizing them first stops `/\tx` or `/%09x` smuggling a
-# different target past the checks below.
+# Location header. Their presence is grounds for rejection, not something to
+# normalize away -- see :func:`is_safe_next_path`.
 _URL_STRIPPED_CONTROL_CHARS = re.compile(r"[\t\n\r]|%09|%0[ADad]")
 
 
@@ -107,18 +107,33 @@ def is_safe_next_path(url: str) -> bool:
     Requiring a relative path avoids the question entirely: the parent
     application always knows the path it wants, the browser resolves it against
     Superset's own origin, and there is no host to compare.
+
+    A value carrying a character a URL parser strips is **rejected outright**
+    rather than stripped and accepted. Accepting it would mean the value this
+    returns ``True`` for is not the value the caller redirects to, and that gap
+    is exploitable in both directions: a ``CR``/``LF`` survives into
+    ``redirect()``, which Werkzeug refuses with a ``ValueError`` -- a 500 raised
+    after the token has already been burned -- while anything else differing
+    from its normalized form is a request to send the browser somewhere other
+    than what was asked for. Rejecting keeps the checked value and the
+    redirected value identical.
     """
     if not url or not url.strip():
         return False
 
-    normalized = _URL_STRIPPED_CONTROL_CHARS.sub("", url.strip())
+    candidate = url.strip()
+    if _URL_STRIPPED_CONTROL_CHARS.search(candidate):
+        return False
+
     # Browsers treat backslashes as forward slashes in special schemes, so
-    # `/\evil.com` would resolve as the protocol-relative `//evil.com`.
-    normalized = normalized.replace("\\", "/")
+    # `/\evil.com` would resolve as the protocol-relative `//evil.com`. Folded
+    # only to decide, never to rewrite: a value needing the fold is rejected by
+    # the check below rather than redirected to in its folded form.
+    folded = candidate.replace("\\", "/")
 
     # A single leading slash, and nothing that could be read as a host or a
     # scheme. `//host`, `https://host` and `mailto:x` are all rejected.
-    return normalized.startswith("/") and not normalized.startswith("//")
+    return folded.startswith("/") and not folded.startswith("//")
 
 
 def is_enabled() -> bool:

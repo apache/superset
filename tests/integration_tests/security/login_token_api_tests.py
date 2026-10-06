@@ -425,6 +425,14 @@ class TestLoginTokenApi(SupersetTestCase):
             "//evil.example.com/",
             "/\\evil.example.com/",
             "javascript:alert(1)",
+            # Encoded CR/LF. These must reject rather than normalize: a
+            # surviving newline reaches `redirect()`, which Werkzeug refuses
+            # with a ValueError, and @safe turns that into a 500 -- after the
+            # token has been burned and the session cookie set, so the parent
+            # application cannot retry.
+            "%2Fdashboard%2F1%2F%0D%0AX-Injected:+yes",
+            "%2F%0Adashboard%2F",
+            "%2F%09dashboard",
         ):
             with self.subTest(next=requested_next):
                 token = self._mint()
