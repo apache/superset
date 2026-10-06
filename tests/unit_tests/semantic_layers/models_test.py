@@ -2537,7 +2537,6 @@ def test_layer_delete_removes_child_view_permissions(
 def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
     """The unloaded layer hook batches child permission ownership checks."""
     from sqlalchemy import event, inspect
-    from sqlalchemy.engine import Connection
 
     from superset import security_manager
 
