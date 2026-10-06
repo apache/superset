@@ -551,8 +551,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
         Non-dictionary elements, visual dividers (type DIVIDER or IDs starting
         with NATIVE_FILTER_DIVIDER), and non-list attributes are skipped safely.
 
-        :param container: Dictionary holding filter scope or cross-filter configuration.
-        :param old_to_new_slice_ids: Mapping from original chart ID to duplicated chart ID.
+        :param container: Dictionary holding filter scope or cross-filter
+            configuration.
+        :param old_to_new_slice_ids: Mapping from original chart ID to
+            duplicated chart ID.
         """
         if not isinstance(container, dict):
             return
@@ -601,7 +603,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
         scopes remain bound to the new chart copies instead of the originals.
 
         :param metadata: Deserialized dashboard json_metadata dictionary.
-        :param old_to_new_slice_ids: Mapping from original chart ID to duplicated chart ID.
+        :param old_to_new_slice_ids: Mapping from original chart ID to
+            duplicated chart ID.
         """
         if not isinstance(metadata, dict) or not old_to_new_slice_ids:
             return

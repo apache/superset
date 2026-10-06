@@ -653,5 +653,3 @@ def test_copy_dashboard_duplicate_slices_remaps_native_filters(
         copied_slices["chart_2"],
     ]
     assert copied_filters[0]["scope"]["excluded"] == [copied_slices["chart_2"]]
-
-
