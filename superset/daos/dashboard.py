@@ -515,6 +515,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
         md["shared_label_colors"] = data.get("shared_label_colors", [])
         md["map_label_colors"] = data.get("map_label_colors", {})
         md["color_scheme_domain"] = data.get("color_scheme_domain", [])
+
+        if old_to_new_slice_ids:
+            DashboardDAO._remap_filter_scopes(md, old_to_new_slice_ids)
+
         dashboard.json_metadata = json.dumps(md)
 
     @staticmethod
@@ -577,6 +581,31 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if isinstance(metadata.get("native_filter_configuration"), list):
             for native_filter in metadata["native_filter_configuration"]:
                 cls._remap_filter_scope(native_filter, old_to_new_slice_ids)
+
+        if isinstance(metadata.get("global_chart_configuration"), dict):
+            cls._remap_filter_scope(
+                metadata["global_chart_configuration"], old_to_new_slice_ids
+            )
+
+        if isinstance(metadata.get("chart_configuration"), dict):
+            new_chart_configuration: dict[str, Any] = {}
+            for old_key, chart_config in metadata["chart_configuration"].items():
+                try:
+                    int_key = int(old_key)
+                    new_key = str(old_to_new_slice_ids.get(int_key, int_key))
+                except (ValueError, TypeError):
+                    new_key = str(old_key)
+
+                if isinstance(chart_config, dict):
+                    if isinstance(chart_config.get("id"), int):
+                        chart_config["id"] = old_to_new_slice_ids.get(
+                            chart_config["id"], chart_config["id"]
+                        )
+                    cls._remap_filter_scope(
+                        chart_config.get("crossFilters"), old_to_new_slice_ids
+                    )
+                new_chart_configuration[new_key] = chart_config
+            metadata["chart_configuration"] = new_chart_configuration
 
     @classmethod
     def copy_dashboard(
