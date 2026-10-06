@@ -377,6 +377,10 @@ def test_root_without_a_table_name_does_not_abort_the_run(
     from superset.tasks import deletion_retention as task
 
     supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
+    # Swap the registry out before declaring the class below: subclassing
+    # appends to whichever list is current, so declaring it first would leave
+    # it in the real one for the rest of the session.
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", supported_models[:])
 
     class NoTableName(SoftDeleteMixin):
         """A registered root whose table name cannot be read."""
@@ -388,6 +392,7 @@ def test_root_without_a_table_name_does_not_abort_the_run(
     )
     monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
 
+    counter: MagicMock
     with (
         patch.object(task, "_purge_model", return_value=(1, 0, 0, 0, 0)),
         patch.object(task.audit, "reconcile_pending"),
@@ -395,13 +400,18 @@ def test_root_without_a_table_name_does_not_abort_the_run(
         patch.object(
             task.feature_flag_manager, "is_feature_enabled", return_value=True
         ),
-        patch.object(task.stats_logger_manager.instance, "incr"),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
         patch.object(task.stats_logger_manager.instance, "gauge"),
     ):
         result: dict[str, Any] = task.purge_soft_deleted.run()
 
     assert result["scan_failures"] == 1
     assert len(result["purged"]) == len(supported_models)
+    # Named per root, like unsupported_models.<table>: a run-level count alone
+    # cannot say which root stopped.
+    assert (
+        call("deletion_retention.scan_failures.NoTableName") in counter.call_args_list
+    )
 
 
 @pytest.mark.parametrize("dry_run", [False, True])

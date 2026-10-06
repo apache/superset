@@ -124,41 +124,59 @@ run. Unsupported models are excluded from `would_purge` and do not count as
 `cascade_failures`; supported models continue to use their existing policies.
 An empty `unsupported_models` map means no registered models were skipped for
 this reason. A root whose eligible-row scan raises — an unreadable column, a
-transient database error — is counted in `scan_failures` and increments
-`deletion_retention.scan_failures`, leaving the remaining roots to purge
-normally. Rows that root had already purged before the failure stay in its
-reported counts, since those deletions are committed. Reporting a model is not the same as purging it: a host adds
-purge support for its own entities by installing a policy, described next.
+transient database error — is counted in `scan_failures`, increments
+`deletion_retention.scan_failures.<table>` for that root and gauges
+`deletion_retention.scan_failures` for the run, leaving the remaining roots to
+purge normally. Rows that root had already purged before the failure stay in
+its reported counts, since those deletions are committed.
+
+Reporting a model is not the same as purging it: a host adds purge support for
+its own entities by installing a policy, described next.
 
 A host distribution that carries its own soft-deletable entities can supply
 their purge behavior by installing `PURGE_POLICIES_FUNC`: a callable returning
 one `PurgeEntityPolicy` per root it owns. Installed policies are validated
 against the discovered dependency graph exactly as the built-in ones are, and a
 model that gains an installed policy stops being reported as unsupported. A
-provider that fails, returns something other than a sequence of policies, or
-redeclares a built-in chart, dashboard or dataset root is logged and ignored,
-leaving the built-in roots unchanged. Two declarations for one root are also
-ignored, so that root is reported as unsupported rather than purged by an
-arbitrary one of them.
+provider that fails, or returns anything other than an iterable of
+`PurgeEntityPolicy` — a list, a tuple, `dict.values()` and a generator all
+qualify — is logged and ignored, leaving the built-in roots unchanged. So is
+a policy whose root is not a class, which everything downstream assumes, and
+one that redeclares a built-in chart, dashboard or dataset root or claims
+one of their `entity_type` names, which the cascade branches on. Two
+declarations for one root are ignored too, so that root is reported as
+unsupported rather than purged by an arbitrary one of them.
 
 The shapes the shared cleanup can execute are the shapes it accepts. A policy
-is refused when its root has no `id` column (the scheduled scan pages eligible
-rows by it) or no `deleted_at` column (every purge path requires an archived
-row), and when a dependency it would have to execute cannot be:
+is refused when its root is not keyed on a single `id` column (the scan pages
+by it and the row is then fetched with a scalar lookup), has no `deleted_at`
+column (every purge path requires an archived row), or carries a table name
+that a bare-name lookup cannot resolve unambiguously — identities are recorded
+without their schema, so a schema-qualified root is not supported. It is also
+refused when a dependency it would have to execute cannot be:
 
 - an owned, association or block dependency that is not an inbound foreign
   key, or that names a table outside the root's metadata;
 - a block with no audit reason code, or a listener effect with no execution
   phase, which is dispatched by phase and would never run;
+- a listener effect whose action cannot act for the root's `entity_type`: tag
+  cleanup resolves a tag object type from it, and the dataset permission name
+  is only built for a dataset, so neither serves a host's own root;
+- a block declared by a policy that replaces `validate`, which is what applies
+  blockers — the declaration would otherwise be silently unenforced;
 - an owned table reachable only through an association, since associations are
   deleted first and those rows would be orphaned — declare the intermediate
   table owned instead;
 - an owned table that references itself while the policy keeps the stock
   `delete_owned_children`, which prunes one level and would leave a deeper
   sub-tree behind — such a policy supplies cleanup that walks the sub-tree;
-- two owned tables at the same depth that reference each other, because owned
-  deletes run in declaration order and an enforced constraint would refuse one
-  of the two orders.
+- two owned tables, or two association tables, at the same depth that
+  reference each other, because those deletes run in declaration order and an
+  enforced constraint would refuse one of the two orders;
+- a version target whose column is not root-relative, since cleanup compares
+  it with the root's id directly: it must be the root's own key or a foreign
+  key into the root, or it would match another root's history and leave this
+  root's behind.
 
 Every one of these is decided when the policy is admitted, not when a row is
 purged: a refused policy is logged with its reason and its root reported as

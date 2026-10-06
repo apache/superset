@@ -19,6 +19,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
@@ -38,6 +40,7 @@ from superset.commands.deletion_retention.purge_policy import (
     _dependency_predicates,
     _fk_key,
     BlockerReason,
+    cleanup_dataset_permission,
     compare_policy,
     delete_associations,
     delete_owned_children,
@@ -579,6 +582,28 @@ def test_core_delete_actions_compile_for_supported_dialects(dialect: str) -> Non
     assert all(statement.startswith(("SELECT", "DELETE")) for statement in compiled)
 
 
+#: Throwaway mapper registries created by the fixtures below, disposed after
+#: each test. Left in place they stay in SQLAlchemy's global mapper state,
+#: where ``configure_mappers()`` in the real-graph tests would walk them.
+_HOST_MAPPERS: list[registry] = []
+
+
+@pytest.fixture(autouse=True)
+def _dispose_host_mappers() -> Iterator[None]:
+    """Drop the mappers a test mapped, as the deep-path test does."""
+    yield
+    while _HOST_MAPPERS:
+        _HOST_MAPPERS.pop().dispose()
+
+
+def _map_host_root(model: type[Any], table: sa.Table) -> type[Any]:
+    """Map *model* onto *table* for the duration of one test."""
+    mapper_registry: registry = registry()
+    _HOST_MAPPERS.append(mapper_registry)
+    mapper_registry.map_imperatively(model, table)
+    return model
+
+
 def _host_root(prefix: str) -> type[Any]:
     """Map a throwaway root in its own ``MetaData``.
 
@@ -603,8 +628,7 @@ def _host_root(prefix: str) -> type[Any]:
     class HostRoot:
         """Temporary mapped root standing in for an entity core does not own."""
 
-    registry().map_imperatively(HostRoot, root_table)
-    return HostRoot
+    return _map_host_root(HostRoot, root_table)
 
 
 def _host_edge(prefix: str) -> DependencyPolicy:
@@ -764,8 +788,7 @@ def _host_chain(prefix: str) -> type[Any]:
     class HostChainRoot:
         """Temporary mapped root with a two-hop ownership path."""
 
-    registry().map_imperatively(HostChainRoot, root_table)
-    return HostChainRoot
+    return _map_host_root(HostChainRoot, root_table)
 
 
 def _host_chain_edges(
@@ -848,8 +871,7 @@ def _host_bare_root(prefix: str, *columns: str) -> type[Any]:
     class HostBareRoot:
         """Temporary mapped root missing a column some purge path needs."""
 
-    registry().map_imperatively(HostBareRoot, root_table)
-    return HostBareRoot
+    return _map_host_root(HostBareRoot, root_table)
 
 
 def _host_referenced(prefix: str) -> type[Any]:
@@ -871,8 +893,7 @@ def _host_referenced(prefix: str) -> type[Any]:
     class HostReferencedRoot:
         """Temporary mapped root referenced by one other table."""
 
-    registry().map_imperatively(HostReferencedRoot, root_table)
-    return HostReferencedRoot
+    return _map_host_root(HostReferencedRoot, root_table)
 
 
 def _inbound_ref_key(prefix: str) -> DependencyKey:
@@ -900,8 +921,7 @@ def _host_tree(prefix: str) -> type[Any]:
     class HostTreeRoot:
         """Temporary mapped root with a recursive sub-tree."""
 
-    registry().map_imperatively(HostTreeRoot, root_table)
-    return HostTreeRoot
+    return _map_host_root(HostTreeRoot, root_table)
 
 
 def _host_tree_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
@@ -949,15 +969,22 @@ def _host_siblings(prefix: str) -> type[Any]:
     class HostSiblingRoot:
         """Temporary mapped root with two owned, cross-linked children."""
 
-    registry().map_imperatively(HostSiblingRoot, root_table)
-    return HostSiblingRoot
+    return _map_host_root(HostSiblingRoot, root_table)
 
 
-def _host_sibling_edges(prefix: str) -> tuple[DependencyPolicy, ...]:
+def _host_sibling_edges(
+    prefix: str,
+    classification: DependencyClassification = DependencyClassification.OWNED,
+) -> tuple[DependencyPolicy, ...]:
     entity: str = f"{prefix}_entity"
     asset: str = f"{prefix}_asset"
     task: str = f"{prefix}_task"
-    owned = (DependencyClassification.OWNED, ExecutionPhase.OWNED)
+    owned = (
+        classification,
+        ExecutionPhase.OWNED
+        if classification is DependencyClassification.OWNED
+        else ExecutionPhase.ASSOCIATIONS,
+    )
     return (
         DependencyPolicy(
             DependencyKey(
@@ -1066,7 +1093,7 @@ def test_discovery_walks_each_recursive_table_once(
     class WideRoot:
         """Temporary mapped root owning several independent link tables."""
 
-    registry().map_imperatively(WideRoot, root_table)
+    _map_host_root(WideRoot, root_table)
 
     walked: list[str] = []
     original = purge_policy_module._discover_table_dependencies  # noqa: SLF001
@@ -1243,3 +1270,254 @@ def test_declared_blocker_with_a_replaced_validator_is_rejected(
     )
 
     _assert_rejected(model, policy, "which is what applies them", caplog)
+
+
+def test_listener_effect_for_an_unsupported_entity_type_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Tag cleanup resolves its object type from the root's entity type.
+
+    A host root is not in that mapping, so the effect raises per row -- after
+    the write-ahead audit row is committed, which is exactly what admission
+    exists to prevent.
+    """
+    model: type[Any] = _host_root("tagging")
+    declared: tuple[DependencyPolicy, ...] = (
+        _host_edge("tagging"),
+        DependencyPolicy(
+            DependencyKey("synthetic", "", "tagged_object", relationship="tags"),
+            DependencyClassification.LISTENER_EFFECT,
+            ExecutionPhase.ASSOCIATIONS,
+            listener_action=ListenerAction.DELETE_TAGGED_OBJECTS,
+        ),
+    )
+
+    _assert_rejected(
+        model,
+        _host_policy(model, declared),
+        "supports only the entity types",
+        caplog,
+    )
+
+
+def test_permission_effect_for_a_non_dataset_root_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The stock permission name is only built for a dataset.
+
+    Without one the cascade never calls the cleanup at all, so the declared
+    effect would silently do nothing.
+    """
+    model: type[Any] = _host_root("permission")
+    declared: tuple[DependencyPolicy, ...] = (
+        _host_edge("permission"),
+        DependencyPolicy(
+            DependencyKey("synthetic", "", "ab_permission_view", relationship="perm"),
+            DependencyClassification.LISTENER_EFFECT,
+            ExecutionPhase.POST_DELETE,
+            listener_action=ListenerAction.DELETE_DATASET_PERMISSION,
+        ),
+    )
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, declared),
+        cleanup_permission=cleanup_dataset_permission,
+    )
+
+    _assert_rejected(model, policy, "supports only the entity types", caplog)
+
+
+def test_host_policy_claiming_a_built_in_entity_type_is_dropped(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Core branches on entity_type, so its names are reserved."""
+    model: type[Any] = _host_root("claimed")
+    policy: PurgeEntityPolicy = replace(
+        _host_policy(model, (_host_edge("claimed"),)), entity_type="dataset"
+    )
+
+    _assert_rejected(model, policy, "reserved entity type", caplog)
+
+
+@pytest.mark.parametrize(
+    "root",
+    [
+        pytest.param(
+            sa.Table(
+                "host_not_a_class",
+                sa.MetaData(),
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
+            id="table",
+        ),
+        pytest.param([], id="unhashable"),
+    ],
+)
+def test_host_policy_with_a_non_class_root_is_dropped(
+    root: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A root that is not a class is dropped without touching the index.
+
+    Reading or hashing it must not happen before the boundary can refuse it:
+    an exception escaping here would break the registry for the built-in
+    roots too.
+    """
+    policy: PurgeEntityPolicy = replace(
+        get_purge_policy(Slice), model=root, entity_type="host_root", dependencies=()
+    )
+
+    with _installed(lambda: [policy]), caplog.at_level(logging.ERROR):
+        assert set(purge_policy_registry()) == {Slice, Dashboard, SqlaTable}
+
+    assert "is not a class" in caplog.text
+
+
+def test_host_policies_may_arrive_as_any_iterable() -> None:
+    """The contract is a sequence of policies, not one particular container."""
+    model: type[Any] = _host_root("generated")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("generated"),))
+
+    with _installed(lambda: (item for item in [policy])):
+        assert get_purge_policy(model) is policy
+
+
+def test_cross_linked_association_siblings_are_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Association deletes share the depth sort, so they share the trap."""
+    model: type[Any] = _host_siblings("assocsiblings")
+    policy: PurgeEntityPolicy = _host_policy(
+        model,
+        _host_sibling_edges("assocsiblings", DependencyClassification.ASSOCIATION),
+    )
+
+    _assert_rejected(model, policy, "reference each other", caplog)
+
+
+def test_root_with_a_composite_primary_key_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The scan pages by id and then fetches the row with a scalar lookup.
+
+    A composite key matches nothing, so every row fails while a dry run still
+    counts it as purgeable.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "composite_entity",
+        metadata,
+        sa.Column("tenant_id", sa.Integer, primary_key=True),
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class CompositeRoot:
+        """Temporary mapped root keyed on two columns."""
+
+    _map_host_root(CompositeRoot, root_table)
+
+    _assert_rejected(
+        CompositeRoot, _host_policy(CompositeRoot, ()), "is keyed on", caplog
+    )
+
+
+def test_version_target_on_an_intermediate_owner_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Version cleanup compares the declared column with the root's id.
+
+    A column that is not root-relative matches another root's history and
+    leaves this root's behind.
+    """
+    model: type[Any] = _host_referenced("versioned")
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey(
+                "relationship",
+                "versioned_ref",
+                "versioned_ref_version",
+                direction="onetomany",
+                relationship="versions",
+            ),
+            DependencyClassification.VERSION_OWNED,
+            ExecutionPhase.VERSION,
+            version_column="id",
+        ),
+    )
+
+    _assert_rejected(
+        model, _host_policy(model, declared), "is not root-relative", caplog
+    )
+
+
+def test_root_whose_table_name_is_ambiguous_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Identities are recorded by bare name while metadata keys them by schema.
+
+    With the same bare name in two schemas, cleanup would resolve to the
+    default-schema table and delete rows belonging to unrelated roots.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    sa.Table(
+        "ambiguous_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    qualified: sa.Table = sa.Table(
+        "ambiguous_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+        schema="host",
+    )
+
+    class QualifiedRoot:
+        """Temporary mapped root living in a named schema."""
+
+    _map_host_root(QualifiedRoot, qualified)
+
+    _assert_rejected(
+        QualifiedRoot,
+        _host_policy(QualifiedRoot, ()),
+        "unambiguously by name",
+        caplog,
+    )
+
+
+def test_concurrent_first_use_invokes_the_provider_once() -> None:
+    """Two first uses resolve one index between them, not one each.
+
+    Without single-flight both invoke the provider and the slower publish
+    overwrites the other -- dropping the host roots it had admitted, if that
+    second invocation happened to fail transiently, until a restart.
+    """
+    app = current_app._get_current_object()  # noqa: SLF001
+    model: type[Any] = _host_root("concurrent")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("concurrent"),))
+    invocations: list[int] = []
+    both_ready: threading.Barrier = threading.Barrier(2)
+
+    def provider() -> list[PurgeEntityPolicy]:
+        invocations.append(1)
+        time.sleep(0.05)
+        return [policy]
+
+    resolved: list[PurgeEntityPolicy] = []
+
+    def resolve() -> None:
+        with app.app_context():
+            both_ready.wait(timeout=5)
+            resolved.append(get_purge_policy(model))
+
+    with _installed(provider):
+        threads: list[threading.Thread] = [
+            threading.Thread(target=resolve) for _ in range(2)
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=5)
+
+    assert len(invocations) == 1
+    assert resolved == [policy, policy]

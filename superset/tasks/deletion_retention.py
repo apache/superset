@@ -175,6 +175,9 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
             # first page.
             db.session.rollback()  # pylint: disable=consider-using-transaction
             totals.scan_failures += 1
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
+            )
             logger.exception(
                 "deletion_retention: %s could not be processed", entity_type
             )
@@ -186,6 +189,10 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
         totals.cascade_failures += failed_n
         totals.blocked += blocked_n
         totals.scan_failures += scan_failed_n
+        if scan_failed_n:
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
+            )
     return totals
 
 
@@ -220,7 +227,9 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         _report_model_counts("would_purge", would_purge)
         logger.info("deletion_retention: DRY RUN would_purge=%s", would_purge)
         if scan_failures:
-            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.scan_failures")
+            stats_logger_manager.instance.gauge(
+                f"{_METRIC_PREFIX}.scan_failures", scan_failures
+            )
         return {
             "dry_run": 1,
             "would_purge": would_purge,
@@ -236,7 +245,9 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
             f"{_METRIC_PREFIX}.blocked_by_reference", blocked
         )
     if scan_failures:
-        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.scan_failures")
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.scan_failures", scan_failures
+        )
     stats = {
         "purged": purged,
         "cascade_failures": failures,
