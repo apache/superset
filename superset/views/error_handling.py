@@ -248,7 +248,17 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
-        logger.warning("HTTPException", exc_info=True)
+        status = ex.code or 500
+        if status == 404 and request.url_rule is None:
+            # Only unmatched URLs (routing NotFound) are demoted; scanner
+            # traffic makes them frequent and they carry no server-side signal.
+            # A 404 raised inside a matched view is kept at WARNING because
+            # views also use abort(404) to mask authorization denials.
+            logger.debug("HTTPException: 404 %r", request.path)
+        elif status < 500:
+            logger.warning("HTTPException: %r on %r", str(ex), request.path)
+        else:
+            logger.warning("HTTPException", exc_info=True)
 
         if (
             "text/html" in request.accept_mimetypes
