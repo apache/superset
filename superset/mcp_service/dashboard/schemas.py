@@ -93,6 +93,7 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
+    BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
 )
@@ -106,6 +107,12 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedResponse,
 )
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.dashboard.constants import (
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+    GRID_MAX_ROW_UNITS,
+    GRID_MIN_ROW_UNITS,
+)
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -121,6 +128,7 @@ from superset.mcp_service.utils.response_utils import (
     OmittedFieldsBuilder,
 )
 from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
@@ -419,15 +427,33 @@ class GetDashboardLayoutRequest(BaseModel):
         return self
 
 
+# Per-dataset caps keep responses small enough for LLM context: wide
+# datasets can have hundreds of columns, which would dwarf the fields an
+# agent actually needs to configure native filters.
+MAX_DASHBOARD_DATASET_COLUMNS: int = 100
+MAX_DASHBOARD_DATASET_METRICS: int = 50
+
+
 class GetDashboardDatasetsRequest(BaseModel):
-    """Request schema for get_dashboard_datasets."""
+    """Dashboard lookup plus per-dataset detail caps."""
 
     identifier: Annotated[
         int | str,
-        Field(
-            description="Dashboard identifier - can be numeric ID, UUID string, or slug"
-        ),
+        Field(description="Dashboard ID, UUID or slug"),
     ]
+
+    max_columns: int = Field(
+        MAX_DASHBOARD_DATASET_COLUMNS,
+        ge=0,
+        le=MAX_DASHBOARD_DATASET_COLUMNS,
+        description="Cap; 0: totals only.",
+    )
+    max_metrics: int = Field(
+        MAX_DASHBOARD_DATASET_METRICS,
+        ge=0,
+        le=MAX_DASHBOARD_DATASET_METRICS,
+        description="Cap; 0: totals only.",
+    )
 
 
 logger = logging.getLogger(__name__)
@@ -2270,6 +2296,10 @@ class DeleteDashboardResponse(BaseModel):
 # manage_native_filters schemas
 # ---------------------------------------------------------------------------
 
+# The JSON scalars a filter_select selection can hold. Mirrors the value array
+# the frontend stores in a native filter's ``filterState.value``.
+FilterSelectValue = bool | int | float | str | None
+
 
 def _reject_bool_dataset_id(value: object) -> object:
     """bool is a subclass of int, so dataset_id=true would coerce to dataset ID 1
@@ -2328,6 +2358,23 @@ class FilterSelectSpec(BaseNewFilterSpec):
     search_all_options: bool = Field(
         False, description="Query the database on search rather than client-side"
     )
+    default_value: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "Default selected value(s), shown when a viewer opens the "
+            "dashboard unchanged. Omit for no default. Mutually exclusive "
+            "with default_to_first_item."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_default_value_compat(self) -> "FilterSelectSpec":
+        if self.default_to_first_item and self.default_value is not None:
+            raise ValueError(
+                "default_to_first_item and default_value are mutually "
+                "exclusive; set at most one."
+            )
+        return self
 
 
 class FilterTimeSpec(BaseNewFilterSpec):
@@ -2432,6 +2479,14 @@ class NativeFilterUpdateSpec(BaseModel):
     search_all_options: bool | None = Field(
         None, description="Search all options in the database (filter_select only)"
     )
+    default_value: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "New default value(s) (filter_select only). Empty list clears "
+            "it. Mutually exclusive with default_to_first_item=True; if "
+            "already enabled, also pass default_to_first_item=False here."
+        ),
+    )
     default_time_range: str | None = Field(
         None, description="Default time range (filter_time only)"
     )
@@ -2447,6 +2502,15 @@ class NativeFilterUpdateSpec(BaseModel):
     @classmethod
     def _validate_default_time_range(cls, v: str | None) -> str | None:
         return validate_time_range(v)
+
+    @model_validator(mode="after")
+    def _validate_default_value_compat(self) -> "NativeFilterUpdateSpec":
+        if self.default_to_first_item and self.default_value is not None:
+            raise ValueError(
+                "default_to_first_item and default_value are mutually "
+                "exclusive; set at most one in the same update."
+            )
+        return self
 
     @field_validator("dataset_id", mode="before")
     @classmethod
@@ -2539,12 +2603,270 @@ class ManageNativeFiltersResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# apply_dashboard_filters schemas
+# manage_dashboard_markdown schemas
 # ---------------------------------------------------------------------------
 
-# The JSON scalars a filter_select selection can hold. Mirrors the value array
-# the frontend stores in a native filter's ``filterState.value``.
-FilterSelectValue = bool | int | float | str | None
+
+class BaseNewDashboardComponentSpec(BaseModel):
+    """Common placement fields shared by all new markdown/header/divider specs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_tab: str | None = Field(
+        None,
+        description=(
+            "Tab to add the component to, matched by display name or "
+            "component ID (see get_dashboard_layout for available tabs). "
+            "Omit to use the first tab, or the grid if there are no tabs; "
+            "specify a target when the component should land in a "
+            "specific one rather than the first tab."
+        ),
+    )
+
+
+class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new markdown/text tile.
+
+    Placed in its own new row (a MARKDOWN component sits alongside charts,
+    not as a full-width band), so it composes with existing rows/charts on
+    the target grid or tab.
+    """
+
+    component_type: Literal["markdown"] = Field(
+        ..., description="Discriminator - must be 'markdown'"
+    )
+    code: str = Field(
+        ..., min_length=1, description="Markdown (and safe inline HTML) source"
+    )
+    width: int = Field(
+        GRID_DEFAULT_CHART_WIDTH,
+        ge=1,
+        le=GRID_COLUMN_COUNT,
+        description=(
+            f"Tile width in grid columns (1-{GRID_COLUMN_COUNT}, "
+            f"default {GRID_DEFAULT_CHART_WIDTH})"
+        ),
+    )
+    height: int = Field(
+        50,
+        ge=GRID_MIN_ROW_UNITS,
+        le=GRID_MAX_ROW_UNITS,
+        description=(
+            f"Tile height in grid units ({GRID_MIN_ROW_UNITS}-"
+            f"{GRID_MAX_ROW_UNITS}; one unit is "
+            "8 pixels; default 50)"
+        ),
+    )
+
+
+_HEADER_TEXT_MAX_LENGTH = 500
+
+
+def _sanitize_header_text(value: str) -> str:
+    """Normalize header text, which the frontend renders as plain React text.
+
+    React escapes the value on render, so HTML stripping or entity escaping
+    here would only corrupt legitimate text such as ``Revenue < 1M`` (the
+    dashboard builder stores whatever the user types). Only length and
+    invisible/control characters are enforced.
+    """
+    text = _remove_dangerous_unicode(value).strip()
+    if not text:
+        raise ValueError("text cannot be empty.")
+    if len(text) > _HEADER_TEXT_MAX_LENGTH:
+        raise ValueError(
+            f"text too long ({len(text)} characters). Maximum allowed length "
+            f"is {_HEADER_TEXT_MAX_LENGTH} characters."
+        )
+    return text
+
+
+class HeaderComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new section header band.
+
+    Placed directly on the target grid/tab (not inside a row) so it spans
+    the full dashboard width, matching how the dashboard builder places
+    dragged header components.
+    """
+
+    component_type: Literal["header"] = Field(
+        ..., description="Discriminator - must be 'header'"
+    )
+    text: str = Field(..., min_length=1, description="Header display text")
+    header_size: Literal["SMALL_HEADER", "MEDIUM_HEADER", "LARGE_HEADER"] = Field(
+        "MEDIUM_HEADER", description="Header text size"
+    )
+    background: Literal["BACKGROUND_TRANSPARENT", "BACKGROUND_WHITE"] = Field(
+        "BACKGROUND_TRANSPARENT", description="Header band background"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def sanitize_text(cls, v: str) -> str:
+        """Normalize header text; it renders as plain React text."""
+        return _sanitize_header_text(v)
+
+
+class DividerComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new horizontal divider.
+
+    Placed directly on the target grid/tab (not inside a row), same as
+    ``HeaderComponentSpec``. Carries no content — only placement.
+    """
+
+    component_type: Literal["divider"] = Field(
+        ..., description="Discriminator - must be 'divider'"
+    )
+
+
+NewDashboardComponentSpec = Annotated[
+    MarkdownComponentSpec | HeaderComponentSpec | DividerComponentSpec,
+    Field(discriminator="component_type"),
+]
+
+
+class DashboardComponentUpdateSpec(BaseModel):
+    """Partial update for an existing markdown/header/divider component.
+
+    ``id`` and at least one non-null update field are required. Provided
+    fields are merged into the existing component. Fields that only apply to
+    one component type (e.g. ``code`` for markdown, ``text``/``header_size``
+    for header) are rejected when used against the wrong component type.
+    A component's type cannot be changed; remove and re-add instead.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, description="ID of the component to update")
+    code: str | None = Field(
+        None, min_length=1, description="New markdown source (markdown only)"
+    )
+    width: int | None = Field(
+        None,
+        ge=1,
+        le=GRID_COLUMN_COUNT,
+        description="New tile width in grid columns (markdown only)",
+    )
+    height: int | None = Field(
+        None,
+        ge=GRID_MIN_ROW_UNITS,
+        le=GRID_MAX_ROW_UNITS,
+        description=(
+            f"New tile height in 8-pixel grid units ({GRID_MIN_ROW_UNITS}-"
+            f"{GRID_MAX_ROW_UNITS}; "
+            "markdown only)"
+        ),
+    )
+    text: str | None = Field(None, description="New header text (header only)")
+    header_size: Literal["SMALL_HEADER", "MEDIUM_HEADER", "LARGE_HEADER"] | None = (
+        Field(None, description="New header text size (header only)")
+    )
+    background: Literal["BACKGROUND_TRANSPARENT", "BACKGROUND_WHITE"] | None = Field(
+        None, description="New header band background (header only)"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def sanitize_text(cls, v: str | None) -> str | None:
+        """Normalize header text; it renders as plain React text."""
+        return None if v is None else _sanitize_header_text(v)
+
+    @model_validator(mode="after")
+    def _require_update_field(self) -> "DashboardComponentUpdateSpec":
+        """Reject updates that cannot change any component metadata."""
+        if not any(
+            getattr(self, field) is not None
+            for field in (
+                "code",
+                "width",
+                "height",
+                "text",
+                "header_size",
+                "background",
+            )
+        ):
+            raise ValueError(
+                "At least one non-null update field besides id is required"
+            )
+        return self
+
+
+class DashboardComponentSummary(BaseModel):
+    """Summary of a markdown/header/divider component for LLM consumption."""
+
+    id: str = Field(description="Layout component ID")
+    component_type: Literal["markdown", "header", "divider"] = Field(
+        description="Component type"
+    )
+    meta: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Component metadata (e.g. code/width/height for markdown; "
+            "text/headerSize/background for header; empty for divider)"
+        ),
+    )
+
+
+class ManageDashboardMarkdownRequest(BaseModel):
+    """Request schema for the manage_dashboard_markdown tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dashboard_id: int = Field(
+        ..., strict=True, gt=0, description="ID of the dashboard to modify"
+    )
+    add: List[NewDashboardComponentSpec] = Field(
+        default_factory=list,
+        description="New markdown/header/divider components to create.",
+    )
+    update: List[DashboardComponentUpdateSpec] = Field(
+        default_factory=list,
+        description="Partial updates to existing components, addressed by component ID",
+    )
+    remove: List[str] = Field(
+        default_factory=list,
+        description="IDs of markdown/header/divider components to delete",
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_operation(self) -> "ManageDashboardMarkdownRequest":
+        """Reject requests with no component operations."""
+        if not self.add and not self.update and not self.remove:
+            raise ValueError("At least one operation (add, update, remove) is required")
+        return self
+
+
+class ManageDashboardMarkdownResponse(DashboardMutationErrorFields):
+    """Response schema for the manage_dashboard_markdown tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    added_component_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Server-generated IDs of the newly created components, in request order"
+        ),
+    )
+    updated_component_ids: List[str] = Field(
+        default_factory=list, description="IDs of the components that were updated"
+    )
+    removed_component_ids: List[str] = Field(
+        default_factory=list, description="IDs of the components that were removed"
+    )
+    components: List[DashboardComponentSummary] = Field(
+        default_factory=list,
+        description=(
+            "All markdown/header/divider components on the dashboard after "
+            "the operation"
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# apply_dashboard_filters schemas
+# ---------------------------------------------------------------------------
 
 
 def _reject_bool_range_bound(value: object) -> object:
@@ -2767,12 +3089,6 @@ class ApplyDashboardFiltersResponse(BaseModel):
 # get_dashboard_datasets schemas
 # ---------------------------------------------------------------------------
 
-# Per-dataset caps keep responses small enough for LLM context: wide
-# datasets can have hundreds of columns, which would dwarf the fields an
-# agent actually needs to configure native filters.
-MAX_DASHBOARD_DATASET_COLUMNS: int = 100
-MAX_DASHBOARD_DATASET_METRICS: int = 50
-
 
 class DashboardDatasetColumn(BaseModel):
     """Lean column representation for dashboard dataset context."""
@@ -2893,10 +3209,24 @@ def _serialize_dashboard_dataset(
     datasource: SqlaTable | SemanticView,
     chart_count: int,
     datasource_type: Literal["table", "semantic_view"] = "table",
+    *,
+    max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS,
+    max_metrics: int = MAX_DASHBOARD_DATASET_METRICS,
 ) -> DashboardDatasetSummary:
-    """Serialize a datasource to a lean, LLM-safe dataset summary."""
-    all_columns = list(getattr(datasource, "columns", None) or [])
-    all_metrics = list(getattr(datasource, "metrics", None) or [])
+    """Serialize a datasource to a lean, LLM-safe dataset summary.
+
+    Columns and metrics are sorted by name before capping: the ORM
+    relationships declare no ordering, so truncation would otherwise keep
+    whichever rows the engine returned first.
+    """
+    all_columns = sorted(
+        getattr(datasource, "columns", None) or [],
+        key=lambda column: getattr(column, "column_name", None) or "",
+    )
+    all_metrics = sorted(
+        getattr(datasource, "metrics", None) or [],
+        key=lambda metric: getattr(metric, "metric_name", None) or "",
+    )
 
     columns = [
         DashboardDatasetColumn(
@@ -2905,7 +3235,7 @@ def _serialize_dashboard_dataset(
             type=getattr(column, "type", None),
             is_dttm=getattr(column, "is_dttm", None),
         )
-        for column in all_columns[:MAX_DASHBOARD_DATASET_COLUMNS]
+        for column in all_columns[:max_columns]
     ]
     metrics = [
         DashboardDatasetMetric(
@@ -2913,7 +3243,7 @@ def _serialize_dashboard_dataset(
             verbose_name=getattr(metric, "verbose_name", None),
             expression=getattr(metric, "expression", None),
         )
-        for metric in all_metrics[:MAX_DASHBOARD_DATASET_METRICS]
+        for metric in all_metrics[:max_metrics]
     ]
 
     is_view: bool = datasource_type == DatasourceType.SEMANTIC_VIEW
@@ -2956,8 +3286,8 @@ def _serialize_dashboard_dataset(
         metrics=metrics,
         total_column_count=len(all_columns),
         total_metric_count=len(all_metrics),
-        columns_truncated=len(all_columns) > MAX_DASHBOARD_DATASET_COLUMNS,
-        metrics_truncated=len(all_metrics) > MAX_DASHBOARD_DATASET_METRICS,
+        columns_truncated=len(all_columns) > max_columns,
+        metrics_truncated=len(all_metrics) > max_metrics,
     )
 
 
@@ -2986,15 +3316,20 @@ def _has_dashboard_dataset_access(
         return False
 
 
-def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
+def dashboard_datasets_serializer(
+    dashboard: "Dashboard",
+    *,
+    max_columns: int = MAX_DASHBOARD_DATASET_COLUMNS,
+    max_metrics: int = MAX_DASHBOARD_DATASET_METRICS,
+) -> DashboardDatasets:
     """List the datasets and semantic views used by a dashboard's charts.
 
     Groups the dashboard's charts by datasource (mirroring
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
-    metric lists (capped) since native-filter configuration regularly needs
-    columns that no chart references. Datasets the current user cannot
-    access, or whose semantic provider metadata cannot be loaded, are excluded
-    and only counted. Provider failures are logged.
+    metric lists (capped, with configurable caps) since native-filter
+    configuration regularly needs columns that no chart references. Datasets
+    the current user cannot access, or whose semantic provider metadata cannot
+    be loaded, are excluded and only counted. Provider failures are logged.
     Each entry identifies its datasource_type and display name, with
     semantic_layer metadata for views and database metadata for tables.
     """
@@ -3033,7 +3368,11 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
             continue
         try:
             summary: DashboardDatasetSummary = _serialize_dashboard_dataset(
-                datasource, len(slices), kind
+                datasource,
+                len(slices),
+                kind,
+                max_columns=max_columns,
+                max_metrics=max_metrics,
             )
         except Exception as exc:  # noqa: BLE001
             if kind != "semantic_view":
@@ -3210,6 +3549,15 @@ class DashboardChartData(BaseModel):
     queries: list[DashboardChartQueryData] | None = Field(
         None,
         description="Per-query layers for multi-query charts; null for single-query",
+    )
+    headline: BigNumberHeadline | None = Field(
+        None,
+        description=(
+            "Big Number charts only (big_number, big_number_total): the headline "
+            "number the chart displays, computed from the full result rather than "
+            "sample_data. Report this as the chart's value; do not derive it from "
+            "the sample rows. Null for other chart types."
+        ),
     )
     filtered: bool = Field(
         False, description="Whether active filters were applied to this chart"
