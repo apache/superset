@@ -2515,6 +2515,12 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "table_to_xml",
         "table_to_xmlschema",
         "table_to_xml_and_xmlschema",
+        # Full-text search functions that run their text argument as a query.
+        # Same blind spot as the XML family above: the query they execute is a
+        # string, so it has no FROM clause and no sub-query of its own for a
+        # table-reference gate to see.
+        "ts_rewrite",
+        "ts_stat",
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
