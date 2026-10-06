@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import {
   getRefreshWarningMessage,
   RefreshFrequencySelect,
@@ -122,4 +127,76 @@ test('options prop takes precedence over redux store configured intervals', () =
   expect(
     screen.queryByRole('radio', { name: '15 seconds' }),
   ).not.toBeInTheDocument();
+});
+
+test('selecting a configured radio option calls onChange with the selected frequency', async () => {
+  const onChange = jest.fn();
+  setup({ onChange }, createInitialState(mockConfiguredIntervals));
+
+  await userEvent.click(screen.getByRole('radio', { name: '45 seconds' }));
+  expect(onChange).toHaveBeenCalledWith(45);
+});
+
+test('selecting Custom radio fires onChange with minimum interval when empty', async () => {
+  const onChange = jest.fn();
+  setup({ value: 0, onChange }, createInitialState(mockConfiguredIntervals));
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  await userEvent.click(customRadio);
+
+  expect(onChange).toHaveBeenCalledWith(1);
+  const input = screen.getByPlaceholderText('1+');
+  expect(input).not.toBeDisabled();
+  expect(input).toHaveValue(1);
+});
+
+test('typing into custom input fires onChange with entered numeric value', async () => {
+  const onChange = jest.fn();
+  setup({ value: 0, onChange }, createInitialState(mockConfiguredIntervals));
+
+  await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
+  onChange.mockClear();
+
+  const input = screen.getByPlaceholderText('1+');
+  fireEvent.change(input, { target: { value: '120' } });
+
+  expect(onChange).toHaveBeenLastCalledWith(120);
+});
+
+test('typing value below minimum refresh interval does not fire onChange', async () => {
+  const onChange = jest.fn();
+  setup({ value: 0, onChange }, createInitialState(mockConfiguredIntervals));
+
+  await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
+  onChange.mockClear();
+
+  const input = screen.getByPlaceholderText('1+');
+  fireEvent.change(input, { target: { value: '0' } });
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('pre-selects Custom radio and displays value when initial frequency is custom', () => {
+  setup({ value: 75 }, createInitialState(mockConfiguredIntervals));
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  expect(customRadio).toBeChecked();
+
+  const input = screen.getByPlaceholderText('1+');
+  expect(input).toHaveValue(75);
+  expect(input).not.toBeDisabled();
+});
+
+test('switching between custom and preset options updates radio selection properly', async () => {
+  const onChange = jest.fn();
+  setup({ value: 75, onChange }, createInitialState(mockConfiguredIntervals));
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  expect(customRadio).toBeChecked();
+
+  await userEvent.click(screen.getByRole('radio', { name: '90 seconds' }));
+  expect(onChange).toHaveBeenCalledWith(90);
+
+  const input = screen.getByPlaceholderText('1+');
+  expect(input).toBeDisabled();
 });
