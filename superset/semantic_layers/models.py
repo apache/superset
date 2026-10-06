@@ -236,6 +236,16 @@ class SemanticLayer(AuditMixinNullable, Model):
         security_manager.semantic_layer_before_update(mapper, connection, target)
 
     @staticmethod
+    def before_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_before_delete(mapper, connection, target)
+
+    @staticmethod
     def after_delete(
         mapper: Mapper,
         connection: Connection,
@@ -813,6 +823,7 @@ class SemanticView(AuditMixinNullable, Model):
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
 sa.event.listen(SemanticLayer, "before_update", SemanticLayer.before_update)
+sa.event.listen(SemanticLayer, "before_delete", SemanticLayer.before_delete)
 sa.event.listen(SemanticLayer, "after_delete", SemanticLayer.after_delete)
 
 sa.event.listen(SemanticView, "after_insert", SemanticView.after_insert)

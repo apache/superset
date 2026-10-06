@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from sqlalchemy.orm import Session
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -1699,6 +1700,21 @@ def test_semantic_layer_after_delete_calls_security_manager() -> None:
     mock_hook.assert_called_once_with(mapper, connection, target)
 
 
+def test_semantic_layer_before_delete_calls_security_manager() -> None:
+    """Test SemanticLayer.before_delete delegates to security manager."""
+    from superset import security_manager
+
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    target: MagicMock = MagicMock(spec=SemanticLayer)
+
+    mock_hook: MagicMock = MagicMock()
+    with patch.object(security_manager, "semantic_layer_before_delete", mock_hook):
+        SemanticLayer.before_delete(mapper, connection, target)
+
+    mock_hook.assert_called_once_with(mapper, connection, target)
+
+
 def test_semantic_view_after_delete_calls_security_manager() -> None:
     """Test SemanticView.after_delete delegates to security manager."""
     from superset import security_manager
@@ -2311,3 +2327,271 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize("children_loaded", [False, True])
+def test_layer_delete_removes_child_view_permissions(
+    session: Any, children_loaded: bool
+) -> None:
+    """Deleting a layer removes each child view's access permission.
+
+    The permission and its role grants are removed whether or not the views
+    are loaded in the session.
+
+    Unloaded views are removed by the database ``ON DELETE CASCADE``
+    (``passive_deletes=True``), so their ORM ``after_delete`` hook never runs.
+    Superset enables SQLite foreign keys on its metadata engines; enable them
+    here so the cascade behaves as it does in production.
+    """
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    # Two children exercise both loaded ORM deletion and unloaded DB cascade.
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer_uuid=layer.uuid, configuration="{}")
+        for name in ("Child View", "Second Child View")
+    ]
+    session.add_all(views)
+    session.flush()
+    view_perms: list[str] = [view.perm for view in views]
+    pvms: list[PermissionView | None] = [
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        for view_perm in view_perms
+    ]
+    assert all(pvms)
+    role: Role = Role(name="child view reader", permissions=pvms)
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    if children_loaded:
+        assert layer.semantic_views
+    else:
+        session.expire(layer, ["semantic_views"])
+    session.delete(layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert all(
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        is None
+        for view_perm in view_perms
+    )
+    assert session.get(Role, role_id).permissions == []
+
+
+def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
+    """The unloaded layer hook batches child permission ownership checks."""
+    from sqlalchemy import event, inspect
+    from sqlalchemy.engine import Connection
+
+    from superset import security_manager
+
+    SemanticLayer.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Many Views", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    views: list[SemanticView] = [
+        SemanticView(
+            name=f"Child {number}", semantic_layer_uuid=layer.uuid, configuration="{}"
+        )
+        for number in range(30)
+    ]
+    session.add_all(views)
+    session.flush()
+    connection: Connection = session.connection()
+    selects: list[str] = []
+
+    def record_select(
+        _connection: Connection,
+        _cursor: Any,
+        statement: str,
+        _parameters: Any,
+        _context: Any,
+        _executemany: bool,
+    ) -> None:
+        """Record ownership reads during the deletion hook."""
+        if statement.lstrip().upper().startswith("SELECT"):
+            selects.append(statement)
+
+    delete_pvm: MagicMock = MagicMock()
+    event.listen(connection, "before_cursor_execute", record_select)
+    try:
+        with patch.object(security_manager, "_delete_pvm_on_sqla_event", delete_pvm):
+            security_manager.semantic_layer_before_delete(
+                inspect(SemanticLayer), connection, layer
+            )
+    finally:
+        event.remove(connection, "before_cursor_execute", record_select)
+
+    assert delete_pvm.call_count == 30
+    assert len(selects) <= 3
+    assert all("configuration" not in statement.lower() for statement in selects)
+    assert all(" IN (" not in statement.upper() for statement in selects)
+    assert all("NOT IN" not in statement.upper() for statement in selects)
+
+
+@pytest.mark.parametrize("deleted", ["layer", "view"])
+def test_view_delete_keeps_permission_another_resource_owns(
+    session: Any, deleted: str
+) -> None:
+    """Deleting a view preserves permissions owned by a live resource.
+
+    This holds for both direct view deletion and layer deletion.
+    """
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    database: Database = Database(database_name="shared", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(id=1, table_name="orders", database=database)
+    session.add(dataset)
+    session.flush()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="shared", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    view: SemanticView = SemanticView(
+        id=1, name="orders", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    session.add(view)
+    session.flush()
+    assert view.perm == dataset.perm
+    key: str = dataset.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="orders reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    session.delete(layer if deleted == "layer" else view)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert session.get(SqlaTable, 1) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+def test_layer_delete_keeps_permission_a_view_in_another_layer_owns(
+    session: Session,
+) -> None:
+    """Deleting one layer retains a key used by a view in another layer."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text, update
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    deleted_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    retained_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Retained Layer", type="test", configuration="{}"
+    )
+    session.add_all([deleted_layer, retained_layer])
+    session.flush()
+    deleted_view: SemanticView = SemanticView(
+        name="Deleted View",
+        semantic_layer_uuid=deleted_layer.uuid,
+        configuration="{}",
+    )
+    retained_view: SemanticView = SemanticView(
+        name="Retained View",
+        semantic_layer_uuid=retained_layer.uuid,
+        configuration="{}",
+    )
+    session.add_all([deleted_view, retained_view])
+    session.flush()
+    key: str = deleted_view.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="shared view reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+    retained_view_id: int = retained_view.id
+
+    # Model a legacy shared key without invoking the view update event.
+    session.execute(
+        update(SemanticView.__table__)
+        .where(SemanticView.__table__.c.id == retained_view_id)
+        .values(perm=key)
+    )
+    session.commit()
+    session.expire(deleted_layer, ["semantic_views"])
+    session.delete(deleted_layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.get(SemanticView, retained_view_id).perm == key
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+def test_dataset_delete_keeps_permission_a_semantic_view_owns(session: Any) -> None:
+    """Deleting a dataset retains grants still used by a semantic view."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SemanticLayer.metadata.create_all(session.get_bind())
+    database: Database = Database(database_name="shared", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(id=1, table_name="orders", database=database)
+    session.add(dataset)
+    session.flush()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="shared", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    view: SemanticView = SemanticView(
+        id=1, name="orders", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    session.add(view)
+    session.flush()
+    assert view.perm == dataset.perm
+    key: str = view.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="shared permission reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    session.delete(dataset)
+    session.commit()
+    session.expire_all()
+
+    assert session.get(SemanticView, view.id) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
