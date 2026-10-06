@@ -822,3 +822,124 @@ def test_set_dash_metadata_remaps_native_filters_when_slice_ids_provided(
     saved_chart_cfg = saved_metadata["chart_configuration"]["991"]
     assert saved_chart_cfg["id"] == 991
     assert saved_chart_cfg["crossFilters"]["chartsInScope"] == [992]
+
+
+def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
+    """Consolidated evidence gate for Issue 44983.
+
+    Verifies end-to-end that duplicating a dashboard with duplicate_slices=True:
+    1. Duplicates all slices and registers them to the new dashboard.
+    2. Completely remaps native_filter_configuration chartsInScope and scope.excluded.
+    3. Leaves visual divider entities and non-dictionary entries uncorrupted.
+    4. Remaps global_chart_configuration scope.excluded and chartsInScope.
+    5. Remaps chart_configuration keys, chart IDs, and crossFilters scopes.
+    6. Preserves the original dashboard and slice references intact.
+    """
+    dashboard, (c1, c2, c3) = _make_dashboard_with_slices(
+        session,
+        slice_names=["gate_c1", "gate_c2", "gate_c3"],
+        dashboard_title="gate_source_dashboard",
+    )
+    original_c1_id = c1.id
+    original_c2_id = c2.id
+    original_c3_id = c3.id
+
+    metadata_payload = {
+        "positions": {
+            f"CHART-{c.id}": {
+                "type": "CHART",
+                "id": f"CHART-{c.id}",
+                "children": [],
+                "meta": {"chartId": c.id, "width": 4, "height": 50},
+            }
+            for c in (c1, c2, c3)
+        },
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-gate",
+                "name": "Gate Filter",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [c2.id]},
+                "chartsInScope": [c1.id, c2.id, c3.id],
+            },
+            {
+                "id": "NATIVE_FILTER_DIVIDER-gate",
+                "type": "DIVIDER",
+                "title": "Gate Divider",
+            },
+        ],
+        "global_chart_configuration": {
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [c3.id]},
+            "chartsInScope": [c1.id, c2.id],
+        },
+        "chart_configuration": {
+            str(c1.id): {
+                "id": c1.id,
+                "crossFilters": {
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": [c2.id]},
+                    "chartsInScope": [c3.id],
+                },
+            }
+        },
+    }
+
+    copy_data = {
+        "dashboard_title": "gate_copied_dashboard",
+        "duplicate_slices": True,
+        "json_metadata": json.dumps(metadata_payload),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dashboard = DashboardDAO.copy_dashboard(dashboard, copy_data)
+
+    # 1. Duplicated slices are distinct from originals
+    copied_slice_map = {s.slice_name: s.id for s in copied_dashboard.slices}
+    assert len(copied_slice_map) == 3
+    for gate_key in ("gate_c1", "gate_c2", "gate_c3"):
+        assert copied_slice_map[gate_key] not in {
+            original_c1_id,
+            original_c2_id,
+            original_c3_id,
+        }
+
+    copied_metadata = json.loads(copied_dashboard.json_metadata)
+
+    # 2. Native filter remapping
+    gate_filter = copied_metadata["native_filter_configuration"][0]
+    assert gate_filter["scope"]["excluded"] == [copied_slice_map["gate_c2"]]
+    assert gate_filter["chartsInScope"] == [
+        copied_slice_map["gate_c1"],
+        copied_slice_map["gate_c2"],
+        copied_slice_map["gate_c3"],
+    ]
+
+    # 3. Divider preservation
+    gate_divider = copied_metadata["native_filter_configuration"][1]
+    assert gate_divider["id"] == "NATIVE_FILTER_DIVIDER-gate"
+    assert gate_divider["type"] == "DIVIDER"
+    assert "scope" not in gate_divider
+
+    # 4. Global chart configuration remapping
+    global_cfg = copied_metadata["global_chart_configuration"]
+    assert global_cfg["scope"]["excluded"] == [copied_slice_map["gate_c3"]]
+    assert global_cfg["chartsInScope"] == [
+        copied_slice_map["gate_c1"],
+        copied_slice_map["gate_c2"],
+    ]
+
+    # 5. Per-chart configuration remapping
+    new_c1_key = str(copied_slice_map["gate_c1"])
+    assert new_c1_key in copied_metadata["chart_configuration"]
+    chart_cfg = copied_metadata["chart_configuration"][new_c1_key]
+    assert chart_cfg["id"] == copied_slice_map["gate_c1"]
+    assert chart_cfg["crossFilters"]["scope"]["excluded"] == [
+        copied_slice_map["gate_c2"]
+    ]
+    assert chart_cfg["crossFilters"]["chartsInScope"] == [copied_slice_map["gate_c3"]]
+
+    # 6. Original dashboard slices preserved untouched
+    original_slice_ids = {s.id for s in dashboard.slices}
+    assert original_slice_ids == {original_c1_id, original_c2_id, original_c3_id}
