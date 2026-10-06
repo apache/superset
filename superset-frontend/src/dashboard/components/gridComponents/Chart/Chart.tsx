@@ -770,6 +770,7 @@ const Chart = (props: ChartProps) => {
         filters={getActiveFilters() || EMPTY_OBJECT}
         addSuccessToast={boundActionCreators.addSuccessToast}
         addDangerToast={boundActionCreators.addDangerToast}
+        addWarningToast={boundActionCreators.addWarningToast}
         handleToggleFullSize={props.handleToggleFullSize}
         isFullSize={props.isFullSize}
         chartStatus={chartStatus || ''}

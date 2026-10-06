@@ -640,6 +640,14 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
+    def _get_force_param(self) -> str:
+        """
+        Serialize ``force_screenshot`` for use as a ``force`` URL query
+        parameter, so cache-bypass intent survives every URL this report
+        can render (chart, dashboard, and dashboard-tab permalink).
+        """
+        return "true" if self._report_schedule.force_screenshot else "false"
+
     def _get_url(
         self,
         user_friendly: bool = False,
@@ -684,7 +692,7 @@ class BaseReportState:
                 "the report has neither a chart nor a dashboard."
             )
 
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
         if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -737,7 +745,7 @@ class BaseReportState:
             and self._report_schedule.dashboard is None
         ):
             raise ReportScheduleTargetDashboardDeletedError()
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
 
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
@@ -829,6 +837,17 @@ class BaseReportState:
         """
         Get one tab url
         """
+        force = self._get_force_param()
+        # ``Superset.dashboard_permalink`` redirects by appending this
+        # state's ``urlParams`` *before* its own query string (which is
+        # where the ``force`` we pass below lands). A stale ``force`` entry
+        # already stored in ``urlParams`` would therefore be read first by
+        # ``request.args.get("force")`` and shadow the one below, so strip
+        # it here to keep ``force_screenshot`` authoritative.
+        if url_params := dashboard_state.get("urlParams"):
+            filtered_params = [p for p in url_params if p[0] != "force"]
+            if len(filtered_params) != len(url_params):
+                dashboard_state = {**dashboard_state, "urlParams": filtered_params}
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
@@ -849,6 +868,7 @@ class BaseReportState:
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
+            force=force,
             user_friendly=user_friendly,
         )
 
