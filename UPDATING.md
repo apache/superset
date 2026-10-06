@@ -54,6 +54,15 @@ saved setting; provider errors remain authoritative until that edit.
 Extension providers must use a compatible core version before declaring the
 new capability.
 
+### Semantic-view Table charts without a temporal axis
+
+Semantic-view Table charts omit recognized dormant time grains from
+frontend-generated aggregate queries when no temporal axis is present. The saved
+grain and Time Grain control visibility are unchanged. Direct API payloads and
+saved chart-data GET requests that bypass frontend rebuilding retain strict
+validation; some old stored query contexts can therefore still fail. Deploy
+updated frontend assets with this change.
+
 ### SQLite time filters on `DATE` columns
 
 On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`

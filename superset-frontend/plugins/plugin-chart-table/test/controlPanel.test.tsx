@@ -55,6 +55,9 @@ const findNamedControl = (name: string): ControlConfig | null => {
   return null;
 };
 
+const findOrderingControl = (): ControlConfig | null =>
+  findNamedControl('order_by_cols');
+
 const findConditionalFormattingControl = (): ControlConfig | null =>
   findNamedControl('conditional_formatting');
 
@@ -111,6 +114,59 @@ const createMockExplore = (
   } as QueryFormData,
   common: {},
   metadata: {},
+});
+
+test('semantic view raw ordering offers only selected dimensions', () => {
+  const ordering = findOrderingControl();
+  expect(ordering?.mapStateToProps).toBeTruthy();
+
+  const explore: ControlPanelState = {
+    ...createMockExplore(undefined),
+    datasource: {
+      type: 'semantic_view',
+      order_by_choices: [],
+      columns: [
+        { column_name: 'played_at' },
+        { column_name: 'song_name' },
+        { column_name: 'artist_name' },
+      ],
+    } as unknown as Dataset,
+    controls: {
+      all_columns: createMockControlState(['played_at', 'song_name']),
+    },
+  };
+
+  expect(
+    ordering!.mapStateToProps!(explore, createMockControlState(undefined))
+      .choices,
+  ).toEqual([
+    ['["played_at",true]', 'played_at [asc]'],
+    ['["played_at",false]', 'played_at [desc]'],
+    ['["song_name",true]', 'song_name [asc]'],
+    ['["song_name",false]', 'song_name [desc]'],
+  ]);
+});
+
+test('dataset raw ordering retains datasource choices', () => {
+  const ordering = findOrderingControl();
+  expect(ordering?.mapStateToProps).toBeTruthy();
+
+  const explore: ControlPanelState = {
+    ...createMockExplore(undefined),
+    datasource: {
+      type: 'table',
+      order_by_choices: [['["played_at",false]', 'Played at [desc]']],
+      columns: [{ column_name: 'played_at' }],
+    } as unknown as Dataset,
+    controls: {
+      all_columns: createMockControlState(['played_at']),
+    },
+  };
+
+  expect(
+    ordering!.mapStateToProps!(explore, createMockControlState(undefined))
+      .choices,
+  ).toEqual([['["played_at",false]', 'Played at [desc]']]);
 });
 
 const createMockChart = () => ({

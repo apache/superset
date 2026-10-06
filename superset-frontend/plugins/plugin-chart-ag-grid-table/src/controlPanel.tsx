@@ -547,6 +547,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'json_in_cell',
+            config: {
+              type: 'CheckboxControl',
+              label: t('JSON in cell'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {
