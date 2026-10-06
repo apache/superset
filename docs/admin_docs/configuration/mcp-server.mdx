@@ -1562,6 +1562,39 @@ For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
 
+## Big Number headlines
+
+For Big Number charts (`big_number` and `big_number_total`), `get_chart_data`
+and `get_dashboard_data` return a `headline` object holding the number the chart
+displays. Agents should report `headline.value` rather than reading or summing
+the data rows: for the trendline variant the rows are a time series, and the
+displayed number is derived from the whole series by the chart's aggregation.
+
+| Field | Contents |
+| --- | --- |
+| `value` | The displayed number, or `null` when it cannot be computed exactly |
+| `aggregation` | `total` for `big_number_total`; otherwise the chart's aggregation (`LAST_VALUE`, `sum`, `mean`, `min`, `max`, `median`, or `raw`) |
+| `rows_used` | The number of non-null values aggregated |
+| `reason` | Why `value` is `null` |
+
+A headline is only returned when it matches the rendered chart, so `value` is
+`null` with a `reason` when:
+
+- The query returned no rows, the metric column is missing, or every metric
+  value is null.
+- The chart applies a rolling window or resampling that the executed query did
+  not include, or the fetch was truncated at the row limit.
+- The aggregation picks the latest value (`LAST_VALUE`) and some rows have no
+  usable timestamp. The chart's ordering of such rows depends on row order, so
+  the value it shows cannot be determined exactly. Order-independent
+  aggregations still include those rows.
+- The aggregation is `raw` ("Overall value") and the chart has no saved query
+  context. That value comes from a second query that only a saved query context
+  carries, so unsaved and `form_data_key` requests return `null`.
+
+When `form_data_key` is supplied, the headline follows the unsaved visualization
+type, including when switching to or from a Big Number chart.
+
 ## Dataset query dimensions and nested fields
 
 The `query_dataset` tool accepts exact column names registered on the selected
