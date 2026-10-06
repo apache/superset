@@ -189,10 +189,16 @@ def test_semantic_cached_payload_rejected_before_cache_read(
     cache.return_value.bq_memory_limited_row_count = None
     mocker.patch.object(context._processor, "get_cache_timeout", return_value=300)
     if scope in (None, "7"):
+        extra_cache_keys: MagicMock = mocker.patch.object(
+            view,
+            "get_extra_cache_keys",
+            side_effect=AssertionError("Guest RLS must precede extra cache keys"),
+        )
         with pytest.raises(
             SupersetSecurityException, match="cannot enforce guest row-level"
         ):
             context.get_df_payload_result(query, force_cached=force_cached)
+        extra_cache_keys.assert_not_called()
         cache.assert_not_called()
         provider.uid.assert_not_called()
     else:
