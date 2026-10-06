@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import Mock, patch
 
+import numpy as np
 import pytest
-from flask import Flask
+from flask import Flask, g
 
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
@@ -33,6 +35,81 @@ from tests.unit_tests.semantic_layers.metadata_identity_test import (
     ResultView,
     view_for,
 )
+
+
+@pytest.mark.parametrize("total", [np.float32(12.5), np.int32(12)])
+def test_result_capture_excludes_runtime_contribution_totals(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, total: Any
+) -> None:
+    """Diagnostic capture shares the query key's runtime-total exclusion."""
+    from superset.semantic_layers.result_inspection import captured_result_key
+
+    provider: ResultView = ResultView("captured", 17)
+    context: QueryContext
+    query: QueryObject
+    context, query = context_for(view_for(provider))
+    options: dict[str, Any] = {"columns": ["orders"], "contribution_totals": total}
+    query.post_processing = [{"operation": "contribution", "options": options}]
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    manager: Mock = Mock()
+    manager.get_rls_cache_key.return_value = []
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.participates", return_value=True
+        ),
+        patch(
+            "superset.semantic_layers.result_inspection.metadata_refresh_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.view_implementation",
+            return_value=provider,
+        ),
+        patch("superset.semantic_layers.result_inspection.security_manager", manager),
+        patch("superset.common.query_context_processor.security_manager", manager),
+    ):
+        key: str | None = context.query_cache_key(query)
+        assert key is not None
+        assert captured_result_key(context, query) == key
+        assert options["contribution_totals"] is total
+        options["contribution_totals"] = np.float32(99.5)
+        assert captured_result_key(context, query) == key
+        options["columns"] = ["revenue"]
+        assert captured_result_key(context, query) is None
+
+
+@pytest.mark.parametrize("changed", ["subject", "query"])
+def test_result_capture_rejects_changed_subject_or_query(
+    app: Flask, changed: str
+) -> None:
+    """A captured key never survives a subject or query edit with unchanged RLS."""
+    from superset.semantic_layers.result_inspection import (
+        capture_result_identity,
+        captured_result_key,
+    )
+
+    context: QueryContext
+    query: QueryObject
+    context, query = context_for(view_for(ResultView("captured", 17)))
+    manager: Mock = Mock()
+    manager.get_rls_cache_key.return_value = ["unchanged-rule"]
+    with (
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.result_inspection.metadata_refresh_enabled",
+            return_value=True,
+        ),
+        patch("superset.semantic_layers.result_inspection.security_manager", manager),
+    ):
+        g.user = Mock(id=1)
+        capture_result_identity(context, query, "existing-key")
+        assert captured_result_key(context, query) == "existing-key"
+        if changed == "subject":
+            g.user = Mock(id=2)
+        else:
+            query.metrics = ["revenue"]
+        assert captured_result_key(context, query) is None
 
 
 def test_result_inspection_keeps_query_rls_and_never_constructs_provider(

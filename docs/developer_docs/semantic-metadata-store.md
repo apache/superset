@@ -24,7 +24,9 @@ under the License.
 ## Enablement and scope
 
 This host implementation supports the optional [SDK metadata contract](./semantic-metadata-contract.md).
-It provides storage and cache identity; it does not add refresh endpoints or UI.
+It provides storage and cache identity. The [metadata operations API](./semantic-metadata-operations.md)
+adds authorized refresh, invalidation, and cache-inspection endpoints; this backend
+layer does not add UI controls.
 Both `SEMANTIC_LAYERS` and `SEMANTIC_LAYER_METADATA_REFRESH_ENABLED` remain off
 by default. A provider must explicitly declare support and supply the adapter
 and captured view token. Legacy providers retain their existing behavior.
@@ -249,7 +251,8 @@ or undecodable entries do not become successful observations.
 Catalog and compatibility maintenance/inspection require connection-management
 authority in the host command layer. Query-result inspection retains query/RLS
 access. The helpers accept internal resolved identities, not raw user cache keys.
-The protected commands and API transport are a separate change.
+See [metadata operations](./semantic-metadata-operations.md) for the protected
+commands, route permissions, and API request and response shapes.
 
 ## Verification
 

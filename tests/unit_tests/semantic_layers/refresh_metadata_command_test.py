@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
+from time import monotonic
 from typing import cast
 from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
@@ -32,8 +33,136 @@ from superset_core.semantic_layers.metadata import (
 )
 from werkzeug.test import TestResponse
 
+from superset.commands.semantic_layer.refresh_metadata import guarded_store
+
 MODULE: str = "superset.commands.semantic_layer.refresh_metadata"
 VIEW_UUID: UUID = UUID("bd2f07da-c65e-40da-b75e-c62b7cdd67f1")
+
+
+@pytest.mark.parametrize("lifetime", [10, 60, 3600])
+@pytest.mark.parametrize("kind", ["catalog", "compatibility"])
+def test_commands_honor_configured_snapshot_lifetime(
+    app: Flask,
+    refresh_context: tuple[Mock, Mock, Mock],
+    monkeypatch: pytest.MonkeyPatch,
+    lifetime: int,
+    kind: str,
+) -> None:
+    """Real command stores apply the same lifetime to catalog and generation."""
+    from superset.commands.semantic_layer import refresh_metadata as module
+    from tests.unit_tests.semantic_layers.metadata_contract_test import OptedInLayer
+    from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+    provider: Mock = refresh_context[1]
+    provider.from_configuration.return_value = OptedInLayer()
+    backend: MemoryBackend = MemoryBackend()
+    monkeypatch.setitem(
+        app.config, "SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS", lifetime
+    )
+    monkeypatch.setitem(app.config, "DISTRIBUTED_COORDINATION_CONFIG", {})
+    with (
+        patch.object(module, "guarded_store", guarded_store),
+        patch.object(module, "operation_deadline", return_value=monotonic() + 30),
+        patch.object(module, "DeadlineRedisBackend", return_value=backend),
+    ):
+        key: str
+        if kind == "catalog":
+            module.RefreshMetadataCommand(VIEW_UUID).run()
+            key = "semantic-metadata:{scope}:snapshot"
+        else:
+            module.InvalidateCompatibilityCommand(VIEW_UUID).run()
+            key = "semantic-metadata:{scope}:compatibility"
+        ttl: int = backend.get_with_ttl(key)[1]
+        assert lifetime * 1000 - 1000 < ttl <= lifetime * 1000
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+def test_compatibility_inspection_reads_populated_selection_without_discovery(
+    app: Flask,
+    client: FlaskClient,
+    full_api_access: None,
+    refresh_context: tuple[Mock, Mock, Mock],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The HTTP route and command inspect the real derived entry for this selection."""
+    from flask_caching import Cache
+
+    from superset import cache_manager
+    from superset.semantic_layers.metadata import ScopedMetadataStore
+    from superset.semantic_layers.metadata_cache import (
+        compatibility_identity,
+        CompatibilityIdentity,
+    )
+    from superset.utils.cache import set_and_log_cache
+    from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+    view: Mock
+    provider: Mock
+    manager: Mock
+    view, provider, manager = refresh_context
+    deadline: float = monotonic() + 30
+    backend: MemoryBackend = MemoryBackend()
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=deadline
+    )
+    snapshot: CatalogSnapshot = store.read(
+        lambda budget: '["orders"]', deadline=deadline
+    )
+    view.implementation.metadata_cache_token = snapshot.cache_token
+    cache: Cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
+    monkeypatch.setattr(cache_manager, "_data_cache", cache)
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+
+    def install_principal() -> None:
+        """Use the same authorized fixture principal after the app login hook."""
+        g.user = Mock(id=1, is_anonymous=False, is_guest_user=False, is_active=True)
+
+    monkeypatch.setitem(
+        app.before_request_funcs,
+        None,
+        [*app.before_request_funcs.get(None, []), install_principal],
+    )
+    with (
+        patch("superset.semantic_layers.api.is_feature_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.metadata_cache.connection_store",
+            return_value=store,
+        ),
+    ):
+        identity: CompatibilityIdentity | None = compatibility_identity(
+            view, ["orders"], ["country"]
+        )
+        assert identity is not None
+        set_and_log_cache(
+            cache,
+            identity.key,
+            {
+                "compatible_metrics": ["orders"],
+                "compatible_dimensions": ["country"],
+                "source_observed_at": identity.source_observed_at,
+            },
+            cache_timeout=300,
+        )
+        before: dict[str, tuple[bytes, float | None]] = dict(backend.entries)
+        response: TestResponse = client.post(
+            f"/api/v1/semantic_view/{VIEW_UUID}/cache_metadata/",
+            json={
+                "kind": "compatibility",
+                "selected_metrics": ["orders"],
+                "selected_dimensions": ["country"],
+            },
+        )
+        assert response.status_code == 200, response.get_data(as_text=True)
+        assert response.json["result"]["state"] == "present"
+        assert response.json["result"]["created_at"] is not None
+        assert response.json["result"]["source_observed_at"] == snapshot.observed_at
+        assert response.json["result"]["expiry_kind"] == "unknown"
+        assert backend.entries == before
+        provider.from_configuration.assert_not_called()
+        view.raise_for_access.assert_called_once()
+        manager.can_access.assert_any_call("can_write", "SemanticLayer")
 
 
 @pytest.fixture

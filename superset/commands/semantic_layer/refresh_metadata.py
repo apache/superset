@@ -188,6 +188,9 @@ def guarded_store(
         connection_metadata_scope(view.semantic_layer),
         deadline=deadline,
         before_publish=before_publish,
+        snapshot_ttl_seconds=current_app.config[
+            "SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS"
+        ],
     )
 
 
