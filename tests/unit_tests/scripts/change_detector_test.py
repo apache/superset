@@ -186,3 +186,91 @@ def test_grype_config_changes_trigger_docker_build() -> None:
         [".grype.yaml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_detect_languages_classifies_js_outside_frontend_dir() -> None:
+    """A .js file outside superset-frontend/ is still "javascript", even
+    though PATTERNS groups it under "python" by directory -- the gap
+    https://github.com/apache/superset/issues/44822 tracks."""
+    files = ["superset/mcp_service/index.js"]
+    assert change_detector.detect_languages(files) == ["javascript"]
+    assert change_detector.detect_changes(files, change_detector.PATTERNS["python"])
+    assert not change_detector.detect_changes(
+        files, change_detector.PATTERNS["frontend"]
+    )
+
+
+def test_detect_languages_mixed_py_and_ts() -> None:
+    files = ["superset/foo.py", "superset-frontend/src/bar.tsx"]
+    assert change_detector.detect_languages(files) == ["javascript", "python"]
+
+
+def test_detect_languages_ignores_unmapped_extensions() -> None:
+    assert change_detector.detect_languages(["docs/intro.md", "Dockerfile"]) == []
+
+
+def test_detect_languages_none_means_every_language() -> None:
+    """workflow_dispatch/schedule runs assume everything changed."""
+    assert change_detector.detect_languages(None) == ["javascript", "python"]
+
+
+def test_group_language_extensions_reuses_pattern_group_names() -> None:
+    """The language map is keyed by the same group names as PATTERNS,
+    rather than introducing its own, so a group's language(s) can be looked
+    up directly."""
+    assert set(change_detector.GROUP_LANGUAGE_EXTENSIONS) <= set(
+        change_detector.PATTERNS
+    )
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["python"] == {".py": "python"}
+    assert change_detector.GROUP_LANGUAGE_EXTENSIONS["frontend"][".tsx"] == (
+        "javascript"
+    )
+
+
+def test_main_writes_languages_to_github_output(tmp_path, monkeypatch) -> None:
+    """`main()` must write `languages` to $GITHUB_OUTPUT, not just compute it
+    -- a value that's assigned but never written is invisible to any
+    consuming workflow step."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha: ["superset/foo.py", "superset-frontend/src/bar.tsx"],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
+    assert "python=true" in output
+    assert "frontend=true" in output
+
+
+def test_main_languages_respects_the_99_file_cap(tmp_path, monkeypatch) -> None:
+    """A push/PR touching >= 99 files is treated as "everything changed" for
+    the PATTERNS groups; languages must honor the same cap so a consumer
+    combining both outputs never sees a language silently excluded by it."""
+    output_file = tmp_path / "github_output.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.setattr(
+        change_detector,
+        "fetch_changed_files_push",
+        lambda repo, sha: [f"docs/page{i}.md" for i in range(99)],
+    )
+
+    change_detector.main("push", "deadbeef", "apache/superset")
+
+    output = output_file.read_text()
+    assert 'languages=["javascript", "python"]' in output
+
+
+@pytest.mark.parametrize("group", ["frontend", "python"])
+def test_composite_action_changes_trigger_tests(group: str) -> None:
+    """Composite actions are shared setup matched by nothing else, so a change
+    to one can break a job while touching neither superset-frontend/ nor
+    superset/. setup-backend is a backend action, so "python" needs it too."""
+    assert change_detector.detect_changes(
+        [".github/actions/setup-backend/action.yml"],
+        change_detector.PATTERNS[group],
+    )

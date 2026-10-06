@@ -78,6 +78,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     JsonSafeMapping,
     JsonSafeRows,
@@ -369,7 +370,7 @@ class GetChartInfoRequest(BaseModel):
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Cache key for retrieving unsaved chart state. When a user "
+            "Cache key from the Explore URL for unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
@@ -390,8 +391,9 @@ class GetChartInfoRequest(BaseModel):
         default=None,
         description=(
             "When provided, resolves dashboard-level native filters that are in "
-            "scope for this chart on the given dashboard and returns them under "
-            "filters.dashboard_filters. Requires the chart to be on the dashboard "
+            "scope for this chart on the given dashboard and returns their column, "
+            "operator, and value under filters.dashboard_filters. Requires the chart "
+            "to be on the dashboard "
             "and the caller to have dashboard access."
         ),
     )
@@ -412,7 +414,8 @@ class GetChartInfoRequest(BaseModel):
             description=(
                 "Top-level fields to include in the response. Defaults to a lean "
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
-                "Add 'form_data' explicitly when you need the raw chart configuration."
+                "Add 'form_data' explicitly when you need the raw chart configuration. "
+                "The url field links to the chart's Explore page in Superset."
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -799,7 +802,7 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class BaseChartConfig(UnknownFieldCheckMixin):
+class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Fields shared by every MCP chart configuration."""
 
     temporal_column: str | None = Field(
@@ -826,7 +829,7 @@ class BaseChartConfig(UnknownFieldCheckMixin):
         )
 
 
-class ColumnRef(UnknownFieldCheckMixin):
+class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str | None = Field(
@@ -952,7 +955,7 @@ class ColumnRef(UnknownFieldCheckMixin):
         )
 
 
-class AxisConfig(UnknownFieldCheckMixin):
+class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore")
 
     title: str | None = Field(None, max_length=200)
@@ -990,7 +993,7 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(UnknownFieldCheckMixin):
+class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
@@ -2359,7 +2362,7 @@ class BigNumberChartConfig(BaseChartConfig):
         return self
 
 
-class TableColumnConfig(UnknownFieldCheckMixin):
+class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Display formatting supported by the MCP table-chart schema."""
 
     model_config = ConfigDict(
@@ -3885,6 +3888,18 @@ class ListChartsRequest(
 ):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, slice_name, viz_type, description, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
     certified: Annotated[
         StrictBool | None,
         Field(
@@ -4043,7 +4058,9 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     )
 
 
-class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class UpdateChartRequest(
+    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: int | str = Field(
@@ -4259,6 +4276,39 @@ class ChartQueryResult(BaseModel):
     total_rows: OptionalRowCount = Field(None, description="Total available rows")
 
 
+class BigNumberHeadline(BaseModel):
+    """The single headline number a Big Number chart displays.
+
+    The data rows are a time series for the trendline variant, so the displayed
+    number is not any one row: it is derived from the series by the chart's
+    aggregation (for example, the sum over all weekly rows). `value` is null,
+    with `reason` set, when it cannot be computed exactly.
+    """
+
+    value: int | float | str | None = Field(
+        None,
+        description=(
+            "The headline number as the chart displays it; null when it could "
+            "not be computed exactly (see reason)"
+        ),
+    )
+    aggregation: str | None = Field(
+        None,
+        description=(
+            "How the value was derived: 'total' for a Big Number chart, "
+            "otherwise the chart's aggregation applied to the trend series "
+            "(LAST_VALUE, sum, mean, min, max, median, or raw)"
+        ),
+    )
+    rows_used: int | None = Field(
+        None,
+        description="Count of non-null values aggregated; null if not applicable",
+    )
+    reason: str | None = Field(
+        None, description="Why value is null; null when a value is present"
+    )
+
+
 class ChartData(BaseModel):
     """Rich chart data response with statistical insights."""
 
@@ -4275,6 +4325,16 @@ class ChartData(BaseModel):
         description=(
             "All query results for multi-query charts. The top-level columns and data "
             "fields remain aliases for the first query for backward compatibility."
+        ),
+    )
+
+    headline: BigNumberHeadline | None = Field(
+        None,
+        description=(
+            "Big Number charts only (big_number, big_number_total): the headline "
+            "number the chart displays, computed from the full result rather than "
+            "the sample rows. Report this as the chart's value; do not derive it "
+            "from the rows. Null for other chart types."
         ),
     )
 
