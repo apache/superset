@@ -169,6 +169,7 @@ export function getExportScreenshotMenuItems({
   transparentKey,
   solidKey,
   pdfKey,
+  addWarningToast,
 }: {
   chartSelector: string;
   sliceName: string;
@@ -180,6 +181,7 @@ export function getExportScreenshotMenuItems({
   transparentKey: string;
   solidKey: string;
   pdfKey: string;
+  addWarningToast?: (message: string) => void;
 }) {
   return [
     {
@@ -194,10 +196,14 @@ export function getExportScreenshotMenuItems({
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
           }) => {
-            downloadAsImage(chartSelector, sliceName, true, theme, {
-              format: 'png',
-              backgroundType: 'transparent',
-            })(e.domEvent);
+            downloadAsImage(
+              chartSelector,
+              sliceName,
+              true,
+              theme,
+              { format: 'png', backgroundType: 'transparent' },
+              addWarningToast,
+            )(e.domEvent);
             setIsDropdownVisible(false);
             dispatch(
               logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
@@ -214,10 +220,14 @@ export function getExportScreenshotMenuItems({
           onClick: (e: {
             domEvent: React.MouseEvent | React.KeyboardEvent;
           }) => {
-            downloadAsImage(chartSelector, sliceName, true, theme, {
-              format: 'png',
-              backgroundType: 'solid',
-            })(e.domEvent);
+            downloadAsImage(
+              chartSelector,
+              sliceName,
+              true,
+              theme,
+              { format: 'png', backgroundType: 'solid' },
+              addWarningToast,
+            )(e.domEvent);
             setIsDropdownVisible(false);
             dispatch(
               logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
@@ -235,7 +245,12 @@ export function getExportScreenshotMenuItems({
       label: t('Export as PDF'),
       icon: <Icons.FileOutlined />,
       onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
-        downloadAsPdf(chartSelector, sliceName, true)(e.domEvent);
+        downloadAsPdf(
+          chartSelector,
+          sliceName,
+          true,
+          addWarningToast,
+        )(e.domEvent);
         setIsDropdownVisible(false);
         dispatch(
           logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
@@ -828,6 +843,8 @@ export const useExploreAdditionalActionsMenu = (
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
+            undefined,
+            addWarningToast,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(
@@ -849,6 +866,7 @@ export const useExploreAdditionalActionsMenu = (
         transparentKey: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
         solidKey: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
         pdfKey: MENU_KEYS.EXPORT_ALL_PDF,
+        addWarningToast,
       }),
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
@@ -949,6 +967,8 @@ export const useExploreAdditionalActionsMenu = (
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
+            undefined,
+            addWarningToast,
           )(e.domEvent);
           setIsDropdownVisible(false);
           dispatch(
@@ -970,6 +990,7 @@ export const useExploreAdditionalActionsMenu = (
         transparentKey: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
         solidKey: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
         pdfKey: MENU_KEYS.EXPORT_CURRENT_PDF,
+        addWarningToast,
       }),
       {
         key: MENU_KEYS.EXPORT_CURRENT_XLSX,
