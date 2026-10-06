@@ -217,9 +217,13 @@ _PARSE_STANDIN = "NULL"
 #: `_PARSE_STANDIN` cannot answer: ``NULL`` is a keyword, so after substitution
 #: the parse tree no longer records that a placeholder was ever there. An
 #: identifier does leave a trace -- a column reference -- and one that is
-#: missing is a placeholder the engine will never evaluate. Named so it cannot
-#: plausibly collide with a real column; a collision only makes the count
-#: disagree, which fails closed.
+#: missing is a placeholder the engine will never evaluate.
+#:
+#: Named so it cannot plausibly collide with a real column, but a transform that
+#: writes it anyway is refused rather than counted. A hand-written occurrence
+#: does not merely make the count disagree: it *supplies* the column reference a
+#: non-executable placeholder failed to produce, and the two cancel exactly. See
+#: `placeholder_is_executable`.
 _PLACEHOLDER_STANDIN = "superset_pfm_value_standin"
 
 #: Functions whose value depends on wall-clock time or randomness. The probe
@@ -566,8 +570,25 @@ def placeholder_is_executable(transform: str | None, engine: str) -> bool:
     count the column references it produced. A literal holds no column
     reference and a comment is not parsed at all, so either case comes back
     short of the number of placeholders the owner wrote.
+
+    Which is why a transform naming the stand-in itself is refused outright. The
+    count is the whole gate, and a hand-written occurrence pays the difference:
+    ``concat(superset_pfm_value_standin, ':value')`` has one placeholder, inside
+    a literal that contributes nothing, and one bare reference the owner wrote --
+    so the counts match and the gate passes a placeholder the engine will never
+    evaluate. The probe then renders the bound value inside the owner's quotes,
+    where a value closing the literal can alias a column of any table the
+    connection can read into the stand-in's name and have the probe hand it back
+    through the preview. There is no legitimate transform naming this identifier,
+    so refusing it costs nothing and makes the count mean what it claims.
     """
     if not transform:
+        return False
+    if _PLACEHOLDER_STANDIN in transform.lower():
+        # Lowercased on both sides because `count_bare_column_references` is
+        # case-insensitive too: a dialect may normalize an unquoted identifier,
+        # so `SUPERSET_PFM_VALUE_STANDIN` would otherwise balance the count
+        # while slipping past a case-sensitive check here.
         return False
     expected = len(VALUE_PLACEHOLDER_RE.findall(transform))
     if not expected:
@@ -1013,7 +1034,12 @@ def build_probe_sql(
     return "SELECT " + ", ".join(selections) + from_suffix
 
 
-def probe_sql_is_evaluable(sql: str, engine: str, expected: int) -> bool:
+def probe_sql_is_evaluable(
+    sql: str,
+    engine: str,
+    expected: int,
+    from_suffix: str = "",
+) -> bool:
     """
     Whether the compiled probe is still the query `build_probe_sql` intended.
 
@@ -1023,7 +1049,7 @@ def probe_sql_is_evaluable(sql: str, engine: str, expected: int) -> bool:
     are supplied by whoever is filtering a chart, not only by the owner who
     wrote the transform.
 
-    Three things have to hold, and all three are about the probe still being
+    Four things have to hold, and all four are about the probe still being
     readable rather than about taste:
 
     * One statement. A value that closes the expression and starts another
@@ -1035,9 +1061,17 @@ def probe_sql_is_evaluable(sql: str, engine: str, expected: int) -> bool:
       swallows the rest of its line including its own alias, and the engine
       still answers with a column -- so the count alone does not notice.
       Checking the aliases is what makes a missing one visible.
+    * No clause this function did not build, and a ``FROM`` only where
+      ``select_without_from_suffix`` asked for one -- the engine's own, not
+      merely some table. A rendered value can close the projection and append a
+      ``FROM`` of its own without disturbing the aliases that follow it, which
+      is a read of a table the mapping has no business reading; the same value
+      could append a ``WHERE`` and nothing would notice either.
 
-    A ``FROM`` clause is allowed: ``select_without_from_suffix`` adds one on the
-    engines that cannot select without a table.
+    Both FROM clauses are compared as sqlglot renders them, so the suffix's own
+    spacing does not have to match what the probe emitted. Identifier case does,
+    which costs nothing: `_probe` hands the same engine constant to
+    `build_probe_sql` and to this gate.
     """
     try:
         script = SQLScript(sql, engine)
@@ -1046,9 +1080,38 @@ def probe_sql_is_evaluable(sql: str, engine: str, expected: int) -> bool:
     if len(script.statements) != 1:
         return False
     statement = script.statements[0]
+    if not isinstance(statement, SQLStatement):
+        # A dialect whose statements this gate cannot take apart -- KQL -- gets
+        # no probe rather than an unchecked one. It never had one: the clause
+        # inspection below is implemented for SQL statements only, and the
+        # alternative to declining here is an `AttributeError` that `_probe`
+        # swallows into the same outcome, less legibly.
+        return False
     if statement.has_subquery():
         return False
+    if statement.get_clause_names() - {"from"}:
+        return False
+    if statement.get_from_clause_sql() != _from_suffix_sql(from_suffix, engine):
+        return False
     return statement.get_select_aliases() == [f"v{index}" for index in range(expected)]
+
+
+def _from_suffix_sql(from_suffix: str, engine: str) -> str | None:
+    """
+    The engine's own ``FROM`` suffix as its parsed clause, or ``None`` for none.
+
+    Parsed rather than string-compared so that the comparison in
+    `probe_sql_is_evaluable` is between two rendered clauses. A suffix that does
+    not parse answers ``None``, which no statement carrying a FROM can match --
+    the probe then declines, which is the right way for an unreadable engine
+    constant to fail.
+    """
+    if not from_suffix.strip():
+        return None
+    try:
+        return SQLStatement(f"SELECT 1{from_suffix}", engine).get_from_clause_sql()
+    except SupersetParseError:
+        return None
 
 
 def evaluate_transform(
@@ -1159,13 +1222,16 @@ def _probe(
         return None
 
     try:
+        from_suffix = database.db_engine_spec.select_without_from_suffix
         sql = build_probe_sql(
             transform,
             distinct,
             _dialect_for(database),
-            database.db_engine_spec.select_without_from_suffix,
+            from_suffix,
         )
-        if not probe_sql_is_evaluable(sql, database.backend, len(distinct)):
+        if not probe_sql_is_evaluable(
+            sql, database.backend, len(distinct), from_suffix
+        ):
             # Declining rather than raising, for the same reason every other
             # failure here declines: the chart query is already correct without
             # the mirror, and it is the only thing the caller is waiting on.
