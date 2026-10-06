@@ -653,3 +653,172 @@ def test_copy_dashboard_duplicate_slices_remaps_native_filters(
         copied_slices["chart_2"],
     ]
     assert copied_filters[0]["scope"]["excluded"] == [copied_slices["chart_2"]]
+
+
+def test_copy_dashboard_handles_dividers_and_unscoped_filters(
+    session: Session,
+) -> None:
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+    filters: list[Any] = [
+        {"id": "NATIVE_FILTER_DIVIDER-1", "type": "DIVIDER", "title": "Group A"},
+        "invalid_filter_entry",
+        {
+            "id": "NATIVE_FILTER-1",
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [chart1.id]},
+            "chartsInScope": [chart1.id, chart2.id],
+        },
+        {"id": "DIVIDER-2", "type": "DIVIDER"},
+    ]
+    json_metadata = {
+        "positions": {
+            f"CHART-{chart1.id}": {
+                "type": "CHART",
+                "id": f"CHART-{chart1.id}",
+                "children": [],
+                "meta": {"chartId": chart1.id, "width": 4, "height": 50},
+            },
+            f"CHART-{chart2.id}": {
+                "type": "CHART",
+                "id": f"CHART-{chart2.id}",
+                "children": [],
+                "meta": {"chartId": chart2.id, "width": 4, "height": 50},
+            },
+        },
+        "native_filter_configuration": filters,
+    }
+    copy_data = {
+        "dashboard_title": "copied_dash_with_dividers",
+        "duplicate_slices": True,
+        "json_metadata": json.dumps(json_metadata),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dash = DashboardDAO.copy_dashboard(dashboard, copy_data)
+
+    copied_slices = {s.slice_name: s.id for s in copied_dash.slices}
+    copied_metadata = json.loads(copied_dash.json_metadata)
+    copied_filters = copied_metadata["native_filter_configuration"]
+
+    # Divider preserved untouched
+    assert copied_filters[0] == {
+        "id": "NATIVE_FILTER_DIVIDER-1",
+        "type": "DIVIDER",
+        "title": "Group A",
+    }
+    # Non-dict element preserved untouched
+    assert copied_filters[1] == "invalid_filter_entry"
+    # Normal native filter remapped
+    assert copied_filters[2]["scope"]["excluded"] == [copied_slices["chart_1"]]
+    assert copied_filters[2]["chartsInScope"] == [
+        copied_slices["chart_1"],
+        copied_slices["chart_2"],
+    ]
+    # Trailing divider preserved untouched
+    assert copied_filters[3] == {"id": "DIVIDER-2", "type": "DIVIDER"}
+
+
+def test_copy_dashboard_remaps_cross_filters_and_chart_configuration(
+    session: Session,
+) -> None:
+    dashboard, (c1, c2, c3) = _make_dashboard_with_slices(
+        session, slice_names=["c1", "c2", "c3"]
+    )
+    json_metadata = {
+        "positions": {
+            f"CHART-{c.id}": {
+                "type": "CHART",
+                "id": f"CHART-{c.id}",
+                "children": [],
+                "meta": {"chartId": c.id, "width": 4, "height": 50},
+            }
+            for c in (c1, c2, c3)
+        },
+        "global_chart_configuration": {
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [c3.id]},
+            "chartsInScope": [c1.id, c2.id],
+        },
+        "chart_configuration": {
+            str(c1.id): {
+                "id": c1.id,
+                "crossFilters": {
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": [c2.id]},
+                    "chartsInScope": [c3.id],
+                },
+            }
+        },
+    }
+    copy_data = {
+        "dashboard_title": "copied_dash_cross_filters",
+        "duplicate_slices": True,
+        "json_metadata": json.dumps(json_metadata),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dash = DashboardDAO.copy_dashboard(dashboard, copy_data)
+
+    copied_slices = {s.slice_name: s.id for s in copied_dash.slices}
+    copied_metadata = json.loads(copied_dash.json_metadata)
+
+    # Verify global_chart_configuration remapping
+    global_cfg = copied_metadata["global_chart_configuration"]
+    assert global_cfg["scope"]["excluded"] == [copied_slices["c3"]]
+    assert global_cfg["chartsInScope"] == [
+        copied_slices["c1"],
+        copied_slices["c2"],
+    ]
+
+    # Verify chart_configuration key, id, and crossFilters remapping
+    new_c1_key = str(copied_slices["c1"])
+    assert new_c1_key in copied_metadata["chart_configuration"]
+    c1_cfg = copied_metadata["chart_configuration"][new_c1_key]
+    assert c1_cfg["id"] == copied_slices["c1"]
+    assert c1_cfg["crossFilters"]["scope"]["excluded"] == [copied_slices["c2"]]
+    assert c1_cfg["crossFilters"]["chartsInScope"] == [copied_slices["c3"]]
+
+
+def test_set_dash_metadata_remaps_native_filters_when_slice_ids_provided(
+    session: Session,
+) -> None:
+    dashboard, (chart1, chart2) = _make_dashboard_with_slices(session)
+    metadata_payload = {
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-1",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [chart1.id]},
+                "chartsInScope": [chart1.id, chart2.id],
+            }
+        ],
+        "chart_configuration": {
+            str(chart1.id): {
+                "id": chart1.id,
+                "crossFilters": {
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [chart2.id],
+                },
+            }
+        },
+    }
+    old_to_new = {chart1.id: 991, chart2.id: 992}
+
+    DashboardDAO.set_dash_metadata(
+        dashboard,
+        metadata_payload,
+        old_to_new_slice_ids=old_to_new,
+    )
+
+    saved_metadata = json.loads(dashboard.json_metadata)
+    saved_filter = saved_metadata["native_filter_configuration"][0]
+    assert saved_filter["scope"]["excluded"] == [991]
+    assert saved_filter["chartsInScope"] == [991, 992]
+
+    saved_chart_cfg = saved_metadata["chart_configuration"]["991"]
+    assert saved_chart_cfg["id"] == 991
+    assert saved_chart_cfg["crossFilters"]["chartsInScope"] == [992]
