@@ -40,7 +40,18 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${DOCKERHUB_USER}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '') || '' }}
+          DOCKERHUB_TOKEN: ${{ (secrets.DOCKERHUB_TOKEN != '') || '' }}
       - id: set_matrix
         run: |
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
@@ -280,10 +291,15 @@ jobs:
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
+    # A push build exists to publish images. Without the Docker Hub
+    # credentials (e.g. on a fork or mirror) it can publish nothing, so it
+    # is skipped there; pull_request builds, which only validate that the
+    # images build, run everywhere.
     if: >-
-      needs.changes.outputs.python == 'true' ||
-      needs.changes.outputs.frontend == 'true' ||
-      needs.changes.outputs.docker == 'true'
+      (github.event_name != 'push' || needs.setup_matrix.outputs.has-secrets) &&
+      (needs.changes.outputs.python == 'true' ||
+       needs.changes.outputs.frontend == 'true' ||
+       needs.changes.outputs.docker == 'true')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     permissions:
