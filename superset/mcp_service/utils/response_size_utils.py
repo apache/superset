@@ -463,9 +463,9 @@ def _dashboard_layout_suggestions(
 def _dashboard_datasets_suggestions(query_params: Dict[str, Any]) -> List[str]:
     """Suggest the per-dataset caps that remain, or a fallback when none do."""
     remaining: List[str] = []
-    if query_params.get("max_columns") != 0:
+    if _parse_page_size(query_params.get("max_columns")) != 0:
         remaining.append("'max_columns' (0-100)")
-    if query_params.get("max_metrics") != 0:
+    if _parse_page_size(query_params.get("max_metrics")) != 0:
         remaining.append("'max_metrics' (0-50)")
     if not remaining:
         return [

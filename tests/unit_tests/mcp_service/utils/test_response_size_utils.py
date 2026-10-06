@@ -1175,3 +1175,31 @@ def test_dashboard_datasets_zero_caps_have_honest_size_advice(
     assert "'max_metrics'" not in error
     assert "page_size" not in error
     assert "'limit'" not in error
+
+
+@pytest.mark.parametrize(
+    "caps",
+    [
+        {"max_columns": "0", "max_metrics": "0"},
+        {"max_columns": "0", "max_metrics": 0},
+        {"max_columns": 0, "max_metrics": "0"},
+    ],
+)
+def test_dashboard_datasets_zero_caps_as_strings_have_honest_size_advice(
+    caps: dict[str, str | int],
+) -> None:
+    """Coercible zero caps give the same fallback advice as integer zeros."""
+    error = format_size_limit_error(
+        "get_dashboard_datasets", {"request": caps}, 100_000, 20_000
+    )
+    assert error == format_size_limit_error(
+        "get_dashboard_datasets",
+        {"request": {"max_columns": 0, "max_metrics": 0}},
+        100_000,
+        20_000,
+    )
+    assert "already omitted" in error
+    assert "get_dashboard_info" in error
+    assert "get_dataset_info" in error
+    assert "'max_columns'" not in error
+    assert "'max_metrics'" not in error
