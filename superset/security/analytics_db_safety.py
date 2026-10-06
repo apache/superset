@@ -37,18 +37,28 @@ BLOCKLIST = {
     re.compile(r"duckdb(?:\+[^\s]*)?$"),
 }
 
+# Base dialects an operator may re-enable via ALLOWED_UNSAFE_DB_DIALECTS. These
+# are the filesystem-access dialects above; the setting exists to relax exactly
+# these. The ``superset`` meta-database block is deliberately NOT allowlistable:
+# it is governed by the ENABLE_SUPERSET_META_DB feature flag, and must stay
+# independent of this setting. A new entry added to BLOCKLIST is not
+# allowlistable unless it is also added here on purpose.
+ALLOWLISTABLE_DIALECTS = frozenset({"sqlite", "shillelagh", "duckdb"})
+
 
 def check_sqlalchemy_uri(uri: URL) -> None:
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         BLOCKLIST.add(re.compile(r"superset$"))
 
-    # Normalize both sides to the base dialect, lowercased, so an operator's
-    # entry matches regardless of case or a "+driver" suffix (eg "DuckDB" or
-    # "duckdb+duckdb_engine" both opt in the "duckdb" dialect).
+    # Normalize the operator's entries to the base dialect, lowercased, so one
+    # matches regardless of case or a "+driver" suffix (eg "DuckDB" or
+    # "duckdb+duckdb_engine" both opt in the "duckdb" dialect). Intersecting with
+    # ALLOWLISTABLE_DIALECTS means an unrelated entry (eg "superset") can never
+    # relax a block it was not meant to.
     allowed_dialects = {
         dialect.split("+", 1)[0].strip().lower()
         for dialect in (current_app.config.get("ALLOWED_UNSAFE_DB_DIALECTS") or set())
-    }
+    } & ALLOWLISTABLE_DIALECTS
     base_dialect = uri.drivername.split("+", 1)[0].lower()
 
     for blocklist_regex in BLOCKLIST:
