@@ -26,8 +26,12 @@ import {
   parseMetricValue,
   addPropertiesToFeature,
 } from '../transformUtils';
-import { DeckScatterFormData, getTypedFixedRadius } from './buildQuery';
-import { isFixedValue, getFixedValue } from '../utils/metricUtils';
+import { DeckScatterFormData } from './buildQuery';
+import {
+  isFixedValue,
+  getFixedValue,
+  getTypedFixedRadius,
+} from '../utils/metricUtils';
 
 interface ScatterPoint {
   position: [number, number];

@@ -509,7 +509,7 @@ class CountryMapChartPlugin(GeographicChartPlugin):
             row.get(entity),
             form_data.get("select_country", ""),
             region_format or "iso_3166_2",
-            exact=not region_format,
+            exact_only=not region_format,
         )
 
 

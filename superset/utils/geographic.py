@@ -37,11 +37,11 @@ def resolve_geographic_value(
     entries: Iterable[tuple[str, str]],
     *,
     fold_diacritics: bool = True,
-    exact: bool = False,
+    exact_only: bool = False,
 ) -> str:
     """Resolve exactly first, then accept only a unique folded identifier.
 
-    With ``exact``, only identical identifiers resolve.
+    With ``exact_only``, only identical identifiers resolve.
     """
     if not isinstance(value, str) or not value or len(value) > 500:
         raise ValueError(
@@ -50,7 +50,7 @@ def resolve_geographic_value(
     key = geographic_key if fold_diacritics else str.lower
     pairs = list(entries)
     matches = {code for alias, code in pairs if alias == value}
-    if not matches and not exact:
+    if not matches and not exact_only:
         matches = {code for alias, code in pairs if key(alias) == key(value)}
     if len(matches) != 1:
         reason = "ambiguous" if matches else "unrecognized"
@@ -59,11 +59,11 @@ def resolve_geographic_value(
 
 
 def resolve_region(
-    value: object, country: str, region_format: str, *, exact: bool = False
+    value: object, country: str, region_format: str, *, exact_only: bool = False
 ) -> str:
     """Resolve only identifiers present in the selected bundled geometry.
 
-    ``exact`` disables case and diacritic folding for renderers that join on
+    ``exact_only`` disables case and diacritic folding for renderers that join on
     the identifier as-is.
     """
     if country not in REGIONS or region_format not in {
@@ -92,7 +92,10 @@ def resolve_region(
         # are too short to fold safely: an accented label like "Cá" would fold
         # onto an unrelated region's code and resolve silently to that region.
         return resolve_geographic_value(
-            value, entries, fold_diacritics=region_format == "name", exact=exact
+            value,
+            entries,
+            fold_diacritics=region_format == "name",
+            exact_only=exact_only,
         )
     except ValueError as exc:
         raise ValueError(

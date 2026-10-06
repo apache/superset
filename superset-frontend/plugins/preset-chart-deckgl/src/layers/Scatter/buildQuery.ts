@@ -31,7 +31,7 @@ import {
   SpatialFormData,
 } from '../spatialUtils';
 import { addTooltipColumnsToQuery } from '../buildQueryUtils';
-import { isMetricValue } from '../utils/metricUtils';
+import { getTypedFixedRadius, isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
@@ -49,22 +49,6 @@ export interface DeckScatterFormData
   color_picker?: { r: number; g: number; b: number; a: number };
   dimension?: string;
   mcp_geographic?: boolean;
-}
-
-/**
- * Typed MCP compatibility reads a bare numeric-string radius as a fixed size.
- * Native charts interpret every bare string as a saved metric name.
- */
-export function getTypedFixedRadius(
-  formData: Pick<DeckScatterFormData, 'mcp_geographic' | 'point_radius_fixed'>,
-): number | null {
-  const { mcp_geographic, point_radius_fixed } = formData;
-  return mcp_geographic &&
-    typeof point_radius_fixed === 'string' &&
-    point_radius_fixed.trim() !== '' &&
-    Number.isFinite(Number(point_radius_fixed))
-    ? Number(point_radius_fixed)
-    : null;
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
