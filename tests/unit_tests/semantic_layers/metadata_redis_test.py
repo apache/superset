@@ -397,3 +397,32 @@ def test_actual_deadline_exhaustion_does_not_pin_following_readers(
         == '["recovered"]'
     )
     assert time.monotonic() - started < 0.5
+
+
+@pytest.mark.parametrize("elapsed_ms", [2000, 6000])
+def test_real_publication_caps_freshness_by_lease_age(
+    redis_config: dict[str, Any], redis_scope: str, elapsed_ms: int
+) -> None:
+    """Redis enforces elapsed freshness atomically even after client-side delay."""
+    backend: DeadlineRedisBackend = DeadlineRedisBackend(
+        redis_config, deadline=time.monotonic() + 5
+    )
+    lease_key: str = f"semantic-metadata:{{{redis_scope}}}:lease"
+    snapshot_key: str = f"semantic-metadata:{{{redis_scope}}}:snapshot"
+    backend.set(snapshot_key, "previous", ex=300)
+    # Model an originally 30-second lease after elapsed publication transport.
+    backend.set(lease_key, "owner", px=30000 - elapsed_ms)
+    accepted: bool = backend.compare_and_publish(
+        lease_key, "owner", snapshot_key, "new", 5000, 30000, 5000
+    )
+    value: bytes | None
+    ttl_ms: int
+    value, ttl_ms = backend.get_with_ttl(snapshot_key)
+    if elapsed_ms >= 5000:
+        assert not accepted
+        assert value == b"previous"
+    else:
+        assert accepted
+        assert value == b"new"
+        assert 0 < ttl_ms <= 3000
+        assert backend.get(lease_key) is None

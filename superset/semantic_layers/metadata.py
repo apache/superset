@@ -43,6 +43,7 @@ from superset.semantic_layers.cache_inspection import CacheEntryInfo, describe_e
 from superset.utils import json
 
 CATALOG_TTL_SECONDS: int = 300
+MAX_SNAPSHOT_TTL_SECONDS: int = 2**31 - 1
 REFRESH_LEASE_SECONDS: int = 60
 FETCH_DEADLINE_SECONDS: int = 30
 MAX_CATALOG_BYTES: int = 10 * 1024 * 1024
@@ -75,6 +76,8 @@ if TYPE_CHECKING:
             snapshot_key: str,
             value: str,
             ttl_ms: int,
+            lease_ttl_ms: int,
+            snapshot_ttl_ms: int,
         ) -> bool: ...
         def get_with_ttl(self, name: str) -> tuple[bytes | None, int]: ...
         def get_or_create(self, name: str, value: str, ttl: int) -> bytes: ...
@@ -117,12 +120,20 @@ class ScopedMetadataStore:
         scope: str,
         *,
         deadline: float,
+        snapshot_ttl_seconds: int = CATALOG_TTL_SECONDS,
         before_publish: Callable[[], None] | None = None,
         clock: Callable[[], float] = time.monotonic,
         wait: Callable[[float], None] = time.sleep,
     ) -> None:
         if not math.isfinite(deadline) or not scope or "{" in scope or "}" in scope:
             raise MetadataRefreshError("configuration")
+        if (
+            isinstance(snapshot_ttl_seconds, bool)
+            or not isinstance(snapshot_ttl_seconds, int)
+            or not 1 <= snapshot_ttl_seconds <= MAX_SNAPSHOT_TTL_SECONDS
+        ):
+            raise MetadataRefreshError("configuration")
+        self._snapshot_ttl_seconds: int = snapshot_ttl_seconds
         self._backend: PublicationBackend = backend
         self._scope: str = scope
         self._deadline: float = deadline
@@ -222,6 +233,7 @@ class ScopedMetadataStore:
             self._backend.with_deadline(deadline),
             self._scope,
             deadline=deadline,
+            snapshot_ttl_seconds=self._snapshot_ttl_seconds,
             before_publish=self._before_publish,
             clock=self._clock,
             wait=self._wait,
@@ -247,14 +259,13 @@ class ScopedMetadataStore:
                 if current is not None:
                     return self._remember(current.snapshot)
                 attempt: str = uuid4().hex
-                self._remaining()
+                lease_ttl_ms: int = max(
+                    1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
+                )
                 if self._backend.set(
                     self._lease_key,
                     attempt,
-                    px=max(
-                        1,
-                        math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000),
-                    ),
+                    px=lease_ttl_ms,
                     nx=True,
                 ):
                     try:
@@ -262,7 +273,7 @@ class ScopedMetadataStore:
                         current = self._load()
                         if current is not None:
                             return self._remember(current.snapshot)
-                        return self._acquire(fetch, attempt).snapshot
+                        return self._acquire(fetch, attempt, lease_ttl_ms).snapshot
                     finally:
                         self._release(attempt)
                 self._wait(min(READER_POLL_SECONDS, self._remaining()))
@@ -274,25 +285,28 @@ class ScopedMetadataStore:
         """Publish a new observation, or report explicit contention without retry."""
         self._remaining()
         attempt: str = uuid4().hex
+        lease_ttl_ms: int = max(
+            1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
+        )
         try:
             if not self._backend.set(
                 self._lease_key,
                 attempt,
-                px=max(
-                    1, math.ceil(min(REFRESH_LEASE_SECONDS, self._remaining()) * 1000)
-                ),
+                px=lease_ttl_ms,
                 nx=True,
             ):
                 raise MetadataRefreshError("in_progress")
             try:
-                return self._acquire(fetch, attempt)
+                return self._acquire(fetch, attempt, lease_ttl_ms)
             finally:
                 self._release(attempt)
         except RedisError:
             self._remaining()
             raise MetadataRefreshError("unavailable") from None
 
-    def _acquire(self, fetch: CatalogLoader, attempt: str) -> MetadataRefreshResult:
+    def _acquire(
+        self, fetch: CatalogLoader, attempt: str, lease_ttl_ms: int
+    ) -> MetadataRefreshResult:
         started: float = self._clock()
         previous: StoredCatalog | None = self._load()
         self._remaining()
@@ -345,15 +359,22 @@ class ScopedMetadataStore:
         if len(envelope.encode()) > MAX_CATALOG_BYTES:
             raise MetadataRefreshError("invalid_payload")
         ttl_ms: int = math.floor(
-            (CATALOG_TTL_SECONDS - (self._clock() - started)) * 1000
+            (self._snapshot_ttl_seconds - (self._clock() - started)) * 1000
         )
         self._remaining()
+        if ttl_ms <= 0:
+            raise MetadataRefreshError("deadline")
         return MetadataRefreshResult(
-            status, self._publish(attempt, envelope, ttl_ms, snapshot)
+            status, self._publish(attempt, envelope, ttl_ms, lease_ttl_ms, snapshot)
         )
 
     def _publish(
-        self, attempt: str, envelope: str, ttl_ms: int, snapshot: CatalogSnapshot
+        self,
+        attempt: str,
+        envelope: str,
+        ttl_ms: int,
+        lease_ttl_ms: int,
+        snapshot: CatalogSnapshot,
     ) -> CatalogSnapshot:
         try:
             accepted: bool = self._backend.compare_and_publish(
@@ -362,6 +383,8 @@ class ScopedMetadataStore:
                 self._snapshot_key,
                 envelope,
                 ttl_ms,
+                lease_ttl_ms,
+                self._snapshot_ttl_seconds * 1000,
             )
         except RedisError:
             try:
@@ -421,7 +444,7 @@ class ScopedMetadataStore:
         self._remaining()
         try:
             return self._backend.get_or_create(
-                self._generation_key, uuid4().hex, CATALOG_TTL_SECONDS
+                self._generation_key, uuid4().hex, self._snapshot_ttl_seconds
             ).decode()
         except RedisError:
             raise MetadataRefreshError("unavailable") from None
@@ -440,7 +463,7 @@ class ScopedMetadataStore:
         self._remaining()
         try:
             if not self._backend.set(
-                self._generation_key, uuid4().hex, ex=CATALOG_TTL_SECONDS
+                self._generation_key, uuid4().hex, ex=self._snapshot_ttl_seconds
             ):
                 raise MetadataRefreshError("unavailable")
         except RedisError:

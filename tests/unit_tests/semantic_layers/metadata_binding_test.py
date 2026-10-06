@@ -50,7 +50,7 @@ from tests.unit_tests.semantic_layers.metadata_contract_test import (
     MemoryAdapter,
     OptedInLayer,
 )
-from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+from tests.unit_tests.semantic_layers.metadata_store_test import Clock, MemoryBackend
 
 
 def test_multiple_store_calls_share_the_request_deadline(app: Flask) -> None:
@@ -630,3 +630,101 @@ def test_provider_token_must_belong_to_the_operation_store(
         assert view_implementation(view).metadata_cache_token == current.cache_token
         assert view.metadata_cache_token is not None
         assert metadata_cache.compatibility_identity(view, ["orders"], []) is not None
+
+
+@pytest.mark.parametrize("lifetime", [None, 2, 300, 900])
+def test_host_snapshot_lifetime_controls_catalog_and_compatibility_expiry(
+    app: Flask, lifetime: int | None
+) -> None:
+    """The host setting governs both identities without preserving expired tokens."""
+    clock: Clock = Clock()
+    memory: MemoryBackend = MemoryBackend(clock)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    expected_lifetime: int = 300 if lifetime is None else lifetime
+    settings: dict[str, object] = (
+        {}
+        if lifetime is None
+        else {"SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS": lifetime}
+    )
+    session: Mock
+    with (
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "test-tenant",
+                **settings,
+                "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            },
+        ),
+        patch.dict(registry, {"fixture": OptedInLayer}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+            return_value=memory,
+        ),
+        patch("superset.semantic_layers.metadata_binding.Session") as session,
+        patch("superset.semantic_layers.metadata_binding.db"),
+        metadata_operation(),
+    ):
+        assert (
+            app.config["SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS"]
+            == expected_lifetime
+        )
+        session.return_value.__enter__.return_value.get.return_value = layer
+        store: ScopedMetadataStore = connection_store(layer)
+        deadline: float = operation_deadline()
+        first: CatalogSnapshot = store.read(lambda budget: "[]", deadline=deadline)
+        generation: str = store.compatibility_generation()
+        clock.advance(expected_lifetime - 1)
+        assert store.peek() == first
+        assert store.compatibility_generation() == generation
+        clock.advance(2)
+        assert store.peek() is None
+        assert store.peek_compatibility_generation() is None
+        second: CatalogSnapshot = store.read(lambda budget: "[]", deadline=deadline)
+        assert second.payload == first.payload
+        assert second.cache_token != first.cache_token
+        assert store.compatibility_generation() != generation
+        store.invalidate_compatibility()
+        cleared: str = store.compatibility_generation()
+        clock.advance(expected_lifetime - 1)
+        assert store.compatibility_generation() == cleared
+        clock.advance(2)
+        assert store.peek_compatibility_generation() is None
+
+
+@pytest.mark.parametrize(
+    "lifetime", [None, True, False, 0, -1, "900", 1.5, float("inf"), 2**63]
+)
+def test_invalid_host_snapshot_lifetime_fails_before_backend_work(
+    app: Flask, lifetime: object
+) -> None:
+    """Invalid operator settings cannot create immortal metadata entries."""
+    backend: Mock = Mock()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    with (
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "test-tenant",
+                "SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS": lifetime,
+                "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            },
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+            return_value=backend,
+        ),
+        metadata_operation(),
+        pytest.raises(MetadataRefreshError, match="configuration"),
+    ):
+        connection_store(layer)
+    assert backend.mock_calls == []

@@ -76,7 +76,13 @@ _COMPARE_AND_PUBLISH_LUA: str = """
 if redis.call('get', KEYS[1]) ~= ARGV[1] then
     return 0
 end
-redis.call('psetex', KEYS[2], ARGV[3], ARGV[2])
+local lease_remaining = redis.call('pttl', KEYS[1])
+local freshness_remaining = tonumber(ARGV[5]) - (tonumber(ARGV[4]) - lease_remaining)
+local ttl = math.min(tonumber(ARGV[3]), freshness_remaining)
+if lease_remaining <= 0 or ttl <= 0 then
+    return 0
+end
+redis.call('psetex', KEYS[2], ttl, ARGV[2])
 redis.call('del', KEYS[1])
 return 1
 """
@@ -319,9 +325,16 @@ class DeadlineRedisBackend:
         return int(self.execute("EVAL", _COMPARE_AND_DELETE_LUA, 1, name, expected))
 
     def compare_and_publish(
-        self, lease_key: str, expected: str, snapshot_key: str, value: str, ttl_ms: int
+        self,
+        lease_key: str,
+        expected: str,
+        snapshot_key: str,
+        value: str,
+        ttl_ms: int,
+        lease_ttl_ms: int,
+        snapshot_ttl_ms: int,
     ) -> bool:
-        """Publish and release atomically only for the active lease owner."""
+        """Fence ownership and freshness using lease age on the same Redis clock."""
         return bool(
             self.execute(
                 "EVAL",
@@ -332,6 +345,8 @@ class DeadlineRedisBackend:
                 expected,
                 value,
                 ttl_ms,
+                lease_ttl_ms,
+                snapshot_ttl_ms,
             )
         )
 
