@@ -50,8 +50,13 @@ const CustomContent = styled.div`
   }
 `;
 
+export interface RefreshFrequencyOption {
+  value: number;
+  label: string;
+}
+
 // Standard refresh frequency options used across modals
-export const REFRESH_FREQUENCY_OPTIONS = [
+export const REFRESH_FREQUENCY_OPTIONS: RefreshFrequencyOption[] = [
   { value: 0, label: t("Don't refresh") },
   { value: 10, label: t('10 seconds') },
   { value: 30, label: t('30 seconds') },
@@ -87,9 +92,10 @@ const normalizeRefreshLimitSeconds = (
   return refreshLimit;
 };
 
-interface RefreshFrequencySelectProps {
+export interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
+  options?: [number, string][];
 }
 
 /**
@@ -100,6 +106,7 @@ export const RefreshFrequencySelect = ({
   value,
   onChange,
 }: RefreshFrequencySelectProps) => {
+
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>
     isPresetValue(value) ? value : -1,
