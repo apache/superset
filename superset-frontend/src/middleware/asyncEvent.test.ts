@@ -74,9 +74,16 @@ jest.mock('src/utils/getBootstrapData', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
+const TASK_STATUS_ENDPOINT = 'glob:*/api/v1/task/task-1/status';
 const CANCEL_ENDPOINT = 'glob:*/api/v1/task/*/cancel';
 
 const config = { GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20 };
+const wsConfig = {
+  WEBSOCKET_ENABLE: true,
+  WEBSOCKET_URL: 'ws://localhost:8080/',
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
+};
 
 // Queue of status_changes responses the polling loop drains in order. The first
 // is an empty no-progress poll, then each poll consumes the next.
@@ -175,6 +182,25 @@ test('rejects and does not re-issue when a task fails', async () => {
   ).rejects.toThrow();
   expect(refetch).not.toHaveBeenCalled();
 });
+
+test.each(['failure', 'aborted', 'timed_out'])(
+  'polling shows the task failure detail for %s',
+  async status => {
+    queueStatuses({ 'task-1': { status } });
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status, error_message: 'A time column must be specified.' },
+    });
+    asyncEvent.init(config);
+
+    const refetch = jest.fn();
+    await expect(
+      asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+    ).rejects.toMatchObject({ error: 'A time column must be specified.' });
+    expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);
 
 test('resolves immediately for an empty task list', async () => {
   queueStatuses();
@@ -502,6 +528,47 @@ test('a realtime failure message rejects the waiting chart', async () => {
   expect(refetch).not.toHaveBeenCalled();
 });
 
+test.each(['failure', 'aborted', 'timed_out'])(
+  'websocket completion shows the task failure detail for %s',
+  async status => {
+    queueStatuses();
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status, error_message: 'A time column must be specified.' },
+    });
+    asyncEvent.init(wsConfig);
+
+    const refetch = jest.fn();
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+    );
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', status));
+
+    await expect(promise).rejects.toMatchObject({
+      error: 'A time column must be specified.',
+    });
+    expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);
+
+test('falls back to a generic chart error when task detail is unavailable', async () => {
+  queueStatuses();
+  fetchMock.get(TASK_STATUS_ENDPOINT, { status: 404 });
+  asyncEvent.init(wsConfig);
+
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+  );
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+  await expect(promise).rejects.toMatchObject({
+    error: 'One or more chart-data queries failed',
+  });
+});
+
 test('ignores a payload without task_id/status', async () => {
   queueStatuses();
   asyncEvent.init(config);
@@ -535,13 +602,6 @@ test('a realtime message is a no-op when async queries are disabled', () => {
 });
 
 // --- WebSocket mode: no interval polling; catch-up on registration/reconnect ---
-
-const wsConfig = {
-  WEBSOCKET_ENABLE: true,
-  WEBSOCKET_URL: 'ws://localhost:8080/',
-  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
-  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
-};
 
 test('WEBSOCKET_ENABLE without a URL keeps polling (never disables the poll)', async () => {
   // A socket can never open without a URL, so the transport must not be treated

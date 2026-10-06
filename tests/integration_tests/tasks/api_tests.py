@@ -18,8 +18,10 @@
 
 from contextlib import contextmanager
 from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import rison
+from flask import Response
 from superset_core.tasks.types import TaskStatus
 
 from superset import db
@@ -405,6 +407,64 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             assert "status" in data
             assert data["status"] == task.status
+
+    def test_chart_task_status_includes_sanitized_failure_message(self) -> None:
+        """Terminal chart tasks expose only the request-sanitized public message."""
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        terminal_status: TaskStatus
+        tasks: list[Task]
+        sanitize: MagicMock
+        response: Response
+        for terminal_status in (
+            TaskStatus.FAILURE,
+            TaskStatus.ABORTED,
+            TaskStatus.TIMED_OUT,
+        ):
+            with self._create_tasks() as tasks:
+                self.login(ADMIN_USERNAME)
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(terminal_status)
+                task.update_properties(
+                    {
+                        "error_message": "A time column must be specified.",
+                        "private": {"framework": {"stack_trace": "private trace"}},
+                    }
+                )
+                db.session.commit()
+
+                with patch(
+                    "superset.tasks.api.sanitize_error_message",
+                    return_value="Safe chart failure",
+                ) as sanitize:
+                    response = self.client.get(
+                        f"{self.TASK_API_BASE}/{task.uuid}/status"
+                    )
+
+                assert response.status_code == 200
+                assert json.loads(response.data) == {
+                    "status": terminal_status.value,
+                    "error_message": "Safe chart failure",
+                }
+                sanitize.assert_called_once_with("A time column must be specified.")
+
+    def test_non_chart_task_status_omits_failure_detail(self) -> None:
+        """The additive detail field is limited to chart-query tasks."""
+        tasks: list[Task]
+        response: Response
+        with self._create_tasks() as tasks:
+            self.login(ADMIN_USERNAME)
+            task: Task = tasks[0]
+            task.set_status(TaskStatus.FAILURE)
+            task.update_properties({"error_message": "private task detail"})
+            db.session.commit()
+
+            response = self.client.get(f"{self.TASK_API_BASE}/{task.uuid}/status")
+
+            assert response.status_code == 200
+            assert json.loads(response.data) == {"status": TaskStatus.FAILURE.value}
 
     def test_get_task_status_not_found(self):
         """
