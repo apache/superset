@@ -444,6 +444,47 @@ test('re-opens a revealed row the user collapsed, on a second request', () => {
   expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
 });
 
+test('a collection change does not reopen a revealed row the user collapsed', () => {
+  // The reveal is keyed on the nonce alone, and the collection is replaced
+  // wholesale on every cell edit, delete, add and props sync. An effect that
+  // depended on it re-asserted the expansion afterwards, so the row reopened
+  // on the user's next change to any row -- the opposite of the additive
+  // behaviour the prop documents.
+  const Harness = () => {
+    const [collection, setCollection] = useState(props.collection);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            setCollection(items =>
+              items.map(item => ({ ...item, verbose_name: 'edited' })),
+            )
+          }
+        >
+          edit a row
+        </button>
+        <CollectionTable
+          {...props}
+          collection={collection}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={1}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getByLabelText('Collapse row'));
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'edit a row' }));
+
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+});
+
 test('a reveal request leaves rows the user opened open', () => {
   // Expansion is additive, so revealing one row must not close another.
   const Harness = () => {

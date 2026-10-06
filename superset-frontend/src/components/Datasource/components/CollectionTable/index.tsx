@@ -337,18 +337,28 @@ export default function CRUDCollection({
   const expandItemWhereRef = useRef(expandItemWhere);
   expandItemWhereRef.current = expandItemWhere;
 
+  // The collection is read through its ref too, and deliberately not a
+  // dependency: it is replaced wholesale on every cell edit, delete, add and
+  // props sync, so depending on it re-asserted the expansion afterwards and
+  // reopened a row the user had collapsed on their next edit to any row.
+  //
+  // The cost is that a nonce arriving before its target row exists never
+  // retries. Nothing can do that today -- the reveal links are rendered inside
+  // the already-loaded editor and change only the search term and the nonce,
+  // never the collection -- so widening these deps again would trade a
+  // documented behaviour for a case that cannot happen.
   useEffect(() => {
     const matches = expandItemWhereRef.current;
     if (!matches || expandItemNonce === undefined) {
       return;
     }
-    const target = collectionArray.find(matches);
+    const target = collectionArrayRef.current.find(matches);
     if (!target) {
       return;
     }
     // Merged rather than replaced, so rows the user opened stay open.
     setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
-  }, [expandItemNonce, collectionArray]);
+  }, [expandItemNonce]);
 
   const handleTableChange = useCallback(
     (
