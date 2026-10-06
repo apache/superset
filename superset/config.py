@@ -3578,6 +3578,10 @@ DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 # configuration; change it after restoring or rolling back the shared store.
 SEMANTIC_LAYER_METADATA_REFRESH_ENABLED: bool = False
 SEMANTIC_LAYER_METADATA_NAMESPACE: str | Callable[[], str] | None = None
+# Positive integer seconds (1..2**31 - 1) for catalog and compatibility generations.
+# Longer lifetimes permit more chart-cache reuse but delay metadata rediscovery.
+# Apply consistently across the fleet; existing entries retain their original TTL.
+SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS: int = 300
 
 # Retention (seconds) for the Redis Streams the coordination service uses to deliver
 # signals (e.g. task completion/abort). Each signal is one short-lived stream entry
