@@ -119,14 +119,16 @@ def _hex_rgb(color: Any) -> Optional[str]:
         if isinstance(hex_value, str):
             return _hex_rgb(hex_value)
         red, green, blue = color.get("r"), color.get("g"), color.get("b")
-        if None not in (red, green, blue):
-            return f"{int(red):02X}{int(green):02X}{int(blue):02X}"
+        if red is not None and green is not None and blue is not None:
+            try:
+                return f"{int(red):02X}{int(green):02X}{int(blue):02X}"
+            except (TypeError, ValueError):
+                return None
         return None
     if not isinstance(color, str) or not color:
         return None
     token = color.strip().lstrip("#")
-    named = _NAMED_COLORS.get(token.lower().replace("_", "").replace("-", ""))
-    if named:
+    if named := _NAMED_COLORS.get(token.lower().replace("_", "").replace("-", "")):
         return named
     if len(token) == 3 and all(ch in "0123456789abcdefABCDEF" for ch in token):
         return "".join(ch * 2 for ch in token).upper()
