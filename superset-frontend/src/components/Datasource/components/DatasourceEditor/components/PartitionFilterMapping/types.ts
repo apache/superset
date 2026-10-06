@@ -54,6 +54,7 @@ export interface PartitionMappingPreview {
     | 'parse'
     | 'validation'
     | 'operator'
+    | 'resolution'
     | 'engine'
     | 'type'
     | 'unconfigured';

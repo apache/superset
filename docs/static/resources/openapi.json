@@ -24986,6 +24986,7 @@
                             "validation",
                             "parse",
                             "operator",
+                            "resolution",
                             "engine",
                             "type"
                           ],

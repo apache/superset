@@ -100,6 +100,7 @@ from superset.connectors.sqla.partition_mapping import (
     PartitionMapping,
     raw_probe_value,
     resolve_partition_mapping,
+    UNMIRRORABLE,
     UPPER_BOUND_OPERATORS,
 )
 from superset.constants import (
@@ -468,13 +469,14 @@ def _shift_grainless_temporal_source(
 #: filter value in its own right.
 _UNRENDERABLE = object()
 
-#: Returned by `ExploreMixin._mirror_probe_input` when the engine compares less
-#: of the filter's value than any mirror could be built from. A sentinel rather
-#: than `None` for the same reason `_UNRENDERABLE` is, and a *separate* sentinel
-#: because the two decline for different reasons: that one is an engine that
-#: cannot render a literal at all, which is worth a warning, and this one is an
-#: ordinary filter the mirror has to stay quiet about.
-_UNMIRRORABLE = object()
+#: `_UNMIRRORABLE` is `UNMIRRORABLE`, imported from
+#: `superset.connectors.sqla.partition_mapping` so the preview path can
+#: recognise the same object. Kept under the private name here because it
+#: appears throughout this module, and separate from `_UNRENDERABLE` because the
+#: two decline for different reasons: that one is an engine that cannot render a
+#: literal at all, which is worth a warning, and this one is an ordinary filter
+#: the mirror has to stay quiet about.
+_UNMIRRORABLE = UNMIRRORABLE
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
@@ -4916,34 +4918,55 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Only operators the mapping declares safe are recorded; see the operator
         matrix in `superset.connectors.sqla.partition_mapping`.
 
-        Every value then goes through `_mirror_probe_input`, which is where what
-        the engine actually compares is applied. Routing per *value* rather than
-        per Python type is what makes a bound widen and an equality decline
-        whichever shape the value arrived in -- a `datetime` from
-        drill-to-detail, or the raw string a simple filter binds.
+        The value itself is resolved by `mirror_probe_request`, which the preview
+        endpoint calls too so that the two cannot answer differently.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
         if not mapping.mirrors(operator):
             return
 
+        mapped_col = next(
+            (col for col in self.columns if col.column_name == column_name), None
+        )
+        probe_value = self.mirror_probe_request(operator, value, mapped_col)
+        if probe_value is UNMIRRORABLE:
+            return
+        sink.append((operator, probe_value))
+
+    def mirror_probe_request(
+        self,
+        operator: utils.FilterOperator,
+        value: Any,
+        col: Optional["TableColumn"],
+    ) -> Any:
+        """
+        ``value`` as the mirror may probe the transform at, or `UNMIRRORABLE`.
+
+        The whole of what has to happen to a filter value before it can be
+        probed, in one place because two callers need it: the chart query path,
+        and the dataset editor's preview endpoint. The preview used to coerce the
+        value and then probe it directly, so it reported a mirror for a request
+        the chart path declines -- an owner was shown a valid predicate on a
+        `DATE` mapped column whose equality filters never mirror at all.
+
+        Routing per *value* rather than per Python type is what makes a bound
+        widen and an equality decline whichever shape the value arrived in -- a
+        `datetime` from drill-to-detail, or the raw string a simple filter binds.
+        """
         # First, and ahead of anything that reads the value as an instant: a
         # value `filter_values_handler` already turned into engine SQL is
         # carried as text from here on, and the probe has to receive exactly
         # that literal -- it is what the real predicate compares, so there is
-        # nothing left to resolve about it.
-        probe_input = self._as_probe_input(value)
-        if probe_input is _UNRENDERABLE:
-            return
-        value = probe_input
-
-        mapped_col = next(
-            (col for col in self.columns if col.column_name == column_name), None
-        )
+        # nothing left to resolve about it. Idempotent, so a caller that has
+        # already rendered its own values may still come through here.
+        value = self._as_probe_input(value)
+        if value is _UNRENDERABLE:
+            return UNMIRRORABLE
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:
-                return
+                return UNMIRRORABLE
             if any(item is None for item in value):
                 # A `None` in the list widens the real predicate to
                 # `col IS NULL OR col IN (...)`. Mirroring only the non-null
@@ -4951,22 +4974,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # would drop rows it keeps. Checked before the conversion
                 # below, which passes a `None` straight through and could not
                 # be told apart from a value afterwards.
-                return
+                return UNMIRRORABLE
             members = tuple(
-                self._mirror_probe_input(operator, item, mapped_col) for item in value
+                self._mirror_probe_input(operator, item, col) for item in value
             )
-            if any(member is _UNMIRRORABLE for member in members):
+            if any(member is UNMIRRORABLE for member in members):
                 # One member the engine compares more coarsely than the mirror
                 # can be built from is the whole list's problem: dropping just
                 # that member is the same narrowing the `None` guard above
                 # refuses. So the list declines entire.
-                return
-            sink.append((operator, members))
-        elif value is not None:
-            probe_value = self._mirror_probe_input(operator, value, mapped_col)
-            if probe_value is _UNMIRRORABLE:
-                return
-            sink.append((operator, probe_value))
+                return UNMIRRORABLE
+            return members
+
+        if value is None:
+            return UNMIRRORABLE
+        return self._mirror_probe_input(operator, value, col)
 
     def _build_partition_mirror_predicates(
         self,
