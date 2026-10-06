@@ -1543,6 +1543,9 @@ msgstr ""
 msgid "Alerts & reports"
 msgstr ""
 
+msgid "Alignment"
+msgstr ""
+
 msgid "Align +/-"
 msgstr ""
 
@@ -7237,6 +7240,9 @@ msgstr ""
 msgid "Horizontal alignment"
 msgstr ""
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr ""
 
@@ -10259,7 +10265,7 @@ msgid "Prefix or suffix"
 msgstr ""
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
