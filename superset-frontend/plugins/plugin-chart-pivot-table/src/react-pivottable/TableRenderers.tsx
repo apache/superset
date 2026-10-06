@@ -163,24 +163,33 @@ const parseLabel = (value: unknown): string | number => {
   return String(value);
 };
 
+const NO_COLLAPSIBLE_PREFIXES: ReadonlySet<string> = new Set();
+
 /**
  * Whether a row prefix is collapsed. An explicit toggle wins. Otherwise the
- * prefix follows the default. The empty prefix is always expanded, because the
- * ancestor walk visits it for every key.
+ * prefix is collapsed only when default collapse is on and a subtotal row for
+ * that prefix will actually render. Prefixes with no subtotal (for example the
+ * metric pseudo-dimension) stay expanded, so their descendants are not hidden
+ * with no arrow left to open them. The empty prefix is always expanded,
+ * because the ancestor walk visits it for every key.
+ *
+ * `Object.hasOwn` ignores `Object.prototype`, so a group named `constructor`
+ * or `toString` is not treated as collapsed.
  */
 function isEffectivelyCollapsed(
   key: string[],
   collapsed: Record<string, boolean>,
   collapseByDefault: boolean,
+  collapsiblePrefixes: ReadonlySet<string>,
 ): boolean {
   if (key.length === 0) {
     return false;
   }
   const keyId = flatKey(key);
-  if (keyId in collapsed) {
+  if (Object.hasOwn(collapsed, keyId)) {
     return Boolean(collapsed[keyId]);
   }
-  return collapseByDefault;
+  return collapseByDefault && collapsiblePrefixes.has(keyId);
 }
 
 function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
@@ -379,6 +388,11 @@ export function TableRenderer(props: TableRendererProps) {
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
     {},
   );
+  // Filled once row keys are known. The toggle reads it at click time so the
+  // default matches the prefixes that have a renderable subtotal row.
+  const collapsibleRowPrefixesRef = useRef<ReadonlySet<string>>(
+    NO_COLLAPSIBLE_PREFIXES,
+  );
   const [collapsedCols, setCollapsedCols] = useState<Record<string, boolean>>(
     {},
   );
@@ -507,8 +521,10 @@ export function TableRenderer(props: TableRendererProps) {
     (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       setCollapsedRows(state => {
-        const currentlyCollapsed =
-          flatRowKey in state ? state[flatRowKey] : collapseRowsByDefault;
+        const currentlyCollapsed = Object.hasOwn(state, flatRowKey)
+          ? state[flatRowKey]
+          : collapseRowsByDefault &&
+            collapsibleRowPrefixesRef.current.has(flatRowKey);
         return {
           ...state,
           [flatRowKey]: !currentlyCollapsed,
@@ -762,6 +778,7 @@ export function TableRenderer(props: TableRendererProps) {
       numAttrs: number,
       subtotalDisplay: SubtotalDisplay,
       collapseByDefault: boolean,
+      collapsiblePrefixes: ReadonlySet<string>,
     ) =>
       keys.filter(
         (key: string[]) =>
@@ -771,13 +788,14 @@ export function TableRenderer(props: TableRendererProps) {
               key.slice(0, j),
               collapsed,
               collapseByDefault,
+              collapsiblePrefixes,
             ),
           ) &&
           // Leaf key.
           (key.length === numAttrs ||
             // Children hidden. Must show total.
-            flatKey(key) in collapsed ||
-            (collapseByDefault && key.length > 0 && key.length < numAttrs) ||
+            Object.hasOwn(collapsed, flatKey(key)) ||
+            (collapseByDefault && collapsiblePrefixes.has(flatKey(key))) ||
             // Don't hide totals.
             !subtotalDisplay.hideOnExpand),
       ),
@@ -826,6 +844,20 @@ export function TableRenderer(props: TableRendererProps) {
 
   const rowKeys = effectiveRowKeys;
 
+  // Subtotal rows are the only prefixes default collapse may hide children
+  // under. A shorter key that was never produced (metric-only rollups are
+  // omitted for metrics-on-rows) must stay expanded.
+  const collapsibleRowPrefixes = useMemo(() => {
+    const prefixes = new Set<string>();
+    basePivotSettings.rowKeys.forEach(key => {
+      if (key.length > 0 && key.length < basePivotSettings.rowAttrs.length) {
+        prefixes.add(flatKey(key));
+      }
+    });
+    return prefixes;
+  }, [basePivotSettings]);
+  collapsibleRowPrefixesRef.current = collapsibleRowPrefixes;
+
   // Need to account for exclusions to compute the effective row
   // and column keys.
   const visibleRowKeys = visibleKeys(
@@ -834,6 +866,7 @@ export function TableRenderer(props: TableRendererProps) {
     rowAttrs.length,
     rowSubtotalDisplay,
     collapseRowsByDefault,
+    collapsibleRowPrefixes,
   );
   const visibleColKeys = visibleKeys(
     colKeys,
@@ -841,6 +874,7 @@ export function TableRenderer(props: TableRendererProps) {
     colAttrs.length,
     colSubtotalDisplay,
     false,
+    NO_COLLAPSIBLE_PREFIXES,
   );
 
   const pivotSettings: PivotSettings = {
@@ -1349,6 +1383,7 @@ export function TableRenderer(props: TableRendererProps) {
                   rowKey.slice(0, i + 1),
                   collapsedRows,
                   collapseRowsByDefault,
+                  collapsibleRowPrefixes,
                 )
                   ? arrowCollapsed
                   : arrowExpanded,
@@ -1457,6 +1492,7 @@ export function TableRenderer(props: TableRendererProps) {
       rows,
       collapsedRows,
       collapseRowsByDefault,
+      collapsibleRowPrefixes,
     ],
   );
 

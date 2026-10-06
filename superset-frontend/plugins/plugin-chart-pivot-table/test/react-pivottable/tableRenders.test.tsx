@@ -1397,3 +1397,137 @@ test('TableRenderer ignores collapseRows when row subtotals are off', () => {
   expect(screen.getByText('NYC')).toBeInTheDocument();
   expect(screen.getByText('London')).toBeInTheDocument();
 });
+
+test('TableRenderer does not treat prototype key names as collapsed', () => {
+  // Leaf keys are `constructor\\0NYC`, so PivotData can store them. The
+  // ancestor walk still looks up the bare prefix `constructor` / `toString`.
+  const data = [
+    {
+      group: 'constructor',
+      city: 'NYC',
+      value: 1,
+      __rows: ['group', 'city'],
+      __columns: [],
+    },
+    {
+      group: 'toString',
+      city: 'LA',
+      value: 2,
+      __rows: ['group', 'city'],
+      __columns: [],
+    },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['group', 'city'],
+    cols: [],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: false },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+});
+
+test('TableRenderer keeps metrics-on-rows leaves visible when the metric prefix has no subtotal', () => {
+  // Combine metrics off prepends the metric. The metric-only rollup is not
+  // queried, so ['count'] is not a subtotal and must not hide ['count', 'US'].
+  const data = [
+    {
+      Metric: 'count',
+      country: 'US',
+      value: 10,
+      __rows: ['Metric', 'country'],
+      __columns: [],
+    },
+    {
+      Metric: 'count',
+      country: 'UK',
+      value: 4,
+      __rows: ['Metric', 'country'],
+      __columns: [],
+    },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['Metric', 'country'],
+    cols: [],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, colTotals: false, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.getByText('UK')).toBeInTheDocument();
+});
+
+test('TableRenderer keeps combined metric rows visible when intermediate rollups are omitted', () => {
+  // Combine metrics on appends the metric and drops intermediate row rollups,
+  // so ['US', 'NYC', 'count'] has no subtotal ancestors to collapse under.
+  const data = [
+    {
+      country: 'US',
+      city: 'NYC',
+      Metric: 'count',
+      value: 10,
+      __rows: ['country', 'city', 'Metric'],
+      __columns: [],
+    },
+    {
+      country: 'US',
+      city: 'LA',
+      Metric: 'count',
+      value: 20,
+      __rows: ['country', 'city', 'Metric'],
+      __columns: [],
+    },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['country', 'city', 'Metric'],
+    cols: [],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, colTotals: false, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+});
+
+test('TableRenderer still default-collapses a real subtotal under a metric row', () => {
+  const data = [
+    {
+      Metric: 'count',
+      country: 'US',
+      city: 'NYC',
+      value: 10,
+      __rows: ['Metric', 'country', 'city'],
+      __columns: [],
+    },
+    {
+      Metric: 'count',
+      country: 'US',
+      value: 10,
+      __rows: ['Metric', 'country'],
+      __columns: [],
+    },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['Metric', 'country', 'city'],
+    cols: [],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, colTotals: false, collapseRows: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+
+  clickRowGroupToggle('US');
+
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+});
