@@ -312,6 +312,10 @@ export default function exploreReducer(
     [actions.SYNC_SEMANTIC_METADATA]() {
       const typedAction = action as SyncSemanticMetadataAction;
       const refreshedState = { ...state, datasource: typedAction.datasource };
+      const temporalLookupConfig = getControlConfig(
+        'temporal_columns_lookup',
+        typedAction.formData.viz_type,
+      );
       return {
         ...refreshedState,
         // Existing controls have already consumed their initial values. Refresh
@@ -320,7 +324,16 @@ export default function exploreReducer(
           Object.entries(state.controls).map(([name, control]) => [
             name,
             applyMapStateToPropsToControl<ControlType>(
-              { ...control, initialValue: undefined },
+              {
+                ...control,
+                // This hidden lookup is derived metadata, not a user default.
+                initialValue:
+                  name === 'temporal_columns_lookup' &&
+                  temporalLookupConfig &&
+                  'initialValue' in temporalLookupConfig
+                    ? temporalLookupConfig.initialValue
+                    : undefined,
+              },
               {
                 ...refreshedState,
                 form_data: typedAction.formData,

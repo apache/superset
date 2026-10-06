@@ -29,6 +29,7 @@ import {
   FeatureFlag,
   getChartControlPanelRegistry,
   QueryFormData,
+  TimeGranularity,
   SupersetClient,
 } from '@superset-ui/core';
 import exploreReducer, {
@@ -36,12 +37,24 @@ import exploreReducer, {
 } from 'src/explore/reducers/exploreReducer';
 import { ExplorePageState } from 'src/explore/types';
 import { getControlsState } from 'src/explore/store';
+import {
+  getControlConfig,
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
+import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
+import { buildQuery } from '../../../plugins/plugin-chart-table/src/buildQuery';
+import { TableChartFormData } from '../../../plugins/plugin-chart-table/src/types';
 import versionHistoryReducer, {
   CLEAR_VERSION_SESSION_LOG,
 } from 'src/features/versionHistory/reducer';
 import { VersionHistoryState } from 'src/features/versionHistory/types';
 import { versionSessionLogMiddleware } from 'src/features/versionHistory/sessionLogMiddleware';
-import { refreshSemanticMetadata, setExploreControls } from './exploreActions';
+import {
+  refreshSemanticMetadata,
+  setExploreControls,
+  syncSemanticMetadata,
+} from './exploreActions';
 
 const vizType = 'metadata-sync-regression';
 
@@ -227,6 +240,129 @@ test.each([false, true])(
       expect(store.getState().versionHistory.sessionLog).toHaveLength(
         removed ? 2 : 1,
       );
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);
+
+test.each([false, true])(
+  'metadata sync refreshes derived temporal lookup without logging a user edit (was temporal: %s)',
+  wasTemporal => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.VersionHistory]: true,
+    };
+    getChartControlPanelRegistry().registerValue(vizType, tableControlPanel);
+    const datasource: Dataset = {
+      id: 7,
+      type: DatasourceType.SemanticView,
+      columns: [
+        { column_name: 'period', type: 'STRING', is_dttm: wasTemporal },
+      ],
+      metrics: [
+        { uuid: 'orders-metric', metric_name: 'orders', expression: 'orders' },
+      ],
+      column_formats: {},
+      verbose_map: {},
+      datasource_name: 'orders',
+      description: null,
+      main_dttm_col: wasTemporal ? 'period' : '',
+    };
+    const formData: QueryFormData = {
+      datasource: '7__semantic_view',
+      viz_type: vizType,
+      metrics: ['orders'],
+      groupby: ['period'],
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: { period: wasTemporal },
+      adhoc_filters: [],
+    };
+    const lookup = getControlStateFromControlConfig(
+      getControlConfig('temporal_columns_lookup', vizType),
+      { datasource, controls: {} },
+    );
+    expect(lookup?.value).toEqual({ period: wasTemporal });
+    if (!lookup) {
+      throw new Error('Expected the table temporal lookup control');
+    }
+    Object.freeze(lookup);
+    const initialExplore: ExploreState = {
+      datasource,
+      form_data: formData,
+      controls: {
+        datasource: { type: 'SelectControl', value: formData.datasource },
+        viz_type: { type: 'SelectControl', value: vizType },
+        time_grain_sqla: { type: 'SelectControl', value: TimeGranularity.DAY },
+        temporal_columns_lookup: lookup,
+        metrics: { type: 'SelectControl', value: ['orders'] },
+        groupby: { type: 'SelectControl', value: ['period'] },
+        adhoc_filters: { type: 'SelectControl', value: [] },
+      },
+    };
+    const initialState = {
+      explore: initialExplore,
+      versionHistory: versionHistoryReducer(undefined, {
+        type: CLEAR_VERSION_SESSION_LOG,
+      }),
+    };
+    const store = createStore(
+      (
+        state: {
+          explore: ExploreState;
+          versionHistory: VersionHistoryState;
+        } = initialState,
+        action: AnyAction,
+      ) => ({
+        explore: exploreReducer(
+          state.explore,
+          action as Parameters<typeof exploreReducer>[1],
+        ),
+        versionHistory: versionHistoryReducer(
+          state.versionHistory,
+          action as Parameters<typeof versionHistoryReducer>[1],
+        ),
+      }),
+      applyMiddleware(versionSessionLogMiddleware),
+    );
+    const fresh: Dataset = {
+      ...datasource,
+      main_dttm_col: wasTemporal ? '' : 'period',
+      columns: [
+        {
+          column_name: 'period',
+          type: wasTemporal ? 'STRING' : 'TIMESTAMP',
+          is_dttm: !wasTemporal,
+        },
+      ],
+    };
+    try {
+      store.dispatch(syncSemanticMetadata(fresh, formData));
+      const refreshed = store.getState().explore;
+      const query = buildQuery({
+        ...formData,
+        ...getFormDataFromControls(refreshed.controls),
+      } as TableChartFormData).queries[0];
+      if (wasTemporal) {
+        expect(query.columns).toEqual(['period']);
+        expect(query.extras).not.toHaveProperty('time_grain_sqla');
+      } else {
+        expect(query.columns).toEqual([
+          expect.objectContaining({
+            sqlExpression: 'period',
+            timeGrain: TimeGranularity.DAY,
+            isColumnReference: true,
+          }),
+        ]);
+      }
+      expect(refreshed.controls.temporal_columns_lookup.value).toEqual({
+        period: !wasTemporal,
+      });
+      expect(refreshed.form_data).toBe(formData);
+      expect(refreshed.controls.adhoc_filters.value).toEqual([]);
+      expect(store.getState().versionHistory.sessionLog).toEqual([]);
+      expect(lookup.value).toEqual({ period: wasTemporal });
     } finally {
       window.featureFlags = previousFlags;
     }

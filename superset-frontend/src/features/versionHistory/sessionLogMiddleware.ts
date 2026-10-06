@@ -191,7 +191,11 @@ export const versionSessionLogMiddleware: Middleware =
       const state = store.getState() as SessionLogState;
       const controls = state.explore?.controls ?? {};
       Object.entries(action.formData ?? {}).forEach(([controlName, value]) => {
-        if (!jsonValuesEqual(value, controls[controlName]?.value)) {
+        // The temporal lookup is rebuilt from metadata without a user edit.
+        if (
+          controlName !== 'temporal_columns_lookup' &&
+          !jsonValuesEqual(value, controls[controlName]?.value)
+        ) {
           store.dispatch(
             appendVersionSessionLog({
               label: t("Changed '%s'", controlLabel(state, controlName)),
