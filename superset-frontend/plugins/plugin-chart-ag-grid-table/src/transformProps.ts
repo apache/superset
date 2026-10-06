@@ -608,6 +608,7 @@ const transformProps = (
     header_groups: headerGroups = [],
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
+    json_in_cell: jsonInCell = false,
     zebra_striping: zebraStriping = false,
   } = formData;
 
@@ -953,6 +954,7 @@ const transformProps = (
     emitCrossFilters,
     allowRearrangeColumns,
     allowRenderHtml,
+    jsonInCell: Boolean(jsonInCell),
     slice_id,
     serverPagination,
     rowCount,
