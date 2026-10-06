@@ -25722,6 +25722,14 @@ msgid ""
 msgstr "이 이메일은 이미 계정과 연결되어 있습니다. 다른 이메일을 선택하세요."
 
 #, python-format
+msgid ""
+"This engine compares less of a %(operator)s value on %(column)s than the "
+"filter carries, so there is no mirror a predicate on the partition column"
+" could stand in for. Map a column the engine compares in full to mirror "
+"this operator."
+msgstr ""
+
+#, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
 
