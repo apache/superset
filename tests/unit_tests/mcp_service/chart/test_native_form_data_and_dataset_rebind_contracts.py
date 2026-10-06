@@ -698,3 +698,79 @@ def test_explicit_empty_filters_clear_legacy_predicates_on_cross_viz_update() ->
         (query,) = build_query_dicts_from_form_data(merged, 10, "table")
     assert query["filters"] == []
     assert "EMEA" not in str(query)
+
+
+@pytest.mark.parametrize("chart_type", ["xy", "bar", "echarts_timeseries_bar"])
+def test_typed_xy_metrics_alias_keeps_column_semantics(chart_type: str) -> None:
+    """Only native Explore payloads read ``metrics`` strings as saved metrics."""
+    request = GenerateChartRequest.model_validate(
+        {
+            "dataset_id": 7,
+            "config": {
+                "chart_type": chart_type,
+                "x": {"name": "region"},
+                "metrics": ["revenue"],
+            },
+        }
+    )
+
+    assert request.config is not None
+    (metric,) = request.config.y
+    assert metric.name == "revenue"
+    assert metric.saved_metric is False
+    mapped = map_config_to_form_data(request.config, dataset_id=7)
+    (mapped_metric,) = mapped["metrics"]
+    assert mapped_metric["expressionType"] == "SIMPLE"
+    assert mapped_metric["aggregate"] == "SUM"
+    assert mapped_metric["column"]["column_name"] == "revenue"
+
+
+def test_native_xy_metrics_strings_remain_saved_metric_references() -> None:
+    request = GenerateChartRequest.model_validate(
+        {
+            "dataset_id": 7,
+            "config": {
+                "viz_type": "echarts_timeseries_bar",
+                "x_axis": "region",
+                "metrics": ["revenue"],
+            },
+        }
+    )
+
+    assert request.config is not None
+    (metric,) = request.config.y
+    assert metric.name == "revenue"
+    assert metric.saved_metric is True
+
+
+def test_replacement_filters_drop_legacy_predicates_on_cross_viz_update() -> None:
+    """Typed filters replace every saved predicate source, not only adhoc ones."""
+    saved = {
+        "viz_type": "table",
+        "datasource": "10__table",
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["count"],
+        "filters": [{"col": "region", "op": "==", "val": "EMEA"}],
+        "extra_filters": [{"col": "region", "op": "in", "val": ["EMEA"]}],
+        "where": "region = 'EMEA'",
+        "having": "COUNT(*) > 5",
+    }
+    config = SunburstChartConfig(
+        hierarchy=[{"name": "region"}, {"name": "country"}],
+        metric={"name": "sales", "aggregate": "SUM"},
+        filters=[{"column": "region", "op": "=", "value": "APAC"}],
+    )
+    new_form_data = map_config_to_form_data(config)
+
+    merged = merge_form_data_for_update(saved, new_form_data, config)
+
+    assert {"filters", "extra_filters", "where", "having"}.isdisjoint(merged)
+    assert merged["adhoc_filters"] == new_form_data["adhoc_filters"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        (query,) = build_query_dicts_from_form_data(merged, 10, "table")
+    assert "EMEA" not in str(query)
+    assert "APAC" in str(query)

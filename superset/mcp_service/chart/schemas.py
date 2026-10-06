@@ -5051,6 +5051,9 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
         config = dict(config)
         data["config"] = config
         viz_type = config.get("viz_type")
+        # Explore form data always carries ``viz_type``; typed requests use
+        # ``chart_type``. Only native payloads get native metric semantics.
+        is_native_payload = isinstance(viz_type, str)
         if viz_type == "sunburst_v2":
             # The discriminator normalization below removes viz_type before the
             # nested model runs. Carry native provenance through that boundary
@@ -5179,10 +5182,11 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
             config.pop("x_axis_sort_series_type", None)
             config.pop("x_axis_sort_series_ascending", None)
 
-            # Saved metrics are string references; native SIMPLE/SQL objects
-            # carry expressionType metadata. Typed ``y`` strings keep their
-            # existing column-with-default-SUM semantics.
-            if "y" not in config and "metrics" in config:
+            # In native form data, metric strings are saved-metric references
+            # and SIMPLE/SQL objects carry expressionType metadata. The typed
+            # ``metrics`` alias of ``y`` keeps its column-with-default-SUM
+            # semantics, so only native payloads are rewritten here.
+            if is_native_payload and "y" not in config and "metrics" in config:
                 raw_metrics = config.pop("metrics")
                 metrics = (
                     raw_metrics if isinstance(raw_metrics, list) else [raw_metrics]

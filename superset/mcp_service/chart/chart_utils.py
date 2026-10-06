@@ -2303,12 +2303,14 @@ def overlay_update_form_data(
         merged.pop(key, None)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
-    if getattr(config, "filters", None) == []:
+    requested_filters = getattr(config, "filters", None)
+    if requested_filters is not None:
         # Legacy ``filters``/``where``/``having`` are reconstructed into adhoc
-        # filters at query time, so an explicit clear removes every source.
-        for key in _SAVED_PREDICATE_FORM_DATA_KEYS:
+        # filters at query time, so an explicit clear or replacement removes
+        # every saved source the new form data does not set itself.
+        for key in _SAVED_PREDICATE_FORM_DATA_KEYS - new_form_data.keys():
             merged.pop(key, None)
-    elif getattr(config, "filters", None) is None:
+    else:
         filters = _merge_preserved_adhoc_filters(
             existing_form_data,
             new_form_data,
