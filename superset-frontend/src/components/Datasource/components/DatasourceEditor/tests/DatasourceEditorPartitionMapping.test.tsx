@@ -338,9 +338,9 @@ test('DatasourceEditor source pins syncMetadata to the live column state', () =>
   // `updateColumns` passes an unchanged column through verbatim, so merging a
   // sync against that snapshot restores whatever the dataset held when the
   // modal opened -- the transform and monotonicity flag the owner just
-  // cleared, the `filterable`/`groupby` flags `applyPartitionColumnDefaults`
-  // just turned off, any description edited this session. The merge semantics
-  // themselves are covered in `utils/partitionMapping.test.ts`.
+  // cleared, a `filterable`/`groupby` flag they just toggled, any description
+  // edited this session. The merge semantics themselves are covered in
+  // `utils/partitionMapping.test.ts`.
   // eslint-disable-next-line global-require
   const { readFileSync } = require('fs');
   // eslint-disable-next-line global-require
@@ -413,4 +413,37 @@ test("the mapped column's row is muted in the columns table", async () => {
   expect(container.querySelector('tr.partition-column-row')).toHaveTextContent(
     'num',
   );
+});
+
+test('designating a partition column leaves its filterable and groupby flags alone', async () => {
+  // The customer's decision (2026-09-22): marking a column as the partition
+  // column must not change its "Is filterable" / "Is dimension" flags, and the
+  // column stays visible in Explore. The editor forced both to false, which
+  // silently changed behaviour for a dataset that already exposes its partition
+  // key -- and once the sync merged against live state rather than the
+  // mount-time snapshot, the unticking survived the save instead of being
+  // quietly reverted by it.
+  //
+  // `gender` is the probe because it starts with both flags set; `num`, the
+  // column these tests usually map, ships with both already false and so could
+  // not tell the two behaviours apart.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = null;
+  props.datasource.partition_mapped_column = null;
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('partition-column-select');
+
+  await selectOption('gender', 'Partition column');
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalled();
+  });
+  expect(columnNamed(lastSavedColumns(props), 'gender')).toMatchObject({
+    filterable: true,
+    groupby: true,
+  });
 });
