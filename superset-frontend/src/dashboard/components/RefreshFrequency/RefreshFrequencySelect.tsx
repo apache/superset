@@ -52,6 +52,9 @@ const CustomContent = styled.div`
   }
 `;
 
+/**
+ * Structured refresh frequency option representation.
+ */
 export interface RefreshFrequencyOption {
   value: number;
   label: string;
@@ -72,6 +75,13 @@ export const REFRESH_FREQUENCY_OPTIONS: RefreshFrequencyOption[] = [
   { value: -1, label: t('Custom') },
 ];
 
+/**
+ * Checks if a given frequency matches one of the preset options.
+ *
+ * @param frequency The refresh frequency in seconds to check.
+ * @param options The list of available refresh frequency options to match against.
+ * @returns True if frequency is found in preset options, false otherwise.
+ */
 export const isPresetValue = (
   frequency: number,
   options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
@@ -80,6 +90,13 @@ export const isPresetValue = (
     option => option.value === frequency && option.value !== -1,
   );
 
+/**
+ * Formats a custom frequency as a string value for the custom input.
+ *
+ * @param frequency The refresh frequency in seconds.
+ * @param options The list of active preset options.
+ * @returns The custom frequency formatted as string if not a preset, or empty string.
+ */
 export const getCustomValue = (
   frequency: number,
   options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
@@ -88,6 +105,9 @@ export const getCustomValue = (
     ? frequency.toString()
     : '';
 
+/**
+ * Normalizes refresh limit value from milliseconds to seconds if needed.
+ */
 const normalizeRefreshLimitSeconds = (
   refreshLimit?: number,
 ): number | undefined => {
@@ -102,15 +122,26 @@ const normalizeRefreshLimitSeconds = (
   return refreshLimit;
 };
 
+/**
+ * Props for the RefreshFrequencySelect component.
+ */
 export interface RefreshFrequencySelectProps {
+  /** The currently selected refresh frequency in seconds. */
   value: number;
+  /** Callback fired when a new refresh frequency is selected or typed. */
   onChange: (value: number) => void;
+  /** Optional override for available interval options as [seconds, label] tuples. */
   options?: [number, string][];
 }
 
 /**
- * Shared refresh frequency select component
- * Used in both PropertiesModal and RefreshIntervalModal
+ * Shared refresh frequency select component.
+ *
+ * Renders radio buttons for available auto refresh frequencies.
+ * Reads configured intervals dynamically from Redux store
+ * (state.dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_INTERVALS)
+ * with a fallback to REFRESH_FREQUENCY_OPTIONS if unconfigured.
+ * Also supports direct options prop override and custom numeric interval entry.
  */
 export const RefreshFrequencySelect = ({
   value,
